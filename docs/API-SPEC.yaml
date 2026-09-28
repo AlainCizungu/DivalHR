@@ -1,0 +1,169 @@
+openapi: 3.1.0
+info:
+  title: DivalHR API
+  version: 0.1.0
+  description: Initial contract skeleton for the bilingual DivalHR platform.
+servers:
+  - url: https://api.divalhr.com/api/v1
+security:
+  - oauth2: []
+paths:
+  /organizations:
+    get:
+      operationId: listOrganizations
+      summary: List authorized organizations
+      responses:
+        "200":
+          description: Authorized organizations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Organization"
+    post:
+      operationId: createOrganization
+      summary: Create an organization
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganization"
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+  /employees:
+    get:
+      operationId: listEmployees
+      summary: List employees within the authorized scope
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Employee page
+    post:
+      operationId: createEmployee
+      summary: Create an employee
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201":
+          description: Employee created
+  /attendance-events:
+    post:
+      operationId: recordAttendanceEvent
+      summary: Record an online or synchronized offline attendance event
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Attendance event accepted
+  /pay-periods/{payPeriodId}/inputs:
+    get:
+      operationId: listPayInputs
+      summary: List authorized payroll inputs for a period
+      parameters:
+        - name: payPeriodId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Payroll inputs
+  /webhooks:
+    post:
+      operationId: createWebhook
+      summary: Create a signed webhook subscription
+      responses:
+        "201":
+          description: Webhook created
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://identity.divalhr.com/oauth2/authorize
+          tokenUrl: https://identity.divalhr.com/oauth2/token
+          scopes:
+            organizations:read: Read authorized organizations
+            employees:read: Read authorized employees
+            employees:write: Manage authorized employees
+            attendance:write: Record attendance
+            payroll:read: Read authorized payroll data
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  schemas:
+    Organization:
+      type: object
+      required: [id, name, defaultLocale, timezone, currencies]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        defaultLocale:
+          type: string
+          enum: [fr, en]
+        timezone:
+          type: string
+          example: Africa/Kinshasa
+        currencies:
+          type: array
+          items:
+            type: string
+            enum: [CDF, USD]
+    CreateOrganization:
+      type: object
+      required: [name, countryCode, defaultLocale, timezone, currencies]
+      properties:
+        name:
+          type: string
+        countryCode:
+          type: string
+          example: CD
+        defaultLocale:
+          type: string
+          enum: [fr, en]
+        timezone:
+          type: string
+        currencies:
+          type: array
+          minItems: 1
+          items:
+            type: string
