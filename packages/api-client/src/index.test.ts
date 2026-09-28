@@ -6,7 +6,12 @@ function recordingFetch() {
   const fetch = vi.fn(async (input: Request) => {
     requests.push(input);
     return new Response(
-      JSON.stringify({ service: 'x', status: 'UP', version: '0', checkedAt: '2026-09-28T00:00:00Z' }),
+      JSON.stringify({
+        service: 'x',
+        status: 'UP',
+        version: '0',
+        checkedAt: '2026-09-28T00:00:00Z',
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   });

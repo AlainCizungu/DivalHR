@@ -25,20 +25,20 @@ paths:
           required: false
           schema:
             type: string
-            pattern: "^[A-Za-z0-9._-]{8,64}$"
+            pattern: '^[A-Za-z0-9._-]{8,64}$'
       responses:
-        "200":
+        '200':
           description: Service is ready
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SystemStatus"
-        "503":
+                $ref: '#/components/schemas/SystemStatus'
+        '503':
           description: Service is not ready
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SystemStatus"
+                $ref: '#/components/schemas/SystemStatus'
 components:
   schemas:
     SystemStatus:

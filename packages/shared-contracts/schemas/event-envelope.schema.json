@@ -27,7 +27,10 @@
     "schemaVersion": { "type": "integer", "minimum": 1 },
     "tenantId": { "type": "string", "format": "uuid" },
     "source": { "type": "string", "description": "Producing module, e.g. core-api/tenant" },
-    "subject": { "type": "string", "description": "Identifier of the affected entity; never personal data" },
+    "subject": {
+      "type": "string",
+      "description": "Identifier of the affected entity; never personal data"
+    },
     "eventTime": { "type": "string", "format": "date-time" },
     "correlationId": { "type": "string", "minLength": 8, "maxLength": 64 },
     "causationId": { "type": ["string", "null"] },

@@ -38,7 +38,9 @@ describe('event envelope', () => {
   });
 
   it('rejects unversioned event types', () => {
-    expect(validator(envelopeSchema)({ ...validEvent, eventType: 'OrganizationCreated' })).toBe(false);
+    expect(validator(envelopeSchema)({ ...validEvent, eventType: 'OrganizationCreated' })).toBe(
+      false,
+    );
   });
 });
 
@@ -57,7 +59,10 @@ describe('AI service status contract', () => {
       ...core.components.schemas.SystemStatus,
       properties: {
         ...core.components.schemas.SystemStatus.properties,
-        service: { ...core.components.schemas.SystemStatus.properties.service, example: 'ai-service' },
+        service: {
+          ...core.components.schemas.SystemStatus.properties.service,
+          example: 'ai-service',
+        },
       },
     });
   });

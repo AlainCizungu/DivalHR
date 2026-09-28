@@ -20,7 +20,8 @@ export function flatten(object, prefix = '') {
   return entries;
 }
 
-const placeholders = (value) => [...String(value).matchAll(/{{\s*(\w+)\s*}}/g)].map((m) => m[1]).sort();
+const placeholders = (value) =>
+  [...String(value).matchAll(/{{\s*(\w+)\s*}}/g)].map((m) => m[1]).sort();
 
 export function compareLocales(byLocale) {
   const problems = [];
@@ -56,7 +57,10 @@ export function compareLocales(byLocale) {
         if (!(key in flat[other])) continue;
         const a = placeholders(flat[base][key]).join(',');
         const b = placeholders(flat[other][key]).join(',');
-        if (a !== b) problems.push(`${ns}: placeholder mismatch for "${key}" (${base}: [${a}], ${other}: [${b}])`);
+        if (a !== b)
+          problems.push(
+            `${ns}: placeholder mismatch for "${key}" (${base}: [${a}], ${other}: [${b}])`,
+          );
       }
     }
   }
@@ -68,7 +72,9 @@ export function loadLocales(root) {
   for (const locale of readdirSync(root)) {
     result[locale] = {};
     for (const file of readdirSync(join(root, locale)).filter((f) => f.endsWith('.json'))) {
-      result[locale][file.replace(/\.json$/, '')] = JSON.parse(readFileSync(join(root, locale, file), 'utf8'));
+      result[locale][file.replace(/\.json$/, '')] = JSON.parse(
+        readFileSync(join(root, locale, file), 'utf8'),
+      );
     }
   }
   return result;

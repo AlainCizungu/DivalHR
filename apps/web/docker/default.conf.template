@@ -1,0 +1,50 @@
+# Rendered by the nginx entrypoint (envsubst). ${DIVALHR_CSP_CONNECT_SRC} lists the exact origins
+# the browser may call: Core API, AI Service status and the identity provider.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+
+    set $csp "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' ${DIVALHR_CSP_CONNECT_SRC}; form-action 'self' ${DIVALHR_OIDC_ORIGIN}; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'";
+
+    add_header Content-Security-Policy $csp always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+    add_header X-Frame-Options DENY always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok";
+    }
+
+    location = /config.js {
+        alias /tmp/divalhr/config.js;
+        default_type application/javascript;
+        add_header Cache-Control "no-store" always;
+        add_header Content-Security-Policy $csp always;
+        add_header X-Content-Type-Options nosniff always;
+    }
+
+    location = /sw.js {
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Security-Policy $csp always;
+        add_header X-Content-Type-Options nosniff always;
+    }
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options nosniff always;
+    }
+
+    location / {
+        try_files $uri /index.html;
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Security-Policy $csp always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy no-referrer always;
+        add_header X-Frame-Options DENY always;
+    }
+}
