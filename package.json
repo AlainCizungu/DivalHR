@@ -1,0 +1,25 @@
+{
+  "name": "divalhr",
+  "private": true,
+  "description": "DivalHR monorepo (JavaScript workspace: web app and shared packages)",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=24.21.0 <25"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "build": "pnpm -r --if-present run build",
+    "i18n:check": "pnpm --filter @divalhr/localization run check",
+    "api:lint": "redocly lint docs/API-SPEC.yaml packages/shared-contracts/openapi/ai-service.yaml",
+    "api:generate": "pnpm --filter @divalhr/api-client run generate",
+    "api:check": "pnpm --filter @divalhr/api-client run check"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.55.0",
+    "prettier": "3.9.9"
+  }
+}

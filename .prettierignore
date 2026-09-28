@@ -1,0 +1,11 @@
+# Owned by other formatters or generated
+apps/core-api/
+apps/ai-service/
+**/dist/
+**/coverage/
+**/playwright-report/
+**/test-results/
+packages/api-client/src/generated/
+pnpm-lock.yaml
+docs/
+*.md

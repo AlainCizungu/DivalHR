@@ -32,7 +32,8 @@ class AuthenticationIntegrationTest {
     mvc.perform(get("/api/v1/session").header("Authorization", "Bearer " + token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.tenantId").value(TestTokens.TENANT_A.toString()))
-        .andExpect(jsonPath("$.roles").value(List.of("tenant-admin")))
+        .andExpect(jsonPath("$.roles.length()").value(1))
+        .andExpect(jsonPath("$.roles[0]").value("tenant-admin"))
         .andExpect(jsonPath("$.sub").doesNotExist());
   }
 

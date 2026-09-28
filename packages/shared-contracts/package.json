@@ -1,0 +1,23 @@
+{
+  "name": "@divalhr/shared-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-service contracts: event envelope, error schema and the AI Service public OpenAPI.",
+  "exports": {
+    "./schemas/*": "./schemas/*",
+    "./openapi/*": "./openapi/*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "vitest": "5.0.2",
+    "yaml": "2.9.1",
+    "@types/node": "24.19.0",
+    "typescript": "5.9.3"
+  }
+}
