@@ -57,6 +57,8 @@ springdoc:
   show-actuator: false
 
 divalhr:
+  # Required, no default (fail closed): development | test | staging | production
+  environment: ${DIVALHR_ENVIRONMENT}
   version: ${DIVALHR_VERSION:0.1.0}
   security:
     issuer: ${DIVALHR_OIDC_ISSUER:http://localhost:8180/realms/divalhr-dev}

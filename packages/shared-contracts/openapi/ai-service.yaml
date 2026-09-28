@@ -6,8 +6,8 @@ info:
     Design-first contract for the only AI Service endpoint the browser may call. All future AI
     operations enter through the Core API boundary; the AI Service is not a browser-facing backend.
 servers:
-  - url: http://localhost:8090/api/v1
-    description: Local development
+  - url: /api/v1
+    description: Relative to the AI Service origin configured per environment
 security: []
 tags:
   - name: system

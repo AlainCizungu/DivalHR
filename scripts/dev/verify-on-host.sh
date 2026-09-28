@@ -4,8 +4,8 @@
 #
 # Usage: scripts/dev/verify-on-host.sh <stage>
 #   spike   Core API compatibility spike (Gradle check, SpotBugs, tests) + image digests
-#   core    Core API format + full check
-#   stack   Docker Compose stack up, health checks, Playwright smoke, then down
+#   core    Core API format + full clean check + bootJar
+#   stack   Compose stack up, status/CORS probes, Playwright smoke, log secret scan, down
 #   all     core + stack
 #
 # Compatible with macOS bash 3.2 and Linux bash.
@@ -92,13 +92,25 @@ image_digests() {
 
 gradle_sha() {
   local zip
-  zip=$(ls "$HOME"/.gradle/wrapper/dists/gradle-9.8.0-bin/*/gradle-9.8.0-bin.zip 2>/dev/null | head -1)
+  zip=$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/dists" -name 'gradle-9.8.0-bin.zip' 2>/dev/null | head -1)
   if [ -n "$zip" ]; then
     result "GRADLE_SHA256 $(shasum -a 256 "$zip" | awk '{print $1}')"
   else
-    result "GRADLE_SHA256 unavailable (distribution cached in container volume)"
+    result "GRADLE_SHA256 unavailable ($(ls -d "${GRADLE_USER_HOME:-$HOME/.gradle}"/wrapper/dists/* 2>&1 | tr '\n' ' '))"
   fi
 }
+
+use_node24() {
+  # Uses nvm (reads .nvmrc) when the active Node is not 24.x; pnpm comes from the pinned version.
+  if ! node -v 2>/dev/null | grep -q '^v24\.'; then
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    # shellcheck disable=SC1091
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && (cd "$ROOT" && nvm install >/dev/null && nvm use >/dev/null)
+  fi
+  node -v | grep -q '^v24\.' || { echo "Node 24 is required (see .nvmrc)"; return 1; }
+}
+
+pnpm_pinned() { (cd "$ROOT" && npx -y pnpm@10.34.6 "$@"); }
 
 stage_spike() {
   env_report
@@ -117,8 +129,9 @@ stage_spike() {
 stage_core() {
   env_report
   run spotless-apply gradle_core spotlessApply
-  run core-check gradle_core clean check bootJar
+  run core-check gradle_core --no-build-cache clean check bootJar
   test_totals
+  gradle_sha
 }
 
 stage_stack() {
@@ -126,9 +139,16 @@ stage_stack() {
   local compose="docker compose -f $ROOT/infrastructure/docker/compose.yaml --env-file $ROOT/.env.example"
   run compose-build $compose build
   run compose-up $compose up -d --wait --wait-timeout 300
+  run status-core curl -fsS -H 'X-Correlation-Id: host-verify-0001' http://localhost:8080/api/v1/system/status
+  run status-ai curl -fsS http://localhost:8090/api/v1/system/status
+  run cors-core-reject bash -c "! curl -fsS -X OPTIONS -H 'Origin: http://evil.example' -H 'Access-Control-Request-Method: GET' http://localhost:8080/api/v1/system/status"
   run compose-ps $compose ps
-  run e2e bash -c "cd '$ROOT' && make e2e-host"
+  run node24 use_node24
+  run pnpm-install pnpm_pinned install --frozen-lockfile
+  run playwright-browsers pnpm_pinned --filter @divalhr/web exec playwright install chromium
+  run e2e pnpm_pinned --filter @divalhr/web exec playwright test
   run compose-logs bash -c "$compose logs --no-color > '$OUT/compose.log' 2>&1"
+  run no-secrets-in-logs bash -c "! grep -E 'eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.|Bearer [A-Za-z0-9._-]{20,}|dev-only-(Admin|Employee|Platform)' '$OUT/compose.log'"
   run compose-down $compose down -v
 }
 

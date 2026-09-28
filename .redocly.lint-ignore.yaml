@@ -3,3 +3,6 @@
 docs/API-SPEC.yaml:
   operation-4xx-response:
     - '#/paths/~1system~1status/get/responses'
+packages/shared-contracts/openapi/ai-service.yaml:
+  operation-4xx-response:
+    - '#/paths/~1system~1status/get/responses'

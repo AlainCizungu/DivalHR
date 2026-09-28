@@ -1,0 +1,14 @@
+# Root build context is used only by apps/web/Dockerfile.
+**/node_modules
+**/dist
+**/dev-dist
+**/coverage
+**/playwright-report
+**/test-results
+apps/core-api
+apps/ai-service
+infrastructure
+docs
+.git
+.divalhr-sync
+.env
