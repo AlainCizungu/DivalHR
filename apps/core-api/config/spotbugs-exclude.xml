@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Keep exclusions narrow and justified. -->
+<FindBugsFilter>
+  <!-- Spring beans intentionally hold injected collaborators (constructor injection). -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Source name="~.*Config\.java"/>
+  </Match>
+</FindBugsFilter>
