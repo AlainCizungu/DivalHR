@@ -26,8 +26,8 @@ final class ProblemAuthenticationHandlers {
     return (request, response, exception) -> write(request, response, ErrorCode.ACCESS_DENIED);
   }
 
-  private static void write(HttpServletRequest request, HttpServletResponse response, ErrorCode code)
-      throws IOException {
+  private static void write(
+      HttpServletRequest request, HttpServletResponse response, ErrorCode code) throws IOException {
     response.setStatus(code.status().value());
     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
     if (code == ErrorCode.AUTHENTICATION_REQUIRED) {

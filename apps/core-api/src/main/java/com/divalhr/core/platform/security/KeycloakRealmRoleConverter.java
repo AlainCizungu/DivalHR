@@ -9,8 +9,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 /**
- * Maps Keycloak realm roles ({@code realm_access.roles}) to {@code ROLE_*} authorities. Only
- * roles on the allow-list are mapped so that Keycloak default roles never become privileges.
+ * Maps Keycloak realm roles ({@code realm_access.roles}) to {@code ROLE_*} authorities. Only roles
+ * on the allow-list are mapped so that Keycloak default roles never become privileges.
  */
 public final class KeycloakRealmRoleConverter
     implements Converter<Jwt, Collection<GrantedAuthority>> {

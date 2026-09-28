@@ -30,8 +30,7 @@ class PlatformIntegrationTest {
 
   @Test
   void generatesCorrelationIdWhenAbsent() throws Exception {
-    mvc.perform(get("/api/v1/system/status"))
-        .andExpect(header().exists("X-Correlation-Id"));
+    mvc.perform(get("/api/v1/system/status")).andExpect(header().exists("X-Correlation-Id"));
   }
 
   @Test

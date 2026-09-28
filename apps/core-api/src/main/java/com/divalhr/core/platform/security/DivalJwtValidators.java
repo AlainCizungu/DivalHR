@@ -11,8 +11,8 @@ public final class DivalJwtValidators {
   private DivalJwtValidators() {}
 
   /**
-   * Builds the validator: signature is checked by the decoder; this adds expiry, not-before,
-   * exact issuer and audience checks.
+   * Builds the validator: signature is checked by the decoder; this adds expiry, not-before, exact
+   * issuer and audience checks.
    *
    * @param properties security properties
    * @return composed validator

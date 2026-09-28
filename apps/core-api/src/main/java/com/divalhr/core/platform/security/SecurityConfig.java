@@ -19,8 +19,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
- * Deny-by-default HTTP security. Only the public status endpoint and (when enabled for
- * development and contract verification) the generated API description are anonymous.
+ * Deny-by-default HTTP security. Only the public status endpoint and (when enabled for development
+ * and contract verification) the generated API description are anonymous.
  */
 @Configuration
 @EnableMethodSecurity

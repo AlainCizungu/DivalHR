@@ -9,14 +9,19 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 /** Enforces the domain boundaries from docs/ARCHITECTURE.md. */
-@AnalyzeClasses(
-    packages = "com.divalhr.core",
-    importOptions = ImportOption.DoNotIncludeTests.class)
+@AnalyzeClasses(packages = "com.divalhr.core", importOptions = ImportOption.DoNotIncludeTests.class)
 class ModuleBoundaryTest {
 
   private static final String[] MODULES = {
-    "identity", "tenant", "people", "operations", "payroll",
-    "documents", "integrations", "analytics", "finance"
+    "identity",
+    "tenant",
+    "people",
+    "operations",
+    "payroll",
+    "documents",
+    "integrations",
+    "analytics",
+    "finance"
   };
 
   @ArchTest
