@@ -1,0 +1,39 @@
+package com.divalhr.core.platform.error;
+
+import org.springframework.http.HttpStatus;
+
+/**
+ * Stable, machine-readable error codes. Clients translate these; the API never returns translated
+ * text as an identifier.
+ */
+public enum ErrorCode {
+  /** The request failed validation. */
+  VALIDATION_FAILED(HttpStatus.BAD_REQUEST),
+  /** No valid bearer token was presented. */
+  AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED),
+  /** The caller is authenticated but not permitted to perform the action. */
+  ACCESS_DENIED(HttpStatus.FORBIDDEN),
+  /** The verified token does not carry a tenant context. */
+  TENANT_CONTEXT_MISSING(HttpStatus.FORBIDDEN),
+  /** The caller attempted to access another tenant's resource. */
+  TENANT_ACCESS_DENIED(HttpStatus.FORBIDDEN),
+  /** The resource does not exist or is not visible to the caller. */
+  NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** An unexpected server error occurred. */
+  INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
+
+  private final HttpStatus status;
+
+  ErrorCode(HttpStatus status) {
+    this.status = status;
+  }
+
+  /**
+   * Returns the HTTP status associated with this code.
+   *
+   * @return the HTTP status
+   */
+  public HttpStatus status() {
+    return status;
+  }
+}

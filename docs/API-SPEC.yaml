@@ -3,16 +3,76 @@ info:
   title: DivalHR API
   version: 0.1.0
   description: Initial contract skeleton for the bilingual DivalHR platform.
+tags:
+  - name: system
+    description: Platform status
+  - name: identity
+    description: Identity and session
 servers:
   - url: https://api.divalhr.com/api/v1
 security:
   - oauth2: []
 paths:
+  /system/status:
+    get:
+      operationId: getSystemStatus
+      x-divalhr-lifecycle: implemented
+      summary: Public, non-sensitive Core API status
+      description: >-
+        Anonymous endpoint used by the web status screen and uptime checks. Returns no
+        dependency, configuration or tenant information.
+      tags: [system]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Service is ready
+          headers:
+            X-Correlation-Id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStatus"
+        "503":
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStatus"
+  /session:
+    get:
+      operationId: getCurrentSession
+      x-divalhr-lifecycle: implemented
+      summary: Verified tenant and roles of the caller
+      description: >-
+        Returns only the verified tenant identifier and recognised roles. Never returns names,
+        e-mail addresses or token contents.
+      tags: [identity]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /organizations:
     get:
       operationId: listOrganizations
+      x-divalhr-lifecycle: planned
       summary: List authorized organizations
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "200":
           description: Authorized organizations
           content:
@@ -27,6 +87,7 @@ paths:
                       $ref: "#/components/schemas/Organization"
     post:
       operationId: createOrganization
+      x-divalhr-lifecycle: planned
       summary: Create an organization
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
@@ -37,6 +98,10 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateOrganization"
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "201":
           description: Organization created
           content:
@@ -46,33 +111,49 @@ paths:
   /employees:
     get:
       operationId: listEmployees
+      x-divalhr-lifecycle: planned
       summary: List employees within the authorized scope
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "200":
           description: Employee page
     post:
       operationId: createEmployee
+      x-divalhr-lifecycle: planned
       summary: Create an employee
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "201":
           description: Employee created
   /attendance-events:
     post:
       operationId: recordAttendanceEvent
+      x-divalhr-lifecycle: planned
       summary: Record an online or synchronized offline attendance event
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "202":
           description: Attendance event accepted
   /pay-periods/{payPeriodId}/inputs:
     get:
       operationId: listPayInputs
+      x-divalhr-lifecycle: planned
       summary: List authorized payroll inputs for a period
       parameters:
         - name: payPeriodId
@@ -82,13 +163,22 @@ paths:
             type: string
             format: uuid
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "200":
           description: Payroll inputs
   /webhooks:
     post:
       operationId: createWebhook
+      x-divalhr-lifecycle: planned
       summary: Create a signed webhook subscription
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "201":
           description: Webhook created
 components:
@@ -105,7 +195,33 @@ components:
             employees:write: Manage authorized employees
             attendance:write: Record attendance
             payroll:read: Read authorized payroll data
+  headers:
+    CorrelationId:
+      description: Correlation ID echoed from the request or generated by the server.
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing, invalid or expired access token
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: Authenticated but not permitted (including missing or foreign tenant)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
   parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated.
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9._-]{8,64}$"
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -167,3 +283,65 @@ components:
           minItems: 1
           items:
             type: string
+    SystemStatus:
+      type: object
+      required: [service, status, version, checkedAt]
+      properties:
+        service:
+          type: string
+          example: core-api
+        status:
+          type: string
+          enum: [UP, DOWN]
+        version:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+    CurrentSession:
+      type: object
+      required: [tenantId, roles]
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [platform-admin, tenant-admin, employee]
+    ErrorCode:
+      type: string
+      description: Stable machine-readable code. Clients translate it; it is never localized text.
+      enum:
+        - VALIDATION_FAILED
+        - AUTHENTICATION_REQUIRED
+        - ACCESS_DENIED
+        - TENANT_CONTEXT_MISSING
+        - TENANT_ACCESS_DENIED
+        - NOT_FOUND
+        - INTERNAL_ERROR
+    Problem:
+      type: object
+      description: RFC 9457 problem details with DivalHR extensions.
+      required: [type, title, status, code, params, correlationId]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          $ref: "#/components/schemas/ErrorCode"
+        params:
+          type: object
+          description: Safe interpolation parameters. Never contains personal data.
+          additionalProperties: true
+        correlationId:
+          type: string

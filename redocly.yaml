@@ -1,0 +1,9 @@
+# OpenAPI lint policy for the authoritative contract (docs/API-SPEC.yaml).
+extends:
+  - recommended
+rules:
+  info-license: off # Proprietary product; license is stated in the repository, not the API.
+  operation-4xx-response: error # Exception: anonymous status endpoint, see .redocly.lint-ignore.yaml
+  operation-operationId-unique: error
+  no-unused-components: error
+  security-defined: error
