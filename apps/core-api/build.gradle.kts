@@ -24,7 +24,7 @@ repositories {
 
 val springdocVersion = "3.1.1"
 val archunitVersion = "1.5.1"
-val jsonSchemaValidatorVersion = "1.5.9"
+val jsonSchemaValidatorVersion = "3.0.7"
 
 dependencies {
     implementation(platform(SpringBootPlugin.BOM_COORDINATES))
