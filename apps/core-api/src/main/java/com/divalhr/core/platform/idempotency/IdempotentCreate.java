@@ -164,8 +164,12 @@ public class IdempotentCreate {
   private static Outcome outcomeOf(ErrorCode code) {
     return switch (code) {
       case IDEMPOTENCY_KEY_REUSED -> Outcome.IDEMPOTENCY_CONFLICT;
-      case DUPLICATE_LEGAL_ENTITY_CODE, DUPLICATE_SITE_CODE -> Outcome.DUPLICATE_CONFLICT;
-      case LEGAL_ENTITY_NOT_FOUND, NOT_FOUND -> Outcome.NOT_FOUND;
+      case DUPLICATE_LEGAL_ENTITY_CODE,
+          DUPLICATE_SITE_CODE,
+          DUPLICATE_DEPARTMENT_CODE,
+          DUPLICATE_COST_CENTER_CODE ->
+          Outcome.DUPLICATE_CONFLICT;
+      case LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, NOT_FOUND -> Outcome.NOT_FOUND;
       case ACCESS_DENIED, TENANT_ACCESS_DENIED, TENANT_CONTEXT_MISSING -> Outcome.DENIED;
       case INTERNAL_ERROR -> Outcome.FAILURE;
       default -> Outcome.VALIDATION_FAILED;

@@ -110,6 +110,21 @@ class ApiContractDriftTest {
   }
 
   @Test
+  void hierarchyPathsAreExposedUnderTheFullPublicBasePath() {
+    Map<String, Object> paths = castMap(generated.get("paths"));
+    for (String path :
+        List.of(
+            "/api/v1/legal-entities",
+            "/api/v1/sites",
+            "/api/v1/departments",
+            "/api/v1/cost-centers")) {
+      assertThat(paths).as(path).containsKey(path);
+    }
+    assertThat(castMap(spec.get("paths"))).containsKeys("/departments", "/cost-centers");
+    assertThat(((List<?>) spec.get("servers")).toString()).contains("/api/v1");
+  }
+
+  @Test
   void requiredRolesAndScopesMatchHandlers() {
     Map<String, String> expected = new TreeMap<>();
     for (Map.Entry<String, Map<String, Object>> entry : operations(spec, false, true).entrySet()) {

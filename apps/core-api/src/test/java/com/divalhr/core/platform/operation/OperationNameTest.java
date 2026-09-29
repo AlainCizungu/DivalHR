@@ -3,10 +3,13 @@ package com.divalhr.core.platform.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.divalhr.core.tenant.api.CostCenterController;
+import com.divalhr.core.tenant.api.DepartmentController;
 import com.divalhr.core.tenant.application.CreateLegalEntityService;
 import com.divalhr.core.tenant.application.CreateOrganizationService;
 import com.divalhr.core.tenant.application.CreateSiteService;
 import com.divalhr.core.tenant.application.HierarchyQueryService;
+import com.divalhr.core.tenant.domain.SiteUnitKind;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,7 +26,11 @@ class OperationNameTest {
           CreateLegalEntityService.OPERATION,
           CreateSiteService.OPERATION,
           HierarchyQueryService.LIST_LEGAL_ENTITIES,
-          HierarchyQueryService.LIST_SITES);
+          HierarchyQueryService.LIST_SITES,
+          DepartmentController.CREATE,
+          DepartmentController.LIST,
+          CostCenterController.CREATE,
+          CostCenterController.LIST);
 
   /** Malformed names from Issue #17 plus the grammar's edges. */
   static final List<String> MALFORMED =
@@ -34,6 +41,18 @@ class OperationNameTest {
     assertThat(CURRENT).allMatch(OperationName::isValid);
     assertThat(MALFORMED).noneMatch(OperationName::isValid);
     assertThat(OperationName.isValid(null)).isFalse();
+  }
+
+  @Test
+  void controllerConstantsMatchTheDomainSemantics() {
+    assertThat(DepartmentController.CREATE).isEqualTo(SiteUnitKind.DEPARTMENT.createOperation());
+    assertThat(DepartmentController.LIST).isEqualTo(SiteUnitKind.DEPARTMENT.listOperation());
+    assertThat(CostCenterController.CREATE).isEqualTo(SiteUnitKind.COST_CENTER.createOperation());
+    assertThat(CostCenterController.LIST).isEqualTo(SiteUnitKind.COST_CENTER.listOperation());
+    assertThat(SiteUnitKind.DEPARTMENT.createdEventType())
+        .isEqualTo("tenant.department-created.v1");
+    assertThat(SiteUnitKind.COST_CENTER.createdEventType())
+        .isEqualTo("tenant.cost-center-created.v1");
   }
 
   @Test

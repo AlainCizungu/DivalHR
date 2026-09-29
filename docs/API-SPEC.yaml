@@ -270,6 +270,158 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+  /departments:
+    get:
+      operationId: listDepartments
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: List departments of one site in the caller's tenant
+      description: >-
+        Keyset-paginated, ordered by code (byte order) then id. An empty page is returned for an
+        existing site without departments. A site that does not exist and one that belongs to another
+        tenant produce the same 404 SITE_NOT_FOUND response.
+      tags: [tenant]
+      parameters:
+        - name: siteId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of departments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepartmentPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createDepartment
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: Create a department beneath a site of the caller's tenant
+      description: >-
+        The department's effective period must lie within its site's period; an open-ended department
+        requires an open-ended site. Codes are trimmed, upper-cased and unique per tenant among departments regardless of case.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepartment"
+      responses:
+        "201":
+          description: Department created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /cost-centers:
+    get:
+      operationId: listCostCenters
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: List cost centers of one site in the caller's tenant
+      description: >-
+        Keyset-paginated, ordered by code (byte order) then id. An empty page is returned for an
+        existing site without cost centers. A site that does not exist and one that belongs to another
+        tenant produce the same 404 SITE_NOT_FOUND response.
+      tags: [tenant]
+      parameters:
+        - name: siteId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of cost centers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostCenterPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createCostCenter
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: Create a cost center beneath a site of the caller's tenant
+      description: >-
+        The cost center's effective period must lie within its site's period; an open-ended cost center
+        requires an open-ended site. Codes are trimmed, upper-cased and unique per tenant among cost centers regardless of case.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCostCenter"
+      responses:
+        "201":
+          description: Cost center created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostCenter"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /employees:
     get:
       operationId: listEmployees
@@ -384,8 +536,9 @@ components:
       description: >-
         Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with
         constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The
-        *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID and
-        SITE_PERIOD_OUTSIDE_LEGAL_ENTITY carry params.field. CURSOR_INVALID carries no params.
+        *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID,
+        SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE and
+        COST_CENTER_PERIOD_OUTSIDE_SITE carry params.field. CURSOR_INVALID carries no params.
         Submitted values are never echoed.
       content:
         application/problem+json:
@@ -394,7 +547,8 @@ components:
     Conflict:
       description: >-
         IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or
-        DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE (the code already exists in the tenant,
+        DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE /
+        DUPLICATE_COST_CENTER_CODE (the code already exists for that resource type in the tenant,
         in any letter case).
       content:
         application/problem+json:
@@ -402,8 +556,8 @@ components:
             $ref: "#/components/schemas/Problem"
     NotFound:
       description: >-
-        LEGAL_ENTITY_NOT_FOUND - the legal entity does not exist in the caller's tenant. Missing and
-        foreign-tenant resources are indistinguishable.
+        LEGAL_ENTITY_NOT_FOUND or SITE_NOT_FOUND - the parent does not exist in the caller's tenant.
+        Missing and foreign-tenant resources are indistinguishable.
       content:
         application/problem+json:
           schema:
@@ -630,6 +784,128 @@ components:
             $ref: "#/components/schemas/Site"
         nextCursor:
           type: string
+    CreateDepartment:
+      type: object
+      additionalProperties: false
+      description: >-
+        The tenant comes only from the verified access token. id, tenantId, organizationId,
+        legalEntityId, createdBy and any other property are rejected.
+      required: [siteId, code, name, effectiveFrom]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          description: Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore.
+          pattern: "^\\s*[A-Za-z0-9_-]{2,20}\\s*$"
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        effectiveFrom:
+          type: string
+          format: date
+          description: Inclusive, between 1900-01-01 and 2999-12-31.
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+    Department:
+      type: object
+      required: [id, siteId, code, name, effectiveFrom, effectiveTo, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[A-Z0-9_-]{2,20}$"
+        name:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    DepartmentPage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Department"
+        nextCursor:
+          type: string
+    CreateCostCenter:
+      type: object
+      additionalProperties: false
+      description: >-
+        The tenant comes only from the verified access token. id, tenantId, organizationId,
+        legalEntityId, createdBy and any other property are rejected.
+      required: [siteId, code, name, effectiveFrom]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          description: Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore.
+          pattern: "^\\s*[A-Za-z0-9_-]{2,20}\\s*$"
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        effectiveFrom:
+          type: string
+          format: date
+          description: Inclusive, between 1900-01-01 and 2999-12-31.
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+    CostCenter:
+      type: object
+      required: [id, siteId, code, name, effectiveFrom, effectiveTo, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[A-Z0-9_-]{2,20}$"
+        name:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    CostCenterPage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostCenter"
+        nextCursor:
+          type: string
     SystemStatus:
       type: object
       required: [service, status, version, checkedAt]
@@ -678,6 +954,11 @@ components:
         - EFFECTIVE_DATE_INVALID
         - SITE_PERIOD_OUTSIDE_LEGAL_ENTITY
         - CURSOR_INVALID
+        - SITE_NOT_FOUND
+        - DUPLICATE_DEPARTMENT_CODE
+        - DUPLICATE_COST_CENTER_CODE
+        - DEPARTMENT_PERIOD_OUTSIDE_SITE
+        - COST_CENTER_PERIOD_OUTSIDE_SITE
         - INTERNAL_ERROR
     Problem:
       type: object

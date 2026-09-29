@@ -24,6 +24,8 @@
       <Class name="com.divalhr.core.tenant.application.CreateLegalEntityService"/>
       <Class name="com.divalhr.core.tenant.application.CreateSiteService"/>
       <Class name="com.divalhr.core.tenant.application.HierarchyQueryService"/>
+      <Class name="com.divalhr.core.tenant.application.CreateSiteUnitService"/>
+      <Class name="com.divalhr.core.tenant.application.SiteUnitQueryService"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->

@@ -84,6 +84,11 @@
     "EFFECTIVE_DATE_INVALID": "La date de fin ne peut pas précéder la date de début.",
     "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY": "Les dates du site doivent être comprises dans celles de son entité juridique.",
     "CURSOR_INVALID": "La liste n’a pas pu être poursuivie. Rechargez la page pour recommencer.",
+    "SITE_NOT_FOUND": "Ce site n’existe pas dans votre organisation.",
+    "DUPLICATE_DEPARTMENT_CODE": "Ce code de département est déjà utilisé dans votre organisation.",
+    "DUPLICATE_COST_CENTER_CODE": "Ce code de centre de coût est déjà utilisé dans votre organisation.",
+    "DEPARTMENT_PERIOD_OUTSIDE_SITE": "Les dates du département doivent être comprises dans celles de son site.",
+    "COST_CENTER_PERIOD_OUTSIDE_SITE": "Les dates du centre de coût doivent être comprises dans celles de son site.",
     "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
   },
   "notFound": {
@@ -209,7 +214,9 @@
       "title": "Sites de {{name}} ({{code}})",
       "empty": "Aucun site pour cette entité juridique pour le moment.",
       "loadMore": "Afficher plus de sites",
-      "created": "Site {{name}} ({{code}}) créé."
+      "created": "Site {{name}} ({{code}}) créé.",
+      "selectShort": "Voir les départements et centres de coût",
+      "select": "Voir les départements et centres de coût de {{name}} ({{code}})"
     },
     "siteForm": {
       "title": "Ajouter un site à {{name}} ({{code}})",
@@ -240,6 +247,12 @@
       "effectiveTo": {
         "label": "Date de fin (facultatif)",
         "help": "Dernier jour d’application (inclus). Laissez vide s’il n’y a pas de date de fin."
+      },
+      "departmentName": {
+        "label": "Nom du département"
+      },
+      "costCenterName": {
+        "label": "Nom du centre de coût"
       }
     },
     "validation": {
@@ -269,14 +282,40 @@
         "REQUIRED": "Saisissez une date de début.",
         "FORMAT": "Saisissez une date de début valide.",
         "RANGE": "La date de début doit être comprise entre 1900 et 2999.",
-        "OUTSIDE_PARENT": "La date de début ne peut pas précéder celle de l’entité juridique."
+        "OUTSIDE_PARENT": "La date de début ne peut pas précéder celle de l’entité juridique.",
+        "OUTSIDE_SITE": "La date de début ne peut pas précéder celle du site."
       },
       "effectiveTo": {
         "FORMAT": "Saisissez une date de fin valide.",
         "RANGE": "La date de fin doit être comprise entre 1900 et 2999.",
         "BEFORE_START": "La date de fin ne peut pas précéder la date de début.",
-        "OUTSIDE_PARENT": "La date de fin doit être comprise dans les dates de l’entité juridique. Un site sans date de fin exige une entité juridique sans date de fin."
+        "OUTSIDE_PARENT": "La date de fin doit être comprise dans les dates de l’entité juridique. Un site sans date de fin exige une entité juridique sans date de fin.",
+        "OUTSIDE_SITE": "La date de fin doit être comprise dans les dates du site. Une entrée sans date de fin exige un site sans date de fin."
       }
+    },
+    "siteUnits": {
+      "title": "Départements et centres de coût de {{name}} ({{code}})",
+      "periodHint": "Les dates doivent être comprises dans celles du site."
+    },
+    "departments": {
+      "title": "Départements",
+      "empty": "Aucun département pour ce site pour le moment.",
+      "loadMore": "Afficher plus de départements",
+      "created": "Département {{name}} ({{code}}) créé."
+    },
+    "costCenters": {
+      "title": "Centres de coût",
+      "empty": "Aucun centre de coût pour ce site pour le moment.",
+      "loadMore": "Afficher plus de centres de coût",
+      "created": "Centre de coût {{name}} ({{code}}) créé."
+    },
+    "departmentForm": {
+      "title": "Ajouter un département à {{name}} ({{code}})",
+      "submit": "Créer le département"
+    },
+    "costCenterForm": {
+      "title": "Ajouter un centre de coût à {{name}} ({{code}})",
+      "submit": "Créer le centre de coût"
     }
   }
 }

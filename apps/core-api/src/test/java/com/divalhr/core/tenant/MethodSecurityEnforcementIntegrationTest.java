@@ -5,9 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.TestTokens;
+import com.divalhr.core.tenant.api.CostCenterController;
+import com.divalhr.core.tenant.api.CreateCostCenterRequest;
+import com.divalhr.core.tenant.api.CreateDepartmentRequest;
 import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
 import com.divalhr.core.tenant.api.CreateOrganizationRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
+import com.divalhr.core.tenant.api.DepartmentController;
 import com.divalhr.core.tenant.api.LegalEntityController;
 import com.divalhr.core.tenant.api.OrganizationController;
 import com.divalhr.core.tenant.api.SiteController;
@@ -35,6 +39,8 @@ class MethodSecurityEnforcementIntegrationTest {
   @Autowired private OrganizationController controller;
   @Autowired private LegalEntityController legalEntities;
   @Autowired private SiteController sites;
+  @Autowired private DepartmentController departments;
+  @Autowired private CostCenterController costCenters;
 
   @AfterEach
   void clear() {
@@ -92,6 +98,28 @@ class MethodSecurityEnforcementIntegrationTest {
                       new MockHttpServletRequest()))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(() -> sites.list(UUID.randomUUID().toString(), null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(() -> departments.list(UUID.randomUUID().toString(), null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(() -> costCenters.list(UUID.randomUUID().toString(), null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  departments.create(
+                      Organizations.newKey(),
+                      CreateDepartmentRequest.of(
+                          UUID.randomUUID().toString(), "AB", "Bypass", "2026-01-01", null),
+                      caller,
+                      new MockHttpServletRequest()))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  costCenters.create(
+                      Organizations.newKey(),
+                      CreateCostCenterRequest.of(
+                          UUID.randomUUID().toString(), "AB", "Bypass", "2026-01-01", null),
+                      caller,
+                      new MockHttpServletRequest()))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(
               () ->

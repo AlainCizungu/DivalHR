@@ -204,6 +204,58 @@ public final class Hierarchy {
   }
 
   /**
+   * A department or cost-center request body.
+   *
+   * @param siteId parent
+   * @param code code
+   * @param name name
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return JSON
+   */
+  public static String siteUnit(Object siteId, String code, String name, String from, String to) {
+    return """
+    {"siteId": %s, "code": %s, "name": %s, "effectiveFrom": %s, "effectiveTo": %s}
+    """
+        .formatted(
+            quote(siteId == null ? null : siteId.toString()),
+            quote(code),
+            quote(name),
+            quote(from),
+            quote(to));
+  }
+
+  /**
+   * Creates a department or cost center and returns its id.
+   *
+   * @param mvc MockMvc
+   * @param path {@code /api/v1/departments} or {@code /api/v1/cost-centers}
+   * @param tenant tenant
+   * @param siteId parent
+   * @param code code
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return id
+   * @throws Exception on request failure
+   */
+  public static UUID newSiteUnit(
+      MockMvc mvc, String path, UUID tenant, UUID siteId, String code, String from, String to)
+      throws Exception {
+    String body =
+        mvc.perform(
+                create(
+                    path,
+                    admin(tenant),
+                    Organizations.newKey(),
+                    siteUnit(siteId, code, "Unité " + code, from, to)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return UUID.fromString(JSON.readTree(body).get("id").asText());
+  }
+
+  /**
    * {@code GET} with bearer.
    *
    * @param bearer bearer

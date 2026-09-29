@@ -1,4 +1,4 @@
-import type { LegalEntity, Problem, Site } from '@divalhr/api-client';
+import type { CostCenter, Department, LegalEntity, Problem, Site } from '@divalhr/api-client';
 import { useId, useRef, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApi } from '../../app/ApiProvider';
@@ -7,15 +7,21 @@ import { Field } from './HierarchyFields';
 import {
   LEGAL_ENTITY_FIELDS,
   SITE_FIELDS,
+  SITE_UNIT_FIELDS,
   fieldErrorsFromProblem,
   toLegalEntityPayload,
   toSitePayload,
+  toSiteUnitPayload,
   validateLegalEntity,
   validateSite,
+  validateSiteUnit,
   type Errors,
   type LegalEntityField,
   type LegalEntityValues,
   type SiteField,
+  type SiteUnitField,
+  type SiteUnitKind,
+  type SiteUnitValues,
   type SiteValues,
 } from './hierarchyForm';
 import { useIdempotencyKey } from './useIdempotencyKey';
@@ -476,6 +482,138 @@ export function SiteForm({
       />
       <button type="submit" className="button" disabled={submitting}>
         {submitting ? t('hierarchy.submitting') : t('hierarchy.siteForm.submit')}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Creates a department or cost center beneath the selected site. Both share one form shape; the
+ * kind selects the endpoint and the translated labels.
+ */
+export function SiteUnitForm({
+  kind,
+  site,
+  onCreated,
+}: {
+  kind: SiteUnitKind;
+  site: Site;
+  onCreated: (unit: Department | CostCenter) => void;
+}) {
+  const { t } = useTranslation();
+  const { core } = useApi();
+  const ids = useId();
+  const empty = (): SiteUnitValues => ({
+    code: '',
+    name: '',
+    effectiveFrom: site.effectiveFrom,
+    effectiveTo: site.effectiveTo ?? '',
+  });
+  const [values, setValues] = useState<SiteUnitValues>(empty);
+  const form = useCreateForm<SiteUnitField>(SITE_UNIT_FIELDS);
+  const message = useMessage(form.errors);
+  const fieldId = (field: string) => `${ids}-${kind}-${field}`;
+  const update = (patch: Partial<SiteUnitValues>) => {
+    setValues((current) => ({ ...current, ...patch }));
+    if (form.phase.kind === 'failed') form.setPhase({ kind: 'editing' });
+  };
+
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const payload = toSiteUnitPayload(site.id, values);
+    void form.submit(
+      validateSiteUnit(values),
+      payload,
+      (key) =>
+        kind === 'department'
+          ? core.POST('/departments', {
+              params: { header: { 'Idempotency-Key': key } },
+              body: payload,
+            })
+          : core.POST('/cost-centers', {
+              params: { header: { 'Idempotency-Key': key } },
+              body: payload,
+            }),
+      (created) => {
+        setValues(empty());
+        onCreated(created);
+      },
+    );
+  };
+  const submitting = form.phase.kind === 'submitting';
+
+  return (
+    <form
+      noValidate
+      aria-labelledby={`${ids}-${kind}-title`}
+      aria-busy={submitting}
+      onSubmit={onSubmit}
+      data-testid={`${kind}-form`}
+    >
+      <h4 id={`${ids}-${kind}-title`}>
+        {t(`hierarchy.${kind}Form.title`, { name: site.name, code: site.code })}
+      </h4>
+      <p className="muted">{t('hierarchy.siteUnits.periodHint')}</p>
+      <Summary
+        summaryRef={form.summaryRef}
+        fields={SITE_UNIT_FIELDS}
+        errors={form.errors}
+        phase={form.phase}
+        fieldId={fieldId}
+        message={message}
+      />
+      <Field
+        id={fieldId('code')}
+        label={t('hierarchy.fields.code.label')}
+        help={t('hierarchy.fields.code.help')}
+        error={form.errors.code}
+        errorMessage={message('code')}
+      >
+        {(describedBy, invalid) => (
+          <input
+            id={fieldId('code')}
+            type="text"
+            autoComplete="off"
+            maxLength={40}
+            value={values.code}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              update({ code: event.target.value });
+            }}
+          />
+        )}
+      </Field>
+      <Field
+        id={fieldId('name')}
+        label={t(`hierarchy.fields.${kind}Name.label`)}
+        error={form.errors.name}
+        errorMessage={message('name')}
+      >
+        {(describedBy, invalid) => (
+          <input
+            id={fieldId('name')}
+            type="text"
+            autoComplete="off"
+            maxLength={200}
+            value={values.name}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              update({ name: event.target.value });
+            }}
+          />
+        )}
+      </Field>
+      <DateFields
+        idFor={fieldId}
+        values={values}
+        errors={form.errors}
+        message={message}
+        onChange={update}
+      />
+      <button type="submit" className="button" disabled={submitting}>
+        {submitting ? t('hierarchy.submitting') : t(`hierarchy.${kind}Form.submit`)}
       </button>
     </form>
   );

@@ -137,7 +137,7 @@ public class HierarchyQueryService {
       metrics.record(
           operation,
           switch (rejected.code()) {
-            case LEGAL_ENTITY_NOT_FOUND -> Outcome.NOT_FOUND;
+            case LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND -> Outcome.NOT_FOUND;
             case INTERNAL_ERROR -> Outcome.FAILURE;
             default -> Outcome.VALIDATION_FAILED;
           });
