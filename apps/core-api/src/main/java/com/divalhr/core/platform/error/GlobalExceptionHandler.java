@@ -5,10 +5,13 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -16,8 +19,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-/** Maps exceptions to the stable error contract. Never echoes request data or stack traces. */
+/**
+ * Maps exceptions to the stable error contract. Never echoes request data or stack traces.
+ *
+ * <p>Ordered first so it takes precedence over Spring Boot's generic problem-details handler;
+ * every response therefore carries a stable {@code code}.
+ */
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
@@ -136,6 +145,17 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ProblemDetail> handleUnexpected(
       Exception exception, HttpServletRequest request) {
+    if (exception instanceof ErrorResponse standard) {
+      // Other Spring MVC client errors (missing parameters, not acceptable, ...) keep their
+      // status class but always use a stable code.
+      int status = standard.getStatusCode().value();
+      if (status == 404 || status == 405) {
+        return respond(ErrorCode.NOT_FOUND, Map.of(), request);
+      }
+      if (status >= 400 && status < 500) {
+        return respond(ErrorCode.VALIDATION_FAILED, Map.of(), request);
+      }
+    }
     LOG.error("Unhandled exception type={}", exception.getClass().getName());
     return respond(ErrorCode.INTERNAL_ERROR, Map.of(), request);
   }

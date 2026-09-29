@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.util.AopTestUtils;
 
 /** A failure after the organization insert leaves no partial data in any of the five tables. */
 @IntegrationTest
@@ -32,8 +33,11 @@ class CreateOrganizationRollbackIntegrationTest {
     int auditBefore = total("platform.audit_event");
     int outboxBefore = total("platform.outbox_event");
     int currenciesBefore = total("tenant.organization_currency");
+    // Stub the spied target directly: calling through the transactional proxy while stubbing
+    // would run the MANDATORY-propagation check outside a transaction.
+    OutboxWriter target = AopTestUtils.getUltimateTargetObject(outbox);
     doThrow(new IllegalStateException("simulated outbox failure"))
-        .when(outbox)
+        .when(target)
         .append(any(EventEnvelope.class));
 
     assertThatThrownBy(
