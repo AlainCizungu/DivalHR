@@ -7,7 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -50,6 +53,51 @@ public class GlobalExceptionHandler {
                         "field", error.getField(), "constraint", String.valueOf(error.getCode())))
             .toList();
     return respond(ErrorCode.VALIDATION_FAILED, Map.of("fields", fields), request);
+  }
+
+  /**
+   * Handles unreadable bodies (malformed JSON, wrong types). Nothing from the body is echoed.
+   *
+   * @param exception the exception
+   * @param request the current request
+   * @return problem response
+   */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ProblemDetail> handleUnreadable(
+      HttpMessageNotReadableException exception, HttpServletRequest request) {
+    return respond(
+        ErrorCode.VALIDATION_FAILED,
+        Map.of("fields", List.of(Map.of("field", "body", "constraint", "FORMAT"))),
+        request);
+  }
+
+  /**
+   * Handles unsupported content types.
+   *
+   * @param exception the exception
+   * @param request the current request
+   * @return problem response
+   */
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ResponseEntity<ProblemDetail> handleMediaType(
+      HttpMediaTypeNotSupportedException exception, HttpServletRequest request) {
+    return respond(
+        ErrorCode.VALIDATION_FAILED,
+        Map.of("fields", List.of(Map.of("field", "Content-Type", "constraint", "FORMAT"))),
+        request);
+  }
+
+  /**
+   * Handles methods that are not implemented for a path (for example planned operations).
+   *
+   * @param exception the exception
+   * @param request the current request
+   * @return problem response
+   */
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ProblemDetail> handleMethod(
+      HttpRequestMethodNotSupportedException exception, HttpServletRequest request) {
+    return respond(ErrorCode.NOT_FOUND, Map.of(), request);
   }
 
   /**

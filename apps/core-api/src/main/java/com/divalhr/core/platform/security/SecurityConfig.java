@@ -1,5 +1,6 @@
 package com.divalhr.core.platform.security;
 
+import com.divalhr.core.platform.idempotency.IdempotencyKeys;
 import com.divalhr.core.platform.web.CorrelationId;
 import com.divalhr.core.platform.web.CorsProperties;
 import java.util.List;
@@ -86,8 +87,13 @@ public class SecurityConfig {
     config.setAllowedOrigins(properties.allowedOrigins());
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
     config.setAllowedHeaders(
-        List.of("Authorization", "Content-Type", "Accept-Language", CorrelationId.HEADER));
-    config.setExposedHeaders(List.of(CorrelationId.HEADER));
+        List.of(
+            "Authorization",
+            "Content-Type",
+            "Accept-Language",
+            CorrelationId.HEADER,
+            IdempotencyKeys.HEADER));
+    config.setExposedHeaders(List.of(CorrelationId.HEADER, IdempotencyKeys.REPLAYED_HEADER));
     // Bearer tokens travel in the Authorization header; browser credentials are never needed.
     config.setAllowCredentials(false);
     config.setMaxAge(600L);

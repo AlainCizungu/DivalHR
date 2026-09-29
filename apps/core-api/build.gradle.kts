@@ -24,6 +24,7 @@ repositories {
 
 val springdocVersion = "3.1.1"
 val archunitVersion = "1.5.1"
+val jsonSchemaValidatorVersion = "1.5.9"
 
 dependencies {
     implementation(platform(SpringBootPlugin.BOM_COORDINATES))
@@ -31,6 +32,7 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-micrometer-metrics")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -48,6 +50,8 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
     testImplementation("org.yaml:snakeyaml")
+    // Validates persisted outbox envelopes against packages/shared-contracts (approved, test-only).
+    testImplementation("com.networknt:json-schema-validator:$jsonSchemaValidatorVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -60,6 +64,10 @@ tasks.test {
     useJUnitPlatform()
     // The drift test reads the authoritative design-first contract.
     systemProperty("divalhr.apiSpecPath", rootProject.file("../../docs/API-SPEC.yaml").absolutePath)
+    systemProperty(
+        "divalhr.eventEnvelopeSchemaPath",
+        rootProject.file("../../packages/shared-contracts/schemas/event-envelope.schema.json").absolutePath,
+    )
     testLogging {
         events("passed", "skipped", "failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
