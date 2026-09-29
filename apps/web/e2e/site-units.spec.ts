@@ -58,6 +58,9 @@ test.describe.serial('MVP-002 Increment 2: departments and cost centers', () => 
       `Département ${deptName} (${deptCode}) créé.`,
     );
     await expect(page.getByTestId('department-list')).toContainText(deptName);
+    await expect(
+      page.getByTestId('department-list').locator('[tabindex="-1"]', { hasText: deptName }),
+    ).toBeFocused();
 
     const ccForm = page.getByTestId('costCenter-form');
     await ccForm.getByLabel('Code').fill(ccCode);
@@ -68,6 +71,9 @@ test.describe.serial('MVP-002 Increment 2: departments and cost centers', () => 
       `Centre de coût ${ccName} (${ccCode}) créé.`,
     );
     await expect(page.getByTestId('costCenter-list')).toContainText(ccName);
+    await expect(
+      page.getByTestId('costCenter-list').locator('[tabindex="-1"]', { hasText: ccName }),
+    ).toBeFocused();
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
     await expectAccessible(page);
 

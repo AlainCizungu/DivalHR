@@ -59,7 +59,7 @@ export function SitesOf({
       <SiteForm
         parent={parent}
         onCreated={(site) => {
-          sites.prepend(site);
+          sites.insertCreated(site);
           onAnnounce(t('hierarchy.sites.created', { name: site.name, code: site.code }));
         }}
       />

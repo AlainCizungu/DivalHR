@@ -240,6 +240,89 @@ describe('departments and cost centers behaviour', () => {
     });
   });
 
+  it.each([
+    ['department', 'departments', 'departmentForm', 'departmentName', DEPT],
+    ['costCenter', 'costCenters', 'costCenterForm', 'costCenterName', CC],
+  ] as const)(
+    'moves focus to the created %s row without a competing live region',
+    async (kind, group, formKey, nameField, created) => {
+      const path = kind === 'department' ? '/departments' : '/cost-centers';
+      stubApi((request, url) =>
+        request.method === 'POST' && url.pathname.endsWith(path)
+          ? { status: 201, body: created }
+          : undefined,
+      );
+      const user = userEvent.setup();
+      await renderPage();
+      await openSite(user);
+      const form = await screen.findByTestId(`${kind}-form`);
+      await user.type(within(form).getByLabelText(s.fields.code.label), created.code);
+      await user.type(within(form).getByLabelText(s.fields[nameField].label), created.name);
+      const submit = within(form).getByRole('button', { name: s[formKey].submit });
+      await user.click(submit);
+      const list = await screen.findByTestId(`${kind}-list`);
+      const row = within(list).getByText(created.name).closest('[tabindex]');
+      expect(row).toHaveAttribute('tabindex', '-1');
+      await waitFor(() => {
+        expect(row).toHaveFocus();
+      });
+      expect(submit).not.toHaveFocus();
+      expect(screen.getAllByRole('status')).toHaveLength(1);
+      expect(screen.getByTestId('announcer')).toHaveTextContent(
+        fill(s[group].created, { name: created.name, code: created.code }),
+      );
+      // The form is reset and ready for the next entry; Tab continues from the row.
+      expect(within(form).getByLabelText(s.fields.code.label)).toHaveValue('');
+      await user.tab();
+      expect(row).not.toHaveFocus();
+    },
+  );
+
+  it('keeps server order without duplicates when a created row sorts after the cursor', async () => {
+    // First page ends at RH; the created TR sorts after the cursor and arrives again on page 2.
+    const AUD = { ...DEPT, id: '77777777-7777-4777-8777-777777777777', code: 'AUD', name: 'Audit' };
+    const TR = {
+      ...DEPT,
+      id: '88888888-8888-4888-8888-888888888888',
+      code: 'TR',
+      name: 'Transport',
+    };
+    stubApi((request, url) => {
+      if (!url.pathname.endsWith('/departments')) return undefined;
+      if (request.method === 'POST') return { status: 201, body: TR };
+      return url.searchParams.get('cursor') === 'opaque.cursor'
+        ? { status: 200, body: { data: [DEPT2, TR] } }
+        : { status: 200, body: { data: [AUD, DEPT], nextCursor: 'opaque.cursor' } };
+    });
+    const user = userEvent.setup();
+    await renderPage();
+    await openSite(user);
+    const list = await screen.findByTestId('department-list');
+    const codes = () =>
+      within(list)
+        .getAllByRole('listitem')
+        .map((item) => item.querySelector('.badge')?.textContent);
+
+    const form = screen.getByTestId('department-form');
+    await user.type(within(form).getByLabelText(s.fields.code.label), TR.code);
+    await user.type(within(form).getByLabelText(s.fields.departmentName.label), TR.name);
+    await user.click(within(form).getByRole('button', { name: s.departmentForm.submit }));
+    await waitFor(() => {
+      expect(codes()).toEqual(['AUD', 'RH', 'TR']);
+    });
+
+    await user.click(screen.getByRole('button', { name: s.departments.loadMore }));
+    await waitFor(() => {
+      expect(codes()).toEqual(['AUD', 'RH', 'SEC', 'TR']);
+    });
+    expect(within(list).getAllByText(TR.name)).toHaveLength(1);
+    // Focus goes to the first row the page added, not to the already-shown created row.
+    await waitFor(() => {
+      expect(within(list).getByText(DEPT2.name).closest('[tabindex]')).toHaveFocus();
+    });
+    expect(screen.queryByRole('button', { name: s.departments.loadMore })).toBeNull();
+  });
+
   it('maps cost-center errors to fields, reuses the key after a network failure and renews it after an edit', async () => {
     let posts = 0;
     const requests = stubApi((request, url) => {

@@ -66,7 +66,7 @@ function SiteUnitList({
         kind={kind}
         site={site}
         onCreated={(unit) => {
-          units.prepend(unit);
+          units.insertCreated(unit);
           onAnnounce(t(`hierarchy.${group}.created`, { name: unit.name, code: unit.code }));
         }}
       />

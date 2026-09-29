@@ -79,7 +79,7 @@ export function HierarchyPage() {
         />
         <LegalEntityForm
           onCreated={(entity) => {
-            legalEntities.prepend(entity);
+            legalEntities.insertCreated(entity);
             setAnnouncement(
               t('hierarchy.legalEntities.created', { name: entity.name, code: entity.code }),
             );

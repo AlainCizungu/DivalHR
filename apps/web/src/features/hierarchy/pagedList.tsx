@@ -13,11 +13,41 @@ function errorKey(status: number, error: unknown): string {
   return code ? `errors.${code}` : 'errors.generic';
 }
 
+/** Rows of every hierarchy list: the API's keyset is (code COLLATE "C", id). */
+export interface KeysetRow {
+  id: string;
+  code: string;
+}
+
 /**
- * Reusable keyset list state: first page, "load more" (focus moves to the first new item so it is
- * never lost when the button disappears), and prepend-on-create.
+ * The API's order: code in byte order, then id. Codes are ASCII (A-Z, 0-9, '-', '_') and ids are
+ * lower-case UUID text, so UTF-16 comparison equals PostgreSQL's "C" collation and uuid order.
  */
-export function usePagedList<T extends { id: string }>(
+export function compareKeyset(a: KeysetRow, b: KeysetRow): number {
+  if (a.code !== b.code) return a.code < b.code ? -1 : 1;
+  if (a.id !== b.id) return a.id < b.id ? -1 : 1;
+  return 0;
+}
+
+/** Merges rows into a keyset-ordered list, keeping one row per id (the incoming one wins). */
+export function mergeKeyset<T extends KeysetRow>(
+  current: readonly T[],
+  incoming: readonly T[],
+): T[] {
+  const byId = new Map<string, T>();
+  for (const row of current) byId.set(row.id, row);
+  for (const row of incoming) byId.set(row.id, row);
+  return [...byId.values()].sort(compareKeyset);
+}
+
+/**
+ * Reusable keyset list state. The rendered list always follows the server's (code, id) order with
+ * one row per id: "load more" merges the next page (focus moves to its first row that was not
+ * already shown), and a created row is inserted at its keyset position and receives focus. A
+ * created row that sorts after the current cursor is shown in place and de-duplicated when its
+ * page arrives.
+ */
+export function usePagedList<T extends KeysetRow>(
   fetchPage: (cursor?: string) => Promise<{
     data?: { data: T[]; nextCursor?: string };
     error?: unknown;
@@ -35,14 +65,20 @@ export function usePagedList<T extends { id: string }>(
       setState({ kind: 'failed', messageKey: errorKey(response.status, error) });
       return;
     }
-    const first = data.data[0];
-    if (cursor && first) focusId.current = first.id;
-    setState((current) => ({
-      kind: 'ready',
-      items: [...(cursor && current.kind === 'ready' ? current.items : []), ...data.data],
-      nextCursor: data.nextCursor,
-      loadingMore: false,
-    }));
+    setState((current) => {
+      const shown = cursor && current.kind === 'ready' ? current.items : [];
+      if (cursor) {
+        const seen = new Set(shown.map((row) => row.id));
+        const firstNew = data.data.find((row) => !seen.has(row.id));
+        if (firstNew) focusId.current = firstNew.id;
+      }
+      return {
+        kind: 'ready',
+        items: mergeKeyset(shown, data.data),
+        nextCursor: data.nextCursor,
+        loadingMore: false,
+      };
+    });
   }, []);
 
   const load = useCallback(
@@ -80,10 +116,11 @@ export function usePagedList<T extends { id: string }>(
     void load(state.nextCursor);
   };
 
-  const prepend = (item: T) => {
+  const insertCreated = (item: T) => {
+    focusId.current = item.id;
     setState((current) =>
       current.kind === 'ready'
-        ? { ...current, items: [item, ...current.items.filter((i) => i.id !== item.id)] }
+        ? { ...current, items: mergeKeyset(current.items, [item]) }
         : { kind: 'ready', items: [item], loadingMore: false },
     );
   };
@@ -93,10 +130,10 @@ export function usePagedList<T extends { id: string }>(
     void load();
   };
 
-  return { state, loadMore, prepend, focusId, retry };
+  return { state, loadMore, insertCreated, focusId, retry };
 }
 
-export function PagedList<T extends { id: string }>({
+export function PagedList<T extends KeysetRow>({
   list,
   emptyKey,
   loadMoreKey,
