@@ -1,4 +1,9 @@
-import type { CreateLegalEntity, CreateSite } from '@divalhr/api-client';
+import type {
+  CreateCostCenter,
+  CreateDepartment,
+  CreateLegalEntity,
+  CreateSite,
+} from '@divalhr/api-client';
 import { COUNTRIES, TIMEZONES_BY_COUNTRY } from '../admin/organizationForm';
 
 /** Stable constraint codes shared with the API's params.fields[].constraint. */
@@ -10,7 +15,8 @@ export type Constraint =
   | 'NOT_SUPPORTED'
   | 'DUPLICATE_CODE'
   | 'BEFORE_START'
-  | 'OUTSIDE_PARENT';
+  | 'OUTSIDE_PARENT'
+  | 'OUTSIDE_SITE';
 
 export type LegalEntityField = 'code' | 'name' | 'countryCode' | 'effectiveFrom' | 'effectiveTo';
 export type SiteField = 'code' | 'name' | 'timezone' | 'effectiveFrom' | 'effectiveTo';
@@ -28,6 +34,10 @@ export const SITE_FIELDS: SiteField[] = [
   'effectiveFrom',
   'effectiveTo',
 ];
+/** Departments and cost centers share one form shape. */
+export type SiteUnitField = 'code' | 'name' | 'effectiveFrom' | 'effectiveTo';
+export const SITE_UNIT_FIELDS: SiteUnitField[] = ['code', 'name', 'effectiveFrom', 'effectiveTo'];
+export type SiteUnitKind = 'department' | 'costCenter';
 
 export type Errors<F extends string> = Partial<Record<F, Constraint>>;
 
@@ -35,6 +45,13 @@ export interface LegalEntityValues {
   code: string;
   name: string;
   countryCode: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+}
+
+export interface SiteUnitValues {
+  code: string;
+  name: string;
   effectiveFrom: string;
   effectiveTo: string;
 }
@@ -124,6 +141,16 @@ export function validateSite(values: SiteValues, countryCode: string): Errors<Si
   return errors;
 }
 
+export function validateSiteUnit(values: SiteUnitValues): Errors<SiteUnitField> {
+  const errors: Errors<SiteUnitField> = {};
+  const code = checkCode(values.code);
+  if (code) errors.code = code;
+  const name = checkName(values.name);
+  if (name) errors.name = name;
+  checkPeriod(errors, values);
+  return errors;
+}
+
 /** Normalized payloads, matching how the server fingerprints them. */
 export function toLegalEntityPayload(values: LegalEntityValues): CreateLegalEntity {
   return {
@@ -146,6 +173,19 @@ export function toSitePayload(legalEntityId: string, values: SiteValues): Create
   };
 }
 
+export function toSiteUnitPayload(
+  siteId: string,
+  values: SiteUnitValues,
+): CreateDepartment & CreateCostCenter {
+  return {
+    siteId,
+    code: normalizeCode(values.code),
+    name: values.name.trim(),
+    effectiveFrom: values.effectiveFrom,
+    effectiveTo: values.effectiveTo === '' ? null : values.effectiveTo,
+  };
+}
+
 interface ProblemLike {
   code?: string;
   params?: Record<string, unknown> | { [key: string]: unknown };
@@ -163,6 +203,10 @@ export function fieldErrorsFromProblem<F extends string>(
     DUPLICATE_SITE_CODE: 'DUPLICATE_CODE',
     EFFECTIVE_DATE_INVALID: 'BEFORE_START',
     SITE_PERIOD_OUTSIDE_LEGAL_ENTITY: 'OUTSIDE_PARENT',
+    DUPLICATE_DEPARTMENT_CODE: 'DUPLICATE_CODE',
+    DUPLICATE_COST_CENTER_CODE: 'DUPLICATE_CODE',
+    DEPARTMENT_PERIOD_OUTSIDE_SITE: 'OUTSIDE_SITE',
+    COST_CENTER_PERIOD_OUTSIDE_SITE: 'OUTSIDE_SITE',
     COUNTRY_NOT_SUPPORTED: 'NOT_SUPPORTED',
     TIMEZONE_NOT_SUPPORTED: 'NOT_SUPPORTED',
   };

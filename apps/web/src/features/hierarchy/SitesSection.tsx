@@ -8,9 +8,13 @@ import { PagedList, usePagedList } from './pagedList';
 
 export function SitesOf({
   parent,
+  selectedSiteId,
+  onSelectSite,
   onAnnounce,
 }: {
   parent: LegalEntity;
+  selectedSiteId: string | undefined;
+  onSelectSite: (site: Site) => void;
   onAnnounce: (message: string) => void;
 }) {
   const { t } = useTranslation();
@@ -31,12 +35,24 @@ export function SitesOf({
         testId="site-list"
         render={(site, ref) => (
           <>
-            <span className="hierarchy-item__main" ref={ref} tabIndex={-1}>
+            <span className="hierarchy-item__main">
               <strong>{site.name}</strong> <span className="badge">{site.code}</span>
             </span>
             <span className="muted">
               {t(`timezones.${site.timezone}`)} · {periodText(site.effectiveFrom, site.effectiveTo)}
             </span>
+            <button
+              ref={ref}
+              type="button"
+              className="button button--secondary"
+              aria-pressed={selectedSiteId === site.id}
+              aria-label={t('hierarchy.sites.select', { name: site.name, code: site.code })}
+              onClick={() => {
+                onSelectSite(site);
+              }}
+            >
+              {t('hierarchy.sites.selectShort')}
+            </button>
           </>
         )}
       />

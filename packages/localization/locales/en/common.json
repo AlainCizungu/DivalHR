@@ -214,7 +214,9 @@
       "title": "Sites of {{name}} ({{code}})",
       "empty": "No sites yet for this legal entity.",
       "loadMore": "Show more sites",
-      "created": "Site {{name}} ({{code}}) created."
+      "created": "Site {{name}} ({{code}}) created.",
+      "selectShort": "Show departments and cost centers",
+      "select": "Show departments and cost centers for {{name}} ({{code}})"
     },
     "siteForm": {
       "title": "Add a site to {{name}} ({{code}})",
@@ -245,6 +247,12 @@
       "effectiveTo": {
         "label": "End date (optional)",
         "help": "Last day this applies (inclusive). Leave empty if there is no end date."
+      },
+      "departmentName": {
+        "label": "Department name"
+      },
+      "costCenterName": {
+        "label": "Cost center name"
       }
     },
     "validation": {
@@ -274,14 +282,40 @@
         "REQUIRED": "Enter a start date.",
         "FORMAT": "Enter a valid start date.",
         "RANGE": "The start date must be between 1900 and 2999.",
-        "OUTSIDE_PARENT": "The start date cannot be earlier than the legal entity's start date."
+        "OUTSIDE_PARENT": "The start date cannot be earlier than the legal entity's start date.",
+        "OUTSIDE_SITE": "The start date cannot be earlier than the site's start date."
       },
       "effectiveTo": {
         "FORMAT": "Enter a valid end date.",
         "RANGE": "The end date must be between 1900 and 2999.",
         "BEFORE_START": "The end date cannot be earlier than the start date.",
-        "OUTSIDE_PARENT": "The end date must fall within the legal entity's dates. An open-ended site needs an open-ended legal entity."
+        "OUTSIDE_PARENT": "The end date must fall within the legal entity's dates. An open-ended site needs an open-ended legal entity.",
+        "OUTSIDE_SITE": "The end date must fall within the site's dates. An open-ended entry needs an open-ended site."
       }
+    },
+    "siteUnits": {
+      "title": "Departments and cost centers of {{name}} ({{code}})",
+      "periodHint": "Dates must fall within the site's dates."
+    },
+    "departments": {
+      "title": "Departments",
+      "empty": "No departments yet for this site.",
+      "loadMore": "Show more departments",
+      "created": "Department {{name}} ({{code}}) created."
+    },
+    "costCenters": {
+      "title": "Cost centers",
+      "empty": "No cost centers yet for this site.",
+      "loadMore": "Show more cost centers",
+      "created": "Cost center {{name}} ({{code}}) created."
+    },
+    "departmentForm": {
+      "title": "Add a department to {{name}} ({{code}})",
+      "submit": "Create department"
+    },
+    "costCenterForm": {
+      "title": "Add a cost center to {{name}} ({{code}})",
+      "submit": "Create cost center"
     }
   }
 }
