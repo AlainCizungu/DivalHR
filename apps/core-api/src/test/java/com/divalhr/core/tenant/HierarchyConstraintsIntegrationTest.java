@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -208,8 +209,11 @@ class HierarchyConstraintsIntegrationTest {
     } catch (DataAccessException failure) {
       Throwable cause = failure;
       while (cause != null) {
-        if (cause instanceof PSQLException psql && psql.getServerErrorMessage() != null) {
-          return psql.getServerErrorMessage().getConstraint();
+        if (cause instanceof PSQLException psql) {
+          ServerErrorMessage server = psql.getServerErrorMessage();
+          if (server != null) {
+            return server.getConstraint();
+          }
         }
         cause = cause.getCause();
       }
