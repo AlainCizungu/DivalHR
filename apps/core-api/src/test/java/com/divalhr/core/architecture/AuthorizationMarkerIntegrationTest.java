@@ -16,8 +16,10 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
- * Every mutating /api/v1 handler must declare exactly one authorization scope, so no future
- * endpoint can silently skip both the platform-admin check and tenant scoping.
+ * Every /api/v1 handler except the explicitly public status endpoint must declare exactly one
+ * authorization scope, so no future endpoint (read or write) can silently skip both the
+ * platform-admin check and tenant scoping. Tenant-scoped markers are found through meta-annotations
+ * such as {@code @TenantAdminOperation}.
  */
 @IntegrationTest
 class AuthorizationMarkerIntegrationTest {
@@ -25,9 +27,33 @@ class AuthorizationMarkerIntegrationTest {
   private static final Set<RequestMethod> MUTATING =
       Set.of(RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE);
 
+  /** Public, unauthenticated endpoints (docs/API-SPEC.yaml, security: []). */
+  private static final Set<String> PUBLIC = Set.of("/api/v1/system/status");
+
   @Autowired
   @Qualifier("requestMappingHandlerMapping")
   private RequestMappingHandlerMapping mappings;
+
+  @Test
+  void everyNonPublicApiHandlerHasExactlyOneScope() {
+    List<String> violations = new ArrayList<>();
+    int checked = 0;
+    for (var entry : mappings.getHandlerMethods().entrySet()) {
+      RequestMappingInfo info = entry.getKey();
+      boolean api = info.getPatternValues().stream().anyMatch(p -> p.startsWith("/api/v1"));
+      if (!api || PUBLIC.containsAll(info.getPatternValues())) {
+        continue;
+      }
+      checked++;
+      boolean platform = entry.getValue().hasMethodAnnotation(PlatformScoped.class);
+      boolean tenant = entry.getValue().hasMethodAnnotation(TenantScoped.class);
+      if (platform == tenant) {
+        violations.add(info + " -> " + entry.getValue());
+      }
+    }
+    assertThat(checked).as("non-public /api/v1 handlers found").isGreaterThanOrEqualTo(5);
+    assertThat(violations).isEmpty();
+  }
 
   @Test
   void everyMutatingApiHandlerHasExactlyOneScope() {

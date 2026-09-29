@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.divalhr.core.platform.security.PlatformScoped;
+import com.divalhr.core.platform.security.TenantScoped;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.tenant.domain.SupportedConfiguration;
 import java.io.InputStream;
@@ -18,7 +19,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -107,24 +110,36 @@ class ApiContractDriftTest {
   }
 
   @Test
-  void requiredRolesMatchPlatformScopedHandlers() {
+  void requiredRolesAndScopesMatchHandlers() {
     Map<String, String> expected = new TreeMap<>();
     for (Map.Entry<String, Map<String, Object>> entry : operations(spec, false, true).entrySet()) {
       Object role = entry.getValue().get("x-divalhr-required-role");
-      if (role != null) {
-        expected.put(entry.getKey(), role.toString());
+      Object scope = entry.getValue().get("x-divalhr-scope");
+      if (role != null || scope != null) {
+        expected.put(entry.getKey(), scope + "/" + role);
       }
     }
     Map<String, String> actual = new TreeMap<>();
     for (var mapping : handlerMappings.getHandlerMethods().entrySet()) {
-      PlatformScoped scoped = mapping.getValue().getMethodAnnotation(PlatformScoped.class);
-      if (scoped == null) {
+      HandlerMethod handler = mapping.getValue();
+      String marker = null;
+      PlatformScoped platform = handler.getMethodAnnotation(PlatformScoped.class);
+      TenantScoped tenant =
+          AnnotatedElementUtils.findMergedAnnotation(handler.getMethod(), TenantScoped.class);
+      if (platform != null) {
+        marker = "platform/" + PlatformScoped.ROLE;
+      } else if (tenant != null && !tenant.role().isEmpty()) {
+        marker = "tenant/" + tenant.role();
+      }
+      if (marker == null) {
         continue;
       }
       for (String pattern : mapping.getKey().getPatternValues()) {
+        if (!pattern.startsWith(BASE_PATH)) {
+          continue;
+        }
         for (var method : mapping.getKey().getMethodsCondition().getMethods()) {
-          actual.put(
-              method.name() + " " + pattern.substring(BASE_PATH.length()), PlatformScoped.ROLE);
+          actual.put(method.name() + " " + pattern.substring(BASE_PATH.length()), marker);
         }
       }
     }
@@ -175,6 +190,19 @@ class ApiContractDriftTest {
     assertThat((List<String>) castMap(org.get("countryCode")).get("enum")).isEqualTo(countries);
     assertThat((List<String>) castMap(org.get("timezone")).get("enum"))
         .isEqualTo(timezone.get("enum"));
+    // Hierarchy schemas share the same allow-lists (MVP-002).
+    for (String schema : List.of("CreateLegalEntity", "LegalEntity")) {
+      Map<String, Object> props = castMap(castMap(schemas.get(schema)).get("properties"));
+      assertThat((List<String>) castMap(props.get("countryCode")).get("enum"))
+          .as(schema)
+          .isEqualTo(countries);
+    }
+    for (String schema : List.of("CreateSite", "Site")) {
+      Map<String, Object> props = castMap(castMap(schemas.get(schema)).get("properties"));
+      assertThat((List<String>) castMap(props.get("timezone")).get("enum"))
+          .as(schema)
+          .isEqualTo(timezone.get("enum"));
+    }
   }
 
   private static Set<String> bodyProperties(
