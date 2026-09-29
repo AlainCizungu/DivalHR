@@ -112,7 +112,7 @@ class RegionMigrationCompatibilityIntegrationTest {
           v5.queryForList("SELECT to_jsonb(s)::text FROM tenant.site s ORDER BY id", String.class);
       assertThat(before).hasSize(2);
 
-      migrate(url, null);
+      migrate(url, "6");
       assertThat(
               v5.queryForObject(
                   "SELECT max(version) FROM flyway_schema_history WHERE success", String.class))
@@ -167,7 +167,7 @@ class RegionMigrationCompatibilityIntegrationTest {
           .isEqualTo(before);
       // Re-applying V6 after removing its history row works.
       v5.update("DELETE FROM flyway_schema_history WHERE version = '6'");
-      migrate(url, null);
+      migrate(url, "6");
       assertThat(
               v5.queryForObject(
                   "SELECT count(*) FROM tenant.site WHERE region_id IS NULL", Integer.class))

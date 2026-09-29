@@ -231,6 +231,9 @@ class TeamConstraintsIntegrationTest {
                 + "' WHERE id = ?")) {
       assertThat(constraintOrFailure(() -> jdbc.update(update, id))).as(update).isTrue();
     }
+    // BEFORE triggers run before CHECK constraints, so the range check needs an open-ended parent
+    // (which covers any end date) to be reached.
+    UUID openParent = unit(resource.parentTable, tenantA, siteA, "2026-01-01", null);
     assertThat(
             constraintOf(
                 () ->
@@ -238,7 +241,7 @@ class TeamConstraintsIntegrationTest {
                         resource,
                         tenantA,
                         siteA,
-                        parent(resource),
+                        openParent,
                         code("LT"),
                         "2026-01-01",
                         "3000-01-01")))
