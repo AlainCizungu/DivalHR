@@ -10,9 +10,7 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 public class PostgresContainerConfig {
 
-  /**
-   * Same pinned image as infrastructure/docker/compose.yaml (enforced by RuntimeBaselineTest).
-   */
+  /** Same pinned image as infrastructure/docker/compose.yaml (enforced by RuntimeBaselineTest). */
   public static final String IMAGE =
       "postgres:17.11@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f";
 
