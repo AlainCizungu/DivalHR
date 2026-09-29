@@ -77,7 +77,9 @@ class HierarchyConcurrencyAndRollbackIntegrationTest {
                     CreateLegalEntityRequest.of(code, "Parallèle", "CD", "2026-01-01", null),
                     "parallel-corr-" + i));
     List<IdempotentCreate.Result<?>> results =
-        outcomes.stream().map(o -> (IdempotentCreate.Result<?>) o).toList();
+        outcomes.stream()
+            .<IdempotentCreate.Result<?>>map(o -> (IdempotentCreate.Result<?>) o)
+            .toList();
     assertThat(results.stream().filter(r -> !r.replayed()).count()).isEqualTo(1);
     assertThat(results.stream().map(IdempotentCreate.Result::body).distinct()).hasSize(1);
     assertThat(count("tenant.legal_entity", "code = ?", code)).isEqualTo(1);
