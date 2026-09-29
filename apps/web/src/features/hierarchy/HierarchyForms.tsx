@@ -1,23 +1,39 @@
-import type { CostCenter, Department, LegalEntity, Problem, Site } from '@divalhr/api-client';
-import { useId, useRef, useState, type SyntheticEvent } from 'react';
+import type {
+  CostCenter,
+  Department,
+  LegalEntity,
+  Problem,
+  Region,
+  Site,
+} from '@divalhr/api-client';
+import { useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApi } from '../../app/ApiProvider';
 import { COUNTRIES, TIMEZONES_BY_COUNTRY } from '../admin/organizationForm';
 import { Field } from './HierarchyFields';
 import {
+  ASSIGNMENT_FIELDS,
   LEGAL_ENTITY_FIELDS,
+  REGION_FIELDS,
   SITE_FIELDS,
   SITE_UNIT_FIELDS,
   fieldErrorsFromProblem,
+  toAssignmentPayload,
   toLegalEntityPayload,
+  toRegionPayload,
   toSitePayload,
   toSiteUnitPayload,
+  validateAssignment,
   validateLegalEntity,
+  validateRegion,
   validateSite,
   validateSiteUnit,
+  type AssignmentField,
   type Errors,
   type LegalEntityField,
   type LegalEntityValues,
+  type RegionField,
+  type RegionValues,
   type SiteField,
   type SiteUnitField,
   type SiteUnitKind,
@@ -340,9 +356,12 @@ function DateFields<F extends 'effectiveFrom' | 'effectiveTo'>({
 
 export function SiteForm({
   parent,
+  regions,
   onCreated,
 }: {
   parent: LegalEntity;
+  /** Regions of the legal entity offered for the optional region select. */
+  regions: readonly Region[];
   onCreated: (site: Site) => void;
 }) {
   const { t } = useTranslation();
@@ -355,6 +374,7 @@ export function SiteForm({
     code: '',
     name: '',
     timezone: zones[0] ?? '',
+    regionId: '',
     effectiveFrom: parent.effectiveFrom,
     effectiveTo: parent.effectiveTo ?? '',
   });
@@ -468,6 +488,32 @@ export function SiteForm({
             {zones.map((zone) => (
               <option key={zone} value={zone}>
                 {t(`timezones.${zone}`)}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+      <Field
+        id={fieldId('regionId')}
+        label={t('hierarchy.fields.region.label')}
+        help={t('hierarchy.fields.region.help')}
+        error={form.errors.regionId}
+        errorMessage={message('regionId')}
+      >
+        {(describedBy, invalid) => (
+          <select
+            id={fieldId('regionId')}
+            value={values.regionId}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              update({ regionId: event.target.value });
+            }}
+          >
+            <option value="">{t('hierarchy.fields.region.none')}</option>
+            {regions.map((region) => (
+              <option key={region.id} value={region.id}>
+                {t('hierarchy.regions.option', { name: region.name, code: region.code })}
               </option>
             ))}
           </select>
@@ -615,6 +661,246 @@ export function SiteUnitForm({
       <button type="submit" className="button" disabled={submitting}>
         {submitting ? t('hierarchy.submitting') : t(`hierarchy.${kind}Form.submit`)}
       </button>
+    </form>
+  );
+}
+
+/**
+ * Creates a region beneath the selected legal entity (MVP-002 Increment 3A). Same shape as the
+ * department and cost-center form.
+ */
+export function RegionForm({
+  parent,
+  onCreated,
+}: {
+  parent: LegalEntity;
+  onCreated: (region: Region) => void;
+}) {
+  const { t } = useTranslation();
+  const { core } = useApi();
+  const ids = useId();
+  const empty = (): RegionValues => ({
+    code: '',
+    name: '',
+    effectiveFrom: parent.effectiveFrom,
+    effectiveTo: parent.effectiveTo ?? '',
+  });
+  const [values, setValues] = useState<RegionValues>(empty);
+  const form = useCreateForm<RegionField>(REGION_FIELDS);
+  const message = useMessage(form.errors);
+  const fieldId = (field: string) => `${ids}-region-${field}`;
+  const update = (patch: Partial<RegionValues>) => {
+    setValues((current) => ({ ...current, ...patch }));
+    if (form.phase.kind === 'failed') form.setPhase({ kind: 'editing' });
+  };
+
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const payload = toRegionPayload(parent.id, values);
+    void form.submit(
+      validateRegion(values),
+      payload,
+      (key) =>
+        core.POST('/regions', {
+          params: { header: { 'Idempotency-Key': key } },
+          body: payload,
+        }),
+      (created) => {
+        setValues(empty());
+        onCreated(created);
+      },
+    );
+  };
+  const submitting = form.phase.kind === 'submitting';
+
+  return (
+    <form
+      noValidate
+      aria-labelledby={`${ids}-region-title`}
+      aria-busy={submitting}
+      onSubmit={onSubmit}
+      data-testid="region-form"
+    >
+      <h3 id={`${ids}-region-title`}>
+        {t('hierarchy.regionForm.title', { name: parent.name, code: parent.code })}
+      </h3>
+      <p className="muted">{t('hierarchy.regionForm.periodHint')}</p>
+      <Summary
+        summaryRef={form.summaryRef}
+        fields={REGION_FIELDS}
+        errors={form.errors}
+        phase={form.phase}
+        fieldId={fieldId}
+        message={message}
+      />
+      <Field
+        id={fieldId('code')}
+        label={t('hierarchy.fields.code.label')}
+        help={t('hierarchy.fields.code.help')}
+        error={form.errors.code}
+        errorMessage={message('code')}
+      >
+        {(describedBy, invalid) => (
+          <input
+            id={fieldId('code')}
+            type="text"
+            autoComplete="off"
+            maxLength={40}
+            value={values.code}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              update({ code: event.target.value });
+            }}
+          />
+        )}
+      </Field>
+      <Field
+        id={fieldId('name')}
+        label={t('hierarchy.fields.regionName.label')}
+        error={form.errors.name}
+        errorMessage={message('name')}
+      >
+        {(describedBy, invalid) => (
+          <input
+            id={fieldId('name')}
+            type="text"
+            autoComplete="off"
+            maxLength={200}
+            value={values.name}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              update({ name: event.target.value });
+            }}
+          />
+        )}
+      </Field>
+      <DateFields
+        idFor={fieldId}
+        values={values}
+        errors={form.errors}
+        message={message}
+        onChange={update}
+      />
+      <button type="submit" className="button" disabled={submitting}>
+        {submitting ? t('hierarchy.submitting') : t('hierarchy.regionForm.submit')}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Inline (non-modal, so never a focus trap) first-region assignment for one unassigned site. The
+ * idempotency key is bound to the site and the chosen region; the select receives focus on open.
+ */
+export function AssignRegionForm({
+  id,
+  site,
+  regions,
+  onAssigned,
+  onCancel,
+  onReload,
+}: {
+  id: string;
+  site: Site;
+  regions: readonly Region[];
+  onAssigned: (site: Site) => void;
+  onCancel: () => void;
+  onReload: () => void;
+}) {
+  const { t } = useTranslation();
+  const { core } = useApi();
+  const [regionId, setRegionId] = useState('');
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const form = useCreateForm<AssignmentField>(ASSIGNMENT_FIELDS);
+  const message = useMessage(form.errors);
+  const fieldId = (field: string) => `${id}-${field}`;
+
+  useEffect(() => {
+    requestAnimationFrame(() => selectRef.current?.focus());
+  }, []);
+
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const payload = toAssignmentPayload(regionId);
+    void form.submit(
+      validateAssignment(regionId),
+      { siteId: site.id, ...payload },
+      (key) =>
+        core.PUT('/sites/{siteId}/region', {
+          params: { path: { siteId: site.id }, header: { 'Idempotency-Key': key } },
+          body: payload,
+        }),
+      onAssigned,
+    );
+  };
+  const submitting = form.phase.kind === 'submitting';
+  const alreadyAssigned =
+    form.phase.kind === 'failed' && form.phase.messageKey === 'errors.SITE_REGION_ALREADY_ASSIGNED';
+
+  return (
+    <form
+      id={id}
+      noValidate
+      aria-labelledby={`${id}-title`}
+      aria-busy={submitting}
+      onSubmit={onSubmit}
+      className="hierarchy-assign"
+      data-testid="assign-region-form"
+    >
+      <h3 id={`${id}-title`}>
+        {t('hierarchy.assignment.title', { name: site.name, code: site.code })}
+      </h3>
+      <p className="muted">{t('hierarchy.assignment.hint')}</p>
+      <Summary
+        summaryRef={form.summaryRef}
+        fields={ASSIGNMENT_FIELDS}
+        errors={form.errors}
+        phase={form.phase}
+        fieldId={fieldId}
+        message={message}
+      />
+      {alreadyAssigned && (
+        <button type="button" className="button button--secondary" onClick={onReload}>
+          {t('hierarchy.assignment.reload')}
+        </button>
+      )}
+      <Field
+        id={fieldId('regionId')}
+        label={t('hierarchy.fields.assignRegion.label')}
+        error={form.errors.regionId}
+        errorMessage={message('regionId')}
+      >
+        {(describedBy, invalid) => (
+          <select
+            ref={selectRef}
+            id={fieldId('regionId')}
+            value={regionId}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              setRegionId(event.target.value);
+              if (form.phase.kind === 'failed') form.setPhase({ kind: 'editing' });
+            }}
+          >
+            <option value="">{t('hierarchy.assignment.choose')}</option>
+            {regions.map((region) => (
+              <option key={region.id} value={region.id}>
+                {t('hierarchy.regions.option', { name: region.name, code: region.code })}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+      <div className="hierarchy-assign__actions">
+        <button type="submit" className="button" disabled={submitting}>
+          {submitting ? t('hierarchy.submitting') : t('hierarchy.assignment.submit')}
+        </button>
+        <button type="button" className="button button--secondary" onClick={onCancel}>
+          {t('hierarchy.assignment.cancel')}
+        </button>
+      </div>
     </form>
   );
 }

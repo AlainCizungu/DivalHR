@@ -89,6 +89,12 @@
     "DUPLICATE_COST_CENTER_CODE": "This cost center code is already used in your organization.",
     "DEPARTMENT_PERIOD_OUTSIDE_SITE": "The department's dates must fall within its site's dates.",
     "COST_CENTER_PERIOD_OUTSIDE_SITE": "The cost center's dates must fall within its site's dates.",
+    "REGION_NOT_FOUND": "This region does not exist in your organization.",
+    "DUPLICATE_REGION_CODE": "This region code is already used in your organization.",
+    "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY": "The region's dates must fall within its legal entity's dates.",
+    "SITE_PERIOD_OUTSIDE_REGION": "The site's dates must fall within its region's dates.",
+    "SITE_REGION_LEGAL_ENTITY_MISMATCH": "This region belongs to another legal entity than the site.",
+    "SITE_REGION_ALREADY_ASSIGNED": "This site already has a different region. Reload the sites to see its current region.",
     "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated."
   },
   "notFound": {
@@ -187,7 +193,7 @@
   },
   "hierarchy": {
     "title": "Organizational structure",
-    "description": "Legal entities and the sites that belong to them, for your organization only.",
+    "description": "Legal entities, their optional regions and their sites, for your organization only.",
     "loading": "Loading…",
     "retry": "Try again",
     "submitting": "Saving…",
@@ -216,12 +222,40 @@
       "loadMore": "Show more sites",
       "created": "Site {{name}} ({{code}}) created.",
       "selectShort": "Show departments and cost centers",
-      "select": "Show departments and cost centers for {{name}} ({{code}})"
+      "select": "Show departments and cost centers for {{name}} ({{code}})",
+      "region": "Region: {{name}} ({{code}})",
+      "noRegion": "No region",
+      "regionAssigned": "In a region"
     },
     "siteForm": {
       "title": "Add a site to {{name}} ({{code}})",
       "submit": "Create site",
       "periodHint": "A site's dates must fall within its legal entity's dates."
+    },
+    "regions": {
+      "title": "Regions of {{name}} ({{code}})",
+      "description": "Regions are optional groupings of sites. Sites without a region remain fully usable.",
+      "empty": "No regions yet for this legal entity.",
+      "loadMore": "Show more regions",
+      "created": "Region {{name}} ({{code}}) created.",
+      "option": "{{name}} ({{code}})"
+    },
+    "regionForm": {
+      "title": "Add a region to {{name}} ({{code}})",
+      "submit": "Create region",
+      "periodHint": "A region's dates must fall within its legal entity's dates."
+    },
+    "assignment": {
+      "openShort": "Assign to a region",
+      "open": "Assign {{name}} ({{code}}) to a region",
+      "title": "Assign {{name}} ({{code}}) to a region",
+      "hint": "Choose a region of the same legal entity whose dates include the site's dates. Once assigned, the region cannot be changed.",
+      "choose": "Choose a region",
+      "submit": "Assign region",
+      "cancel": "Cancel",
+      "reload": "Reload sites",
+      "done": "Site {{site}} ({{siteCode}}) assigned to region {{region}} ({{regionCode}}).",
+      "doneGeneric": "Site {{site}} ({{siteCode}}) assigned to a region."
     },
     "fields": {
       "code": {
@@ -253,6 +287,17 @@
       },
       "costCenterName": {
         "label": "Cost center name"
+      },
+      "regionName": {
+        "label": "Region name"
+      },
+      "region": {
+        "label": "Region (optional)",
+        "help": "Only regions of this legal entity are listed. Keep “No region” to create the site without a region.",
+        "none": "No region"
+      },
+      "assignRegion": {
+        "label": "Region"
       }
     },
     "validation": {
@@ -283,14 +328,23 @@
         "FORMAT": "Enter a valid start date.",
         "RANGE": "The start date must be between 1900 and 2999.",
         "OUTSIDE_PARENT": "The start date cannot be earlier than the legal entity's start date.",
-        "OUTSIDE_SITE": "The start date cannot be earlier than the site's start date."
+        "OUTSIDE_SITE": "The start date cannot be earlier than the site's start date.",
+        "OUTSIDE_LEGAL_ENTITY": "The start date cannot be earlier than the legal entity's start date."
       },
       "effectiveTo": {
         "FORMAT": "Enter a valid end date.",
         "RANGE": "The end date must be between 1900 and 2999.",
         "BEFORE_START": "The end date cannot be earlier than the start date.",
         "OUTSIDE_PARENT": "The end date must fall within the legal entity's dates. An open-ended site needs an open-ended legal entity.",
-        "OUTSIDE_SITE": "The end date must fall within the site's dates. An open-ended entry needs an open-ended site."
+        "OUTSIDE_SITE": "The end date must fall within the site's dates. An open-ended entry needs an open-ended site.",
+        "OUTSIDE_LEGAL_ENTITY": "The end date must fall within the legal entity's dates. An open-ended region needs an open-ended legal entity."
+      },
+      "regionId": {
+        "REQUIRED": "Choose a region.",
+        "FORMAT": "Choose a region from the list.",
+        "NOT_FOUND": "This region does not exist in your organization.",
+        "MISMATCH": "This region belongs to another legal entity.",
+        "OUTSIDE_REGION": "The site's dates must fall within the region's dates. An open-ended site needs an open-ended region."
       }
     },
     "siteUnits": {

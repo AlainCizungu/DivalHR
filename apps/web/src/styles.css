@@ -343,6 +343,18 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+/* The inline first-region assignment form takes a full row beneath its site. */
+.hierarchy-assign {
+  flex: 1 1 100%;
+  padding: var(--dv-space-2) 0;
+}
+
+.hierarchy-assign__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dv-space-2);
+}
+
 .field input[type='date'],
 .field select {
   max-width: 100%;

@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ASSIGNMENT_FIELDS,
   LEGAL_ENTITY_FIELDS,
+  REGION_FIELDS,
   SITE_FIELDS,
   SITE_UNIT_FIELDS,
   fieldErrorsFromProblem,
+  toAssignmentPayload,
+  toRegionPayload,
   toSitePayload,
   toSiteUnitPayload,
+  validateAssignment,
   validateLegalEntity,
+  validateRegion,
   validateSite,
   validateSiteUnit,
 } from './hierarchyForm';
@@ -48,6 +54,7 @@ describe('hierarchy form rules', () => {
       code: ' gombe ',
       name: 'Gombe',
       timezone: 'Europe/Paris',
+      regionId: '',
       effectiveFrom: '2026-01-01',
       effectiveTo: '',
     };
@@ -131,6 +138,77 @@ describe('hierarchy form rules', () => {
       fieldErrorsFromProblem(
         { code: 'SITE_NOT_FOUND', params: { field: 'siteId' } },
         SITE_UNIT_FIELDS,
+      ),
+    ).toBeNull();
+  });
+
+  it('omits regionId without a region so the site payload is unchanged', () => {
+    const site = {
+      code: 'kat',
+      name: 'Katanga',
+      timezone: 'Africa/Lubumbashi',
+      regionId: '',
+      effectiveFrom: '2026-01-01',
+      effectiveTo: '',
+    };
+    expect(toSitePayload('le-1', site)).not.toHaveProperty('regionId');
+    expect(toSitePayload('le-1', { ...site, regionId: 'rg-1' })).toMatchObject({
+      legalEntityId: 'le-1',
+      regionId: 'rg-1',
+    });
+  });
+
+  it('validates regions and assignments and maps their server problems', () => {
+    expect(validateRegion({ code: '', name: 'R', effectiveFrom: '', effectiveTo: '' })).toEqual({
+      code: 'REQUIRED',
+      name: 'LENGTH',
+      effectiveFrom: 'REQUIRED',
+    });
+    expect(
+      toRegionPayload('le-1', {
+        code: ' kat_nord ',
+        name: ' Région Grand Katanga ',
+        effectiveFrom: '2026-01-01',
+        effectiveTo: '2026-12-31',
+      }),
+    ).toEqual({
+      legalEntityId: 'le-1',
+      code: 'KAT_NORD',
+      name: 'Région Grand Katanga',
+      effectiveFrom: '2026-01-01',
+      effectiveTo: '2026-12-31',
+    });
+    expect(validateAssignment('')).toEqual({ regionId: 'REQUIRED' });
+    expect(validateAssignment('rg-1')).toEqual({});
+    expect(toAssignmentPayload('rg-1')).toEqual({ regionId: 'rg-1' });
+    expect(
+      fieldErrorsFromProblem(
+        { code: 'DUPLICATE_REGION_CODE', params: { field: 'code' } },
+        REGION_FIELDS,
+      ),
+    ).toEqual({ code: 'DUPLICATE_CODE' });
+    expect(
+      fieldErrorsFromProblem(
+        { code: 'REGION_PERIOD_OUTSIDE_LEGAL_ENTITY', params: { field: 'effectiveTo' } },
+        REGION_FIELDS,
+      ),
+    ).toEqual({ effectiveTo: 'OUTSIDE_LEGAL_ENTITY' });
+    for (const [code, constraint] of [
+      ['REGION_NOT_FOUND', 'NOT_FOUND'],
+      ['SITE_REGION_LEGAL_ENTITY_MISMATCH', 'MISMATCH'],
+      ['SITE_PERIOD_OUTSIDE_REGION', 'OUTSIDE_REGION'],
+    ] as const) {
+      expect(
+        fieldErrorsFromProblem({ code, params: { field: 'regionId' } }, ASSIGNMENT_FIELDS),
+      ).toEqual({ regionId: constraint });
+      expect(fieldErrorsFromProblem({ code, params: { field: 'regionId' } }, SITE_FIELDS)).toEqual({
+        regionId: constraint,
+      });
+    }
+    expect(
+      fieldErrorsFromProblem(
+        { code: 'SITE_REGION_ALREADY_ASSIGNED', params: {} },
+        ASSIGNMENT_FIELDS,
       ),
     ).toBeNull();
   });

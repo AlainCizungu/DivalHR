@@ -1,7 +1,9 @@
 import type {
+  AssignSiteRegion,
   CreateCostCenter,
   CreateDepartment,
   CreateLegalEntity,
+  CreateRegion,
   CreateSite,
 } from '@divalhr/api-client';
 import { COUNTRIES, TIMEZONES_BY_COUNTRY } from '../admin/organizationForm';
@@ -16,10 +18,14 @@ export type Constraint =
   | 'DUPLICATE_CODE'
   | 'BEFORE_START'
   | 'OUTSIDE_PARENT'
-  | 'OUTSIDE_SITE';
+  | 'OUTSIDE_SITE'
+  | 'OUTSIDE_LEGAL_ENTITY'
+  | 'OUTSIDE_REGION'
+  | 'MISMATCH'
+  | 'NOT_FOUND';
 
 export type LegalEntityField = 'code' | 'name' | 'countryCode' | 'effectiveFrom' | 'effectiveTo';
-export type SiteField = 'code' | 'name' | 'timezone' | 'effectiveFrom' | 'effectiveTo';
+export type SiteField = 'code' | 'name' | 'timezone' | 'regionId' | 'effectiveFrom' | 'effectiveTo';
 export const LEGAL_ENTITY_FIELDS: LegalEntityField[] = [
   'code',
   'name',
@@ -31,9 +37,16 @@ export const SITE_FIELDS: SiteField[] = [
   'code',
   'name',
   'timezone',
+  'regionId',
   'effectiveFrom',
   'effectiveTo',
 ];
+/** Regions (MVP-002 Increment 3A) share the site-unit form shape beneath a legal entity. */
+export type RegionField = 'code' | 'name' | 'effectiveFrom' | 'effectiveTo';
+export const REGION_FIELDS: RegionField[] = ['code', 'name', 'effectiveFrom', 'effectiveTo'];
+/** The first-assignment form has a single field. */
+export type AssignmentField = 'regionId';
+export const ASSIGNMENT_FIELDS: AssignmentField[] = ['regionId'];
 /** Departments and cost centers share one form shape. */
 export type SiteUnitField = 'code' | 'name' | 'effectiveFrom' | 'effectiveTo';
 export const SITE_UNIT_FIELDS: SiteUnitField[] = ['code', 'name', 'effectiveFrom', 'effectiveTo'];
@@ -60,9 +73,13 @@ export interface SiteValues {
   code: string;
   name: string;
   timezone: string;
+  /** Optional region of the same legal entity; '' for none. */
+  regionId: string;
   effectiveFrom: string;
   effectiveTo: string;
 }
+
+export type RegionValues = SiteUnitValues;
 
 const CODE = /^[A-Z0-9_-]{2,20}$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -141,6 +158,14 @@ export function validateSite(values: SiteValues, countryCode: string): Errors<Si
   return errors;
 }
 
+export function validateRegion(values: RegionValues): Errors<RegionField> {
+  return validateSiteUnit(values);
+}
+
+export function validateAssignment(regionId: string): Errors<AssignmentField> {
+  return regionId === '' ? { regionId: 'REQUIRED' } : {};
+}
+
 export function validateSiteUnit(values: SiteUnitValues): Errors<SiteUnitField> {
   const errors: Errors<SiteUnitField> = {};
   const code = checkCode(values.code);
@@ -162,15 +187,31 @@ export function toLegalEntityPayload(values: LegalEntityValues): CreateLegalEnti
   };
 }
 
+/** Without a region the payload is exactly the pre-region one (no regionId property). */
 export function toSitePayload(legalEntityId: string, values: SiteValues): CreateSite {
   return {
     legalEntityId,
+    ...(values.regionId === '' ? {} : { regionId: values.regionId }),
     code: normalizeCode(values.code),
     name: values.name.trim(),
     timezone: values.timezone as CreateSite['timezone'],
     effectiveFrom: values.effectiveFrom,
     effectiveTo: values.effectiveTo === '' ? null : values.effectiveTo,
   };
+}
+
+export function toRegionPayload(legalEntityId: string, values: RegionValues): CreateRegion {
+  return {
+    legalEntityId,
+    code: normalizeCode(values.code),
+    name: values.name.trim(),
+    effectiveFrom: values.effectiveFrom,
+    effectiveTo: values.effectiveTo === '' ? null : values.effectiveTo,
+  };
+}
+
+export function toAssignmentPayload(regionId: string): AssignSiteRegion {
+  return { regionId };
 }
 
 export function toSiteUnitPayload(
@@ -207,6 +248,11 @@ export function fieldErrorsFromProblem<F extends string>(
     DUPLICATE_COST_CENTER_CODE: 'DUPLICATE_CODE',
     DEPARTMENT_PERIOD_OUTSIDE_SITE: 'OUTSIDE_SITE',
     COST_CENTER_PERIOD_OUTSIDE_SITE: 'OUTSIDE_SITE',
+    DUPLICATE_REGION_CODE: 'DUPLICATE_CODE',
+    REGION_PERIOD_OUTSIDE_LEGAL_ENTITY: 'OUTSIDE_LEGAL_ENTITY',
+    REGION_NOT_FOUND: 'NOT_FOUND',
+    SITE_PERIOD_OUTSIDE_REGION: 'OUTSIDE_REGION',
+    SITE_REGION_LEGAL_ENTITY_MISMATCH: 'MISMATCH',
     COUNTRY_NOT_SUPPORTED: 'NOT_SUPPORTED',
     TIMEZONE_NOT_SUPPORTED: 'NOT_SUPPORTED',
   };

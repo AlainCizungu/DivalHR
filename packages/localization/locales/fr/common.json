@@ -89,6 +89,12 @@
     "DUPLICATE_COST_CENTER_CODE": "Ce code de centre de coût est déjà utilisé dans votre organisation.",
     "DEPARTMENT_PERIOD_OUTSIDE_SITE": "Les dates du département doivent être comprises dans celles de son site.",
     "COST_CENTER_PERIOD_OUTSIDE_SITE": "Les dates du centre de coût doivent être comprises dans celles de son site.",
+    "REGION_NOT_FOUND": "Cette région n’existe pas dans votre organisation.",
+    "DUPLICATE_REGION_CODE": "Ce code de région est déjà utilisé dans votre organisation.",
+    "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY": "Les dates de la région doivent être comprises dans celles de son entité juridique.",
+    "SITE_PERIOD_OUTSIDE_REGION": "Les dates du site doivent être comprises dans celles de sa région.",
+    "SITE_REGION_LEGAL_ENTITY_MISMATCH": "Cette région appartient à une autre entité juridique que le site.",
+    "SITE_REGION_ALREADY_ASSIGNED": "Ce site est déjà rattaché à une autre région. Rechargez les sites pour voir sa région actuelle.",
     "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
   },
   "notFound": {
@@ -187,7 +193,7 @@
   },
   "hierarchy": {
     "title": "Structure organisationnelle",
-    "description": "Les entités juridiques et les sites qui leur sont rattachés, pour votre organisation uniquement.",
+    "description": "Les entités juridiques, leurs régions facultatives et leurs sites, pour votre organisation uniquement.",
     "loading": "Chargement…",
     "retry": "Réessayer",
     "submitting": "Enregistrement…",
@@ -216,12 +222,40 @@
       "loadMore": "Afficher plus de sites",
       "created": "Site {{name}} ({{code}}) créé.",
       "selectShort": "Voir les départements et centres de coût",
-      "select": "Voir les départements et centres de coût de {{name}} ({{code}})"
+      "select": "Voir les départements et centres de coût de {{name}} ({{code}})",
+      "region": "Région : {{name}} ({{code}})",
+      "noRegion": "Sans région",
+      "regionAssigned": "Rattaché à une région"
     },
     "siteForm": {
       "title": "Ajouter un site à {{name}} ({{code}})",
       "submit": "Créer le site",
       "periodHint": "Les dates d’un site doivent être comprises dans celles de son entité juridique."
+    },
+    "regions": {
+      "title": "Régions de {{name}} ({{code}})",
+      "description": "Les régions sont des regroupements facultatifs de sites. Les sites sans région restent pleinement utilisables.",
+      "empty": "Aucune région pour cette entité juridique pour le moment.",
+      "loadMore": "Afficher plus de régions",
+      "created": "Région {{name}} ({{code}}) créée.",
+      "option": "{{name}} ({{code}})"
+    },
+    "regionForm": {
+      "title": "Ajouter une région à {{name}} ({{code}})",
+      "submit": "Créer la région",
+      "periodHint": "Les dates d’une région doivent être comprises dans celles de son entité juridique."
+    },
+    "assignment": {
+      "openShort": "Rattacher à une région",
+      "open": "Rattacher {{name}} ({{code}}) à une région",
+      "title": "Rattacher {{name}} ({{code}}) à une région",
+      "hint": "Choisissez une région de la même entité juridique dont les dates couvrent celles du site. Une fois rattachée, la région ne peut plus être modifiée.",
+      "choose": "Choisissez une région",
+      "submit": "Rattacher à la région",
+      "cancel": "Annuler",
+      "reload": "Recharger les sites",
+      "done": "Site {{site}} ({{siteCode}}) rattaché à la région {{region}} ({{regionCode}}).",
+      "doneGeneric": "Site {{site}} ({{siteCode}}) rattaché à une région."
     },
     "fields": {
       "code": {
@@ -253,6 +287,17 @@
       },
       "costCenterName": {
         "label": "Nom du centre de coût"
+      },
+      "regionName": {
+        "label": "Nom de la région"
+      },
+      "region": {
+        "label": "Région (facultatif)",
+        "help": "Seules les régions de cette entité juridique sont proposées. Laissez « Sans région » pour créer le site sans région.",
+        "none": "Sans région"
+      },
+      "assignRegion": {
+        "label": "Région"
       }
     },
     "validation": {
@@ -283,14 +328,23 @@
         "FORMAT": "Saisissez une date de début valide.",
         "RANGE": "La date de début doit être comprise entre 1900 et 2999.",
         "OUTSIDE_PARENT": "La date de début ne peut pas précéder celle de l’entité juridique.",
-        "OUTSIDE_SITE": "La date de début ne peut pas précéder celle du site."
+        "OUTSIDE_SITE": "La date de début ne peut pas précéder celle du site.",
+        "OUTSIDE_LEGAL_ENTITY": "La date de début ne peut pas précéder celle de l’entité juridique."
       },
       "effectiveTo": {
         "FORMAT": "Saisissez une date de fin valide.",
         "RANGE": "La date de fin doit être comprise entre 1900 et 2999.",
         "BEFORE_START": "La date de fin ne peut pas précéder la date de début.",
         "OUTSIDE_PARENT": "La date de fin doit être comprise dans les dates de l’entité juridique. Un site sans date de fin exige une entité juridique sans date de fin.",
-        "OUTSIDE_SITE": "La date de fin doit être comprise dans les dates du site. Une entrée sans date de fin exige un site sans date de fin."
+        "OUTSIDE_SITE": "La date de fin doit être comprise dans les dates du site. Une entrée sans date de fin exige un site sans date de fin.",
+        "OUTSIDE_LEGAL_ENTITY": "La date de fin doit être comprise dans les dates de l’entité juridique. Une région sans date de fin exige une entité juridique sans date de fin."
+      },
+      "regionId": {
+        "REQUIRED": "Choisissez une région.",
+        "FORMAT": "Choisissez une région dans la liste.",
+        "NOT_FOUND": "Cette région n’existe pas dans votre organisation.",
+        "MISMATCH": "Cette région appartient à une autre entité juridique.",
+        "OUTSIDE_REGION": "Les dates du site doivent être comprises dans celles de la région. Un site sans date de fin exige une région sans date de fin."
       }
     },
     "siteUnits": {
