@@ -102,11 +102,13 @@ gradle_sha() {
 
 use_node24() {
   # Uses the active Node when it is 24.x; otherwise installs the pinned Node 24 from the npm
-  # registry into .git/divalhr-verify/node24 (no global changes) and puts it first on PATH.
+  # registry into ~/.cache/divalhr/node24 (outside the repository, no global changes) and puts it
+  # first on PATH for this run only.
   if ! node -v 2>/dev/null | grep -q '^v24\.'; then
-    local dir="$OUT/node24"
+    local dir="${XDG_CACHE_HOME:-$HOME/.cache}/divalhr/node24"
     if [ ! -x "$dir/node_modules/node/bin/node" ]; then
-      mkdir -p "$dir" && (cd "$dir" && npm install --silent --no-save --no-package-lock node@24.21.0) || return 1
+      mkdir -p "$dir" && printf '{"private":true}\n' > "$dir/package.json" &&
+        npm install --prefix "$dir" --no-save --no-package-lock --no-audit --no-fund node@24.21.0 || return 1
     fi
     export PATH="$dir/node_modules/node/bin:$PATH"
     hash -r
