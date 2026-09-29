@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "DivalHR",
+    "tagline": "Les opérations RH des organisations africaines"
+  },
+  "nav": {
+    "primary": "Navigation principale",
+    "home": "Accueil",
+    "status": "État du système",
+    "skipToContent": "Aller au contenu principal"
+  },
+  "locale": {
+    "label": "Langue",
+    "en": "English",
+    "fr": "Français"
+  },
+  "theme": {
+    "label": "Thème",
+    "system": "Système",
+    "light": "Clair",
+    "dark": "Sombre"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "signingIn": "Connexion en cours…",
+    "signedInTenant": "Connecté au locataire {{tenantId}}",
+    "error": "La connexion n’a pas pu aboutir. Veuillez réessayer.",
+    "required": "Connectez-vous pour continuer.",
+    "devOnlyNotice": "Environnement de développement. Ne saisissez aucune donnée réelle d’employé."
+  },
+  "home": {
+    "title": "Bienvenue sur DivalHR",
+    "body": "Ceci est la structure de l’application du Sprint 0. Les fonctionnalités métier arriveront dans les prochaines versions."
+  },
+  "session": {
+    "title": "Votre session",
+    "tenant": "Locataire",
+    "roles": "Rôles",
+    "noRoles": "Aucun rôle attribué",
+    "loading": "Chargement de votre session…",
+    "role": {
+      "platform-admin": "Administrateur de la plateforme",
+      "tenant-admin": "Administrateur de l’organisation",
+      "employee": "Employé"
+    }
+  },
+  "status": {
+    "title": "État du système",
+    "description": "État en temps réel des services DivalHR utilisés par cette application.",
+    "refresh": "Vérifier à nouveau",
+    "checkedAt": "Vérifié à {{time}}",
+    "version": "Version {{version}}",
+    "service": {
+      "coreApi": "API principale",
+      "aiService": "Service d’IA"
+    },
+    "state": {
+      "checking": "Vérification…",
+      "up": "Opérationnel",
+      "down": "Pas prêt",
+      "unreachable": "Injoignable"
+    }
+  },
+  "errors": {
+    "generic": "Une erreur s’est produite. Veuillez réessayer.",
+    "VALIDATION_FAILED": "Certaines informations sont manquantes ou invalides.",
+    "AUTHENTICATION_REQUIRED": "Votre session a expiré. Veuillez vous reconnecter.",
+    "ACCESS_DENIED": "Vous n’avez pas l’autorisation d’effectuer cette action.",
+    "TENANT_CONTEXT_MISSING": "Votre compte n’est rattaché à aucune organisation.",
+    "TENANT_ACCESS_DENIED": "Cet élément appartient à une autre organisation.",
+    "NOT_FOUND": "Nous n’avons pas trouvé ce que vous cherchez.",
+    "INTERNAL_ERROR": "Une erreur inattendue s’est produite. Veuillez réessayer plus tard."
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "back": "Retour à l’accueil"
+  },
+  "pwa": {
+    "offlineReady": "DivalHR est prêt à fonctionner hors ligne.",
+    "updateAvailable": "Une nouvelle version de DivalHR est disponible.",
+    "reload": "Mettre à jour",
+    "dismiss": "Fermer"
+  }
+}

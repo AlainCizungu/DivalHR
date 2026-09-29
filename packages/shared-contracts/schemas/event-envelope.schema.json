@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.divalhr.com/schemas/event-envelope.schema.json",
+  "title": "DivalHR business event envelope",
+  "description": "Required metadata for every business event (docs/ARCHITECTURE.md, Event rules). Events are published through a transactional outbox; consumers must be idempotent on eventId.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "tenantId",
+    "source",
+    "subject",
+    "eventTime",
+    "correlationId",
+    "causationId",
+    "data"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": {
+      "type": "string",
+      "pattern": "^[a-z]+(\\.[a-z-]+)+\\.v[0-9]+$",
+      "description": "Namespaced type, e.g. tenant.organization-created.v1"
+    },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "tenantId": { "type": "string", "format": "uuid" },
+    "source": { "type": "string", "description": "Producing module, e.g. core-api/tenant" },
+    "subject": {
+      "type": "string",
+      "description": "Identifier of the affected entity; never personal data"
+    },
+    "eventTime": { "type": "string", "format": "date-time" },
+    "correlationId": { "type": "string", "minLength": 8, "maxLength": 64 },
+    "causationId": { "type": ["string", "null"] },
+    "data": { "type": "object" }
+  }
+}

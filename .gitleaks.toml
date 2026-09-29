@@ -1,0 +1,14 @@
+# Secret scanning policy. The default rules apply; the allowlist covers only published,
+# development-only placeholders (all prefixed "dev-only-") and test fixtures.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Published development-only placeholders and test fixtures"
+regexes = ['''dev-only-[A-Za-z0-9-]+''']
+paths = [
+  '''apps/core-api/src/test/''',
+  '''apps/ai-service/tests/''',
+  '''pnpm-lock\.yaml''',
+  '''apps/ai-service/uv\.lock''',
+]

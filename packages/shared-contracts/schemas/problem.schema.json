@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.divalhr.com/schemas/problem.schema.json",
+  "title": "DivalHR error response",
+  "description": "RFC 9457 problem details with stable code, safe params and correlationId. Mirrors components.schemas.Problem in docs/API-SPEC.yaml.",
+  "type": "object",
+  "required": ["type", "title", "status", "code", "params", "correlationId"],
+  "properties": {
+    "type": { "type": "string" },
+    "title": { "type": "string" },
+    "status": { "type": "integer" },
+    "detail": { "type": "string" },
+    "instance": { "type": "string" },
+    "code": {
+      "enum": [
+        "VALIDATION_FAILED",
+        "AUTHENTICATION_REQUIRED",
+        "ACCESS_DENIED",
+        "TENANT_CONTEXT_MISSING",
+        "TENANT_ACCESS_DENIED",
+        "NOT_FOUND",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "params": { "type": "object" },
+    "correlationId": { "type": "string" }
+  }
+}

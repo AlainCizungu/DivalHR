@@ -1,0 +1,113 @@
+# DivalHR local development stack. DEVELOPMENT ONLY: seed credentials, realm and tenant IDs in
+# this stack are published in the repository and must never be used elsewhere.
+#
+#   docker compose -f infrastructure/docker/compose.yaml --env-file .env.example up -d --build --wait
+#
+# Browser-facing ports: web 5173, Core API 8080, AI Service 8090 (status only), Keycloak 8180.
+# Internal only: PostgreSQL, Core API management port, health probes.
+name: divalhr
+
+services:
+  postgres:
+    image: postgres:17.11@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?}
+      DIVALHR_DB_NAME: ${DIVALHR_DB_NAME:?}
+      DIVALHR_DB_USER: ${DIVALHR_DB_USER:?}
+      DIVALHR_DB_PASSWORD: ${DIVALHR_DB_PASSWORD:?}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/10-create-app-role.sh:/docker-entrypoint-initdb.d/10-create-app-role.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # No published port: only the Core API connects. Add "5432:5432" locally if you need psql.
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    command: ['start-dev', '--import-realm']
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?}
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
+      KC_HEALTH_ENABLED: 'true'
+      KC_HTTP_PORT: '8080'
+    volumes:
+      - ./keycloak/realm-divalhr-dev.json:/opt/keycloak/data/import/realm-divalhr-dev.json:ro
+    ports:
+      - '${KEYCLOAK_PORT:-8180}:8080'
+    healthcheck:
+      # The image has no curl/wget; use bash's /dev/tcp against the management port.
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"status": *"UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  core-api:
+    build:
+      context: ../../apps/core-api
+    image: divalhr/core-api:dev
+    environment:
+      DIVALHR_ENVIRONMENT: development
+      DIVALHR_DB_URL: jdbc:postgresql://postgres:5432/${DIVALHR_DB_NAME}
+      DIVALHR_DB_USER: ${DIVALHR_DB_USER}
+      DIVALHR_DB_PASSWORD: ${DIVALHR_DB_PASSWORD}
+      DIVALHR_OIDC_ISSUER: http://localhost:${KEYCLOAK_PORT:-8180}/realms/divalhr-dev
+      DIVALHR_OIDC_JWKS_URI: http://keycloak:8080/realms/divalhr-dev/protocol/openid-connect/certs
+      DIVALHR_OIDC_AUDIENCE: divalhr-core-api
+      DIVALHR_CORS_ALLOWED_ORIGINS: http://localhost:${WEB_PORT:-5173}
+      DIVALHR_API_DOCS_ENABLED: 'true'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - '${CORE_API_PORT:-8080}:8080'
+
+  ai-service:
+    build:
+      context: ../../apps/ai-service
+    image: divalhr/ai-service:dev
+    environment:
+      DIVALHR_AI_ENVIRONMENT: development
+      DIVALHR_AI_CORS_ALLOWED_ORIGINS: http://localhost:${WEB_PORT:-5173}
+    ports:
+      - '${AI_SERVICE_PORT:-8090}:8090'
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    image: divalhr/web:dev
+    environment:
+      DIVALHR_ENVIRONMENT: development
+      DIVALHR_CORE_API_URL: http://localhost:${CORE_API_PORT:-8080}/api/v1
+      DIVALHR_AI_SERVICE_URL: http://localhost:${AI_SERVICE_PORT:-8090}/api/v1
+      DIVALHR_OIDC_AUTHORITY: http://localhost:${KEYCLOAK_PORT:-8180}/realms/divalhr-dev
+      DIVALHR_OIDC_CLIENT_ID: divalhr-web
+      DIVALHR_OIDC_ORIGIN: http://localhost:${KEYCLOAK_PORT:-8180}
+      DIVALHR_CSP_CONNECT_SRC: >-
+        http://localhost:${CORE_API_PORT:-8080}
+        http://localhost:${AI_SERVICE_PORT:-8090}
+        http://localhost:${KEYCLOAK_PORT:-8180}
+    depends_on:
+      core-api:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-5173}:8080'
+
+volumes:
+  postgres-data:

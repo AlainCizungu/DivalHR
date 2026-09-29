@@ -46,8 +46,7 @@ class ApiContractDriftTest {
     try (InputStream in = Files.newInputStream(specPath)) {
       spec = new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
     }
-    String json =
-        mvc.perform(get("/v3/api-docs")).andReturn().getResponse().getContentAsString();
+    String json = mvc.perform(get("/v3/api-docs")).andReturn().getResponse().getContentAsString();
     generated = castMap(JsonMapper.builder().build().readValue(json, Map.class));
   }
 
@@ -127,7 +126,8 @@ class ApiContractDriftTest {
     return properties;
   }
 
-  private static Map<String, Object> resolve(Map<String, Object> document, Map<String, Object> node) {
+  private static Map<String, Object> resolve(
+      Map<String, Object> document, Map<String, Object> node) {
     Object ref = node.get("$ref");
     if (ref == null) {
       return node;

@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "DivalHR",
+    "tagline": "Workforce operations for African organizations"
+  },
+  "nav": {
+    "primary": "Main navigation",
+    "home": "Home",
+    "status": "System status",
+    "skipToContent": "Skip to main content"
+  },
+  "locale": {
+    "label": "Language",
+    "en": "English",
+    "fr": "Français"
+  },
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signingIn": "Signing you in…",
+    "signedInTenant": "Signed in to tenant {{tenantId}}",
+    "error": "Sign-in could not be completed. Please try again.",
+    "required": "Sign in to continue.",
+    "devOnlyNotice": "Development environment. Do not enter real employee data."
+  },
+  "home": {
+    "title": "Welcome to DivalHR",
+    "body": "This is the Sprint 0 application shell. Business features will arrive in later releases."
+  },
+  "session": {
+    "title": "Your session",
+    "tenant": "Tenant",
+    "roles": "Roles",
+    "noRoles": "No roles assigned",
+    "loading": "Loading your session…",
+    "role": {
+      "platform-admin": "Platform administrator",
+      "tenant-admin": "Organization administrator",
+      "employee": "Employee"
+    }
+  },
+  "status": {
+    "title": "System status",
+    "description": "Live status of the DivalHR services used by this application.",
+    "refresh": "Check again",
+    "checkedAt": "Checked at {{time}}",
+    "version": "Version {{version}}",
+    "service": {
+      "coreApi": "Core API",
+      "aiService": "AI service"
+    },
+    "state": {
+      "checking": "Checking…",
+      "up": "Operational",
+      "down": "Not ready",
+      "unreachable": "Unreachable"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "VALIDATION_FAILED": "Some information is missing or invalid.",
+    "AUTHENTICATION_REQUIRED": "Your session has ended. Please sign in again.",
+    "ACCESS_DENIED": "You do not have permission to do this.",
+    "TENANT_CONTEXT_MISSING": "Your account is not linked to an organization.",
+    "TENANT_ACCESS_DENIED": "This belongs to another organization.",
+    "NOT_FOUND": "We could not find what you were looking for.",
+    "INTERNAL_ERROR": "An unexpected error occurred. Please try again later."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Return to home"
+  },
+  "pwa": {
+    "offlineReady": "DivalHR is ready to work offline.",
+    "updateAvailable": "A new version of DivalHR is available.",
+    "reload": "Update now",
+    "dismiss": "Dismiss"
+  }
+}

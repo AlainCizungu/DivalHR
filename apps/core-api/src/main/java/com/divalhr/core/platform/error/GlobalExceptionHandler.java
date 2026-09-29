@@ -27,7 +27,8 @@ public class GlobalExceptionHandler {
    * @return problem response
    */
   @ExceptionHandler(ApiException.class)
-  public ResponseEntity<ProblemDetail> handleApi(ApiException exception, HttpServletRequest request) {
+  public ResponseEntity<ProblemDetail> handleApi(
+      ApiException exception, HttpServletRequest request) {
     return respond(exception.code(), exception.params(), request);
   }
 
@@ -46,10 +47,7 @@ public class GlobalExceptionHandler {
             .map(
                 error ->
                     Map.of(
-                        "field",
-                        error.getField(),
-                        "constraint",
-                        String.valueOf(error.getCode())))
+                        "field", error.getField(), "constraint", String.valueOf(error.getCode())))
             .toList();
     return respond(ErrorCode.VALIDATION_FAILED, Map.of("fields", fields), request);
   }

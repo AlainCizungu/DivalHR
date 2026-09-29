@@ -1,0 +1,58 @@
+openapi: 3.1.0
+info:
+  title: DivalHR AI Service (browser-visible surface)
+  version: 0.1.0
+  description: >-
+    Design-first contract for the only AI Service endpoint the browser may call. All future AI
+    operations enter through the Core API boundary; the AI Service is not a browser-facing backend.
+servers:
+  - url: /api/v1
+    description: Relative to the AI Service origin configured per environment
+security: []
+tags:
+  - name: system
+    description: Platform status
+paths:
+  /system/status:
+    get:
+      operationId: getAiServiceStatus
+      x-divalhr-lifecycle: implemented
+      summary: Public, non-sensitive AI Service status
+      tags: [system]
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9._-]{8,64}$'
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+components:
+  schemas:
+    SystemStatus:
+      type: object
+      required: [service, status, version, checkedAt]
+      properties:
+        service:
+          type: string
+          example: ai-service
+        status:
+          type: string
+          enum: [UP, DOWN]
+        version:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
