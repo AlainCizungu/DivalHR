@@ -50,7 +50,10 @@ export interface paths {
         /** List authorized organizations */
         get: operations["listOrganizations"];
         put?: never;
-        /** Create an organization */
+        /**
+         * Create an organization (platform provisioning)
+         * @description Platform-scoped operation (MVP-001). Only a platform administrator may call it. The server generates the organization UUID, which is also the new tenant identifier; the caller's own tenant claim is never used. Retries with the same Idempotency-Key and a semantically identical payload replay the original 201 response (header Idempotent-Replayed: true) without creating another organization. Submitted values are never echoed in errors.
+         */
         post: operations["createOrganization"];
         delete?: never;
         options?: never;
@@ -131,24 +134,40 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description An organization. Its id is also the tenant identifier. */
         Organization: {
             /** Format: uuid */
             id: string;
             name: string;
             /** @enum {string} */
-            defaultLocale: "fr" | "en";
-            /** @example Africa/Kinshasa */
-            timezone: string;
-            currencies: ("CDF" | "USD")[];
-        };
-        CreateOrganization: {
-            name: string;
-            /** @example CD */
-            countryCode: string;
+            countryCode: "CD";
             /** @enum {string} */
             defaultLocale: "fr" | "en";
-            timezone: string;
-            currencies: string[];
+            /** @enum {string} */
+            timezone: "Africa/Kinshasa" | "Africa/Lubumbashi";
+            currencies: ("CDF" | "USD")[];
+            /** @enum {string} */
+            status: "ACTIVE";
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateOrganization: {
+            /** @description Trimmed before validation; 2-160 Unicode characters. */
+            name: string;
+            /**
+             * @description ISO 3166-1 alpha-2. The MVP supports CD only.
+             * @example CD
+             * @enum {string}
+             */
+            countryCode: "CD";
+            /** @enum {string} */
+            defaultLocale: "fr" | "en";
+            /**
+             * @description IANA time zone supported for the country.
+             * @enum {string}
+             */
+            timezone: "Africa/Kinshasa" | "Africa/Lubumbashi";
+            currencies: ("CDF" | "USD")[];
         };
         SystemStatus: {
             /** @example core-api */
@@ -168,7 +187,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -204,10 +223,29 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. Submitted values are never echoed. */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description IDEMPOTENCY_KEY_REUSED - the key was already used with a different payload. */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
         CorrelationId: string;
+        /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
         IdempotencyKey: string;
         Cursor: string;
         Limit: number;
@@ -216,6 +254,8 @@ export interface components {
     headers: {
         /** @description Correlation ID echoed from the request or generated by the server. */
         CorrelationId: string;
+        /** @description Present with value "true" when the response replays an earlier successful request. */
+        IdempotentReplayed: "true";
     };
     pathItems: never;
 }
@@ -307,7 +347,10 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
             };
             path?: never;
             cookie?: never;
@@ -318,17 +361,21 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Organization created */
+            /** @description Organization created, or the original creation replayed */
             201: {
                 headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "X-Correlation-Id": components["headers"]["CorrelationId"];
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["Organization"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
     listEmployees: {
@@ -358,6 +405,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;
@@ -380,6 +428,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;

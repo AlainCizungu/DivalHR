@@ -7,7 +7,8 @@
     "primary": "Main navigation",
     "home": "Home",
     "status": "System status",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "platformAdmin": "Create organization"
   },
   "locale": {
     "label": "Language",
@@ -70,7 +71,13 @@
     "TENANT_CONTEXT_MISSING": "Your account is not linked to an organization.",
     "TENANT_ACCESS_DENIED": "This belongs to another organization.",
     "NOT_FOUND": "We could not find what you were looking for.",
-    "INTERNAL_ERROR": "An unexpected error occurred. Please try again later."
+    "INTERNAL_ERROR": "An unexpected error occurred. Please try again later.",
+    "IDEMPOTENCY_KEY_REUSED": "This request was already submitted with different details. Please review the form and submit again.",
+    "COUNTRY_NOT_SUPPORTED": "This country is not supported yet.",
+    "LOCALE_NOT_SUPPORTED": "This language is not supported.",
+    "TIMEZONE_NOT_SUPPORTED": "This time zone is not available for the selected country.",
+    "CURRENCY_NOT_SUPPORTED": "One of the selected currencies is not supported for this country.",
+    "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated."
   },
   "notFound": {
     "title": "Page not found",
@@ -81,5 +88,89 @@
     "updateAvailable": "A new version of DivalHR is available.",
     "reload": "Update now",
     "dismiss": "Dismiss"
+  },
+  "country": {
+    "CD": "Democratic Republic of the Congo"
+  },
+  "language": {
+    "fr": "French",
+    "en": "English"
+  },
+  "timezones": {
+    "Africa/Kinshasa": "Kinshasa (West Africa Time, UTC+1)",
+    "Africa/Lubumbashi": "Lubumbashi (Central Africa Time, UTC+2)"
+  },
+  "currency": {
+    "CDF": "Congolese franc (CDF)",
+    "USD": "US dollar (USD)"
+  },
+  "orgStatus": {
+    "ACTIVE": "Active"
+  },
+  "createOrganization": {
+    "title": "Create an organization",
+    "description": "Set up a new customer organization with its country, default language, time zone and currencies. Only platform administrators can do this.",
+    "requiredNote": "All fields are required.",
+    "name": {
+      "label": "Organization name",
+      "help": "The name your customer uses, between 2 and 160 characters."
+    },
+    "country": {
+      "label": "Country",
+      "help": "DivalHR currently launches in the Democratic Republic of the Congo."
+    },
+    "locale": {
+      "legend": "Default language",
+      "help": "Used for the organization’s documents and notifications. Each person can still choose their own language."
+    },
+    "timezone": {
+      "label": "Time zone",
+      "help": "Used to interpret working days, shifts and deadlines."
+    },
+    "currencies": {
+      "legend": "Currencies",
+      "help": "Select at least one currency used for pay and expenses."
+    },
+    "submit": "Create organization",
+    "submitting": "Creating organization…",
+    "errorSummary": "Please correct the following:",
+    "unauthorized": "Only platform administrators can create organizations.",
+    "signInRequired": "Sign in as a platform administrator to create organizations.",
+    "success": {
+      "title": "Organization created",
+      "body": "{{name}} is ready. Its configuration is shown below.",
+      "createdAt": "Created",
+      "reference": "Reference",
+      "another": "Create another organization",
+      "status": "Status"
+    },
+    "validation": {
+      "name": {
+        "REQUIRED": "Enter the organization name.",
+        "LENGTH": "The name must be between 2 and 160 characters.",
+        "FORMAT": "The name cannot contain line breaks or control characters."
+      },
+      "countryCode": {
+        "REQUIRED": "Select a country.",
+        "FORMAT": "Select a country from the list.",
+        "NOT_SUPPORTED": "This country is not supported yet."
+      },
+      "defaultLocale": {
+        "REQUIRED": "Choose a default language.",
+        "FORMAT": "Choose a default language from the list.",
+        "NOT_SUPPORTED": "This language is not supported."
+      },
+      "timezone": {
+        "REQUIRED": "Select a time zone.",
+        "FORMAT": "Select a time zone from the list.",
+        "NOT_SUPPORTED": "This time zone is not available for the selected country."
+      },
+      "currencies": {
+        "REQUIRED": "Select at least one currency.",
+        "FORMAT": "Select currencies from the list.",
+        "DUPLICATE": "Each currency can be selected only once.",
+        "NOT_SUPPORTED": "One of the selected currencies is not supported."
+      }
+    }
   }
 }

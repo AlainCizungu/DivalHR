@@ -64,5 +64,8 @@ divalhr:
     issuer: ${DIVALHR_OIDC_ISSUER:http://localhost:8180/realms/divalhr-dev}
     audience: ${DIVALHR_OIDC_AUDIENCE:divalhr-core-api}
     jwk-set-uri: ${DIVALHR_OIDC_JWKS_URI:http://localhost:8180/realms/divalhr-dev/protocol/openid-connect/certs}
+  idempotency:
+    # Minimum retention; records are honoured until a cleanup job removes them after expires_at.
+    retention: 7d
   cors:
     allowed-origins: ${DIVALHR_CORS_ALLOWED_ORIGINS:http://localhost:5173}

@@ -1,5 +1,6 @@
 package com.divalhr.core.support;
 
+import com.divalhr.core.platform.security.TenantScoped;
 import com.divalhr.core.platform.tenancy.TenantAccessGuard;
 import com.divalhr.core.platform.tenancy.TenantContext;
 import com.divalhr.core.platform.tenancy.TenantId;
@@ -47,6 +48,7 @@ public class TenantProbeTestController {
    * @param body request body containing {@code tenantId}
    * @return the verified tenant
    */
+  @TenantScoped
   @PostMapping("/test-support/probes")
   public Map<String, String> create(@RequestBody Map<String, String> body) {
     TenantContext context = guard.requireAccessTo(TenantId.parse(body.get("tenantId")));

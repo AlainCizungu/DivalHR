@@ -71,6 +71,18 @@ public final class TestTokens {
     private UUID tenant = TENANT_A;
     private List<String> roles = List.of("employee");
     private Instant expiresAt = Instant.now().plusSeconds(300);
+    private String subject = UUID.randomUUID().toString();
+
+    /**
+     * Sets the subject; {@code null} omits it.
+     *
+     * @param value subject
+     * @return this builder
+     */
+    public Builder subject(String value) {
+      this.subject = value;
+      return this;
+    }
 
     /**
      * Sets the issuer.
@@ -137,7 +149,7 @@ public final class TestTokens {
           new JWTClaimsSet.Builder()
               .issuer(issuer)
               .audience(audience)
-              .subject(UUID.randomUUID().toString())
+              .subject(subject)
               .issueTime(Date.from(Instant.now().minusSeconds(5)))
               .expirationTime(Date.from(expiresAt))
               .claim("realm_access", Map.of("roles", roles));

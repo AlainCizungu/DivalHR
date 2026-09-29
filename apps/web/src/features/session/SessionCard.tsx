@@ -1,41 +1,18 @@
-import type { CurrentSession, Problem } from '@divalhr/api-client';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useApi } from '../../app/ApiProvider';
-
-type State =
-  | { kind: 'loading' }
-  | { kind: 'ready'; session: CurrentSession }
-  | { kind: 'error'; code: string };
+import { useSession } from '../../app/SessionProvider';
 
 export function SessionCard() {
   const { t } = useTranslation();
-  const { core } = useApi();
-  const [state, setState] = useState<State>({ kind: 'loading' });
-
-  useEffect(() => {
-    let active = true;
-    core
-      .GET('/session')
-      .then(({ data, error }) => {
-        if (!active) return;
-        if (data) setState({ kind: 'ready', session: data });
-        else setState({ kind: 'error', code: (error as Problem | undefined)?.code ?? 'generic' });
-      })
-      .catch(() => {
-        if (active) setState({ kind: 'error', code: 'generic' });
-      });
-    return () => {
-      active = false;
-    };
-  }, [core]);
+  const state = useSession();
 
   return (
     <section className="card" aria-labelledby="session-title" data-testid="session-card">
       <h2 id="session-title" className="card__title">
         {t('session.title')}
       </h2>
-      {state.kind === 'loading' && <p role="status">{t('session.loading')}</p>}
+      {(state.kind === 'loading' || state.kind === 'anonymous') && (
+        <p role="status">{t('session.loading')}</p>
+      )}
       {state.kind === 'error' && <p role="alert">{t(`errors.${state.code}`)}</p>}
       {state.kind === 'ready' && (
         <dl className="meta">
