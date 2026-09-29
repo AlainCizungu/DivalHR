@@ -94,6 +94,18 @@ describe.each(['en', 'fr'] as const)('create organization page (%s)', (locale) =
     await expectNoAxeViolations(container);
   });
 
+  it('does not override the active language on default-language options', async () => {
+    await renderPage(locale);
+    const language = screen.getByRole('group', { name: s.createOrganization.locale.legend });
+    // Option labels are translated into the interface language, so they must inherit it rather
+    // than claim the language they describe (e.g. "Anglais" is French text, not lang="en").
+    expect(language.querySelectorAll('[lang]')).toHaveLength(0);
+    for (const option of ['fr', 'en'] as const) {
+      const radio = within(language).getByRole('radio', { name: s.language[option] });
+      expect(radio.closest('[lang]')?.getAttribute('lang')).toBe(locale);
+    }
+  });
+
   it('shows client validation with focusable summary and field associations', async () => {
     const requests = stubApi();
     const user = userEvent.setup();

@@ -259,7 +259,7 @@ export function CreateOrganizationPage() {
             {t('createOrganization.locale.help')}
           </p>
           {LOCALES.map((locale) => (
-            <label key={locale} className="choice" lang={locale}>
+            <label key={locale} className="choice">
               <input
                 type="radio"
                 name="defaultLocale"
