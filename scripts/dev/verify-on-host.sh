@@ -101,16 +101,21 @@ gradle_sha() {
 }
 
 use_node24() {
-  # Uses nvm (reads .nvmrc) when the active Node is not 24.x; pnpm comes from the pinned version.
+  # Uses the active Node when it is 24.x; otherwise installs the pinned Node 24 from the npm
+  # registry into .git/divalhr-verify/node24 (no global changes) and puts it first on PATH.
   if ! node -v 2>/dev/null | grep -q '^v24\.'; then
-    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-    # shellcheck disable=SC1091
-    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && (cd "$ROOT" && nvm install >/dev/null && nvm use >/dev/null)
+    local dir="$OUT/node24"
+    if [ ! -x "$dir/node_modules/node/bin/node" ]; then
+      mkdir -p "$dir" && (cd "$dir" && npm install --silent --no-save --no-package-lock node@24.21.0) || return 1
+    fi
+    export PATH="$dir/node_modules/node/bin:$PATH"
+    hash -r
   fi
   node -v | grep -q '^v24\.' || { echo "Node 24 is required (see .nvmrc)"; return 1; }
+  echo "node $(node -v)"
 }
 
-pnpm_pinned() { (cd "$ROOT" && npx -y pnpm@10.34.6 "$@"); }
+pnpm_pinned() { (cd "$ROOT" && npm exec --yes -- pnpm@10.34.6 "$@"); }
 
 stage_spike() {
   env_report

@@ -17,5 +17,5 @@ USER 10001
 EXPOSE 8080 8081
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 HEALTHCHECK --interval=10s --timeout=5s --start-period=40s --retries=12 \
-  CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081 && printf "GET /actuator/health/readiness HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && grep -q "\"status\":\"UP\"" <&3'
+  CMD ["sh", "-c", "if command -v curl >/dev/null; then curl -fsS -o /dev/null http://127.0.0.1:8081/actuator/health/readiness; else wget -q -O /dev/null http://127.0.0.1:8081/actuator/health/readiness; fi"]
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

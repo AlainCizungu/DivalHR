@@ -6,11 +6,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Prevents development-only identity configuration (the {@code divalhr-dev} realm and its
- * published seed users) from being trusted outside development and test environments.
+ * Prevents development-only identity configuration (the {@code divalhr-dev} realm and its published
+ * seed users) from being trusted outside development and test environments.
  */
 @Component
-public class DevelopmentSeedGuard {
+public final class DevelopmentSeedGuard {
 
   static final Set<String> ENVIRONMENTS = Set.of("development", "test", "staging", "production");
   static final Set<String> SEED_ALLOWED = Set.of("development", "test");
