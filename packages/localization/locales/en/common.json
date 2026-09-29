@@ -245,6 +245,14 @@
       "submit": "Create region",
       "periodHint": "A region's dates must fall within its legal entity's dates."
     },
+    "regionOptions": {
+      "failed": "Regions could not be loaded, so they cannot be shown on sites or chosen for them right now.",
+      "retry": "Load regions again",
+      "loading": "Loading regions…",
+      "unavailable": "Regions are not available right now. You can still create the site without a region, or load the regions again above.",
+      "restored": "Regions loaded. You can now choose a region for a site.",
+      "failedAgain": "Regions still could not be loaded. Try again in a moment."
+    },
     "assignment": {
       "openShort": "Assign to a region",
       "open": "Assign {{name}} ({{code}}) to a region",

@@ -40,6 +40,7 @@ import {
   type SiteUnitValues,
   type SiteValues,
 } from './hierarchyForm';
+import type { RegionOptionsStatus } from './regionOptions';
 import { useIdempotencyKey } from './useIdempotencyKey';
 
 type Phase = { kind: 'editing' } | { kind: 'submitting' } | { kind: 'failed'; messageKey: string };
@@ -357,11 +358,14 @@ function DateFields<F extends 'effectiveFrom' | 'effectiveTo'>({
 export function SiteForm({
   parent,
   regions,
+  regionsStatus,
   onCreated,
 }: {
   parent: LegalEntity;
   /** Regions of the legal entity offered for the optional region select. */
   regions: readonly Region[];
+  /** The select is shown only when the regions are loaded; never empty as if there were none. */
+  regionsStatus: RegionOptionsStatus;
   onCreated: (site: Site) => void;
 }) {
   const { t } = useTranslation();
@@ -389,7 +393,10 @@ export function SiteForm({
 
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const payload = toSitePayload(parent.id, values);
+    const payload = toSitePayload(
+      parent.id,
+      regionsStatus === 'ready' ? values : { ...values, regionId: '' },
+    );
     void form.submit(
       validateSite(values, parent.countryCode),
       payload,
@@ -493,32 +500,42 @@ export function SiteForm({
           </select>
         )}
       </Field>
-      <Field
-        id={fieldId('regionId')}
-        label={t('hierarchy.fields.region.label')}
-        help={t('hierarchy.fields.region.help')}
-        error={form.errors.regionId}
-        errorMessage={message('regionId')}
-      >
-        {(describedBy, invalid) => (
-          <select
-            id={fieldId('regionId')}
-            value={values.regionId}
-            aria-invalid={invalid}
-            aria-describedby={describedBy}
-            onChange={(event) => {
-              update({ regionId: event.target.value });
-            }}
-          >
-            <option value="">{t('hierarchy.fields.region.none')}</option>
-            {regions.map((region) => (
-              <option key={region.id} value={region.id}>
-                {t('hierarchy.regions.option', { name: region.name, code: region.code })}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+      {regionsStatus === 'ready' ? (
+        <Field
+          id={fieldId('regionId')}
+          label={t('hierarchy.fields.region.label')}
+          help={t('hierarchy.fields.region.help')}
+          error={form.errors.regionId}
+          errorMessage={message('regionId')}
+        >
+          {(describedBy, invalid) => (
+            <select
+              id={fieldId('regionId')}
+              value={values.regionId}
+              aria-invalid={invalid}
+              aria-describedby={describedBy}
+              onChange={(event) => {
+                update({ regionId: event.target.value });
+              }}
+            >
+              <option value="">{t('hierarchy.fields.region.none')}</option>
+              {regions.map((region) => (
+                <option key={region.id} value={region.id}>
+                  {t('hierarchy.regions.option', { name: region.name, code: region.code })}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      ) : (
+        <div className="field">
+          <p className="muted" data-testid="region-unavailable">
+            {regionsStatus === 'loading'
+              ? t('hierarchy.regionOptions.loading')
+              : t('hierarchy.regionOptions.unavailable')}
+          </p>
+        </div>
+      )}
       <DateFields
         idFor={fieldId}
         values={values}

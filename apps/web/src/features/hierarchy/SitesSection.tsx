@@ -69,6 +69,7 @@ export function SitesOf({
       <SiteForm
         parent={parent}
         regions={regions.regions}
+        regionsStatus={regions.status}
         onCreated={(site) => {
           sites.insertCreated(site);
           onAnnounce(t('hierarchy.sites.created', { name: site.name, code: site.code }));
@@ -107,6 +108,9 @@ function SiteRow({
   const assignRef = useRef<HTMLButtonElement>(null);
   const region = regions.byId(site.regionId);
   const unassigned = !site.regionId;
+  // Assignment needs the region choices: it is offered only once they are loaded (the Sites
+  // section shows a retry control otherwise), never with an empty selector.
+  const assignable = unassigned && regions.status === 'ready';
   const status = unassigned
     ? t('hierarchy.sites.noRegion')
     : region
@@ -136,7 +140,7 @@ function SiteRow({
       >
         {t('hierarchy.sites.selectShort')}
       </button>
-      {unassigned && (
+      {assignable && (
         <button
           ref={assignRef}
           type="button"
@@ -151,7 +155,7 @@ function SiteRow({
           {t('hierarchy.assignment.openShort')}
         </button>
       )}
-      {unassigned && open && (
+      {assignable && open && (
         <AssignRegionForm
           id={formId}
           site={site}

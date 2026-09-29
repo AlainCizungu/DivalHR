@@ -245,6 +245,14 @@
       "submit": "Créer la région",
       "periodHint": "Les dates d’une région doivent être comprises dans celles de son entité juridique."
     },
+    "regionOptions": {
+      "failed": "Les régions n’ont pas pu être chargées : elles ne peuvent pas être affichées sur les sites ni choisies pour le moment.",
+      "retry": "Recharger les régions",
+      "loading": "Chargement des régions…",
+      "unavailable": "Les régions ne sont pas disponibles pour le moment. Vous pouvez tout de même créer le site sans région, ou recharger les régions ci-dessus.",
+      "restored": "Régions chargées. Vous pouvez maintenant choisir une région pour un site.",
+      "failedAgain": "Les régions n’ont toujours pas pu être chargées. Réessayez dans un instant."
+    },
     "assignment": {
       "openShort": "Rattacher à une région",
       "open": "Rattacher {{name}} ({{code}}) à une région",

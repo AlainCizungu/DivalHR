@@ -239,11 +239,130 @@ describe.each(['en', 'fr'] as const)('regions and site assignment (%s)', (locale
     expect(await put.json()).toEqual({ regionId: REGION.id });
     expect(document.documentElement.lang).toBe(locale);
   });
+
+  it('recovers the region options after a failure with keyboard focus and one announcement', async () => {
+    let optionCalls = 0;
+    const requests = stubApi((_, url) => {
+      if (!url.pathname.endsWith('/regions') || url.searchParams.get('limit') !== '200')
+        return undefined;
+      optionCalls++;
+      return optionCalls === 1
+        ? { status: 503, body: problem('INTERNAL_ERROR', 503) }
+        : { status: 200, body: { data: [REGION] } };
+    });
+    const user = userEvent.setup();
+    const { container } = await renderPage(locale);
+    await openLegalEntity(user, locale);
+
+    // Failure: an explicit retry state, never an empty selector.
+    const notice = await screen.findByTestId('region-options-error');
+    expect(notice).toHaveTextContent(s.regionOptions.failed);
+    const retry = within(notice).getByRole('button', { name: s.regionOptions.retry });
+    expect(retry).toHaveAccessibleDescription(s.regionOptions.failed);
+    const siteForm = screen.getByTestId('site-form');
+    expect(within(siteForm).queryByLabelText(s.fields.region.label)).toBeNull();
+    expect(within(siteForm).getByTestId('region-unavailable')).toHaveTextContent(
+      s.regionOptions.unavailable,
+    );
+    expect(
+      screen.queryByRole('button', {
+        name: fill(s.assignment.open, { name: UNASSIGNED.name, code: UNASSIGNED.code }),
+      }),
+    ).toBeNull();
+    expect(within(siteRow(ASSIGNED)).getByTestId('site-region')).toHaveTextContent(
+      s.sites.regionAssigned,
+    );
+    // The visible regions list is independent and still loads.
+    expect(await screen.findByTestId('region-list')).toHaveTextContent(REGION.name);
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByTestId('announcer')).toBeEmptyDOMElement();
+    const failed = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
+    expect(failed.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+    // Keyboard retry restores the choices.
+    retry.focus();
+    await user.keyboard('{Enter}');
+    await waitFor(() => {
+      expect(screen.getByTestId('announcer')).toHaveTextContent(s.regionOptions.restored);
+    });
+    const sitesHeading = screen.getByRole('heading', {
+      level: 2,
+      name: fill(s.sites.title, { name: LE.name, code: LE.code }),
+    });
+    await waitFor(() => {
+      expect(sitesHeading).toHaveFocus();
+    });
+    expect(screen.queryByTestId('region-options-error')).toBeNull();
+    const regionSelect = within(siteForm).getByLabelText(s.fields.region.label);
+    expect(
+      within(regionSelect).getByRole('option', {
+        name: fill(s.regions.option, { name: REGION.name, code: REGION.code }),
+      }),
+    ).toBeInTheDocument();
+    expect(within(siteRow(ASSIGNED)).getByTestId('site-region')).toHaveTextContent(
+      fill(s.sites.region, { name: REGION.name, code: REGION.code }),
+    );
+    const open = screen.getByRole('button', {
+      name: fill(s.assignment.open, { name: UNASSIGNED.name, code: UNASSIGNED.code }),
+    });
+    await user.click(open);
+    const assignSelect = within(screen.getByTestId('assign-region-form')).getByLabelText(
+      s.fields.assignRegion.label,
+    );
+    await waitFor(() => {
+      expect(assignSelect).toHaveFocus();
+    });
+    expect(within(assignSelect).getAllByRole('option')).toHaveLength(2);
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getAllByText(s.regionOptions.restored)).toHaveLength(1);
+    expect(document.documentElement.lang).toBe(locale);
+    expect(requests.filter((r) => new URL(r.url).searchParams.get('limit') === '200')).toHaveLength(
+      2,
+    );
+    const restored = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
+    expect(restored.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
 });
 
 describe('regions and site assignment behaviour', () => {
   const s = resources.en.common.hierarchy;
   const errors = resources.en.common.errors;
+
+  it('keeps focus on the retry control and announces once when retrying fails again', async () => {
+    let optionCalls = 0;
+    stubApi((_, url) => {
+      if (!url.pathname.endsWith('/regions') || url.searchParams.get('limit') !== '200')
+        return undefined;
+      optionCalls++;
+      return optionCalls <= 2 ? 'network' : { status: 200, body: { data: [REGION] } };
+    });
+    const user = userEvent.setup();
+    await renderPage();
+    await openLegalEntity(user, 'en');
+    const notice = await screen.findByTestId('region-options-error');
+    const retry = within(notice).getByRole('button', { name: s.regionOptions.retry });
+    await user.click(retry);
+    await waitFor(() => {
+      expect(screen.getByTestId('announcer')).toHaveTextContent(s.regionOptions.failedAgain);
+    });
+    expect(retry).toHaveFocus();
+    expect(retry).toHaveTextContent(s.regionOptions.retry);
+    expect(retry).toHaveAttribute('aria-busy', 'false');
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getAllByText(s.regionOptions.failedAgain)).toHaveLength(1);
+    expect(
+      within(screen.getByTestId('site-form')).queryByLabelText(s.fields.region.label),
+    ).toBeNull();
+
+    await user.click(retry);
+    await waitFor(() => {
+      expect(screen.getByTestId('announcer')).toHaveTextContent(s.regionOptions.restored);
+    });
+    expect(screen.queryByTestId('region-options-error')).toBeNull();
+    expect(
+      within(screen.getByTestId('site-form')).getByLabelText(s.fields.region.label),
+    ).toBeInTheDocument();
+  });
 
   it('lists regions with the legal-entity filter and loads more with focus on the first new one', async () => {
     const requests = stubApi((_, url) => {
