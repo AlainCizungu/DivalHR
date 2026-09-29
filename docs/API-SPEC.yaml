@@ -646,6 +646,259 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+  /invitations:
+    get:
+      operationId: listInvitations
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: List invitations of the caller's tenant
+      description: >-
+        Newest first (createdAt then id, both descending), keyset-paginated. The optional status
+        filter uses the public status: a PENDING invitation past its expiry is reported and
+        filtered as EXPIRED, and one whose acceptance is in progress as PENDING. The response
+        contains invitee email addresses (confidential personal data) and is marked
+        Cache-Control private, no-store. It never contains tokens, token hashes or identity
+        subjects. Cursors are bound to invitation.list, the verified tenant and the status filter.
+      tags: [identity]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/InvitationStatus"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of invitations
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createInvitation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: Invite a person by email with one tenant role
+      description: >-
+        Creates a PENDING invitation in the caller's verified tenant and, after the transaction
+        commits, sends the invitation email once. Only tenant-admin and employee can be assigned;
+        platform-admin and any other value are rejected like an unknown role. The email address is
+        normalized (trimmed, NFC, lower-cased; the domain converted to ASCII) and compared case
+        insensitively. Only the caller's own tenant is consulted: 409 INVITATION_ALREADY_PENDING
+        when an open invitation for the address exists in the tenant, 409
+        INVITATION_RECIPIENT_ALREADY_MEMBER when the address already belongs to a member of the
+        tenant. An address known elsewhere gives the same 201 as any other. The response is an
+        InvitationReceipt without the email address; retries with the same Idempotency-Key and an
+        identical payload replay the original 201 exactly (Idempotent-Replayed), even after the
+        invitation changed.
+      tags: [identity]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvitation"
+      responses:
+        "201":
+          description: Invitation created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /invitations/{invitationId}/revoke:
+    post:
+      operationId: revokeInvitation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: Revoke a pending invitation
+      description: >-
+        PENDING becomes REVOKED and the invitation link stops working immediately. Revoking an
+        invitation that is already REVOKED returns 200 with the current invitation and records
+        nothing new. An accepted, expired or accepting invitation returns 409
+        INVITATION_NOT_PENDING. A missing invitation and one of another tenant return the same
+        404 INVITATION_NOT_FOUND; a malformed invitationId returns 400 VALIDATION_FAILED.
+      tags: [identity]
+      parameters:
+        - $ref: "#/components/parameters/InvitationId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The revoked invitation
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invitation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /invitations/{invitationId}/resend:
+    post:
+      operationId: resendInvitation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: Reissue a pending invitation with a new link
+      description: >-
+        Generates a new token, invalidates the previous link, restarts the expiry and sends the
+        email once after commit. Only the newest link is valid. At most 3 reissues per invitation,
+        at least 5 minutes apart (429 INVITATION_RESEND_LIMITED with Retry-After). Replays with the
+        same Idempotency-Key replay the original 200 exactly and send nothing.
+      tags: [identity]
+      parameters:
+        - $ref: "#/components/parameters/InvitationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The reissued invitation, or the original reissue replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /public/invitations/inspect:
+    post:
+      operationId: inspectInvitation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: public
+      summary: Inspect an invitation by its token (anonymous)
+      description: >-
+        The token travels only in this body, never in a URL. A usable invitation returns its role,
+        locale and expiry, and nothing about the organization, tenant or any account. An unknown,
+        malformed, expired, revoked or accepted token returns the same 404 INVITATION_INVALID.
+        Access tokens are neither required nor read. Responses are Cache-Control no-store.
+        Requests are rate limited per client (429 RATE_LIMITED with Retry-After); production
+        deployments must also limit these paths at the ingress or WAF.
+      tags: [identity]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvitationTokenRequest"
+      responses:
+        "200":
+          description: The invitation can be accepted
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/InvitationInvalid"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /public/invitations/accept:
+    post:
+      operationId: acceptInvitation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: public
+      summary: Accept an invitation by its token (anonymous)
+      description: >-
+        Creates the invitee's identity in the identity provider with the invitation's tenant and
+        role, records the tenant membership, consumes the token and asks the identity provider to
+        email a link to choose a password. The email address is marked verified only because
+        possessing this single-use token proves control of the mailbox. No person or employee
+        record is created. 404 INVITATION_INVALID covers every unusable token. 409
+        INVITATION_CANNOT_BE_ACCEPTED (no params, no reason) is returned when the address already
+        has a DivalHR identity; the invitation stays pending. 409
+        INVITATION_ACCEPTANCE_IN_PROGRESS and 503 IDENTITY_PROVIDER_UNAVAILABLE are retryable with
+        the same token. Responses are Cache-Control no-store and rate limited like inspection.
+      tags: [identity]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvitationTokenRequest"
+      responses:
+        "200":
+          description: The invitation was accepted
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationAcceptance"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/InvitationInvalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /employees:
     get:
       operationId: listEmployees
@@ -743,6 +996,23 @@ components:
       schema:
         type: string
         enum: ["true"]
+    CacheControlNoStore:
+      description: Public invitation responses are never stored by browsers or intermediaries.
+      schema:
+        type: string
+        enum: [no-store]
+    CacheControlPrivateNoStore:
+      description: >-
+        Invitation administration responses may contain email addresses; browsers, offline caches
+        and intermediaries must not retain them.
+      schema:
+        type: string
+        enum: ["private, no-store"]
+    RetryAfter:
+      description: Seconds to wait before retrying.
+      schema:
+        type: integer
+        minimum: 1
   responses:
     Unauthorized:
       description: Missing, invalid or expired access token
@@ -768,7 +1038,9 @@ components:
         TEAM_PARENT_AMBIGUOUS (both parents supplied) carry no params and follow format
         validation. SITE_PERIOD_OUTSIDE_REGION and
         SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no
-        params. Submitted values are never echoed.
+        params. Invitation fields (email, role, locale) use VALIDATION_FAILED; an unsupported role,
+        including platform-admin, is constraint FORMAT exactly like any unknown value. Submitted
+        values, and email addresses in particular, are never echoed.
       content:
         application/problem+json:
           schema:
@@ -780,17 +1052,51 @@ components:
         DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code
         already exists for that
         resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site
-        already has a different region; carries no params).
+        already has a different region; carries no params), or INVITATION_ALREADY_PENDING /
+        INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is
+        consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being
+        accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params).
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
     NotFound:
       description: >-
-        LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND or
-        COST_CENTER_NOT_FOUND - the referenced resource does
+        LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND,
+        COST_CENTER_NOT_FOUND or INVITATION_NOT_FOUND - the referenced resource does
         not exist in the caller's tenant. Missing and foreign-tenant resources are
         indistinguishable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    TooManyRequests:
+      description: >-
+        INVITATION_RATE_LIMITED (the tenant's invitation quota is used up),
+        INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or
+        RATE_LIMITED (too many anonymous requests from one client). No params.
+      headers:
+        Retry-After:
+          $ref: "#/components/headers/RetryAfter"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ServiceUnavailable:
+      description: >-
+        IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the
+        same token. No params.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    InvitationInvalid:
+      description: >-
+        INVITATION_INVALID - the token is unknown, malformed, expired, revoked or already used. The
+        cases are indistinguishable. No params.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControlNoStore"
       content:
         application/problem+json:
           schema:
@@ -817,6 +1123,13 @@ components:
         minLength: 16
         maxLength: 128
         pattern: "^[A-Za-z0-9._:-]{16,128}$"
+    InvitationId:
+      name: invitationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     Cursor:
       name: cursor
       in: query
@@ -1321,6 +1634,152 @@ components:
             $ref: "#/components/schemas/Team"
         nextCursor:
           type: string
+    InvitationRole:
+      type: string
+      description: >-
+        A tenant-scoped role that an invitation may assign. platform-admin is never assignable
+        through a tenant endpoint.
+      enum: [tenant-admin, employee]
+    InvitationStatus:
+      type: string
+      description: >-
+        Public lifecycle status. An invitation whose acceptance is in progress is reported as
+        PENDING; a PENDING invitation past expiresAt is reported as EXPIRED.
+      enum: [PENDING, ACCEPTED, EXPIRED, REVOKED]
+    DeliveryState:
+      type: string
+      description: >-
+        Delivery of the newest invitation link. QUEUED - created, delivery pending; SENT - the mail
+        server accepted the message; FAILED - delivery failed or its outcome is unknown (the
+        administrator can resend, which issues a new link). Never retried automatically.
+      enum: [QUEUED, SENT, FAILED]
+    CreateInvitation:
+      type: object
+      additionalProperties: false
+      description: >-
+        The tenant comes only from the verified access token. tenantId, status, expiresAt, token
+        and any other property are rejected.
+      required: [email, role, locale]
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 3
+          maxLength: 254
+          description: >-
+            Invitee address. Confidential personal data: never echoed in errors, logs, events,
+            audit metadata or metrics.
+        role:
+          $ref: "#/components/schemas/InvitationRole"
+        locale:
+          type: string
+          enum: [fr, en]
+          description: Language of the invitation email and acceptance page.
+    InvitationReceipt:
+      type: object
+      description: >-
+        The result of creating or reissuing an invitation. It deliberately omits the email address
+        so that the idempotency record stores no personal data; it is replayed exactly.
+      required: [id, role, locale, status, deliveryState, expiresAt, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/InvitationRole"
+        locale:
+          type: string
+          enum: [fr, en]
+        status:
+          $ref: "#/components/schemas/InvitationStatus"
+        deliveryState:
+          $ref: "#/components/schemas/DeliveryState"
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    Invitation:
+      type: object
+      description: >-
+        An invitation as seen by a tenant administrator of the owning tenant. Contains the email
+        address; never a token, token hash, identity subject or actor.
+      required:
+        [id, email, role, locale, status, deliveryState, expiresAt, createdAt, acceptedAt,
+         revokedAt, resendsRemaining]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/InvitationRole"
+        locale:
+          type: string
+          enum: [fr, en]
+        status:
+          $ref: "#/components/schemas/InvitationStatus"
+        deliveryState:
+          $ref: "#/components/schemas/DeliveryState"
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        acceptedAt:
+          type: [string, "null"]
+          format: date-time
+        revokedAt:
+          type: [string, "null"]
+          format: date-time
+        resendsRemaining:
+          type: integer
+          minimum: 0
+          maximum: 3
+    InvitationPage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+        nextCursor:
+          type: string
+    InvitationTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token:
+          type: string
+          maxLength: 128
+          description: >-
+            The single-use invitation token from the link fragment. A value of the wrong shape is
+            reported as 404 INVITATION_INVALID, like an unknown token.
+    InvitationPreview:
+      type: object
+      required: [role, locale, expiresAt]
+      properties:
+        role:
+          $ref: "#/components/schemas/InvitationRole"
+        locale:
+          type: string
+          enum: [fr, en]
+        expiresAt:
+          type: string
+          format: date-time
+    InvitationAcceptance:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ACCEPTED]
+          description: The invitee must now follow the identity provider's email to choose a password.
     SystemStatus:
       type: object
       required: [service, status, version, checkedAt]
@@ -1387,6 +1846,17 @@ components:
         - DUPLICATE_TEAM_CODE
         - TEAM_PERIOD_OUTSIDE_DEPARTMENT
         - TEAM_PERIOD_OUTSIDE_COST_CENTER
+        - INVITATION_NOT_FOUND
+        - INVITATION_ALREADY_PENDING
+        - INVITATION_RECIPIENT_ALREADY_MEMBER
+        - INVITATION_NOT_PENDING
+        - INVITATION_RATE_LIMITED
+        - INVITATION_RESEND_LIMITED
+        - INVITATION_INVALID
+        - INVITATION_CANNOT_BE_ACCEPTED
+        - INVITATION_ACCEPTANCE_IN_PROGRESS
+        - IDENTITY_PROVIDER_UNAVAILABLE
+        - RATE_LIMITED
         - INTERNAL_ERROR
     Problem:
       type: object

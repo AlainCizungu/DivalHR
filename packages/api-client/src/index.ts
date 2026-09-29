@@ -28,6 +28,16 @@ export type Team = CoreComponents['schemas']['Team'];
 /** Exactly one parent: a discriminated union generated from the CreateTeam oneOf. */
 export type CreateTeam = CoreComponents['schemas']['CreateTeam'];
 export type TeamPage = CoreComponents['schemas']['TeamPage'];
+export type InvitationRole = CoreComponents['schemas']['InvitationRole'];
+export type InvitationStatus = CoreComponents['schemas']['InvitationStatus'];
+export type DeliveryState = CoreComponents['schemas']['DeliveryState'];
+export type CreateInvitation = CoreComponents['schemas']['CreateInvitation'];
+/** Create and resend responses: no email address, replayed exactly. */
+export type InvitationReceipt = CoreComponents['schemas']['InvitationReceipt'];
+export type Invitation = CoreComponents['schemas']['Invitation'];
+export type InvitationPage = CoreComponents['schemas']['InvitationPage'];
+export type InvitationPreview = CoreComponents['schemas']['InvitationPreview'];
+export type InvitationAcceptance = CoreComponents['schemas']['InvitationAcceptance'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).
