@@ -39,6 +39,14 @@ Every non-public `/api/v1` operation, read or write, declares exactly one scope;
 
 A platform administrator gains **no** access to tenant-scoped resources of other tenants through the platform role. Durable auditing of privileged authorization denials is tracked as MVP-013.
 
+### Verified subject (Issue #17)
+
+Idempotency and audit are keyed on the verified JWT `sub`. For every `@PlatformScoped` or `@TenantScoped` handler, `ScopeAuthorizationInterceptor` first confirms the caller is a JWT with a non-blank `sub`; otherwise it answers `403 ACCESS_DENIED` before role, tenant, query, argument or body processing, writes one `divalhr.security` log entry (`reason=subject_missing`, operation, scope, required role, result, correlation ID; never the token, claims, body, idempotency key or subject) and records exactly one `denied` metric. Public endpoints are unaffected. Controller subject checks remain as defense in depth. Rejecting such tokens at JWT validation (a `401`) would be a separate contract decision.
+
+### Operation names (Issue #17)
+
+Idempotency operations and audit actions follow one grammar, `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`, defined once in `OperationName` and enforced by the database since V4.
+
 ### Tenant-administrator operations (MVP-002)
 
 Legal-entity and site endpoints use `@TenantAdminOperation`, which combines `@TenantScoped(role = "tenant-admin")` with `@PreAuthorize("hasRole('tenant-admin')")`. The interceptor rejects any other role with 403 `ACCESS_DENIED` before the body is read, then requires a valid `tenant_id` claim (403 `TENANT_CONTEXT_MISSING`). Employees and platform administrators are denied; there is no implicit platform access to tenant data.
