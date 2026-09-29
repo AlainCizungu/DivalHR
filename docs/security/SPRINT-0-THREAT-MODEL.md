@@ -51,3 +51,14 @@ Keycloak admin and seed credentials (development-only); logs.
 3. **Keycloak `start-dev`** with an embedded database. Production uses a hardened deployment.
 4. **Privileged MFA not enforced locally** (see E1).
 5. **No audit-event store yet**. Sensitive actions arrive with their stories and must emit audit events.
+
+## MVP-001 delta (organization provisioning)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E3 | Tenant admin or employee provisions tenants | `@PlatformScoped`: interceptor before body parsing plus `@PreAuthorize` | `CreateOrganizationApiIntegrationTest`, `MethodSecurityEnforcementIntegrationTest` |
+| T3 | Caller chooses the new tenant ID | Server-generated UUID; unknown body properties (`id`, `tenantId`) rejected | `callerCannotChooseTheIdOrTenant` |
+| T4 | Duplicate tenants from retries or races | Transactional idempotency keyed on verified `sub`; PostgreSQL unique-insert wait | Concurrency integration tests |
+| R2 | Provisioning not traceable | Append-only audit event with correlation ID in the same transaction | Audit assertions, DB trigger tests |
+| I6 | Customer names leak via logs, errors, events or metrics | Names excluded from logs, Problem params, audit metadata, event data and metric labels | Log-capture and payload assertions |
+

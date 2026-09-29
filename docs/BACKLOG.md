@@ -48,6 +48,10 @@ Privileged roles must complete multifactor authentication.
 
 Authorized security administrators can review active access by user, role, site, and legal entity.
 
+### MVP-013 Durably audit privileged authorization denials
+
+Denied attempts at platform-scoped operations are recorded as append-only audit events (actor subject, operation, result `DENIED`, correlation ID; no request content), in addition to the structured security log and metric introduced by MVP-001. Follow-up from the MVP-001 architect review (#10).
+
 ## Epic 3 Employee Core
 
 ### MVP-020 Import employees
