@@ -2,7 +2,6 @@ package com.divalhr.core.platform.security;
 
 import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.tenancy.TenantContextResolver;
-import com.divalhr.core.platform.web.CorrelationId;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -59,14 +58,13 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     }
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (platform != null) {
-      requireSubject(
-          authentication, "platform", PlatformScoped.ROLE, platform.operation(), request);
-      requireRole(authentication, PlatformScoped.ROLE, platform.operation(), request);
+      requireSubject(authentication, "platform", PlatformScoped.ROLE, platform.operation());
+      requireRole(authentication, PlatformScoped.ROLE, platform.operation());
       return true;
     }
-    requireSubject(authentication, "tenant", tenant.role(), tenant.operation(), request);
+    requireSubject(authentication, "tenant", tenant.role(), tenant.operation());
     if (!tenant.role().isEmpty()) {
-      requireRole(authentication, tenant.role(), tenant.operation(), request);
+      requireRole(authentication, tenant.role(), tenant.operation());
     }
     // Throws TENANT_CONTEXT_MISSING when the verified token carries no valid tenant.
     tenants.current();
@@ -79,11 +77,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
    * argument or body processing. The subject value itself is never logged.
    */
   private void requireSubject(
-      Authentication authentication,
-      String scope,
-      String role,
-      String operation,
-      HttpServletRequest request) {
+      Authentication authentication, String scope, String role, String operation) {
     if (authentication instanceof JwtAuthenticationToken token) {
       String subject = token.getToken().getSubject();
       if (subject != null && !subject.isBlank()) {
@@ -103,15 +97,11 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     if (!role.isEmpty()) {
       event = event.addKeyValue("requiredRole", role);
     }
-    event
-        .addKeyValue("result", "DENIED")
-        .addKeyValue("correlationId", request.getAttribute(CorrelationId.REQUEST_ATTRIBUTE))
-        .log("authorization_denied");
+    event.addKeyValue("result", "DENIED").log("authorization_denied");
     throw new AccessDeniedException("verified subject required");
   }
 
-  private void requireRole(
-      Authentication authentication, String role, String operation, HttpServletRequest request) {
+  private void requireRole(Authentication authentication, String role, String operation) {
     String authority = "ROLE_" + role;
     boolean allowed =
         authentication != null
@@ -130,7 +120,6 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
         .addKeyValue("requiredRole", role)
         .addKeyValue("result", "DENIED")
         .addKeyValue("actorSubject", subject(authentication))
-        .addKeyValue("correlationId", request.getAttribute(CorrelationId.REQUEST_ATTRIBUTE))
         .log("authorization_denied");
     throw new AccessDeniedException(role + " required");
   }

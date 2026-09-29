@@ -157,11 +157,14 @@ class SubjectRequiredIntegrationTest {
     expectSubjectDenial(
         mvc.perform(
             get("/api/v1/legal-entities?limit=abc").with(user("not-a-jwt").roles("tenant-admin"))));
-    assertThat(output.getAll()).contains("subject_missing").doesNotContain("not-a-jwt");
+    assertThat(output.getAll())
+        .contains("subject_missing")
+        .doesNotContain("not-a-jwt")
+        .doesNotContain("has already been written");
   }
 
   @Test
-  void callersWithASubjectKeepTheExistingPrecedence() throws Exception {
+  void callersWithASubjectKeepTheExistingPrecedence(CapturedOutput output) throws Exception {
     String admin = Hierarchy.bearer(tenant, "sub-precedence", "tenant-admin");
     // Role before body: an employee still gets ACCESS_DENIED for a malformed body.
     expectSubjectDenial(
@@ -170,6 +173,10 @@ class SubjectRequiredIntegrationTest {
                 "/api/v1/legal-entities",
                 Hierarchy.bearer(tenant, "sub-employee", "employee"),
                 Organizations.newKey())));
+    // The role denial is actually written (one JSON line, no duplicate correlationId key).
+    assertThat(output.getAll())
+        .contains("\"requiredRole\":\"tenant-admin\"")
+        .doesNotContain("has already been written");
     // Tenant before body: a tenant-admin token without a tenant claim.
     mvc.perform(
             postJson(

@@ -79,8 +79,14 @@ class OperationNameConstraintsIntegrationTest {
           jdbc.execute("SAVEPOINT before_v4");
           assertThatThrownBy(() -> jdbc.execute(v4))
               .isInstanceOf(DataAccessException.class)
-              .hasMessageContaining("0 idempotency operation(s) and 1 audit action(s)")
-              .hasMessageNotContaining("x.---");
+              .satisfies(
+                  failure -> {
+                    // The server-side error reports counts only, never row contents.
+                    String message = serverMessage(failure);
+                    assertThat(message)
+                        .contains("0 idempotency operation(s) and 1 audit action(s)")
+                        .doesNotContain("x.---");
+                  });
           jdbc.execute("ROLLBACK TO SAVEPOINT before_v4");
           assertThat(definition("idempotency_operation_format")).contains(V3_GRAMMAR);
           assertThat(definition("audit_action_format")).contains(V3_GRAMMAR);
@@ -126,6 +132,18 @@ class OperationNameConstraintsIntegrationTest {
         action,
         UUID.randomUUID(),
         UUID.randomUUID());
+  }
+
+  private static String serverMessage(Throwable failure) {
+    for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+      if (cause instanceof PSQLException psql) {
+        ServerErrorMessage server = psql.getServerErrorMessage();
+        if (server != null) {
+          return server.getMessage();
+        }
+      }
+    }
+    throw new AssertionError("no PostgreSQL error", failure);
   }
 
   private static String constraintOf(Runnable statement) {
