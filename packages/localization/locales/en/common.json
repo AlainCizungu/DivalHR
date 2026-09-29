@@ -84,6 +84,11 @@
     "EFFECTIVE_DATE_INVALID": "The end date cannot be earlier than the start date.",
     "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY": "The site's dates must fall within its legal entity's dates.",
     "CURSOR_INVALID": "The list could not be continued. Reload the page to start again.",
+    "SITE_NOT_FOUND": "This site does not exist in your organization.",
+    "DUPLICATE_DEPARTMENT_CODE": "This department code is already used in your organization.",
+    "DUPLICATE_COST_CENTER_CODE": "This cost center code is already used in your organization.",
+    "DEPARTMENT_PERIOD_OUTSIDE_SITE": "The department's dates must fall within its site's dates.",
+    "COST_CENTER_PERIOD_OUTSIDE_SITE": "The cost center's dates must fall within its site's dates.",
     "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated."
   },
   "notFound": {

@@ -109,6 +109,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List departments of one site in the caller's tenant
+         * @description Keyset-paginated, ordered by code (byte order) then id. An empty page is returned for an existing site without departments. A site that does not exist and one that belongs to another tenant produce the same 404 SITE_NOT_FOUND response.
+         */
+        get: operations["listDepartments"];
+        put?: never;
+        /**
+         * Create a department beneath a site of the caller's tenant
+         * @description The department's effective period must lie within its site's period; an open-ended department requires an open-ended site. Codes are trimmed, upper-cased and unique per tenant among departments regardless of case.
+         */
+        post: operations["createDepartment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cost-centers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List cost centers of one site in the caller's tenant
+         * @description Keyset-paginated, ordered by code (byte order) then id. An empty page is returned for an existing site without cost centers. A site that does not exist and one that belongs to another tenant produce the same 404 SITE_NOT_FOUND response.
+         */
+        get: operations["listCostCenters"];
+        put?: never;
+        /**
+         * Create a cost center beneath a site of the caller's tenant
+         * @description The cost center's effective period must lie within its site's period; an open-ended cost center requires an open-ended site. Codes are trimmed, upper-cased and unique per tenant among cost centers regardless of case.
+         */
+        post: operations["createCostCenter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/employees": {
         parameters: {
             query?: never;
@@ -288,6 +336,78 @@ export interface components {
             data: components["schemas"]["Site"][];
             nextCursor?: string;
         };
+        /** @description The tenant comes only from the verified access token. id, tenantId, organizationId, legalEntityId, createdBy and any other property are rejected. */
+        CreateDepartment: {
+            /** Format: uuid */
+            siteId: string;
+            /** @description Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore. */
+            code: string;
+            name: string;
+            /**
+             * Format: date
+             * @description Inclusive, between 1900-01-01 and 2999-12-31.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+             */
+            effectiveTo?: string | null;
+        };
+        Department: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            siteId: string;
+            code: string;
+            name: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DepartmentPage: {
+            data: components["schemas"]["Department"][];
+            nextCursor?: string;
+        };
+        /** @description The tenant comes only from the verified access token. id, tenantId, organizationId, legalEntityId, createdBy and any other property are rejected. */
+        CreateCostCenter: {
+            /** Format: uuid */
+            siteId: string;
+            /** @description Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore. */
+            code: string;
+            name: string;
+            /**
+             * Format: date
+             * @description Inclusive, between 1900-01-01 and 2999-12-31.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+             */
+            effectiveTo?: string | null;
+        };
+        CostCenter: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            siteId: string;
+            code: string;
+            name: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CostCenterPage: {
+            data: components["schemas"]["CostCenter"][];
+            nextCursor?: string;
+        };
         SystemStatus: {
             /** @example core-api */
             service: string;
@@ -306,7 +426,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -342,7 +462,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID and SITE_PERIOD_OUTSIDE_LEGAL_ENTITY carry params.field. CURSOR_INVALID carries no params. Submitted values are never echoed. */
+        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE and COST_CENTER_PERIOD_OUTSIDE_SITE carry params.field. CURSOR_INVALID carries no params. Submitted values are never echoed. */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -351,7 +471,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE (the code already exists in the tenant, in any letter case). */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE (the code already exists for that resource type in the tenant, in any letter case). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -360,7 +480,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND - the legal entity does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
+        /** @description LEGAL_ENTITY_NOT_FOUND or SITE_NOT_FOUND - the parent does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -629,6 +749,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Site"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listDepartments: {
+        parameters: {
+            query: {
+                siteId: string;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of departments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartmentPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createDepartment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDepartment"];
+            };
+        };
+        responses: {
+            /** @description Department created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Department"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listCostCenters: {
+        parameters: {
+            query: {
+                siteId: string;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of cost centers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostCenterPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createCostCenter: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCostCenter"];
+            };
+        };
+        responses: {
+            /** @description Cost center created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostCenter"];
                 };
             };
             400: components["responses"]["BadRequest"];

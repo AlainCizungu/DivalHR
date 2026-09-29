@@ -84,6 +84,11 @@
     "EFFECTIVE_DATE_INVALID": "La date de fin ne peut pas précéder la date de début.",
     "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY": "Les dates du site doivent être comprises dans celles de son entité juridique.",
     "CURSOR_INVALID": "La liste n’a pas pu être poursuivie. Rechargez la page pour recommencer.",
+    "SITE_NOT_FOUND": "Ce site n’existe pas dans votre organisation.",
+    "DUPLICATE_DEPARTMENT_CODE": "Ce code de département est déjà utilisé dans votre organisation.",
+    "DUPLICATE_COST_CENTER_CODE": "Ce code de centre de coût est déjà utilisé dans votre organisation.",
+    "DEPARTMENT_PERIOD_OUTSIDE_SITE": "Les dates du département doivent être comprises dans celles de son site.",
+    "COST_CENTER_PERIOD_OUTSIDE_SITE": "Les dates du centre de coût doivent être comprises dans celles de son site.",
     "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
   },
   "notFound": {

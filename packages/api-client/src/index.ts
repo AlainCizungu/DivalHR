@@ -14,6 +14,12 @@ export type LegalEntityPage = CoreComponents['schemas']['LegalEntityPage'];
 export type Site = CoreComponents['schemas']['Site'];
 export type CreateSite = CoreComponents['schemas']['CreateSite'];
 export type SitePage = CoreComponents['schemas']['SitePage'];
+export type Department = CoreComponents['schemas']['Department'];
+export type CreateDepartment = CoreComponents['schemas']['CreateDepartment'];
+export type DepartmentPage = CoreComponents['schemas']['DepartmentPage'];
+export type CostCenter = CoreComponents['schemas']['CostCenter'];
+export type CreateCostCenter = CoreComponents['schemas']['CreateCostCenter'];
+export type CostCenterPage = CoreComponents['schemas']['CostCenterPage'];
 
 export interface ClientOptions {
   /** Base URL including /api/v1, e.g. http://localhost:8080/api/v1 */
