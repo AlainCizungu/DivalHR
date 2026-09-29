@@ -95,3 +95,17 @@ Accepted for this increment: no PostgreSQL row-level security (tenant predicates
 | T11 | Caller supplies identity or hierarchy fields (`tenantId`, `organizationId`, `legalEntityId`, `id`, `createdBy`) | `additionalProperties: false`; unknown properties rejected; tenant only from the token | `validationUsesStableCodesAndRejectsCallerChosenIdentity` |
 | T12 | Child period outside its site, or a site narrowed below its children | Service check under `FOR SHARE`, `site_unit_period_within_site` and `site_period_covers_units` triggers | Containment matrix and direct-SQL tests |
 | T13 | Cursor replayed across tenant, operation or site | Signed cursors bound to `department.list` / `cost-center.list`, tenant and `siteId` | `cursorsAreBoundToTenantOperationAndSite` |
+
+## MVP-002 Increment 3A delta (regions and optional site assignment)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E7 | Employee or platform administrator creates or lists regions, or assigns a site | `@TenantAdminOperation` (subject, role and tenant checked before parsing) plus `@PreAuthorize` | `RegionApiIntegrationTest`, `RegionListingIntegrationTest`, `SiteRegionApiIntegrationTest`, `MethodSecurityEnforcementIntegrationTest`, French E2E |
+| T14 | Site linked to a region of another tenant or another legal entity (new object references: `regionId` in bodies, `siteId` in the path) | Tenant-predicated lookups; region must share the site's legal entity; composite `(tenant_id, legal_entity_id, region_id)` foreign key with `MATCH SIMPLE` | Assignment and site-creation tests; `aSiteRegionMustShareTheSiteTenantAndLegalEntity` |
+| I11 | Existence of another tenant's site or region inferred from responses | Identical `404 SITE_NOT_FOUND` / `REGION_NOT_FOUND` bodies apart from `correlationId`; the path's site is reported first. `SITE_REGION_LEGAL_ENTITY_MISMATCH`, `SITE_REGION_ALREADY_ASSIGNED` and the same-region `200` only reveal relationships inside the caller's own tenant, which a tenant administrator can already list | Body-equality tests |
+| T15 | A site's region changed or cleared, or a region or legal entity narrowed to strand sites | First assignment only (service and `site_region_assigned_once`); containment and backstop triggers; parent-before-child locks | Constraint, concurrency and race tests |
+| R3 | Repeated assignments inflate the audit trail | Same region with a new key returns `200` with no audit or outbox record; same key replays | `sameRegionWithANewKeyReturnsTheSiteAndRecordsNothingNew`, parallel same-region test |
+| T16 | Caller supplies tenant, legal-entity or server identifiers in the assignment | Body is exactly `{regionId}` (`additionalProperties: false`); tenant and legal entity never taken from the request | `validationUsesStableCodesRejectsExtraPropertiesAndConsumesNoKey` |
+| T17 | Region cursor replayed across tenant, operation or legal entity | Signed cursors bound to `region.list`, tenant and `legalEntityId` (a `site.list` cursor for the same legal entity is rejected) | `cursorsAreBoundToTenantOperationAndLegalEntity` |
+
+No new secrets, configuration or personal data. Region names are customer data and never appear in logs, metrics, errors or event data.
