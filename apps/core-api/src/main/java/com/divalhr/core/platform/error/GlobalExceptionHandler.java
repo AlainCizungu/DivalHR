@@ -181,8 +181,8 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Bodies that cannot be read never reach the use case, so the validation-failure metric for
-   * named operations is recorded here.
+   * Bodies that cannot be read never reach the use case, so the validation-failure metric for named
+   * operations is recorded here.
    */
   private void recordValidationFailure(HandlerMethod handler) {
     if (handler == null) {
