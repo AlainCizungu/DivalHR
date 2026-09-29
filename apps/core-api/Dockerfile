@@ -1,5 +1,6 @@
 # DivalHR Core API image. Base images pinned by version and digest.
-FROM eclipse-temurin:24.0.2_12-jdk@sha256:7493205ffe6caa8074fa8a06a276bb1c5ac41d3dd0fd43a0db66d7f776e80b3e AS build
+# Java 21 LTS per ADR 0004; RuntimeBaselineTest fails if this drifts to another major version.
+FROM eclipse-temurin:21.0.12.1_1-jdk@sha256:4d06038800655fe1211760cd561de70ef2ed7a47f5d69255e9834414602b7026 AS build
 WORKDIR /src
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle ./gradle
@@ -11,7 +12,7 @@ RUN ./gradlew --no-daemon bootJar -x test && cp build/libs/core-api-*.jar /app.j
 COPY docker/HealthCheck.java /tmp/HealthCheck.java
 RUN javac -d /healthcheck /tmp/HealthCheck.java
 
-FROM eclipse-temurin:24.0.2_12-jre@sha256:8cb2387a28af84cf0db0948d9c67d4480192f4e567027a3963f145d218e8b4f2
+FROM eclipse-temurin:21.0.12.1_1-jre@sha256:d7051a45dd955e4d5d1db4d3f4269fe13d1c6dff8cc6b7ef89fc8577b96c1982
 RUN groupadd --system --gid 10001 divalhr && useradd --system --uid 10001 --gid divalhr --no-create-home divalhr
 WORKDIR /app
 COPY --from=build --chown=divalhr:divalhr /app.jar /app/app.jar

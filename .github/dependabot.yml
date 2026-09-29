@@ -1,5 +1,7 @@
 # Grouped, weekly updates per ecosystem to keep the polyglot stack current without noise
 # (Issue #3 review, decision 6). Majors arrive as separate PRs for deliberate review.
+# Java (ADR 0004: 21 LTS) and PostgreSQL (17) major versions are never proposed automatically:
+# changing either is an architecture decision. Patch and minor updates within them still flow.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -27,6 +29,9 @@ updates:
     directories: [/apps/core-api, /apps/ai-service, /apps/web]
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: eclipse-temurin
+        versions: ['>= 22']
     groups:
       base-images:
         update-types: [minor, patch]
@@ -34,6 +39,9 @@ updates:
     directory: /infrastructure/docker
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: postgres
+        versions: ['>= 18']
     groups:
       compose-images:
         update-types: [minor, patch]
