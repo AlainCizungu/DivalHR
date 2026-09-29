@@ -1,6 +1,6 @@
 package com.divalhr.core.platform.web;
 
-import com.divalhr.core.platform.security.PlatformScopeInterceptor;
+import com.divalhr.core.platform.security.ScopeAuthorizationInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -9,19 +9,19 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-  private final PlatformScopeInterceptor platformScopeInterceptor;
+  private final ScopeAuthorizationInterceptor scopeAuthorizationInterceptor;
 
   /**
    * Creates the configuration.
    *
-   * @param platformScopeInterceptor platform-scope interceptor
+   * @param scopeAuthorizationInterceptor scope authorization interceptor
    */
-  public WebConfig(PlatformScopeInterceptor platformScopeInterceptor) {
-    this.platformScopeInterceptor = platformScopeInterceptor;
+  public WebConfig(ScopeAuthorizationInterceptor scopeAuthorizationInterceptor) {
+    this.scopeAuthorizationInterceptor = scopeAuthorizationInterceptor;
   }
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
-    registry.addInterceptor(platformScopeInterceptor);
+    registry.addInterceptor(scopeAuthorizationInterceptor);
   }
 }

@@ -29,6 +29,18 @@ public enum ErrorCode {
   TIMEZONE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST),
   /** A currency is not supported for the country. */
   CURRENCY_NOT_SUPPORTED(HttpStatus.BAD_REQUEST),
+  /** The legal entity does not exist in the caller's tenant (missing and foreign look alike). */
+  LEGAL_ENTITY_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** A legal entity with this code already exists in the tenant, in any letter case. */
+  DUPLICATE_LEGAL_ENTITY_CODE(HttpStatus.CONFLICT),
+  /** A site with this code already exists in the tenant, in any letter case. */
+  DUPLICATE_SITE_CODE(HttpStatus.CONFLICT),
+  /** The effective period ends before it starts. */
+  EFFECTIVE_DATE_INVALID(HttpStatus.BAD_REQUEST),
+  /** The site period is not contained in its legal entity's period. */
+  SITE_PERIOD_OUTSIDE_LEGAL_ENTITY(HttpStatus.BAD_REQUEST),
+  /** The pagination cursor is malformed, tampered with or bound to another query. */
+  CURSOR_INVALID(HttpStatus.BAD_REQUEST),
   /** An unexpected server error occurred. */
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 

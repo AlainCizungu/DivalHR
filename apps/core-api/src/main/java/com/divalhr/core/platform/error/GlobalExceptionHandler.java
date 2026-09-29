@@ -2,12 +2,14 @@ package com.divalhr.core.platform.error;
 
 import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.security.PlatformScoped;
+import com.divalhr.core.platform.security.TenantScoped;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -188,10 +190,20 @@ public class GlobalExceptionHandler {
     if (handler == null) {
       return;
     }
-    PlatformScoped scoped = handler.getMethodAnnotation(PlatformScoped.class);
-    if (scoped != null) {
-      metrics.record(scoped.operation(), OperationMetrics.Outcome.VALIDATION_FAILED);
+    String operation = operationOf(handler);
+    if (!operation.isEmpty()) {
+      metrics.record(operation, OperationMetrics.Outcome.VALIDATION_FAILED);
     }
+  }
+
+  private static String operationOf(HandlerMethod handler) {
+    PlatformScoped platform = handler.getMethodAnnotation(PlatformScoped.class);
+    if (platform != null) {
+      return platform.operation();
+    }
+    TenantScoped tenant =
+        AnnotatedElementUtils.findMergedAnnotation(handler.getMethod(), TenantScoped.class);
+    return tenant == null ? "" : tenant.operation();
   }
 
   private static ResponseEntity<ProblemDetail> respond(

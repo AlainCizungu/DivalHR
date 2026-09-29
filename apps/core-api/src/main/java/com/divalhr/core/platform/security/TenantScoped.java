@@ -12,7 +12,23 @@ import java.lang.annotation.Target;
  * request. Every mutating {@code /api/v1} handler carries exactly one of {@link PlatformScoped} or
  * this annotation (enforced by a test).
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface TenantScoped {}
+public @interface TenantScoped {
+
+  /**
+   * Stable, low-cardinality operation name for logs and metrics; empty when not instrumented.
+   *
+   * @return operation name
+   */
+  String operation() default "";
+
+  /**
+   * Realm role required in addition to a verified tenant; empty when any tenant member may call. A
+   * platform role never satisfies it implicitly.
+   *
+   * @return required role
+   */
+  String role() default "";
+}

@@ -40,7 +40,8 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     // API docs only (no Swagger UI); used as drift-verification output, not as the contract.
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:$springdocVersion")
-    runtimeOnly("org.postgresql:postgresql")
+    // Compile scope: unique-constraint names are read from PSQLException for narrow error mapping.
+    implementation("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

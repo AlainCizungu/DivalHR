@@ -2,15 +2,8 @@ package com.divalhr.core.tenant.application;
 
 import com.divalhr.core.platform.audit.AuditEvent;
 import com.divalhr.core.platform.audit.AuditRecorder;
-import com.divalhr.core.platform.error.ApiException;
-import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.idempotency.Fingerprints;
-import com.divalhr.core.platform.idempotency.IdempotencyDecision;
-import com.divalhr.core.platform.idempotency.IdempotencyScope;
-import com.divalhr.core.platform.idempotency.IdempotencyService;
-import com.divalhr.core.platform.idempotency.StoredResponse;
-import com.divalhr.core.platform.observability.OperationMetrics;
-import com.divalhr.core.platform.observability.OperationMetrics.Outcome;
+import com.divalhr.core.platform.idempotency.IdempotentCreate;
 import com.divalhr.core.platform.outbox.EventEnvelope;
 import com.divalhr.core.platform.outbox.OutboxWriter;
 import com.divalhr.core.tenant.api.CreateOrganizationRequest;
@@ -26,10 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -45,15 +35,14 @@ public class CreateOrganizationService {
   /** Event type (packages/shared-contracts/schemas/event-envelope.schema.json). */
   public static final String EVENT_TYPE = "tenant.organization-created.v1";
 
-  private static final Logger LOG = LoggerFactory.getLogger(CreateOrganizationService.class);
+  private static final IdempotentCreate.Operation SPEC =
+      new IdempotentCreate.Operation(OPERATION, "organization");
 
   private final OrganizationValidator validator;
-  private final IdempotencyService idempotency;
+  private final IdempotentCreate creates;
   private final JdbcOrganizationRepository organizations;
   private final AuditRecorder audit;
   private final OutboxWriter outbox;
-  private final OperationMetrics metrics;
-  private final TransactionTemplate transactions;
   private final JsonMapper json;
   private final Clock clock;
 
@@ -61,30 +50,24 @@ public class CreateOrganizationService {
    * Creates the service.
    *
    * @param validator request validator
-   * @param idempotency idempotency service
+   * @param creates shared idempotent-create flow
    * @param organizations repository
    * @param audit audit recorder
    * @param outbox outbox writer
-   * @param metrics operation metrics
-   * @param transactions transaction template
    * @param json JSON mapper
    */
   public CreateOrganizationService(
       OrganizationValidator validator,
-      IdempotencyService idempotency,
+      IdempotentCreate creates,
       JdbcOrganizationRepository organizations,
       AuditRecorder audit,
       OutboxWriter outbox,
-      OperationMetrics metrics,
-      TransactionTemplate transactions,
       JsonMapper json) {
     this.validator = validator;
-    this.idempotency = idempotency;
+    this.creates = creates;
     this.organizations = organizations;
     this.audit = audit;
     this.outbox = outbox;
-    this.metrics = metrics;
-    this.transactions = transactions;
     this.json = json;
     this.clock = Clock.systemUTC();
   }
@@ -111,56 +94,21 @@ public class CreateOrganizationService {
       String idempotencyKey,
       CreateOrganizationRequest request,
       String correlationId) {
-    CreateOrganizationCommand command;
-    try {
-      command = validator.validate(idempotencyKey, request);
-    } catch (ApiException invalid) {
-      metrics.record(OPERATION, Outcome.VALIDATION_FAILED);
-      LOG.atInfo()
-          .addKeyValue("operation", OPERATION)
-          .addKeyValue("outcome", "validation_failed")
-          .addKeyValue("code", invalid.code().name())
-          .log("organization_create_rejected");
-      throw invalid;
-    }
-    IdempotencyScope scope = new IdempotencyScope(OPERATION, actorSubject, idempotencyKey);
-    String fingerprint = Fingerprints.sha256(json.writeValueAsString(command.canonical()));
-    try {
-      Result result =
-          transactions.execute(
-              status -> createInTransaction(scope, fingerprint, command, correlationId));
-      if (result == null) {
-        throw new IllegalStateException("transaction returned no result");
-      }
-      Outcome outcome = result.replayed() ? Outcome.REPLAYED : Outcome.CREATED;
-      metrics.record(OPERATION, outcome);
-      LOG.atInfo()
-          .addKeyValue("operation", OPERATION)
-          .addKeyValue("outcome", outcome.name().toLowerCase(java.util.Locale.ROOT))
-          .addKeyValue("organizationId", result.organization().id())
-          .log(result.replayed() ? "organization_create_replayed" : "organization_created");
-      return result;
-    } catch (ApiException conflict) {
-      if (conflict.code() == ErrorCode.IDEMPOTENCY_KEY_REUSED) {
-        metrics.record(OPERATION, Outcome.IDEMPOTENCY_CONFLICT);
-        LOG.atInfo()
-            .addKeyValue("operation", OPERATION)
-            .addKeyValue("outcome", "idempotency_conflict")
-            .log("organization_create_rejected");
-      }
-      throw conflict;
-    }
+    CreateOrganizationCommand command =
+        creates.validated(SPEC, () -> validator.validate(idempotencyKey, request));
+    IdempotentCreate.Result<OrganizationResponse> result =
+        creates.execute(
+            SPEC,
+            actorSubject,
+            idempotencyKey,
+            command.canonical(),
+            OrganizationResponse.class,
+            () -> createInTransaction(actorSubject, command, correlationId));
+    return new Result(result.body(), result.replayed());
   }
 
-  private Result createInTransaction(
-      IdempotencyScope scope,
-      String fingerprint,
-      CreateOrganizationCommand command,
-      String correlationId) {
-    IdempotencyDecision decision = idempotency.reserve(scope, fingerprint);
-    if (decision instanceof IdempotencyDecision.Replay replay) {
-      return new Result(json.readValue(replay.response().body(), OrganizationResponse.class), true);
-    }
+  private IdempotentCreate.Created<OrganizationResponse> createInTransaction(
+      String actorSubject, CreateOrganizationCommand command, String correlationId) {
     // Microsecond precision matches PostgreSQL timestamptz, so replayed bodies are identical.
     Instant now = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);
     Organization organization =
@@ -173,7 +121,7 @@ public class CreateOrganizationService {
             command.currencies(),
             OrganizationStatus.ACTIVE,
             now,
-            scope.principal());
+            actorSubject);
     organizations.insert(organization);
 
     Map<String, Object> safeConfiguration = safeConfiguration(organization);
@@ -181,7 +129,7 @@ public class CreateOrganizationService {
         new AuditEvent(
             UUID.randomUUID(),
             now,
-            scope.principal(),
+            actorSubject,
             OPERATION,
             "organization",
             organization.id(),
@@ -209,10 +157,8 @@ public class CreateOrganizationService {
             null,
             data));
 
-    OrganizationResponse response = OrganizationResponse.from(organization);
-    idempotency.complete(
-        scope, new StoredResponse(201, json.writeValueAsString(response), organization.id()));
-    return new Result(response, false);
+    return new IdempotentCreate.Created<>(
+        OrganizationResponse.from(organization), organization.id());
   }
 
   /** Configuration values that are safe for audit metadata and event data (no name). */
