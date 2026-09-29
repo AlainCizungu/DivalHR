@@ -1,5 +1,7 @@
 package com.divalhr.core.platform.error;
 
+import com.divalhr.core.platform.observability.OperationMetrics;
+import com.divalhr.core.platform.security.PlatformScoped;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
@@ -17,19 +19,31 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Maps exceptions to the stable error contract. Never echoes request data or stack traces.
  *
- * <p>Ordered first so it takes precedence over Spring Boot's generic problem-details handler;
- * every response therefore carries a stable {@code code}.
+ * <p>Ordered first so it takes precedence over Spring Boot's generic problem-details handler; every
+ * response therefore carries a stable {@code code}.
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+  private final OperationMetrics metrics;
+
+  /**
+   * Creates the handler.
+   *
+   * @param metrics operation metrics
+   */
+  public GlobalExceptionHandler(OperationMetrics metrics) {
+    this.metrics = metrics;
+  }
 
   /**
    * Handles contract-aware exceptions.
@@ -73,7 +87,10 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ProblemDetail> handleUnreadable(
-      HttpMessageNotReadableException exception, HttpServletRequest request) {
+      HttpMessageNotReadableException exception,
+      HttpServletRequest request,
+      HandlerMethod handler) {
+    recordValidationFailure(handler);
     return respond(
         ErrorCode.VALIDATION_FAILED,
         Map.of("fields", List.of(Map.of("field", "body", "constraint", "FORMAT"))),
@@ -89,7 +106,10 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
   public ResponseEntity<ProblemDetail> handleMediaType(
-      HttpMediaTypeNotSupportedException exception, HttpServletRequest request) {
+      HttpMediaTypeNotSupportedException exception,
+      HttpServletRequest request,
+      HandlerMethod handler) {
+    recordValidationFailure(handler);
     return respond(
         ErrorCode.VALIDATION_FAILED,
         Map.of("fields", List.of(Map.of("field", "Content-Type", "constraint", "FORMAT"))),
@@ -158,6 +178,20 @@ public class GlobalExceptionHandler {
     }
     LOG.error("Unhandled exception type={}", exception.getClass().getName());
     return respond(ErrorCode.INTERNAL_ERROR, Map.of(), request);
+  }
+
+  /**
+   * Bodies that cannot be read never reach the use case, so the validation-failure metric for
+   * named operations is recorded here.
+   */
+  private void recordValidationFailure(HandlerMethod handler) {
+    if (handler == null) {
+      return;
+    }
+    PlatformScoped scoped = handler.getMethodAnnotation(PlatformScoped.class);
+    if (scoped != null) {
+      metrics.record(scoped.operation(), OperationMetrics.Outcome.VALIDATION_FAILED);
+    }
   }
 
   private static ResponseEntity<ProblemDetail> respond(
