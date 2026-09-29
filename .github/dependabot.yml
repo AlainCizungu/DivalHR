@@ -36,6 +36,9 @@ updates:
     ignore:
       - dependency-name: eclipse-temurin
         versions: ['>= 22']
+      # Node 24 LTS is the approved baseline; Node 25+ images no longer ship corepack (Issue #17).
+      - dependency-name: node
+        versions: ['>= 25']
     groups:
       base-images:
         update-types: [minor, patch]
