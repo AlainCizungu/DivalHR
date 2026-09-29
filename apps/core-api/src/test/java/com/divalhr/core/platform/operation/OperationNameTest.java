@@ -61,9 +61,9 @@ class OperationNameTest {
           files
               .filter(path -> path.toString().endsWith(".java"))
               .filter(path -> read(path).contains(fragment))
-              .map(path -> path.getFileName().toString())
+              .map(Path::toString)
               .toList();
-      assertThat(holders).containsExactly("OperationName.java");
+      assertThat(holders).singleElement().asString().endsWith("OperationName.java");
     }
   }
 
