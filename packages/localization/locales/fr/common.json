@@ -8,7 +8,8 @@
     "home": "Accueil",
     "status": "État du système",
     "skipToContent": "Aller au contenu principal",
-    "platformAdmin": "Créer une organisation"
+    "platformAdmin": "Créer une organisation",
+    "hierarchy": "Structure organisationnelle"
   },
   "locale": {
     "label": "Langue",
@@ -77,6 +78,12 @@
     "LOCALE_NOT_SUPPORTED": "Cette langue n’est pas prise en charge.",
     "TIMEZONE_NOT_SUPPORTED": "Ce fuseau horaire n’est pas disponible pour le pays sélectionné.",
     "CURRENCY_NOT_SUPPORTED": "L’une des devises sélectionnées n’est pas prise en charge pour ce pays.",
+    "LEGAL_ENTITY_NOT_FOUND": "Cette entité juridique n’existe pas dans votre organisation.",
+    "DUPLICATE_LEGAL_ENTITY_CODE": "Ce code d’entité juridique est déjà utilisé dans votre organisation.",
+    "DUPLICATE_SITE_CODE": "Ce code de site est déjà utilisé dans votre organisation.",
+    "EFFECTIVE_DATE_INVALID": "La date de fin ne peut pas précéder la date de début.",
+    "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY": "Les dates du site doivent être comprises dans celles de son entité juridique.",
+    "CURSOR_INVALID": "La liste n’a pas pu être poursuivie. Rechargez la page pour recommencer.",
     "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
   },
   "notFound": {
@@ -170,6 +177,105 @@
         "FORMAT": "Sélectionnez des devises dans la liste.",
         "DUPLICATE": "Chaque devise ne peut être sélectionnée qu’une seule fois.",
         "NOT_SUPPORTED": "L’une des devises sélectionnées n’est pas prise en charge."
+      }
+    }
+  },
+  "hierarchy": {
+    "title": "Structure organisationnelle",
+    "description": "Les entités juridiques et les sites qui leur sont rattachés, pour votre organisation uniquement.",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "submitting": "Enregistrement…",
+    "errorSummary": "Veuillez corriger les points suivants :",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer la structure organisationnelle.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer la structure organisationnelle.",
+    "period": {
+      "closed": "Du {{from}} au {{to}}",
+      "open": "À partir du {{from}}, sans date de fin"
+    },
+    "legalEntities": {
+      "title": "Entités juridiques",
+      "empty": "Aucune entité juridique pour le moment. Ajoutez la première ci-dessous.",
+      "loadMore": "Afficher plus d’entités juridiques",
+      "selectShort": "Voir les sites",
+      "select": "Voir les sites de {{name}} ({{code}})",
+      "created": "Entité juridique {{name}} ({{code}}) créée."
+    },
+    "legalEntityForm": {
+      "title": "Ajouter une entité juridique",
+      "submit": "Créer l’entité juridique"
+    },
+    "sites": {
+      "title": "Sites de {{name}} ({{code}})",
+      "empty": "Aucun site pour cette entité juridique pour le moment.",
+      "loadMore": "Afficher plus de sites",
+      "created": "Site {{name}} ({{code}}) créé."
+    },
+    "siteForm": {
+      "title": "Ajouter un site à {{name}} ({{code}})",
+      "submit": "Créer le site",
+      "periodHint": "Les dates d’un site doivent être comprises dans celles de son entité juridique."
+    },
+    "fields": {
+      "code": {
+        "label": "Code",
+        "help": "De 2 à 20 lettres, chiffres, traits d’union ou tirets bas. Enregistré en majuscules ; unique dans votre organisation."
+      },
+      "legalName": {
+        "label": "Raison sociale"
+      },
+      "siteName": {
+        "label": "Nom du site"
+      },
+      "country": {
+        "label": "Pays"
+      },
+      "timezone": {
+        "label": "Fuseau horaire"
+      },
+      "effectiveFrom": {
+        "label": "Date de début",
+        "help": "Premier jour d’application (inclus)."
+      },
+      "effectiveTo": {
+        "label": "Date de fin (facultatif)",
+        "help": "Dernier jour d’application (inclus). Laissez vide s’il n’y a pas de date de fin."
+      }
+    },
+    "validation": {
+      "generic": "Vérifiez ce champ.",
+      "code": {
+        "REQUIRED": "Saisissez un code.",
+        "LENGTH": "Le code doit comporter de 2 à 20 caractères.",
+        "FORMAT": "Utilisez uniquement des lettres, des chiffres, des traits d’union et des tirets bas dans le code.",
+        "DUPLICATE_CODE": "Ce code est déjà utilisé dans votre organisation."
+      },
+      "name": {
+        "REQUIRED": "Saisissez un nom.",
+        "LENGTH": "Le nom doit comporter de 2 à 160 caractères.",
+        "FORMAT": "Le nom ne peut pas contenir de sauts de ligne ni de caractères de contrôle."
+      },
+      "countryCode": {
+        "REQUIRED": "Sélectionnez un pays.",
+        "FORMAT": "Sélectionnez un pays dans la liste.",
+        "NOT_SUPPORTED": "Ce pays n’est pas encore pris en charge."
+      },
+      "timezone": {
+        "REQUIRED": "Sélectionnez un fuseau horaire.",
+        "FORMAT": "Sélectionnez un fuseau horaire dans la liste.",
+        "NOT_SUPPORTED": "Ce fuseau horaire n’est pas disponible pour le pays de l’entité juridique."
+      },
+      "effectiveFrom": {
+        "REQUIRED": "Saisissez une date de début.",
+        "FORMAT": "Saisissez une date de début valide.",
+        "RANGE": "La date de début doit être comprise entre 1900 et 2999.",
+        "OUTSIDE_PARENT": "La date de début ne peut pas précéder celle de l’entité juridique."
+      },
+      "effectiveTo": {
+        "FORMAT": "Saisissez une date de fin valide.",
+        "RANGE": "La date de fin doit être comprise entre 1900 et 2999.",
+        "BEFORE_START": "La date de fin ne peut pas précéder la date de début.",
+        "OUTSIDE_PARENT": "La date de fin doit être comprise dans les dates de l’entité juridique. Un site sans date de fin exige une entité juridique sans date de fin."
       }
     }
   }

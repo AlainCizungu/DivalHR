@@ -76,6 +76,7 @@ function AuthButton() {
 export function AppShell({ environment, children }: { environment: string; children: ReactNode }) {
   const { t } = useTranslation();
   const isPlatformAdmin = useHasRole('platform-admin');
+  const isTenantAdmin = useHasRole('tenant-admin');
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -99,6 +100,7 @@ export function AppShell({ environment, children }: { environment: string; child
           {isPlatformAdmin && (
             <NavLink to="/admin/organizations/new">{t('nav.platformAdmin')}</NavLink>
           )}
+          {isTenantAdmin && <NavLink to="/admin/hierarchy">{t('nav.hierarchy')}</NavLink>}
         </nav>
         <div className="toolbar">
           <LocaleSwitcher />

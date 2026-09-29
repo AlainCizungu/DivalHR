@@ -8,7 +8,8 @@
     "home": "Home",
     "status": "System status",
     "skipToContent": "Skip to main content",
-    "platformAdmin": "Create organization"
+    "platformAdmin": "Create organization",
+    "hierarchy": "Organizational structure"
   },
   "locale": {
     "label": "Language",
@@ -77,6 +78,12 @@
     "LOCALE_NOT_SUPPORTED": "This language is not supported.",
     "TIMEZONE_NOT_SUPPORTED": "This time zone is not available for the selected country.",
     "CURRENCY_NOT_SUPPORTED": "One of the selected currencies is not supported for this country.",
+    "LEGAL_ENTITY_NOT_FOUND": "This legal entity does not exist in your organization.",
+    "DUPLICATE_LEGAL_ENTITY_CODE": "This legal entity code is already used in your organization.",
+    "DUPLICATE_SITE_CODE": "This site code is already used in your organization.",
+    "EFFECTIVE_DATE_INVALID": "The end date cannot be earlier than the start date.",
+    "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY": "The site's dates must fall within its legal entity's dates.",
+    "CURSOR_INVALID": "The list could not be continued. Reload the page to start again.",
     "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated."
   },
   "notFound": {
@@ -170,6 +177,105 @@
         "FORMAT": "Select currencies from the list.",
         "DUPLICATE": "Each currency can be selected only once.",
         "NOT_SUPPORTED": "One of the selected currencies is not supported."
+      }
+    }
+  },
+  "hierarchy": {
+    "title": "Organizational structure",
+    "description": "Legal entities and the sites that belong to them, for your organization only.",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "submitting": "Saving…",
+    "errorSummary": "Please correct the following:",
+    "unauthorized": "Only organization administrators can manage the organizational structure.",
+    "signInRequired": "Sign in as an organization administrator to manage the organizational structure.",
+    "period": {
+      "closed": "{{from}} to {{to}}",
+      "open": "From {{from}}, open-ended"
+    },
+    "legalEntities": {
+      "title": "Legal entities",
+      "empty": "No legal entities yet. Add the first one below.",
+      "loadMore": "Show more legal entities",
+      "selectShort": "Show sites",
+      "select": "Show sites for {{name}} ({{code}})",
+      "created": "Legal entity {{name}} ({{code}}) created."
+    },
+    "legalEntityForm": {
+      "title": "Add a legal entity",
+      "submit": "Create legal entity"
+    },
+    "sites": {
+      "title": "Sites of {{name}} ({{code}})",
+      "empty": "No sites yet for this legal entity.",
+      "loadMore": "Show more sites",
+      "created": "Site {{name}} ({{code}}) created."
+    },
+    "siteForm": {
+      "title": "Add a site to {{name}} ({{code}})",
+      "submit": "Create site",
+      "periodHint": "A site's dates must fall within its legal entity's dates."
+    },
+    "fields": {
+      "code": {
+        "label": "Code",
+        "help": "2 to 20 letters, digits, hyphens or underscores. Stored in capitals; unique in your organization."
+      },
+      "legalName": {
+        "label": "Legal name"
+      },
+      "siteName": {
+        "label": "Site name"
+      },
+      "country": {
+        "label": "Country"
+      },
+      "timezone": {
+        "label": "Time zone"
+      },
+      "effectiveFrom": {
+        "label": "Start date",
+        "help": "First day this applies (inclusive)."
+      },
+      "effectiveTo": {
+        "label": "End date (optional)",
+        "help": "Last day this applies (inclusive). Leave empty if there is no end date."
+      }
+    },
+    "validation": {
+      "generic": "Check this field.",
+      "code": {
+        "REQUIRED": "Enter a code.",
+        "LENGTH": "The code must have 2 to 20 characters.",
+        "FORMAT": "Use only letters, digits, hyphens and underscores in the code.",
+        "DUPLICATE_CODE": "This code is already used in your organization."
+      },
+      "name": {
+        "REQUIRED": "Enter a name.",
+        "LENGTH": "The name must have 2 to 160 characters.",
+        "FORMAT": "The name cannot contain line breaks or control characters."
+      },
+      "countryCode": {
+        "REQUIRED": "Select a country.",
+        "FORMAT": "Select a country from the list.",
+        "NOT_SUPPORTED": "This country is not supported yet."
+      },
+      "timezone": {
+        "REQUIRED": "Select a time zone.",
+        "FORMAT": "Select a time zone from the list.",
+        "NOT_SUPPORTED": "This time zone is not available for the legal entity's country."
+      },
+      "effectiveFrom": {
+        "REQUIRED": "Enter a start date.",
+        "FORMAT": "Enter a valid start date.",
+        "RANGE": "The start date must be between 1900 and 2999.",
+        "OUTSIDE_PARENT": "The start date cannot be earlier than the legal entity's start date."
+      },
+      "effectiveTo": {
+        "FORMAT": "Enter a valid end date.",
+        "RANGE": "The end date must be between 1900 and 2999.",
+        "BEFORE_START": "The end date cannot be earlier than the start date.",
+        "OUTSIDE_PARENT": "The end date must fall within the legal entity's dates. An open-ended site needs an open-ended legal entity."
       }
     }
   }
