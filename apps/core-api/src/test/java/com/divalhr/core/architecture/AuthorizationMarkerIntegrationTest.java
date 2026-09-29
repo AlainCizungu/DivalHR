@@ -27,8 +27,11 @@ class AuthorizationMarkerIntegrationTest {
   private static final Set<RequestMethod> MUTATING =
       Set.of(RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE);
 
-  /** Public, unauthenticated endpoints (docs/API-SPEC.yaml, security: []). */
-  private static final Set<String> PUBLIC = Set.of("/api/v1/system/status");
+  /**
+   * Handlers outside both scopes: the public status endpoint (security: []) and the caller's own
+   * session, which only echoes the verified token and reads no tenant data.
+   */
+  private static final Set<String> PUBLIC = Set.of("/api/v1/system/status", "/api/v1/session");
 
   @Autowired
   @Qualifier("requestMappingHandlerMapping")
@@ -51,7 +54,7 @@ class AuthorizationMarkerIntegrationTest {
         violations.add(info + " -> " + entry.getValue());
       }
     }
-    assertThat(checked).as("non-public /api/v1 handlers found").isGreaterThanOrEqualTo(5);
+    assertThat(checked).as("scoped /api/v1 handlers found").isGreaterThanOrEqualTo(5);
     assertThat(violations).isEmpty();
   }
 

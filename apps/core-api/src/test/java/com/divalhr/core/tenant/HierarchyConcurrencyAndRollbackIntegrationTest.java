@@ -85,7 +85,8 @@ class HierarchyConcurrencyAndRollbackIntegrationTest {
     assertThat(count("tenant.legal_entity", "code = ?", code)).isEqualTo(1);
     UUID id = ((LegalEntityResponse) results.get(0).body()).id();
     assertThat(count("platform.audit_event", "resource_id = ?", id)).isEqualTo(1);
-    assertThat(count("platform.outbox_event", "subject = ?", id.toString())).isEqualTo(1);
+    assertThat(count("platform.outbox_event", "envelope ->> 'subject' = ?", id.toString()))
+        .isEqualTo(1);
   }
 
   @Test

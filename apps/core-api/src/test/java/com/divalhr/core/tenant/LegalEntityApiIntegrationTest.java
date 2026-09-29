@@ -107,7 +107,7 @@ class LegalEntityApiIntegrationTest {
 
     String envelope =
         jdbc.queryForObject(
-            "SELECT envelope::text FROM platform.outbox_event WHERE subject = ?",
+            "SELECT envelope::text FROM platform.outbox_event WHERE envelope ->> 'subject' = ?",
             String.class,
             id.toString());
     CreateOrganizationApiIntegrationTest.assertEnvelopeValid(envelope);

@@ -11,10 +11,12 @@
 -- After running it, delete the V3 row from flyway_schema_history.
 DROP TRIGGER IF EXISTS legal_entity_period_covers_sites ON tenant.legal_entity;
 DROP TRIGGER IF EXISTS site_period_within_legal_entity ON tenant.site;
+DROP TRIGGER IF EXISTS site_parent_immutable ON tenant.site;
 DROP TRIGGER IF EXISTS site_ownership_immutable ON tenant.site;
 DROP TRIGGER IF EXISTS legal_entity_ownership_immutable ON tenant.legal_entity;
 DROP TABLE IF EXISTS tenant.site;
 DROP TABLE IF EXISTS tenant.legal_entity;
 DROP FUNCTION IF EXISTS tenant.legal_entity_period_covers_sites();
 DROP FUNCTION IF EXISTS tenant.site_period_within_legal_entity();
+DROP FUNCTION IF EXISTS tenant.reject_site_parent_change();
 DROP FUNCTION IF EXISTS tenant.reject_ownership_change();

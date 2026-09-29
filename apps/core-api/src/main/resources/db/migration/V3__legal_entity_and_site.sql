@@ -118,6 +118,23 @@ CREATE TRIGGER site_ownership_immutable
     BEFORE UPDATE ON tenant.site
     FOR EACH ROW EXECUTE FUNCTION tenant.reject_ownership_change();
 
+-- A site never moves to another legal entity.
+CREATE FUNCTION tenant.reject_site_parent_change() RETURNS trigger
+    LANGUAGE plpgsql AS
+$$
+BEGIN
+    IF NEW.legal_entity_id IS DISTINCT FROM OLD.legal_entity_id THEN
+        RAISE EXCEPTION 'site parent is immutable'
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER site_parent_immutable
+    BEFORE UPDATE OF legal_entity_id ON tenant.site
+    FOR EACH ROW EXECUTE FUNCTION tenant.reject_site_parent_change();
+
 -- ---------------------------------------------------------------------------------------------
 -- Effective-period containment (backstop for the transactional check in the application).
 -- A site period must lie within its legal entity's inclusive period; an open-ended site requires
