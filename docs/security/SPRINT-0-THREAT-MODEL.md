@@ -109,3 +109,17 @@ Accepted for this increment: no PostgreSQL row-level security (tenant predicates
 | T17 | Region cursor replayed across tenant, operation or legal entity | Signed cursors bound to `region.list`, tenant and `legalEntityId` (a `site.list` cursor for the same legal entity is rejected) | `cursorsAreBoundToTenantOperationAndLegalEntity` |
 
 No new secrets, configuration or personal data. Region names are customer data and never appear in logs, metrics, errors or event data.
+
+## MVP-002 Increment 3B delta (teams)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E8 | Employee or platform administrator creates or lists teams | `@TenantAdminOperation` (subject, role and tenant checked before parsing) plus `@PreAuthorize` | `onlyTenantAdministratorsMayCreateTeams`, `onlyTenantAdministratorsMayList`, `MethodSecurityEnforcementIntegrationTest`, French E2E |
+| T18 | Team linked to another tenant's parent, to a parent of another site, or to both or neither parent | Tenant-predicated parent lookup; `site_id` derived from the locked parent row; composite `(tenant_id, site_id, parent_id)` foreign keys with `MATCH SIMPLE`; `team_exactly_one_parent` check (which wins over the containment trigger for invalid shapes) | `tenantSiteAndParentMustBelongTogether`, `exactlyOneParentCheckRejectsNeitherAndBoth`, `exactlyOneParentIsRequired` |
+| T19 | Request-controlled SQL through the parent type | Parent type is a closed `TeamParentKind`; API field, domain kind and table are mapped by exhaustive `switch` statements to fixed SQL | Code review; ArchUnit tenant-predicate rule; listing and constraint tests for both kinds |
+| T20 | Caller supplies tenant, site or server fields | `CreateTeam` has `additionalProperties: false`; tenant from the token and site from the parent only | `siteTenantAndServerFieldsCannotBeSupplied` |
+| I12 | Existence of another tenant's department or cost center inferred from responses | Identical `404 DEPARTMENT_NOT_FOUND` / `COST_CENTER_NOT_FOUND` bodies apart from `correlationId`, for create and list | `missingAndForeignParentsAreIndistinguishable` (create and list) |
+| T21 | Parent narrowed to strand a team, or a team's parent changed | Containment trigger, parent backstops, parent-before-child locks, immutable parent columns | `creationRacingAParentNarrowingNeverStrandsATeam`, `parentsCannotBeNarrowedBelowTheirTeams`, `ownershipSiteAndParentAreImmutableAndFieldsChecked` |
+| T22 | Team cursor replayed across tenant, operation, parent type or parent | Signed cursors bound to `team.list`, tenant, parent type and parent id | `cursorsAreBoundToTenantOperationParentTypeAndParentId` |
+
+No new secrets, configuration or personal data. Team names are customer data and never appear in logs, metrics, errors or event data.

@@ -134,7 +134,7 @@
 - Ownership is immutable: triggers reject changing `tenant_id` (both tables) or `legal_entity_id` (sites).
 - Listing uses keyset pagination on `(code COLLATE "C", id)` with matching indexes; order is byte order, stable across locales.
 - V3 widened the operation and audit-action name checks to allow hyphenated resource names (`legal-entity.create`). The widening is forward-only: `db/rollback/V3__rollback.sql` removes the hierarchy tables but deliberately does not narrow the checks back, and rolling back business data is unsupported once real records exist.
-- Departments and cost centers followed in Increment 2 and regions in Increment 3A; teams remain a future increment of MVP-002.
+- Departments and cost centers followed in Increment 2, regions in Increment 3A and teams in Increment 3B.
 
 ## Implemented (MVP-002, Increment 2: departments and cost centers)
 
@@ -161,6 +161,22 @@
 - Listing uses `region_tenant_legal_entity_code_id (tenant_id, legal_entity_id, code COLLATE "C", id)`; `site_tenant_region (tenant_id, region_id) WHERE region_id IS NOT NULL` serves the backstop and foreign-key checks.
 - Events: `tenant.region-created.v1` and `tenant.site-region-assigned.v1` (ids only). `tenant.site-created.v1` gains an **optional, additive** `data.regionId`, present only for a site created with a region; existing v1 consumers and the shared envelope schema are unaffected (validated with and without it).
 - Manual rollback: `db/rollback/V6__rollback.sql` drops the region layer (every region and assignment is lost) and purges `region.create` / `site.region.assign` idempotency records. Rolling back only the application is preferred: the previous version works unchanged against V6.
+
+## Implemented (MVP-002, Increment 3B: teams)
+
+- Hierarchy: … → Site → Department or Cost center → Team. A team has **exactly one** parent: a department or a cost center of one site, never both and never neither.
+- `tenant.team` (V7): `id`, `tenant_id`, `site_id`, `department_id` (nullable), `cost_center_id` (nullable), normalized `code`, trimmed `name`, inclusive `effective_from`/`effective_to` (1900-2999), `created_at`, `created_by`, `version`.
+- `team_exactly_one_parent CHECK (num_nonnulls(department_id, cost_center_id) = 1)` is the authoritative cardinality rule. The parent foreign keys use `MATCH SIMPLE`, so the NULL side is unchecked and the non-NULL side is fully checked.
+- `site_id` is **derived** from the locked parent row by the service and never accepted from a request; it is persisted and immutable. V7 adds `UNIQUE (tenant_id, site_id, id)` to `tenant.department` and `tenant.cost_center` (`department_tenant_site_id_unique`, `cost_center_tenant_site_id_unique`) so that `(tenant_id, site_id, department_id)` and `(tenant_id, site_id, cost_center_id)` can reference them (`team_department_same_tenant_and_site`, `team_cost_center_same_tenant_and_site`). The redundant `(tenant_id, site_id)` reference to `tenant.site` (`team_site_same_tenant`) is kept. A team can therefore never point at another tenant's parent or at a parent of another site, even through direct SQL.
+- Team codes are unique per tenant across all parents and both parent types, regardless of case (`team_code_ci_unique`); they may equal the code of another resource type.
+- Containment is enforced twice: the service locks the parent `FOR SHARE` and checks the period, and `tenant.team_period_within_parent()` rejects any insert or update outside the parent's period (`team_period_within_department`, `team_period_within_cost_center`). The trigger returns early when the parent cardinality is invalid, so `team_exactly_one_parent` is the reported violation for both invalid shapes. An open-ended team requires an open-ended parent.
+- Backstops stop narrowing a department or cost center below its teams (`department_period_covers_teams`, `cost_center_period_covers_teams`, one fixed-SQL branch per table in `tenant.site_unit_period_covers_teams()`).
+- `id`, `tenant_id`, `site_id`, `department_id` and `cost_center_id` are immutable (`team_ownership_immutable`, `team_parent_immutable`).
+- Lock order (all paths): legal entity → region → site → department/cost center → team.
+- The domain names the parent with `TeamParentKind { DEPARTMENT, COST_CENTER }`; each kind maps through a closed `switch` to fixed SQL for its table and column. No request value is ever interpolated into SQL.
+- Listing filters by exactly one parent and uses the partial keyset indexes `team_tenant_department_code_id` / `team_tenant_cost_center_code_id` `(tenant_id, <parent>_id, code COLLATE "C", id) WHERE <parent>_id IS NOT NULL`. `team_tenant_site_code_id` supports site-level queries.
+- Event: `tenant.team-created.v1` with ids, parent type, the selected parent id, code and dates (an open-ended `effectiveTo` is omitted); never the name.
+- Manual rollback: `db/rollback/V7__rollback.sql` drops the team table, its triggers and functions and the two composite unique constraints, and purges `team.create` idempotency records (every team is lost). Rolling back only the application is preferred: the previous version works unchanged against V7 (tested with its exact statements).
 
 ## Implemented (Issue #17 maintenance)
 

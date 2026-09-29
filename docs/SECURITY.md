@@ -49,16 +49,16 @@ Idempotency operations and audit actions follow one grammar, `^[a-z]+(-[a-z]+)*(
 
 ### Tenant-administrator operations (MVP-002)
 
-Legal-entity, region, site (including the first region assignment), department and cost-center endpoints use `@TenantAdminOperation`, which combines `@TenantScoped(role = "tenant-admin")` with `@PreAuthorize("hasRole('tenant-admin')")`. The interceptor rejects any other role with 403 `ACCESS_DENIED` before the body is read, then requires a valid `tenant_id` claim (403 `TENANT_CONTEXT_MISSING`). Employees and platform administrators are denied; there is no implicit platform access to tenant data.
+Legal-entity, region, site (including the first region assignment), department, cost-center and team endpoints use `@TenantAdminOperation`, which combines `@TenantScoped(role = "tenant-admin")` with `@PreAuthorize("hasRole('tenant-admin')")`. The interceptor rejects any other role with 403 `ACCESS_DENIED` before the body is read, then requires a valid `tenant_id` claim (403 `TENANT_CONTEXT_MISSING`). Employees and platform administrators are denied; there is no implicit platform access to tenant data.
 
 - The tenant comes only from the verified token. Headers, query parameters and bodies never supply it; unknown body properties such as `tenantId` are rejected.
-- Every repository method takes the verified `TenantId` and filters on it (enforced by an ArchUnit rule). A missing parent and another tenant's parent return the same `404 LEGAL_ENTITY_NOT_FOUND`, `404 SITE_NOT_FOUND` or `404 REGION_NOT_FOUND` body, apart from `correlationId`.
+- Every repository method takes the verified `TenantId` and filters on it (enforced by an ArchUnit rule). A missing parent and another tenant's parent return the same `404 LEGAL_ENTITY_NOT_FOUND`, `404 SITE_NOT_FOUND`, `404 REGION_NOT_FOUND`, `404 DEPARTMENT_NOT_FOUND` or `404 COST_CENTER_NOT_FOUND` body, apart from `correlationId`. A team's site is derived from its verified parent, never read from the request.
 - Only the named unique indexes map to `409 DUPLICATE_LEGAL_ENTITY_CODE` / `DUPLICATE_SITE_CODE`; every other database error is a generic `500 INTERNAL_ERROR`. Problem params never echo submitted names, codes, IDs, SQL, constraint names or cursors.
 - PostgreSQL row-level security is not used in this increment; isolation relies on the tenant predicates, the composite foreign key and the tests above.
 
 ## Pagination cursors
 
-List endpoints return opaque keyset cursors: `base64url(payload) "." base64url(HMAC-SHA256(payload))`. The payload holds a version, the last row's code and id, and a SHA-256 binding of the operation, verified tenant and filters (for sites, the legal entity). Cursors are therefore unusable across tenants, operations or parents.
+List endpoints return opaque keyset cursors: `base64url(payload) "." base64url(HMAC-SHA256(payload))`. The payload holds a version, the last row's code and id, and a SHA-256 binding of the operation, verified tenant and filters (for sites, the legal entity; for teams, the parent type and parent id). Cursors are therefore unusable across tenants, operations or parents.
 
 - Decoding rejects input longer than 512 characters or of the wrong shape before decoding, verifies the MAC in constant time before parsing, and accepts only the exact allow-listed fields and types. Every failure is the same `400 CURSOR_INVALID` with no params.
 - Cursors, payloads, bindings and the key are never logged.

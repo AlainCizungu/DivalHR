@@ -38,11 +38,11 @@ MVP-002 is delivered incrementally:
 
 - **Increment 1 (Issue #12): legal entities and sites. Complete.** Tenant administrators create and list (keyset-paginated) legal entities and the sites beneath them, with effective dates, case-insensitive unique codes and site periods contained in their legal entity's period. French and English UI at `/admin/hierarchy`.
 - **Increment 2 (Issue #19): departments and cost centers. Complete.** Tenant administrators create and list departments and cost centers beneath a site, with effective dates contained in the site's period and codes unique per tenant for each type. The `/admin/hierarchy` page adds a site selection step.
-- **Increment 3A (Issue #21): regions and optional site assignment.** Tenant administrators create and list regions beneath a legal entity (codes unique per tenant, periods within the legal entity's), create sites with an optional region, and give an existing site without a region its first region. Regions are optional: sites created before this increment stay valid and unassigned, and every site stays directly reachable.
-- **Increment 3B: teams.** Future.
-- Future increments (each a separate, approved story): editing, closing and moving hierarchy records, including changing or clearing a site's region; hierarchy views for other roles.
+- **Increment 3A (Issue #21): regions and optional site assignment. Complete.** Tenant administrators create and list regions beneath a legal entity (codes unique per tenant, periods within the legal entity's), create sites with an optional region, and give an existing site without a region its first region. Regions are optional: sites created before this increment stay valid and unassigned, and every site stays directly reachable.
+- **Increment 3B (Issue #23): teams.** Tenant administrators create and list (keyset-paginated) teams beneath exactly one department or exactly one cost center of a site. The team's site is derived from its parent; team periods lie within the parent's period; team codes are unique per tenant across all parents. The `/admin/hierarchy` page adds a team-parent selection beneath the department and cost-center lists.
+- Future increments (each a separate, approved story): editing, closing and moving hierarchy records, including changing or clearing a site's region or a team's parent; assigning workers to teams; hierarchy views for other roles.
 
-Out of scope for increments 1 to 3A: teams, nested regions, moving a region or a site, changing or clearing a site's region, allocations, budgets, employee assignments, managers, editing, ending, deletion, bulk import, per-unit or region-specific permissions, platform impersonation, external event publication and AI features.
+Out of scope for increments 1 to 3B: teams beneath both a department and a cost center, nested teams, nested regions, moving a region or a site, changing or clearing a site's region, changing a team's parent, allocations, budgets, employee assignments, managers, editing, ending, deletion, bulk import, per-unit or region-specific permissions, platform impersonation, external event publication and AI features.
 
 ## Epic 2 Identity and Access
 
