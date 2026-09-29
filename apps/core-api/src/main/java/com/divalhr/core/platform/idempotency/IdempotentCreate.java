@@ -1,61 +1,45 @@
 package com.divalhr.core.platform.idempotency;
 
-import com.divalhr.core.platform.error.ApiException;
-import com.divalhr.core.platform.error.ErrorCode;
-import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.observability.OperationMetrics.Outcome;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The shared idempotent-create flow introduced by MVP-001: validate, fingerprint the normalized
- * command, then in one transaction reserve the key, replay or create (business rows, audit and
- * outbox written by {@code work}), and store the response. Emits low-cardinality outcome metrics
- * and safe structured logs; never logs names, keys, tokens or bodies.
+ * The idempotent-create flow introduced by MVP-001, kept as a compatibility facade over the
+ * operation-neutral {@link IdempotentOperation}: creates store and replay {@code 201}, report the
+ * {@code created} outcome, and keep their log event names ({@code <resource>_created}, {@code
+ * <resource>_create_replayed}, {@code <resource>_create_rejected}).
  */
 @Component
 public class IdempotentCreate {
 
-  private static final Logger LOG = LoggerFactory.getLogger(IdempotentCreate.class);
+  private static final int CREATED_STATUS = 201;
 
-  private final IdempotencyService idempotency;
-  private final OperationMetrics metrics;
-  private final TransactionTemplate transactions;
-  private final JsonMapper json;
+  private final IdempotentOperation operations;
 
   /**
-   * Creates the helper.
+   * Creates the facade.
    *
-   * @param idempotency idempotency records
-   * @param metrics operation metrics
-   * @param transactions transaction template
-   * @param json JSON mapper
+   * @param operations the shared idempotent command flow
    */
-  public IdempotentCreate(
-      IdempotencyService idempotency,
-      OperationMetrics metrics,
-      TransactionTemplate transactions,
-      JsonMapper json) {
-    this.idempotency = idempotency;
-    this.metrics = metrics;
-    this.transactions = transactions;
-    this.json = json;
+  public IdempotentCreate(IdempotentOperation operations) {
+    this.operations = operations;
   }
 
   /**
-   * Identifies an operation for idempotency scope, metrics and log messages.
+   * Identifies a create operation for idempotency scope, metrics and log messages.
    *
    * @param operation stable operation name, e.g. {@code organization.create}
    * @param resource log-message prefix, e.g. {@code organization}
    */
-  public record Operation(String operation, String resource) {}
+  public record Operation(String operation, String resource) {
+
+    private IdempotentOperation.Spec spec() {
+      return new IdempotentOperation.Spec(operation, resource, "create", "created", CREATED_STATUS);
+    }
+  }
 
   /**
    * The outcome of the business work inside the transaction.
@@ -84,17 +68,7 @@ public class IdempotentCreate {
    * @return normalized command
    */
   public <C> C validated(Operation operation, Supplier<C> validation) {
-    try {
-      return validation.get();
-    } catch (ApiException invalid) {
-      metrics.record(operation.operation(), Outcome.VALIDATION_FAILED);
-      LOG.atInfo()
-          .addKeyValue("operation", operation.operation())
-          .addKeyValue("outcome", "validation_failed")
-          .addKeyValue("code", invalid.code().name())
-          .log(operation.resource() + "_create_rejected");
-      throw invalid;
-    }
+    return operations.validated(operation.spec(), validation);
   }
 
   /**
@@ -116,63 +90,18 @@ public class IdempotentCreate {
       Map<String, Object> canonical,
       Class<R> responseType,
       Supplier<Created<R>> work) {
-    IdempotencyScope scope = new IdempotencyScope(operation.operation(), principal, key);
-    String fingerprint = Fingerprints.sha256(json.writeValueAsString(canonical));
-    try {
-      Result<R> result =
-          transactions.execute(
-              status -> {
-                IdempotencyDecision decision = idempotency.reserve(scope, fingerprint);
-                if (decision instanceof IdempotencyDecision.Replay replay) {
-                  return new Result<>(json.readValue(replay.response().body(), responseType), true);
-                }
-                Created<R> created = work.get();
-                idempotency.complete(
-                    scope,
-                    new StoredResponse(
-                        201, json.writeValueAsString(created.body()), created.resourceId()));
-                return new Result<>(created.body(), false);
-              });
-      if (result == null) {
-        throw new IllegalStateException("transaction returned no result");
-      }
-      Outcome outcome = result.replayed() ? Outcome.REPLAYED : Outcome.CREATED;
-      metrics.record(operation.operation(), outcome);
-      LOG.atInfo()
-          .addKeyValue("operation", operation.operation())
-          .addKeyValue("outcome", outcome.name().toLowerCase(Locale.ROOT))
-          .log(
-              result.replayed()
-                  ? operation.resource() + "_create_replayed"
-                  : operation.resource() + "_created");
-      return result;
-    } catch (ApiException rejected) {
-      Outcome outcome = outcomeOf(rejected.code());
-      metrics.record(operation.operation(), outcome);
-      LOG.atInfo()
-          .addKeyValue("operation", operation.operation())
-          .addKeyValue("outcome", outcome.name().toLowerCase(Locale.ROOT))
-          .addKeyValue("code", rejected.code().name())
-          .log(operation.resource() + "_create_rejected");
-      throw rejected;
-    } catch (RuntimeException failure) {
-      metrics.record(operation.operation(), Outcome.FAILURE);
-      throw failure;
-    }
-  }
-
-  private static Outcome outcomeOf(ErrorCode code) {
-    return switch (code) {
-      case IDEMPOTENCY_KEY_REUSED -> Outcome.IDEMPOTENCY_CONFLICT;
-      case DUPLICATE_LEGAL_ENTITY_CODE,
-          DUPLICATE_SITE_CODE,
-          DUPLICATE_DEPARTMENT_CODE,
-          DUPLICATE_COST_CENTER_CODE ->
-          Outcome.DUPLICATE_CONFLICT;
-      case LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, NOT_FOUND -> Outcome.NOT_FOUND;
-      case ACCESS_DENIED, TENANT_ACCESS_DENIED, TENANT_CONTEXT_MISSING -> Outcome.DENIED;
-      case INTERNAL_ERROR -> Outcome.FAILURE;
-      default -> Outcome.VALIDATION_FAILED;
-    };
+    IdempotentOperation.Result<R> result =
+        operations.execute(
+            operation.spec(),
+            principal,
+            key,
+            canonical,
+            responseType,
+            () -> {
+              Created<R> created = work.get();
+              return new IdempotentOperation.Completed<>(
+                  created.body(), created.resourceId(), Outcome.CREATED);
+            });
+    return new Result<>(result.body(), result.replayed());
   }
 }

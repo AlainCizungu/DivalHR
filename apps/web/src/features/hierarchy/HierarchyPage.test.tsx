@@ -38,13 +38,21 @@ const SITE = {
 type Reply = { status: number; body?: unknown } | 'network';
 type Route = (request: Request, url: URL) => Reply | undefined;
 
-function stubApi(route: Route) {
+const noRegions: Route = () => ({ status: 200, body: { data: [] } });
+
+function stubApi(route: Route, regions: Route = noRegions) {
   const requests: Request[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn((request: Request) => {
       requests.push(request);
-      const reply = route(request, new URL(request.url)) ?? { status: 500 };
+      const url = new URL(request.url);
+      // Regions (Increment 3A) are empty unless a test routes them explicitly.
+      const reply = (url.pathname.endsWith('/regions')
+        ? regions(request, url)
+        : route(request, url)) ?? {
+        status: 500,
+      };
       if (reply === 'network') return Promise.reject(new TypeError('Failed to fetch'));
       return Promise.resolve(
         new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {
@@ -136,7 +144,7 @@ describe.each(['en', 'fr'] as const)('hierarchy page (%s)', (locale) => {
 describe('hierarchy page behaviour', () => {
   const s = resources.en.common.hierarchy;
 
-  it('moves focus to the sites heading on selection without trapping the keyboard', async () => {
+  it('moves focus to the regions heading on selection without trapping the keyboard', async () => {
     stubApi((_, url) =>
       url.pathname.endsWith('/legal-entities')
         ? { status: 200, body: { data: [LE_A] } }
@@ -150,8 +158,12 @@ describe('hierarchy page behaviour', () => {
     await user.click(select);
     const heading = await screen.findByRole('heading', {
       level: 2,
-      name: `Sites of ${LE_A.name} (${LE_A.code})`,
+      name: `Regions of ${LE_A.name} (${LE_A.code})`,
     });
+    // The sites stay directly reachable after the (optional) regions.
+    expect(
+      screen.getByRole('heading', { level: 2, name: `Sites of ${LE_A.name} (${LE_A.code})` }),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(heading).toHaveFocus();
     });

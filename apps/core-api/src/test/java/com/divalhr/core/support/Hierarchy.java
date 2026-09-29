@@ -2,6 +2,7 @@ package com.divalhr.core.support;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -248,6 +249,146 @@ public final class Hierarchy {
                     admin(tenant),
                     Organizations.newKey(),
                     siteUnit(siteId, code, "Unité " + code, from, to)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return UUID.fromString(JSON.readTree(body).get("id").asText());
+  }
+
+  /**
+   * A region request body.
+   *
+   * @param legalEntityId parent
+   * @param code code
+   * @param name name
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return JSON
+   */
+  public static String region(
+      Object legalEntityId, String code, String name, String from, String to) {
+    return """
+    {"legalEntityId": %s, "code": %s, "name": %s, "effectiveFrom": %s, "effectiveTo": %s}
+    """
+        .formatted(
+            quote(legalEntityId == null ? null : legalEntityId.toString()),
+            quote(code),
+            quote(name),
+            quote(from),
+            quote(to));
+  }
+
+  /**
+   * A site request body with a region.
+   *
+   * @param legalEntityId parent
+   * @param regionId region or {@code null}
+   * @param code code
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return JSON
+   */
+  public static String siteInRegion(
+      Object legalEntityId, Object regionId, String code, String from, String to) {
+    return """
+    {"legalEntityId": %s, "regionId": %s, "code": %s, "name": %s, "timezone": "Africa/Kinshasa",
+     "effectiveFrom": %s, "effectiveTo": %s}
+    """
+        .formatted(
+            quote(legalEntityId == null ? null : legalEntityId.toString()),
+            quote(regionId == null ? null : regionId.toString()),
+            quote(code),
+            quote("Site " + code),
+            quote(from),
+            quote(to));
+  }
+
+  /**
+   * An assignment request body: exactly {@code {"regionId": ...}}.
+   *
+   * @param regionId region or {@code null}
+   * @return JSON
+   */
+  public static String assignment(Object regionId) {
+    return "{\"regionId\": " + quote(regionId == null ? null : regionId.toString()) + "}";
+  }
+
+  /**
+   * {@code PUT /api/v1/sites/{siteId}/region} with bearer, key and JSON body.
+   *
+   * @param siteId path value (any text, to test malformed ids)
+   * @param bearer bearer or {@code null}
+   * @param key idempotency key or {@code null}
+   * @param body JSON
+   * @return request
+   */
+  public static MockHttpServletRequestBuilder assign(
+      Object siteId, String bearer, String key, String body) {
+    MockHttpServletRequestBuilder request =
+        put("/api/v1/sites/" + siteId + "/region")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body);
+    if (bearer != null) {
+      request.header("Authorization", bearer);
+    }
+    if (key != null) {
+      request.header("Idempotency-Key", key);
+    }
+    return request;
+  }
+
+  /**
+   * Creates a region and returns its id.
+   *
+   * @param mvc MockMvc
+   * @param tenant tenant
+   * @param parent legal entity
+   * @param code code
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return id
+   * @throws Exception on request failure
+   */
+  public static UUID newRegion(
+      MockMvc mvc, UUID tenant, UUID parent, String code, String from, String to) throws Exception {
+    String body =
+        mvc.perform(
+                create(
+                    "/api/v1/regions",
+                    admin(tenant),
+                    Organizations.newKey(),
+                    region(parent, code, "Région " + code, from, to)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return UUID.fromString(JSON.readTree(body).get("id").asText());
+  }
+
+  /**
+   * Creates a site in a region and returns its id.
+   *
+   * @param mvc MockMvc
+   * @param tenant tenant
+   * @param parent legal entity
+   * @param region region
+   * @param code code
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return id
+   * @throws Exception on request failure
+   */
+  public static UUID newSiteInRegion(
+      MockMvc mvc, UUID tenant, UUID parent, UUID region, String code, String from, String to)
+      throws Exception {
+    String body =
+        mvc.perform(
+                create(
+                    "/api/v1/sites",
+                    admin(tenant),
+                    Organizations.newKey(),
+                    siteInRegion(parent, region, code, from, to)))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()

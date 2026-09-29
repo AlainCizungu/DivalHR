@@ -12,6 +12,8 @@ import java.util.UUID;
  *
  * @param id id
  * @param legalEntityId parent legal entity
+ * @param regionId the site's region, or {@code null} for a site without a region (always
+ *     serialized, like {@code effectiveTo})
  * @param code code
  * @param name name
  * @param timezone time zone
@@ -23,6 +25,7 @@ import java.util.UUID;
 public record SiteResponse(
     UUID id,
     UUID legalEntityId,
+    @JsonInclude(JsonInclude.Include.ALWAYS) UUID regionId,
     String code,
     String name,
     String timezone,
@@ -40,6 +43,7 @@ public record SiteResponse(
     return new SiteResponse(
         site.id(),
         site.legalEntityId(),
+        site.regionId(),
         site.code(),
         site.name(),
         site.timezone(),

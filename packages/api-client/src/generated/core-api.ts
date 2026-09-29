@@ -85,6 +85,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List regions of one legal entity in the caller's tenant
+         * @description Keyset-paginated, ordered by code then id. A legal entity that does not exist and one that belongs to another tenant produce the same 404 LEGAL_ENTITY_NOT_FOUND response.
+         */
+        get: operations["listRegions"];
+        put?: never;
+        /**
+         * Create a region beneath a legal entity of the caller's tenant
+         * @description Regions are an optional grouping of sites. Codes are trimmed, upper-cased and unique per tenant regardless of case. The region's effective period must lie within its legal entity's period; an open-ended region requires an open-ended legal entity. Retries with the same Idempotency-Key and an identical payload replay the original 201.
+         */
+        post: operations["createRegion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sites": {
         parameters: {
             query?: never;
@@ -100,9 +124,29 @@ export interface paths {
         put?: never;
         /**
          * Create a site beneath a legal entity of the caller's tenant
-         * @description The site's effective period must lie within its legal entity's period; an open-ended site requires an open-ended legal entity. The time zone must be supported for the legal entity's country.
+         * @description The site's effective period must lie within its legal entity's period; an open-ended site requires an open-ended legal entity. The time zone must be supported for the legal entity's country. regionId is optional; when given, the region must belong to the same legal entity and contain the site's period.
          */
         post: operations["createSite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sites/{siteId}/region": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Assign a region to a site that has none (first assignment only)
+         * @description The region must belong to the site's legal entity, and the site's effective period must lie within the region's period. Retries with the same Idempotency-Key and an identical payload replay the original 200 with Idempotent-Replayed. Assigning the region the site already has, with a new key, returns 200 with the current site and records nothing new. Assigning a different region to a site that already has one returns 409 SITE_REGION_ALREADY_ASSIGNED; changing or clearing a region is not supported. A malformed siteId returns 400 VALIDATION_FAILED; a missing or foreign site returns 404 SITE_NOT_FOUND and a missing or foreign region 404 REGION_NOT_FOUND.
+         */
+        put: operations["assignSiteRegion"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -305,6 +349,11 @@ export interface components {
             id: string;
             /** Format: uuid */
             legalEntityId: string;
+            /**
+             * Format: uuid
+             * @description The site's region, or null for a site without a region.
+             */
+            regionId: string | null;
             code: string;
             name: string;
             /** @enum {string} */
@@ -319,6 +368,11 @@ export interface components {
         CreateSite: {
             /** Format: uuid */
             legalEntityId: string;
+            /**
+             * Format: uuid
+             * @description Optional region of the same legal entity whose period contains the site's period. Omit or null for a site without a region.
+             */
+            regionId?: string | null;
             /** @description Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore. */
             code: string;
             name: string;
@@ -335,6 +389,47 @@ export interface components {
         SitePage: {
             data: components["schemas"]["Site"][];
             nextCursor?: string;
+        };
+        Region: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            code: string;
+            name: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description The tenant comes only from the verified access token. id, tenantId, organizationId, createdBy and any other property are rejected. */
+        CreateRegion: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** @description Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore. */
+            code: string;
+            name: string;
+            /**
+             * Format: date
+             * @description Inclusive, between 1900-01-01 and 2999-12-31.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+             */
+            effectiveTo?: string | null;
+        };
+        RegionPage: {
+            data: components["schemas"]["Region"][];
+            nextCursor?: string;
+        };
+        /** @description Exactly one property. The tenant and legal entity are never taken from the request. */
+        AssignSiteRegion: {
+            /** Format: uuid */
+            regionId: string;
         };
         /** @description The tenant comes only from the verified access token. id, tenantId, organizationId, legalEntityId, createdBy and any other property are rejected. */
         CreateDepartment: {
@@ -426,7 +521,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -462,7 +557,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE and COST_CENTER_PERIOD_OUTSIDE_SITE carry params.field. CURSOR_INVALID carries no params. Submitted values are never echoed. */
+        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE, COST_CENTER_PERIOD_OUTSIDE_SITE and REGION_PERIOD_OUTSIDE_LEGAL_ENTITY carry params.field (effectiveFrom or effectiveTo). SITE_PERIOD_OUTSIDE_REGION and SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no params. Submitted values are never echoed. */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -471,7 +566,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE (the code already exists for that resource type in the tenant, in any letter case). */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -480,7 +575,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND or SITE_NOT_FOUND - the parent does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND or REGION_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -691,6 +786,73 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    listRegions: {
+        parameters: {
+            query: {
+                legalEntityId: string;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of regions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createRegion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRegion"];
+            };
+        };
+        responses: {
+            /** @description Region created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Region"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     listSites: {
         parameters: {
             query: {
@@ -743,6 +905,43 @@ export interface operations {
         responses: {
             /** @description Site created, or the original creation replayed */
             201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Site"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    assignSiteRegion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignSiteRegion"];
+            };
+        };
+        responses: {
+            /** @description The site with its region: newly assigned, already assigned to that region, or the original assignment replayed */
+            200: {
                 headers: {
                     "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
                     [name: string]: unknown;

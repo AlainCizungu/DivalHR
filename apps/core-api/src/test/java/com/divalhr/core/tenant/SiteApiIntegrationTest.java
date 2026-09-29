@@ -69,8 +69,12 @@ class SiteApiIntegrationTest {
             .getResponse()
             .getContentAsString();
     UUID id = UUID.fromString(json(body).get("id").asText());
+    // Issue #21: the nullable region is always serialized, like effectiveTo.
+    assertThat(json(body).has("regionId")).isTrue();
+    assertThat(json(body).get("regionId").isNull()).isTrue();
 
     Map<String, Object> row = jdbc.queryForMap("SELECT * FROM tenant.site WHERE id = ?", id);
+    assertThat(row.get("region_id")).isNull();
     assertThat(row.get("tenant_id")).isEqualTo(tenant);
     assertThat(row.get("legal_entity_id")).isEqualTo(parent);
     assertThat(row.get("created_by")).isEqualTo("sub-site-create");
@@ -94,6 +98,7 @@ class SiteApiIntegrationTest {
     assertThat(event.get("data").get("siteId").asText()).isEqualTo(id.toString());
     assertThat(event.get("data").get("legalEntityId").asText()).isEqualTo(parent.toString());
     assertThat(event.get("data").has("name")).isFalse();
+    assertThat(event.get("data").has("regionId")).isFalse();
   }
 
   @Test

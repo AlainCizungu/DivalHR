@@ -31,9 +31,13 @@ test.describe.serial('MVP-002 organizational hierarchy', () => {
 
     const select = page.getByRole('button', { name: `Voir les sites de ${leName} (${leCode})` });
     await select.click();
+    // Increment 3A: focus goes to the (optional) regions first; the sites follow directly.
+    await expect(
+      page.getByRole('heading', { level: 2, name: `Régions de ${leName} (${leCode})` }),
+    ).toBeFocused();
     await expect(
       page.getByRole('heading', { level: 2, name: `Sites de ${leName} (${leCode})` }),
-    ).toBeFocused();
+    ).toBeVisible();
     const siteForm = page.getByTestId('site-form');
     await siteForm.getByLabel('Code').fill(siteCode);
     await siteForm.getByLabel('Nom du site').fill(siteName);

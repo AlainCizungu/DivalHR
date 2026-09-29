@@ -6,7 +6,9 @@ import com.divalhr.core.platform.error.FieldErrors;
 import com.divalhr.core.platform.error.FieldErrors.Constraint;
 import com.divalhr.core.platform.idempotency.IdempotencyKeys;
 import com.divalhr.core.platform.pagination.PageRequest;
+import com.divalhr.core.tenant.api.AssignSiteRegionRequest;
 import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
+import com.divalhr.core.tenant.api.CreateRegionRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
 import com.divalhr.core.tenant.api.SiteUnitRequest;
 import com.divalhr.core.tenant.api.StrictRequest;
@@ -87,6 +89,8 @@ public class HierarchyValidator {
     key(errors, idempotencyKey);
     unknown(errors, request);
     UUID legalEntityId = uuid(errors, "legalEntityId", request.getLegalEntityId());
+    // Optional: absent (or null) keeps the pre-region validation exactly; present must be a UUID.
+    UUID regionId = optionalUuid(errors, "regionId", request.getRegionId());
     String code = code(errors, request.getCode());
     String name = name(errors, request.getName());
     String timezone = request.getTimezone();
@@ -98,7 +102,57 @@ public class HierarchyValidator {
     LocalDate from = date(errors, "effectiveFrom", request.getEffectiveFrom(), true);
     LocalDate to = date(errors, "effectiveTo", request.getEffectiveTo(), false);
     errors.throwIfAny();
-    return new SiteCommand(legalEntityId, code, name, timezone, period(from, to));
+    return new SiteCommand(legalEntityId, regionId, code, name, timezone, period(from, to));
+  }
+
+  /**
+   * Validates a region creation request without consulting the parent.
+   *
+   * @param idempotencyKey header value
+   * @param request body
+   * @return normalized command
+   */
+  public RegionCommand region(String idempotencyKey, CreateRegionRequest request) {
+    FieldErrors errors = new FieldErrors();
+    key(errors, idempotencyKey);
+    unknown(errors, request);
+    UUID legalEntityId = uuid(errors, "legalEntityId", request.getLegalEntityId());
+    String code = code(errors, request.getCode());
+    String name = name(errors, request.getName());
+    LocalDate from = date(errors, "effectiveFrom", request.getEffectiveFrom(), true);
+    LocalDate to = date(errors, "effectiveTo", request.getEffectiveTo(), false);
+    errors.throwIfAny();
+    return new RegionCommand(legalEntityId, code, name, period(from, to));
+  }
+
+  /**
+   * Validates the parameters of the region list.
+   *
+   * @param legalEntityId required parent
+   * @param limit optional page size
+   * @return parent id
+   */
+  public UUID regionListParent(String legalEntityId, String limit) {
+    return siteListParent(legalEntityId, limit);
+  }
+
+  /**
+   * Validates a site-region assignment: the path's site id, the key and the strict body.
+   *
+   * @param siteId path value
+   * @param idempotencyKey header value
+   * @param request body
+   * @return normalized command
+   */
+  public SiteRegionCommand siteRegion(
+      String siteId, String idempotencyKey, AssignSiteRegionRequest request) {
+    FieldErrors errors = new FieldErrors();
+    UUID site = uuid(errors, "siteId", siteId);
+    key(errors, idempotencyKey);
+    unknown(errors, request);
+    UUID region = uuid(errors, "regionId", request.getRegionId());
+    errors.throwIfAny();
+    return new SiteRegionCommand(site, region);
   }
 
   /**
@@ -222,6 +276,17 @@ public class HierarchyValidator {
   private static UUID uuid(FieldErrors errors, String field, String raw) {
     if (raw == null || raw.isEmpty()) {
       errors.add(field, Constraint.REQUIRED);
+      return null;
+    }
+    if (!UUID_SHAPE.matcher(raw).matches()) {
+      errors.add(field, Constraint.FORMAT);
+      return null;
+    }
+    return UUID.fromString(raw);
+  }
+
+  private static UUID optionalUuid(FieldErrors errors, String field, String raw) {
+    if (raw == null) {
       return null;
     }
     if (!UUID_SHAPE.matcher(raw).matches()) {

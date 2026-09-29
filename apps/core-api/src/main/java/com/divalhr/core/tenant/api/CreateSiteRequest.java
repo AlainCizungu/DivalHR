@@ -10,6 +10,9 @@ public final class CreateSiteRequest extends StrictRequest {
   @JsonProperty("legalEntityId")
   private String legalEntityId;
 
+  @JsonProperty("regionId")
+  private String regionId;
+
   @JsonProperty("code")
   private String code;
 
@@ -57,12 +60,46 @@ public final class CreateSiteRequest extends StrictRequest {
   }
 
   /**
+   * Creates a request with a region (used by tests).
+   *
+   * @param legalEntityId parent id
+   * @param regionId region id or {@code null}
+   * @param code code
+   * @param name name
+   * @param timezone time zone
+   * @param effectiveFrom ISO date
+   * @param effectiveTo ISO date or {@code null}
+   * @return request
+   */
+  public static CreateSiteRequest of(
+      String legalEntityId,
+      String regionId,
+      String code,
+      String name,
+      String timezone,
+      String effectiveFrom,
+      String effectiveTo) {
+    CreateSiteRequest request = of(legalEntityId, code, name, timezone, effectiveFrom, effectiveTo);
+    request.regionId = regionId;
+    return request;
+  }
+
+  /**
    * Returns the parent id.
    *
    * @return parent legal entity id as submitted
    */
   public String getLegalEntityId() {
     return legalEntityId;
+  }
+
+  /**
+   * Returns the optional region id.
+   *
+   * @return region id as submitted, or {@code null} when absent
+   */
+  public String getRegionId() {
+    return regionId;
   }
 
   /**

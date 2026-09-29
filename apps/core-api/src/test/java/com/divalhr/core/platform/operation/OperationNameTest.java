@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.divalhr.core.tenant.api.CostCenterController;
 import com.divalhr.core.tenant.api.DepartmentController;
+import com.divalhr.core.tenant.application.AssignSiteRegionService;
 import com.divalhr.core.tenant.application.CreateLegalEntityService;
 import com.divalhr.core.tenant.application.CreateOrganizationService;
+import com.divalhr.core.tenant.application.CreateRegionService;
 import com.divalhr.core.tenant.application.CreateSiteService;
 import com.divalhr.core.tenant.application.HierarchyQueryService;
 import com.divalhr.core.tenant.domain.SiteUnitKind;
@@ -30,7 +32,10 @@ class OperationNameTest {
           DepartmentController.CREATE,
           DepartmentController.LIST,
           CostCenterController.CREATE,
-          CostCenterController.LIST);
+          CostCenterController.LIST,
+          CreateRegionService.OPERATION,
+          HierarchyQueryService.LIST_REGIONS,
+          AssignSiteRegionService.OPERATION);
 
   /** Malformed names from Issue #17 plus the grammar's edges. */
   static final List<String> MALFORMED =
@@ -53,6 +58,11 @@ class OperationNameTest {
         .isEqualTo("tenant.department-created.v1");
     assertThat(SiteUnitKind.COST_CENTER.createdEventType())
         .isEqualTo("tenant.cost-center-created.v1");
+    assertThat(CreateRegionService.OPERATION).isEqualTo("region.create");
+    assertThat(HierarchyQueryService.LIST_REGIONS).isEqualTo("region.list");
+    assertThat(AssignSiteRegionService.OPERATION).isEqualTo("site.region.assign");
+    assertThat(CreateRegionService.EVENT_TYPE).isEqualTo("tenant.region-created.v1");
+    assertThat(AssignSiteRegionService.EVENT_TYPE).isEqualTo("tenant.site-region-assigned.v1");
   }
 
   @Test

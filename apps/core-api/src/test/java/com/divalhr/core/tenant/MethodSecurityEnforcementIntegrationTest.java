@@ -5,15 +5,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.TestTokens;
+import com.divalhr.core.tenant.api.AssignSiteRegionRequest;
 import com.divalhr.core.tenant.api.CostCenterController;
 import com.divalhr.core.tenant.api.CreateCostCenterRequest;
 import com.divalhr.core.tenant.api.CreateDepartmentRequest;
 import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
 import com.divalhr.core.tenant.api.CreateOrganizationRequest;
+import com.divalhr.core.tenant.api.CreateRegionRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
 import com.divalhr.core.tenant.api.DepartmentController;
 import com.divalhr.core.tenant.api.LegalEntityController;
 import com.divalhr.core.tenant.api.OrganizationController;
+import com.divalhr.core.tenant.api.RegionController;
 import com.divalhr.core.tenant.api.SiteController;
 import java.time.Instant;
 import java.util.List;
@@ -41,6 +44,7 @@ class MethodSecurityEnforcementIntegrationTest {
   @Autowired private SiteController sites;
   @Autowired private DepartmentController departments;
   @Autowired private CostCenterController costCenters;
+  @Autowired private RegionController regions;
 
   @AfterEach
   void clear() {
@@ -98,6 +102,26 @@ class MethodSecurityEnforcementIntegrationTest {
                       new MockHttpServletRequest()))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(() -> sites.list(UUID.randomUUID().toString(), null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(() -> regions.list(UUID.randomUUID().toString(), null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  regions.create(
+                      Organizations.newKey(),
+                      CreateRegionRequest.of(
+                          UUID.randomUUID().toString(), "AB", "Bypass", "2026-01-01", null),
+                      caller,
+                      new MockHttpServletRequest()))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  sites.assignRegion(
+                      UUID.randomUUID().toString(),
+                      Organizations.newKey(),
+                      AssignSiteRegionRequest.of(UUID.randomUUID().toString()),
+                      caller,
+                      new MockHttpServletRequest()))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(() -> departments.list(UUID.randomUUID().toString(), null, null))
           .isInstanceOf(AccessDeniedException.class);

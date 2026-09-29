@@ -5,8 +5,8 @@ import { useApi } from '../../app/ApiProvider';
 import { usePeriodText } from './HierarchyFields';
 import { LegalEntityForm } from './HierarchyForms';
 import { PagedList, usePagedList } from './pagedList';
+import { LegalEntityStructure } from './RegionsSection';
 import { SiteUnitsOf } from './SiteUnitsSection';
-import { SitesOf } from './SitesSection';
 
 export function HierarchyPage() {
   const { t } = useTranslation();
@@ -17,7 +17,7 @@ export function HierarchyPage() {
   const [announcement, setAnnouncement] = useState('');
   const [selected, setSelected] = useState<LegalEntity | null>(null);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const sitesHeading = useRef<HTMLHeadingElement>(null);
+  const regionsHeading = useRef<HTMLHeadingElement>(null);
   const unitsHeading = useRef<HTMLHeadingElement>(null);
 
   const fetchLegalEntities = useCallback(
@@ -30,9 +30,10 @@ export function HierarchyPage() {
     setSelected(entity);
     // A site belongs to exactly one legal entity: a new legal entity clears the site selection.
     if (entity.id !== selected?.id) setSelectedSite(null);
-    // Moves the reading position to the sites section; the heading is focusable only
-    // programmatically (tabIndex -1), so Tab continues normally from there.
-    requestAnimationFrame(() => sitesHeading.current?.focus());
+    // Moves the reading position to the first section beneath the legal entity, its regions (the
+    // hierarchy order); the heading is focusable only programmatically (tabIndex -1), so Tab
+    // continues normally from there, through regions to sites.
+    requestAnimationFrame(() => regionsHeading.current?.focus());
   };
 
   return (
@@ -88,22 +89,21 @@ export function HierarchyPage() {
       </section>
 
       {selected && (
-        <section aria-labelledby={`${ids}-sites`} className="card" data-testid="sites-section">
-          <h2 id={`${ids}-sites`} ref={sitesHeading} tabIndex={-1}>
-            {t('hierarchy.sites.title', { name: selected.name, code: selected.code })}
-          </h2>
-          <SitesOf
-            key={selected.id}
-            parent={selected}
-            selectedSiteId={selectedSite?.id}
-            onSelectSite={(site) => {
-              setSelectedSite(site);
-              // Same focus rule as for legal entities: programmatic, never a trap.
-              requestAnimationFrame(() => unitsHeading.current?.focus());
-            }}
-            onAnnounce={setAnnouncement}
-          />
-        </section>
+        <LegalEntityStructure
+          key={selected.id}
+          parent={selected}
+          regionsHeadingRef={regionsHeading}
+          selectedSiteId={selectedSite?.id}
+          onSelectSite={(site) => {
+            setSelectedSite(site);
+            // Same focus rule as for legal entities: programmatic, never a trap.
+            requestAnimationFrame(() => unitsHeading.current?.focus());
+          }}
+          onSiteUpdated={(site) => {
+            setSelectedSite((current) => (current?.id === site.id ? site : current));
+          }}
+          onAnnounce={setAnnouncement}
+        />
       )}
 
       {selected && selectedSite && (

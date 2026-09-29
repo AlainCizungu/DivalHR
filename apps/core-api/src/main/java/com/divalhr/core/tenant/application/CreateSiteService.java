@@ -12,11 +12,13 @@ import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
 import com.divalhr.core.tenant.api.SiteResponse;
 import com.divalhr.core.tenant.domain.LegalEntity;
+import com.divalhr.core.tenant.domain.Region;
 import com.divalhr.core.tenant.domain.Site;
 import com.divalhr.core.tenant.domain.SupportedConfiguration;
 import com.divalhr.core.tenant.domain.SupportedConfiguration.CountryRules;
 import com.divalhr.core.tenant.internal.JdbcLegalEntityRepository;
 import com.divalhr.core.tenant.internal.JdbcOrganizationRepository;
+import com.divalhr.core.tenant.internal.JdbcRegionRepository;
 import com.divalhr.core.tenant.internal.JdbcSiteRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -36,6 +38,13 @@ import tools.jackson.databind.json.JsonMapper;
  * SHARE} (missing and foreign parents give the same {@code LEGAL_ENTITY_NOT_FOUND}), then the time
  * zone is checked against the parent's country and the period against the parent's period. The
  * database trigger repeats the containment check.
+ *
+ * <p>An optional {@code regionId} (MVP-002 Increment 3A) is checked after those, in parent-before-
+ * child lock order: the region is read with the tenant predicate and locked {@code FOR SHARE}
+ * ({@code REGION_NOT_FOUND}), must belong to the same legal entity ({@code
+ * SITE_REGION_LEGAL_ENTITY_MISMATCH}) and must contain the site's period ({@code
+ * SITE_PERIOD_OUTSIDE_REGION}). Without a region, behaviour and error precedence are unchanged. A
+ * site created with a region emits only {@code site.create} / {@code tenant.site-created.v1}.
  */
 @Service
 public class CreateSiteService {
@@ -54,6 +63,7 @@ public class CreateSiteService {
   private final JdbcOrganizationRepository organizations;
   private final JdbcLegalEntityRepository legalEntities;
   private final JdbcSiteRepository sites;
+  private final JdbcRegionRepository regions;
   private final AuditRecorder audit;
   private final OutboxWriter outbox;
   private final JsonMapper json;
@@ -67,6 +77,7 @@ public class CreateSiteService {
    * @param organizations organization repository (tenant existence)
    * @param legalEntities legal-entity repository (parent lookup)
    * @param sites site repository
+   * @param regions region repository (optional region lookup)
    * @param audit audit recorder
    * @param outbox outbox writer
    * @param json JSON mapper
@@ -77,6 +88,7 @@ public class CreateSiteService {
       JdbcOrganizationRepository organizations,
       JdbcLegalEntityRepository legalEntities,
       JdbcSiteRepository sites,
+      JdbcRegionRepository regions,
       AuditRecorder audit,
       OutboxWriter outbox,
       JsonMapper json) {
@@ -85,6 +97,7 @@ public class CreateSiteService {
     this.organizations = organizations;
     this.legalEntities = legalEntities;
     this.sites = sites;
+    this.regions = regions;
     this.audit = audit;
     this.outbox = outbox;
     this.json = json;
@@ -142,6 +155,19 @@ public class CreateSiteService {
               : "effectiveTo";
       throw new ApiException(ErrorCode.SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, Map.of("field", field));
     }
+    if (command.regionId() != null) {
+      Region region =
+          regions
+              .findForShare(tenant, command.regionId())
+              .orElseThrow(CreateRegionService::regionNotFound);
+      if (!region.legalEntityId().equals(parent.id())) {
+        throw new ApiException(
+            ErrorCode.SITE_REGION_LEGAL_ENTITY_MISMATCH, Map.of("field", "regionId"));
+      }
+      if (!region.period().contains(command.period())) {
+        throw new ApiException(ErrorCode.SITE_PERIOD_OUTSIDE_REGION, Map.of("field", "regionId"));
+      }
+    }
 
     Instant now = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);
     Site site =
@@ -149,6 +175,7 @@ public class CreateSiteService {
             UUID.randomUUID(),
             tenant,
             parent.id(),
+            command.regionId(),
             command.code(),
             command.name(),
             command.timezone(),
@@ -201,10 +228,17 @@ public class CreateSiteService {
     return new ApiException(ErrorCode.LEGAL_ENTITY_NOT_FOUND, Map.of("field", "legalEntityId"));
   }
 
-  /** Attributes safe for audit metadata and event data: no name. */
+  /**
+   * Attributes safe for audit metadata and event data: no name. {@code regionId} is an optional,
+   * additive field of {@code tenant.site-created.v1}, present only for a site created with a
+   * region.
+   */
   private static Map<String, Object> safeAttributes(Site site) {
     Map<String, Object> values = new LinkedHashMap<>();
     values.put("legalEntityId", site.legalEntityId().toString());
+    if (site.regionId() != null) {
+      values.put("regionId", site.regionId().toString());
+    }
     values.put("code", site.code());
     values.put("timezone", site.timezone());
     values.put("effectiveFrom", site.period().from().toString());

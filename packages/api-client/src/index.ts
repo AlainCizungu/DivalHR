@@ -20,6 +20,10 @@ export type DepartmentPage = CoreComponents['schemas']['DepartmentPage'];
 export type CostCenter = CoreComponents['schemas']['CostCenter'];
 export type CreateCostCenter = CoreComponents['schemas']['CreateCostCenter'];
 export type CostCenterPage = CoreComponents['schemas']['CostCenterPage'];
+export type Region = CoreComponents['schemas']['Region'];
+export type CreateRegion = CoreComponents['schemas']['CreateRegion'];
+export type RegionPage = CoreComponents['schemas']['RegionPage'];
+export type AssignSiteRegion = CoreComponents['schemas']['AssignSiteRegion'];
 
 export interface ClientOptions {
   /** Base URL including /api/v1, e.g. http://localhost:8080/api/v1 */

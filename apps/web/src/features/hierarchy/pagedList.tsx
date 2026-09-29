@@ -125,12 +125,21 @@ export function usePagedList<T extends KeysetRow>(
     );
   };
 
+  /** Replaces a shown row in place (same id, same keyset position) without moving focus. */
+  const replaceItem = (item: T) => {
+    setState((current) =>
+      current.kind === 'ready'
+        ? { ...current, items: mergeKeyset(current.items, [item]) }
+        : current,
+    );
+  };
+
   const retry = () => {
     setState({ kind: 'loading' });
     void load();
   };
 
-  return { state, loadMore, insertCreated, focusId, retry };
+  return { state, loadMore, insertCreated, replaceItem, focusId, retry };
 }
 
 export function PagedList<T extends KeysetRow>({
