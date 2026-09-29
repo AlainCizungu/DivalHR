@@ -6,6 +6,8 @@ export type SystemStatus = CoreComponents['schemas']['SystemStatus'];
 export type CurrentSession = CoreComponents['schemas']['CurrentSession'];
 export type Problem = CoreComponents['schemas']['Problem'];
 export type ErrorCode = CoreComponents['schemas']['ErrorCode'];
+export type Organization = CoreComponents['schemas']['Organization'];
+export type CreateOrganization = CoreComponents['schemas']['CreateOrganization'];
 
 export interface ClientOptions {
   /** Base URL including /api/v1, e.g. http://localhost:8080/api/v1 */
