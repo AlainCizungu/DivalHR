@@ -29,6 +29,12 @@ public class SecurityConfig {
   /** Anonymous, browser-callable endpoints. Keep this list minimal. */
   static final String[] PUBLIC_PATHS = {"/api/v1/system/status", "/v3/api-docs", "/v3/api-docs/**"};
 
+  /**
+   * Health probes for the container runtime. Served only on the internal management port (not
+   * published), with details hidden.
+   */
+  static final String[] PROBE_PATHS = {"/actuator/health", "/actuator/health/**"};
+
   @Bean
   SecurityFilterChain apiSecurity(HttpSecurity http, JwtAuthenticationConverter converter)
       throws Exception {
@@ -41,6 +47,8 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, PUBLIC_PATHS)
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, PROBE_PATHS)
                     .permitAll()
                     .anyRequest()
                     .authenticated())
