@@ -23,7 +23,7 @@ public record CreateOrganizationCommand(
 
   /** Normalizes currencies. */
   public CreateOrganizationCommand {
-    currencies = currencies.stream().sorted().distinct().toList();
+    currencies = List.copyOf(currencies.stream().sorted().distinct().toList());
   }
 
   /**

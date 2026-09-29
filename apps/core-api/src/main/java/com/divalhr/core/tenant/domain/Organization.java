@@ -40,7 +40,7 @@ public record Organization(
     Objects.requireNonNull(status, "status");
     Objects.requireNonNull(createdAt, "createdAt");
     Objects.requireNonNull(createdBy, "createdBy");
-    currencies = currencies.stream().sorted().toList();
+    currencies = List.copyOf(currencies.stream().sorted().toList());
     if (currencies.isEmpty()) {
       throw new IllegalArgumentException("an organization needs at least one currency");
     }

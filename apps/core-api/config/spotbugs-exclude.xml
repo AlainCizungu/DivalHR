@@ -6,4 +6,26 @@
     <Bug pattern="EI_EXPOSE_REP2"/>
     <Source name="~.*Config\.java"/>
   </Match>
+  <!--
+    Constructor-injected Spring singletons (JsonMapper, MeterRegistry, TransactionTemplate and
+    application services) are shared by design; copying them would be wrong. Listed explicitly so
+    new classes are still analysed.
+  -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Or>
+      <Class name="com.divalhr.core.platform.audit.AuditRecorder"/>
+      <Class name="com.divalhr.core.platform.outbox.OutboxWriter"/>
+      <Class name="com.divalhr.core.platform.observability.OperationMetrics"/>
+      <Class name="com.divalhr.core.tenant.application.CreateOrganizationService"/>
+    </Or>
+  </Match>
+  <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->
+  <Match>
+    <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+    <Or>
+      <Class name="~com\.divalhr\.core\..*Test"/>
+      <Class name="com.divalhr.core.support.Organizations"/>
+    </Or>
+  </Match>
 </FindBugsFilter>
