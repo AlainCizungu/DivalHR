@@ -15,6 +15,10 @@ updates:
     directory: /apps/core-api
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 5
+    ignore:
+      # 2.x+ breaks the event-envelope contract-test API; migrate deliberately (Issue #17).
+      - dependency-name: com.networknt:json-schema-validator
+        versions: ['>= 2']
     groups:
       gradle-minor-and-patch:
         update-types: [minor, patch]
@@ -32,6 +36,9 @@ updates:
     ignore:
       - dependency-name: eclipse-temurin
         versions: ['>= 22']
+      # Node 24 LTS is the approved baseline; Node 25+ images no longer ship corepack (Issue #17).
+      - dependency-name: node
+        versions: ['>= 25']
     groups:
       base-images:
         update-types: [minor, patch]

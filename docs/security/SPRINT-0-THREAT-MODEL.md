@@ -77,3 +77,10 @@ Keycloak admin and seed credentials (development-only); logs.
 | E5 | Development fixtures present outside development | Flyway fixture location added only when `divalhr.environment=development` | `DevelopmentSeedFlywayCustomizerTest`, `DevelopmentSeedAbsenceIntegrationTest` |
 
 Accepted for this increment: no PostgreSQL row-level security (tenant predicates, composite keys and tests instead) and a single, non-rotating cursor key.
+
+## Issue #17 delta (hardening)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| S4 | Token without a usable `sub` reaches request parsing, so error precedence differs and actions could lack an accountable actor | Interceptor requires a JWT with non-blank `sub` for every scoped handler before role, tenant, query, argument or body processing; `403 ACCESS_DENIED`, safe log, one `denied` metric | `SubjectRequiredIntegrationTest` |
+| T9 | Malformed operation or audit-action names accepted by the database (e.g. `x.---`) | V4 strict grammar on both checks, shared Java `OperationName`, atomic pre-flight | `OperationNameConstraintsIntegrationTest`, `OperationNameTest` |

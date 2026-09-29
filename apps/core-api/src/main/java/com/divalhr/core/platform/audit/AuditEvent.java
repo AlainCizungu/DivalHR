@@ -1,5 +1,6 @@
 package com.divalhr.core.platform.audit;
 
+import com.divalhr.core.platform.operation.OperationName;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -33,8 +34,9 @@ public record AuditEvent(
     Map<String, Object> metadata,
     String afterStateSha256) {
 
-  /** Defensively copies metadata. */
+  /** Requires a well-formed action and defensively copies metadata. */
   public AuditEvent {
+    OperationName.require(action, "audit action");
     metadata = Map.copyOf(metadata);
   }
 }

@@ -2,7 +2,6 @@ package com.divalhr.core.platform.security;
 
 import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.tenancy.TenantContextResolver;
-import com.divalhr.core.platform.web.CorrelationId;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -18,9 +17,10 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * Enforces {@link PlatformScoped} and {@link TenantScoped} (including {@link TenantAdminOperation})
- * before the request body or query parameters are read: the required role must be held explicitly,
- * and tenant-scoped calls must carry a verified tenant. Denials write the safe structured security
- * log and a {@code denied} metric. Method security stays in force behind this interceptor.
+ * before the request body or query parameters are read: the caller must be a JWT with a non-blank
+ * {@code sub}, the required role must be held explicitly, and tenant-scoped calls must carry a
+ * verified tenant. Denials write the safe structured security log and a {@code denied} metric.
+ * Method security stays in force behind this interceptor.
  */
 @Component
 public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
@@ -47,26 +47,61 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     if (!(handler instanceof HandlerMethod method)) {
       return true;
     }
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    // Scope detection comes first: public handlers are never affected by the checks below.
     PlatformScoped platform = method.getMethodAnnotation(PlatformScoped.class);
-    if (platform != null) {
-      requireRole(authentication, PlatformScoped.ROLE, platform.operation(), request);
+    TenantScoped tenant =
+        platform != null
+            ? null
+            : AnnotatedElementUtils.findMergedAnnotation(method.getMethod(), TenantScoped.class);
+    if (platform == null && tenant == null) {
       return true;
     }
-    TenantScoped tenant =
-        AnnotatedElementUtils.findMergedAnnotation(method.getMethod(), TenantScoped.class);
-    if (tenant != null) {
-      if (!tenant.role().isEmpty()) {
-        requireRole(authentication, tenant.role(), tenant.operation(), request);
-      }
-      // Throws TENANT_CONTEXT_MISSING when the verified token carries no valid tenant.
-      tenants.current();
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (platform != null) {
+      requireSubject(authentication, "platform", PlatformScoped.ROLE, platform.operation());
+      requireRole(authentication, PlatformScoped.ROLE, platform.operation());
+      return true;
     }
+    requireSubject(authentication, "tenant", tenant.role(), tenant.operation());
+    if (!tenant.role().isEmpty()) {
+      requireRole(authentication, tenant.role(), tenant.operation());
+    }
+    // Throws TENANT_CONTEXT_MISSING when the verified token carries no valid tenant.
+    tenants.current();
     return true;
   }
 
-  private void requireRole(
-      Authentication authentication, String role, String operation, HttpServletRequest request) {
+  /**
+   * Scoped operations are keyed (idempotency, audit) on the verified JWT subject, so a caller that
+   * is not a JWT, or whose {@code sub} is missing or blank, is denied before role, tenant, query,
+   * argument or body processing. The subject value itself is never logged.
+   */
+  private void requireSubject(
+      Authentication authentication, String scope, String role, String operation) {
+    if (authentication instanceof JwtAuthenticationToken token) {
+      String subject = token.getToken().getSubject();
+      if (subject != null && !subject.isBlank()) {
+        return;
+      }
+    }
+    if (!operation.isEmpty()) {
+      metrics.record(operation, OperationMetrics.Outcome.DENIED);
+    }
+    var event =
+        SECURITY_LOG
+            .atWarn()
+            .addKeyValue("event", "authorization_denied")
+            .addKeyValue("reason", "subject_missing")
+            .addKeyValue("operation", operation)
+            .addKeyValue("scope", scope);
+    if (!role.isEmpty()) {
+      event = event.addKeyValue("requiredRole", role);
+    }
+    event.addKeyValue("result", "DENIED").log("authorization_denied");
+    throw new AccessDeniedException("verified subject required");
+  }
+
+  private void requireRole(Authentication authentication, String role, String operation) {
     String authority = "ROLE_" + role;
     boolean allowed =
         authentication != null
@@ -85,7 +120,6 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
         .addKeyValue("requiredRole", role)
         .addKeyValue("result", "DENIED")
         .addKeyValue("actorSubject", subject(authentication))
-        .addKeyValue("correlationId", request.getAttribute(CorrelationId.REQUEST_ATTRIBUTE))
         .log("authorization_denied");
     throw new AccessDeniedException(role + " required");
   }

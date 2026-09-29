@@ -1,5 +1,6 @@
 package com.divalhr.core.platform.idempotency;
 
+import com.divalhr.core.platform.operation.OperationName;
 import java.util.Objects;
 
 /**
@@ -14,7 +15,7 @@ public record IdempotencyScope(String operation, String principal, String key) {
 
   /** Requires every component. */
   public IdempotencyScope {
-    Objects.requireNonNull(operation, "operation");
+    OperationName.require(operation, "idempotency operation");
     Objects.requireNonNull(principal, "principal");
     Objects.requireNonNull(key, "key");
   }
