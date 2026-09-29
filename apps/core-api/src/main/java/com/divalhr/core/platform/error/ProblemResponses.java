@@ -3,9 +3,11 @@ package com.divalhr.core.platform.error;
 import com.divalhr.core.platform.web.CorrelationId;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.servlet.HandlerMapping;
 
 /**
  * Builds RFC 9457 problem responses with the DivalHR extensions {@code code}, {@code params} and
@@ -34,7 +36,26 @@ public final class ProblemResponses {
     problem.setProperty("code", code.name());
     problem.setProperty("params", params);
     problem.setProperty("correlationId", correlationId(request));
+    problem.setInstance(routeTemplate(request));
     return problem;
+  }
+
+  /**
+   * The matched route template as the problem {@code instance} (e.g. {@code
+   * /api/v1/sites/%7BsiteId%7D/region}), so identifiers submitted in the path are never echoed
+   * (Issue #21). For routes without path variables it equals the request path, as before. Without a
+   * matched route, {@code null} keeps the framework default.
+   */
+  private static URI routeTemplate(HttpServletRequest request) {
+    Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+    if (!(pattern instanceof String route) || !route.startsWith("/")) {
+      return null;
+    }
+    try {
+      return new URI(null, null, route, null);
+    } catch (URISyntaxException invalid) {
+      return null;
+    }
   }
 
   /**

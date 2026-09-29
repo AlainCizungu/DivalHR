@@ -514,6 +514,8 @@ class SiteRegionApiIntegrationTest {
     assertThat(SiteApiIntegrationTest.withoutCorrelationId(foreignS))
         .isEqualTo(SiteApiIntegrationTest.withoutCorrelationId(missingS));
     assertThat(foreignS.get("params").get("field").asText()).isEqualTo("siteId");
+    // The problem instance is the route template: the submitted site id is never echoed.
+    assertThat(foreignS.get("instance").asText()).isEqualTo("/api/v1/sites/%7BsiteId%7D/region");
 
     JsonNode foreignR = assignProblem(site, assignment(foreignRegion), 404, "REGION_NOT_FOUND");
     JsonNode missingR = assignProblem(site, assignment(UUID.randomUUID()), 404, "REGION_NOT_FOUND");
