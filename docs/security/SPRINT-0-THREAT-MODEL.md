@@ -84,3 +84,14 @@ Accepted for this increment: no PostgreSQL row-level security (tenant predicates
 |---|---|---|---|
 | S4 | Token without a usable `sub` reaches request parsing, so error precedence differs and actions could lack an accountable actor | Interceptor requires a JWT with non-blank `sub` for every scoped handler before role, tenant, query, argument or body processing; `403 ACCESS_DENIED`, safe log, one `denied` metric | `SubjectRequiredIntegrationTest` |
 | T9 | Malformed operation or audit-action names accepted by the database (e.g. `x.---`) | V4 strict grammar on both checks, shared Java `OperationName`, atomic pre-flight | `OperationNameConstraintsIntegrationTest`, `OperationNameTest` |
+
+## MVP-002 Increment 2 delta (departments and cost centers)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E6 | Employee or platform administrator manages departments or cost centers | `@TenantAdminOperation` (subject, role and tenant checked before parsing) plus `@PreAuthorize` | `SiteUnitApiIntegrationTest`, `SiteUnitListingIntegrationTest`, `MethodSecurityEnforcementIntegrationTest`, French E2E |
+| T10 | Department or cost center attached to another tenant's site | Site read with the tenant predicate and locked `FOR SHARE`; composite foreign keys `(tenant_id, site_id)` | `foreignAndMissingSitesAreIndistinguishable`, `parentMustBelongToTheSameTenant` |
+| I10 | Existence of another tenant's site inferred from responses | Identical `404 SITE_NOT_FOUND` bodies (apart from `correlationId`) on create and list; an existing empty site returns `200` | Body-equality and empty-list tests |
+| T11 | Caller supplies identity or hierarchy fields (`tenantId`, `organizationId`, `legalEntityId`, `id`, `createdBy`) | `additionalProperties: false`; unknown properties rejected; tenant only from the token | `validationUsesStableCodesAndRejectsCallerChosenIdentity` |
+| T12 | Child period outside its site, or a site narrowed below its children | Service check under `FOR SHARE`, `site_unit_period_within_site` and `site_period_covers_units` triggers | Containment matrix and direct-SQL tests |
+| T13 | Cursor replayed across tenant, operation or site | Signed cursors bound to `department.list` / `cost-center.list`, tenant and `siteId` | `cursorsAreBoundToTenantOperationAndSite` |
