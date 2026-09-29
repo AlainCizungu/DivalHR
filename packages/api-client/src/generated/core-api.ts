@@ -201,6 +201,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the teams of one department or one cost center in the caller's tenant
+         * @description Exactly one of departmentId or costCenterId is required (an absent or empty parameter is not supplied): neither returns 400 TEAM_PARENT_REQUIRED and both return 400 TEAM_PARENT_AMBIGUOUS, after format validation. Keyset-paginated, ordered by code then id. A parent that does not exist and one that belongs to another tenant produce the same 404 DEPARTMENT_NOT_FOUND or COST_CENTER_NOT_FOUND. Cursors are bound to the operation, the tenant, the parent type and the parent id.
+         */
+        get: operations["listTeams"];
+        put?: never;
+        /**
+         * Create a team beneath exactly one department or cost center of the caller's tenant
+         * @description The body names exactly one parent (see CreateTeam). The team's site is derived from that parent and never accepted from the request. Codes are trimmed, upper-cased and unique per tenant regardless of case. The team's effective period must lie within its parent's period; an open-ended team requires an open-ended parent. Retries with the same Idempotency-Key and an identical payload replay the original 201.
+         */
+        post: operations["createTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/employees": {
         parameters: {
             query?: never;
@@ -503,6 +527,57 @@ export interface components {
             data: components["schemas"]["CostCenter"][];
             nextCursor?: string;
         };
+        /** @description Exactly one parent: departmentId or costCenterId. An absent property and an explicit null both mean "not supplied". Neither supplied returns 400 TEAM_PARENT_REQUIRED and both supplied returns 400 TEAM_PARENT_AMBIGUOUS; a malformed supplied id returns 400 VALIDATION_FAILED first. The site, tenant and every server-owned field (siteId, tenantId, organizationId, legalEntityId, regionId, id, createdBy) are rejected. */
+        CreateTeam: {
+            /** Format: uuid */
+            departmentId?: string | null;
+            /** Format: uuid */
+            costCenterId?: string | null;
+            /** @description Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore. */
+            code: string;
+            name: string;
+            /**
+             * Format: date
+             * @description Inclusive, between 1900-01-01 and 2999-12-31.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+             */
+            effectiveTo?: string | null;
+        } & ({
+            /** Format: uuid */
+            departmentId: string;
+            costCenterId?: null;
+        } | {
+            /** Format: uuid */
+            costCenterId: string;
+            departmentId?: null;
+        });
+        /** @description A team. departmentId and costCenterId are both always present; exactly one is non-null. siteId is derived from the parent. */
+        Team: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: uuid */
+            departmentId: string | null;
+            /** Format: uuid */
+            costCenterId: string | null;
+            code: string;
+            name: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        TeamPage: {
+            data: components["schemas"]["Team"][];
+            nextCursor?: string;
+        };
         SystemStatus: {
             /** @example core-api */
             service: string;
@@ -521,7 +596,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -557,7 +632,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE, COST_CENTER_PERIOD_OUTSIDE_SITE and REGION_PERIOD_OUTSIDE_LEGAL_ENTITY carry params.field (effectiveFrom or effectiveTo). SITE_PERIOD_OUTSIDE_REGION and SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no params. Submitted values are never echoed. */
+        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE, COST_CENTER_PERIOD_OUTSIDE_SITE, REGION_PERIOD_OUTSIDE_LEGAL_ENTITY, TEAM_PERIOD_OUTSIDE_DEPARTMENT and TEAM_PERIOD_OUTSIDE_COST_CENTER carry params.field (effectiveFrom or effectiveTo). TEAM_PARENT_REQUIRED (no parent supplied) and TEAM_PARENT_AMBIGUOUS (both parents supplied) carry no params and follow format validation. SITE_PERIOD_OUTSIDE_REGION and SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no params. Submitted values are never echoed. */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -566,7 +641,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params). */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -575,7 +650,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND or REGION_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND or COST_CENTER_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -1082,6 +1157,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CostCenter"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listTeams: {
+        parameters: {
+            query?: {
+                /** @description The parent department. Mutually exclusive with costCenterId. */
+                departmentId?: string;
+                /** @description The parent cost center. Mutually exclusive with departmentId. */
+                costCenterId?: string;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of teams */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createTeam: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTeam"];
+            };
+        };
+        responses: {
+            /** @description Team created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Team"];
                 };
             };
             400: components["responses"]["BadRequest"];

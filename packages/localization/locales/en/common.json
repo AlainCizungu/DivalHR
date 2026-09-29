@@ -95,6 +95,13 @@
     "SITE_PERIOD_OUTSIDE_REGION": "The site's dates must fall within its region's dates.",
     "SITE_REGION_LEGAL_ENTITY_MISMATCH": "This region belongs to another legal entity than the site.",
     "SITE_REGION_ALREADY_ASSIGNED": "This site already has a different region. Reload the sites to see its current region.",
+    "TEAM_PARENT_REQUIRED": "Choose a department or a cost center for this team.",
+    "TEAM_PARENT_AMBIGUOUS": "A team belongs to a department or to a cost center, not both.",
+    "DEPARTMENT_NOT_FOUND": "This department does not exist in your organization.",
+    "COST_CENTER_NOT_FOUND": "This cost center does not exist in your organization.",
+    "DUPLICATE_TEAM_CODE": "This team code is already used in your organization.",
+    "TEAM_PERIOD_OUTSIDE_DEPARTMENT": "The team's dates must fall within its department's dates.",
+    "TEAM_PERIOD_OUTSIDE_COST_CENTER": "The team's dates must fall within its cost center's dates.",
     "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated."
   },
   "notFound": {
@@ -299,6 +306,9 @@
       "regionName": {
         "label": "Region name"
       },
+      "teamName": {
+        "label": "Team name"
+      },
       "region": {
         "label": "Region (optional)",
         "help": "Only regions of this legal entity are listed. Keep “No region” to create the site without a region.",
@@ -337,7 +347,9 @@
         "RANGE": "The start date must be between 1900 and 2999.",
         "OUTSIDE_PARENT": "The start date cannot be earlier than the legal entity's start date.",
         "OUTSIDE_SITE": "The start date cannot be earlier than the site's start date.",
-        "OUTSIDE_LEGAL_ENTITY": "The start date cannot be earlier than the legal entity's start date."
+        "OUTSIDE_LEGAL_ENTITY": "The start date cannot be earlier than the legal entity's start date.",
+        "OUTSIDE_DEPARTMENT": "The start date cannot be earlier than the department's start date.",
+        "OUTSIDE_COST_CENTER": "The start date cannot be earlier than the cost center's start date."
       },
       "effectiveTo": {
         "FORMAT": "Enter a valid end date.",
@@ -345,7 +357,9 @@
         "BEFORE_START": "The end date cannot be earlier than the start date.",
         "OUTSIDE_PARENT": "The end date must fall within the legal entity's dates. An open-ended site needs an open-ended legal entity.",
         "OUTSIDE_SITE": "The end date must fall within the site's dates. An open-ended entry needs an open-ended site.",
-        "OUTSIDE_LEGAL_ENTITY": "The end date must fall within the legal entity's dates. An open-ended region needs an open-ended legal entity."
+        "OUTSIDE_LEGAL_ENTITY": "The end date must fall within the legal entity's dates. An open-ended region needs an open-ended legal entity.",
+        "OUTSIDE_DEPARTMENT": "The end date must fall within the department's dates. An open-ended team needs an open-ended department.",
+        "OUTSIDE_COST_CENTER": "The end date must fall within the cost center's dates. An open-ended team needs an open-ended cost center."
       },
       "regionId": {
         "REQUIRED": "Choose a region.",
@@ -378,6 +392,30 @@
     "costCenterForm": {
       "title": "Add a cost center to {{name}} ({{code}})",
       "submit": "Create cost center"
+    },
+    "teams": {
+      "title": "Teams",
+      "none": "Choose “Show teams” on a department or a cost center to see its teams.",
+      "selectShort": "Show teams",
+      "loadMore": "Show more teams",
+      "created": "Team {{name}} ({{code}}) created.",
+      "department": {
+        "title": "Teams of department {{name}} ({{code}})",
+        "select": "Show teams of department {{name}} ({{code}})",
+        "empty": "No teams yet for this department.",
+        "formTitle": "Add a team to department {{name}} ({{code}})",
+        "periodHint": "Dates must fall within the department's dates."
+      },
+      "costCenter": {
+        "title": "Teams of cost center {{name}} ({{code}})",
+        "select": "Show teams of cost center {{name}} ({{code}})",
+        "empty": "No teams yet for this cost center.",
+        "formTitle": "Add a team to cost center {{name}} ({{code}})",
+        "periodHint": "Dates must fall within the cost center's dates."
+      }
+    },
+    "teamForm": {
+      "submit": "Create team"
     }
   }
 }

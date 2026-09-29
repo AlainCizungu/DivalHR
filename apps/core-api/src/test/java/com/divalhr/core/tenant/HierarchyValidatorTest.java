@@ -10,11 +10,15 @@ import com.divalhr.core.tenant.api.AssignSiteRegionRequest;
 import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
 import com.divalhr.core.tenant.api.CreateRegionRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
+import com.divalhr.core.tenant.api.CreateTeamRequest;
 import com.divalhr.core.tenant.application.HierarchyValidator;
 import com.divalhr.core.tenant.application.LegalEntityCommand;
 import com.divalhr.core.tenant.application.RegionCommand;
 import com.divalhr.core.tenant.application.SiteCommand;
 import com.divalhr.core.tenant.application.SiteRegionCommand;
+import com.divalhr.core.tenant.application.TeamCommand;
+import com.divalhr.core.tenant.application.TeamParentRef;
+import com.divalhr.core.tenant.domain.TeamParentKind;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -216,6 +220,84 @@ class HierarchyValidatorTest {
             Map.of("field", "siteId", "constraint", "FORMAT"),
             Map.of("field", "Idempotency-Key", "constraint", "REQUIRED"),
             Map.of("field", "regionId", "constraint", "REQUIRED"));
+  }
+
+  @Test
+  void teamsNeedExactlyOneParentAfterFieldValidation() {
+    String department = "33333333-3333-4333-8333-333333333333";
+    String costCenter = "44444444-4444-4444-8444-444444444444";
+    TeamCommand byDepartment =
+        validator.team(
+            KEY, CreateTeamRequest.of(department, null, " eq_1 ", " Équipe ", "2026-01-01", null));
+    assertThat(byDepartment.parentKind()).isEqualTo(TeamParentKind.DEPARTMENT);
+    assertThat(byDepartment.code()).isEqualTo("EQ_1");
+    assertThat(byDepartment.name()).isEqualTo("Équipe");
+    TeamCommand byCostCenter =
+        validator.team(
+            KEY, CreateTeamRequest.of(null, costCenter, "EQ-2", "Équipe", "2026-01-01", null));
+    assertThat(byCostCenter.parentKind()).isEqualTo(TeamParentKind.COST_CENTER);
+    TenantId tenant = new TenantId(UUID.fromString("55555555-5555-4555-8555-555555555555"));
+    assertThat(byCostCenter.canonical(tenant))
+        .containsEntry("parentType", "cost-center")
+        .containsEntry("parentId", costCenter)
+        .containsEntry("effectiveTo", "")
+        .doesNotContainKeys("departmentId", "costCenterId", "siteId");
+    assertThatThrownBy(
+            () ->
+                validator.team(
+                    KEY, CreateTeamRequest.of(null, null, "EQ-3", "Équipe", "2026-01-01", null)))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> {
+              assertThat(e.code()).isEqualTo(ErrorCode.TEAM_PARENT_REQUIRED);
+              assertThat(e.params()).isEmpty();
+            });
+    assertThatThrownBy(
+            () ->
+                validator.team(
+                    KEY,
+                    CreateTeamRequest.of(
+                        department, costCenter, "EQ-4", "Équipe", "2026-01-01", null)))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> assertThat(e.code()).isEqualTo(ErrorCode.TEAM_PARENT_AMBIGUOUS));
+    // A malformed supplied parent is a field error, reported before cardinality.
+    assertThat(
+            fields(
+                () ->
+                    validator.team(
+                        KEY,
+                        CreateTeamRequest.of(
+                            "", costCenter, "EQ-5", "Équipe", "2026-01-01", null))))
+        .containsExactly(Map.of("field", "departmentId", "constraint", "FORMAT"));
+    // Cardinality precedes date order.
+    assertThatThrownBy(
+            () ->
+                validator.team(
+                    KEY,
+                    CreateTeamRequest.of(null, null, "EQ-6", "Équipe", "2026-06-01", "2026-05-31")))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> assertThat(e.code()).isEqualTo(ErrorCode.TEAM_PARENT_REQUIRED));
+  }
+
+  @Test
+  void teamListNeedsExactlyOneParentFilter() {
+    String department = "33333333-3333-4333-8333-333333333333";
+    TeamParentRef parent = validator.teamListParent(department, "", null);
+    assertThat(parent.kind()).isEqualTo(TeamParentKind.DEPARTMENT);
+    assertThatThrownBy(() -> validator.teamListParent(null, "", null))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> assertThat(e.code()).isEqualTo(ErrorCode.TEAM_PARENT_REQUIRED));
+    assertThatThrownBy(() -> validator.teamListParent(department, department, null))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> assertThat(e.code()).isEqualTo(ErrorCode.TEAM_PARENT_AMBIGUOUS));
+    assertThat(fields(() -> validator.teamListParent("bad", null, "0")))
+        .containsExactlyInAnyOrder(
+            Map.of("field", "departmentId", "constraint", "FORMAT"),
+            Map.of("field", "limit", "constraint", "RANGE"));
   }
 
   @Test

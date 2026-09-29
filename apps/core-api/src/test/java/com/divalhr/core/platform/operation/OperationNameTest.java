@@ -10,7 +10,9 @@ import com.divalhr.core.tenant.application.CreateLegalEntityService;
 import com.divalhr.core.tenant.application.CreateOrganizationService;
 import com.divalhr.core.tenant.application.CreateRegionService;
 import com.divalhr.core.tenant.application.CreateSiteService;
+import com.divalhr.core.tenant.application.CreateTeamService;
 import com.divalhr.core.tenant.application.HierarchyQueryService;
+import com.divalhr.core.tenant.application.TeamQueryService;
 import com.divalhr.core.tenant.domain.SiteUnitKind;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,7 +37,9 @@ class OperationNameTest {
           CostCenterController.LIST,
           CreateRegionService.OPERATION,
           HierarchyQueryService.LIST_REGIONS,
-          AssignSiteRegionService.OPERATION);
+          AssignSiteRegionService.OPERATION,
+          CreateTeamService.OPERATION,
+          TeamQueryService.LIST_TEAMS);
 
   /** Malformed names from Issue #17 plus the grammar's edges. */
   static final List<String> MALFORMED =
@@ -63,6 +67,9 @@ class OperationNameTest {
     assertThat(AssignSiteRegionService.OPERATION).isEqualTo("site.region.assign");
     assertThat(CreateRegionService.EVENT_TYPE).isEqualTo("tenant.region-created.v1");
     assertThat(AssignSiteRegionService.EVENT_TYPE).isEqualTo("tenant.site-region-assigned.v1");
+    assertThat(CreateTeamService.OPERATION).isEqualTo("team.create");
+    assertThat(TeamQueryService.LIST_TEAMS).isEqualTo("team.list");
+    assertThat(CreateTeamService.EVENT_TYPE).isEqualTo("tenant.team-created.v1");
   }
 
   @Test

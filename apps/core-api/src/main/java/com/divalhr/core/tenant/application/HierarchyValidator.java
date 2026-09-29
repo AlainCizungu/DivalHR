@@ -10,11 +10,13 @@ import com.divalhr.core.tenant.api.AssignSiteRegionRequest;
 import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
 import com.divalhr.core.tenant.api.CreateRegionRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
+import com.divalhr.core.tenant.api.CreateTeamRequest;
 import com.divalhr.core.tenant.api.SiteUnitRequest;
 import com.divalhr.core.tenant.api.StrictRequest;
 import com.divalhr.core.tenant.domain.EffectivePeriod;
 import com.divalhr.core.tenant.domain.HierarchyCode;
 import com.divalhr.core.tenant.domain.SupportedConfiguration;
+import com.divalhr.core.tenant.domain.TeamParentKind;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
@@ -123,6 +125,67 @@ public class HierarchyValidator {
     LocalDate to = date(errors, "effectiveTo", request.getEffectiveTo(), false);
     errors.throwIfAny();
     return new RegionCommand(legalEntityId, code, name, period(from, to));
+  }
+
+  /**
+   * Validates a team creation request without consulting the parent. Order: every field defect
+   * together ({@code VALIDATION_FAILED}, including a malformed supplied parent id), then parent
+   * cardinality ({@code TEAM_PARENT_AMBIGUOUS} / {@code TEAM_PARENT_REQUIRED}), then date order. An
+   * absent parent property and an explicit {@code null} both mean "not supplied".
+   *
+   * @param idempotencyKey header value
+   * @param request body
+   * @return normalized command
+   */
+  public TeamCommand team(String idempotencyKey, CreateTeamRequest request) {
+    FieldErrors errors = new FieldErrors();
+    key(errors, idempotencyKey);
+    unknown(errors, request);
+    UUID department = optionalUuid(errors, "departmentId", request.getDepartmentId());
+    UUID costCenter = optionalUuid(errors, "costCenterId", request.getCostCenterId());
+    String code = code(errors, request.getCode());
+    String name = name(errors, request.getName());
+    LocalDate from = date(errors, "effectiveFrom", request.getEffectiveFrom(), true);
+    LocalDate to = date(errors, "effectiveTo", request.getEffectiveTo(), false);
+    errors.throwIfAny();
+    TeamParentRef parent = exactlyOneParent(department, costCenter);
+    return new TeamCommand(parent.kind(), parent.id(), code, name, period(from, to));
+  }
+
+  /**
+   * Validates the parameters of the team list. An absent or empty query parameter is not supplied.
+   * Format and limit first, then parent cardinality.
+   *
+   * @param departmentId raw department filter
+   * @param costCenterId raw cost-center filter
+   * @param limit raw limit
+   * @return the single parent filter
+   */
+  public TeamParentRef teamListParent(String departmentId, String costCenterId, String limit) {
+    FieldErrors errors = new FieldErrors();
+    String rawDepartment = departmentId == null || departmentId.isEmpty() ? null : departmentId;
+    String rawCostCenter = costCenterId == null || costCenterId.isEmpty() ? null : costCenterId;
+    UUID department = optionalUuid(errors, "departmentId", rawDepartment);
+    UUID costCenter = optionalUuid(errors, "costCenterId", rawCostCenter);
+    if (PageRequest.parse(limit) == null) {
+      errors.add("limit", Constraint.RANGE);
+    }
+    errors.throwIfAny();
+    return exactlyOneParent(department, costCenter);
+  }
+
+  /** Called after format validation: a supplied parent id is non-null here. */
+  private static TeamParentRef exactlyOneParent(UUID department, UUID costCenter) {
+    if (department != null && costCenter != null) {
+      throw new ApiException(ErrorCode.TEAM_PARENT_AMBIGUOUS, Map.of());
+    }
+    if (department != null) {
+      return new TeamParentRef(TeamParentKind.DEPARTMENT, department);
+    }
+    if (costCenter != null) {
+      return new TeamParentRef(TeamParentKind.COST_CENTER, costCenter);
+    }
+    throw new ApiException(ErrorCode.TEAM_PARENT_REQUIRED, Map.of());
   }
 
   /**

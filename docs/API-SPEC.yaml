@@ -554,6 +554,98 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+  /teams:
+    get:
+      operationId: listTeams
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-exactly-one-of: [departmentId, costCenterId]
+      summary: List the teams of one department or one cost center in the caller's tenant
+      description: >-
+        Exactly one of departmentId or costCenterId is required (an absent or empty parameter is
+        not supplied): neither returns 400 TEAM_PARENT_REQUIRED and both return 400
+        TEAM_PARENT_AMBIGUOUS, after format validation. Keyset-paginated, ordered by code then id.
+        A parent that does not exist and one that belongs to another tenant produce the same 404
+        DEPARTMENT_NOT_FOUND or COST_CENTER_NOT_FOUND. Cursors are bound to the operation, the
+        tenant, the parent type and the parent id.
+      tags: [tenant]
+      parameters:
+        - name: departmentId
+          in: query
+          required: false
+          description: The parent department. Mutually exclusive with costCenterId.
+          schema:
+            type: string
+            format: uuid
+        - name: costCenterId
+          in: query
+          required: false
+          description: The parent cost center. Mutually exclusive with departmentId.
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of teams
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createTeam
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-exactly-one-of: [departmentId, costCenterId]
+      summary: Create a team beneath exactly one department or cost center of the caller's tenant
+      description: >-
+        The body names exactly one parent (see CreateTeam). The team's site is derived from that
+        parent and never accepted from the request. Codes are trimmed, upper-cased and unique per
+        tenant regardless of case. The team's effective period must lie within its parent's
+        period; an open-ended team requires an open-ended parent. Retries with the same
+        Idempotency-Key and an identical payload replay the original 201.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTeam"
+      responses:
+        "201":
+          description: Team created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /employees:
     get:
       operationId: listEmployees
@@ -670,8 +762,11 @@ components:
         constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The
         *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID,
         SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE,
-        COST_CENTER_PERIOD_OUTSIDE_SITE and REGION_PERIOD_OUTSIDE_LEGAL_ENTITY carry params.field
-        (effectiveFrom or effectiveTo). SITE_PERIOD_OUTSIDE_REGION and
+        COST_CENTER_PERIOD_OUTSIDE_SITE, REGION_PERIOD_OUTSIDE_LEGAL_ENTITY,
+        TEAM_PERIOD_OUTSIDE_DEPARTMENT and TEAM_PERIOD_OUTSIDE_COST_CENTER carry params.field
+        (effectiveFrom or effectiveTo). TEAM_PARENT_REQUIRED (no parent supplied) and
+        TEAM_PARENT_AMBIGUOUS (both parents supplied) carry no params and follow format
+        validation. SITE_PERIOD_OUTSIDE_REGION and
         SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no
         params. Submitted values are never echoed.
       content:
@@ -682,7 +777,8 @@ components:
       description: >-
         IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or
         DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE /
-        DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE (the code already exists for that
+        DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code
+        already exists for that
         resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site
         already has a different region; carries no params).
       content:
@@ -691,7 +787,8 @@ components:
             $ref: "#/components/schemas/Problem"
     NotFound:
       description: >-
-        LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND or REGION_NOT_FOUND - the referenced resource does
+        LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND or
+        COST_CENTER_NOT_FOUND - the referenced resource does
         not exist in the caller's tenant. Missing and foreign-tenant resources are
         indistinguishable.
       content:
@@ -1124,6 +1221,106 @@ components:
             $ref: "#/components/schemas/CostCenter"
         nextCursor:
           type: string
+    CreateTeam:
+      type: object
+      additionalProperties: false
+      description: >-
+        Exactly one parent: departmentId or costCenterId. An absent property and an explicit null
+        both mean "not supplied". Neither supplied returns 400 TEAM_PARENT_REQUIRED and both
+        supplied returns 400 TEAM_PARENT_AMBIGUOUS; a malformed supplied id returns 400
+        VALIDATION_FAILED first. The site, tenant and every server-owned field (siteId, tenantId,
+        organizationId, legalEntityId, regionId, id, createdBy) are rejected.
+      required: [code, name, effectiveFrom]
+      properties:
+        departmentId:
+          type: [string, "null"]
+          format: uuid
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        costCenterId:
+          type: [string, "null"]
+          format: uuid
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        code:
+          type: string
+          description: Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore.
+          pattern: "^\\s*[A-Za-z0-9_-]{2,20}\\s*$"
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        effectiveFrom:
+          type: string
+          format: date
+          description: Inclusive, between 1900-01-01 and 2999-12-31.
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+      oneOf:
+        - title: DepartmentParent
+          description: A team beneath a department; costCenterId is absent or null.
+          required: [departmentId]
+          properties:
+            departmentId:
+              type: string
+              format: uuid
+              pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            costCenterId:
+              type: "null"
+        - title: CostCenterParent
+          description: A team beneath a cost center; departmentId is absent or null.
+          required: [costCenterId]
+          properties:
+            costCenterId:
+              type: string
+              format: uuid
+              pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            departmentId:
+              type: "null"
+    Team:
+      type: object
+      description: >-
+        A team. departmentId and costCenterId are both always present; exactly one is non-null.
+        siteId is derived from the parent.
+      required:
+        [id, siteId, departmentId, costCenterId, code, name, effectiveFrom, effectiveTo, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        departmentId:
+          type: [string, "null"]
+          format: uuid
+        costCenterId:
+          type: [string, "null"]
+          format: uuid
+        code:
+          type: string
+          pattern: "^[A-Z0-9_-]{2,20}$"
+        name:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    TeamPage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Team"
+        nextCursor:
+          type: string
     SystemStatus:
       type: object
       required: [service, status, version, checkedAt]
@@ -1183,6 +1380,13 @@ components:
         - SITE_PERIOD_OUTSIDE_REGION
         - SITE_REGION_LEGAL_ENTITY_MISMATCH
         - SITE_REGION_ALREADY_ASSIGNED
+        - TEAM_PARENT_REQUIRED
+        - TEAM_PARENT_AMBIGUOUS
+        - DEPARTMENT_NOT_FOUND
+        - COST_CENTER_NOT_FOUND
+        - DUPLICATE_TEAM_CODE
+        - TEAM_PERIOD_OUTSIDE_DEPARTMENT
+        - TEAM_PERIOD_OUTSIDE_COST_CENTER
         - INTERNAL_ERROR
     Problem:
       type: object

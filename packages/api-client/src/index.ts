@@ -24,6 +24,16 @@ export type Region = CoreComponents['schemas']['Region'];
 export type CreateRegion = CoreComponents['schemas']['CreateRegion'];
 export type RegionPage = CoreComponents['schemas']['RegionPage'];
 export type AssignSiteRegion = CoreComponents['schemas']['AssignSiteRegion'];
+export type Team = CoreComponents['schemas']['Team'];
+/** Exactly one parent: a discriminated union generated from the CreateTeam oneOf. */
+export type CreateTeam = CoreComponents['schemas']['CreateTeam'];
+export type TeamPage = CoreComponents['schemas']['TeamPage'];
+/**
+ * The listTeams parent filter: exactly one of departmentId or costCenterId
+ * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).
+ */
+export type TeamParentQuery =
+  { departmentId: string; costCenterId?: never } | { costCenterId: string; departmentId?: never };
 
 export interface ClientOptions {
   /** Base URL including /api/v1, e.g. http://localhost:8080/api/v1 */

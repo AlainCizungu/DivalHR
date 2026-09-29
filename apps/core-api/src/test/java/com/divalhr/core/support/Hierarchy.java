@@ -397,6 +397,68 @@ public final class Hierarchy {
   }
 
   /**
+   * A team request body naming the parent through {@code parentField} ({@code departmentId} or
+   * {@code costCenterId}); the other parent property is absent.
+   *
+   * @param parentField parent property name
+   * @param parentId parent id (any text, to test malformed ids)
+   * @param code code
+   * @param name name
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return JSON
+   */
+  public static String team(
+      String parentField, Object parentId, String code, String name, String from, String to) {
+    return """
+    {"%s": %s, "code": %s, "name": %s, "effectiveFrom": %s, "effectiveTo": %s}
+    """
+        .formatted(
+            parentField,
+            quote(parentId == null ? null : parentId.toString()),
+            quote(code),
+            quote(name),
+            quote(from),
+            quote(to));
+  }
+
+  /**
+   * Creates a team and returns its id.
+   *
+   * @param mvc MockMvc
+   * @param tenant tenant
+   * @param parentField {@code departmentId} or {@code costCenterId}
+   * @param parentId parent id
+   * @param code code
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return id
+   * @throws Exception on request failure
+   */
+  public static UUID newTeam(
+      MockMvc mvc,
+      UUID tenant,
+      String parentField,
+      UUID parentId,
+      String code,
+      String from,
+      String to)
+      throws Exception {
+    String body =
+        mvc.perform(
+                create(
+                    "/api/v1/teams",
+                    admin(tenant),
+                    Organizations.newKey(),
+                    team(parentField, parentId, code, "Équipe " + code, from, to)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return UUID.fromString(JSON.readTree(body).get("id").asText());
+  }
+
+  /**
    * {@code GET} with bearer.
    *
    * @param bearer bearer
