@@ -41,8 +41,7 @@ public final class Organizations {
     return """
         {"name": %s, "countryCode": %s, "defaultLocale": %s, "timezone": %s, "currencies": %s}
         """
-        .formatted(
-            quote(name), quote(country), quote(locale), quote(timezone), currenciesJson);
+        .formatted(quote(name), quote(country), quote(locale), quote(timezone), currenciesJson);
   }
 
   /**

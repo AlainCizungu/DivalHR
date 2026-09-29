@@ -15,7 +15,11 @@ import java.util.TreeMap;
  * @param currencies sorted currencies
  */
 public record CreateOrganizationCommand(
-    String name, String countryCode, String defaultLocale, String timezone, List<String> currencies) {
+    String name,
+    String countryCode,
+    String defaultLocale,
+    String timezone,
+    List<String> currencies) {
 
   /** Normalizes currencies. */
   public CreateOrganizationCommand {

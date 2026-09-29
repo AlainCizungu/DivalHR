@@ -16,8 +16,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * Rejects non-platform-administrators before the request body is read, and writes the safe
- * structured security log line and denial metric for privileged operations. Method security
- * ({@link PlatformScoped}'s {@code @PreAuthorize}) remains in force behind it.
+ * structured security log line and denial metric for privileged operations. Method security ({@link
+ * PlatformScoped}'s {@code @PreAuthorize}) remains in force behind it.
  */
 @Component
 public class PlatformScopeInterceptor implements HandlerInterceptor {

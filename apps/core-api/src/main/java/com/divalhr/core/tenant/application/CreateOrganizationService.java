@@ -127,7 +127,8 @@ public class CreateOrganizationService {
     String fingerprint = Fingerprints.sha256(json.writeValueAsString(command.canonical()));
     try {
       Result result =
-          transactions.execute(status -> createInTransaction(scope, fingerprint, command, correlationId));
+          transactions.execute(
+              status -> createInTransaction(scope, fingerprint, command, correlationId));
       if (result == null) {
         throw new IllegalStateException("transaction returned no result");
       }
@@ -158,8 +159,7 @@ public class CreateOrganizationService {
       String correlationId) {
     IdempotencyDecision decision = idempotency.reserve(scope, fingerprint);
     if (decision instanceof IdempotencyDecision.Replay replay) {
-      return new Result(
-          json.readValue(replay.response().body(), OrganizationResponse.class), true);
+      return new Result(json.readValue(replay.response().body(), OrganizationResponse.class), true);
     }
     // Microsecond precision matches PostgreSQL timestamptz, so replayed bodies are identical.
     Instant now = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);

@@ -5,8 +5,9 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Business event envelope matching {@code packages/shared-contracts/schemas/event-envelope.schema.json}.
- * {@code causationId} is always serialized, as {@code null} when there is no causing event.
+ * Business event envelope matching {@code
+ * packages/shared-contracts/schemas/event-envelope.schema.json}. {@code causationId} is always
+ * serialized, as {@code null} when there is no causing event.
  *
  * @param eventId unique event ID (consumers deduplicate on it)
  * @param eventType namespaced, versioned type

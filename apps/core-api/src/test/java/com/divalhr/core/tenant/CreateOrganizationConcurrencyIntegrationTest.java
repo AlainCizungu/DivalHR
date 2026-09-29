@@ -117,7 +117,8 @@ class CreateOrganizationConcurrencyIntegrationTest {
 
   private int count(String table, String where, Object arg) {
     Integer value =
-        jdbc.queryForObject("SELECT count(*) FROM " + table + " WHERE " + where, Integer.class, arg);
+        jdbc.queryForObject(
+            "SELECT count(*) FROM " + table + " WHERE " + where, Integer.class, arg);
     return value == null ? 0 : value;
   }
 }

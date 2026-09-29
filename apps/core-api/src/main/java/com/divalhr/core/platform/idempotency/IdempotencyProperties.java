@@ -4,9 +4,8 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Idempotency retention. Records are kept at least this long; until the cleanup job exists they
- * are kept and honoured indefinitely. Cleanup must never remove a record before {@code
- * expires_at}.
+ * Idempotency retention. Records are kept at least this long; until the cleanup job exists they are
+ * kept and honoured indefinitely. Cleanup must never remove a record before {@code expires_at}.
  *
  * @param retention minimum retention period (default 7 days)
  */

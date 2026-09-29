@@ -49,7 +49,8 @@ class OrganizationValidatorTest {
   void countsUnicodeCodePointsForLength() {
     // 160 characters outside the Basic Multilingual Plane is still within the limit.
     String longest = "𝔸".repeat(160);
-    assertThat(validator.validate(KEY, request(longest, "CD", "fr", "Africa/Kinshasa", "CDF")).name())
+    assertThat(
+            validator.validate(KEY, request(longest, "CD", "fr", "Africa/Kinshasa", "CDF")).name())
         .isEqualTo(longest);
     assertFields(request("𝔸".repeat(161), "CD", "fr", "Africa/Kinshasa", "CDF"), "name", "LENGTH");
     assertFields(request(" A ", "CD", "fr", "Africa/Kinshasa", "CDF"), "name", "LENGTH");
@@ -75,7 +76,8 @@ class OrganizationValidatorTest {
   @ValueSource(strings = {"short", "has space in key 123", "é-accent-not-allowed-123"})
   void rejectsMalformedIdempotencyKeys(String key) {
     ApiException error = catchApi(key, valid());
-    assertThat(fields(error)).containsExactly(Map.of("field", "Idempotency-Key", "constraint", "FORMAT"));
+    assertThat(fields(error))
+        .containsExactly(Map.of("field", "Idempotency-Key", "constraint", "FORMAT"));
   }
 
   @Test
@@ -85,25 +87,35 @@ class OrganizationValidatorTest {
 
   @Test
   void rejectsMissingAndEmptyAndDuplicateCurrencies() {
-    assertFields(request("Valid", "CD", "fr", "Africa/Kinshasa", (String[]) null), "currencies", "REQUIRED");
+    assertFields(
+        request("Valid", "CD", "fr", "Africa/Kinshasa", (String[]) null), "currencies", "REQUIRED");
     assertFields(request("Valid", "CD", "fr", "Africa/Kinshasa"), "currencies", "REQUIRED");
-    assertFields(request("Valid", "CD", "fr", "Africa/Kinshasa", "CDF", "CDF"), "currencies", "DUPLICATE");
-    assertFields(request("Valid", "CD", "fr", "Africa/Kinshasa", "CDF", null), "currencies", "FORMAT");
+    assertFields(
+        request("Valid", "CD", "fr", "Africa/Kinshasa", "CDF", "CDF"), "currencies", "DUPLICATE");
+    assertFields(
+        request("Valid", "CD", "fr", "Africa/Kinshasa", "CDF", null), "currencies", "FORMAT");
   }
 
   @Test
   void rejectsMissingFields() {
     assertFields(request("Valid", null, "fr", "Africa/Kinshasa", "CDF"), "countryCode", "REQUIRED");
-    assertFields(request("Valid", "CD", null, "Africa/Kinshasa", "CDF"), "defaultLocale", "REQUIRED");
+    assertFields(
+        request("Valid", "CD", null, "Africa/Kinshasa", "CDF"), "defaultLocale", "REQUIRED");
     assertFields(request("Valid", "CD", "fr", null, "CDF"), "timezone", "REQUIRED");
   }
 
   @Test
   void appliesNotSupportedPrecedenceCountryLocaleTimezoneCurrency() {
     assertUnsupported(
-        request("Valid", "CG", "de", "Europe/Paris", "EUR"), ErrorCode.COUNTRY_NOT_SUPPORTED, "countryCode", List.of("CD"));
+        request("Valid", "CG", "de", "Europe/Paris", "EUR"),
+        ErrorCode.COUNTRY_NOT_SUPPORTED,
+        "countryCode",
+        List.of("CD"));
     assertUnsupported(
-        request("Valid", "CD", "de", "Europe/Paris", "EUR"), ErrorCode.LOCALE_NOT_SUPPORTED, "defaultLocale", List.of("en", "fr"));
+        request("Valid", "CD", "de", "Europe/Paris", "EUR"),
+        ErrorCode.LOCALE_NOT_SUPPORTED,
+        "defaultLocale",
+        List.of("en", "fr"));
     assertUnsupported(
         request("Valid", "CD", "fr", "Europe/Paris", "EUR"),
         ErrorCode.TIMEZONE_NOT_SUPPORTED,
@@ -129,7 +141,8 @@ class OrganizationValidatorTest {
   }
 
   private ApiException catchApi(String key, CreateOrganizationRequest request) {
-    Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> validator.validate(key, request));
+    Throwable thrown =
+        org.assertj.core.api.Assertions.catchThrowable(() -> validator.validate(key, request));
     assertThat(thrown).isInstanceOf(ApiException.class);
     return (ApiException) thrown;
   }

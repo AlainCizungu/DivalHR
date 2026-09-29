@@ -19,6 +19,16 @@ public enum ErrorCode {
   TENANT_ACCESS_DENIED(HttpStatus.FORBIDDEN),
   /** The resource does not exist or is not visible to the caller. */
   NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The idempotency key was already used with a different payload. */
+  IDEMPOTENCY_KEY_REUSED(HttpStatus.CONFLICT),
+  /** The country is not supported. */
+  COUNTRY_NOT_SUPPORTED(HttpStatus.BAD_REQUEST),
+  /** The locale is not supported. */
+  LOCALE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST),
+  /** The time zone is not supported for the country. */
+  TIMEZONE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST),
+  /** A currency is not supported for the country. */
+  CURRENCY_NOT_SUPPORTED(HttpStatus.BAD_REQUEST),
   /** An unexpected server error occurred. */
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 

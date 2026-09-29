@@ -83,7 +83,10 @@ class CreateOrganizationApiIntegrationTest {
     String name = Organizations.uniqueName();
     MvcResult result =
         mvc.perform(
-                create(platformAdmin("sub-create"), Organizations.newKey(), Organizations.body("  " + name + "  "))
+                create(
+                        platformAdmin("sub-create"),
+                        Organizations.newKey(),
+                        Organizations.body("  " + name + "  "))
                     .header("X-Correlation-Id", "mvp001-create-0001"))
             .andExpect(status().isCreated())
             .andExpect(header().doesNotExist("Idempotent-Replayed"))
@@ -97,10 +100,13 @@ class CreateOrganizationApiIntegrationTest {
             .andExpect(jsonPath("$.createdAt").isString())
             .andReturn();
 
-    UUID id = UUID.fromString(JSON.readTree(result.getResponse().getContentAsString()).get("id").asText());
+    UUID id =
+        UUID.fromString(
+            JSON.readTree(result.getResponse().getContentAsString()).get("id").asText());
     assertThat(id).isNotEqualTo(TestTokens.TENANT_A).isNotEqualTo(TestTokens.TENANT_B);
     assertThat(result.getResponse().getContentAsString()).endsWith("}");
-    assertThat(JSON.readTree(result.getResponse().getContentAsString()).get("createdAt").asText()).endsWith("Z");
+    assertThat(JSON.readTree(result.getResponse().getContentAsString()).get("createdAt").asText())
+        .endsWith("Z");
 
     Map<String, Object> row =
         jdbc.queryForMap("SELECT * FROM tenant.organization WHERE id = ?", id);
@@ -131,7 +137,9 @@ class CreateOrganizationApiIntegrationTest {
 
     String envelope =
         jdbc.queryForObject(
-            "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?", String.class, id);
+            "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?",
+            String.class,
+            id);
     assertEnvelopeValid(envelope);
     JsonNode event = JSON.readTree(envelope);
     assertThat(event.get("eventType").asText()).isEqualTo("tenant.organization-created.v1");
@@ -165,7 +173,8 @@ class CreateOrganizationApiIntegrationTest {
                 create(
                     bearer,
                     key,
-                    Organizations.body(" " + name, "CD", "fr", "Africa/Kinshasa", "[\"CDF\",\"USD\"]")))
+                    Organizations.body(
+                        " " + name, "CD", "fr", "Africa/Kinshasa", "[\"CDF\",\"USD\"]")))
             .andExpect(status().isCreated())
             .andExpect(header().string("Idempotent-Replayed", "true"))
             .andReturn()
@@ -186,7 +195,8 @@ class CreateOrganizationApiIntegrationTest {
     String name = Organizations.uniqueName();
     mvc.perform(create(bearer, key, Organizations.body(name))).andExpect(status().isCreated());
     mvc.perform(
-            create(bearer, key, Organizations.body(name, "CD", "en", "Africa/Kinshasa", "[\"CDF\"]")))
+            create(
+                bearer, key, Organizations.body(name, "CD", "en", "Africa/Kinshasa", "[\"CDF\"]")))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"))
         .andExpect(jsonPath("$.params").isEmpty());
@@ -196,9 +206,11 @@ class CreateOrganizationApiIntegrationTest {
   @Test
   void sameKeyFromAnotherPrincipalIsIndependent() throws Exception {
     String key = Organizations.newKey();
-    mvc.perform(create(platformAdmin("sub-one"), key, Organizations.body(Organizations.uniqueName())))
+    mvc.perform(
+            create(platformAdmin("sub-one"), key, Organizations.body(Organizations.uniqueName())))
         .andExpect(status().isCreated());
-    mvc.perform(create(platformAdmin("sub-two"), key, Organizations.body(Organizations.uniqueName())))
+    mvc.perform(
+            create(platformAdmin("sub-two"), key, Organizations.body(Organizations.uniqueName())))
         .andExpect(status().isCreated())
         .andExpect(header().doesNotExist("Idempotent-Replayed"));
   }
@@ -209,7 +221,9 @@ class CreateOrganizationApiIntegrationTest {
     for (String role : List.of("tenant-admin", "employee")) {
       String bearer =
           "Bearer " + TestTokens.token().roles(List.of(role)).tenant(TestTokens.TENANT_A).build();
-      mvc.perform(create(bearer, Organizations.newKey(), Organizations.body(Organizations.uniqueName())))
+      mvc.perform(
+              create(
+                  bearer, Organizations.newKey(), Organizations.body(Organizations.uniqueName())))
           .andExpect(status().isForbidden())
           .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
       // Even a malformed body yields 403, proving authorization precedes parsing.
@@ -243,7 +257,8 @@ class CreateOrganizationApiIntegrationTest {
   void tokenWithoutSubjectIsRefused() throws Exception {
     String bearer =
         "Bearer " + TestTokens.token().subject(null).roles(List.of("platform-admin")).build();
-    mvc.perform(create(bearer, Organizations.newKey(), Organizations.body(Organizations.uniqueName())))
+    mvc.perform(
+            create(bearer, Organizations.newKey(), Organizations.body(Organizations.uniqueName())))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
   }
@@ -291,7 +306,8 @@ class CreateOrganizationApiIntegrationTest {
                 create(
                     bearer,
                     Organizations.newKey(),
-                    Organizations.body("Secret Clinic Name", "CD", "fr", "Africa/Kinshasa", "[\"XAF\"]")))
+                    Organizations.body(
+                        "Secret Clinic Name", "CD", "fr", "Africa/Kinshasa", "[\"XAF\"]")))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("CURRENCY_NOT_SUPPORTED"))
             .andReturn();
@@ -334,7 +350,10 @@ class CreateOrganizationApiIntegrationTest {
                     org.hamcrest.Matchers.containsStringIgnoringCase("idempotency-key")));
 
     mvc.perform(
-            create(platformAdmin("sub-cors"), Organizations.newKey(), Organizations.body(Organizations.uniqueName()))
+            create(
+                    platformAdmin("sub-cors"),
+                    Organizations.newKey(),
+                    Organizations.body(Organizations.uniqueName()))
                 .header("Origin", "http://localhost:5173"))
         .andExpect(status().isCreated())
         .andExpect(
@@ -353,7 +372,11 @@ class CreateOrganizationApiIntegrationTest {
   @Test
   void existingTenantScopedIsolationStillHolds() throws Exception {
     String bearer =
-        "Bearer " + TestTokens.token().roles(List.of("platform-admin")).tenant(TestTokens.TENANT_A).build();
+        "Bearer "
+            + TestTokens.token()
+                .roles(List.of("platform-admin"))
+                .tenant(TestTokens.TENANT_A)
+                .build();
     // A platform administrator gains no cross-tenant access to tenant-scoped resources.
     mvc.perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
@@ -365,7 +388,8 @@ class CreateOrganizationApiIntegrationTest {
 
   private int countRows(String table, String where, Object arg) {
     Integer value =
-        jdbc.queryForObject("SELECT count(*) FROM " + table + " WHERE " + where, Integer.class, arg);
+        jdbc.queryForObject(
+            "SELECT count(*) FROM " + table + " WHERE " + where, Integer.class, arg);
     return value == null ? 0 : value;
   }
 

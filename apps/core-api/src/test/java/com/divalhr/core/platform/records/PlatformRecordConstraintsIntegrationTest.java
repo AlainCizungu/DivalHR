@@ -34,7 +34,10 @@ class PlatformRecordConstraintsIntegrationTest {
   void organizationRejectsInvalidRows() {
     for (String[] row :
         new String[][] {
-          {" padded", "CD", "fr"}, {"x", "CD", "fr"}, {"Name", "cd", "fr"}, {"Name", "CD", "de"},
+          {" padded", "CD", "fr"},
+          {"x", "CD", "fr"},
+          {"Name", "cd", "fr"},
+          {"Name", "CD", "de"},
           {"Bad\nName", "CD", "fr"}
         }) {
       assertThatThrownBy(
@@ -53,9 +56,7 @@ class PlatformRecordConstraintsIntegrationTest {
     }
     UUID id = insertOrganization();
     assertThatThrownBy(
-            () ->
-                jdbc.update(
-                    "INSERT INTO tenant.organization_currency VALUES (?, 'usd')", id))
+            () -> jdbc.update("INSERT INTO tenant.organization_currency VALUES (?, 'usd')", id))
         .isInstanceOf(DataAccessException.class);
   }
 
@@ -108,7 +109,8 @@ class PlatformRecordConstraintsIntegrationTest {
         org,
         "c".repeat(64));
     assertThatThrownBy(
-            () -> jdbc.update("UPDATE platform.audit_event SET result = 'FAILURE' WHERE id = ?", id))
+            () ->
+                jdbc.update("UPDATE platform.audit_event SET result = 'FAILURE' WHERE id = ?", id))
         .isInstanceOf(DataAccessException.class);
     assertThatThrownBy(() -> jdbc.update("DELETE FROM platform.audit_event WHERE id = ?", id))
         .isInstanceOf(DataAccessException.class);

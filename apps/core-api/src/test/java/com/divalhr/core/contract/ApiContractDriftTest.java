@@ -3,23 +3,23 @@ package com.divalhr.core.contract;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.divalhr.core.platform.security.PlatformScoped;
 import com.divalhr.core.support.IntegrationTest;
+import com.divalhr.core.tenant.domain.SupportedConfiguration;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import com.divalhr.core.platform.security.PlatformScoped;
-import com.divalhr.core.tenant.domain.SupportedConfiguration;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -123,7 +123,8 @@ class ApiContractDriftTest {
       }
       for (String pattern : mapping.getKey().getPatternValues()) {
         for (var method : mapping.getKey().getMethodsCondition().getMethods()) {
-          actual.put(method.name() + " " + pattern.substring(BASE_PATH.length()), PlatformScoped.ROLE);
+          actual.put(
+              method.name() + " " + pattern.substring(BASE_PATH.length()), PlatformScoped.ROLE);
         }
       }
     }
@@ -132,9 +133,22 @@ class ApiContractDriftTest {
 
   @Test
   @SuppressWarnings("unchecked")
+  void errorCodesMatchContract() {
+    Map<String, Object> schemas = castMap(castMap(spec.get("components")).get("schemas"));
+    List<String> contract = (List<String>) castMap(schemas.get("ErrorCode")).get("enum");
+    assertThat(
+            java.util.Arrays.stream(com.divalhr.core.platform.error.ErrorCode.values())
+                .map(Enum::name)
+                .toList())
+        .containsExactlyElementsOf(contract);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
   void supportedConfigurationCannotDriftFromContract() {
     Map<String, Object> schemas = castMap(castMap(spec.get("components")).get("schemas"));
-    Map<String, Object> create = castMap(castMap(schemas.get("CreateOrganization")).get("properties"));
+    Map<String, Object> create =
+        castMap(castMap(schemas.get("CreateOrganization")).get("properties"));
     List<String> countries = (List<String>) castMap(create.get("countryCode")).get("enum");
     List<String> locales = (List<String>) castMap(create.get("defaultLocale")).get("enum");
     Map<String, Object> timezone = castMap(create.get("timezone"));
@@ -142,13 +156,15 @@ class ApiContractDriftTest {
         (List<String>) castMap(castMap(create.get("currencies")).get("items")).get("enum");
     Map<String, Object> zonesByCountry = castMap(timezone.get("x-divalhr-timezones-by-country"));
 
-    assertThat(SupportedConfiguration.COUNTRIES.keySet()).containsExactlyInAnyOrderElementsOf(countries);
+    assertThat(SupportedConfiguration.COUNTRIES.keySet())
+        .containsExactlyInAnyOrderElementsOf(countries);
     assertThat(SupportedConfiguration.LOCALES).containsExactlyInAnyOrderElementsOf(locales);
     Set<String> allZones = new TreeSet<>();
     Set<String> allCurrencies = new TreeSet<>();
     for (var country : SupportedConfiguration.COUNTRIES.values()) {
       assertThat(country.timezones())
-          .containsExactlyInAnyOrderElementsOf((List<String>) zonesByCountry.get(country.countryCode()));
+          .containsExactlyInAnyOrderElementsOf(
+              (List<String>) zonesByCountry.get(country.countryCode()));
       allZones.addAll(country.timezones());
       allCurrencies.addAll(country.currencies());
     }
@@ -161,11 +177,15 @@ class ApiContractDriftTest {
         .isEqualTo(timezone.get("enum"));
   }
 
-  private static Set<String> bodyProperties(Map<String, Object> document, Map<String, Object> body) {
+  private static Set<String> bodyProperties(
+      Map<String, Object> document, Map<String, Object> body) {
     Set<String> properties = new TreeSet<>();
-    for (Object media : castMap(resolve(document, body).getOrDefault("content", Map.of())).values()) {
+    for (Object media :
+        castMap(resolve(document, body).getOrDefault("content", Map.of())).values()) {
       properties.addAll(
-          castMap(resolve(document, castMap(castMap(media).get("schema"))).getOrDefault("properties", Map.of()))
+          castMap(
+                  resolve(document, castMap(castMap(media).get("schema")))
+                      .getOrDefault("properties", Map.of()))
               .keySet());
     }
     return properties;

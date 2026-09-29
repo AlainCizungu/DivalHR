@@ -8,9 +8,9 @@ import java.lang.annotation.Target;
 
 /**
  * Marks a tenant-scoped operation: it must resolve the caller's verified tenant through {@code
- * TenantContextResolver} or {@code TenantAccessGuard} and must never trust a tenant supplied in
- * the request. Every mutating {@code /api/v1} handler carries exactly one of {@link
- * PlatformScoped} or this annotation (enforced by a test).
+ * TenantContextResolver} or {@code TenantAccessGuard} and must never trust a tenant supplied in the
+ * request. Every mutating {@code /api/v1} handler carries exactly one of {@link PlatformScoped} or
+ * this annotation (enforced by a test).
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
