@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -82,6 +83,42 @@ public class JdbcSiteRepository {
       }
       throw duplicate;
     }
+  }
+
+  /**
+   * Finds a site of the tenant and locks it {@code FOR SHARE} for the rest of the transaction
+   * (department and cost-center containment). Missing and foreign rows are indistinguishable.
+   *
+   * @param tenant verified tenant
+   * @param id site id
+   * @return the site if it exists in this tenant
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional<Site> findForShare(TenantId tenant, UUID id) {
+    return jdbc.sql(
+            "SELECT "
+                + COLUMNS
+                + " FROM tenant.site WHERE tenant_id = :tenant AND id = :id FOR SHARE")
+        .param("tenant", tenant.value())
+        .param("id", id)
+        .query(JdbcSiteRepository::map)
+        .optional();
+  }
+
+  /**
+   * Whether a site exists in the tenant.
+   *
+   * @param tenant verified tenant
+   * @param id site id
+   * @return true only for this tenant's site
+   */
+  public boolean exists(TenantId tenant, UUID id) {
+    return jdbc.sql("SELECT 1 FROM tenant.site WHERE tenant_id = :tenant AND id = :id")
+        .param("tenant", tenant.value())
+        .param("id", id)
+        .query(Integer.class)
+        .optional()
+        .isPresent();
   }
 
   /**

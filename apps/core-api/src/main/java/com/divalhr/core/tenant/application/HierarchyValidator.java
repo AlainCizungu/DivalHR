@@ -8,6 +8,7 @@ import com.divalhr.core.platform.idempotency.IdempotencyKeys;
 import com.divalhr.core.platform.pagination.PageRequest;
 import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
+import com.divalhr.core.tenant.api.SiteUnitRequest;
 import com.divalhr.core.tenant.api.StrictRequest;
 import com.divalhr.core.tenant.domain.EffectivePeriod;
 import com.divalhr.core.tenant.domain.HierarchyCode;
@@ -98,6 +99,44 @@ public class HierarchyValidator {
     LocalDate to = date(errors, "effectiveTo", request.getEffectiveTo(), false);
     errors.throwIfAny();
     return new SiteCommand(legalEntityId, code, name, timezone, period(from, to));
+  }
+
+  /**
+   * Validates a department or cost-center create (format and date order only; the parent site,
+   * containment and uniqueness are checked in the transaction).
+   *
+   * @param idempotencyKey header value
+   * @param request body
+   * @return normalized command
+   */
+  public SiteUnitCommand siteUnit(String idempotencyKey, SiteUnitRequest request) {
+    FieldErrors errors = new FieldErrors();
+    key(errors, idempotencyKey);
+    unknown(errors, request);
+    UUID siteId = uuid(errors, "siteId", request.getSiteId());
+    String code = code(errors, request.getCode());
+    String name = name(errors, request.getName());
+    LocalDate from = date(errors, "effectiveFrom", request.getEffectiveFrom(), true);
+    LocalDate to = date(errors, "effectiveTo", request.getEffectiveTo(), false);
+    errors.throwIfAny();
+    return new SiteUnitCommand(siteId, code, name, period(from, to));
+  }
+
+  /**
+   * Validates the department or cost-center list parent and limit together.
+   *
+   * @param siteId raw parent id
+   * @param limit raw limit
+   * @return parsed site id
+   */
+  public UUID siteUnitListParent(String siteId, String limit) {
+    FieldErrors errors = new FieldErrors();
+    UUID parent = uuid(errors, "siteId", siteId);
+    if (PageRequest.parse(limit) == null) {
+      errors.add("limit", Constraint.RANGE);
+    }
+    errors.throwIfAny();
+    return parent;
   }
 
   /**
