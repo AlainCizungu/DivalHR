@@ -62,3 +62,18 @@ Keycloak admin and seed credentials (development-only); logs.
 | R2 | Provisioning not traceable | Append-only audit event with correlation ID in the same transaction | Audit assertions, DB trigger tests |
 | I6 | Customer names leak via logs, errors, events or metrics | Names excluded from logs, Problem params, audit metadata, event data and metric labels | Log-capture and payload assertions |
 
+## MVP-002 delta (legal entities and sites)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E4 | Employee or platform administrator manages a tenant's hierarchy | `@TenantAdminOperation`: interceptor before body parsing plus `@PreAuthorize("hasRole('tenant-admin')")`; no implicit platform access | `LegalEntityApiIntegrationTest`, `SiteApiIntegrationTest`, `HierarchyListingIntegrationTest`, `MethodSecurityEnforcementIntegrationTest`, French E2E |
+| T5 | Caller writes into or reads another tenant by supplying a tenant ID | Tenant only from the verified token; `tenantId` body property rejected; headers and query parameters ignored | `callerCannotChooseTheTenant`, `tenantParametersAndHeadersAreIgnored` |
+| T6 | Site attached to another tenant's legal entity | Parent read with the tenant predicate; composite foreign key `(tenant_id, legal_entity_id)` | `foreignAndMissingParentsAreIndistinguishable`, `siteCannotReferenceAnotherTenantsLegalEntity` |
+| I7 | Existence of another tenant's legal entity inferred from responses | Identical `404 LEGAL_ENTITY_NOT_FOUND` bodies (apart from `correlationId`) for missing and foreign parents | Body-equality assertions on create and list |
+| T7 | Forged, replayed or cross-scope pagination cursors | HMAC-SHA256 over a versioned, allow-listed payload bound to operation, tenant and filters; size and shape checked before decoding; constant-time comparison | `CursorCodecTest`, `cursorsAreBoundToTenantOperationAndParent` |
+| I8 | Cursor key disclosure or weak development key in shared environments | Fail-closed start-up guard (missing, short, or `dev-only-` outside development); key and cursors never logged | `CursorSigningKeyGuardTest`, log-capture assertions |
+| T8 | Site period outside its legal entity via races or direct SQL | Service check under `FOR SHARE` lock plus database triggers on both tables | Containment API and direct-SQL tests |
+| I9 | Codes, names or IDs leak via errors, logs or metric labels | Problem params carry only field names; metric labels limited to operation and outcome | Log and meter assertions |
+| E5 | Development fixtures present outside development | Flyway fixture location added only when `divalhr.environment=development` | `DevelopmentSeedFlywayCustomizerTest`, `DevelopmentSeedAbsenceIntegrationTest` |
+
+Accepted for this increment: no PostgreSQL row-level security (tenant predicates, composite keys and tests instead) and a single, non-rotating cursor key.
