@@ -64,6 +64,7 @@ tasks.test {
     useJUnitPlatform()
     // The drift test reads the authoritative design-first contract.
     systemProperty("divalhr.apiSpecPath", rootProject.file("../../docs/API-SPEC.yaml").absolutePath)
+    systemProperty("divalhr.repoRoot", rootProject.file("../..").absolutePath)
     systemProperty(
         "divalhr.eventEnvelopeSchemaPath",
         rootProject.file("../../packages/shared-contracts/schemas/event-envelope.schema.json").absolutePath,
