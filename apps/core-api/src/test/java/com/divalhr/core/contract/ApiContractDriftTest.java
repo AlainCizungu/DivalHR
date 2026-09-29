@@ -119,11 +119,13 @@ class ApiContractDriftTest {
             "/api/v1/departments",
             "/api/v1/cost-centers",
             "/api/v1/regions",
-            "/api/v1/sites/{siteId}/region")) {
+            "/api/v1/sites/{siteId}/region",
+            "/api/v1/teams")) {
       assertThat(paths).as(path).containsKey(path);
     }
     assertThat(castMap(spec.get("paths")))
-        .containsKeys("/departments", "/cost-centers", "/regions", "/sites/{siteId}/region");
+        .containsKeys(
+            "/departments", "/cost-centers", "/regions", "/sites/{siteId}/region", "/teams");
     assertThat(((List<?>) spec.get("servers")).toString()).contains("/api/v1");
   }
 

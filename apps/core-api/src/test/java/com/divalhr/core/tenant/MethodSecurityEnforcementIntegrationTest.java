@@ -13,11 +13,13 @@ import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
 import com.divalhr.core.tenant.api.CreateOrganizationRequest;
 import com.divalhr.core.tenant.api.CreateRegionRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
+import com.divalhr.core.tenant.api.CreateTeamRequest;
 import com.divalhr.core.tenant.api.DepartmentController;
 import com.divalhr.core.tenant.api.LegalEntityController;
 import com.divalhr.core.tenant.api.OrganizationController;
 import com.divalhr.core.tenant.api.RegionController;
 import com.divalhr.core.tenant.api.SiteController;
+import com.divalhr.core.tenant.api.TeamController;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +47,7 @@ class MethodSecurityEnforcementIntegrationTest {
   @Autowired private DepartmentController departments;
   @Autowired private CostCenterController costCenters;
   @Autowired private RegionController regions;
+  @Autowired private TeamController teams;
 
   @AfterEach
   void clear() {
@@ -104,6 +107,17 @@ class MethodSecurityEnforcementIntegrationTest {
       assertThatThrownBy(() -> sites.list(UUID.randomUUID().toString(), null, null))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(() -> regions.list(UUID.randomUUID().toString(), null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(() -> teams.list(UUID.randomUUID().toString(), null, null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  teams.create(
+                      Organizations.newKey(),
+                      CreateTeamRequest.of(
+                          UUID.randomUUID().toString(), null, "AB", "Bypass", "2026-01-01", null),
+                      caller,
+                      new MockHttpServletRequest()))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(
               () ->

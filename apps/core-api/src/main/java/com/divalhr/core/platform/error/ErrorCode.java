@@ -63,6 +63,20 @@ public enum ErrorCode {
   SITE_REGION_LEGAL_ENTITY_MISMATCH(HttpStatus.BAD_REQUEST),
   /** The site already has a different region; changing or clearing it is not supported. */
   SITE_REGION_ALREADY_ASSIGNED(HttpStatus.CONFLICT),
+  /** A team names no parent: neither departmentId nor costCenterId was supplied. */
+  TEAM_PARENT_REQUIRED(HttpStatus.BAD_REQUEST),
+  /** A team names two parents: both departmentId and costCenterId were supplied. */
+  TEAM_PARENT_AMBIGUOUS(HttpStatus.BAD_REQUEST),
+  /** The referenced department does not exist in the caller's tenant (missing or foreign). */
+  DEPARTMENT_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The referenced cost center does not exist in the caller's tenant (missing or foreign). */
+  COST_CENTER_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** A team with this code already exists in the tenant, in any letter case. */
+  DUPLICATE_TEAM_CODE(HttpStatus.CONFLICT),
+  /** The team's effective period is not contained in its department's. */
+  TEAM_PERIOD_OUTSIDE_DEPARTMENT(HttpStatus.BAD_REQUEST),
+  /** The team's effective period is not contained in its cost center's. */
+  TEAM_PERIOD_OUTSIDE_COST_CENTER(HttpStatus.BAD_REQUEST),
   /** An unexpected server error occurred. */
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 

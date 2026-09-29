@@ -29,6 +29,8 @@
       <Class name="com.divalhr.core.tenant.application.SiteUnitQueryService"/>
       <Class name="com.divalhr.core.tenant.application.CreateRegionService"/>
       <Class name="com.divalhr.core.tenant.application.AssignSiteRegionService"/>
+      <Class name="com.divalhr.core.tenant.application.CreateTeamService"/>
+      <Class name="com.divalhr.core.tenant.application.TeamQueryService"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->
