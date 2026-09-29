@@ -67,5 +67,8 @@ divalhr:
   idempotency:
     # Minimum retention; records are honoured until a cleanup job removes them after expires_at.
     retention: 7d
+  pagination:
+    # Required (fail closed): >= 32 bytes; dev-only- values are rejected outside development.
+    cursor-signing-key: ${DIVALHR_CURSOR_SIGNING_KEY:}
   cors:
     allowed-origins: ${DIVALHR_CORS_ALLOWED_ORIGINS:http://localhost:5173}

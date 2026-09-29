@@ -11,7 +11,12 @@ import org.springframework.context.annotation.Import;
 /** Full application context against a real PostgreSQL container. */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@SpringBootTest(properties = {"springdoc.api-docs.enabled=true", "divalhr.environment=test"})
+@SpringBootTest(
+    properties = {
+      "springdoc.api-docs.enabled=true",
+      "divalhr.environment=test",
+      "divalhr.pagination.cursor-signing-key=test-only-cursor-signing-key-0000000000000001"
+    })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class})
 public @interface IntegrationTest {}

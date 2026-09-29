@@ -22,8 +22,13 @@ Testcontainers.
 
 # Run against the Compose PostgreSQL and Keycloak (development only):
 # (publish the PostgreSQL port in compose.yaml first, e.g. "5432:5432")
-DIVALHR_ENVIRONMENT=development DIVALHR_DB_PASSWORD=dev-only-core-db ./gradlew bootRun
+DIVALHR_ENVIRONMENT=development DIVALHR_DB_PASSWORD=dev-only-core-db \
+  DIVALHR_CURSOR_SIGNING_KEY=dev-only-cursor-signing-key-not-a-secret-0001 ./gradlew bootRun
 ```
 
 `DIVALHR_ENVIRONMENT` is required and has no default. The API refuses to start outside
 `development`/`test` if it is configured to trust the development-only `divalhr-dev` realm.
+
+`DIVALHR_CURSOR_SIGNING_KEY` (HMAC key for pagination cursors) is required: at least 32 bytes,
+and published `dev-only-` values are refused outside `development`. In `development` only, Flyway
+also loads the `db/dev-seed` fixture organizations for the dev realm's tenants A and B.
