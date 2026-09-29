@@ -5,6 +5,7 @@ import type {
   Problem,
   Region,
   Site,
+  Team,
 } from '@divalhr/api-client';
 import { useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,17 +18,20 @@ import {
   REGION_FIELDS,
   SITE_FIELDS,
   SITE_UNIT_FIELDS,
+  TEAM_FIELDS,
   fieldErrorsFromProblem,
   toAssignmentPayload,
   toLegalEntityPayload,
   toRegionPayload,
   toSitePayload,
   toSiteUnitPayload,
+  toTeamPayload,
   validateAssignment,
   validateLegalEntity,
   validateRegion,
   validateSite,
   validateSiteUnit,
+  validateTeam,
   type AssignmentField,
   type Errors,
   type LegalEntityField,
@@ -39,6 +43,9 @@ import {
   type SiteUnitKind,
   type SiteUnitValues,
   type SiteValues,
+  type TeamField,
+  type TeamParentKind,
+  type TeamValues,
 } from './hierarchyForm';
 import type { RegionOptionsStatus } from './regionOptions';
 import { useIdempotencyKey } from './useIdempotencyKey';
@@ -677,6 +684,133 @@ export function SiteUnitForm({
       />
       <button type="submit" className="button" disabled={submitting}>
         {submitting ? t('hierarchy.submitting') : t(`hierarchy.${kind}Form.submit`)}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Creates a team beneath the selected department or cost center (MVP-002 Increment 3B). The
+ * payload names exactly one parent; the site is derived by the server from that parent.
+ */
+export function TeamForm({
+  parentKind,
+  parent,
+  onCreated,
+}: {
+  parentKind: TeamParentKind;
+  parent: Department | CostCenter;
+  onCreated: (team: Team) => void;
+}) {
+  const { t } = useTranslation();
+  const { core } = useApi();
+  const ids = useId();
+  const empty = (): TeamValues => ({
+    code: '',
+    name: '',
+    effectiveFrom: parent.effectiveFrom,
+    effectiveTo: parent.effectiveTo ?? '',
+  });
+  const [values, setValues] = useState<TeamValues>(empty);
+  const form = useCreateForm<TeamField>(TEAM_FIELDS);
+  const message = useMessage(form.errors);
+  const fieldId = (field: string) => `${ids}-team-${field}`;
+  const update = (patch: Partial<TeamValues>) => {
+    setValues((current) => ({ ...current, ...patch }));
+    if (form.phase.kind === 'failed') form.setPhase({ kind: 'editing' });
+  };
+
+  const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const payload = toTeamPayload(parentKind, parent.id, values);
+    void form.submit(
+      validateTeam(values),
+      payload,
+      (key) =>
+        core.POST('/teams', {
+          params: { header: { 'Idempotency-Key': key } },
+          body: payload,
+        }),
+      (created) => {
+        setValues(empty());
+        onCreated(created);
+      },
+    );
+  };
+  const submitting = form.phase.kind === 'submitting';
+
+  return (
+    <form
+      noValidate
+      aria-labelledby={`${ids}-team-title`}
+      aria-busy={submitting}
+      onSubmit={onSubmit}
+      data-testid="team-form"
+    >
+      <h4 id={`${ids}-team-title`}>
+        {t(`hierarchy.teams.${parentKind}.formTitle`, { name: parent.name, code: parent.code })}
+      </h4>
+      <p className="muted">{t(`hierarchy.teams.${parentKind}.periodHint`)}</p>
+      <Summary
+        summaryRef={form.summaryRef}
+        fields={TEAM_FIELDS}
+        errors={form.errors}
+        phase={form.phase}
+        fieldId={fieldId}
+        message={message}
+      />
+      <Field
+        id={fieldId('code')}
+        label={t('hierarchy.fields.code.label')}
+        help={t('hierarchy.fields.code.help')}
+        error={form.errors.code}
+        errorMessage={message('code')}
+      >
+        {(describedBy, invalid) => (
+          <input
+            id={fieldId('code')}
+            type="text"
+            autoComplete="off"
+            maxLength={40}
+            value={values.code}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              update({ code: event.target.value });
+            }}
+          />
+        )}
+      </Field>
+      <Field
+        id={fieldId('name')}
+        label={t('hierarchy.fields.teamName.label')}
+        error={form.errors.name}
+        errorMessage={message('name')}
+      >
+        {(describedBy, invalid) => (
+          <input
+            id={fieldId('name')}
+            type="text"
+            autoComplete="off"
+            maxLength={200}
+            value={values.name}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              update({ name: event.target.value });
+            }}
+          />
+        )}
+      </Field>
+      <DateFields
+        idFor={fieldId}
+        values={values}
+        errors={form.errors}
+        message={message}
+        onChange={update}
+      />
+      <button type="submit" className="button" disabled={submitting}>
+        {submitting ? t('hierarchy.submitting') : t('hierarchy.teamForm.submit')}
       </button>
     </form>
   );

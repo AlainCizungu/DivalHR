@@ -5,6 +5,7 @@ import type {
   CreateLegalEntity,
   CreateRegion,
   CreateSite,
+  CreateTeam,
 } from '@divalhr/api-client';
 import { COUNTRIES, TIMEZONES_BY_COUNTRY } from '../admin/organizationForm';
 
@@ -21,6 +22,8 @@ export type Constraint =
   | 'OUTSIDE_SITE'
   | 'OUTSIDE_LEGAL_ENTITY'
   | 'OUTSIDE_REGION'
+  | 'OUTSIDE_DEPARTMENT'
+  | 'OUTSIDE_COST_CENTER'
   | 'MISMATCH'
   | 'NOT_FOUND';
 
@@ -51,6 +54,10 @@ export const ASSIGNMENT_FIELDS: AssignmentField[] = ['regionId'];
 export type SiteUnitField = 'code' | 'name' | 'effectiveFrom' | 'effectiveTo';
 export const SITE_UNIT_FIELDS: SiteUnitField[] = ['code', 'name', 'effectiveFrom', 'effectiveTo'];
 export type SiteUnitKind = 'department' | 'costCenter';
+/** Teams (MVP-002 Increment 3B) sit beneath exactly one department or cost center. */
+export type TeamField = SiteUnitField;
+export const TEAM_FIELDS: TeamField[] = SITE_UNIT_FIELDS;
+export type TeamParentKind = SiteUnitKind;
 
 export type Errors<F extends string> = Partial<Record<F, Constraint>>;
 
@@ -80,6 +87,7 @@ export interface SiteValues {
 }
 
 export type RegionValues = SiteUnitValues;
+export type TeamValues = SiteUnitValues;
 
 const CODE = /^[A-Z0-9_-]{2,20}$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -162,6 +170,10 @@ export function validateRegion(values: RegionValues): Errors<RegionField> {
   return validateSiteUnit(values);
 }
 
+export function validateTeam(values: TeamValues): Errors<TeamField> {
+  return validateSiteUnit(values);
+}
+
 export function validateAssignment(regionId: string): Errors<AssignmentField> {
   return regionId === '' ? { regionId: 'REQUIRED' } : {};
 }
@@ -227,6 +239,29 @@ export function toSiteUnitPayload(
   };
 }
 
+/**
+ * A create-team body naming exactly one parent. The other parent property is omitted, which the
+ * API treats like null; the union stays discriminated and assignable to the generated CreateTeam.
+ */
+export type TeamPayload = Omit<CreateTeam, 'departmentId' | 'costCenterId'> &
+  ({ departmentId: string } | { costCenterId: string });
+
+export function toTeamPayload(
+  parentKind: TeamParentKind,
+  parentId: string,
+  values: TeamValues,
+): TeamPayload {
+  const rest = {
+    code: normalizeCode(values.code),
+    name: values.name.trim(),
+    effectiveFrom: values.effectiveFrom,
+    effectiveTo: values.effectiveTo === '' ? null : values.effectiveTo,
+  };
+  return parentKind === 'department'
+    ? { departmentId: parentId, ...rest }
+    : { costCenterId: parentId, ...rest };
+}
+
 interface ProblemLike {
   code?: string;
   params?: Record<string, unknown> | { [key: string]: unknown };
@@ -253,6 +288,9 @@ export function fieldErrorsFromProblem<F extends string>(
     REGION_NOT_FOUND: 'NOT_FOUND',
     SITE_PERIOD_OUTSIDE_REGION: 'OUTSIDE_REGION',
     SITE_REGION_LEGAL_ENTITY_MISMATCH: 'MISMATCH',
+    DUPLICATE_TEAM_CODE: 'DUPLICATE_CODE',
+    TEAM_PERIOD_OUTSIDE_DEPARTMENT: 'OUTSIDE_DEPARTMENT',
+    TEAM_PERIOD_OUTSIDE_COST_CENTER: 'OUTSIDE_COST_CENTER',
     COUNTRY_NOT_SUPPORTED: 'NOT_SUPPORTED',
     TIMEZONE_NOT_SUPPORTED: 'NOT_SUPPORTED',
   };

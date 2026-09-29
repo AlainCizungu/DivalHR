@@ -1,3 +1,4 @@
+import type { CreateTeam } from '@divalhr/api-client';
 import { describe, expect, it } from 'vitest';
 import {
   ASSIGNMENT_FIELDS,
@@ -5,16 +6,19 @@ import {
   REGION_FIELDS,
   SITE_FIELDS,
   SITE_UNIT_FIELDS,
+  TEAM_FIELDS,
   fieldErrorsFromProblem,
   toAssignmentPayload,
   toRegionPayload,
   toSitePayload,
   toSiteUnitPayload,
+  toTeamPayload,
   validateAssignment,
   validateLegalEntity,
   validateRegion,
   validateSite,
   validateSiteUnit,
+  validateTeam,
 } from './hierarchyForm';
 
 const entity = {
@@ -211,5 +215,69 @@ describe('hierarchy form rules', () => {
         ASSIGNMENT_FIELDS,
       ),
     ).toBeNull();
+  });
+
+  it('builds a team payload naming exactly one parent and keeps the generated union', () => {
+    const values = {
+      code: ' paie ',
+      name: ' Équipe paie ',
+      effectiveFrom: '2026-03-01',
+      effectiveTo: '',
+    };
+    const department: CreateTeam = toTeamPayload('department', 'dept-id', values);
+    expect(department).toEqual({
+      departmentId: 'dept-id',
+      code: 'PAIE',
+      name: 'Équipe paie',
+      effectiveFrom: '2026-03-01',
+      effectiveTo: null,
+    });
+    expect('costCenterId' in department).toBe(false);
+    const costCenter: CreateTeam = toTeamPayload('costCenter', 'cc-id', {
+      ...values,
+      effectiveTo: '2026-12-31',
+    });
+    expect(costCenter).toEqual({
+      costCenterId: 'cc-id',
+      code: 'PAIE',
+      name: 'Équipe paie',
+      effectiveFrom: '2026-03-01',
+      effectiveTo: '2026-12-31',
+    });
+    expect('departmentId' in costCenter).toBe(false);
+    expect(validateTeam(values)).toEqual({});
+    expect(validateTeam({ ...values, code: '', effectiveTo: '2026-01-01' })).toEqual({
+      code: 'REQUIRED',
+      effectiveTo: 'BEFORE_START',
+    });
+  });
+
+  it('maps team problems to fields and leaves parent problems form-level', () => {
+    expect(
+      fieldErrorsFromProblem(
+        { code: 'DUPLICATE_TEAM_CODE', params: { field: 'code' } },
+        TEAM_FIELDS,
+      ),
+    ).toEqual({ code: 'DUPLICATE_CODE' });
+    expect(
+      fieldErrorsFromProblem(
+        { code: 'TEAM_PERIOD_OUTSIDE_DEPARTMENT', params: { field: 'effectiveFrom' } },
+        TEAM_FIELDS,
+      ),
+    ).toEqual({ effectiveFrom: 'OUTSIDE_DEPARTMENT' });
+    expect(
+      fieldErrorsFromProblem(
+        { code: 'TEAM_PERIOD_OUTSIDE_COST_CENTER', params: { field: 'effectiveTo' } },
+        TEAM_FIELDS,
+      ),
+    ).toEqual({ effectiveTo: 'OUTSIDE_COST_CENTER' });
+    for (const code of [
+      'TEAM_PARENT_REQUIRED',
+      'TEAM_PARENT_AMBIGUOUS',
+      'DEPARTMENT_NOT_FOUND',
+      'COST_CENTER_NOT_FOUND',
+    ]) {
+      expect(fieldErrorsFromProblem({ code, params: {} }, TEAM_FIELDS)).toBeNull();
+    }
   });
 });

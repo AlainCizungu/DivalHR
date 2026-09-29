@@ -95,6 +95,13 @@
     "SITE_PERIOD_OUTSIDE_REGION": "Les dates du site doivent être comprises dans celles de sa région.",
     "SITE_REGION_LEGAL_ENTITY_MISMATCH": "Cette région appartient à une autre entité juridique que le site.",
     "SITE_REGION_ALREADY_ASSIGNED": "Ce site est déjà rattaché à une autre région. Rechargez les sites pour voir sa région actuelle.",
+    "TEAM_PARENT_REQUIRED": "Choisissez un département ou un centre de coût pour cette équipe.",
+    "TEAM_PARENT_AMBIGUOUS": "Une équipe relève d’un département ou d’un centre de coût, pas des deux.",
+    "DEPARTMENT_NOT_FOUND": "Ce département n’existe pas dans votre organisation.",
+    "COST_CENTER_NOT_FOUND": "Ce centre de coût n’existe pas dans votre organisation.",
+    "DUPLICATE_TEAM_CODE": "Ce code d’équipe est déjà utilisé dans votre organisation.",
+    "TEAM_PERIOD_OUTSIDE_DEPARTMENT": "Les dates de l’équipe doivent être comprises dans celles de son département.",
+    "TEAM_PERIOD_OUTSIDE_COST_CENTER": "Les dates de l’équipe doivent être comprises dans celles de son centre de coût.",
     "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
   },
   "notFound": {
@@ -299,6 +306,9 @@
       "regionName": {
         "label": "Nom de la région"
       },
+      "teamName": {
+        "label": "Nom de l’équipe"
+      },
       "region": {
         "label": "Région (facultatif)",
         "help": "Seules les régions de cette entité juridique sont proposées. Laissez « Sans région » pour créer le site sans région.",
@@ -337,7 +347,9 @@
         "RANGE": "La date de début doit être comprise entre 1900 et 2999.",
         "OUTSIDE_PARENT": "La date de début ne peut pas précéder celle de l’entité juridique.",
         "OUTSIDE_SITE": "La date de début ne peut pas précéder celle du site.",
-        "OUTSIDE_LEGAL_ENTITY": "La date de début ne peut pas précéder celle de l’entité juridique."
+        "OUTSIDE_LEGAL_ENTITY": "La date de début ne peut pas précéder celle de l’entité juridique.",
+        "OUTSIDE_DEPARTMENT": "La date de début ne peut pas précéder celle du département.",
+        "OUTSIDE_COST_CENTER": "La date de début ne peut pas précéder celle du centre de coût."
       },
       "effectiveTo": {
         "FORMAT": "Saisissez une date de fin valide.",
@@ -345,7 +357,9 @@
         "BEFORE_START": "La date de fin ne peut pas précéder la date de début.",
         "OUTSIDE_PARENT": "La date de fin doit être comprise dans les dates de l’entité juridique. Un site sans date de fin exige une entité juridique sans date de fin.",
         "OUTSIDE_SITE": "La date de fin doit être comprise dans les dates du site. Une entrée sans date de fin exige un site sans date de fin.",
-        "OUTSIDE_LEGAL_ENTITY": "La date de fin doit être comprise dans les dates de l’entité juridique. Une région sans date de fin exige une entité juridique sans date de fin."
+        "OUTSIDE_LEGAL_ENTITY": "La date de fin doit être comprise dans les dates de l’entité juridique. Une région sans date de fin exige une entité juridique sans date de fin.",
+        "OUTSIDE_DEPARTMENT": "La date de fin doit être comprise dans les dates du département. Une équipe sans date de fin exige un département sans date de fin.",
+        "OUTSIDE_COST_CENTER": "La date de fin doit être comprise dans les dates du centre de coût. Une équipe sans date de fin exige un centre de coût sans date de fin."
       },
       "regionId": {
         "REQUIRED": "Choisissez une région.",
@@ -378,6 +392,30 @@
     "costCenterForm": {
       "title": "Ajouter un centre de coût à {{name}} ({{code}})",
       "submit": "Créer le centre de coût"
+    },
+    "teams": {
+      "title": "Équipes",
+      "none": "Choisissez « Afficher les équipes » sur un département ou un centre de coût pour voir ses équipes.",
+      "selectShort": "Afficher les équipes",
+      "loadMore": "Afficher plus d’équipes",
+      "created": "Équipe {{name}} ({{code}}) créée.",
+      "department": {
+        "title": "Équipes du département {{name}} ({{code}})",
+        "select": "Afficher les équipes du département {{name}} ({{code}})",
+        "empty": "Aucune équipe pour ce département pour le moment.",
+        "formTitle": "Ajouter une équipe au département {{name}} ({{code}})",
+        "periodHint": "Les dates doivent être comprises dans celles du département."
+      },
+      "costCenter": {
+        "title": "Équipes du centre de coût {{name}} ({{code}})",
+        "select": "Afficher les équipes du centre de coût {{name}} ({{code}})",
+        "empty": "Aucune équipe pour ce centre de coût pour le moment.",
+        "formTitle": "Ajouter une équipe au centre de coût {{name}} ({{code}})",
+        "periodHint": "Les dates doivent être comprises dans celles du centre de coût."
+      }
+    },
+    "teamForm": {
+      "submit": "Créer l’équipe"
     }
   }
 }
