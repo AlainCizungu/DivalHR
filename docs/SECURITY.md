@@ -27,7 +27,7 @@ Relevant attributes include tenant, legal entity, site, department, manager rela
 
 ## Platform-scoped versus tenant-scoped operations
 
-Every mutating `/api/v1` operation declares exactly one scope; a test fails the build otherwise.
+Every non-public `/api/v1` operation, read or write, declares exactly one scope; a test fails the build otherwise, and a contract test checks each handler's scope and role against `x-divalhr-scope` and `x-divalhr-required-role`.
 
 | | Platform-scoped (`@PlatformScoped`) | Tenant-scoped (`@TenantScoped`) |
 |---|---|---|
@@ -38,6 +38,28 @@ Every mutating `/api/v1` operation declares exactly one scope; a test fails the 
 | Denials | 403 `ACCESS_DENIED`, safe structured security log (`divalhr.security`) and a `denied` metric | 403 `TENANT_ACCESS_DENIED` |
 
 A platform administrator gains **no** access to tenant-scoped resources of other tenants through the platform role. Durable auditing of privileged authorization denials is tracked as MVP-013.
+
+### Tenant-administrator operations (MVP-002)
+
+Legal-entity and site endpoints use `@TenantAdminOperation`, which combines `@TenantScoped(role = "tenant-admin")` with `@PreAuthorize("hasRole('tenant-admin')")`. The interceptor rejects any other role with 403 `ACCESS_DENIED` before the body is read, then requires a valid `tenant_id` claim (403 `TENANT_CONTEXT_MISSING`). Employees and platform administrators are denied; there is no implicit platform access to tenant data.
+
+- The tenant comes only from the verified token. Headers, query parameters and bodies never supply it; unknown body properties such as `tenantId` are rejected.
+- Every repository method takes the verified `TenantId` and filters on it (enforced by an ArchUnit rule). A missing parent and another tenant's parent return the same `404 LEGAL_ENTITY_NOT_FOUND` body, apart from `correlationId`.
+- Only the named unique indexes map to `409 DUPLICATE_LEGAL_ENTITY_CODE` / `DUPLICATE_SITE_CODE`; every other database error is a generic `500 INTERNAL_ERROR`. Problem params never echo submitted names, codes, IDs, SQL, constraint names or cursors.
+- PostgreSQL row-level security is not used in this increment; isolation relies on the tenant predicates, the composite foreign key and the tests above.
+
+## Pagination cursors
+
+List endpoints return opaque keyset cursors: `base64url(payload) "." base64url(HMAC-SHA256(payload))`. The payload holds a version, the last row's code and id, and a SHA-256 binding of the operation, verified tenant and filters (for sites, the legal entity). Cursors are therefore unusable across tenants, operations or parents.
+
+- Decoding rejects input longer than 512 characters or of the wrong shape before decoding, verifies the MAC in constant time before parsing, and accepts only the exact allow-listed fields and types. Every failure is the same `400 CURSOR_INVALID` with no params.
+- Cursors, payloads, bindings and the key are never logged.
+- The key comes from `DIVALHR_CURSOR_SIGNING_KEY` and fails closed: start-up is refused when it is missing or shorter than 32 bytes, and outside `development` when it is a published `dev-only-` value. `.env.example` holds only an obvious development placeholder.
+- **Known limitation:** there is a single key and no rotation. Changing it invalidates outstanding cursors (clients restart from the first page). Key rotation with a key identifier is future work before production.
+
+## Development fixtures
+
+`db/dev-seed` creates the organizations for the published development tenants A and B ("DEV-ONLY Fixture Tenant A/B") so seed users can own hierarchy records. Flyway loads it only when `divalhr.environment` is exactly `development`; a start-up test proves it is absent in `test`, and staging and production never load it. The fixture inserts are idempotent and write no audit or outbox rows. Integration tests create their own organizations.
 
 ## Idempotency
 
@@ -58,7 +80,7 @@ Retryable creates require `Idempotency-Key`. Records are scoped to `(operation, 
 
 Sensitive events include actor, action, tenant, object, result, time, reason, correlation ID, and an integrity-protected reference to relevant before-and-after values.
 
-`platform.audit_event` is append-only: database triggers reject `UPDATE`, `DELETE` and `TRUNCATE`. Audit metadata carries safe configuration values only (for organizations: country, locale, time zone, currencies), never names, tokens or personal data; `after_state_sha256` is the integrity reference to the persisted state.
+`platform.audit_event` is append-only: database triggers reject `UPDATE`, `DELETE` and `TRUNCATE`. Audit metadata carries safe configuration values only (for organizations: country, locale, time zone, currencies; for legal entities and sites: code, country or time zone, parent id and effective dates), never names, tokens or personal data; `after_state_sha256` is the integrity reference to the persisted state.
 
 ## Application security
 

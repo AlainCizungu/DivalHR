@@ -18,7 +18,12 @@
       <Class name="com.divalhr.core.platform.error.GlobalExceptionHandler"/>
       <Class name="com.divalhr.core.platform.outbox.OutboxWriter"/>
       <Class name="com.divalhr.core.platform.observability.OperationMetrics"/>
+      <Class name="com.divalhr.core.platform.idempotency.IdempotentCreate"/>
+      <Class name="com.divalhr.core.platform.pagination.CursorCodec"/>
       <Class name="com.divalhr.core.tenant.application.CreateOrganizationService"/>
+      <Class name="com.divalhr.core.tenant.application.CreateLegalEntityService"/>
+      <Class name="com.divalhr.core.tenant.application.CreateSiteService"/>
+      <Class name="com.divalhr.core.tenant.application.HierarchyQueryService"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->
@@ -27,6 +32,7 @@
     <Or>
       <Class name="~com\.divalhr\.core\..*Test"/>
       <Class name="com.divalhr.core.support.Organizations"/>
+      <Class name="com.divalhr.core.support.Hierarchy"/>
     </Or>
   </Match>
 </FindBugsFilter>

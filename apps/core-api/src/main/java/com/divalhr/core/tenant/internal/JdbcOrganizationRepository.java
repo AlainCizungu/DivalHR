@@ -1,5 +1,6 @@
 package com.divalhr.core.tenant.internal;
 
+import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.tenant.domain.Organization;
 import java.sql.Timestamp;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -23,7 +24,22 @@ public class JdbcOrganizationRepository {
   }
 
   /**
-   * Inserts a new organization and its currencies.
+   * Whether the verified tenant has an organization (the tenant root).
+   *
+   * @param tenant verified tenant
+   * @return true when the organization exists
+   */
+  public boolean exists(TenantId tenant) {
+    return jdbc.sql("SELECT 1 FROM tenant.organization WHERE id = :tenant")
+        .param("tenant", tenant.value())
+        .query(Integer.class)
+        .optional()
+        .isPresent();
+  }
+
+  /**
+   * Inserts a new organization and its currencies. Platform-scoped: the organization id becomes the
+   * new tenant id.
    *
    * @param organization aggregate
    */

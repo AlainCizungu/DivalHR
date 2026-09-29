@@ -26,7 +26,15 @@ public class OperationMetrics {
     /** The request failed validation. */
     VALIDATION_FAILED,
     /** The caller was authenticated but not authorized. */
-    DENIED
+    DENIED,
+    /** A business key (such as a code) already exists. */
+    DUPLICATE_CONFLICT,
+    /** A referenced resource does not exist in the caller's tenant. */
+    NOT_FOUND,
+    /** A page was returned. */
+    LISTED,
+    /** An unexpected server-side failure. */
+    FAILURE
   }
 
   private final MeterRegistry registry;

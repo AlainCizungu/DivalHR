@@ -18,7 +18,12 @@ import org.springframework.test.web.servlet.MockMvc;
  * The management port is folded into the main port here so MockMvc can reach it.
  */
 @SpringBootTest(
-    properties = {"divalhr.environment=test", "server.port=8080", "management.server.port=8080"})
+    properties = {
+      "divalhr.environment=test",
+      "divalhr.pagination.cursor-signing-key=test-only-cursor-signing-key-0000000000000001",
+      "server.port=8080",
+      "management.server.port=8080"
+    })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class})
 class HealthProbeIntegrationTest {

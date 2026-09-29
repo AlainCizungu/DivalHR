@@ -90,6 +90,7 @@ paths:
     post:
       operationId: createOrganization
       x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       summary: Create an organization (platform provisioning)
       description: >-
@@ -126,6 +127,147 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /legal-entities:
+    get:
+      operationId: listLegalEntities
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: List legal entities of the caller's tenant
+      description: >-
+        Keyset-paginated, ordered by code then id. The tenant comes only from the verified access
+        token; no tenant identifier is accepted in headers, query parameters or bodies.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of legal entities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalEntityPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createLegalEntity
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: Create a legal entity in the caller's tenant
+      description: >-
+        Codes are trimmed, upper-cased and unique per tenant regardless of case. Retries with the
+        same Idempotency-Key and an identical payload replay the original 201.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLegalEntity"
+      responses:
+        "201":
+          description: Legal entity created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalEntity"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /sites:
+    get:
+      operationId: listSites
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: List sites of one legal entity in the caller's tenant
+      description: >-
+        A legal entity that does not exist and one that belongs to another tenant produce the same
+        404 LEGAL_ENTITY_NOT_FOUND response.
+      tags: [tenant]
+      parameters:
+        - name: legalEntityId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of sites
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SitePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createSite
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      summary: Create a site beneath a legal entity of the caller's tenant
+      description: >-
+        The site's effective period must lie within its legal entity's period; an open-ended site
+        requires an open-ended legal entity. The time zone must be supported for the legal entity's
+        country.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSite"
+      responses:
+        "201":
+          description: Site created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Site"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
   /employees:
@@ -241,15 +383,27 @@ components:
     BadRequest:
       description: >-
         Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with
-        constraint REQUIRED, LENGTH, FORMAT, DUPLICATE or UNKNOWN_PROPERTY. The
-        *_NOT_SUPPORTED codes carry params.field and params.supported. Submitted values are
-        never echoed.
+        constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The
+        *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID and
+        SITE_PERIOD_OUTSIDE_LEGAL_ENTITY carry params.field. CURSOR_INVALID carries no params.
+        Submitted values are never echoed.
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
     Conflict:
-      description: IDEMPOTENCY_KEY_REUSED - the key was already used with a different payload.
+      description: >-
+        IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or
+        DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE (the code already exists in the tenant,
+        in any letter case).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: >-
+        LEGAL_ENTITY_NOT_FOUND - the legal entity does not exist in the caller's tenant. Missing and
+        foreign-tenant resources are indistinguishable.
       content:
         application/problem+json:
           schema:
@@ -279,8 +433,12 @@ components:
     Cursor:
       name: cursor
       in: query
+      description: >-
+        Opaque, signed continuation token from a previous page's nextCursor. It is bound to the
+        operation, tenant and filters that produced it; any other use returns CURSOR_INVALID.
       schema:
         type: string
+        maxLength: 512
     Limit:
       name: limit
       in: query
@@ -351,6 +509,127 @@ components:
           items:
             type: string
             enum: [CDF, USD]
+    LegalEntity:
+      type: object
+      required: [id, code, name, countryCode, effectiveFrom, effectiveTo, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[A-Z0-9_-]{2,20}$"
+        name:
+          type: string
+        countryCode:
+          type: string
+          enum: [CD]
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    CreateLegalEntity:
+      type: object
+      additionalProperties: false
+      required: [code, name, countryCode, effectiveFrom]
+      properties:
+        code:
+          type: string
+          description: Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore.
+          pattern: "^\\s*[A-Za-z0-9_-]{2,20}\\s*$"
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        countryCode:
+          type: string
+          enum: [CD]
+        effectiveFrom:
+          type: string
+          format: date
+          description: Inclusive, between 1900-01-01 and 2999-12-31.
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+    LegalEntityPage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegalEntity"
+        nextCursor:
+          type: string
+    Site:
+      type: object
+      required: [id, legalEntityId, code, name, timezone, effectiveFrom, effectiveTo, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[A-Z0-9_-]{2,20}$"
+        name:
+          type: string
+        timezone:
+          type: string
+          enum: [Africa/Kinshasa, Africa/Lubumbashi]
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    CreateSite:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, code, name, timezone, effectiveFrom]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          description: Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore.
+          pattern: "^\\s*[A-Za-z0-9_-]{2,20}\\s*$"
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        timezone:
+          type: string
+          description: Must be supported for the legal entity's country.
+          enum: [Africa/Kinshasa, Africa/Lubumbashi]
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+    SitePage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Site"
+        nextCursor:
+          type: string
     SystemStatus:
       type: object
       required: [service, status, version, checkedAt]
@@ -393,6 +672,12 @@ components:
         - LOCALE_NOT_SUPPORTED
         - TIMEZONE_NOT_SUPPORTED
         - CURRENCY_NOT_SUPPORTED
+        - LEGAL_ENTITY_NOT_FOUND
+        - DUPLICATE_LEGAL_ENTITY_CODE
+        - DUPLICATE_SITE_CODE
+        - EFFECTIVE_DATE_INVALID
+        - SITE_PERIOD_OUTSIDE_LEGAL_ENTITY
+        - CURSOR_INVALID
         - INTERNAL_ERROR
     Problem:
       type: object

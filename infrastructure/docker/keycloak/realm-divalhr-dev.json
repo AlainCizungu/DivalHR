@@ -121,6 +121,26 @@
       "requiredActions": []
     },
     {
+      "username": "dev-admin-b",
+      "enabled": true,
+      "email": "dev-admin-b@example.com",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Admin B",
+      "attributes": {
+        "tenant_id": ["00000000-0000-4000-8000-00000000000b"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-only-Admin-B-2026",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["tenant-admin"],
+      "requiredActions": []
+    },
+    {
       "username": "dev-employee-a",
       "enabled": true,
       "email": "dev-employee-a@example.com",

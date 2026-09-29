@@ -12,8 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
  * organization) and never derives scope from the caller's {@code tenant_id} claim. Only {@code
  * platform-admin} may invoke it.
  *
- * <p>Enforced twice: by {@link PlatformScopeInterceptor} before the request body is read, and by
- * method security through the {@link PreAuthorize} meta-annotation.
+ * <p>Enforced twice: by {@link ScopeAuthorizationInterceptor} before the request body is read, and
+ * by method security through the {@link PreAuthorize} meta-annotation.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

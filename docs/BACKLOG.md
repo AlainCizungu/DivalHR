@@ -34,6 +34,13 @@ Acceptance criteria:
 
 As an administrator, I can create legal entities, regions, sites, departments, cost centers, and teams with effective dates.
 
+MVP-002 is delivered incrementally:
+
+- **Increment 1 (Issue #12): legal entities and sites.** Tenant administrators create and list (keyset-paginated) legal entities and the sites beneath them, with effective dates, case-insensitive unique codes and site periods contained in their legal entity's period. French and English UI at `/admin/hierarchy`.
+- Later increments (each a separate, approved story): regions, departments, cost centers and teams; editing and closing records; hierarchy views for other roles.
+
+Out of scope for increment 1: editing, deletion, platform impersonation, external event publication and AI features.
+
 ## Epic 2 Identity and Access
 
 ### MVP-010 Invite a user

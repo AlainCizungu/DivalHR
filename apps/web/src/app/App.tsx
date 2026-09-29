@@ -5,6 +5,8 @@ import { CallbackPage } from '../auth/CallbackPage';
 import type { RuntimeConfig } from '../config/runtime';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { RequirePlatformAdmin } from '../features/admin/RequirePlatformAdmin';
+import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
+import { RequireRole } from '../features/hierarchy/RequireRole';
 import { HomePage } from '../features/home/HomePage';
 import { StatusPage } from '../features/status/StatusPage';
 import { AppShell } from '../layout/AppShell';
@@ -30,6 +32,18 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
                       <RequirePlatformAdmin>
                         <CreateOrganizationPage />
                       </RequirePlatformAdmin>
+                    }
+                  />
+                  <Route
+                    path="/admin/hierarchy"
+                    element={
+                      <RequireRole
+                        requiredRole="tenant-admin"
+                        deniedKey="hierarchy.unauthorized"
+                        signInKey="hierarchy.signInRequired"
+                      >
+                        <HierarchyPage />
+                      </RequireRole>
                     }
                   />
                   <Route path="/auth/callback" element={<CallbackPage />} />

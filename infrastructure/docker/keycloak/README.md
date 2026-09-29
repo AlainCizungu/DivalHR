@@ -8,10 +8,14 @@ into, or reused by, any shared, staging or production environment:
   issuer points at a `divalhr-dev` realm.
 - Seed tenant IDs are low-entropy placeholders (`00000000-0000-4000-8000-00000000000a`, `…0b`).
 - Seed passwords all start with `dev-only-` and are published in this repository.
+- Tenants A and B exist as organizations only in `development`: the Core API loads the
+  `db/dev-seed` fixtures ("DEV-ONLY Fixture Tenant A/B") solely when
+  `DIVALHR_ENVIRONMENT=development`.
 
 | Username | Tenant | Role | Password |
 |---|---|---|---|
 | `dev-admin-a` | A (`…000a`) | tenant-admin | `dev-only-Admin-A-2026` |
+| `dev-admin-b` | B (`…000b`) | tenant-admin | `dev-only-Admin-B-2026` |
 | `dev-employee-a` | A (`…000a`) | employee | `dev-only-Employee-A-2026` |
 | `dev-employee-b` | B (`…000b`) | employee | `dev-only-Employee-B-2026` |
 | `dev-platform-admin` | A (`…000a`) | platform-admin | `dev-only-Platform-2026` |

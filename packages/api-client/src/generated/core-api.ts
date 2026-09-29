@@ -61,6 +61,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/legal-entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List legal entities of the caller's tenant
+         * @description Keyset-paginated, ordered by code then id. The tenant comes only from the verified access token; no tenant identifier is accepted in headers, query parameters or bodies.
+         */
+        get: operations["listLegalEntities"];
+        put?: never;
+        /**
+         * Create a legal entity in the caller's tenant
+         * @description Codes are trimmed, upper-cased and unique per tenant regardless of case. Retries with the same Idempotency-Key and an identical payload replay the original 201.
+         */
+        post: operations["createLegalEntity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sites of one legal entity in the caller's tenant
+         * @description A legal entity that does not exist and one that belongs to another tenant produce the same 404 LEGAL_ENTITY_NOT_FOUND response.
+         */
+        get: operations["listSites"];
+        put?: never;
+        /**
+         * Create a site beneath a legal entity of the caller's tenant
+         * @description The site's effective period must lie within its legal entity's period; an open-ended site requires an open-ended legal entity. The time zone must be supported for the legal entity's country.
+         */
+        post: operations["createSite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/employees": {
         parameters: {
             query?: never;
@@ -169,6 +217,77 @@ export interface components {
             timezone: "Africa/Kinshasa" | "Africa/Lubumbashi";
             currencies: ("CDF" | "USD")[];
         };
+        LegalEntity: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            /** @enum {string} */
+            countryCode: "CD";
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateLegalEntity: {
+            /** @description Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore. */
+            code: string;
+            name: string;
+            /** @enum {string} */
+            countryCode: "CD";
+            /**
+             * Format: date
+             * @description Inclusive, between 1900-01-01 and 2999-12-31.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Inclusive and not earlier than effectiveFrom; omit or null for open-ended.
+             */
+            effectiveTo?: string | null;
+        };
+        LegalEntityPage: {
+            data: components["schemas"]["LegalEntity"][];
+            nextCursor?: string;
+        };
+        Site: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            code: string;
+            name: string;
+            /** @enum {string} */
+            timezone: "Africa/Kinshasa" | "Africa/Lubumbashi";
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateSite: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** @description Trimmed and upper-cased; 2-20 of A-Z, 0-9, hyphen and underscore. */
+            code: string;
+            name: string;
+            /**
+             * @description Must be supported for the legal entity's country.
+             * @enum {string}
+             */
+            timezone: "Africa/Kinshasa" | "Africa/Lubumbashi";
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo?: string | null;
+        };
+        SitePage: {
+            data: components["schemas"]["Site"][];
+            nextCursor?: string;
+        };
         SystemStatus: {
             /** @example core-api */
             service: string;
@@ -187,7 +306,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -223,7 +342,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. Submitted values are never echoed. */
+        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID and SITE_PERIOD_OUTSIDE_LEGAL_ENTITY carry params.field. CURSOR_INVALID carries no params. Submitted values are never echoed. */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -232,8 +351,17 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED - the key was already used with a different payload. */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE (the code already exists in the tenant, in any letter case). */
         Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description LEGAL_ENTITY_NOT_FOUND - the legal entity does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
+        NotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -247,6 +375,7 @@ export interface components {
         CorrelationId: string;
         /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
         IdempotencyKey: string;
+        /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
         Cursor: string;
         Limit: number;
     };
@@ -378,9 +507,141 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    listLegalEntities: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of legal entities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalEntityPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createLegalEntity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLegalEntity"];
+            };
+        };
+        responses: {
+            /** @description Legal entity created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalEntity"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listSites: {
+        parameters: {
+            query: {
+                legalEntityId: string;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of sites */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SitePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createSite: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSite"];
+            };
+        };
+        responses: {
+            /** @description Site created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Site"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     listEmployees: {
         parameters: {
             query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
             };
