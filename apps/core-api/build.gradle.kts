@@ -24,7 +24,8 @@ repositories {
 
 val springdocVersion = "3.1.1"
 val archunitVersion = "1.5.1"
-val jsonSchemaValidatorVersion = "3.0.7"
+// Pinned to 1.x: 2.x+ changed the API used by the event-envelope contract tests (Issue #17).
+val jsonSchemaValidatorVersion = "1.5.9"
 
 dependencies {
     implementation(platform(SpringBootPlugin.BOM_COORDINATES))
