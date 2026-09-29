@@ -51,6 +51,18 @@ public enum ErrorCode {
   DEPARTMENT_PERIOD_OUTSIDE_SITE(HttpStatus.BAD_REQUEST),
   /** The cost center's effective period is not contained in its site's. */
   COST_CENTER_PERIOD_OUTSIDE_SITE(HttpStatus.BAD_REQUEST),
+  /** The referenced region does not exist in the caller's tenant (missing or foreign). */
+  REGION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** A region with this code already exists in the tenant, in any letter case. */
+  DUPLICATE_REGION_CODE(HttpStatus.CONFLICT),
+  /** The region's effective period is not contained in its legal entity's. */
+  REGION_PERIOD_OUTSIDE_LEGAL_ENTITY(HttpStatus.BAD_REQUEST),
+  /** The site's effective period is not contained in the region's. */
+  SITE_PERIOD_OUTSIDE_REGION(HttpStatus.BAD_REQUEST),
+  /** The region belongs to another legal entity than the site. */
+  SITE_REGION_LEGAL_ENTITY_MISMATCH(HttpStatus.BAD_REQUEST),
+  /** The site already has a different region; changing or clearing it is not supported. */
+  SITE_REGION_ALREADY_ASSIGNED(HttpStatus.CONFLICT),
   /** An unexpected server error occurred. */
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 

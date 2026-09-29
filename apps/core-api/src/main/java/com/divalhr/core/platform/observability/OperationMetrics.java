@@ -33,6 +33,12 @@ public class OperationMetrics {
     NOT_FOUND,
     /** A page was returned. */
     LISTED,
+    /** An existing resource was changed (for example a site's first region assignment). */
+    UPDATED,
+    /** The requested state already held, so nothing was changed or recorded. */
+    UNCHANGED,
+    /** The resource's current state forbids the change (for example a region already assigned). */
+    STATE_CONFLICT,
     /** An unexpected server-side failure. */
     FAILURE
   }

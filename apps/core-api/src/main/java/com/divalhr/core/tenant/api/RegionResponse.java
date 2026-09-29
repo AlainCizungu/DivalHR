@@ -1,6 +1,6 @@
 package com.divalhr.core.tenant.api;
 
-import com.divalhr.core.tenant.domain.Site;
+import com.divalhr.core.tenant.domain.Region;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
@@ -8,27 +8,22 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Response body mirroring {@code Site}; never includes the tenant or the author.
+ * Response body mirroring {@code Region}; never includes the tenant or the author.
  *
  * @param id id
  * @param legalEntityId parent legal entity
- * @param regionId the site's region, or {@code null} for a site without a region (always
- *     serialized, like {@code effectiveTo})
  * @param code code
  * @param name name
- * @param timezone time zone
  * @param effectiveFrom first effective day
  * @param effectiveTo last effective day, or {@code null} when open-ended
  * @param createdAt UTC creation time
  */
-@Schema(name = "Site")
-public record SiteResponse(
+@Schema(name = "Region")
+public record RegionResponse(
     UUID id,
     UUID legalEntityId,
-    @JsonInclude(JsonInclude.Include.ALWAYS) UUID regionId,
     String code,
     String name,
-    String timezone,
     LocalDate effectiveFrom,
     @JsonInclude(JsonInclude.Include.ALWAYS) LocalDate effectiveTo,
     Instant createdAt) {
@@ -36,19 +31,17 @@ public record SiteResponse(
   /**
    * Maps the aggregate.
    *
-   * @param site aggregate
+   * @param region aggregate
    * @return response
    */
-  public static SiteResponse from(Site site) {
-    return new SiteResponse(
-        site.id(),
-        site.legalEntityId(),
-        site.regionId(),
-        site.code(),
-        site.name(),
-        site.timezone(),
-        site.period().from(),
-        site.period().to(),
-        site.createdAt());
+  public static RegionResponse from(Region region) {
+    return new RegionResponse(
+        region.id(),
+        region.legalEntityId(),
+        region.code(),
+        region.name(),
+        region.period().from(),
+        region.period().to(),
+        region.createdAt());
   }
 }

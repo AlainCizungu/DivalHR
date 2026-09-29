@@ -5,13 +5,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
+import com.divalhr.core.platform.tenancy.TenantId;
+import com.divalhr.core.tenant.api.AssignSiteRegionRequest;
 import com.divalhr.core.tenant.api.CreateLegalEntityRequest;
+import com.divalhr.core.tenant.api.CreateRegionRequest;
 import com.divalhr.core.tenant.api.CreateSiteRequest;
 import com.divalhr.core.tenant.application.HierarchyValidator;
 import com.divalhr.core.tenant.application.LegalEntityCommand;
+import com.divalhr.core.tenant.application.RegionCommand;
 import com.divalhr.core.tenant.application.SiteCommand;
+import com.divalhr.core.tenant.application.SiteRegionCommand;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class HierarchyValidatorTest {
@@ -110,6 +116,106 @@ class HierarchyValidatorTest {
             Map.of("field", "name", "constraint", "REQUIRED"),
             Map.of("field", "timezone", "constraint", "FORMAT"),
             Map.of("field", "effectiveFrom", "constraint", "REQUIRED"));
+  }
+
+  @Test
+  void siteRegionIsOptionalAndOnlyChangesTheFingerprintWhenPresent() {
+    String parent = "33333333-3333-4333-8333-333333333333";
+    String region = "44444444-4444-4444-8444-444444444444";
+    TenantId tenant = new TenantId(UUID.fromString("55555555-5555-4555-8555-555555555555"));
+    SiteCommand without =
+        validator.site(
+            KEY,
+            CreateSiteRequest.of(parent, "S-1", "Site", "Africa/Kinshasa", "2026-01-01", null));
+    SiteCommand withNull =
+        validator.site(
+            KEY,
+            CreateSiteRequest.of(
+                parent, null, "S-1", "Site", "Africa/Kinshasa", "2026-01-01", null));
+    SiteCommand with =
+        validator.site(
+            KEY,
+            CreateSiteRequest.of(
+                parent,
+                region.toUpperCase(java.util.Locale.ROOT),
+                "S-1",
+                "Site",
+                "Africa/Kinshasa",
+                "2026-01-01",
+                null));
+    assertThat(without.regionId()).isNull();
+    assertThat(without.canonical(tenant)).doesNotContainKey("regionId");
+    assertThat(withNull.canonical(tenant)).isEqualTo(without.canonical(tenant));
+    assertThat(with.regionId()).isEqualTo(UUID.fromString(region));
+    assertThat(with.canonical(tenant)).containsEntry("regionId", region);
+    for (String bad : List.of("", "not-a-uuid")) {
+      assertThat(
+              fields(
+                  () ->
+                      validator.site(
+                          KEY,
+                          CreateSiteRequest.of(
+                              parent, bad, "S-1", "Site", "Africa/Kinshasa", "2026-01-01", null))))
+          .containsExactly(Map.of("field", "regionId", "constraint", "FORMAT"));
+    }
+  }
+
+  @Test
+  void validatesRegionsWithoutConsultingTheParent() {
+    RegionCommand command =
+        validator.region(
+            KEY,
+            CreateRegionRequest.of(
+                "33333333-3333-4333-8333-333333333333",
+                " kat_nord ",
+                "  Région Grand Katanga  ",
+                "2026-01-01",
+                "2026-01-01"));
+    assertThat(command.code()).isEqualTo("KAT_NORD");
+    assertThat(command.name()).isEqualTo("Région Grand Katanga");
+    assertThat(
+            fields(
+                () -> validator.region(null, CreateRegionRequest.of(null, null, null, null, null))))
+        .containsExactlyInAnyOrder(
+            Map.of("field", "Idempotency-Key", "constraint", "REQUIRED"),
+            Map.of("field", "legalEntityId", "constraint", "REQUIRED"),
+            Map.of("field", "code", "constraint", "REQUIRED"),
+            Map.of("field", "name", "constraint", "REQUIRED"),
+            Map.of("field", "effectiveFrom", "constraint", "REQUIRED"));
+    assertThatThrownBy(
+            () ->
+                validator.region(
+                    KEY,
+                    CreateRegionRequest.of(
+                        "33333333-3333-4333-8333-333333333333",
+                        "R-1",
+                        "Région",
+                        "2026-02-01",
+                        "2026-01-31")))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> assertThat(e.code()).isEqualTo(ErrorCode.EFFECTIVE_DATE_INVALID));
+  }
+
+  @Test
+  void validatesSiteRegionAssignmentsIncludingThePathSite() {
+    SiteRegionCommand command =
+        validator.siteRegion(
+            "33333333-3333-4333-8333-333333333333",
+            KEY,
+            AssignSiteRegionRequest.of("44444444-4444-4444-8444-444444444444"));
+    assertThat(command.siteId().toString()).isEqualTo("33333333-3333-4333-8333-333333333333");
+    TenantId tenant = new TenantId(UUID.fromString("55555555-5555-4555-8555-555555555555"));
+    assertThat(command.canonical(tenant))
+        .containsOnlyKeys("regionId", "siteId", "tenantId")
+        .containsEntry("tenantId", tenant.toString());
+    assertThat(
+            fields(
+                () -> validator.siteRegion("not-a-site", null, AssignSiteRegionRequest.of(null))))
+        .containsExactlyInAnyOrder(
+            Map.of("field", "siteId", "constraint", "FORMAT"),
+            Map.of("field", "Idempotency-Key", "constraint", "REQUIRED"),
+            Map.of("field", "regionId", "constraint", "REQUIRED"));
   }
 
   @Test

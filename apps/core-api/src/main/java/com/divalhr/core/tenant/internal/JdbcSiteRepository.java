@@ -31,8 +31,8 @@ public class JdbcSiteRepository {
   static final String CODE_CONSTRAINT = "site_code_ci_unique";
 
   private static final String COLUMNS =
-      "id, tenant_id, legal_entity_id, code, name, timezone, effective_from, effective_to,"
-          + " created_at, created_by";
+      "id, tenant_id, legal_entity_id, region_id, code, name, timezone, effective_from,"
+          + " effective_to, created_at, created_by";
 
   private final JdbcClient jdbc;
 
@@ -46,7 +46,8 @@ public class JdbcSiteRepository {
   }
 
   /**
-   * Inserts a site. The composite foreign key and containment trigger back up the service checks.
+   * Inserts a site, with or without a region. The composite foreign keys and containment triggers
+   * back up the service checks.
    *
    * @param tenant verified tenant (must own the site)
    * @param site site
@@ -61,14 +62,15 @@ public class JdbcSiteRepository {
       jdbc.sql(
               """
               INSERT INTO tenant.site
-                (id, tenant_id, legal_entity_id, code, name, timezone, effective_from,
-                 effective_to, created_at, created_by)
-              VALUES (:id, :tenant, :parent, :code, :name, :timezone, :from, :to, :createdAt,
-                      :createdBy)
+                (id, tenant_id, legal_entity_id, region_id, code, name, timezone,
+                 effective_from, effective_to, created_at, created_by)
+              VALUES (:id, :tenant, :parent, :region, :code, :name, :timezone, :from, :to,
+                      :createdAt, :createdBy)
               """)
           .param("id", site.id())
           .param("tenant", tenant.value())
           .param("parent", site.legalEntityId())
+          .param("region", site.regionId())
           .param("code", site.code())
           .param("name", site.name())
           .param("timezone", site.timezone())
@@ -103,6 +105,69 @@ public class JdbcSiteRepository {
         .param("id", id)
         .query(JdbcSiteRepository::map)
         .optional();
+  }
+
+  /**
+   * Reads a site of the tenant without locking it. Used to establish existence (and error
+   * precedence) before the parent-before-child locks are taken.
+   *
+   * @param tenant verified tenant
+   * @param id site id
+   * @return the site if it exists in this tenant
+   */
+  public Optional<Site> find(TenantId tenant, UUID id) {
+    return jdbc.sql(
+            "SELECT " + COLUMNS + " FROM tenant.site WHERE tenant_id = :tenant AND id = :id")
+        .param("tenant", tenant.value())
+        .param("id", id)
+        .query(JdbcSiteRepository::map)
+        .optional();
+  }
+
+  /**
+   * Reads a site of the tenant and locks it {@code FOR UPDATE} until the transaction ends. Callers
+   * take their region lock first (parent before child). After waiting for a concurrent writer the
+   * committed row is returned.
+   *
+   * @param tenant verified tenant
+   * @param id site id
+   * @return the site if it exists in this tenant
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional<Site> findForUpdate(TenantId tenant, UUID id) {
+    return jdbc.sql(
+            "SELECT "
+                + COLUMNS
+                + " FROM tenant.site WHERE tenant_id = :tenant AND id = :id FOR UPDATE")
+        .param("tenant", tenant.value())
+        .param("id", id)
+        .query(JdbcSiteRepository::map)
+        .optional();
+  }
+
+  /**
+   * Sets the region of a site that has none (first assignment only) and increments its version. The
+   * composite foreign key, the containment trigger and {@code site_region_assigned_once} back up
+   * the service checks.
+   *
+   * @param tenant verified tenant
+   * @param siteId site id
+   * @param regionId region id
+   * @return whether the site was unassigned and is now assigned
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public boolean assignRegion(TenantId tenant, UUID siteId, UUID regionId) {
+    return jdbc.sql(
+                """
+                UPDATE tenant.site
+                   SET region_id = :region, version = version + 1
+                 WHERE tenant_id = :tenant AND id = :id AND region_id IS NULL
+                """)
+            .param("region", regionId)
+            .param("tenant", tenant.value())
+            .param("id", siteId)
+            .update()
+        == 1;
   }
 
   /**
@@ -156,6 +221,7 @@ public class JdbcSiteRepository {
         rs.getObject("id", UUID.class),
         new TenantId(rs.getObject("tenant_id", UUID.class)),
         rs.getObject("legal_entity_id", UUID.class),
+        rs.getObject("region_id", UUID.class),
         rs.getString("code"),
         rs.getString("name"),
         rs.getString("timezone"),

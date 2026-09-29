@@ -3,24 +3,18 @@ package com.divalhr.core.tenant.api;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-/** Request body for {@code createSite}. */
-@Schema(name = "CreateSite")
-public final class CreateSiteRequest extends StrictRequest {
+/** Request body for {@code createRegion}. Plain strings so every defect maps to a stable code. */
+@Schema(name = "CreateRegion")
+public final class CreateRegionRequest extends StrictRequest {
 
   @JsonProperty("legalEntityId")
   private String legalEntityId;
-
-  @JsonProperty("regionId")
-  private String regionId;
 
   @JsonProperty("code")
   private String code;
 
   @JsonProperty("name")
   private String name;
-
-  @JsonProperty("timezone")
-  private String timezone;
 
   @JsonProperty("effectiveFrom")
   private String effectiveFrom;
@@ -29,7 +23,7 @@ public final class CreateSiteRequest extends StrictRequest {
   private String effectiveTo;
 
   /** Creates an empty request (used by Jackson). */
-  public CreateSiteRequest() {}
+  public CreateRegionRequest() {}
 
   /**
    * Creates a request (used by tests).
@@ -37,50 +31,18 @@ public final class CreateSiteRequest extends StrictRequest {
    * @param legalEntityId parent id
    * @param code code
    * @param name name
-   * @param timezone time zone
    * @param effectiveFrom ISO date
    * @param effectiveTo ISO date or {@code null}
    * @return request
    */
-  public static CreateSiteRequest of(
-      String legalEntityId,
-      String code,
-      String name,
-      String timezone,
-      String effectiveFrom,
-      String effectiveTo) {
-    CreateSiteRequest request = new CreateSiteRequest();
+  public static CreateRegionRequest of(
+      String legalEntityId, String code, String name, String effectiveFrom, String effectiveTo) {
+    CreateRegionRequest request = new CreateRegionRequest();
     request.legalEntityId = legalEntityId;
     request.code = code;
     request.name = name;
-    request.timezone = timezone;
     request.effectiveFrom = effectiveFrom;
     request.effectiveTo = effectiveTo;
-    return request;
-  }
-
-  /**
-   * Creates a request with a region (used by tests).
-   *
-   * @param legalEntityId parent id
-   * @param regionId region id or {@code null}
-   * @param code code
-   * @param name name
-   * @param timezone time zone
-   * @param effectiveFrom ISO date
-   * @param effectiveTo ISO date or {@code null}
-   * @return request
-   */
-  public static CreateSiteRequest of(
-      String legalEntityId,
-      String regionId,
-      String code,
-      String name,
-      String timezone,
-      String effectiveFrom,
-      String effectiveTo) {
-    CreateSiteRequest request = of(legalEntityId, code, name, timezone, effectiveFrom, effectiveTo);
-    request.regionId = regionId;
     return request;
   }
 
@@ -91,15 +53,6 @@ public final class CreateSiteRequest extends StrictRequest {
    */
   public String getLegalEntityId() {
     return legalEntityId;
-  }
-
-  /**
-   * Returns the optional region id.
-   *
-   * @return region id as submitted, or {@code null} when absent
-   */
-  public String getRegionId() {
-    return regionId;
   }
 
   /**
@@ -118,15 +71,6 @@ public final class CreateSiteRequest extends StrictRequest {
    */
   public String getName() {
     return name;
-  }
-
-  /**
-   * Returns the time zone.
-   *
-   * @return time zone
-   */
-  public String getTimezone() {
-    return timezone;
   }
 
   /**

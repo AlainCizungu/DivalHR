@@ -10,11 +10,15 @@ import com.divalhr.core.platform.pagination.PageRequest;
 import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.tenant.api.LegalEntityPage;
 import com.divalhr.core.tenant.api.LegalEntityResponse;
+import com.divalhr.core.tenant.api.RegionPage;
+import com.divalhr.core.tenant.api.RegionResponse;
 import com.divalhr.core.tenant.api.SitePage;
 import com.divalhr.core.tenant.api.SiteResponse;
 import com.divalhr.core.tenant.domain.LegalEntity;
+import com.divalhr.core.tenant.domain.Region;
 import com.divalhr.core.tenant.domain.Site;
 import com.divalhr.core.tenant.internal.JdbcLegalEntityRepository;
+import com.divalhr.core.tenant.internal.JdbcRegionRepository;
 import com.divalhr.core.tenant.internal.JdbcSiteRepository;
 import java.util.List;
 import java.util.Map;
@@ -40,10 +44,14 @@ public class HierarchyQueryService {
   /** List operation for sites (metrics, cursor binding). */
   public static final String LIST_SITES = "site.list";
 
+  /** List operation for regions (metrics, cursor binding). */
+  public static final String LIST_REGIONS = "region.list";
+
   private final HierarchyValidator validator;
   private final CursorCodec cursors;
   private final JdbcLegalEntityRepository legalEntities;
   private final JdbcSiteRepository sites;
+  private final JdbcRegionRepository regions;
   private final OperationMetrics metrics;
 
   /**
@@ -53,6 +61,7 @@ public class HierarchyQueryService {
    * @param cursors cursor codec
    * @param legalEntities legal-entity repository
    * @param sites site repository
+   * @param regions region repository
    * @param metrics operation metrics
    */
   public HierarchyQueryService(
@@ -60,11 +69,13 @@ public class HierarchyQueryService {
       CursorCodec cursors,
       JdbcLegalEntityRepository legalEntities,
       JdbcSiteRepository sites,
+      JdbcRegionRepository regions,
       OperationMetrics metrics) {
     this.validator = validator;
     this.cursors = cursors;
     this.legalEntities = legalEntities;
     this.sites = sites;
+    this.regions = regions;
     this.metrics = metrics;
   }
 
@@ -128,6 +139,41 @@ public class HierarchyQueryService {
         });
   }
 
+  /**
+   * Lists the regions of one of the tenant's legal entities. The cursor is bound to {@code
+   * region.list}, the tenant and the legal entity, so a {@code site.list} cursor for the same legal
+   * entity is rejected.
+   *
+   * @param tenant verified tenant
+   * @param legalEntityId raw parent id
+   * @param cursor opaque cursor or {@code null}
+   * @param limit raw limit or {@code null}
+   * @return one page
+   */
+  @Transactional(readOnly = true)
+  public RegionPage regions(TenantId tenant, String legalEntityId, String cursor, String limit) {
+    return recorded(
+        LIST_REGIONS,
+        () -> {
+          UUID parent = validator.regionListParent(legalEntityId, limit);
+          PageRequest page = PageRequest.parse(limit);
+          CursorScope scope =
+              new CursorScope(LIST_REGIONS, tenant, Map.of("legalEntityId", parent.toString()));
+          KeysetPosition after = cursor == null ? null : cursors.decode(cursor, scope);
+          if (!legalEntities.exists(tenant, parent)) {
+            throw CreateSiteService.parentNotFound();
+          }
+          List<Region> rows = regions.page(tenant, parent, after, page.limit() + 1);
+          List<Region> shown = rows.subList(0, Math.min(rows.size(), page.limit()));
+          String next = null;
+          if (rows.size() > page.limit()) {
+            Region last = shown.get(shown.size() - 1);
+            next = cursors.encode(scope, new KeysetPosition(last.code(), last.id()));
+          }
+          return new RegionPage(shown.stream().map(RegionResponse::from).toList(), next);
+        });
+  }
+
   private <T> T recorded(String operation, Supplier<T> query) {
     try {
       T result = query.get();
@@ -137,7 +183,7 @@ public class HierarchyQueryService {
       metrics.record(
           operation,
           switch (rejected.code()) {
-            case LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND -> Outcome.NOT_FOUND;
+            case LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND -> Outcome.NOT_FOUND;
             case INTERNAL_ERROR -> Outcome.FAILURE;
             default -> Outcome.VALIDATION_FAILED;
           });
