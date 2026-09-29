@@ -3,6 +3,7 @@ import { THEME_MODES, type ThemeMode } from '@divalhr/design-system';
 import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
+import { useHasRole } from '../app/SessionProvider';
 import { useAuth } from '../auth/AuthProvider';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -74,6 +75,7 @@ function AuthButton() {
 
 export function AppShell({ environment, children }: { environment: string; children: ReactNode }) {
   const { t } = useTranslation();
+  const isPlatformAdmin = useHasRole('platform-admin');
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -94,6 +96,9 @@ export function AppShell({ environment, children }: { environment: string; child
             {t('nav.home')}
           </NavLink>
           <NavLink to="/status">{t('nav.status')}</NavLink>
+          {isPlatformAdmin && (
+            <NavLink to="/admin/organizations/new">{t('nav.platformAdmin')}</NavLink>
+          )}
         </nav>
         <div className="toolbar">
           <LocaleSwitcher />

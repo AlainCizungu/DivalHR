@@ -7,7 +7,8 @@
     "primary": "Navigation principale",
     "home": "Accueil",
     "status": "État du système",
-    "skipToContent": "Aller au contenu principal"
+    "skipToContent": "Aller au contenu principal",
+    "platformAdmin": "Créer une organisation"
   },
   "locale": {
     "label": "Langue",
@@ -70,7 +71,13 @@
     "TENANT_CONTEXT_MISSING": "Votre compte n’est rattaché à aucune organisation.",
     "TENANT_ACCESS_DENIED": "Cet élément appartient à une autre organisation.",
     "NOT_FOUND": "Nous n’avons pas trouvé ce que vous cherchez.",
-    "INTERNAL_ERROR": "Une erreur inattendue s’est produite. Veuillez réessayer plus tard."
+    "INTERNAL_ERROR": "Une erreur inattendue s’est produite. Veuillez réessayer plus tard.",
+    "IDEMPOTENCY_KEY_REUSED": "Cette demande a déjà été envoyée avec d’autres informations. Vérifiez le formulaire puis envoyez-le à nouveau.",
+    "COUNTRY_NOT_SUPPORTED": "Ce pays n’est pas encore pris en charge.",
+    "LOCALE_NOT_SUPPORTED": "Cette langue n’est pas prise en charge.",
+    "TIMEZONE_NOT_SUPPORTED": "Ce fuseau horaire n’est pas disponible pour le pays sélectionné.",
+    "CURRENCY_NOT_SUPPORTED": "L’une des devises sélectionnées n’est pas prise en charge pour ce pays.",
+    "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -81,5 +88,89 @@
     "updateAvailable": "Une nouvelle version de DivalHR est disponible.",
     "reload": "Mettre à jour",
     "dismiss": "Fermer"
+  },
+  "country": {
+    "CD": "République démocratique du Congo"
+  },
+  "language": {
+    "fr": "Français",
+    "en": "Anglais"
+  },
+  "timezones": {
+    "Africa/Kinshasa": "Kinshasa (heure d’Afrique de l’Ouest, UTC+1)",
+    "Africa/Lubumbashi": "Lubumbashi (heure d’Afrique centrale, UTC+2)"
+  },
+  "currency": {
+    "CDF": "Franc congolais (CDF)",
+    "USD": "Dollar américain (USD)"
+  },
+  "orgStatus": {
+    "ACTIVE": "Active"
+  },
+  "createOrganization": {
+    "title": "Créer une organisation",
+    "description": "Configurez une nouvelle organisation cliente avec son pays, sa langue par défaut, son fuseau horaire et ses devises. Seuls les administrateurs de la plateforme peuvent le faire.",
+    "requiredNote": "Tous les champs sont obligatoires.",
+    "name": {
+      "label": "Nom de l’organisation",
+      "help": "Le nom utilisé par votre client, entre 2 et 160 caractères."
+    },
+    "country": {
+      "label": "Pays",
+      "help": "DivalHR est actuellement lancé en République démocratique du Congo."
+    },
+    "locale": {
+      "legend": "Langue par défaut",
+      "help": "Utilisée pour les documents et notifications de l’organisation. Chaque personne peut toujours choisir sa propre langue."
+    },
+    "timezone": {
+      "label": "Fuseau horaire",
+      "help": "Sert à interpréter les jours ouvrés, les horaires et les échéances."
+    },
+    "currencies": {
+      "legend": "Devises",
+      "help": "Sélectionnez au moins une devise utilisée pour la paie et les dépenses."
+    },
+    "submit": "Créer l’organisation",
+    "submitting": "Création de l’organisation…",
+    "errorSummary": "Veuillez corriger les points suivants :",
+    "unauthorized": "Seuls les administrateurs de la plateforme peuvent créer des organisations.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de la plateforme pour créer des organisations.",
+    "success": {
+      "title": "Organisation créée",
+      "body": "{{name}} est prête. Sa configuration est présentée ci-dessous.",
+      "createdAt": "Créée le",
+      "reference": "Référence",
+      "another": "Créer une autre organisation",
+      "status": "Statut"
+    },
+    "validation": {
+      "name": {
+        "REQUIRED": "Saisissez le nom de l’organisation.",
+        "LENGTH": "Le nom doit comporter entre 2 et 160 caractères.",
+        "FORMAT": "Le nom ne peut pas contenir de retours à la ligne ni de caractères de contrôle."
+      },
+      "countryCode": {
+        "REQUIRED": "Sélectionnez un pays.",
+        "FORMAT": "Sélectionnez un pays dans la liste.",
+        "NOT_SUPPORTED": "Ce pays n’est pas encore pris en charge."
+      },
+      "defaultLocale": {
+        "REQUIRED": "Choisissez une langue par défaut.",
+        "FORMAT": "Choisissez une langue par défaut dans la liste.",
+        "NOT_SUPPORTED": "Cette langue n’est pas prise en charge."
+      },
+      "timezone": {
+        "REQUIRED": "Sélectionnez un fuseau horaire.",
+        "FORMAT": "Sélectionnez un fuseau horaire dans la liste.",
+        "NOT_SUPPORTED": "Ce fuseau horaire n’est pas disponible pour le pays sélectionné."
+      },
+      "currencies": {
+        "REQUIRED": "Sélectionnez au moins une devise.",
+        "FORMAT": "Sélectionnez des devises dans la liste.",
+        "DUPLICATE": "Chaque devise ne peut être sélectionnée qu’une seule fois.",
+        "NOT_SUPPORTED": "L’une des devises sélectionnées n’est pas prise en charge."
+      }
+    }
   }
 }
