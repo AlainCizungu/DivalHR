@@ -77,6 +77,28 @@ public enum ErrorCode {
   TEAM_PERIOD_OUTSIDE_DEPARTMENT(HttpStatus.BAD_REQUEST),
   /** The team's effective period is not contained in its cost center's. */
   TEAM_PERIOD_OUTSIDE_COST_CENTER(HttpStatus.BAD_REQUEST),
+  /** The invitation does not exist in the caller's tenant (missing and foreign are identical). */
+  INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** An open invitation for the address already exists in the caller's tenant. */
+  INVITATION_ALREADY_PENDING(HttpStatus.CONFLICT),
+  /** The address already belongs to a member of the caller's tenant. */
+  INVITATION_RECIPIENT_ALREADY_MEMBER(HttpStatus.CONFLICT),
+  /** The invitation is accepted, expired or being accepted, so it cannot change. */
+  INVITATION_NOT_PENDING(HttpStatus.CONFLICT),
+  /** The tenant's invitation quota is used up. */
+  INVITATION_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+  /** The invitation was reissued too often or too recently. */
+  INVITATION_RESEND_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+  /** The invitation token is unknown, malformed, expired, revoked or already used. */
+  INVITATION_INVALID(HttpStatus.NOT_FOUND),
+  /** The invitation cannot be accepted with this address (no reason is disclosed). */
+  INVITATION_CANNOT_BE_ACCEPTED(HttpStatus.CONFLICT),
+  /** Another acceptance of the same invitation is in progress; retry. */
+  INVITATION_ACCEPTANCE_IN_PROGRESS(HttpStatus.CONFLICT),
+  /** The identity provider could not be reached; retry. */
+  IDENTITY_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+  /** Too many anonymous requests from one client. */
+  RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
   /** An unexpected server error occurred. */
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 

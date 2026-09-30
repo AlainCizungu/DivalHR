@@ -21,6 +21,14 @@ import org.springframework.test.web.servlet.MockMvc;
     properties = {
       "divalhr.environment=test",
       "divalhr.pagination.cursor-signing-key=test-only-cursor-signing-key-0000000000000001",
+      "divalhr.invitations.email-lookup-key=test-only-email-lookup-key-00000000000000001",
+      "divalhr.invitations.jobs.enabled=false",
+      "divalhr.identity-provider.admin-base-url=http://localhost:1",
+      "divalhr.identity-provider.client-secret=test-only-provisioner-secret",
+      "divalhr.mail.host=localhost",
+      "divalhr.mail.port=2525",
+      "divalhr.mail.from=no-reply@divalhr.test",
+      "divalhr.mail.starttls=false",
       "server.port=8080",
       "management.server.port=8080"
     })
@@ -39,6 +47,14 @@ class HealthProbeIntegrationTest {
           .andExpect(jsonPath("$.components").doesNotExist())
           .andExpect(jsonPath("$.details").doesNotExist());
     }
+  }
+
+  @Test
+  void anUnreachableMailServerDoesNotMakeTheServiceUnhealthy() throws Exception {
+    // divalhr.mail points at a closed port: invitation delivery degrades to FAILED instead.
+    mvc.perform(get("/actuator/health"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("UP"));
   }
 
   @Test

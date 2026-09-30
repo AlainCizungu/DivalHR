@@ -15,8 +15,18 @@ import org.springframework.context.annotation.Import;
     properties = {
       "springdoc.api-docs.enabled=true",
       "divalhr.environment=test",
-      "divalhr.pagination.cursor-signing-key=test-only-cursor-signing-key-0000000000000001"
+      "divalhr.pagination.cursor-signing-key=test-only-cursor-signing-key-0000000000000001",
+      "divalhr.invitations.email-lookup-key=test-only-email-lookup-key-00000000000000001",
+      "divalhr.invitations.jobs.enabled=false",
+      "divalhr.identity-provider.admin-base-url=http://localhost:1",
+      "divalhr.identity-provider.client-secret=test-only-provisioner-secret",
+      "divalhr.mail.host=localhost",
+      "divalhr.mail.port=2525",
+      "divalhr.mail.from=no-reply@divalhr.test",
+      "divalhr.mail.starttls=false",
+      "divalhr.rate-limit.per-client-requests=1000",
+      "divalhr.rate-limit.global-requests=100000"
     })
 @AutoConfigureMockMvc
-@Import({TestSecurityConfig.class, PostgresContainerConfig.class})
+@Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})
 public @interface IntegrationTest {}

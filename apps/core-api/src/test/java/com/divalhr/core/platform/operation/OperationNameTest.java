@@ -3,6 +3,12 @@ package com.divalhr.core.platform.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.divalhr.core.identity.application.CreateInvitationService;
+import com.divalhr.core.identity.application.InvitationAcceptance;
+import com.divalhr.core.identity.application.InvitationQueryService;
+import com.divalhr.core.identity.application.PublicInvitationService;
+import com.divalhr.core.identity.application.ResendInvitationService;
+import com.divalhr.core.identity.application.RevokeInvitationService;
 import com.divalhr.core.tenant.api.CostCenterController;
 import com.divalhr.core.tenant.api.DepartmentController;
 import com.divalhr.core.tenant.application.AssignSiteRegionService;
@@ -39,7 +45,14 @@ class OperationNameTest {
           HierarchyQueryService.LIST_REGIONS,
           AssignSiteRegionService.OPERATION,
           CreateTeamService.OPERATION,
-          TeamQueryService.LIST_TEAMS);
+          TeamQueryService.LIST_TEAMS,
+          CreateInvitationService.OPERATION,
+          ResendInvitationService.OPERATION,
+          RevokeInvitationService.OPERATION,
+          InvitationQueryService.LIST_INVITATIONS,
+          PublicInvitationService.INSPECT,
+          InvitationAcceptance.OPERATION,
+          "invitation.expire");
 
   /** Malformed names from Issue #17 plus the grammar's edges. */
   static final List<String> MALFORMED =
@@ -70,6 +83,12 @@ class OperationNameTest {
     assertThat(CreateTeamService.OPERATION).isEqualTo("team.create");
     assertThat(TeamQueryService.LIST_TEAMS).isEqualTo("team.list");
     assertThat(CreateTeamService.EVENT_TYPE).isEqualTo("tenant.team-created.v1");
+    assertThat(CreateInvitationService.OPERATION).isEqualTo("invitation.create");
+    assertThat(ResendInvitationService.OPERATION).isEqualTo("invitation.resend");
+    assertThat(RevokeInvitationService.OPERATION).isEqualTo("invitation.revoke");
+    assertThat(InvitationQueryService.LIST_INVITATIONS).isEqualTo("invitation.list");
+    assertThat(PublicInvitationService.INSPECT).isEqualTo("invitation.inspect");
+    assertThat(InvitationAcceptance.OPERATION).isEqualTo("invitation.accept");
   }
 
   @Test

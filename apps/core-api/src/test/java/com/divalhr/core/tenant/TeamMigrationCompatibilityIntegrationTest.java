@@ -120,7 +120,7 @@ class TeamMigrationCompatibilityIntegrationTest {
               + " SELECT to_jsonb(r)::text FROM tenant.region r) rows";
       String before = db.queryForObject(snapshot, String.class);
 
-      migrate(url, null);
+      migrate(url, "7");
       assertThat(
               db.queryForObject(
                   "SELECT max(version::int) FROM flyway_schema_history WHERE success",
@@ -147,7 +147,7 @@ class TeamMigrationCompatibilityIntegrationTest {
           .isZero();
       assertThat(db.queryForObject(snapshot, String.class)).isEqualTo(before);
       db.update("DELETE FROM flyway_schema_history WHERE version = '7'");
-      migrate(url, null);
+      migrate(url, "7");
       assertThat(db.queryForObject(snapshot, String.class)).isEqualTo(before);
     } finally {
       jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");

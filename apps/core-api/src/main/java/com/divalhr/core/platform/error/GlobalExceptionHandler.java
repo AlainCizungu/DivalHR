@@ -1,7 +1,9 @@
 package com.divalhr.core.platform.error;
 
 import com.divalhr.core.platform.observability.OperationMetrics;
+import com.divalhr.core.platform.ratelimit.RateLimitedException;
 import com.divalhr.core.platform.security.PlatformScoped;
+import com.divalhr.core.platform.security.PublicOperation;
 import com.divalhr.core.platform.security.TenantScoped;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -11,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -57,6 +60,11 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ApiException.class)
   public ResponseEntity<ProblemDetail> handleApi(
       ApiException exception, HttpServletRequest request) {
+    if (exception instanceof RateLimitedException limited) {
+      return ResponseEntity.status(exception.code().status())
+          .header(HttpHeaders.RETRY_AFTER, Long.toString(limited.retryAfterSeconds()))
+          .body(ProblemResponses.of(exception.code(), exception.params(), request));
+    }
     return respond(exception.code(), exception.params(), request);
   }
 
@@ -200,6 +208,10 @@ public class GlobalExceptionHandler {
     PlatformScoped platform = handler.getMethodAnnotation(PlatformScoped.class);
     if (platform != null) {
       return platform.operation();
+    }
+    PublicOperation publicOperation = handler.getMethodAnnotation(PublicOperation.class);
+    if (publicOperation != null) {
+      return publicOperation.operation();
     }
     TenantScoped tenant =
         AnnotatedElementUtils.findMergedAnnotation(handler.getMethod(), TenantScoped.class);

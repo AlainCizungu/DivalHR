@@ -6,6 +6,8 @@ import com.divalhr.core.platform.web.CorsProperties;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -20,8 +22,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
- * Deny-by-default HTTP security. Only the public status endpoint and (when enabled for development
- * and contract verification) the generated API description are anonymous.
+ * Deny-by-default HTTP security. Only the public status endpoint, the two anonymous invitation
+ * endpoints (their own chain, without token processing) and (when enabled for development and
+ * contract verification) the generated API description are anonymous.
  */
 @Configuration
 @EnableMethodSecurity
@@ -35,6 +38,46 @@ public class SecurityConfig {
    * published), with details hidden.
    */
   static final String[] PROBE_PATHS = {"/actuator/health", "/actuator/health/**"};
+
+  /** Anonymous invitation endpoints (MVP-010); POST only, served by {@link #publicSecurity}. */
+  static final String[] PUBLIC_INVITATION_PATHS = {
+    "/api/v1/public/invitations/inspect", "/api/v1/public/invitations/accept"
+  };
+
+  /**
+   * Anonymous {@code /api/v1/public/**} endpoints ({@code x-divalhr-scope: public}). This chain has
+   * no resource server: access tokens are neither required nor read, so a bearer token can never
+   * change what these endpoints return. Everything else under the prefix is denied.
+   *
+   * @param http security builder
+   * @return the chain
+   * @throws Exception on configuration error
+   */
+  @Bean
+  @Order(1)
+  SecurityFilterChain publicSecurity(HttpSecurity http) throws Exception {
+    http.securityMatcher("/api/v1/public/**")
+        .csrf(csrf -> csrf.disable()) // No cookies or sessions: nothing to forge.
+        .cors(Customizer.withDefaults())
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .requestCache(cache -> cache.disable())
+        .anonymous(Customizer.withDefaults())
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers(HttpMethod.OPTIONS, "/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, PUBLIC_INVITATION_PATHS)
+                    .permitAll()
+                    .anyRequest()
+                    .denyAll())
+        .exceptionHandling(
+            errors ->
+                errors
+                    .authenticationEntryPoint(ProblemAuthenticationHandlers.entryPoint())
+                    .accessDeniedHandler(ProblemAuthenticationHandlers.accessDeniedHandler()));
+    return http.build();
+  }
 
   @Bean
   SecurityFilterChain apiSecurity(HttpSecurity http, JwtAuthenticationConverter converter)
@@ -93,7 +136,8 @@ public class SecurityConfig {
             "Accept-Language",
             CorrelationId.HEADER,
             IdempotencyKeys.HEADER));
-    config.setExposedHeaders(List.of(CorrelationId.HEADER, IdempotencyKeys.REPLAYED_HEADER));
+    config.setExposedHeaders(
+        List.of(CorrelationId.HEADER, IdempotencyKeys.REPLAYED_HEADER, HttpHeaders.RETRY_AFTER));
     // Bearer tokens travel in the Authorization header; browser credentials are never needed.
     config.setAllowCredentials(false);
     config.setMaxAge(600L);
