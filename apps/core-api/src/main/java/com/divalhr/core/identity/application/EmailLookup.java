@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * refused at start-up. Rotating it requires recomputing stored lookups.
  */
 @Component
-public class EmailLookup {
+public final class EmailLookup {
 
   /** Minimum key length in bytes. */
   public static final int MIN_BYTES = 32;
