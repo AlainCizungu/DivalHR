@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { enterCode } from './support';
 
 // DEVELOPMENT-ONLY seed credentials (infrastructure/docker/keycloak/README.md).
 const USERNAME = process.env.E2E_PLATFORM_ADMIN_USERNAME ?? 'dev-platform-admin';
@@ -45,6 +46,7 @@ test('platform administrator creates an organization in French and it is persist
   await page.locator('#username').fill(USERNAME);
   await page.locator('#password').fill(PASSWORD);
   await page.locator('#kc-login').click();
+  await enterCode(page, USERNAME);
   await page.waitForURL((url) => url.pathname === '/');
 
   await page.getByRole('link', { name: 'Créer une organisation' }).click();
@@ -97,9 +99,11 @@ test('non-platform administrators do not see or reach organization creation', as
   await page.getByRole('button', { name: 'English', exact: true }).click();
   await page.getByRole('main').getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL(/\/realms\/divalhr-dev\/protocol\/openid-connect\/auth/);
-  await page.locator('#username').fill(process.env.E2E_USERNAME ?? 'dev-admin-a');
+  const username = process.env.E2E_USERNAME ?? 'dev-admin-a';
+  await page.locator('#username').fill(username);
   await page.locator('#password').fill(process.env.E2E_PASSWORD ?? 'dev-only-Admin-A-2026');
   await page.locator('#kc-login').click();
+  await enterCode(page, username);
   await page.waitForURL((url) => url.pathname === '/');
   await expect(page.getByTestId('session-roles')).toHaveText('Organization administrator');
   await expect(page.getByRole('link', { name: 'Create organization' })).toHaveCount(0);
