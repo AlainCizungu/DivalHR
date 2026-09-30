@@ -32,6 +32,17 @@
     "required": "Connectez-vous pour continuer.",
     "devOnlyNotice": "Environnement de développement. Ne saisissez aucune donnée réelle d’employé."
   },
+  "mfa": {
+    "title": "Code d’authentification requis",
+    "explanation": "Votre rôle exige que vous confirmiez votre identité avec un code de votre application d’authentification avant d’utiliser les fonctions d’administration. Votre connexion n’incluait pas ce code.",
+    "retry": "Me reconnecter avec mon code",
+    "help": {
+      "title": "Besoin d’aide ?",
+      "noAuthenticator": "Si vous n’avez jamais configuré d’application d’authentification, demandez à votre administrateur de vous envoyer un lien de configuration.",
+      "lostDevice": "Si vous avez perdu ou remplacé le téléphone qui contient votre application d’authentification, contactez votre administrateur. Il vérifiera votre identité avant de supprimer l’ancienne application et de vous envoyer un nouveau lien de configuration.",
+      "clock": "Si vos codes sont toujours refusés, vérifiez que la date et l’heure de votre téléphone sont réglées automatiquement."
+    }
+  },
   "home": {
     "title": "Bienvenue sur DivalHR",
     "body": "Ceci est la structure de l’application du Sprint 0. Les fonctionnalités métier arriveront dans les prochaines versions."
@@ -73,6 +84,7 @@
     "TENANT_CONTEXT_MISSING": "Votre compte n’est rattaché à aucune organisation.",
     "TENANT_ACCESS_DENIED": "Cet élément appartient à une autre organisation.",
     "NOT_FOUND": "Nous n’avons pas trouvé ce que vous cherchez.",
+    "MFA_REQUIRED": "Cette action exige votre application d’authentification. Reconnectez-vous avec votre code pour continuer.",
     "INTERNAL_ERROR": "Une erreur inattendue s’est produite. Veuillez réessayer plus tard.",
     "IDEMPOTENCY_KEY_REUSED": "Cette demande a déjà été envoyée avec d’autres informations. Vérifiez le formulaire puis envoyez-le à nouveau.",
     "COUNTRY_NOT_SUPPORTED": "Ce pays n’est pas encore pris en charge.",

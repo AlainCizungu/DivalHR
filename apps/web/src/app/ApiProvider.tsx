@@ -13,14 +13,22 @@ interface Clients {
 const ApiContext = createContext<Clients | null>(null);
 
 export function ApiProvider({ config, children }: { config: RuntimeConfig; children: ReactNode }) {
-  const { getAccessToken } = useAuth();
+  const { getAccessToken, requireStepUp } = useAuth();
   const clients = useMemo<Clients>(
     () => ({
-      core: createCoreApiClient({ baseUrl: config.coreApiUrl, getAccessToken }),
+      core: createCoreApiClient({
+        baseUrl: config.coreApiUrl,
+        getAccessToken,
+        // MVP-011: a privileged call refused for missing MFA starts a step-up sign-in and
+        // returns to the same page.
+        onMfaRequired: () => {
+          requireStepUp(`${window.location.pathname}${window.location.search}`);
+        },
+      }),
       publicCore: createCoreApiClient({ baseUrl: config.coreApiUrl }),
       aiStatus: createAiServiceStatusClient({ baseUrl: config.aiServiceUrl }),
     }),
-    [config.coreApiUrl, config.aiServiceUrl, getAccessToken],
+    [config.coreApiUrl, config.aiServiceUrl, getAccessToken, requireStepUp],
   );
   return <ApiContext value={clients}>{children}</ApiContext>;
 }

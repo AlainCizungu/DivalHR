@@ -359,3 +359,11 @@ button:disabled {
 .field select {
   max-width: 100%;
 }
+
+/* MVP-011 MFA-required page: primary and secondary actions side by side, wrapping on phones. */
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dv-space-4);
+  margin-block: var(--dv-space-4);
+}

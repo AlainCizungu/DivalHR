@@ -12,9 +12,22 @@ import {
 
 type AuthStatus = 'anonymous' | 'authenticated' | 'error';
 
+/** Level the Core requires for privileged operations (MVP-011, RFC 9470 acr_values). */
+export const MFA_ACR = 'urn:divalhr:loa:mfa';
+
 interface AuthContextValue {
   status: AuthStatus;
   signIn: (returnTo?: string) => Promise<void>;
+  /**
+   * The Core answered MFA_REQUIRED: sign in again at the MFA level and come back to
+   * {@code returnTo}. Once per signed-in session; a second refusal shows the MFA-required page
+   * instead of redirecting again.
+   */
+  requireStepUp: (returnTo: string) => void;
+  /** Explicit, user-initiated step-up from the MFA-required page. */
+  stepUp: (returnTo: string) => Promise<void>;
+  /** Set when a step-up was already completed and the Core still refused. */
+  mfaBlocked: { returnTo: string } | null;
   signOut: () => Promise<void>;
   completeSignIn: () => Promise<string>;
   getAccessToken: () => string | undefined;
@@ -33,6 +46,10 @@ export function AuthProvider({
   const [status, setStatus] = useState<AuthStatus>('anonymous');
   // Token kept in a ref so API calls read the latest value without re-rendering the tree.
   const userRef = useRef<User | null>(null);
+  // In memory like the tokens: a reload starts a new sign-in anyway.
+  const steppedUp = useRef(false);
+  const stepUpInFlight = useRef(false);
+  const [mfaBlocked, setMfaBlocked] = useState<{ returnTo: string } | null>(null);
 
   useEffect(() => {
     const onLoaded = (loaded: User) => {
@@ -41,6 +58,7 @@ export function AuthProvider({
       setStatus('authenticated');
     };
     const onUnloaded = () => {
+      steppedUp.current = false;
       userRef.current = null;
       setUser(null);
       setStatus('anonymous');
@@ -67,7 +85,35 @@ export function AuthProvider({
     [userManager],
   );
 
+  const stepUp = useCallback(
+    (returnTo: string) =>
+      userManager.signinRedirect({
+        state: { returnTo, stepUp: true },
+        extraQueryParams: {
+          ui_locales: document.documentElement.lang || 'fr',
+          acr_values: MFA_ACR,
+        },
+      }),
+    [userManager],
+  );
+
+  const requireStepUp = useCallback(
+    (returnTo: string) => {
+      if (steppedUp.current) {
+        // Already stepped up in this session and still refused: never loop through the IdP.
+        setMfaBlocked({ returnTo });
+        return;
+      }
+      if (stepUpInFlight.current) return;
+      stepUpInFlight.current = true;
+      void stepUp(returnTo);
+    },
+    [stepUp],
+  );
+
   const signOut = useCallback(async () => {
+    steppedUp.current = false;
+    setMfaBlocked(null);
     const idTokenHint = userRef.current?.id_token;
     userRef.current = null;
     setUser(null);
@@ -81,7 +127,10 @@ export function AuthProvider({
       userRef.current = signedIn;
       setUser(signedIn);
       setStatus('authenticated');
-      const state = signedIn.state as { returnTo?: unknown } | undefined;
+      const state = signedIn.state as { returnTo?: unknown; stepUp?: unknown } | undefined;
+      steppedUp.current = state?.stepUp === true;
+      stepUpInFlight.current = false;
+      setMfaBlocked(null);
       const returnTo = typeof state?.returnTo === 'string' ? state.returnTo : '/';
       // Only same-origin relative paths are honoured to avoid open redirects.
       return returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/';
@@ -95,11 +144,14 @@ export function AuthProvider({
     () => ({
       status: user ? 'authenticated' : status,
       signIn,
+      requireStepUp,
+      stepUp,
+      mfaBlocked,
       signOut,
       completeSignIn,
       getAccessToken: () => userRef.current?.access_token,
     }),
-    [user, status, signIn, signOut, completeSignIn],
+    [user, status, signIn, requireStepUp, stepUp, mfaBlocked, signOut, completeSignIn],
   );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

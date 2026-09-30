@@ -51,6 +51,23 @@ export interface ClientOptions {
   /** Returns the current in-memory access token, if any. Tokens are never persisted. */
   getAccessToken?: () => string | undefined;
   fetch?: typeof globalThis.fetch;
+  /**
+   * Called when the Core answers 403 MFA_REQUIRED (MVP-011): the session must step up to
+   * multifactor authentication. The response is still returned to the caller unchanged.
+   */
+  onMfaRequired?: () => void;
+}
+
+/** RFC 9470 step-up: a 403 problem whose stable code is MFA_REQUIRED. */
+export async function isMfaRequired(response: Response): Promise<boolean> {
+  if (response.status !== 403) return false;
+  if (!(response.headers.get('Content-Type') ?? '').includes('json')) return false;
+  try {
+    const body = (await response.clone().json()) as { code?: unknown };
+    return body.code === 'MFA_REQUIRED';
+  } catch {
+    return false;
+  }
 }
 
 const correlationMiddleware: Middleware = {
@@ -73,6 +90,15 @@ export function createCoreApiClient(options: ClientOptions) {
         const token = getToken();
         if (token) request.headers.set('Authorization', `Bearer ${token}`);
         return request;
+      },
+    });
+  }
+  if (options.onMfaRequired) {
+    const onMfaRequired = options.onMfaRequired;
+    client.use({
+      async onResponse({ response }) {
+        if (await isMfaRequired(response)) onMfaRequired();
+        return response;
       },
     });
   }
