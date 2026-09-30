@@ -56,6 +56,33 @@ Legal-entity, region, site (including the first region assignment), department, 
 - Only the named unique indexes map to `409 DUPLICATE_LEGAL_ENTITY_CODE` / `DUPLICATE_SITE_CODE`; every other database error is a generic `500 INTERNAL_ERROR`. Problem params never echo submitted names, codes, IDs, SQL, constraint names or cursors.
 - PostgreSQL row-level security is not used in this increment; isolation relies on the tenant predicates, the composite foreign key and the tests above.
 
+### Invitations and tenant memberships (MVP-010)
+
+Tenant administrators invite people by email with exactly one tenant role. The invitation endpoints use `@TenantAdminOperation` like the hierarchy endpoints; employees and platform administrators are denied before the body is read.
+
+- **Roles.** Only `tenant-admin` and `employee` can be assigned. `platform-admin` and any other value are rejected like an unknown role by the API (`400 VALIDATION_FAILED`, never echoed), by the database (`invitation_role_assignable`, `tenant_membership_role_assignable`) and by the identity provider (below).
+- **Tenant.** Only from the verified token. The body is exactly `{email, role, locale}`; `tenantId` and any other property are rejected. Revoking or resending another tenant's invitation returns the same `404 INVITATION_NOT_FOUND` as a missing one. `409 INVITATION_ALREADY_PENDING` and `409 INVITATION_RECIPIENT_ALREADY_MEMBER` consult only the caller's own tenant; an address known elsewhere behaves like any other.
+- **Personal data.** The invitee address is confidential. It never appears in logs, metrics, errors, audit metadata, outbox events or idempotency records: the create and resend responses are receipts without the address (replayed exactly, A2). Lookups use a keyed HMAC (`DIVALHR_EMAIL_LOOKUP_KEY`, at least 32 bytes, required at start-up; `dev-only-` values are refused outside development).
+- **Quotas.** Per tenant: 50 invitations per hour and 500 open invitations (`429 INVITATION_RATE_LIMITED` with `Retry-After`). Per invitation: at most 3 reissues, at least 5 minutes apart (`429 INVITATION_RESEND_LIMITED`).
+- **Delivery (A3).** Mail is sent once, after the transaction commits, and the result is recorded conditionally on the invitation and its issuance. `QUEUED` is shown as "invitation created, delivery pending", only `SENT` as "sent", and `FAILED` (including a delivery whose outcome stayed unknown for 10 minutes) as an actionable warning. Deliveries are never retried automatically; a resend issues a new link and invalidates the previous one. An earlier message may have reached the invitee, but only the newest link works.
+- **Caching (guardrails 3 and 6).** Admin responses carry `Cache-Control: private, no-store`; public responses `Cache-Control: no-store`. The web app requests both with `cache: 'no-store'`, and the service worker has no runtime caching and never answers `/api/` navigations with the cached shell (`src/pwa/workbox.ts`, pinned by tests).
+
+### Public invitation endpoints (MVP-010)
+
+`POST /api/v1/public/invitations/inspect` and `/accept` are the only anonymous business endpoints. They run in their own filter chain (`/api/v1/public/**`, no resource server): bearer tokens are neither required nor read, every other method and path is denied, and each handler is marked `@PublicOperation` (checked against `x-divalhr-scope: public` by the contract test).
+
+- **Token.** 32 random bytes, base64url (43 characters); only its SHA-256 is stored, and it is erased when the invitation reaches a terminal state. The link carries it in the URL fragment (`/invitation#token=…`), which browsers never send to a server; the page removes the fragment immediately, keeps the token in memory only and sends it only in POST bodies, through a client that never attaches an access token.
+- **One answer for every unusable token.** Unknown, malformed, expired, revoked, replaced and used tokens all return the same `404 INVITATION_INVALID`. Inspection reveals only role, locale and expiry, never the organization, tenant, address or any account. An address that already has a DivalHR identity gets `409 INVITATION_CANNOT_BE_ACCEPTED` without a reason, and the invitation stays pending.
+- **Email verification (guardrail 1).** The new identity is created with `emailVerified=true` only because the invitee proved control of the mailbox by presenting the single-use token that was sent to it. No other path sets it. The invitee then chooses a password through the identity provider's own `UPDATE_PASSWORD` email.
+- **Rate limiting (A4).** The in-process limiter (10 requests per client per minute, 600 in total per minute, `429 RATE_LIMITED` with `Retry-After`) is defense in depth only. **Limiting `/api/v1/public/**` at the ingress or WAF is mandatory in production.** The client address comes from the socket; `X-Forwarded-For` is honored only when the direct peer is one of `DIVALHR_TRUSTED_PROXIES` (exact addresses, empty by default), and then the right-most untrusted hop is used. Headers from untrusted peers are ignored (fail closed), so rotating them never evades the limit. Client addresses are never logged or used as metric tags; the limiter keys on an HMAC under a random key that is replaced every window, and the `divalhr.ratelimit.rejections` metric is tagged by bucket only.
+- **Acceptance.** A short lease serializes concurrent acceptances of one token; the identity-provider call runs outside any transaction; completion requires the same lease owner, so a worker whose lease expired can never commit (guardrail 5). A reconciler completes or compensates acceptances interrupted by a crash without creating a second identity, and retries the password email durably (guardrail 4).
+
+### Identity-provider provisioning (MVP-010)
+
+The Core API creates identities with the confidential client `divalhr-core-provisioner` (client credentials; secret from `DIVALHR_KEYCLOAK_PROVISIONER_SECRET`, refused when missing or `dev-only-` outside development). It uses Keycloak fine-grained admin permissions v2 and holds **no** realm role-mapping permission: it can only create users directly inside the two role groups `divalhr-role-employee` and `divalhr-role-tenant-admin`, whose members inherit `employee` or `tenant-admin`. It can therefore never grant `platform-admin` (guardrail 2, `theProvisionerCanNeverGrantPlatformAdminOrTouchOtherIdentities`). Each identity carries `tenant_id`, the admin-only attribute `divalhr_invitation_id` (used to find and compensate its own identity) and `locale`.
+
+**Residual risk.** Within those two groups the provisioner fully manages members: it could reset a member's credentials or change their `tenant_id` attribute. The secret must therefore be stored and rotated like any privileged credential, and its use is limited to the Core API. Narrowing this further requires a custom Keycloak extension and is a future decision.
+
 ## Pagination cursors
 
 List endpoints return opaque keyset cursors: `base64url(payload) "." base64url(HMAC-SHA256(payload))`. The payload holds a version, the last row's code and id, and a SHA-256 binding of the operation, verified tenant and filters (for sites, the legal entity; for teams, the parent type and parent id). Cursors are therefore unusable across tenants, operations or parents.
@@ -125,6 +152,8 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 
 - Threat model approved
 - High-severity findings resolved
+- Ingress or WAF rate limits on `/api/v1/public/**` configured, and `DIVALHR_TRUSTED_PROXIES` set to exactly the ingress addresses (MVP-010)
+- Invitation mail over TLS (`DIVALHR_MAIL_STARTTLS` or `DIVALHR_MAIL_SSL`; refused otherwise outside development and test)
 - Backup restore tested
 - Tenant-isolation suite passing
 - Privileged MFA enabled

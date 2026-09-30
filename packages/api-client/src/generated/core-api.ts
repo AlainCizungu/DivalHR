@@ -701,7 +701,7 @@ export interface components {
         CreateInvitation: {
             /**
              * Format: email
-             * @description Invitee address. Confidential personal data: never echoed in errors, logs, events, audit metadata or metrics.
+             * @description Invitee address. Confidential personal data: never echoed in errors, logs, events, audit metadata or metrics. The local part must be ASCII (SMTPUTF8 addresses are not supported yet); internationalized domains are accepted and stored in ASCII (IDNA).
              */
             email: string;
             role: components["schemas"]["InvitationRole"];

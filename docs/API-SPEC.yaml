@@ -1668,7 +1668,8 @@ components:
           maxLength: 254
           description: >-
             Invitee address. Confidential personal data: never echoed in errors, logs, events,
-            audit metadata or metrics.
+            audit metadata or metrics. The local part must be ASCII (SMTPUTF8 addresses are not
+            supported yet); internationalized domains are accepted and stored in ASCII (IDNA).
         role:
           $ref: "#/components/schemas/InvitationRole"
         locale:

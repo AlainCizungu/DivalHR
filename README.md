@@ -52,6 +52,7 @@ Then open <http://localhost:5173>. Sign in with a **development-only** seed user
 | Core API status | http://localhost:8080/api/v1/system/status |
 | AI Service status | http://localhost:8090/api/v1/system/status |
 | Keycloak | http://localhost:8180 (admin: `dev-kc-admin` / `dev-only-keycloak-admin`) |
+| Mailpit (development mail catcher: invitations and password emails) | http://127.0.0.1:8025 |
 
 Stop and remove data: `docker compose -f infrastructure/docker/compose.yaml --env-file .env.example down -v` (or `make down`).
 
