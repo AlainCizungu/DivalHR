@@ -96,6 +96,10 @@ List endpoints return opaque keyset cursors: `base64url(payload) "." base64url(H
 
 `db/dev-seed` creates the organizations for the published development tenants A and B ("DEV-ONLY Fixture Tenant A/B") so seed users can own hierarchy records. Flyway loads it only when `divalhr.environment` is exactly `development`; a start-up test proves it is absent in `test`, and staging and production never load it. The fixture inserts are idempotent and write no audit or outbox rows. Integration tests create their own organizations.
 
+## Development identity provider over HTTP (Issue #27)
+
+The local Compose stack serves Keycloak over plain HTTP on loopback. Its only realm, `divalhr-dev`, sets `sslRequired: none` because Docker Desktop for macOS forwards published ports from an address Keycloak does not treat as private. Keycloak is published on `127.0.0.1` only. `DevelopmentSeedGuard` parses the configured issuer as a URI: in every environment it must be absolute `http(s)` with a host and without user information, query or fragment; in staging and production the normalized scheme must be exactly `https` and the `divalhr-dev` realm is refused. `DevelopmentRealmBoundaryTest` fails if any other realm import in the repository relaxes TLS, and pins the development browser client's PKCE, redirect URI, web origin and disabled grants.
+
 ## Idempotency
 
 Retryable creates require `Idempotency-Key`. Records are scoped to `(operation, verified JWT sub, key)`, store only successful responses, and are written in the same transaction as the business change, audit event and outbox event. They are retained for at least the configured period (`divalhr.idempotency.retention`, default 7 days) and honoured until a cleanup job removes them; cleanup must never delete a record before its `expires_at`.
@@ -152,6 +156,7 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 
 - Threat model approved
 - High-severity findings resolved
+- Identity provider over HTTPS: the Core API issuer is an `https` URI (enforced at start-up in staging and production) and the realm uses `sslRequired` `external` or `all`; `none` exists only in the development realm `divalhr-dev` (Issue #27)
 - Ingress or WAF rate limits on `/api/v1/public/**` configured, and `DIVALHR_TRUSTED_PROXIES` set to exactly the ingress addresses (MVP-010)
 - Invitation mail over TLS (`DIVALHR_MAIL_STARTTLS` or `DIVALHR_MAIL_SSL`; refused otherwise outside development and test)
 - Backup restore tested

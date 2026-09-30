@@ -2,7 +2,7 @@
   "realm": "divalhr-dev",
   "displayName": "DivalHR — DEVELOPMENT ONLY",
   "enabled": true,
-  "sslRequired": "external",
+  "sslRequired": "none",
   "registrationAllowed": false,
   "resetPasswordAllowed": false,
   "rememberMe": false,

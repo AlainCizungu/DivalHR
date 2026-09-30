@@ -4,8 +4,8 @@
 (`start-dev --import-realm`). Everything in it is **development-only** and must never be imported
 into, or reused by, any shared, staging or production environment:
 
-- The realm is named `divalhr-dev`; the Core API refuses to start outside `development` if its
-  issuer points at a `divalhr-dev` realm.
+- The realm is named `divalhr-dev`; the Core API refuses to start outside `development` and
+  `test` if its issuer points at a `divalhr-dev` realm or does not use `https`.
 - Seed tenant IDs are low-entropy placeholders (`00000000-0000-4000-8000-00000000000a`, `…0b`).
 - Seed passwords all start with `dev-only-` and are published in this repository.
 - Tenants A and B exist as organizations only in `development`: the Core API loads the
@@ -20,8 +20,39 @@ into, or reused by, any shared, staging or production environment:
 | `dev-employee-b` | B (`…000b`) | employee | `dev-only-Employee-B-2026` |
 | `dev-platform-admin` | A (`…000a`) | platform-admin | `dev-only-Platform-2026` |
 
-The Keycloak admin console (<http://localhost:8180/admin>) uses the bootstrap credentials from
-`.env.example`, also development-only.
+The bootstrap administrator credentials in `.env.example` are also development-only.
+
+## Plain HTTP on loopback (Issue #27)
+
+The stack serves Keycloak over plain HTTP on `http://localhost:8180`, published on **127.0.0.1
+only**. The `divalhr-dev` realm therefore sets `"sslRequired": "none"`.
+
+- **Why:** with Keycloak's default `external`, plain HTTP is accepted only from loopback and private
+  (site-local, link-local, unique-local) source addresses. Docker Desktop for macOS forwards
+  published ports from an address outside those ranges, so every browser sign-in failed with
+  `HTTPS required`. Linux Docker forwards from the private bridge gateway and was unaffected.
+- **Boundary:** only a realm named exactly `divalhr-dev` may set `none`
+  (`DevelopmentRealmBoundaryTest` inspects every realm import in the repository). Compose publishes
+  Keycloak on loopback only, and the Core API refuses both the `divalhr-dev` realm and any
+  non-`https` issuer in staging and production (`DevelopmentSeedGuard`). Real realms must use
+  `sslRequired` `external` or `all` behind HTTPS.
+- **Unchanged:** PKCE, the exact redirect URI and web origin, disabled password and implicit
+  grants, token lifetimes, audience and roles.
+- **`master` realm:** Keycloak creates it itself and it keeps `external`, so the admin console at
+  <http://localhost:8180/admin> is refused over HTTP on macOS. Administer the local realm from the
+  command line inside the container, where requests come from loopback:
+
+  ```bash
+  docker compose -f infrastructure/docker/compose.yaml --env-file .env.example exec keycloak \
+    /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master \
+    --user dev-kc-admin --password dev-only-keycloak-admin --config /tmp/kcadm.config
+  docker compose -f infrastructure/docker/compose.yaml --env-file .env.example exec keycloak \
+    /opt/keycloak/bin/kcadm.sh get users -r divalhr-dev --fields username --config /tmp/kcadm.config
+  ```
+
+- **Rollback:** revert the change, then recreate the container so the previous realm file is
+  imported again (Keycloak keeps no volume in this stack):
+  `docker compose -f infrastructure/docker/compose.yaml --env-file .env.example up -d --force-recreate keycloak`.
 
 ## What the realm configures
 
