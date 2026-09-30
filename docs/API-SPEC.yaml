@@ -49,8 +49,10 @@ paths:
       x-divalhr-lifecycle: implemented
       summary: Verified tenant and roles of the caller
       description: >-
-        Returns only the verified tenant identifier and recognised roles. Never returns names,
-        e-mail addresses or token contents.
+        Returns only the verified tenant identifier and recognised roles (platform-admin,
+        tenant-admin, employee). Never returns names, e-mail addresses, token contents or internal
+        identity-provider roles. Requires no MFA assurance, so a privileged user whose session has
+        not reached multifactor level can still load the app and be asked to step up.
       tags: [identity]
       parameters:
         - $ref: "#/components/parameters/CorrelationId"
@@ -92,6 +94,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
       summary: Create an organization (platform provisioning)
       description: >-
         Platform-scoped operation (MVP-001). Only a platform administrator may call it. The server
@@ -126,7 +129,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "409":
           $ref: "#/components/responses/Conflict"
   /legal-entities:
@@ -135,6 +138,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: List legal entities of the caller's tenant
       description: >-
         Keyset-paginated, ordered by code then id. The tenant comes only from the verified access
@@ -156,12 +160,13 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
     post:
       operationId: createLegalEntity
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Create a legal entity in the caller's tenant
       description: >-
         Codes are trimmed, upper-cased and unique per tenant regardless of case. Retries with the
@@ -191,7 +196,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "409":
           $ref: "#/components/responses/Conflict"
   /regions:
@@ -200,6 +205,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: List regions of one legal entity in the caller's tenant
       description: >-
         Keyset-paginated, ordered by code then id. A legal entity that does not exist and one that
@@ -227,7 +233,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
     post:
@@ -235,6 +241,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Create a region beneath a legal entity of the caller's tenant
       description: >-
         Regions are an optional grouping of sites. Codes are trimmed, upper-cased and unique per
@@ -266,7 +273,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -277,6 +284,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: List sites of one legal entity in the caller's tenant
       description: >-
         A legal entity that does not exist and one that belongs to another tenant produce the same
@@ -304,7 +312,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
     post:
@@ -312,6 +320,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Create a site beneath a legal entity of the caller's tenant
       description: >-
         The site's effective period must lie within its legal entity's period; an open-ended site
@@ -343,7 +352,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -354,6 +363,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Assign a region to a site that has none (first assignment only)
       description: >-
         The region must belong to the site's legal entity, and the site's effective period must
@@ -397,7 +407,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -408,6 +418,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: List departments of one site in the caller's tenant
       description: >-
         Keyset-paginated, ordered by code (byte order) then id. An empty page is returned for an
@@ -436,7 +447,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
     post:
@@ -444,6 +455,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Create a department beneath a site of the caller's tenant
       description: >-
         The department's effective period must lie within its site's period; an open-ended department
@@ -473,7 +485,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -484,6 +496,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: List cost centers of one site in the caller's tenant
       description: >-
         Keyset-paginated, ordered by code (byte order) then id. An empty page is returned for an
@@ -512,7 +525,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
     post:
@@ -520,6 +533,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Create a cost center beneath a site of the caller's tenant
       description: >-
         The cost center's effective period must lie within its site's period; an open-ended cost center
@@ -549,7 +563,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -560,6 +574,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       x-divalhr-exactly-one-of: [departmentId, costCenterId]
       summary: List the teams of one department or one cost center in the caller's tenant
       description: >-
@@ -600,7 +615,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
     post:
@@ -608,6 +623,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       x-divalhr-exactly-one-of: [departmentId, costCenterId]
       summary: Create a team beneath exactly one department or cost center of the caller's tenant
       description: >-
@@ -641,7 +657,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -652,6 +668,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: List invitations of the caller's tenant
       description: >-
         Newest first (createdAt then id, both descending), keyset-paginated. The optional status
@@ -685,12 +702,13 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
     post:
       operationId: createInvitation
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Invite a person by email with one tenant role
       description: >-
         Creates a PENDING invitation in the caller's verified tenant and, after the transaction
@@ -731,7 +749,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "409":
           $ref: "#/components/responses/Conflict"
         "429":
@@ -742,6 +760,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Revoke a pending invitation
       description: >-
         PENDING becomes REVOKED and the invitation link stops working immediately. Revoking an
@@ -768,7 +787,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -779,6 +798,7 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
       summary: Reissue a pending invitation with a new link
       description: >-
         Generates a new token, invalidates the previous link, restarts the expiry and sends the
@@ -807,7 +827,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -1013,6 +1033,13 @@ components:
       schema:
         type: integer
         minimum: 1
+    WwwAuthenticateStepUp:
+      description: >-
+        RFC 9470 step-up challenge, sent with MFA_REQUIRED only:
+        Bearer error="insufficient_user_authentication", acr_values="urn:divalhr:loa:mfa".
+        The client starts a new authorization request with those acr_values.
+      schema:
+        type: string
   responses:
     Unauthorized:
       description: Missing, invalid or expired access token
@@ -1022,6 +1049,21 @@ components:
             $ref: "#/components/schemas/Problem"
     Forbidden:
       description: Authenticated but not permitted (including missing or foreign tenant)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    PrivilegedForbidden:
+      description: >-
+        Authenticated but not permitted. Privileged operations (x-divalhr-required-assurance: mfa)
+        additionally return MFA_REQUIRED when the verified access token's acr claim is not exactly
+        urn:divalhr:loa:mfa (multifactor authentication not completed for this session). Checks run
+        in this order before the request is read: verified subject, required role (ACCESS_DENIED),
+        verified tenant (TENANT_CONTEXT_MISSING), then MFA assurance (MFA_REQUIRED). MFA_REQUIRED
+        carries no params and never echoes claims, roles, subject, tenant or request data.
+      headers:
+        WWW-Authenticate:
+          $ref: "#/components/headers/WwwAuthenticateStepUp"
       content:
         application/problem+json:
           schema:
@@ -1858,6 +1900,7 @@ components:
         - INVITATION_ACCEPTANCE_IN_PROGRESS
         - IDENTITY_PROVIDER_UNAVAILABLE
         - RATE_LIMITED
+        - MFA_REQUIRED
         - INTERNAL_ERROR
     Problem:
       type: object
