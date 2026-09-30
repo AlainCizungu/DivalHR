@@ -195,7 +195,14 @@ class KeycloakProvisioningContainerTest {
       JsonNode user = adminGet("/users/" + subject);
       // Verified only because the invitee presented the single-use token sent to this address.
       assertThat(user.path("emailVerified").asBoolean()).isTrue();
-      assertThat(user.path("requiredActions").toString()).contains("UPDATE_PASSWORD");
+      // MVP-011: a tenant administrator also sets up an authenticator; an employee does not.
+      java.util.List<String> actions = new java.util.ArrayList<>();
+      user.path("requiredActions").forEach(action -> actions.add(action.asString()));
+      assertThat(actions)
+          .containsExactlyInAnyOrderElementsOf(
+              role.requiresMfa()
+                  ? java.util.List.of("UPDATE_PASSWORD", "CONFIGURE_TOTP")
+                  : java.util.List.of("UPDATE_PASSWORD"));
       // Idempotent: the same invitation finds the same identity.
       assertThat(directory.provision(request(invitation, email, role)))
           .isEqualTo(new Provisioned(subject));
@@ -322,7 +329,7 @@ class KeycloakProvisioningContainerTest {
     String subject =
         ((Provisioned) directory.provision(request(UUID.randomUUID(), email, TenantRole.EMPLOYEE)))
             .subject();
-    directory.requestCredentialSetup(subject);
+    directory.requestCredentialSetup(subject, TenantRole.EMPLOYEE);
     JsonNode message = awaitMessage(email);
     assertThat(message.path("Subject").asString()).isEqualTo("Update Your Account");
   }

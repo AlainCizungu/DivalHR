@@ -7,6 +7,7 @@ import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningResul
 import com.divalhr.core.identity.domain.CredentialSetupState;
 import com.divalhr.core.identity.domain.Invitation;
 import com.divalhr.core.identity.domain.InvitationState;
+import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository.AcceptanceRow;
 import com.divalhr.core.identity.internal.JdbcMembershipRepository;
@@ -246,7 +247,7 @@ public class InvitationAcceptance {
         .addKeyValue("invitationId", invitation.id())
         .addKeyValue("outcome", "accepted")
         .log("invitation_accepted");
-    requestCredentialSetup(invitation.id(), subject, 0);
+    requestCredentialSetup(invitation.id(), subject, invitation.role(), 0);
   }
 
   private void deny(Invitation invitation, UUID owner, String correlationId) {
@@ -268,16 +269,17 @@ public class InvitationAcceptance {
    *
    * @param invitationId accepted invitation
    * @param subject member subject
+   * @param role the invitation's role (tenant administrators also enroll an authenticator)
    * @param previousAttempts attempts before this one
    * @return the recorded state
    */
   public CredentialSetupState requestCredentialSetup(
-      UUID invitationId, String subject, int previousAttempts) {
+      UUID invitationId, String subject, TenantRole role, int previousAttempts) {
     int attempts = previousAttempts + 1;
     CredentialSetupState state;
     Instant nextAt = null;
     try {
-      directory.requestCredentialSetup(subject);
+      directory.requestCredentialSetup(subject, role);
       state = CredentialSetupState.SENT;
     } catch (RuntimeException failed) {
       if (attempts >= properties.credentialSetupMaxAttempts()) {

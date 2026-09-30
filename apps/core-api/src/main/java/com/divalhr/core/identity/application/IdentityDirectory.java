@@ -25,12 +25,14 @@ public interface IdentityDirectory {
   ProvisioningResult provision(ProvisioningRequest request);
 
   /**
-   * Asks the provider to email the invitee a link to choose a password.
+   * Asks the provider to email the invitee a link to choose a password and, for a role that
+   * requires MFA, to enroll an authenticator app (MVP-011).
    *
    * @param subject identity subject
+   * @param role the invitation's role
    * @throws IdentityProviderUnavailableException when the provider cannot be reached or refuses
    */
-  void requestCredentialSetup(String subject);
+  void requestCredentialSetup(String subject, TenantRole role);
 
   /**
    * Deletes the identity this invitation created, if any; never touches another identity.
