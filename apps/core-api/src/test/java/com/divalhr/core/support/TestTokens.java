@@ -24,6 +24,12 @@ public final class TestTokens {
   /** Audience configured for tests. */
   public static final String AUDIENCE = "divalhr-core-api";
 
+  /** {@code acr} of a session that completed MFA (the only value the Core accepts). */
+  public static final String MFA_ACR = "urn:divalhr:loa:mfa";
+
+  /** {@code acr} of a password-only session. */
+  public static final String PASSWORD_ACR = "urn:divalhr:loa:pwd";
+
   /** Tenant A (test-only). */
   public static final UUID TENANT_A = UUID.fromString("00000000-0000-4000-8000-00000000000a");
 
@@ -72,6 +78,9 @@ public final class TestTokens {
     private List<String> roles = List.of("employee");
     private Instant expiresAt = Instant.now().plusSeconds(300);
     private String subject = UUID.randomUUID().toString();
+    private Object acr;
+    private boolean acrSet;
+    private final Map<String, Object> extra = new java.util.LinkedHashMap<>();
 
     /**
      * Sets the subject; {@code null} omits it.
@@ -129,6 +138,33 @@ public final class TestTokens {
     }
 
     /**
+     * Sets the {@code acr} claim to any value (a string, an array, a number...); {@code null} omits
+     * it. Without this call the token carries what Keycloak issues after the matching sign-in:
+     * {@code urn:divalhr:loa:mfa} for privileged roles, {@code urn:divalhr:loa:pwd} otherwise
+     * (MVP-011).
+     *
+     * @param value claim value
+     * @return this builder
+     */
+    public Builder acr(Object value) {
+      this.acr = value;
+      this.acrSet = true;
+      return this;
+    }
+
+    /**
+     * Adds any other claim (for example {@code amr}) to prove the Core ignores it.
+     *
+     * @param name claim name
+     * @param value claim value
+     * @return this builder
+     */
+    public Builder claim(String name, Object value) {
+      this.extra.put(name, value);
+      return this;
+    }
+
+    /**
      * Sets expiry.
      *
      * @param value expiry
@@ -137,6 +173,12 @@ public final class TestTokens {
     public Builder expiresAt(Instant value) {
       this.expiresAt = value;
       return this;
+    }
+
+    private static String defaultAcr(List<String> roles) {
+      return roles.contains("platform-admin") || roles.contains("tenant-admin")
+          ? MFA_ACR
+          : PASSWORD_ACR;
     }
 
     /**
@@ -155,6 +197,11 @@ public final class TestTokens {
               .claim("realm_access", Map.of("roles", roles));
       if (tenant != null) {
         claims.claim("tenant_id", tenant.toString());
+      }
+      extra.forEach(claims::claim);
+      Object assurance = acrSet ? acr : defaultAcr(roles);
+      if (assurance != null) {
+        claims.claim("acr", assurance);
       }
       try {
         SignedJWT jwt =

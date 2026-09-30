@@ -99,6 +99,8 @@ public enum ErrorCode {
   IDENTITY_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
   /** Too many anonymous requests from one client. */
   RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+  /** A privileged operation requires multifactor authentication for this session (MVP-011). */
+  MFA_REQUIRED(HttpStatus.FORBIDDEN),
   /** An unexpected server error occurred. */
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 
