@@ -147,3 +147,14 @@ Residual risks, accepted for MVP-010 and to be revisited before production: the 
 
 New secrets and configuration: `DIVALHR_EMAIL_LOOKUP_KEY`, `DIVALHR_KEYCLOAK_PROVISIONER_SECRET`, mail credentials (`DIVALHR_MAIL_*`), `DIVALHR_TRUSTED_PROXIES`. New personal data: invitee email addresses (confidential) in `identity.invitation`, deleted 90 days after the invitation ends.
 
+## Issue #27 delta (development identity provider over HTTP)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| S8 | The development realm's plain-HTTP relaxation (`sslRequired: none`) reaches a shared environment | Only a realm named exactly `divalhr-dev` may relax TLS; the Core API refuses that realm and any non-`https` issuer (parsed URI, normalized scheme) in staging and production | `DevelopmentRealmBoundaryTest.onlyTheDevelopmentRealmMayAcceptPlainHttp`, `DevelopmentSeedGuardTest` |
+| I15 | Development credentials or sign-in traffic reachable over HTTP from the network | Keycloak published on `127.0.0.1` only; the Core API uses the internal `keycloak:8080` address | `composePublishesKeycloakOnLoopbackAndKeepsTheBrowserFacingSettings` |
+| T26 | Relaxing TLS silently relaxes other client settings | PKCE S256, exact redirect URI and web origin, disabled password, implicit and device grants pinned by test | `theBrowserClientKeepsPkceExactRedirectsAndNoPasswordGrant` |
+| T27 | A malformed or credential-bearing issuer slips through configuration | Issuer parsed as a URI; relative, opaque, host-less, user-info, query and fragment forms refused in every environment | `malformedRelativeOrUserInfoIssuersAreRejectedEverywhere` |
+
+The `master` realm keeps `external`; local administration uses `kcadm.sh` inside the container. No secrets, tokens, addresses or passwords are logged; guard messages name the rule, never the configured value.
+

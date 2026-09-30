@@ -126,11 +126,12 @@ class KeycloakProvisioningContainerTest {
   }
 
   /**
-   * Docker Desktop forwards published ports from an address Keycloak does not consider private, so
-   * its default {@code sslRequired=external} answers "HTTPS required". This test exercises
-   * authorization, not transport: TLS enforcement is lifted in this throwaway container only,
-   * through {@code kcadm.sh} over the container's own loopback. The realm file and every real
-   * environment keep their settings.
+   * Docker Desktop for macOS forwards published ports from an address Keycloak does not consider
+   * private. The imported {@code divalhr-dev} realm already accepts plain HTTP (Issue #27), but the
+   * {@code master} realm, which Keycloak creates itself and this test uses for its bootstrap-admin
+   * token, keeps the default {@code sslRequired=external}. It is relaxed in this throwaway
+   * container only, through {@code kcadm.sh} over the container's own loopback; the Compose stack's
+   * {@code master} realm is left unchanged.
    */
   private static void allowPlainHttpFromTheTestHost() throws Exception {
     String config = "/tmp/kcadm.config";
@@ -147,9 +148,7 @@ class KeycloakProvisioningContainerTest {
         ADMIN_PASSWORD,
         "--config",
         config);
-    for (String realm : new String[] {"master", REALM}) {
-      kcadm("update", "realms/" + realm, "-s", "sslRequired=NONE", "--config", config);
-    }
+    kcadm("update", "realms/master", "-s", "sslRequired=NONE", "--config", config);
   }
 
   private static void kcadm(String... arguments) throws Exception {

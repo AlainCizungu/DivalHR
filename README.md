@@ -51,8 +51,10 @@ Then open <http://localhost:5173>. Sign in with a **development-only** seed user
 | Web | http://localhost:5173 |
 | Core API status | http://localhost:8080/api/v1/system/status |
 | AI Service status | http://localhost:8090/api/v1/system/status |
-| Keycloak | http://localhost:8180 (admin: `dev-kc-admin` / `dev-only-keycloak-admin`) |
+| Keycloak (127.0.0.1 only; plain HTTP is development-only) | http://localhost:8180 (admin from the command line: see `infrastructure/docker/keycloak/README.md`) |
 | Mailpit (development mail catcher: invitations and password emails) | http://127.0.0.1:8025 |
+
+The stack works the same on Linux and on Docker Desktop for macOS. It uses plain HTTP on localhost only; staging and production require HTTPS, and the Core API refuses to start there with an `http` issuer.
 
 Stop and remove data: `docker compose -f infrastructure/docker/compose.yaml --env-file .env.example down -v` (or `make down`).
 
