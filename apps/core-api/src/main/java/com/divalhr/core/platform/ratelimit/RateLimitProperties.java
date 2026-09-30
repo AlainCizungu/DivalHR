@@ -2,6 +2,7 @@ package com.divalhr.core.platform.ratelimit;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -27,10 +28,10 @@ public record RateLimitProperties(
 
   /** Applies safe defaults. */
   public RateLimitProperties {
-    perClientRequests = perClientRequests == null ? 10 : perClientRequests;
-    globalRequests = globalRequests == null ? 600 : globalRequests;
+    perClientRequests = Objects.requireNonNullElse(perClientRequests, 10);
+    globalRequests = Objects.requireNonNullElse(globalRequests, 600);
     window = window == null ? Duration.ofMinutes(1) : window;
-    maxTrackedClients = maxTrackedClients == null ? 10_000 : maxTrackedClients;
+    maxTrackedClients = Objects.requireNonNullElse(maxTrackedClients, 10_000);
     trustedProxies = trustedProxies == null ? List.of() : List.copyOf(trustedProxies);
     if (perClientRequests < 1 || globalRequests < 1 || maxTrackedClients < 1) {
       throw new IllegalStateException("divalhr.rate-limit values must be positive");

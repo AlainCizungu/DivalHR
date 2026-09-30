@@ -21,7 +21,7 @@ import org.springframework.web.util.HtmlUtils;
  * no email address in the body.
  */
 @Component
-public class InvitationTemplates {
+public final class InvitationTemplates {
 
   /** Template version, recorded with the message. */
   public static final String VERSION = "v1";

@@ -2,6 +2,7 @@ package com.divalhr.core.identity.internal.mail;
 
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Objects;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -32,7 +33,7 @@ public record MailProperties(
 
   /** Applies defaults. */
   public MailProperties {
-    port = port == null ? 587 : port;
+    port = Objects.requireNonNullElse(port, 587);
     fromName = fromName == null ? "DivalHR" : fromName;
     starttls = starttls == null ? Boolean.TRUE : starttls;
     ssl = ssl == null ? Boolean.FALSE : ssl;

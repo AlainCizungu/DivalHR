@@ -42,6 +42,7 @@
       <Class name="com.divalhr.core.identity.application.InvitationEvents"/>
       <Class name="com.divalhr.core.identity.application.InvitationExpiry"/>
       <Class name="com.divalhr.core.identity.application.InvitationJobs"/>
+      <Class name="com.divalhr.core.identity.internal.InvitationJobScheduler"/>
       <Class name="com.divalhr.core.identity.internal.keycloak.KeycloakIdentityDirectory"/>
     </Or>
   </Match>

@@ -2,6 +2,7 @@ package com.divalhr.core.identity.application;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Objects;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -39,16 +40,15 @@ public record InvitationProperties(
   public InvitationProperties {
     ttl = ttl == null ? Duration.ofDays(7) : ttl;
     retention = retention == null ? Duration.ofDays(90) : retention;
-    createPerHour = createPerHour == null ? 50 : createPerHour;
-    maxOpen = maxOpen == null ? 500 : maxOpen;
+    createPerHour = Objects.requireNonNullElse(createPerHour, 50);
+    maxOpen = Objects.requireNonNullElse(maxOpen, 500);
     resendInterval = resendInterval == null ? Duration.ofMinutes(5) : resendInterval;
     deliveryStaleAfter = deliveryStaleAfter == null ? Duration.ofMinutes(10) : deliveryStaleAfter;
     acceptanceLease = acceptanceLease == null ? Duration.ofMinutes(2) : acceptanceLease;
     credentialSetupRetry =
         credentialSetupRetry == null ? Duration.ofMinutes(5) : credentialSetupRetry;
-    credentialSetupMaxAttempts =
-        credentialSetupMaxAttempts == null ? 5 : credentialSetupMaxAttempts;
-    jobBatchSize = jobBatchSize == null ? 200 : jobBatchSize;
+    credentialSetupMaxAttempts = Objects.requireNonNullElse(credentialSetupMaxAttempts, 5);
+    jobBatchSize = Objects.requireNonNullElse(jobBatchSize, 200);
     require(within(ttl, Duration.ofHours(1), Duration.ofDays(14)), "ttl must be 1h..14d");
     require(
         within(retention, Duration.ofDays(7), Duration.ofDays(365)), "retention must be 7d..365d");
