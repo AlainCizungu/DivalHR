@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * to the loopback-bound Mailpit capture (decision D-8). Never logs addresses or links.
  */
 @Component
-public class SmtpInvitationMailer implements InvitationMailer {
+public final class SmtpInvitationMailer implements InvitationMailer {
 
   private final JavaMailSenderImpl sender;
   private final InvitationTemplates templates;

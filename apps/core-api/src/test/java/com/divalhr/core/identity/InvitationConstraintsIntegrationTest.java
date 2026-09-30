@@ -436,14 +436,13 @@ class InvitationConstraintsIntegrationTest {
       statement.run();
     } catch (RuntimeException failure) {
       // Deferred keys fail at commit, which may surface as a transaction exception.
-      Throwable cause = failure;
-      while (cause != null && !(cause instanceof PSQLException)) {
-        cause = cause.getCause();
-      }
-      if (cause instanceof PSQLException psql) {
-        ServerErrorMessage message = psql.getServerErrorMessage();
-        if (message != null && message.getConstraint() != null) {
-          return message.getConstraint();
+      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+        if (cause instanceof PSQLException psql) {
+          ServerErrorMessage message = psql.getServerErrorMessage();
+          if (message != null && message.getConstraint() != null) {
+            return message.getConstraint();
+          }
+          break;
         }
       }
       throw new AssertionError("failed without a named constraint", failure);

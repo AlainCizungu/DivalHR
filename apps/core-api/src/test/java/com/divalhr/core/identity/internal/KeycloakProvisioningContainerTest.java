@@ -68,7 +68,7 @@ class KeycloakProvisioningContainerTest {
   static final JsonMapper JSON = JsonMapper.builder().build();
 
   @BeforeAll
-  static void start() {
+  static void start() throws Exception {
     network = Network.newNetwork();
     mailpit =
         new GenericContainer<>(MAILPIT_IMAGE)
@@ -95,6 +95,7 @@ class KeycloakProvisioningContainerTest {
                     .forPort(8080)
                     .withStartupTimeout(Duration.ofMinutes(4)));
     keycloak.start();
+    allowPlainHttpFromTheTestHost();
     directory =
         new KeycloakIdentityDirectory(
             new KeycloakProperties(
@@ -122,6 +123,42 @@ class KeycloakProvisioningContainerTest {
     if (network != null) {
       network.close();
     }
+  }
+
+  /**
+   * Docker Desktop forwards published ports from an address Keycloak does not consider private, so
+   * its default {@code sslRequired=external} answers "HTTPS required". This test exercises
+   * authorization, not transport: TLS enforcement is lifted in this throwaway container only,
+   * through {@code kcadm.sh} over the container's own loopback. The realm file and every real
+   * environment keep their settings.
+   */
+  private static void allowPlainHttpFromTheTestHost() throws Exception {
+    String config = "/tmp/kcadm.config";
+    kcadm(
+        "config",
+        "credentials",
+        "--server",
+        "http://localhost:8080",
+        "--realm",
+        "master",
+        "--user",
+        ADMIN,
+        "--password",
+        ADMIN_PASSWORD,
+        "--config",
+        config);
+    for (String realm : new String[] {"master", REALM}) {
+      kcadm("update", "realms/" + realm, "-s", "sslRequired=NONE", "--config", config);
+    }
+  }
+
+  private static void kcadm(String... arguments) throws Exception {
+    String[] command = new String[arguments.length + 1];
+    command[0] = "/opt/keycloak/bin/kcadm.sh";
+    System.arraycopy(arguments, 0, command, 1, arguments.length);
+    assertThat(keycloak.execInContainer(command).getExitCode())
+        .as("kcadm " + arguments[0])
+        .isZero();
   }
 
   static String baseUrl() {

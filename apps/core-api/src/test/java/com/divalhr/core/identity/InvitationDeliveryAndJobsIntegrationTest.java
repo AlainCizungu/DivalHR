@@ -24,6 +24,7 @@ import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.RecordingInvitationMailer;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -316,8 +317,10 @@ class InvitationDeliveryAndJobsIntegrationTest {
   }
 
   private int issue(UUID id) {
-    return jdbc.queryForObject(
-        "SELECT issue_count FROM identity.invitation WHERE id = ?", Integer.class, id);
+    Integer count =
+        jdbc.queryForObject(
+            "SELECT issue_count FROM identity.invitation WHERE id = ?", Integer.class, id);
+    return Objects.requireNonNull(count, "issue_count");
   }
 
   private void makeDeliveryStale(UUID id) {

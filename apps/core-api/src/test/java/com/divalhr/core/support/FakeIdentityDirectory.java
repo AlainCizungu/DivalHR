@@ -33,6 +33,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
       String subject, UUID invitationId, String tenant, String role, String locale) {}
 
   private final Map<String, Identity> byAddress = new ConcurrentHashMap<>();
+  private final Object provisioning = new Object();
   private final Set<String> preexisting = ConcurrentHashMap.newKeySet();
   private final List<String> credentialSetups = new CopyOnWriteArrayList<>();
   private final List<UUID> compensations = new CopyOnWriteArrayList<>();
@@ -113,7 +114,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
     if (preexisting.contains(address)) {
       return new IdentityConflict();
     }
-    synchronized (byAddress) {
+    synchronized (provisioning) {
       Identity existing = byAddress.get(address);
       if (existing != null) {
         return existing.invitationId().equals(request.invitationId())
