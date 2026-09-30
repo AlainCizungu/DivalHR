@@ -7,7 +7,8 @@ into, or reused by, any shared, staging or production environment:
 - The realm is named `divalhr-dev`; the Core API refuses to start outside `development` and
   `test` if its issuer points at a `divalhr-dev` realm or does not use `https`.
 - Seed tenant IDs are low-entropy placeholders (`00000000-0000-4000-8000-00000000000a`, `…0b`).
-- Seed passwords all start with `dev-only-` and are published in this repository.
+- Seed passwords and the TOTP seeds of the privileged seed users all start with `dev-only-` and
+  are published in this repository.
 - Tenants A and B exist as organizations only in `development`: the Core API loads the
   `db/dev-seed` fixtures ("DEV-ONLY Fixture Tenant A/B") solely when
   `DIVALHR_ENVIRONMENT=development`.
@@ -82,10 +83,143 @@ only**. The `divalhr-dev` realm therefore sets `"sslRequired": "none"`.
 
 ## Privileged MFA (MVP-011)
 
-Sprint 0 documents MFA but does not enforce it locally. Before any shared environment:
+`platform-admin` and `tenant-admin` sign in with a password **and** a TOTP code; employees with a
+password only. The Core API accepts privileged requests only when the access token's `acr` is
+exactly `urn:divalhr:loa:mfa` (see `docs/SECURITY.md`).
 
-1. Authentication → duplicate the *browser* flow.
-2. In the conditional OTP sub-flow, replace *Condition – user configured* with
-   *Condition – user role* for `platform-admin`, and add a second one for `tenant-admin`.
-3. Set *OTP Form* to **Required** and bind the new flow as the browser flow.
-4. Verify that privileged users must enrol TOTP on next login; non-privileged users are unaffected.
+### Development authenticators (published, DEVELOPMENT ONLY)
+
+The privileged seed users carry TOTP seeds labelled "DEV-ONLY published seed authenticator". Add
+one to an authenticator app with the base32 key (type *time-based*, SHA-1, 6 digits, 30 s):
+
+| Username | Raw seed (in the realm file) | Base32 key for an app |
+|---|---|---|
+| `dev-admin-a` | `dev-only-totp-admin-a-2026` | `MRSXMLLPNZWHSLLUN52HALLBMRWWS3RNMEWTEMBSGY` |
+| `dev-admin-b` | `dev-only-totp-admin-b-2026` | `MRSXMLLPNZWHSLLUN52HALLBMRWWS3RNMIWTEMBSGY` |
+| `dev-platform-admin` | `dev-only-totp-platform-2026` | `MRSXMLLPNZWHSLLUN52HALLQNRQXIZTPOJWS2MRQGI3A` |
+
+Employees have none. A code works once; the previous and next 30-second periods are also
+accepted. Five failures lock the account for 60 seconds, growing to at most 15 minutes. To unlock
+everyone locally: `kcadm.sh delete attack-detection/brute-force/users -r divalhr-dev` (with the
+`kcadm.sh` session shown above).
+
+### What the realm configures
+
+- **Browser flow `divalhr browser`** (bound as the realm browser flow):
+
+  ```
+  Cookie                                                             ALTERNATIVE
+  divalhr browser forms                                              ALTERNATIVE
+    level 1 password                                                 CONDITIONAL
+      Condition - Level of Authentication (1, max age 36000 s)       REQUIRED
+      Username Password Form                                         REQUIRED
+    level 2 otp                                                      CONDITIONAL
+      Condition - Level of Authentication (2, max age 36000 s)       REQUIRED
+      Condition - user role (divalhr-privileged-mfa)                 REQUIRED
+      level 2 enrolled                                               CONDITIONAL
+        Condition - user configured                                  REQUIRED
+        OTP Form                                                     REQUIRED
+      level 2 not enrolled                                           CONDITIONAL
+        Condition - sub-flow executed ("enrolled", not executed)     REQUIRED
+        Deny access (divalhrMfaEnrollmentRequired)                   REQUIRED
+  ```
+
+- **Marker role `divalhr-privileged-mfa`:** a composite child of `platform-admin` and
+  `tenant-admin`, so the level-2 condition covers both, also through the role groups. It is an
+  internal marker only: never an authorization or assurance signal, and the Core ignores it.
+- **`divalhr-web`:** `acr.loa.map` `{"urn:divalhr:loa:pwd":1,"urn:divalhr:loa:mfa":2}`,
+  `default.acr.values` and `minimum.acr.value` `urn:divalhr:loa:mfa`. Employees still end at level
+  1 because level 2 is role-conditional.
+- **TOTP policy:** HmacSHA1, 6 digits, 30 s, look-ahead 1, codes not reusable.
+- **Brute force:** failure factor 5, wait increment 60 s, maximum wait 900 s, no permanent lockout.
+- **Events:** login events (7 days) and admin events, without representations.
+- **Messages:** `divalhrMfaEnrollmentRequired` in French and English; Keycloak's own OTP and
+  setup pages are used as shipped (keycloak.v2, bilingual). Their accessibility is Keycloak's;
+  findings are recorded in the MVP-011 completion report, and there is no custom theme.
+- **Enrollment:** only through an administrator-sent action link. Invited tenant administrators
+  receive one link for `UPDATE_PASSWORD` and `CONFIGURE_TOTP`. A privileged user without an
+  authenticator who signs in is denied, even if `CONFIGURE_TOTP` is pending.
+
+**Level lifetime (guardrail 6).** After a level-2 sign-in, refreshed tokens keep `acr`
+`urn:divalhr:loa:mfa` for the SSO session (at most 10 hours, 30 minutes idle). The level's max age
+is checked at the next authorization request, never retroactively on refresh.
+
+**`admin-cli` (A1).** It stays enabled so the `kcadm.sh` runbook works. Its tokens carry no
+`divalhr-core-api` audience, roles, `tenant_id` or `acr`, and the Core rejects them
+(`KeycloakMfaContainerTest.noOtherGrantOrClientYieldsATokenTheCoreAccepts`). The realm's own
+`admin-cli` still asks privileged users for their code on password grants.
+
+### Verify a realm (read-only, A4)
+
+```bash
+# Development stack (runs kcadm.sh inside the container; works on macOS):
+KEYCLOAK_VERIFY_TRANSPORT=compose KEYCLOAK_ADMIN_USER=dev-kc-admin \
+  KEYCLOAK_ADMIN_PASSWORD=dev-only-keycloak-admin pnpm realm:verify
+# Another realm, with a short-lived token of an administrator who may view it:
+KEYCLOAK_URL=https://id.example KEYCLOAK_REALM=<realm> KEYCLOAK_ADMIN_TOKEN=<token> pnpm realm:verify
+```
+
+It issues GET requests only and prints `PASS <rule>` or `FAIL <rule>` for: the bound flow and its
+executions, the LoA levels, the marker-role condition, the denial of unenrolled users, the ACR map
+and client minimum, the TOTP policy, no self-enrollment, the marker-role composition, PKCE without
+password or device grants, brute force, locales and messages, and login and admin events. It never
+prints values, credentials, secrets, tokens, subjects or personal data. Exit code 0 means every
+rule passed, 1 a rule failed, 2 the realm could not be read.
+
+### Runbooks
+
+**Lost or replaced authenticator (A2).** Only an authorized Keycloak realm administrator does this;
+it is a Keycloak administration task, not a DivalHR platform operation.
+
+1. Verify the person's identity through an independent channel (for example a call back to a
+   known number or confirmation by their manager). Never on the strength of an email alone.
+2. Users → the user → Credentials: delete the OTP credential.
+3. Send an action link for `CONFIGURE_TOTP` (Users → Actions → *Send email*, or
+   `PUT /admin/realms/<realm>/users/<id>/execute-actions-email` with `["CONFIGURE_TOTP"]`).
+4. Sign the user out of every session (Users → Sessions → *Sign out*).
+5. If compromise is suspected, also require `UPDATE_PASSWORD` in the same link.
+6. The admin events record the change; review them with the monitoring below.
+
+An in-app or delegated reset needs a separate story. There are no recovery codes.
+
+**First platform administrator.** The realm administrator creates the user, grants
+`platform-admin` and sends one action link for `UPDATE_PASSWORD` and `CONFIGURE_TOTP`. Until the
+link is used, that user cannot sign in with a privileged role.
+
+**Break-glass.** None inside DivalHR: no account is exempt from MFA. Recovery goes through the
+Keycloak administrator, whose own account has MFA in shared environments.
+
+**Time synchronization.** Keycloak hosts must run NTP: a clock off by more than about 30 seconds
+rejects valid codes. Tell users to set their phone's date and time automatically (the web app's
+MFA-required page says so).
+
+**Monitoring (no codes or secrets are ever in events).**
+
+| Keycloak event | Meaning | Suggested alert |
+|---|---|---|
+| `LOGIN_ERROR` `invalid_user_credentials` with `selected_credential_id` | Wrong one-time code | Several per user within minutes |
+| `LOGIN_ERROR` `invalid_user_credentials` with `username` | Wrong password | Existing password-spray alerts |
+| `LOGIN_ERROR` `user_temporarily_disabled` | Brute-force lockout | Any privileged user |
+| `LOGIN_ERROR` `access_denied` | Privileged user without an authenticator denied | Any occurrence (setup link needed) |
+| Admin event `DELETE` on `users/<id>/credentials/<id>` | Authenticator removed | Every occurrence, and always when the actor is `divalhr-core-provisioner` (D6) |
+
+**When enforcement starts.** Existing sessions carry a password-level `acr`, so the first
+privileged request answers `MFA_REQUIRED` and the web app steps up once: enrolled administrators
+enter a code; administrators without an authenticator are denied and need a setup link first.
+Employees are unaffected.
+
+### Production checklist
+
+1. Create the marker role and add it to `platform-admin` and `tenant-admin` as a composite.
+2. Create the browser flow above and bind it as the realm browser flow.
+3. Set the TOTP policy, brute-force settings, `divalhrMfaEnrollmentRequired` in French and English,
+   and enable login and admin events (admin representations off).
+4. Set the three `acr` attributes on the web client.
+5. Protect Keycloak administration itself with MFA, a restricted network and monitored admin
+   events.
+6. Enroll every privileged user through setup links before enabling the Core check.
+7. Run `pnpm realm:verify` against the realm: every rule must pass.
+
+**Rollback.** Development: revert and recreate the Keycloak container. Shared environments: bind
+the previous browser flow and remove the web client's `acr` minimum, *together with* reverting
+the Core change; with only the realm rolled back, the Core keeps denying privileged requests.

@@ -37,7 +37,7 @@ Every non-public `/api/v1` operation, read or write, declares exactly one scope;
 | Enforcement | MVC interceptor before the body is read, plus `@PreAuthorize("hasRole('platform-admin')")` | Tenant guard on every tenant-owned read and write |
 | Denials | 403 `ACCESS_DENIED`, safe structured security log (`divalhr.security`) and a `denied` metric | 403 `TENANT_ACCESS_DENIED` |
 
-A platform administrator gains **no** access to tenant-scoped resources of other tenants through the platform role. Durable auditing of privileged authorization denials is tracked as MVP-013.
+A platform administrator gains **no** access to tenant-scoped resources of other tenants through the platform role. Both privileged roles also require multifactor assurance (MVP-011, below). Durable auditing of privileged authorization denials is tracked as MVP-013.
 
 ### Verified subject (Issue #17)
 
@@ -82,6 +82,47 @@ Tenant administrators invite people by email with exactly one tenant role. The i
 The Core API creates identities with the confidential client `divalhr-core-provisioner` (client credentials; secret from `DIVALHR_KEYCLOAK_PROVISIONER_SECRET`, refused when missing or `dev-only-` outside development). It uses Keycloak fine-grained admin permissions v2 and holds **no** realm role-mapping permission: it can only create users directly inside the two role groups `divalhr-role-employee` and `divalhr-role-tenant-admin`, whose members inherit `employee` or `tenant-admin`. It can therefore never grant `platform-admin` (guardrail 2, `theProvisionerCanNeverGrantPlatformAdminOrTouchOtherIdentities`). Each identity carries `tenant_id`, the admin-only attribute `divalhr_invitation_id` (used to find and compensate its own identity) and `locale`.
 
 **Residual risk.** Within those two groups the provisioner fully manages members: it could reset a member's credentials or change their `tenant_id` attribute. The secret must therefore be stored and rotated like any privileged credential, and its use is limited to the Core API. Narrowing this further requires a custom Keycloak extension and is a future decision.
+
+## Privileged multifactor authentication (MVP-011)
+
+Every interactive holder of `platform-admin` or `tenant-admin` completes TOTP, and the Core API enforces it independently. SMS and email codes are never a privileged factor; passkeys are a future, stronger option.
+
+### Evidence the Core accepts
+
+- **Claim.** The access token's `acr`, which Keycloak computes from the level of authentication the session achieved. The only accepted value is the scalar string `urn:divalhr:loa:mfa` (exact, case-sensitive). A missing claim, `urn:divalhr:loa:pwd`, Keycloak's legacy `"0"`/`"1"`, other strings, arrays, numbers and objects all fail closed.
+- **Never evidence.** The privileged role itself, the marker role `divalhr-privileged-mfa`, `amr`, an OTP credential being configured, required actions, `tenant_id`, invitation or membership state, headers or frontend flags. The marker role grants no authority in the Core and is filtered from its authorities; it never appears in API responses, logs, audit or the UI.
+- **Order.** For every `@PlatformScoped` and `@TenantAdminOperation` handler, `ScopeAuthorizationInterceptor` checks the verified subject, the role, the tenant (tenant operations), then the assurance, all before argument, query or body processing. Method security additionally requires the `ASSURANCE_MFA` authority, which `KeycloakRealmRoleConverter` adds only for the exact `acr`.
+- **Denial.** `403 MFA_REQUIRED` with empty params and `WWW-Authenticate: Bearer error="insufficient_user_authentication", acr_values="urn:divalhr:loa:mfa"` (RFC 9470), identical for platform and tenant operations apart from the route and correlation ID. One `divalhr.security` warning with `reason=mfa_required`, operation, scope, required role, result and correlation ID; no subject, `acr` value, token or request data (A5). The `outcome=mfa_required` metric counts it. Durable denial auditing remains MVP-013.
+- **Not affected.** `GET /session` (password assurance is enough), the status endpoint, public invitation endpoints (bearer tokens are not read) and employee operations.
+- **Contract.** Privileged operations carry `x-divalhr-required-assurance: mfa` and the `PrivilegedForbidden` 403; `ApiContractDriftTest` fails if that set differs from the privileged handlers.
+
+### Keycloak configuration
+
+- **Browser flow** `divalhr browser`, bound as the realm browser flow so it covers every browser client: level 1 is the password; level 2 runs only for the marker role (implied by both privileged roles, including through role groups) and asks for the TOTP code. A privileged user without an authenticator is **denied** with a French or English message (`divalhrMfaEnrollmentRequired`); there is no self-enrollment at sign-in (D3).
+- **Client `divalhr-web`:** `acr.loa.map` `{"urn:divalhr:loa:pwd":1,"urn:divalhr:loa:mfa":2}`, `default.acr.values` and `minimum.acr.value` `urn:divalhr:loa:mfa`. A request for the password level cannot skip the code of a privileged user; employees still end at level 1.
+- **TOTP policy:** HmacSHA1, 6 digits, 30 seconds, one period of skew, codes not reusable.
+- **Brute force:** 5 failures, then a wait growing by 60 seconds up to 15 minutes; never permanent (D7). Keycloak's quick-login check also applies.
+- **Session:** a level-2 session keeps `acr` `mfa` across refreshes for the SSO session (at most 10 hours, 30 minutes idle, D4). The level's max age (10 hours) is enforced at the next authorization, not retroactively on refresh (guardrail 6). Fresh step-up for sensitive operations is future work.
+- **Enrollment:** invited tenant administrators receive one action link for `UPDATE_PASSWORD` and `CONFIGURE_TOTP`; employees for `UPDATE_PASSWORD` only. The provisioner uses its existing permissions only.
+- **Role changes:** a user promoted inside a password session keeps `acr` `pwd` on refresh, so the Core answers `MFA_REQUIRED` until a new authorization steps up (or denies an unenrolled user). A removed role disappears from the next token.
+- **`admin-cli`** stays enabled for the development `kcadm.sh` runbook (A1). Its tokens carry no Core audience, roles, tenant or `acr` and are rejected by the Core. In production, Keycloak administration has its own MFA, a restricted network and monitored admin events; disabling `admin-cli` is not required.
+- **Events:** login events and admin events are enabled; admin-event representations are not stored because they may contain personal data.
+- **Verification:** `pnpm realm:verify` checks a running realm read-only and prints rule names with PASS or FAIL only (A4; Keycloak README).
+
+### Web behaviour
+
+The web app sends privileged requests with its in-memory token. On `403 MFA_REQUIRED` it signs in again with `acr_values=urn:divalhr:loa:mfa` and returns to the same page. It does this once per signed-in session: if the Core still refuses after a step-up, an MFA-required page explains the situation in French or English, offers a user-initiated retry and lost-device guidance, and never loops through the identity provider.
+
+### Recovery, bootstrap and break-glass
+
+- **Lost or replaced authenticator (A2).** Only an authorized Keycloak realm administrator may reset a factor, after verifying the person's identity through an independent channel. They remove the OTP credential, send an action link with `CONFIGURE_TOTP`, revoke the user's sessions, and also require a password reset when compromise is suspected. Admin events record the change. This is a Keycloak administration task, not a DivalHR platform operation; an in-app or delegated reset needs its own story. There are no recovery codes (D2).
+- **First platform administrator:** created by the realm administrator in Keycloak with a setup link for `UPDATE_PASSWORD` and `CONFIGURE_TOTP`. Without an authenticator, no privileged sign-in is possible.
+- **Break-glass:** there is no MFA-exempt DivalHR account. Recovery goes through the Keycloak administrator, whose own account is protected by MFA.
+- **Residual risk (D6a).** The provisioner can delete the OTP credential of role-group members it manages (measured; seed administrators outside the groups are protected). This is accepted with admin-event monitoring; a separate security-hardening issue tracks an extension-based restriction.
+
+### Development fixtures
+
+The three privileged seed users carry published, visibly labelled `dev-only-totp-…` TOTP seeds (D11), valid only in the development realm; `DevelopmentRealmBoundaryTest` enforces the prefix and that only privileged seed users have one. Tests compute codes in memory. Playwright traces, screenshots, videos and failure page snapshots are off, so codes and the authenticator setup page never reach artifacts (guardrail 5).
 
 ## Pagination cursors
 
@@ -161,7 +202,7 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - Invitation mail over TLS (`DIVALHR_MAIL_STARTTLS` or `DIVALHR_MAIL_SSL`; refused otherwise outside development and test)
 - Backup restore tested
 - Tenant-isolation suite passing
-- Privileged MFA enabled
+- Privileged MFA enabled: the target realm passes `pnpm realm:verify` (MVP-011), Keycloak hosts use NTP, login and admin events are monitored, and Keycloak administrator accounts have their own MFA
 - Secrets and key rotation tested
 - Audit events verified
 - Privacy notice and retention configuration approved

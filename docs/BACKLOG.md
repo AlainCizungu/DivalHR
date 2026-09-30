@@ -50,13 +50,17 @@ Out of scope for increments 1 to 3B: teams beneath both a department and a cost 
 
 As an administrator, I can invite a user and assign only scoped roles.
 
-**Issue #25. In review.** Tenant administrators invite a person by email with exactly one tenant role (`employee` or `tenant-admin`), list invitations (newest first, filterable by status), revoke pending invitations and resend them with a new link (at most 3 times). The invitee opens the link, sees the role and expiry, and accepts anonymously; the Core API then creates their identity in Keycloak with the tenant and role, records a tenant membership and Keycloak emails a link to choose a password. French and English UI at `/admin/users` and `/invitation`; French and English email templates. Architecture amendments A1-A4 and guardrails 1-7 of the review on Issue #25 apply.
+**Issue #25. Complete.** Tenant administrators invite a person by email with exactly one tenant role (`employee` or `tenant-admin`), list invitations (newest first, filterable by status), revoke pending invitations and resend them with a new link (at most 3 times). The invitee opens the link, sees the role and expiry, and accepts anonymously; the Core API then creates their identity in Keycloak with the tenant and role, records a tenant membership and Keycloak emails a link to choose a password. French and English UI at `/admin/users` and `/invitation`; French and English email templates. Architecture amendments A1-A4 and guardrails 1-7 of the review on Issue #25 apply.
 
 Out of scope for MVP-010: editing or removing memberships and roles, deactivating users, site- or legal-entity-scoped roles (MVP-012), privileged MFA (MVP-011), bulk invitations, SMTPUTF8 addresses, SSO or SCIM provisioning, person or employee records, and invitations by platform administrators across tenants.
 
 ### MVP-011 Enforce privileged MFA
 
 Privileged roles must complete multifactor authentication.
+
+**Issue #29. In review.** `platform-admin` and `tenant-admin` sign in with a password and a TOTP code from an authenticator app; employees with a password only. Keycloak's browser flow uses levels of authentication (password, then TOTP for privileged roles) and denies privileged users without an authenticator; enrollment happens only through an administrator-sent setup link, which invited tenant administrators receive for their password and authenticator together. The Core API requires the access token's `acr` to be exactly `urn:divalhr:loa:mfa` on every platform-scoped and tenant-admin operation (`403 MFA_REQUIRED` with an RFC 9470 challenge otherwise); the web app steps up once and otherwise shows a French or English MFA-required page. A read-only script verifies a realm's configuration. Architecture decisions D1-D11, amendments A1-A5 and guardrails 1-7 of the review on Issue #29 apply.
+
+Out of scope for MVP-011: passkeys and passwordless sign-in, SMS or email codes, recovery codes, in-app or delegated factor reset, fresh step-up for sensitive operations, site- or department-specific MFA policy, adaptive risk, device trust or "remember this device", employee MFA, external identity-provider MFA, a custom Keycloak theme, and durable denial auditing (MVP-013).
 
 ### MVP-012 Review access
 
