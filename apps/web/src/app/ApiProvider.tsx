@@ -5,6 +5,8 @@ import type { RuntimeConfig } from '../config/runtime';
 
 interface Clients {
   core: ReturnType<typeof createCoreApiClient>;
+  /** Core API client for anonymous public endpoints: never attaches an access token. */
+  publicCore: ReturnType<typeof createCoreApiClient>;
   aiStatus: ReturnType<typeof createAiServiceStatusClient>;
 }
 
@@ -15,6 +17,7 @@ export function ApiProvider({ config, children }: { config: RuntimeConfig; child
   const clients = useMemo<Clients>(
     () => ({
       core: createCoreApiClient({ baseUrl: config.coreApiUrl, getAccessToken }),
+      publicCore: createCoreApiClient({ baseUrl: config.coreApiUrl }),
       aiStatus: createAiServiceStatusClient({ baseUrl: config.aiServiceUrl }),
     }),
     [config.coreApiUrl, config.aiServiceUrl, getAccessToken],

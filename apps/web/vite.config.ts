@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
+import { workboxOptions } from './src/pwa/workbox.ts';
 
 export default defineConfig({
   plugins: [
@@ -20,14 +21,9 @@ export default defineConfig({
         theme_color: '#0b6e5f',
         icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
       },
-      workbox: {
-        // Cache the application shell only. API responses and identity-provider pages are never
-        // cached by the service worker; offline business workflows arrive with their own stories.
-        globPatterns: ['**/*.{js,css,html,svg}'],
-        globIgnores: ['config.js'],
-        navigateFallbackDenylist: [/^\/auth\//],
-        runtimeCaching: [],
-      },
+      // Cache the application shell only. API responses and identity-provider pages are never
+      // cached by the service worker; offline business workflows arrive with their own stories.
+      workbox: workboxOptions,
     }),
   ],
   server: { port: 5173, strictPort: true },
