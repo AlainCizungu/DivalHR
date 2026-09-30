@@ -9,7 +9,8 @@
     "status": "État du système",
     "skipToContent": "Aller au contenu principal",
     "platformAdmin": "Créer une organisation",
-    "hierarchy": "Structure organisationnelle"
+    "hierarchy": "Structure organisationnelle",
+    "users": "Utilisateurs et invitations"
   },
   "locale": {
     "label": "Langue",
@@ -102,6 +103,17 @@
     "DUPLICATE_TEAM_CODE": "Ce code d’équipe est déjà utilisé dans votre organisation.",
     "TEAM_PERIOD_OUTSIDE_DEPARTMENT": "Les dates de l’équipe doivent être comprises dans celles de son département.",
     "TEAM_PERIOD_OUTSIDE_COST_CENTER": "Les dates de l’équipe doivent être comprises dans celles de son centre de coût.",
+    "INVITATION_NOT_FOUND": "Cette invitation n’existe pas dans votre organisation.",
+    "INVITATION_ALREADY_PENDING": "Une invitation est déjà en attente pour cette adresse e-mail. Renvoyez-la plutôt depuis la liste.",
+    "INVITATION_RECIPIENT_ALREADY_MEMBER": "Cette adresse e-mail appartient déjà à un membre de votre organisation.",
+    "INVITATION_NOT_PENDING": "Cette invitation n’est plus en attente. Actualisez la liste pour voir son état actuel.",
+    "INVITATION_RATE_LIMITED": "Trop d’invitations ont été envoyées récemment. Veuillez patienter avant d’inviter d’autres personnes.",
+    "INVITATION_RESEND_LIMITED": "Cette invitation ne peut pas être renvoyée maintenant. Elle peut être renvoyée au plus 3 fois, à au moins 5 minutes d’intervalle.",
+    "INVITATION_INVALID": "Ce lien d’invitation n’est pas valide. Il a peut-être expiré, été remplacé par un lien plus récent, été révoqué ou déjà été utilisé.",
+    "INVITATION_CANNOT_BE_ACCEPTED": "Cette invitation ne peut pas être acceptée. Contactez l’administrateur qui vous a invité.",
+    "INVITATION_ACCEPTANCE_IN_PROGRESS": "L’acceptation de cette invitation est déjà en cours. Veuillez réessayer dans un instant.",
+    "IDENTITY_PROVIDER_UNAVAILABLE": "Le service de connexion est temporairement indisponible. Veuillez réessayer dans un instant.",
+    "RATE_LIMITED": "Trop de tentatives. Veuillez patienter un instant puis réessayer.",
     "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
   },
   "notFound": {
@@ -417,5 +429,121 @@
     "teamForm": {
       "submit": "Créer l’équipe"
     }
+  },
+  "users": {
+    "title": "Utilisateurs et invitations",
+    "description": "Invitez des personnes dans votre organisation par e-mail et attribuez un rôle à chacune. Les invitations et les adresses e-mail ne sont visibles que par les administrateurs de votre organisation.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent inviter des utilisateurs.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour inviter des utilisateurs.",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "errorSummary": "Veuillez corriger les points suivants :",
+    "form": {
+      "title": "Inviter une personne",
+      "email": "Adresse e-mail",
+      "emailHelp": "Le lien d’invitation est envoyé à cette adresse. Il est personnel et ne peut être utilisé qu’une seule fois.",
+      "role": "Rôle",
+      "roles": {
+        "employee": "Employé",
+        "tenant-admin": "Administrateur de l’organisation"
+      },
+      "roleHelp": {
+        "employee": "Utilise DivalHR pour ses propres informations.",
+        "tenant-admin": "Gère les paramètres, la structure et les utilisateurs de l’organisation."
+      },
+      "locale": "Langue de l’invitation",
+      "submit": "Envoyer l’invitation",
+      "submitting": "Envoi en cours…"
+    },
+    "validation": {
+      "email": {
+        "REQUIRED": "Saisissez une adresse e-mail.",
+        "FORMAT": "Saisissez une adresse e-mail au format nom@exemple.com.",
+        "LENGTH": "L’adresse e-mail doit comporter au plus 254 caractères.",
+        "ALREADY_PENDING": "Une invitation est déjà en attente pour cette adresse e-mail. Renvoyez-la plutôt depuis la liste.",
+        "ALREADY_MEMBER": "Cette adresse e-mail appartient déjà à un membre de votre organisation."
+      },
+      "role": {
+        "REQUIRED": "Choisissez un rôle.",
+        "FORMAT": "Choisissez l’un des rôles proposés."
+      },
+      "locale": {
+        "REQUIRED": "Choisissez une langue.",
+        "FORMAT": "Choisissez l’une des langues proposées."
+      },
+      "generic": "Cette valeur n’est pas valide."
+    },
+    "list": {
+      "title": "Invitations",
+      "filter": "Afficher",
+      "filters": {
+        "ALL": "Toutes les invitations",
+        "PENDING": "En attente",
+        "ACCEPTED": "Acceptées",
+        "EXPIRED": "Expirées",
+        "REVOKED": "Révoquées"
+      },
+      "refresh": "Actualiser la liste",
+      "empty": "Aucune invitation pour le moment.",
+      "emptyFiltered": "Aucune invitation avec cet état.",
+      "loadMore": "Afficher plus d’invitations",
+      "role": "Rôle : {{role}}",
+      "language": "Langue : {{language}}",
+      "expires": "Le lien expire le {{date}}",
+      "expired": "Expirée le {{date}}",
+      "acceptedAt": "Acceptée le {{date}}",
+      "revokedAt": "Révoquée le {{date}}",
+      "resendsRemaining_one": "{{count}} renvoi restant",
+      "resendsRemaining_other": "{{count}} renvois restants"
+    },
+    "status": {
+      "PENDING": "En attente",
+      "ACCEPTED": "Acceptée",
+      "EXPIRED": "Expirée",
+      "REVOKED": "Révoquée"
+    },
+    "delivery": {
+      "QUEUED": "Invitation créée – envoi en attente",
+      "SENT": "Invitation envoyée",
+      "FAILED": "L’envoi a échoué ou n’a pas pu être confirmé. Renvoyez l’invitation pour envoyer un nouveau lien.",
+      "FAILED_NO_RESEND": "L’envoi a échoué ou n’a pas pu être confirmé, et cette invitation ne peut plus être renvoyée. Révoquez-la puis invitez de nouveau la personne."
+    },
+    "actions": {
+      "revoke": "Révoquer",
+      "revokeLabel": "Révoquer l’invitation de {{email}}",
+      "resend": "Renvoyer",
+      "resendLabel": "Renvoyer l’invitation de {{email}}",
+      "confirmRevoke": "Révoquer l’invitation de {{email}} ? Son lien cessera immédiatement de fonctionner.",
+      "confirmResend": "Envoyer un nouveau lien à {{email}} ? Tout lien précédent cessera de fonctionner ; seul le lien le plus récent est valide.",
+      "confirmRevokeButton": "Oui, révoquer",
+      "confirmResendButton": "Oui, envoyer un nouveau lien",
+      "cancel": "Annuler",
+      "working": "Veuillez patienter…"
+    },
+    "announce": {
+      "created": "Invitation créée pour {{email}}. Envoi en attente.",
+      "revoked": "Invitation de {{email}} révoquée.",
+      "resent": "Nouveau lien créé pour {{email}}. Envoi en attente.",
+      "refreshed": "Liste des invitations actualisée."
+    }
+  },
+  "invitation": {
+    "title": "Votre invitation DivalHR",
+    "checking": "Vérification de votre invitation…",
+    "missing": "Cette page s’ouvre depuis le lien de votre e-mail d’invitation. Ouvrez de nouveau ce lien ou demandez une nouvelle invitation à votre administrateur.",
+    "invalid": "Ce lien d’invitation n’est pas valide. Il a peut-être expiré, été remplacé par un lien plus récent, été révoqué ou déjà été utilisé. Demandez une nouvelle invitation à votre administrateur.",
+    "summary": "Vous êtes invité à rejoindre une organisation sur DivalHR avec le rôle : {{role}}.",
+    "expires": "Cette invitation expire le {{date}}.",
+    "roles": {
+      "employee": "Employé",
+      "tenant-admin": "Administrateur de l’organisation"
+    },
+    "acceptHelp": "Lorsque vous acceptez, nous créons votre compte DivalHR et vous envoyons par e-mail un lien pour choisir votre mot de passe.",
+    "accept": "Accepter l’invitation",
+    "accepting": "Acceptation en cours…",
+    "accepted": "Invitation acceptée. Consultez vos e-mails : nous vous avons envoyé un message pour choisir votre mot de passe. Vous pourrez ensuite vous connecter.",
+    "signIn": "Se connecter",
+    "cannotAccept": "Cette invitation ne peut pas être acceptée. Contactez l’administrateur qui vous a invité.",
+    "retry": "Réessayer"
   }
 }

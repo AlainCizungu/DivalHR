@@ -3,6 +3,7 @@ package com.divalhr.core.architecture;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.divalhr.core.platform.security.PlatformScoped;
+import com.divalhr.core.platform.security.PublicOperation;
 import com.divalhr.core.platform.security.TenantScoped;
 import com.divalhr.core.support.IntegrationTest;
 import java.util.ArrayList;
@@ -33,6 +34,12 @@ class AuthorizationMarkerIntegrationTest {
    */
   private static final Set<String> PUBLIC = Set.of("/api/v1/system/status", "/api/v1/session");
 
+  /**
+   * Anonymous endpoints (MVP-010): every handler under this prefix, and only those, carries {@code
+   * PublicOperation} and neither scope marker.
+   */
+  private static final String PUBLIC_PREFIX = "/api/v1/public/";
+
   @Autowired
   @Qualifier("requestMappingHandlerMapping")
   private RequestMappingHandlerMapping mappings;
@@ -50,7 +57,12 @@ class AuthorizationMarkerIntegrationTest {
       checked++;
       boolean platform = entry.getValue().hasMethodAnnotation(PlatformScoped.class);
       boolean tenant = entry.getValue().hasMethodAnnotation(TenantScoped.class);
-      if (platform == tenant) {
+      boolean anonymous = entry.getValue().hasMethodAnnotation(PublicOperation.class);
+      boolean publicPath =
+          info.getPatternValues().stream().allMatch(p -> p.startsWith(PUBLIC_PREFIX));
+      boolean valid =
+          publicPath ? anonymous && !platform && !tenant : !anonymous && platform != tenant;
+      if (!valid) {
         violations.add(info + " -> " + entry.getValue());
       }
     }
@@ -73,7 +85,12 @@ class AuthorizationMarkerIntegrationTest {
       checked++;
       boolean platform = entry.getValue().hasMethodAnnotation(PlatformScoped.class);
       boolean tenant = entry.getValue().hasMethodAnnotation(TenantScoped.class);
-      if (platform == tenant) {
+      boolean anonymous = entry.getValue().hasMethodAnnotation(PublicOperation.class);
+      boolean publicPath =
+          info.getPatternValues().stream().allMatch(p -> p.startsWith(PUBLIC_PREFIX));
+      boolean valid =
+          publicPath ? anonymous && !platform && !tenant : !anonymous && platform != tenant;
+      if (!valid) {
         violations.add(info + " -> " + entry.getValue());
       }
     }

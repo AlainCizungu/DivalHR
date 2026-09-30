@@ -6,9 +6,11 @@ import type { RuntimeConfig } from '../config/runtime';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { RequirePlatformAdmin } from '../features/admin/RequirePlatformAdmin';
 import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
+import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { RequireRole } from '../features/hierarchy/RequireRole';
 import { HomePage } from '../features/home/HomePage';
 import { StatusPage } from '../features/status/StatusPage';
+import { UsersPage } from '../features/users/UsersPage';
 import { AppShell } from '../layout/AppShell';
 import { NotFoundPage } from '../layout/NotFoundPage';
 import { ThemeProvider } from '../theme/ThemeProvider';
@@ -46,6 +48,19 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
                       </RequireRole>
                     }
                   />
+                  <Route
+                    path="/admin/users"
+                    element={
+                      <RequireRole
+                        requiredRole="tenant-admin"
+                        deniedKey="users.unauthorized"
+                        signInKey="users.signInRequired"
+                      >
+                        <UsersPage />
+                      </RequireRole>
+                    }
+                  />
+                  <Route path="/invitation" element={<AcceptInvitationPage />} />
                   <Route path="/auth/callback" element={<CallbackPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>

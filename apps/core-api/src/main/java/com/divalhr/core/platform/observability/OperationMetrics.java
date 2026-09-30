@@ -39,6 +39,8 @@ public class OperationMetrics {
     UNCHANGED,
     /** The resource's current state forbids the change (for example a region already assigned). */
     STATE_CONFLICT,
+    /** The caller exceeded a rate limit or quota. */
+    RATE_LIMITED,
     /** An unexpected server-side failure. */
     FAILURE
   }

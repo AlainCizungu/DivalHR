@@ -2,6 +2,8 @@ package com.divalhr.core.tenant;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.divalhr.core.identity.api.CreateInvitationRequest;
+import com.divalhr.core.identity.api.InvitationController;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.TestTokens;
@@ -48,6 +50,7 @@ class MethodSecurityEnforcementIntegrationTest {
   @Autowired private CostCenterController costCenters;
   @Autowired private RegionController regions;
   @Autowired private TeamController teams;
+  @Autowired private InvitationController invitations;
 
   @AfterEach
   void clear() {
@@ -109,6 +112,29 @@ class MethodSecurityEnforcementIntegrationTest {
       assertThatThrownBy(() -> regions.list(UUID.randomUUID().toString(), null, null))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(() -> teams.list(UUID.randomUUID().toString(), null, null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(() -> invitations.list(null, null, null))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  invitations.create(
+                      Organizations.newKey(),
+                      CreateInvitationRequest.of("bypass@example.test", "employee", "fr"),
+                      caller,
+                      new MockHttpServletRequest()))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  invitations.revoke(
+                      UUID.randomUUID().toString(), caller, new MockHttpServletRequest()))
+          .isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(
+              () ->
+                  invitations.resend(
+                      UUID.randomUUID().toString(),
+                      Organizations.newKey(),
+                      caller,
+                      new MockHttpServletRequest()))
           .isInstanceOf(AccessDeniedException.class);
       assertThatThrownBy(
               () ->

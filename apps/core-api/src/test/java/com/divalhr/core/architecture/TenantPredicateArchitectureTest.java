@@ -2,6 +2,7 @@ package com.divalhr.core.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 
+import com.divalhr.core.platform.tenancy.CrossTenantAccess;
 import com.divalhr.core.platform.tenancy.TenantId;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -53,5 +54,25 @@ class TenantPredicateArchitectureTest {
           .and()
           .arePublic()
           .and(DescribedPredicate.not(ORGANIZATION_PROVISIONING))
+          .should(TAKE_TENANT_ID);
+
+  /**
+   * MVP-010: identity repositories follow the same rule. The anonymous token flow and background
+   * jobs cannot have a verified tenant; each such operation must say why with {@link
+   * CrossTenantAccess}.
+   */
+  @ArchTest
+  static final ArchRule identityRepositoriesRequireTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.identity.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleNameEndingWith("Repository")
+          .and()
+          .arePublic()
+          .and()
+          .areNotAnnotatedWith(CrossTenantAccess.class)
           .should(TAKE_TENANT_ID);
 }

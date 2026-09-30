@@ -9,7 +9,8 @@
     "status": "System status",
     "skipToContent": "Skip to main content",
     "platformAdmin": "Create organization",
-    "hierarchy": "Organizational structure"
+    "hierarchy": "Organizational structure",
+    "users": "Users and invitations"
   },
   "locale": {
     "label": "Language",
@@ -102,6 +103,17 @@
     "DUPLICATE_TEAM_CODE": "This team code is already used in your organization.",
     "TEAM_PERIOD_OUTSIDE_DEPARTMENT": "The team's dates must fall within its department's dates.",
     "TEAM_PERIOD_OUTSIDE_COST_CENTER": "The team's dates must fall within its cost center's dates.",
+    "INVITATION_NOT_FOUND": "This invitation does not exist in your organization.",
+    "INVITATION_ALREADY_PENDING": "An invitation is already pending for this email address. Resend it from the list instead.",
+    "INVITATION_RECIPIENT_ALREADY_MEMBER": "This email address already belongs to a member of your organization.",
+    "INVITATION_NOT_PENDING": "This invitation is no longer pending. Refresh the list to see its current status.",
+    "INVITATION_RATE_LIMITED": "Too many invitations were sent recently. Please wait before inviting more people.",
+    "INVITATION_RESEND_LIMITED": "This invitation cannot be resent now. It can be resent at most 3 times, at least 5 minutes apart.",
+    "INVITATION_INVALID": "This invitation link is not valid. It may have expired, been replaced by a newer link, been revoked or already been used.",
+    "INVITATION_CANNOT_BE_ACCEPTED": "This invitation cannot be accepted. Contact the administrator who invited you.",
+    "INVITATION_ACCEPTANCE_IN_PROGRESS": "This invitation is already being accepted. Please try again in a moment.",
+    "IDENTITY_PROVIDER_UNAVAILABLE": "The sign-in service is temporarily unavailable. Please try again in a moment.",
+    "RATE_LIMITED": "Too many attempts. Please wait a moment and try again.",
     "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated."
   },
   "notFound": {
@@ -417,5 +429,121 @@
     "teamForm": {
       "submit": "Create team"
     }
+  },
+  "users": {
+    "title": "Users and invitations",
+    "description": "Invite people to your organization by email and give each one a role. Invitations and email addresses are visible only to administrators of your organization.",
+    "unauthorized": "Only organization administrators can invite users.",
+    "signInRequired": "Sign in as an organization administrator to invite users.",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "errorSummary": "Please correct the following:",
+    "form": {
+      "title": "Invite a person",
+      "email": "Email address",
+      "emailHelp": "The invitation link is sent to this address. It is personal and can be used only once.",
+      "role": "Role",
+      "roles": {
+        "employee": "Employee",
+        "tenant-admin": "Organization administrator"
+      },
+      "roleHelp": {
+        "employee": "Uses DivalHR for their own information.",
+        "tenant-admin": "Manages the organization's settings, structure and users."
+      },
+      "locale": "Language of the invitation",
+      "submit": "Send invitation",
+      "submitting": "Sending…"
+    },
+    "validation": {
+      "email": {
+        "REQUIRED": "Enter an email address.",
+        "FORMAT": "Enter an email address in the format name@example.com.",
+        "LENGTH": "The email address must be 254 characters or fewer.",
+        "ALREADY_PENDING": "An invitation is already pending for this email address. Resend it from the list instead.",
+        "ALREADY_MEMBER": "This email address already belongs to a member of your organization."
+      },
+      "role": {
+        "REQUIRED": "Choose a role.",
+        "FORMAT": "Choose one of the listed roles."
+      },
+      "locale": {
+        "REQUIRED": "Choose a language.",
+        "FORMAT": "Choose one of the listed languages."
+      },
+      "generic": "This value is not valid."
+    },
+    "list": {
+      "title": "Invitations",
+      "filter": "Show",
+      "filters": {
+        "ALL": "All invitations",
+        "PENDING": "Pending",
+        "ACCEPTED": "Accepted",
+        "EXPIRED": "Expired",
+        "REVOKED": "Revoked"
+      },
+      "refresh": "Refresh list",
+      "empty": "No invitations yet.",
+      "emptyFiltered": "No invitations with this status.",
+      "loadMore": "Show more invitations",
+      "role": "Role: {{role}}",
+      "language": "Language: {{language}}",
+      "expires": "Link expires {{date}}",
+      "expired": "Expired {{date}}",
+      "acceptedAt": "Accepted {{date}}",
+      "revokedAt": "Revoked {{date}}",
+      "resendsRemaining_one": "{{count}} resend remaining",
+      "resendsRemaining_other": "{{count}} resends remaining"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "ACCEPTED": "Accepted",
+      "EXPIRED": "Expired",
+      "REVOKED": "Revoked"
+    },
+    "delivery": {
+      "QUEUED": "Invitation created – delivery pending",
+      "SENT": "Invitation sent",
+      "FAILED": "Delivery failed or could not be confirmed. Resend the invitation to send a new link.",
+      "FAILED_NO_RESEND": "Delivery failed or could not be confirmed, and this invitation cannot be resent again. Revoke it and invite the person again."
+    },
+    "actions": {
+      "revoke": "Revoke",
+      "revokeLabel": "Revoke the invitation for {{email}}",
+      "resend": "Resend",
+      "resendLabel": "Resend the invitation for {{email}}",
+      "confirmRevoke": "Revoke the invitation for {{email}}? Its link will stop working immediately.",
+      "confirmResend": "Send a new link to {{email}}? Any earlier link will stop working; only the newest link is valid.",
+      "confirmRevokeButton": "Yes, revoke",
+      "confirmResendButton": "Yes, send a new link",
+      "cancel": "Cancel",
+      "working": "Please wait…"
+    },
+    "announce": {
+      "created": "Invitation created for {{email}}. Delivery pending.",
+      "revoked": "Invitation for {{email}} revoked.",
+      "resent": "New link created for {{email}}. Delivery pending.",
+      "refreshed": "Invitation list refreshed."
+    }
+  },
+  "invitation": {
+    "title": "Your DivalHR invitation",
+    "checking": "Checking your invitation…",
+    "missing": "This page opens from the link in your invitation email. Open that link again, or ask your administrator for a new invitation.",
+    "invalid": "This invitation link is not valid. It may have expired, been replaced by a newer link, been revoked or already been used. Ask your administrator for a new invitation.",
+    "summary": "You are invited to join an organization on DivalHR with the role: {{role}}.",
+    "expires": "This invitation expires {{date}}.",
+    "roles": {
+      "employee": "Employee",
+      "tenant-admin": "Organization administrator"
+    },
+    "acceptHelp": "When you accept, we create your DivalHR account and email you a link to choose your password.",
+    "accept": "Accept the invitation",
+    "accepting": "Accepting…",
+    "accepted": "Invitation accepted. Check your email: we sent you a message to choose your password. You can then sign in.",
+    "signIn": "Sign in",
+    "cannotAccept": "This invitation cannot be accepted. Contact the administrator who invited you.",
+    "retry": "Try again"
   }
 }

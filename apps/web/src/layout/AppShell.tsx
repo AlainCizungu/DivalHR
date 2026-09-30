@@ -101,6 +101,7 @@ export function AppShell({ environment, children }: { environment: string; child
             <NavLink to="/admin/organizations/new">{t('nav.platformAdmin')}</NavLink>
           )}
           {isTenantAdmin && <NavLink to="/admin/hierarchy">{t('nav.hierarchy')}</NavLink>}
+          {isTenantAdmin && <NavLink to="/admin/users">{t('nav.users')}</NavLink>}
         </nav>
         <div className="toolbar">
           <LocaleSwitcher />

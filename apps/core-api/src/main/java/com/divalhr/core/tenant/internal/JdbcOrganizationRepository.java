@@ -1,8 +1,10 @@
 package com.divalhr.core.tenant.internal;
 
+import com.divalhr.core.platform.tenancy.OrganizationDirectory;
 import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.tenant.domain.Organization;
 import java.sql.Timestamp;
+import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,6 +37,27 @@ public class JdbcOrganizationRepository {
         .query(Integer.class)
         .optional()
         .isPresent();
+  }
+
+  /**
+   * Display data of the verified tenant's organization (for the {@code OrganizationDirectory}
+   * port).
+   *
+   * @param tenant verified tenant
+   * @return name, default locale and time zone, if the organization exists
+   */
+  public Optional<OrganizationDirectory.OrganizationSummary> summary(TenantId tenant) {
+    return jdbc.sql(
+            "SELECT name, default_locale, timezone FROM tenant.organization WHERE id = :tenant")
+        .param("tenant", tenant.value())
+        .query(
+            (rs, row) ->
+                new OrganizationDirectory.OrganizationSummary(
+                    tenant,
+                    rs.getString("name"),
+                    rs.getString("default_locale"),
+                    rs.getString("timezone")))
+        .optional();
   }
 
   /**

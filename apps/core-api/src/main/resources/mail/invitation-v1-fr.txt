@@ -1,0 +1,14 @@
+Subject: Invitation à rejoindre {{organization}} sur DivalHR
+Bonjour,
+
+{{organization}} vous invite à rejoindre son espace DivalHR avec le rôle : {{role}}.
+
+Pour accepter l’invitation, ouvrez ce lien :
+{{link}}
+
+Ce lien est personnel, ne peut être utilisé qu’une seule fois et expire le {{expiresAt}}.
+Après l’acceptation, vous recevrez un second message pour choisir votre mot de passe.
+
+Si vous n’attendiez pas cette invitation, ignorez ce message : aucun compte ne sera créé.
+
+DivalHR

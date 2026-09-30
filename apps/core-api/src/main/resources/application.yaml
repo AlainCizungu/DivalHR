@@ -41,6 +41,10 @@ management:
       enabled: true
     livenessstate:
       enabled: true
+    # An SMTP outage must not take the API out of rotation: invitation delivery degrades to
+    # FAILED (the administrator resends) instead (Issue #25, A3).
+    mail:
+      enabled: false
 
 logging:
   structured:
@@ -72,3 +76,44 @@ divalhr:
     cursor-signing-key: ${DIVALHR_CURSOR_SIGNING_KEY:}
   cors:
     allowed-origins: ${DIVALHR_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  # MVP-010 invitations. Secrets have no defaults (fail closed); see .env.example for development.
+  invitations:
+    ttl: ${DIVALHR_INVITATION_TTL:7d}
+    retention: ${DIVALHR_INVITATION_RETENTION:90d}
+    create-per-hour: ${DIVALHR_INVITATION_CREATE_PER_HOUR:50}
+    max-open: ${DIVALHR_INVITATION_MAX_OPEN:500}
+    resend-interval: 5m
+    delivery-stale-after: 10m
+    acceptance-lease: 2m
+    credential-setup-retry: 5m
+    credential-setup-max-attempts: 5
+    # Base URL of the web app used in invitation links (no trailing slash).
+    web-base-url: ${DIVALHR_WEB_BASE_URL:http://localhost:5173}
+    # Required (fail closed): >= 32 bytes; dev-only- values are rejected outside development.
+    email-lookup-key: ${DIVALHR_EMAIL_LOOKUP_KEY:}
+    jobs:
+      enabled: ${DIVALHR_INVITATION_JOBS_ENABLED:true}
+  identity-provider:
+    admin-base-url: ${DIVALHR_KEYCLOAK_ADMIN_URL:http://localhost:8180}
+    realm: ${DIVALHR_KEYCLOAK_REALM:divalhr-dev}
+    client-id: ${DIVALHR_KEYCLOAK_PROVISIONER_CLIENT_ID:divalhr-core-provisioner}
+    # Required (fail closed); dev-only- values are rejected outside development.
+    client-secret: ${DIVALHR_KEYCLOAK_PROVISIONER_SECRET:}
+    web-client-id: divalhr-web
+    web-redirect-uri: ${DIVALHR_WEB_BASE_URL:http://localhost:5173}/auth/callback
+  mail:
+    host: ${DIVALHR_MAIL_HOST:}
+    port: ${DIVALHR_MAIL_PORT:587}
+    username: ${DIVALHR_MAIL_USERNAME:}
+    password: ${DIVALHR_MAIL_PASSWORD:}
+    from: ${DIVALHR_MAIL_FROM:}
+    from-name: ${DIVALHR_MAIL_FROM_NAME:DivalHR}
+    starttls: ${DIVALHR_MAIL_STARTTLS:true}
+    ssl: ${DIVALHR_MAIL_SSL:false}
+  # Anonymous endpoints: defense in depth only. Production MUST also rate limit /api/v1/public/**
+  # at the ingress or WAF. Forwarding headers are trusted only from these exact proxy addresses.
+  rate-limit:
+    per-client-requests: 10
+    global-requests: 600
+    window: 1m
+    trusted-proxies: ${DIVALHR_TRUSTED_PROXIES:}

@@ -31,6 +31,19 @@
       <Class name="com.divalhr.core.tenant.application.AssignSiteRegionService"/>
       <Class name="com.divalhr.core.tenant.application.CreateTeamService"/>
       <Class name="com.divalhr.core.tenant.application.TeamQueryService"/>
+      <Class name="com.divalhr.core.tenant.application.OrganizationDirectoryAdapter"/>
+      <Class name="com.divalhr.core.identity.application.CreateInvitationService"/>
+      <Class name="com.divalhr.core.identity.application.ResendInvitationService"/>
+      <Class name="com.divalhr.core.identity.application.RevokeInvitationService"/>
+      <Class name="com.divalhr.core.identity.application.InvitationQueryService"/>
+      <Class name="com.divalhr.core.identity.application.PublicInvitationService"/>
+      <Class name="com.divalhr.core.identity.application.InvitationAcceptance"/>
+      <Class name="com.divalhr.core.identity.application.InvitationDelivery"/>
+      <Class name="com.divalhr.core.identity.application.InvitationEvents"/>
+      <Class name="com.divalhr.core.identity.application.InvitationExpiry"/>
+      <Class name="com.divalhr.core.identity.application.InvitationJobs"/>
+      <Class name="com.divalhr.core.identity.internal.InvitationJobScheduler"/>
+      <Class name="com.divalhr.core.identity.internal.keycloak.KeycloakIdentityDirectory"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->

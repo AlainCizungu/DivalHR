@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.divalhr.core.platform.security.PlatformScoped;
+import com.divalhr.core.platform.security.PublicOperation;
 import com.divalhr.core.platform.security.TenantScoped;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.tenant.domain.SupportedConfiguration;
@@ -120,7 +121,12 @@ class ApiContractDriftTest {
             "/api/v1/cost-centers",
             "/api/v1/regions",
             "/api/v1/sites/{siteId}/region",
-            "/api/v1/teams")) {
+            "/api/v1/teams",
+            "/api/v1/invitations",
+            "/api/v1/invitations/{invitationId}/revoke",
+            "/api/v1/invitations/{invitationId}/resend",
+            "/api/v1/public/invitations/inspect",
+            "/api/v1/public/invitations/accept")) {
       assertThat(paths).as(path).containsKey(path);
     }
     assertThat(castMap(spec.get("paths")))
@@ -135,7 +141,13 @@ class ApiContractDriftTest {
     for (Map.Entry<String, Map<String, Object>> entry : operations(spec, false, true).entrySet()) {
       Object role = entry.getValue().get("x-divalhr-required-role");
       Object scope = entry.getValue().get("x-divalhr-scope");
-      if (role != null || scope != null) {
+      if ("public".equals(scope)) {
+        assertThat(role).as("public operations require no role: %s", entry.getKey()).isNull();
+        assertThat(entry.getValue().get("security"))
+            .as("public operations declare security: [] (%s)", entry.getKey())
+            .isEqualTo(List.of());
+        expected.put(entry.getKey(), "public");
+      } else if (role != null || scope != null) {
         expected.put(entry.getKey(), scope + "/" + role);
       }
     }
@@ -146,7 +158,9 @@ class ApiContractDriftTest {
       PlatformScoped platform = handler.getMethodAnnotation(PlatformScoped.class);
       TenantScoped tenant =
           AnnotatedElementUtils.findMergedAnnotation(handler.getMethod(), TenantScoped.class);
-      if (platform != null) {
+      if (handler.getMethodAnnotation(PublicOperation.class) != null) {
+        marker = "public";
+      } else if (platform != null) {
         marker = "platform/" + PlatformScoped.ROLE;
       } else if (tenant != null && !tenant.role().isEmpty()) {
         marker = "tenant/" + tenant.role();

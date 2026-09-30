@@ -225,6 +225,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List invitations of the caller's tenant
+         * @description Newest first (createdAt then id, both descending), keyset-paginated. The optional status filter uses the public status: a PENDING invitation past its expiry is reported and filtered as EXPIRED, and one whose acceptance is in progress as PENDING. The response contains invitee email addresses (confidential personal data) and is marked Cache-Control private, no-store. It never contains tokens, token hashes or identity subjects. Cursors are bound to invitation.list, the verified tenant and the status filter.
+         */
+        get: operations["listInvitations"];
+        put?: never;
+        /**
+         * Invite a person by email with one tenant role
+         * @description Creates a PENDING invitation in the caller's verified tenant and, after the transaction commits, sends the invitation email once. Only tenant-admin and employee can be assigned; platform-admin and any other value are rejected like an unknown role. The email address is normalized (trimmed, NFC, lower-cased; the domain converted to ASCII) and compared case insensitively. Only the caller's own tenant is consulted: 409 INVITATION_ALREADY_PENDING when an open invitation for the address exists in the tenant, 409 INVITATION_RECIPIENT_ALREADY_MEMBER when the address already belongs to a member of the tenant. An address known elsewhere gives the same 201 as any other. The response is an InvitationReceipt without the email address; retries with the same Idempotency-Key and an identical payload replay the original 201 exactly (Idempotent-Replayed), even after the invitation changed.
+         */
+        post: operations["createInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/{invitationId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a pending invitation
+         * @description PENDING becomes REVOKED and the invitation link stops working immediately. Revoking an invitation that is already REVOKED returns 200 with the current invitation and records nothing new. An accepted, expired or accepting invitation returns 409 INVITATION_NOT_PENDING. A missing invitation and one of another tenant return the same 404 INVITATION_NOT_FOUND; a malformed invitationId returns 400 VALIDATION_FAILED.
+         */
+        post: operations["revokeInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/{invitationId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue a pending invitation with a new link
+         * @description Generates a new token, invalidates the previous link, restarts the expiry and sends the email once after commit. Only the newest link is valid. At most 3 reissues per invitation, at least 5 minutes apart (429 INVITATION_RESEND_LIMITED with Retry-After). Replays with the same Idempotency-Key replay the original 200 exactly and send nothing.
+         */
+        post: operations["resendInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/invitations/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inspect an invitation by its token (anonymous)
+         * @description The token travels only in this body, never in a URL. A usable invitation returns its role, locale and expiry, and nothing about the organization, tenant or any account. An unknown, malformed, expired, revoked or accepted token returns the same 404 INVITATION_INVALID. Access tokens are neither required nor read. Responses are Cache-Control no-store. Requests are rate limited per client (429 RATE_LIMITED with Retry-After); production deployments must also limit these paths at the ingress or WAF.
+         */
+        post: operations["inspectInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept an invitation by its token (anonymous)
+         * @description Creates the invitee's identity in the identity provider with the invitation's tenant and role, records the tenant membership, consumes the token and asks the identity provider to email a link to choose a password. The email address is marked verified only because possessing this single-use token proves control of the mailbox. No person or employee record is created. 404 INVITATION_INVALID covers every unusable token. 409 INVITATION_CANNOT_BE_ACCEPTED (no params, no reason) is returned when the address already has a DivalHR identity; the invitation stays pending. 409 INVITATION_ACCEPTANCE_IN_PROGRESS and 503 IDENTITY_PROVIDER_UNAVAILABLE are retryable with the same token. Responses are Cache-Control no-store and rate limited like inspection.
+         */
+        post: operations["acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/employees": {
         parameters: {
             query?: never;
@@ -578,6 +682,91 @@ export interface components {
             data: components["schemas"]["Team"][];
             nextCursor?: string;
         };
+        /**
+         * @description A tenant-scoped role that an invitation may assign. platform-admin is never assignable through a tenant endpoint.
+         * @enum {string}
+         */
+        InvitationRole: "tenant-admin" | "employee";
+        /**
+         * @description Public lifecycle status. An invitation whose acceptance is in progress is reported as PENDING; a PENDING invitation past expiresAt is reported as EXPIRED.
+         * @enum {string}
+         */
+        InvitationStatus: "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED";
+        /**
+         * @description Delivery of the newest invitation link. QUEUED - created, delivery pending; SENT - the mail server accepted the message; FAILED - delivery failed or its outcome is unknown (the administrator can resend, which issues a new link). Never retried automatically.
+         * @enum {string}
+         */
+        DeliveryState: "QUEUED" | "SENT" | "FAILED";
+        /** @description The tenant comes only from the verified access token. tenantId, status, expiresAt, token and any other property are rejected. */
+        CreateInvitation: {
+            /**
+             * Format: email
+             * @description Invitee address. Confidential personal data: never echoed in errors, logs, events, audit metadata or metrics. The local part must be ASCII (SMTPUTF8 addresses are not supported yet); internationalized domains are accepted and stored in ASCII (IDNA).
+             */
+            email: string;
+            role: components["schemas"]["InvitationRole"];
+            /**
+             * @description Language of the invitation email and acceptance page.
+             * @enum {string}
+             */
+            locale: "fr" | "en";
+        };
+        /** @description The result of creating or reissuing an invitation. It deliberately omits the email address so that the idempotency record stores no personal data; it is replayed exactly. */
+        InvitationReceipt: {
+            /** Format: uuid */
+            id: string;
+            role: components["schemas"]["InvitationRole"];
+            /** @enum {string} */
+            locale: "fr" | "en";
+            status: components["schemas"]["InvitationStatus"];
+            deliveryState: components["schemas"]["DeliveryState"];
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description An invitation as seen by a tenant administrator of the owning tenant. Contains the email address; never a token, token hash, identity subject or actor. */
+        Invitation: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            role: components["schemas"]["InvitationRole"];
+            /** @enum {string} */
+            locale: "fr" | "en";
+            status: components["schemas"]["InvitationStatus"];
+            deliveryState: components["schemas"]["DeliveryState"];
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            acceptedAt: string | null;
+            /** Format: date-time */
+            revokedAt: string | null;
+            resendsRemaining: number;
+        };
+        InvitationPage: {
+            data: components["schemas"]["Invitation"][];
+            nextCursor?: string;
+        };
+        InvitationTokenRequest: {
+            /** @description The single-use invitation token from the link fragment. A value of the wrong shape is reported as 404 INVITATION_INVALID, like an unknown token. */
+            token: string;
+        };
+        InvitationPreview: {
+            role: components["schemas"]["InvitationRole"];
+            /** @enum {string} */
+            locale: "fr" | "en";
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        InvitationAcceptance: {
+            /**
+             * @description The invitee must now follow the identity provider's email to choose a password.
+             * @enum {string}
+             */
+            status: "ACCEPTED";
+        };
         SystemStatus: {
             /** @example core-api */
             service: string;
@@ -596,7 +785,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "RATE_LIMITED" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -632,7 +821,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE, COST_CENTER_PERIOD_OUTSIDE_SITE, REGION_PERIOD_OUTSIDE_LEGAL_ENTITY, TEAM_PERIOD_OUTSIDE_DEPARTMENT and TEAM_PERIOD_OUTSIDE_COST_CENTER carry params.field (effectiveFrom or effectiveTo). TEAM_PARENT_REQUIRED (no parent supplied) and TEAM_PARENT_AMBIGUOUS (both parents supplied) carry no params and follow format validation. SITE_PERIOD_OUTSIDE_REGION and SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no params. Submitted values are never echoed. */
+        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE, COST_CENTER_PERIOD_OUTSIDE_SITE, REGION_PERIOD_OUTSIDE_LEGAL_ENTITY, TEAM_PERIOD_OUTSIDE_DEPARTMENT and TEAM_PERIOD_OUTSIDE_COST_CENTER carry params.field (effectiveFrom or effectiveTo). TEAM_PARENT_REQUIRED (no parent supplied) and TEAM_PARENT_AMBIGUOUS (both parents supplied) carry no params and follow format validation. SITE_PERIOD_OUTSIDE_REGION and SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no params. Invitation fields (email, role, locale) use VALIDATION_FAILED; an unsupported role, including platform-admin, is constraint FORMAT exactly like any unknown value. Submitted values, and email addresses in particular, are never echoed. */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -641,7 +830,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params). */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -650,9 +839,38 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND or COST_CENTER_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND or INVITATION_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
         NotFound: {
             headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client). No params. */
+        TooManyRequests: {
+            headers: {
+                "Retry-After": components["headers"]["RetryAfter"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. No params. */
+        ServiceUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description INVITATION_INVALID - the token is unknown, malformed, expired, revoked or already used. The cases are indistinguishable. No params. */
+        InvitationInvalid: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlNoStore"];
                 [name: string]: unknown;
             };
             content: {
@@ -665,6 +883,7 @@ export interface components {
         CorrelationId: string;
         /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
         IdempotencyKey: string;
+        InvitationId: string;
         /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
         Cursor: string;
         Limit: number;
@@ -675,6 +894,12 @@ export interface components {
         CorrelationId: string;
         /** @description Present with value "true" when the response replays an earlier successful request. */
         IdempotentReplayed: "true";
+        /** @description Public invitation responses are never stored by browsers or intermediaries. */
+        CacheControlNoStore: "no-store";
+        /** @description Invitation administration responses may contain email addresses; browsers, offline caches and intermediaries must not retain them. */
+        CacheControlPrivateNoStore: "private, no-store";
+        /** @description Seconds to wait before retrying. */
+        RetryAfter: number;
     };
     pathItems: never;
 }
@@ -1234,6 +1459,204 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    listInvitations: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["InvitationStatus"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of invitations */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createInvitation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvitation"];
+            };
+        };
+        responses: {
+            /** @description Invitation created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    revokeInvitation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                invitationId: components["parameters"]["InvitationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The revoked invitation */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invitation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    resendInvitation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                invitationId: components["parameters"]["InvitationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reissued invitation, or the original reissue replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    inspectInvitation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description The invitation can be accepted */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["InvitationInvalid"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    acceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description The invitation was accepted */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationAcceptance"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["InvitationInvalid"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     listEmployees: {

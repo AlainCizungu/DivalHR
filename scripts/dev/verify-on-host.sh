@@ -84,7 +84,8 @@ image_digests() {
     python:3.12.14-slim-trixie \
     node:24.21.0-alpine3.24 \
     nginxinc/nginx-unprivileged:1.31.6-alpine3.24 \
-    mcr.microsoft.com/playwright:v1.63.0-noble; do
+    mcr.microsoft.com/playwright:v1.63.0-noble \
+    axllent/mailpit:v1.29.6; do
     digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest.Digest}}' 2>>"$LOG" | tr -d '"')
     result "DIGEST $image@${digest:-UNRESOLVED}"
   done
