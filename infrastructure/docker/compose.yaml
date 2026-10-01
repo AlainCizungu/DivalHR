@@ -104,6 +104,10 @@ services:
       DIVALHR_MAIL_PORT: '1025'
       DIVALHR_MAIL_FROM: ${DIVALHR_MAIL_FROM:?set in .env / .env.example}
       DIVALHR_MAIL_STARTTLS: 'false'
+      # First tenant administrator (MVP-014). DEVELOPMENT ONLY: the per-platform-administrator
+      # bootstrap limit is raised to its maximum so repeated end-to-end runs within an hour pass.
+      # Every other environment keeps the default of 5 per hour.
+      DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR: ${DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR:-50}
     depends_on:
       postgres:
         condition: service_healthy

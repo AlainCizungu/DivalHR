@@ -2,6 +2,7 @@ package com.divalhr.core.identity.domain;
 
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -20,6 +21,7 @@ import java.util.UUID;
  * @param acceptedAt acceptance time, if accepted
  * @param revokedAt revocation time, if revoked
  * @param createdAt creation time
+ * @param origin who created it (MVP-014)
  */
 public record Invitation(
     UUID id,
@@ -34,7 +36,13 @@ public record Invitation(
     DeliveryState deliveryState,
     Instant acceptedAt,
     Instant revokedAt,
-    Instant createdAt) {
+    Instant createdAt,
+    InvitationOrigin origin) {
+
+  /** Requires an origin. */
+  public Invitation {
+    Objects.requireNonNull(origin, "origin");
+  }
 
   /** Maximum reissues per invitation. */
   public static final int MAX_RESENDS = 3;

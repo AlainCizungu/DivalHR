@@ -55,6 +55,9 @@ export function InvitationRow({
   const resendKey = useIdempotencyKey();
 
   const pending = row.status === 'PENDING';
+  // MVP-014: a platform administrator's bootstrap invitation; tenant administrators may revoke it
+  // but never reissue it.
+  const bootstrap = row.origin === 'PLATFORM_BOOTSTRAP';
   const delivery = deliveryKey(row);
   const expired = row.status === 'EXPIRED';
 
@@ -146,14 +149,19 @@ export function InvitationRow({
           {t(delivery)}
         </span>
       )}
-      {pending && (
+      {bootstrap && (
+        <span className="muted" data-testid="invitation-origin">
+          {t('users.list.origin.PLATFORM_BOOTSTRAP')}
+        </span>
+      )}
+      {pending && !bootstrap && (
         <span className="muted">
           {t('users.list.resendsRemaining', { count: row.resendsRemaining })}
         </span>
       )}
       {pending && phase.kind !== 'confirming' && (
         <span className="actions">
-          {row.resendsRemaining > 0 && (
+          {row.resendsRemaining > 0 && !bootstrap && (
             <button
               ref={(node) => {
                 actionRefs.current.resend = node;

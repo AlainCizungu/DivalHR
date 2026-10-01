@@ -61,6 +61,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationId}/tenant-admin-bootstrap": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+                organizationId: components["parameters"]["OrganizationId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Whether an organization's first tenant administrator can be invited
+         * @description MVP-014. available is true only while the organization has no tenant-admin membership and no open (PENDING or ACCEPTING) tenant-admin invitation of any origin. invitation is the organization's open PLATFORM_BOOTSTRAP invitation, if any, as a receipt without the address; tenant-created invitations, memberships, addresses, actors and identity-provider state are never returned. A missing, malformed or non-active organization ID returns 404 ORGANIZATION_NOT_FOUND. The caller's own tenant claim is never used.
+         */
+        get: operations["getTenantAdminBootstrap"];
+        put?: never;
+        /**
+         * Invite an organization's first tenant administrator
+         * @description MVP-014. Creates a PENDING tenant-admin invitation with origin PLATFORM_BOOTSTRAP and, after the transaction commits, sends the invitation email once. Allowed only while the organization has no tenant-admin membership and no open tenant-admin invitation of any origin; otherwise 409 TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE without params. The rule is checked inside the write transaction under the organization's tenant-administration lock, which every path that creates a tenant-admin invitation or membership shares. The role is fixed by the operation. The address is normalized like createInvitation. The invitation counts toward the tenant's invitation quotas (INVITATION_RATE_LIMITED); each platform administrator may also create at most a small number of bootstrap invitations per hour (RATE_LIMITED). The receipt has no address; a retry with the same Idempotency-Key and an identical payload for the same organization replays the original 201 exactly (Idempotent-Replayed) and sends nothing; the same key for another organization or payload returns IDEMPOTENCY_KEY_REUSED.
+         */
+        post: operations["createTenantAdminBootstrap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationId}/tenant-admin-bootstrap/revoke": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+                organizationId: components["parameters"]["OrganizationId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke an organization's open bootstrap invitation
+         * @description MVP-014. Revokes the organization's open PLATFORM_BOOTSTRAP invitation (PENDING; the link stops working at once) and returns 204. Idempotent by state: when no open bootstrap invitation exists (already revoked, expired, accepted or never created) it returns 204 and records nothing. A bootstrap invitation being accepted at that moment returns 409 INVITATION_NOT_PENDING. Tenant-created invitations are never affected.
+         */
+        post: operations["revokeTenantAdminBootstrap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationId}/tenant-admin-bootstrap/resend": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+                organizationId: components["parameters"]["OrganizationId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reissue an organization's open bootstrap invitation
+         * @description MVP-014. Reissues the open PLATFORM_BOOTSTRAP invitation with a new link under the MVP-010 limits (at most 3 reissues, at least 5 minutes apart: 429 INVITATION_RESEND_LIMITED) and sends the email once after commit; the address never changes. Under the organization's tenant-administration lock it rechecks that the organization has no tenant-admin membership and no other open tenant-admin invitation (409 TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE). Without an open bootstrap invitation it returns 404 INVITATION_NOT_FOUND. Replays with the same Idempotency-Key for the same organization replay the original 200 exactly and send nothing.
+         */
+        post: operations["resendTenantAdminBootstrap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/legal-entities": {
         parameters: {
             query?: never;
@@ -280,7 +362,7 @@ export interface paths {
         put?: never;
         /**
          * Reissue a pending invitation with a new link
-         * @description Generates a new token, invalidates the previous link, restarts the expiry and sends the email once after commit. Only the newest link is valid. At most 3 reissues per invitation, at least 5 minutes apart (429 INVITATION_RESEND_LIMITED with Retry-After). Replays with the same Idempotency-Key replay the original 200 exactly and send nothing.
+         * @description Generates a new token, invalidates the previous link, restarts the expiry and sends the email once after commit. Only the newest link is valid. At most 3 reissues per invitation, at least 5 minutes apart (429 INVITATION_RESEND_LIMITED with Retry-After). Replays with the same Idempotency-Key replay the original 200 exactly and send nothing. An invitation whose origin is PLATFORM_BOOTSTRAP is never reissued by a tenant administrator (409 TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE; MVP-014); it can still be revoked.
          */
         post: operations["resendInvitation"];
         delete?: never;
@@ -711,6 +793,31 @@ export interface components {
              */
             locale: "fr" | "en";
         };
+        /**
+         * @description Who created the invitation: TENANT_ADMIN (a tenant administrator, MVP-010) or PLATFORM_BOOTSTRAP (a platform administrator inviting the organization's first tenant administrator, MVP-014). Immutable.
+         * @enum {string}
+         */
+        InvitationOrigin: "TENANT_ADMIN" | "PLATFORM_BOOTSTRAP";
+        /** @description The first tenant administrator's address and invitation language. The role is fixed by the operation; role, tenantId and any other property are rejected (UNKNOWN_PROPERTY). */
+        CreateTenantAdminBootstrap: {
+            /**
+             * Format: email
+             * @description Invitee address, validated and normalized exactly like CreateInvitation. Confidential: never echoed in errors and never returned.
+             */
+            email: string;
+            /**
+             * @description Language of the invitation email and acceptance page.
+             * @enum {string}
+             */
+            locale: "fr" | "en";
+        };
+        /** @description Bootstrap state of one organization. Never contains addresses, memberships, tenant-created invitations, actors or identity-provider state. */
+        TenantAdminBootstrap: {
+            /** @description True only when no tenant-admin membership and no open tenant-admin invitation of any origin exists, so a bootstrap invitation could be created now. */
+            available: boolean;
+            /** @description The open PLATFORM_BOOTSTRAP invitation, if any. */
+            invitation: components["schemas"]["InvitationReceipt"] | null;
+        };
         /** @description The result of creating or reissuing an invitation. It deliberately omits the email address so that the idempotency record stores no personal data; it is replayed exactly. */
         InvitationReceipt: {
             /** Format: uuid */
@@ -744,6 +851,7 @@ export interface components {
             /** Format: date-time */
             revokedAt: string | null;
             resendsRemaining: number;
+            origin: components["schemas"]["InvitationOrigin"];
         };
         InvitationPage: {
             data: components["schemas"]["Invitation"][];
@@ -785,7 +893,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -840,7 +948,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params). */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -849,7 +957,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND or INVITATION_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND or INVITATION_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -858,7 +966,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client). No params. */
+        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client, or too many bootstrap invitations created by one platform administrator). No params. */
         TooManyRequests: {
             headers: {
                 "Retry-After": components["headers"]["RetryAfter"];
@@ -893,6 +1001,8 @@ export interface components {
         CorrelationId: string;
         /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
         IdempotencyKey: string;
+        /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+        OrganizationId: string;
         InvitationId: string;
         /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
         Cursor: string;
@@ -1032,6 +1142,141 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["PrivilegedForbidden"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    getTenantAdminBootstrap: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+                organizationId: components["parameters"]["OrganizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bootstrap availability and the open bootstrap invitation */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantAdminBootstrap"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createTenantAdminBootstrap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+                organizationId: components["parameters"]["OrganizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTenantAdminBootstrap"];
+            };
+        };
+        responses: {
+            /** @description Bootstrap invitation created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    revokeTenantAdminBootstrap: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+                organizationId: components["parameters"]["OrganizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No open bootstrap invitation remains */
+            204: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    resendTenantAdminBootstrap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The target organization (its ID is the tenant ID). Taken only from the path; never from the caller's tenant claim. Malformed, missing and non-active IDs give the same 404 ORGANIZATION_NOT_FOUND. */
+                organizationId: components["parameters"]["OrganizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reissued bootstrap invitation, or the original reissue replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     listLegalEntities: {

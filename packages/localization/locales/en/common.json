@@ -10,7 +10,8 @@
     "skipToContent": "Skip to main content",
     "platformAdmin": "Create organization",
     "hierarchy": "Organizational structure",
-    "users": "Users and invitations"
+    "users": "Users and invitations",
+    "firstAdmin": "First administrator"
   },
   "locale": {
     "label": "Language",
@@ -126,7 +127,9 @@
     "INVITATION_ACCEPTANCE_IN_PROGRESS": "This invitation is already being accepted. Please try again in a moment.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "The sign-in service is temporarily unavailable. Please try again in a moment.",
     "RATE_LIMITED": "Too many attempts. Please wait a moment and try again.",
-    "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated."
+    "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated.",
+    "ORGANIZATION_NOT_FOUND": "This organization does not exist or is not active.",
+    "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE": "This organization already has an administrator or an administrator invitation in progress. Its administrators manage further invitations."
   },
   "notFound": {
     "title": "Page not found",
@@ -506,7 +509,10 @@
       "acceptedAt": "Accepted {{date}}",
       "revokedAt": "Revoked {{date}}",
       "resendsRemaining_one": "{{count}} resend remaining",
-      "resendsRemaining_other": "{{count}} resends remaining"
+      "resendsRemaining_other": "{{count}} resends remaining",
+      "origin": {
+        "PLATFORM_BOOTSTRAP": "Invited by DivalHR when the organization was set up"
+      }
     },
     "status": {
       "PENDING": "Pending",
@@ -557,5 +563,41 @@
     "signIn": "Sign in",
     "cannotAccept": "This invitation cannot be accepted. Contact the administrator who invited you.",
     "retry": "Try again"
+  },
+  "firstAdmin": {
+    "pageTitle": "Invite an organization’s first administrator",
+    "pageDescription": "Enter the reference of an active organization to invite its first administrator, or to follow that invitation.",
+    "reference": {
+      "label": "Organization reference",
+      "help": "The reference shown when the organization was created.",
+      "submit": "Continue",
+      "REQUIRED": "Enter the organization reference.",
+      "FORMAT": "Enter a reference in the format shown when the organization was created."
+    },
+    "notFound": "No active organization matches this reference.",
+    "title": "First administrator",
+    "description": "Invite the person who will manage this organization. Once they accept, they invite everyone else.",
+    "loading": "Checking whether this organization has an administrator…",
+    "unauthorized": "Only platform administrators can invite an organization’s first administrator.",
+    "signInRequired": "Sign in as a platform administrator to invite a first administrator.",
+    "unavailable": "This organization already has an administrator or an administrator invitation in progress. Its administrators manage further invitations.",
+    "open": {
+      "title": "Invitation in progress"
+    },
+    "actions": {
+      "resend": "Send a new link",
+      "resending": "Sending a new link…",
+      "revoke": "Revoke the invitation",
+      "confirmRevoke": "Revoke this invitation? Its link will stop working immediately.",
+      "confirmRevokeButton": "Yes, revoke",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "title": "Invite the first administrator",
+      "emailHelp": "The invitation link is sent to this address. It is personal and can be used only once.",
+      "roleNote": "This person becomes an organization administrator.",
+      "submit": "Send invitation",
+      "submitting": "Sending…"
+    }
   }
 }

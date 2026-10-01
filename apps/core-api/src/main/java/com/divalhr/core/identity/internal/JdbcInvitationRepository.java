@@ -4,6 +4,7 @@ import com.divalhr.core.identity.domain.DeliveryState;
 import com.divalhr.core.identity.domain.EmailAddress;
 import com.divalhr.core.identity.domain.Invitation;
 import com.divalhr.core.identity.domain.InvitationLocale;
+import com.divalhr.core.identity.domain.InvitationOrigin;
 import com.divalhr.core.identity.domain.InvitationState;
 import com.divalhr.core.identity.domain.InvitationStatus;
 import com.divalhr.core.identity.domain.TenantRole;
@@ -33,7 +34,7 @@ public class JdbcInvitationRepository {
   private static final String COLUMNS =
       """
       id, tenant_id, email, role, locale, state, token_issued_at, expires_at, issue_count,
-      delivery_state, accepted_at, revoked_at, created_at
+      delivery_state, accepted_at, revoked_at, created_at, origin
       """;
 
   private final JdbcClient jdbc;
@@ -166,9 +167,10 @@ public class JdbcInvitationRepository {
             INSERT INTO identity.invitation
               (id, tenant_id, email, email_lookup, role, locale, state, token_sha256,
                token_issued_at, expires_at, issue_count, delivery_state, delivery_updated_at,
-               created_at, created_by)
+               created_at, created_by, origin)
             VALUES (:id, :tenant, :email, :lookup, :role, :locale, 'PENDING', :token,
-                    :issuedAt, :expiresAt, 1, 'QUEUED', :createdAt, :createdAt, :createdBy)
+                    :issuedAt, :expiresAt, 1, 'QUEUED', :createdAt, :createdAt, :createdBy,
+                    :origin)
             """)
         .param("id", invitation.id())
         .param("tenant", tenant.value())
@@ -181,6 +183,7 @@ public class JdbcInvitationRepository {
         .param("expiresAt", Timestamp.from(invitation.expiresAt()))
         .param("createdAt", Timestamp.from(invitation.createdAt()))
         .param("createdBy", createdBy)
+        .param("origin", invitation.origin().name())
         .update();
   }
 
@@ -345,6 +348,152 @@ public class JdbcInvitationRepository {
     }
     return spec.query(JdbcInvitationRepository::map).list();
   }
+
+  // ------------------------------------------------------------------------------------------
+  // Tenant-administrator bootstrap (MVP-014)
+  // ------------------------------------------------------------------------------------------
+
+  /** Revocation marker of a bootstrap acceptance superseded by another administrator (A2). */
+  public static final String SUPERSEDED_BY = "system:bootstrap-superseded";
+
+  /**
+   * Open (PENDING or ACCEPTING) tenant-admin invitations of any origin, locked, oldest first. The
+   * caller holds the organization lock (lock order step 3).
+   *
+   * @param tenant target tenant
+   * @return the rows (including PENDING ones past expiry that the job has not materialized)
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public List<Invitation> findOpenTenantAdminForUpdate(TenantId tenant) {
+    return jdbc.sql(
+            "SELECT "
+                + COLUMNS
+                + """
+                 FROM identity.invitation
+                WHERE tenant_id = :tenant AND role = 'tenant-admin'
+                  AND state IN ('PENDING', 'ACCEPTING')
+                ORDER BY created_at, id
+                FOR UPDATE
+                """)
+        .param("tenant", tenant.value())
+        .query(JdbcInvitationRepository::map)
+        .list();
+  }
+
+  /**
+   * The organization's open bootstrap invitation, without locking (status view).
+   *
+   * @param tenant target tenant
+   * @return the invitation, if any (may be PENDING past expiry)
+   */
+  public Optional<Invitation> findOpenBootstrap(TenantId tenant) {
+    return jdbc.sql(
+            "SELECT "
+                + COLUMNS
+                + """
+                 FROM identity.invitation
+                WHERE tenant_id = :tenant AND origin = 'PLATFORM_BOOTSTRAP'
+                  AND state IN ('PENDING', 'ACCEPTING')
+                """)
+        .param("tenant", tenant.value())
+        .query(JdbcInvitationRepository::map)
+        .optional();
+  }
+
+  /**
+   * Whether the organization has an open tenant-admin invitation of any origin (status view; a
+   * PENDING one past expiry no longer counts).
+   *
+   * @param tenant target tenant
+   * @param now current time
+   * @return true when one exists
+   */
+  public boolean openTenantAdminExists(TenantId tenant, Instant now) {
+    return jdbc.sql(
+            """
+            SELECT 1 FROM identity.invitation
+            WHERE tenant_id = :tenant AND role = 'tenant-admin'
+              AND (state = 'ACCEPTING' OR (state = 'PENDING' AND expires_at > :now))
+            LIMIT 1
+            """)
+        .param("tenant", tenant.value())
+        .param("now", Timestamp.from(now))
+        .query(Integer.class)
+        .optional()
+        .isPresent();
+  }
+
+  /**
+   * Serializes bootstrap creations of one platform administrator across organizations (lock order
+   * step 0, taken only by bootstrap creation), so the per-actor limit is exact.
+   *
+   * @param actor verified subject of the platform administrator (only hashed into the lock key)
+   */
+  @CrossTenantAccess("per-platform-administrator bootstrap limit; reads nothing")
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockBootstrapActor(String actor) {
+    jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))")
+        .param("key", "identity.bootstrap-actor:" + actor)
+        .query((rs, row) -> 1)
+        .single();
+  }
+
+  /**
+   * Bootstrap invitations one platform administrator created since a time, across organizations.
+   *
+   * @param actor verified subject
+   * @param since window start
+   * @return count and the oldest creation time in the window
+   */
+  @CrossTenantAccess("per-platform-administrator bootstrap limit; returns a count only")
+  public BootstrapWindow bootstrapsCreatedBy(String actor, Instant since) {
+    return jdbc.sql(
+            """
+            SELECT count(*) AS created, min(created_at) AS oldest FROM identity.invitation
+            WHERE origin = 'PLATFORM_BOOTSTRAP' AND created_by = :actor AND created_at >= :since
+            """)
+        .param("actor", actor)
+        .param("since", Timestamp.from(since))
+        .query((rs, row) -> new BootstrapWindow(rs.getInt("created"), instant(rs, "oldest")))
+        .single();
+  }
+
+  /**
+   * Ends a bootstrap acceptance superseded by another tenant administrator (A2): ACCEPTING becomes
+   * REVOKED with the system marker, the token and lease are erased, and nothing is provisioned.
+   *
+   * @param id invitation
+   * @param owner current lease owner
+   * @param now time
+   * @return true when ended
+   */
+  @CrossTenantAccess("acceptance of an invitation already identified by its token or a job claim")
+  @Transactional(propagation = Propagation.MANDATORY)
+  public boolean supersedeBootstrap(UUID id, UUID owner, Instant now) {
+    return jdbc.sql(
+                """
+                UPDATE identity.invitation
+                SET state = 'REVOKED', token_sha256 = NULL, acceptance_lease_owner = NULL,
+                    acceptance_lease_until = NULL, revoked_at = :now, revoked_by = :marker,
+                    terminal_at = :now, version = version + 1
+                WHERE id = :id AND state = 'ACCEPTING' AND acceptance_lease_owner = :owner
+                  AND origin = 'PLATFORM_BOOTSTRAP'
+                """)
+            .param("now", Timestamp.from(now))
+            .param("marker", SUPERSEDED_BY)
+            .param("id", id)
+            .param("owner", owner)
+            .update()
+        == 1;
+  }
+
+  /**
+   * Bootstrap creations of one actor in a window.
+   *
+   * @param created count
+   * @param oldest oldest creation time, or null when none
+   */
+  public record BootstrapWindow(int created, Instant oldest) {}
 
   // ------------------------------------------------------------------------------------------
   // Anonymous flow and jobs (no verified tenant)
@@ -712,7 +861,8 @@ public class JdbcInvitationRepository {
         DeliveryState.valueOf(rs.getString("delivery_state")),
         instant(rs, "accepted_at"),
         instant(rs, "revoked_at"),
-        instant(rs, "created_at"));
+        instant(rs, "created_at"),
+        InvitationOrigin.valueOf(rs.getString("origin")));
   }
 
   private static AcceptanceRow mapAcceptance(ResultSet rs, int row) throws SQLException {

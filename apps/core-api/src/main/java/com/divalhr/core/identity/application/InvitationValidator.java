@@ -1,15 +1,20 @@
 package com.divalhr.core.identity.application;
 
 import com.divalhr.core.identity.api.CreateInvitationRequest;
+import com.divalhr.core.identity.api.CreateTenantAdminBootstrapRequest;
 import com.divalhr.core.identity.api.StrictRequest;
 import com.divalhr.core.identity.domain.EmailAddress;
 import com.divalhr.core.identity.domain.InvitationLocale;
 import com.divalhr.core.identity.domain.InvitationStatus;
 import com.divalhr.core.identity.domain.TenantRole;
+import com.divalhr.core.platform.error.ApiException;
+import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.error.FieldErrors;
 import com.divalhr.core.platform.error.FieldErrors.Constraint;
 import com.divalhr.core.platform.idempotency.IdempotencyKeys;
 import com.divalhr.core.platform.pagination.PageRequest;
+import com.divalhr.core.platform.tenancy.TenantId;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -44,9 +49,14 @@ public class InvitationValidator {
    * @return normalized command
    */
   public CreateCommand create(String idempotencyKey, CreateInvitationRequest request) {
+    return create(idempotencyKey, request, request);
+  }
+
+  private CreateCommand create(
+      String idempotencyKey, CreateInvitationRequest request, StrictRequest submitted) {
     FieldErrors errors = new FieldErrors();
     key(errors, idempotencyKey);
-    unknown(errors, request);
+    unknown(errors, submitted);
     Optional<EmailAddress.Defect> defect = EmailAddress.defectOf(request.getEmail());
     defect.ifPresent(
         d ->
@@ -77,6 +87,49 @@ public class InvitationValidator {
     }
     errors.throwIfAny();
     return new CreateCommand(EmailAddress.parse(request.getEmail()).orElseThrow(), role, locale);
+  }
+
+  /**
+   * Validates a bootstrap request (MVP-014): the address and locale exactly like {@link #create};
+   * the role is fixed to {@code tenant-admin} by the operation.
+   *
+   * @param idempotencyKey header value
+   * @param request body
+   * @return normalized command with role {@code tenant-admin}
+   */
+  public CreateCommand bootstrap(String idempotencyKey, CreateTenantAdminBootstrapRequest request) {
+    return create(
+        idempotencyKey,
+        CreateInvitationRequest.of(
+            request.getEmail(), TenantRole.TENANT_ADMIN.wireName(), request.getLocale()),
+        request);
+  }
+
+  /**
+   * Validates a required idempotency key alone (operations without another input).
+   *
+   * @param idempotencyKey header value
+   * @return the key
+   */
+  public String idempotencyKey(String idempotencyKey) {
+    FieldErrors errors = new FieldErrors();
+    key(errors, idempotencyKey);
+    errors.throwIfAny();
+    return idempotencyKey;
+  }
+
+  /**
+   * Parses a platform operation's organization ID. Malformed IDs are reported exactly like unknown
+   * ones (404 {@code ORGANIZATION_NOT_FOUND}) and are never echoed or logged.
+   *
+   * @param raw path value
+   * @return the tenant
+   */
+  public TenantId organizationId(String raw) {
+    if (raw == null || !UUID_SHAPE.matcher(raw).matches()) {
+      throw new ApiException(ErrorCode.ORGANIZATION_NOT_FOUND, Map.of());
+    }
+    return new TenantId(UUID.fromString(raw));
   }
 
   /**

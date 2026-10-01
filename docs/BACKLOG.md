@@ -52,7 +52,7 @@ As an administrator, I can invite a user and assign only scoped roles.
 
 **Issue #25. Complete.** Tenant administrators invite a person by email with exactly one tenant role (`employee` or `tenant-admin`), list invitations (newest first, filterable by status), revoke pending invitations and resend them with a new link (at most 3 times). The invitee opens the link, sees the role and expiry, and accepts anonymously; the Core API then creates their identity in Keycloak with the tenant and role, records a tenant membership and Keycloak emails a link to choose a password. French and English UI at `/admin/users` and `/invitation`; French and English email templates. Architecture amendments A1-A4 and guardrails 1-7 of the review on Issue #25 apply.
 
-**Hardening (Issue #31). In review.** The Core provisioner client no longer holds any Keycloak admin permission. Provisioning goes through the narrow `divalhr-provisioning` Keycloak extension (contract `packages/shared-contracts/openapi/keycloak-provisioning.yaml`, ADR 0006): three operations keyed by invitation ID, authorized by audience, client, live service account and the single `provision-invitations` capability before any input is read. Credential setup distinguishes a proven completed setup from an inconsistent one (`SETUP_STATE_INVALID`, failed and alerted, never recorded as sent); compensation deletes only an identity with no credential set up. `realm:verify` runs in final mode by default and fails if the provisioner holds any broad permission, directly or transitively. Architecture amendments A1-A3 and the guardrails of the review on Issue #31 apply.
+**Hardening (Issue #31). Complete.** The Core provisioner client no longer holds any Keycloak admin permission. Provisioning goes through the narrow `divalhr-provisioning` Keycloak extension (contract `packages/shared-contracts/openapi/keycloak-provisioning.yaml`, ADR 0006): three operations keyed by invitation ID, authorized by audience, client, live service account and the single `provision-invitations` capability before any input is read. Credential setup distinguishes a proven completed setup from an inconsistent one (`SETUP_STATE_INVALID`, failed and alerted, never recorded as sent); compensation deletes only an identity with no credential set up. `realm:verify` runs in final mode by default and fails if the provisioner holds any broad permission, directly or transitively. Architecture amendments A1-A3 and the guardrails of the review on Issue #31 apply.
 
 Out of scope for MVP-010: editing or removing memberships and roles, deactivating users, site- or legal-entity-scoped roles (MVP-012), privileged MFA (MVP-011), bulk invitations, SMTPUTF8 addresses, SSO or SCIM provisioning, person or employee records, and invitations by platform administrators across tenants.
 
@@ -67,6 +67,16 @@ Out of scope for MVP-011: passkeys and passwordless sign-in, SMS or email codes,
 ### MVP-012 Review access
 
 Authorized security administrators can review active access by user, role, site, and legal entity.
+
+**Issue #37. Approved with amendments; blocked until MVP-014 is merged.** Delivered as two pull requests, 12A then 12B. 12A's migration is V10.
+
+### MVP-014 Invite an organization's first administrator
+
+A platform administrator invites the first tenant administrator of an active organization, who then invites everyone else.
+
+**Issue #38. In review.** Four platform-scoped operations on `/organizations/{organizationId}/tenant-admin-bootstrap` (status, create, revoke, resend), available only while the organization has no tenant administrator and no open tenant-administrator invitation. Every tenant-admin creation path takes one organization lock in one order; acceptance of a bootstrap invitation fails closed if another administrator appeared; idempotency covers the organization; a per-platform-administrator hourly limit; audit, invitation and outbox commit together before any email. Invitations carry an immutable `origin` (V9). French and English panel after organization creation and under "First administrator". Architecture decision and amendments A1-A8 on Issue #38 apply.
+
+Out of scope for MVP-014: replacing or removing an existing tenant administrator, platform administrators inviting employees or other roles, listing a tenant's members or invitations from the platform side, organization search, and bulk bootstrap.
 
 ### MVP-013 Durably audit privileged authorization denials
 

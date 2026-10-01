@@ -10,7 +10,8 @@
     "skipToContent": "Aller au contenu principal",
     "platformAdmin": "Créer une organisation",
     "hierarchy": "Structure organisationnelle",
-    "users": "Utilisateurs et invitations"
+    "users": "Utilisateurs et invitations",
+    "firstAdmin": "Premier administrateur"
   },
   "locale": {
     "label": "Langue",
@@ -126,7 +127,9 @@
     "INVITATION_ACCEPTANCE_IN_PROGRESS": "L’acceptation de cette invitation est déjà en cours. Veuillez réessayer dans un instant.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Le service de connexion est temporairement indisponible. Veuillez réessayer dans un instant.",
     "RATE_LIMITED": "Trop de tentatives. Veuillez patienter un instant puis réessayer.",
-    "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée."
+    "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée.",
+    "ORGANIZATION_NOT_FOUND": "Cette organisation n’existe pas ou n’est pas active.",
+    "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE": "Cette organisation a déjà un administrateur ou une invitation d’administrateur en cours. Ses administrateurs gèrent les invitations suivantes."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -506,7 +509,10 @@
       "acceptedAt": "Acceptée le {{date}}",
       "revokedAt": "Révoquée le {{date}}",
       "resendsRemaining_one": "{{count}} renvoi restant",
-      "resendsRemaining_other": "{{count}} renvois restants"
+      "resendsRemaining_other": "{{count}} renvois restants",
+      "origin": {
+        "PLATFORM_BOOTSTRAP": "Invité par DivalHR lors de la création de l’organisation"
+      }
     },
     "status": {
       "PENDING": "En attente",
@@ -557,5 +563,41 @@
     "signIn": "Se connecter",
     "cannotAccept": "Cette invitation ne peut pas être acceptée. Contactez l’administrateur qui vous a invité.",
     "retry": "Réessayer"
+  },
+  "firstAdmin": {
+    "pageTitle": "Inviter le premier administrateur d’une organisation",
+    "pageDescription": "Saisissez la référence d’une organisation active pour inviter son premier administrateur ou suivre cette invitation.",
+    "reference": {
+      "label": "Référence de l’organisation",
+      "help": "La référence affichée lors de la création de l’organisation.",
+      "submit": "Continuer",
+      "REQUIRED": "Saisissez la référence de l’organisation.",
+      "FORMAT": "Saisissez une référence au format affiché lors de la création de l’organisation."
+    },
+    "notFound": "Aucune organisation active ne correspond à cette référence.",
+    "title": "Premier administrateur",
+    "description": "Invitez la personne qui gérera cette organisation. Une fois l’invitation acceptée, c’est elle qui invite les autres.",
+    "loading": "Vérification de l’administrateur de cette organisation…",
+    "unauthorized": "Seuls les administrateurs de la plateforme peuvent inviter le premier administrateur d’une organisation.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de la plateforme pour inviter un premier administrateur.",
+    "unavailable": "Cette organisation a déjà un administrateur ou une invitation d’administrateur en cours. Ses administrateurs gèrent les invitations suivantes.",
+    "open": {
+      "title": "Invitation en cours"
+    },
+    "actions": {
+      "resend": "Envoyer un nouveau lien",
+      "resending": "Envoi d’un nouveau lien…",
+      "revoke": "Révoquer l’invitation",
+      "confirmRevoke": "Révoquer cette invitation ? Son lien cessera immédiatement de fonctionner.",
+      "confirmRevokeButton": "Oui, révoquer",
+      "cancel": "Annuler"
+    },
+    "form": {
+      "title": "Inviter le premier administrateur",
+      "emailHelp": "Le lien d’invitation est envoyé à cette adresse. Il est personnel et ne peut être utilisé qu’une seule fois.",
+      "roleNote": "Cette personne devient administrateur de l’organisation.",
+      "submit": "Envoyer l’invitation",
+      "submitting": "Envoi…"
+    }
   }
 }

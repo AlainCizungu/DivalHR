@@ -256,6 +256,10 @@ An in-app or delegated reset needs a separate story. There are no recovery codes
 `platform-admin` and sends one action link for `UPDATE_PASSWORD` and `CONFIGURE_TOTP`. Until the
 link is used, that user cannot sign in with a privileged role.
 
+**First tenant administrator (MVP-014).** Never created by hand in Keycloak. A platform
+administrator invites them from the DivalHR web app (after creating the organization, or under
+"First administrator"); the invitee sets their password and authenticator from the setup link.
+
 **Break-glass.** None inside DivalHR: no account is exempt from MFA. Recovery goes through the
 Keycloak administrator, whose own account has MFA in shared environments.
 

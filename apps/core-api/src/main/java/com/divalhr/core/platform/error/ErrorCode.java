@@ -97,6 +97,13 @@ public enum ErrorCode {
   INVITATION_ACCEPTANCE_IN_PROGRESS(HttpStatus.CONFLICT),
   /** The identity provider could not be reached; retry. */
   IDENTITY_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+  /** The organization is malformed, unknown or not active (platform operations, MVP-014). */
+  ORGANIZATION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * The organization already has a tenant administrator or an open tenant-admin invitation; which
+   * one is not disclosed (MVP-014).
+   */
+  TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE(HttpStatus.CONFLICT),
   /** Too many anonymous requests from one client. */
   RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
   /** A privileged operation requires multifactor authentication for this session (MVP-011). */

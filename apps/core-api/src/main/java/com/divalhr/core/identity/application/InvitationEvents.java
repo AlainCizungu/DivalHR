@@ -1,6 +1,8 @@
 package com.divalhr.core.identity.application;
 
 import com.divalhr.core.identity.domain.Invitation;
+import com.divalhr.core.identity.domain.InvitationOrigin;
+import com.divalhr.core.identity.internal.JdbcInvitationRepository;
 import com.divalhr.core.platform.audit.AuditEvent;
 import com.divalhr.core.platform.audit.AuditRecorder;
 import com.divalhr.core.platform.idempotency.Fingerprints;
@@ -33,6 +35,9 @@ public class InvitationEvents {
 
   /** Actor recorded for the expiry job. */
   public static final String EXPIRY_ACTOR = "system:invitation-expiry";
+
+  /** Actor recorded when a bootstrap acceptance is superseded (MVP-014, A2). */
+  public static final String SUPERSEDED_ACTOR = JdbcInvitationRepository.SUPERSEDED_BY;
 
   /** Actor recorded for denied anonymous acceptances. */
   public static final String ANONYMOUS_ACTOR = "anonymous";
@@ -68,12 +73,20 @@ public class InvitationEvents {
     metadata.put("locale", invitation.locale().tag());
     metadata.put("expiresAt", invitation.expiresAt().toString());
     metadata.put("issueCount", invitation.issueCount());
-    record("invitation.create", actor, "SUCCESS", invitation, metadata, correlationId);
+    metadata.put("origin", invitation.origin().name());
+    record(
+        bootstrap(invitation) ? "invitation.bootstrap-create" : "invitation.create",
+        actor,
+        "SUCCESS",
+        invitation,
+        metadata,
+        correlationId);
     Map<String, Object> data = new LinkedHashMap<>();
     data.put("invitationId", invitation.id().toString());
     data.put("role", invitation.role().wireName());
     data.put("locale", invitation.locale().tag());
     data.put("expiresAt", invitation.expiresAt().toString());
+    data.put("origin", invitation.origin().name());
     event("identity.invitation-created.v1", invitation, data, correlationId);
   }
 
@@ -89,10 +102,18 @@ public class InvitationEvents {
     Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("expiresAt", invitation.expiresAt().toString());
     metadata.put("issueCount", invitation.issueCount());
-    record("invitation.resend", actor, "SUCCESS", invitation, metadata, correlationId);
+    metadata.put("origin", invitation.origin().name());
+    record(
+        bootstrap(invitation) ? "invitation.bootstrap-resend" : "invitation.resend",
+        actor,
+        "SUCCESS",
+        invitation,
+        metadata,
+        correlationId);
     Map<String, Object> data = new LinkedHashMap<>();
     data.put("invitationId", invitation.id().toString());
     data.put("expiresAt", invitation.expiresAt().toString());
+    data.put("origin", invitation.origin().name());
     event("identity.invitation-reissued.v1", invitation, data, correlationId);
   }
 
@@ -106,16 +127,51 @@ public class InvitationEvents {
   @Transactional(propagation = Propagation.MANDATORY)
   public void revoked(Invitation invitation, String actor, String correlationId) {
     record(
-        "invitation.revoke",
+        bootstrap(invitation) ? "invitation.bootstrap-revoke" : "invitation.revoke",
         actor,
         "SUCCESS",
         invitation,
-        Map.of("role", invitation.role().wireName()),
+        Map.of("role", invitation.role().wireName(), "origin", invitation.origin().name()),
         correlationId);
     event(
         "identity.invitation-revoked.v1",
         invitation,
-        Map.of("invitationId", invitation.id().toString()),
+        Map.of("invitationId", invitation.id().toString(), "origin", invitation.origin().name()),
+        correlationId);
+  }
+
+  /**
+   * A bootstrap acceptance found another tenant administrator and ended without provisioning
+   * (MVP-014, A2). Records only ids, role, origin and the reason.
+   *
+   * @param invitation the bootstrap invitation (now REVOKED by the system)
+   * @param correlationId correlation ID
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void bootstrapSuperseded(Invitation invitation, String correlationId) {
+    record(
+        "invitation.bootstrap-supersede",
+        SUPERSEDED_ACTOR,
+        "SUCCESS",
+        invitation,
+        Map.of(
+            "role",
+            invitation.role().wireName(),
+            "origin",
+            invitation.origin().name(),
+            "reason",
+            "bootstrap_superseded"),
+        correlationId);
+    event(
+        "identity.invitation-revoked.v1",
+        invitation,
+        Map.of(
+            "invitationId",
+            invitation.id().toString(),
+            "origin",
+            invitation.origin().name(),
+            "reason",
+            "BOOTSTRAP_SUPERSEDED"),
         correlationId);
   }
 
@@ -135,7 +191,13 @@ public class InvitationEvents {
         subject,
         "SUCCESS",
         invitation,
-        Map.of("role", invitation.role().wireName(), "membershipId", membershipId.toString()),
+        Map.of(
+            "role",
+            invitation.role().wireName(),
+            "membershipId",
+            membershipId.toString(),
+            "origin",
+            invitation.origin().name()),
         correlationId);
     event(
         "identity.invitation-accepted.v1",
@@ -146,7 +208,9 @@ public class InvitationEvents {
             "membershipId",
             membershipId.toString(),
             "role",
-            invitation.role().wireName()),
+            invitation.role().wireName(),
+            "origin",
+            invitation.origin().name()),
         correlationId);
   }
 
@@ -181,6 +245,10 @@ public class InvitationEvents {
         invitation,
         Map.of("invitationId", invitation.id().toString()),
         correlationId);
+  }
+
+  private static boolean bootstrap(Invitation invitation) {
+    return invitation.origin() == InvitationOrigin.PLATFORM_BOOTSTRAP;
   }
 
   private void record(
@@ -232,6 +300,7 @@ public class InvitationEvents {
     state.put("expiresAt", invitation.expiresAt().toString());
     state.put("issueCount", invitation.issueCount());
     state.put("createdAt", invitation.createdAt().toString());
+    state.put("origin", invitation.origin().name());
     state.put("action", action);
     state.put("result", result);
     return state;

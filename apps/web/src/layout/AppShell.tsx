@@ -100,6 +100,9 @@ export function AppShell({ environment, children }: { environment: string; child
           {isPlatformAdmin && (
             <NavLink to="/admin/organizations/new">{t('nav.platformAdmin')}</NavLink>
           )}
+          {isPlatformAdmin && (
+            <NavLink to="/admin/organizations/first-admin">{t('nav.firstAdmin')}</NavLink>
+          )}
           {isTenantAdmin && <NavLink to="/admin/hierarchy">{t('nav.hierarchy')}</NavLink>}
           {isTenantAdmin && <NavLink to="/admin/users">{t('nav.users')}</NavLink>}
         </nav>

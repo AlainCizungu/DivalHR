@@ -1,6 +1,7 @@
 package com.divalhr.core.identity.api;
 
 import com.divalhr.core.identity.domain.DeliveryState;
+import com.divalhr.core.identity.domain.Invitation;
 import com.divalhr.core.identity.domain.InvitationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
@@ -26,4 +27,24 @@ public record InvitationReceiptResponse(
     InvitationStatus status,
     DeliveryState deliveryState,
     Instant expiresAt,
-    Instant createdAt) {}
+    Instant createdAt) {
+
+  /**
+   * The current receipt of an open invitation (MVP-014 bootstrap status): no address, actor or
+   * identity-provider state.
+   *
+   * @param invitation the invitation
+   * @param now current time (for the public status)
+   * @return receipt
+   */
+  public static InvitationReceiptResponse current(Invitation invitation, Instant now) {
+    return new InvitationReceiptResponse(
+        invitation.id(),
+        invitation.role().wireName(),
+        invitation.locale().tag(),
+        invitation.status(now),
+        invitation.deliveryState(),
+        invitation.expiresAt(),
+        invitation.createdAt());
+  }
+}
