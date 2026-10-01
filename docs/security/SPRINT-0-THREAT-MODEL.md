@@ -230,3 +230,16 @@ No new secret and no new personal data category. New configuration: `DIVALHR_TEN
 
 No new secret. New development-only data: fixed realm user IDs and four seed memberships (application seeder, development only).
 
+## MVP-012B delta (access review, Issue #37)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| I19 | A compromised tenant-admin session harvests every member address | MFA and 12A gate, page size ≤ 50, 30 requests per minute per subject, durable audit per disclosure, no export, no prefix search | `thirtyReviewRequestsPerMinutePerSubjectAcrossTheThreeOperations`, `everySuccessfulDisclosureIsAuditedWithItsCanonicalDigest` |
+| I20 | Addresses leak through URLs, logs, caches, metrics or analytics | POST lookup, no URL or storage state, `private, no-store` on every status, observability allow-lists | `logsAndMetricsCarryOnlyAllowListedValues`, `lookupNormalizesMatchesExactlyAndNeverEchoesTheInput`, Vitest URL and storage checks |
+| S14 | A foreign legal-entity or site ID probes another tenant | Tenant-bound `OrganizationUnitDirectory`, identical 404s, no audit | `legalEntityAndSiteViewsShowEveryMemberAsInheritedFromTheOrganization` |
+| T32 | A cursor is replayed across tenants, filters or page sizes, or forged | HMAC binding including role, unit and page size; verified before any query | `cursorsAreBoundToTenantRoleUnitAndPageSize` |
+| R6 | A disclosure goes unaudited or its content cannot be established | Query and `access-review.read` in one transaction; body only after commit; digest v1 golden vectors | `noReviewDataLeavesWhenTheDisclosureAuditCannotCommit`, `AccessReviewDigestTest` |
+| D7 | Expensive unbounded queries | V11 keyset indexes, page size ≤ 50, counts only in the summary | `AccessReviewIndexMigrationIntegrationTest` |
+
+No new secret and no new personal data category. New configuration: `DIVALHR_ACCESS_REVIEW_REQUESTS_PER_MINUTE`.
+

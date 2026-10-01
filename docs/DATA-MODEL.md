@@ -206,6 +206,12 @@
 - The address is immutable (`tenant_membership_immutable` now covers it); retention may still clear `source_invitation_id` and keep the address. `NULL` remains only for historical rows and development seed rows.
 - No development data in V10. Manual rollback: `db/rollback/V10__rollback.sql` restores V9 exactly (function, constraints, triggers, indexes and columns, verified by signature) and keeps every membership; only stored addresses are lost. Rolling back only the application is preferred and is a documented security downgrade (`SECURITY.md`).
 
+## Implemented (MVP-012B: access review)
+
+- V11 adds two keyset indexes on `identity.tenant_membership`: `tenant_membership_review_order (tenant_id, created_at DESC, id DESC)` and `tenant_membership_review_role (tenant_id, role, created_at DESC, id DESC)`. Address lookups use the existing `UNIQUE (tenant_id, email_lookup)`. No column, row or development data change.
+- Each successful review writes one `platform.audit_event` (`access-review.read`, digest v1 in `after_state_sha256`).
+- Manual rollback: `db/rollback/V11__rollback.sql` drops the two indexes and restores V10 exactly; no data is touched. Rolling back only the application is preferred.
+
 ## Implemented (Issue #17 maintenance)
 
 - V4 restores the approved strict operation-name grammar on `idempotency_operation_format` and `audit_action_format`: `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`. A pre-flight counts non-conforming rows and aborts the (single-transaction) migration without rewriting or revealing data. V1-V3 are unchanged; `db/rollback/V4__rollback.sql` restores the V3 superset (non-destructive).
