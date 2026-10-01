@@ -157,15 +157,26 @@ public final class RequestBodies {
   }
 
   /**
-   * Validates a credential-setup request: exactly {@code role}.
+   * Requires an empty body (credential setup takes none). Reads at most one byte.
    *
-   * @param node parsed object
-   * @return the role
-   * @throws Rejected on any violation
+   * @param contentLength declared length, or -1
+   * @param body request stream, possibly null
+   * @throws Rejected when any content is declared or present
    */
-  public static InvitationRole setupRole(JsonNode node) throws Rejected {
-    requireExactFields(node, Set.of("role"));
-    return InvitationRole.fromWire(text(node, "role")).orElseThrow(RequestBodies::invalid);
+  public static void requireEmpty(long contentLength, InputStream body) throws Rejected {
+    if (contentLength > 0) {
+      throw invalid();
+    }
+    if (body == null) {
+      return;
+    }
+    try {
+      if (body.read() != -1) {
+        throw invalid();
+      }
+    } catch (IOException io) {
+      throw invalid();
+    }
   }
 
   /**

@@ -192,13 +192,13 @@ class KeycloakProvisioningContainerTest {
     String subject =
         ((Provisioned) directory.provision(request(invitation, email, TenantRole.EMPLOYEE)))
             .subject();
-    assertThat(directory.requestCredentialSetup(invitation, TenantRole.EMPLOYEE))
+    assertThat(directory.requestCredentialSetup(invitation))
         .isEqualTo(CredentialSetupOutcome.EMAIL_SENT);
     assertThat(calls.awaitMessage(email, 1).path("Subject").asString())
         .isEqualTo("Update Your Account");
     // The required action removed without its credential: invalid, nothing sent.
     calls.admin("PUT", "/users/" + subject, "{\"requiredActions\":[]}");
-    assertThat(directory.requestCredentialSetup(invitation, TenantRole.EMPLOYEE))
+    assertThat(directory.requestCredentialSetup(invitation))
         .isEqualTo(CredentialSetupOutcome.STATE_INVALID);
     assertThat(calls.messagesTo(email)).isEqualTo(1);
     // The password set: the employee's proven terminal state.
@@ -206,7 +206,7 @@ class KeycloakProvisioningContainerTest {
         "PUT",
         "/users/" + subject + "/reset-password",
         "{\"type\":\"password\",\"value\":\"test-only-Password-2026!\",\"temporary\":false}");
-    assertThat(directory.requestCredentialSetup(invitation, TenantRole.EMPLOYEE))
+    assertThat(directory.requestCredentialSetup(invitation))
         .isEqualTo(CredentialSetupOutcome.COMPLETED);
     assertThat(calls.messagesTo(email)).isEqualTo(1);
   }

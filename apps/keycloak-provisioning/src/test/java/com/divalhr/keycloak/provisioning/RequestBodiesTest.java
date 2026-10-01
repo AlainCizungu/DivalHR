@@ -166,17 +166,16 @@ class RequestBodiesTest {
   }
 
   @Test
-  void setupBodyIsOnlyTheRole() throws Exception {
-    assertThat(
-            RequestBodies.setupRole(
-                RequestBodies.readObject(JSON, -1, body("{\"role\":\"employee\"}"))))
-        .isEqualTo(InvitationRole.EMPLOYEE);
-    assertThat(
-            code(
-                () ->
-                    RequestBodies.setupRole(
-                        RequestBodies.readObject(
-                            JSON, -1, body("{\"role\":\"employee\",\"actions\":[]}")))))
+  void credentialSetupTakesNoBodyAtAll() throws Exception {
+    // PR #32 review: the role is derived from the identity, so even a well-formed role is refused.
+    assertThat(code(() -> RequestBodies.requireEmpty(-1, null))).isEqualTo("accepted");
+    assertThat(code(() -> RequestBodies.requireEmpty(0, body("")))).isEqualTo("accepted");
+    assertThat(code(() -> RequestBodies.requireEmpty(-1, body("")))).isEqualTo("accepted");
+    assertThat(code(() -> RequestBodies.requireEmpty(-1, body("{\"role\":\"tenant-admin\"}"))))
+        .isEqualTo("INVALID_REQUEST/400");
+    assertThat(code(() -> RequestBodies.requireEmpty(2, body("{}"))))
+        .isEqualTo("INVALID_REQUEST/400");
+    assertThat(code(() -> RequestBodies.requireEmpty(-1, body(" "))))
         .isEqualTo("INVALID_REQUEST/400");
   }
 }

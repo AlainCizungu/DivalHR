@@ -87,17 +87,28 @@ class KeycloakProvisioningExtensionContainerTest {
     return new Created(invitation, email, reply.json().path("subject").asString());
   }
 
-  private static Reply setup(Created created, String role) throws Exception {
-    return calls.extension(
+  /** Credential setup takes no body: the extension derives the role from the identity. */
+  private static Reply setup(Created created) throws Exception {
+    return calls.extensionRaw(
         calls.provisionerToken(),
         "POST",
         identityPath(created.invitation().toString()) + "/credential-setup",
-        "{\"role\":\"" + role + "\"}");
+        null,
+        null,
+        false);
   }
 
   private static Reply compensate(Created created) throws Exception {
     return calls.extension(
         calls.provisionerToken(), "DELETE", identityPath(created.invitation().toString()), null);
+  }
+
+  private static String groupId(String name) throws Exception {
+    return calls
+        .admin("GET", "/groups?search=" + name + "&exact=true", null)
+        .get(0)
+        .path("id")
+        .asString();
   }
 
   private static String unique(String prefix) {
@@ -147,7 +158,7 @@ class KeycloakProvisioningExtensionContainerTest {
       ((tools.jackson.databind.node.ObjectNode) mapper).remove("id");
       calls.admin("POST", "/clients/" + client + "/protocol-mappers/models", mapper.toString());
     }
-    assertThat(setup(existing, "employee").status()).isEqualTo(202);
+    assertThat(setup(existing).status()).isEqualTo(202);
   }
 
   @Test
@@ -188,7 +199,7 @@ class KeycloakProvisioningExtensionContainerTest {
     } finally {
       grantCapability("service-account-divalhr-core-provisioner", true);
     }
-    assertThat(setup(existing, "employee").status()).isEqualTo(202);
+    assertThat(setup(existing).status()).isEqualTo(202);
 
     // A disabled provisioner client: its earlier token no longer works.
     String client = calls.clientUuid(KeycloakCalls.PROVISIONER);
@@ -345,7 +356,7 @@ class KeycloakProvisioningExtensionContainerTest {
   // ---------------------------------------------------
 
   @Test
-  void concurrentCreatesYieldOneIdentityAndReplaysNeverMutate() throws Exception {
+  void identicalConcurrentCreatesNeverConflictAndYieldOneIdentity() throws Exception {
     UUID invitation = UUID.randomUUID();
     String email = unique("parallel");
     String body = provisionBody(email, "tenant-admin", TENANT_A, "fr");
@@ -365,20 +376,28 @@ class KeycloakProvisioningExtensionContainerTest {
     } finally {
       pool.shutdownNow();
     }
+    // PR #32 review: identical calls never conflict. Each one resolves to the same subject (201
+    // once, 200 otherwise, including a call that lost the race), or is a retryable 503 that a
+    // retry resolves.
     Set<String> subjects = new HashSet<>();
     int created = 0;
     for (Reply reply : replies) {
-      assertThat(reply.status()).isIn(200, 201, 409);
+      assertThat(reply.status()).isIn(200, 201, 503);
+      if (reply.status() == 503) {
+        assertThat(reply.code()).isEqualTo("IDENTITY_BUSY");
+        reply = calls.extension(token, "PUT", identityPath(invitation.toString()), body);
+        assertThat(reply.status()).isEqualTo(200);
+      }
       if (reply.status() == 201) {
         created++;
       }
-      if (reply.status() != 409) {
-        subjects.add(reply.json().path("subject").asString());
-      }
+      subjects.add(reply.json().path("subject").asString());
     }
     assertThat(created).isEqualTo(1);
     assertThat(subjects).hasSize(1);
     String subject = subjects.iterator().next();
+    assertThat(calls.admin("GET", "/users?exact=true&username=" + KeycloakCalls.enc(email), null))
+        .hasSize(1);
     assertThat(calls.extension(token, "PUT", identityPath(invitation.toString()), body).status())
         .isEqualTo(200);
     // Replays with another tenant, role or address are conflicts and change nothing.
@@ -398,6 +417,71 @@ class KeycloakProvisioningExtensionContainerTest {
     assertThat(
             calls.extension(token, "PUT", identityPath(UUID.randomUUID().toString()), body).code())
         .isEqualTo("IDENTITY_CONFLICT");
+  }
+
+  // --- PR #32 review: no realm default roles ---------------------------------------------------
+
+  @Test
+  void newIdentitiesHoldOnlyWhatTheirRoleGroupGrants() throws Exception {
+    // Even if the realm's default roles grew a privileged role, a new identity would not get it.
+    String defaults = "/roles/default-roles-" + KeycloakCalls.REALM + "/composites";
+    String platformAdmin = calls.admin("GET", "/roles/platform-admin", null).toString();
+    calls.admin("POST", defaults, "[" + platformAdmin + "]");
+    try {
+      Map<String, List<String>> expected =
+          Map.of(
+              "employee", List.of("employee"),
+              "tenant-admin", List.of("tenant-admin", "divalhr-privileged-mfa"));
+      for (Map.Entry<String, List<String>> role : expected.entrySet()) {
+        Created created = create(role.getKey());
+        JsonNode direct =
+            calls.admin("GET", "/users/" + created.subject() + "/role-mappings", null);
+        assertThat(direct.path("realmMappings").size()).as("direct realm roles").isZero();
+        assertThat(direct.path("clientMappings").size()).as("direct client roles").isZero();
+        List<String> effective = new ArrayList<>();
+        calls
+            .admin("GET", "/users/" + created.subject() + "/role-mappings/realm/composite", null)
+            .forEach(r -> effective.add(r.path("name").asString()));
+        assertThat(effective).containsExactlyInAnyOrderElementsOf(role.getValue());
+        for (JsonNode client : calls.admin("GET", "/clients", null)) {
+          assertThat(
+                  calls
+                      .admin(
+                          "GET",
+                          "/users/"
+                              + created.subject()
+                              + "/role-mappings/clients/"
+                              + client.path("id").asString()
+                              + "/composite",
+                          null)
+                      .size())
+              .as("effective roles of %s", client.path("clientId").asString())
+              .isZero();
+        }
+      }
+    } finally {
+      calls.admin("DELETE", defaults, "[" + platformAdmin + "]");
+    }
+    // The invitation groups carry exactly their tenant role; only tenant-admin implies the MFA
+    // marker, and the marker implies nothing.
+    Map<String, String> groups =
+        Map.of("divalhr-role-employee", "employee", "divalhr-role-tenant-admin", "tenant-admin");
+    for (Map.Entry<String, String> group : groups.entrySet()) {
+      JsonNode mappings =
+          calls.admin("GET", "/groups/" + groupId(group.getKey()) + "/role-mappings", null);
+      List<String> realmRoles = new ArrayList<>();
+      mappings.path("realmMappings").forEach(r -> realmRoles.add(r.path("name").asString()));
+      assertThat(realmRoles).containsExactly(group.getValue());
+      assertThat(mappings.path("clientMappings").size()).isZero();
+    }
+    assertThat(calls.admin("GET", "/roles/employee/composites", null).size()).isZero();
+    List<String> adminComposites = new ArrayList<>();
+    calls
+        .admin("GET", "/roles/tenant-admin/composites", null)
+        .forEach(r -> adminComposites.add(r.path("name").asString()));
+    assertThat(adminComposites).containsExactly("divalhr-privileged-mfa");
+    assertThat(calls.admin("GET", "/roles/divalhr-privileged-mfa/composites", null).size())
+        .isZero();
   }
 
   @Test
@@ -421,7 +505,7 @@ class KeycloakProvisioningExtensionContainerTest {
                     token, "PUT", path, provisionBody(first.email(), "employee", TENANT_A, "en"))
                 .code())
         .isEqualTo("IDENTITY_AMBIGUOUS");
-    assertThat(setup(first, "employee").code()).isEqualTo("IDENTITY_AMBIGUOUS");
+    assertThat(setup(first).code()).isEqualTo("IDENTITY_AMBIGUOUS");
     assertThat(compensate(first).code()).isEqualTo("IDENTITY_AMBIGUOUS");
     assertThat(calls.admin("GET", "/users/" + first.subject(), null).path("id").asString())
         .isEqualTo(first.subject());
@@ -436,62 +520,80 @@ class KeycloakProvisioningExtensionContainerTest {
   @Test
   void employeeSetupStates() throws Exception {
     Created employee = create("employee");
-    assertThat(setup(employee, "employee").json().path("state").asString()).isEqualTo("PENDING");
+    assertThat(setup(employee).json().path("state").asString()).isEqualTo("PENDING");
     calls.awaitMessage(employee.email(), 1);
-    // Role mismatch.
-    assertThat(setup(employee, "tenant-admin").code()).isEqualTo("SETUP_STATE_INVALID");
+    // The caller cannot name the role: any body, even a well-formed role, is refused unread.
+    Reply named =
+        calls.extension(
+            calls.provisionerToken(),
+            "POST",
+            identityPath(employee.invitation().toString()) + "/credential-setup",
+            "{\"role\":\"tenant-admin\"}");
+    assertThat(named.status()).isEqualTo(400);
+    assertThat(named.code()).isEqualTo("INVALID_REQUEST");
+    // The role comes from the identity's group: two role groups, or none, is invalid.
+    String employeeGroup = groupId("divalhr-role-employee");
+    String adminGroup = groupId("divalhr-role-tenant-admin");
+    calls.admin("PUT", "/users/" + employee.subject() + "/groups/" + adminGroup, "");
+    assertThat(setup(employee).code()).isEqualTo("SETUP_STATE_INVALID");
+    calls.admin("DELETE", "/users/" + employee.subject() + "/groups/" + employeeGroup, null);
+    assertThat(setup(employee).code()).isEqualTo("SETUP_STATE_INVALID");
+    calls.admin("DELETE", "/users/" + employee.subject() + "/groups/" + adminGroup, null);
+    assertThat(setup(employee).code()).isEqualTo("SETUP_STATE_INVALID");
+    calls.admin("PUT", "/users/" + employee.subject() + "/groups/" + employeeGroup, "");
+    assertThat(calls.messagesTo(employee.email())).isEqualTo(1);
     // An extra required action.
     calls.admin(
         "PUT",
         "/users/" + employee.subject(),
         "{\"requiredActions\":[\"UPDATE_PASSWORD\",\"VERIFY_EMAIL\"]}");
-    assertThat(setup(employee, "employee").code()).isEqualTo("SETUP_STATE_INVALID");
+    assertThat(setup(employee).code()).isEqualTo("SETUP_STATE_INVALID");
     // The action removed without its credential.
     calls.admin("PUT", "/users/" + employee.subject(), "{\"requiredActions\":[]}");
-    assertThat(setup(employee, "employee").code()).isEqualTo("SETUP_STATE_INVALID");
+    assertThat(setup(employee).code()).isEqualTo("SETUP_STATE_INVALID");
     // A password while the action is still pending (a non-temporary reset clears the action, so
     // it is pending again only when re-added afterwards).
     setPassword(employee.subject());
     calls.admin(
         "PUT", "/users/" + employee.subject(), "{\"requiredActions\":[\"UPDATE_PASSWORD\"]}");
-    assertThat(setup(employee, "employee").code()).isEqualTo("SETUP_STATE_INVALID");
+    assertThat(setup(employee).code()).isEqualTo("SETUP_STATE_INVALID");
     // Proven terminal state: password and no pending action.
     calls.admin("PUT", "/users/" + employee.subject(), "{\"requiredActions\":[]}");
-    Reply completed = setup(employee, "employee");
+    Reply completed = setup(employee);
     assertThat(completed.status()).isEqualTo(200);
     assertThat(completed.json().path("state").asString()).isEqualTo("COMPLETED");
     assertThat(calls.messagesTo(employee.email())).isEqualTo(1);
     // An unexpected authenticator on an employee.
     enrollExtraAuthenticator(employee);
-    assertThat(setup(employee, "employee").code()).isEqualTo("SETUP_STATE_INVALID");
+    assertThat(setup(employee).code()).isEqualTo("SETUP_STATE_INVALID");
   }
 
   @Test
   void tenantAdministratorSetupStates() throws Exception {
     Created admin = create("tenant-admin");
-    assertThat(setup(admin, "tenant-admin").status()).isEqualTo(202);
+    assertThat(setup(admin).status()).isEqualTo(202);
     // The password set and its action done, the authenticator still pending: consistent progress.
     setPassword(admin.subject());
     calls.admin("PUT", "/users/" + admin.subject(), "{\"requiredActions\":[\"CONFIGURE_TOTP\"]}");
-    assertThat(setup(admin, "tenant-admin").status()).isEqualTo(202);
+    assertThat(setup(admin).status()).isEqualTo(202);
     assertThat(compensate(admin).code()).isEqualTo("COMPENSATION_REFUSED");
     // Only the password, and nothing pending: partial, never completed.
     calls.admin("PUT", "/users/" + admin.subject(), "{\"requiredActions\":[]}");
-    assertThat(setup(admin, "tenant-admin").code()).isEqualTo("SETUP_STATE_INVALID");
+    assertThat(setup(admin).code()).isEqualTo("SETUP_STATE_INVALID");
     // Nothing set and nothing pending.
     Created bare = create("tenant-admin");
     calls.admin("PUT", "/users/" + bare.subject(), "{\"requiredActions\":[]}");
-    assertThat(setup(bare, "tenant-admin").code()).isEqualTo("SETUP_STATE_INVALID");
+    assertThat(setup(bare).code()).isEqualTo("SETUP_STATE_INVALID");
 
     // Fully enrolled through the link: completed, no further email.
     Enrolled enrolled = enrolledTenantAdmin();
     int before = calls.messagesTo(enrolled.created().email());
-    Reply completed = setup(enrolled.created(), "tenant-admin");
+    Reply completed = setup(enrolled.created());
     assertThat(completed.status()).isEqualTo(200);
     assertThat(calls.messagesTo(enrolled.created().email())).isEqualTo(before);
     // A second authenticator: unexpected credential count.
     enrollExtraAuthenticator(enrolled.created());
-    assertThat(setup(enrolled.created(), "tenant-admin").code()).isEqualTo("SETUP_STATE_INVALID");
+    assertThat(setup(enrolled.created()).code()).isEqualTo("SETUP_STATE_INVALID");
   }
 
   private static void setPassword(String subject) throws Exception {
@@ -543,7 +645,7 @@ class KeycloakProvisioningExtensionContainerTest {
 
   private static Enrolled enrolledTenantAdmin() throws Exception {
     Created created = create("tenant-admin");
-    assertThat(setup(created, "tenant-admin").status()).isEqualTo(202);
+    assertThat(setup(created).status()).isEqualTo(202);
     ScriptedBrowser browser = new ScriptedBrowser(stack.baseUrl(), KeycloakTestStack.REALM);
     AtomicReference<String> secret = new AtomicReference<>();
     browser.drive(
@@ -670,8 +772,7 @@ class KeycloakProvisioningExtensionContainerTest {
 
     // Through the extension: no setup link and no deletion for an enrolled administrator.
     int mails = calls.messagesTo(admin.created().email());
-    assertThat(setup(admin.created(), "tenant-admin").json().path("state").asString())
-        .isEqualTo("COMPLETED");
+    assertThat(setup(admin.created()).json().path("state").asString()).isEqualTo("COMPLETED");
     assertThat(compensate(admin.created()).code()).isEqualTo("COMPENSATION_REFUSED");
     assertThat(
             calls
@@ -746,7 +847,7 @@ class KeycloakProvisioningExtensionContainerTest {
         "PUT",
         identityPath(created.invitation().toString()),
         provisionBody(created.email(), "employee", TENANT_A, "en"));
-    assertThat(setup(created, "employee").status()).isEqualTo(202);
+    assertThat(setup(created).status()).isEqualTo(202);
     calls.awaitMessage(created.email(), 1);
     // Still pristine (no credential yet): compensation deletes it.
     assertThat(compensate(created).status()).isEqualTo(204);

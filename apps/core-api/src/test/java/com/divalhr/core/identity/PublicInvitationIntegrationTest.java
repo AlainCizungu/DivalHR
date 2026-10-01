@@ -289,6 +289,59 @@ class PublicInvitationIntegrationTest {
   }
 
   @Test
+  void aLostCreationRaceIsRetryableAndNeverDeniesTheInvitation() throws Exception {
+    // PR #32 review: an identical concurrent call created the identity; this one got the
+    // extension's retryable 503. The invitation stays open, nothing is denied, and the retry
+    // finds the same single identity.
+    Invited invited = invited("tenant-admin");
+    directory.mode(FakeIdentityDirectory.Mode.PROVISION_RACED);
+    mvc.perform(anonymous("accept", invited.token()))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.code").value("IDENTITY_PROVIDER_UNAVAILABLE"));
+    assertThat(state(invited.id())).isEqualTo("PENDING");
+    assertThat(directory.identities()).hasSize(1);
+    String subject = directory.identities().get(invited.email()).subject();
+    directory.mode(FakeIdentityDirectory.Mode.UP);
+    mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+    assertThat(state(invited.id())).isEqualTo("ACCEPTED");
+    assertThat(directory.identities()).hasSize(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT subject FROM identity.tenant_membership WHERE source_invitation_id = ?",
+                String.class,
+                invited.id()))
+        .isEqualTo(subject);
+  }
+
+  @Test
+  void theReconcilerTreatsALostCreationRaceAsDeferredNeverAsAConflict() throws Exception {
+    Invited invited = invited("employee");
+    // A stalled acceptance whose lease expired; the reconciler's first attempt loses a race.
+    jdbc.update(
+        "UPDATE identity.invitation SET state = 'ACCEPTING', acceptance_lease_owner = ?,"
+            + " acceptance_lease_until = now() - interval '1 second' WHERE id = ?",
+        UUID.randomUUID(),
+        invited.id());
+    directory.mode(FakeIdentityDirectory.Mode.PROVISION_RACED);
+    assertThat(jobs.recoverStaleAcceptances()).isEqualTo(1);
+    // Deferred: the lease is released and the invitation reopened, never denied or compensated.
+    assertThat(state(invited.id())).isEqualTo("PENDING");
+    assertThat(directory.compensations()).isEmpty();
+    // The next attempt resolves to the identity the race created.
+    directory.mode(FakeIdentityDirectory.Mode.UP);
+    String subject = directory.identities().get(invited.email()).subject();
+    mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+    assertThat(state(invited.id())).isEqualTo("ACCEPTED");
+    assertThat(directory.identities()).hasSize(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT subject FROM identity.tenant_membership WHERE source_invitation_id = ?",
+                String.class,
+                invited.id()))
+        .isEqualTo(subject);
+  }
+
+  @Test
   void credentialSetupIsDurableAndRetriedUntilSentOrFailed() throws Exception {
     Invited invited = invited("tenant-admin");
     directory.mode(FakeIdentityDirectory.Mode.CREDENTIAL_SETUP_DOWN);
@@ -306,7 +359,7 @@ class PublicInvitationIntegrationTest {
         .containsEntry("credential_setup_state", "SENT")
         .containsEntry("attempts", 2);
     assertThat(directory.credentialSetups()).hasSize(1);
-    // The retry keeps the invited role, so the administrator still gets the TOTP action.
+    // The retry still sets up the identity's own role, so the administrator gets the TOTP action.
     assertThat(directory.credentialSetupRoles().values()).containsExactly(TenantRole.TENANT_ADMIN);
 
     // Exhausted retries end in FAILED, never in an endless loop.

@@ -32,7 +32,12 @@ public class FakeIdentityDirectory implements IdentityDirectory {
     /** The provider reports that setup is already complete. */
     CREDENTIAL_SETUP_COMPLETED,
     /** The provider refuses compensation (identity not pristine). */
-    COMPENSATION_REFUSED
+    COMPENSATION_REFUSED,
+    /**
+     * This call loses a creation race: an identical concurrent call has committed the identity, and
+     * this one gets the extension's retryable {@code 503 IDENTITY_BUSY} (PR #32 review).
+     */
+    PROVISION_RACED
   }
 
   /** A provisioned identity. */
@@ -138,18 +143,29 @@ public class FakeIdentityDirectory implements IdentityDirectory {
               request.role().wireName(),
               request.locale().tag());
       byAddress.put(address, created);
+      if (mode.get() == Mode.PROVISION_RACED) {
+        throw new IdentityProviderUnavailableException("status_5xx");
+      }
       return new Provisioned(created.subject());
     }
   }
 
   @Override
-  public CredentialSetupOutcome requestCredentialSetup(UUID invitationId, TenantRole role) {
+  public CredentialSetupOutcome requestCredentialSetup(UUID invitationId) {
     Mode current = mode.get();
     if (current == Mode.DOWN || current == Mode.CREDENTIAL_SETUP_DOWN) {
       throw new IdentityProviderUnavailableException("fake_down");
     }
     credentialSetups.add(invitationId);
-    credentialSetupRoles.put(invitationId, role);
+    // Like the extension: the role comes from the identity this invitation created, never from
+    // the caller (PR #32 review).
+    byAddress.values().stream()
+        .filter(identity -> identity.invitationId().equals(invitationId))
+        .findFirst()
+        .ifPresent(
+            identity ->
+                TenantRole.fromWire(identity.role())
+                    .ifPresent(role -> credentialSetupRoles.put(invitationId, role)));
     return switch (current) {
       case CREDENTIAL_SETUP_INVALID -> CredentialSetupOutcome.STATE_INVALID;
       case CREDENTIAL_SETUP_COMPLETED -> CredentialSetupOutcome.COMPLETED;
@@ -158,7 +174,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   }
 
   /**
-   * The role passed with each credential-setup request, by invitation.
+   * The role the provider derived from the identity for each credential-setup request.
    *
    * @return copy of the roles
    */

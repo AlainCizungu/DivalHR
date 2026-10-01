@@ -19,8 +19,9 @@ info:
     detail-free 401 or 403 whatever the path, body or identity state.
 
 
-    **Bodies (A2).** `application/json` only; at most 2048 bytes, counted while streaming and
-    before JSON binding; exactly one JSON object; unknown properties rejected.
+    **Bodies (A2).** Only identity creation takes a body: `application/json` only; at most 2048
+    bytes, counted while streaming and before JSON binding; exactly one JSON object; unknown
+    properties rejected. Credential setup and compensation take none.
 
 
     **Responses** never contain email addresses, usernames, credentials, links or tokens.
@@ -48,10 +49,18 @@ paths:
         Creates the user with `username` = `email`, `enabled` and `emailVerified` true, exactly
         the attributes `tenant_id`, `divalhr_invitation_id` and `locale`, membership of the role
         group mapped from `role`, the required actions for that role (`UPDATE_PASSWORD`, plus
-        `CONFIGURE_TOTP` for `tenant-admin`) and no credential. Validation and uniqueness checks
-        run before any mutation; creation is one Keycloak transaction. A repeated call for the same
-        invitation with the same values confirms the identity (200); the extension never updates
-        an existing user.
+        `CONFIGURE_TOTP` for `tenant-admin`) and no credential. The user receives **no** realm
+        default role and no default group: every right comes from the role group alone.
+        Validation and uniqueness checks run before any mutation; creation is one Keycloak
+        transaction. A repeated call for the same invitation with the same values confirms the
+        identity (200); the extension never updates an existing user.
+
+
+        **Identical concurrent calls** never conflict: a call that loses the creation race settles
+        its outcome from committed state in a fresh transaction and confirms the same identity
+        (200). Only when committed state cannot yet show the outcome does it answer the retryable
+        503 `IDENTITY_BUSY`; the Core API treats that, like any other 5xx or any 409 without the
+        `IDENTITY_CONFLICT` code, as "provider unavailable", never as a conflict.
       tags: [invitation-identity]
       requestBody:
         required: true
@@ -80,9 +89,10 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           description: >-
-            `IDENTITY_CONFLICT`: the address or username belongs to another user, or this
-            invitation's identity differs in email, role group or tenant. `IDENTITY_AMBIGUOUS`:
-            more than one user carries this invitation ID. Nothing is changed.
+            `IDENTITY_CONFLICT`, only for a proven differing binding: the address or username
+            belongs to an identity that does not carry this invitation, or this invitation's
+            identity differs in email, role group or tenant. `IDENTITY_AMBIGUOUS`: more than one
+            user carries this invitation ID. Nothing is changed.
           content:
             application/json:
               schema:
@@ -91,6 +101,19 @@ paths:
           $ref: '#/components/responses/TooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '503':
+          description: >-
+            `IDENTITY_BUSY`: an identical concurrent call is creating this identity and committed
+            state does not yet show it. Retryable; nothing was changed by this call.
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       operationId: compensateInvitationIdentity
       summary: Delete the identity of an invitation whose acceptance did not complete
@@ -124,12 +147,15 @@ paths:
       operationId: requestInvitationCredentialSetup
       summary: Send the setup email, or confirm that setup is complete
       description: >-
-        The required actions, client, redirect URI and link lifespan are decided by the extension,
-        never by the caller. Role-specific states (A1):
+        No request body: any content is refused with 400 `INVALID_REQUEST`. The role is derived
+        only from the identity's membership of exactly one approved role group
+        (`/divalhr-role-employee` or `/divalhr-role-tenant-admin`); the required actions, client,
+        redirect URI and link lifespan follow from it and from the extension's configuration,
+        never from the caller. Role-specific states (A1):
 
 
-        - **Pending** (202, an action email is sent): the identity is in the role group named by
-        `role`, carries only credential types of that role, and for each of them either holds
+        - **Pending** (202, an action email for the actions still pending is sent): the identity
+        is in exactly one approved role group, carries only credential types of that role, and for each of them either holds
         exactly one credential and no longer has the matching action pending, or holds none and
         still has it pending; at least one action is pending and no other required action exists.
 
@@ -140,15 +166,9 @@ paths:
 
         - **Anything else** (409 `SETUP_STATE_INVALID`, no email): for example only one of the
         required credentials with its action removed, required actions removed without the
-        credentials, unexpected credential types or counts, other required actions, or a role
-        group that differs from `role`.
+        credentials, unexpected credential types or counts, other required actions, membership
+        of no approved role group or of both, a disabled identity or one without an address.
       tags: [invitation-identity]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CredentialSetup'
       responses:
         '200':
           description: Setup is already complete
@@ -180,10 +200,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '413':
-          $ref: '#/components/responses/TooLarge'
-        '415':
-          $ref: '#/components/responses/UnsupportedMediaType'
         '503':
           description: '`EMAIL_FAILED`: the email could not be sent'
           content:
@@ -271,13 +287,6 @@ components:
         locale:
           type: string
           enum: [fr, en]
-    CredentialSetup:
-      type: object
-      additionalProperties: false
-      required: [role]
-      properties:
-        role:
-          $ref: '#/components/schemas/Role'
     Role:
       type: string
       enum: [employee, tenant-admin]
@@ -317,3 +326,4 @@ components:
             - SETUP_STATE_INVALID
             - COMPENSATION_REFUSED
             - EMAIL_FAILED
+            - IDENTITY_BUSY

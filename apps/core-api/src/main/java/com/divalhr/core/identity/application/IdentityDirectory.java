@@ -27,14 +27,14 @@ public interface IdentityDirectory {
   /**
    * Asks the provider to email the invitee a link to choose a password and, for a role that
    * requires MFA, to enroll an authenticator app (MVP-011), for the identity this invitation
-   * created (Issue #31: keyed by invitation, never by subject).
+   * created (Issue #31: keyed by invitation, never by subject). The provider derives the role, and
+   * so the required actions, from the identity's own role group; the caller never names it.
    *
    * @param invitationId invitation whose identity is set up
-   * @param role the invitation's role
    * @return what the provider found
    * @throws IdentityProviderUnavailableException when the provider cannot be reached or refuses
    */
-  CredentialSetupOutcome requestCredentialSetup(UUID invitationId, TenantRole role);
+  CredentialSetupOutcome requestCredentialSetup(UUID invitationId);
 
   /**
    * Deletes the identity this invitation created while it is pristine; never touches another

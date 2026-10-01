@@ -7,7 +7,6 @@ import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningResul
 import com.divalhr.core.identity.domain.CredentialSetupState;
 import com.divalhr.core.identity.domain.Invitation;
 import com.divalhr.core.identity.domain.InvitationState;
-import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository.AcceptanceRow;
 import com.divalhr.core.identity.internal.JdbcMembershipRepository;
@@ -253,7 +252,7 @@ public class InvitationAcceptance {
         .addKeyValue("invitationId", invitation.id())
         .addKeyValue("outcome", "accepted")
         .log("invitation_accepted");
-    requestCredentialSetup(invitation.id(), invitation.role(), 0);
+    requestCredentialSetup(invitation.id(), 0);
   }
 
   /**
@@ -296,19 +295,17 @@ public class InvitationAcceptance {
    * An unreachable provider is retried with backoff, then {@code FAILED}.
    *
    * @param invitationId accepted invitation
-   * @param role the invitation's role (tenant administrators also enroll an authenticator)
    * @param previousAttempts attempts before this one
    * @return the recorded state
    */
-  public CredentialSetupState requestCredentialSetup(
-      UUID invitationId, TenantRole role, int previousAttempts) {
+  public CredentialSetupState requestCredentialSetup(UUID invitationId, int previousAttempts) {
     int attempts = previousAttempts + 1;
     CredentialSetupState state;
     Instant nextAt = null;
     String detail = null;
     try {
       IdentityDirectory.CredentialSetupOutcome result =
-          directory.requestCredentialSetup(invitationId, role);
+          directory.requestCredentialSetup(invitationId);
       switch (result) {
         case EMAIL_SENT -> state = CredentialSetupState.SENT;
         case COMPLETED -> {

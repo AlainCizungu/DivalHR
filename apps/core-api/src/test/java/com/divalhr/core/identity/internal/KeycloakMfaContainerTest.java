@@ -245,7 +245,7 @@ class KeycloakMfaContainerTest {
     String subject = provision(email, TenantRole.EMPLOYEE);
     assertThat(texts(admin("GET", "/users/" + subject, null).path("requiredActions")))
         .containsExactly("UPDATE_PASSWORD");
-    directory.requestCredentialSetup(INVITATIONS.get(subject), TenantRole.EMPLOYEE);
+    directory.requestCredentialSetup(INVITATIONS.get(subject));
     ScriptedBrowser browser = browser();
     AtomicReference<String> secret = new AtomicReference<>();
     Outcome setup =
@@ -395,7 +395,7 @@ class KeycloakMfaContainerTest {
     String subject = provision(email, TenantRole.TENANT_ADMIN);
     assertThat(texts(admin("GET", "/users/" + subject, null).path("requiredActions")))
         .containsExactlyInAnyOrder("UPDATE_PASSWORD", "CONFIGURE_TOTP");
-    directory.requestCredentialSetup(INVITATIONS.get(subject), TenantRole.TENANT_ADMIN);
+    directory.requestCredentialSetup(INVITATIONS.get(subject));
     ScriptedBrowser browser = browser();
     AtomicReference<String> secret = new AtomicReference<>();
     Outcome setup =

@@ -219,7 +219,10 @@ final class KeycloakCalls {
       HttpRequest.Builder builder, String method, String body) {
     return switch (method) {
       case "GET" -> builder.GET();
-      case "DELETE" -> builder.DELETE();
+      case "DELETE" ->
+          body == null
+              ? builder.DELETE()
+              : builder.method("DELETE", HttpRequest.BodyPublishers.ofString(body));
       default ->
           builder.method(method, HttpRequest.BodyPublishers.ofString(body == null ? "" : body));
     };

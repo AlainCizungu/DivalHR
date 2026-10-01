@@ -2,7 +2,6 @@ package com.divalhr.core.identity.internal.keycloak;
 
 import com.divalhr.core.identity.application.IdentityDirectory;
 import com.divalhr.core.identity.application.IdentityProviderUnavailableException;
-import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.platform.web.CorrelationId;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -91,22 +90,23 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
     return switch (reply.status()) {
       case 200, 201 -> new Provisioned(subject(reply));
       case 409 -> {
-        if ("IDENTITY_AMBIGUOUS".equals(reply.code())) {
-          throw failure("identity_ambiguous");
+        // Only the extension's proven differing binding is a business conflict. Ambiguity, and any
+        // 409 without that code (for example Keycloak's own duplicate-key answer when a concurrent
+        // identical call wins a race), stays retryable: it must never deny a legitimate invitation.
+        if ("IDENTITY_CONFLICT".equals(reply.code())) {
+          yield new IdentityConflict();
         }
-        yield new IdentityConflict();
+        throw failure(
+            "IDENTITY_AMBIGUOUS".equals(reply.code()) ? "identity_ambiguous" : "conflict_unproven");
       }
       default -> throw failure(reply);
     };
   }
 
   @Override
-  public CredentialSetupOutcome requestCredentialSetup(UUID invitationId, TenantRole role) {
-    Reply reply =
-        call(
-            "POST",
-            identity(invitationId) + "/credential-setup",
-            json.writeValueAsString(Map.of("role", role.wireName())));
+  public CredentialSetupOutcome requestCredentialSetup(UUID invitationId) {
+    // No body: the extension derives the role from the identity's role group (PR #32 review).
+    Reply reply = call("POST", identity(invitationId) + "/credential-setup", null);
     return switch (reply.status()) {
       case 202 -> CredentialSetupOutcome.EMAIL_SENT;
       case 200 -> CredentialSetupOutcome.COMPLETED;

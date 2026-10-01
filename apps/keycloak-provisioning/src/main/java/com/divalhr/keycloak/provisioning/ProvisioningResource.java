@@ -32,6 +32,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.services.resources.LoginActionsService;
 
 /**
@@ -50,6 +51,9 @@ public class ProvisioningResource {
 
   /** Tenant attribute mapped into tokens. */
   static final String TENANT_ATTRIBUTE = "tenant_id";
+
+  /** Retryable outcome of a creation race whose committed state is not yet settled. */
+  static final String BUSY = "IDENTITY_BUSY";
 
   private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -169,9 +173,29 @@ public class ProvisioningResource {
           "IDENTITY_CONFLICT",
           409);
     }
-    // Every check happens before the first mutation.
-    if (session.users().getUserByUsername(realm, request.email()) != null
-        || session.users().getUserByEmail(realm, request.email()) != null) {
+    // Every check happens before the first mutation. An identical call may have committed between
+    // the invitation lookup above and this check: an address held by this invitation's own
+    // identity is settled like a replay, never reported as a conflict (PR #32 review).
+    UserModel holder = addressHolder(realm, request.email());
+    if (holder != null
+        && List.of(invitation.toString())
+            .equals(holder.getAttributeStream(INVITATION_ATTRIBUTE).toList())
+        && matches(holder, request)) {
+      AuditRecorder.record(
+          session,
+          caller,
+          new AuditRecorder.Entry(
+              operation,
+              "confirmed",
+              invitation,
+              holder.getId(),
+              request.tenantId(),
+              correlationId),
+          OperationType.CREATE,
+          null);
+      return json(200, Map.of("subject", holder.getId()));
+    }
+    if (holder != null) {
       return refuse(
           caller,
           operation,
@@ -185,20 +209,14 @@ public class ProvisioningResource {
     }
     UserModel user;
     try {
-      // Default realm roles as for any new user; no default required actions (exact set below).
-      user = session.users().addUser(realm, null, request.email(), true, false);
+      // No realm default roles or default groups, and no default required actions (PR #32
+      // review): the identity's only rights come from the role group joined below.
+      user = session.users().addUser(realm, null, request.email(), false, false);
     } catch (ModelDuplicateException raced) {
+      // A concurrent call committed the same username first. This transaction can no longer read
+      // or write; settle the outcome from committed state in a fresh one.
       session.getTransactionManager().setRollbackOnly();
-      return refuse(
-          caller,
-          operation,
-          invitation,
-          null,
-          request.tenantId(),
-          correlationId,
-          OperationType.CREATE,
-          "IDENTITY_CONFLICT",
-          409);
+      return afterRace(caller, operation, invitation, request, correlationId);
     }
     user.setEmail(request.email());
     user.setEmailVerified(true);
@@ -219,13 +237,14 @@ public class ProvisioningResource {
   }
 
   /**
-   * Sends the setup email while setup is pending, or confirms the proven completed state (A1).
+   * Sends the setup email while setup is pending, or confirms the proven completed state (A1). The
+   * request has no body: the role, and so the required actions, come only from the identity's own
+   * role group (PR #32 review).
    *
    * @param invitationId path value
-   * @param contentType request media type
    * @param contentLength declared length
    * @param correlation correlation ID header
-   * @param body request body
+   * @param body request body, which must be empty
    * @return response
    */
   @POST
@@ -234,7 +253,6 @@ public class ProvisioningResource {
   @Produces(MediaType.APPLICATION_JSON)
   public Response credentialSetup(
       @PathParam("invitationId") String invitationId,
-      @HeaderParam("Content-Type") String contentType,
       @HeaderParam("Content-Length") String contentLength,
       @HeaderParam("X-Correlation-Id") String correlation,
       InputStream body) {
@@ -247,12 +265,9 @@ public class ProvisioningResource {
     }
     String correlationId = RequestBodies.correlationId(correlation).orElse(null);
     UUID invitation;
-    InvitationRole role;
     try {
       invitation = RequestBodies.invitationId(invitationId);
-      role =
-          RequestBodies.setupRole(
-              RequestBodies.readObject(contentType, length(contentLength), body));
+      RequestBodies.requireEmpty(length(contentLength), body);
     } catch (RequestBodies.Rejected rejected) {
       return refuse(
           caller,
@@ -293,6 +308,21 @@ public class ProvisioningResource {
     }
     UserModel user = found.get(0);
     UUID tenant = tenantOf(user);
+    // Exactly one approved role group, or the state is invalid and nothing is sent.
+    Optional<InvitationRole> derived = singleRole(realm, user);
+    if (derived.isEmpty()) {
+      return refuse(
+          caller,
+          operation,
+          invitation,
+          user.getId(),
+          tenant,
+          correlationId,
+          OperationType.ACTION,
+          "SETUP_STATE_INVALID",
+          409);
+    }
+    InvitationRole role = derived.get();
     SetupState state = SetupState.classify(role, snapshot(realm, user));
     if (state == SetupState.COMPLETED) {
       AuditRecorder.record(
@@ -432,6 +462,84 @@ public class ProvisioningResource {
 
   // ---------------------------------------------------------------------------------------------
 
+  /** What committed state shows after a lost creation race. */
+  private record Race(String code, String userId) {}
+
+  /**
+   * Settles a lost creation race from committed state, in a fresh transaction: the same identity
+   * for this invitation is confirmed (200); a proven differing binding is a conflict; anything else
+   * is a retryable 503 that the Core API never treats as a business conflict.
+   */
+  private Response afterRace(
+      CallerAuthorizer.Caller caller,
+      String operation,
+      UUID invitation,
+      RequestBodies.Provision request,
+      String correlationId) {
+    String realmId = session.getContext().getRealm().getId();
+    Race race;
+    try {
+      race =
+          KeycloakModelUtils.runJobInTransactionWithResult(
+              session.getKeycloakSessionFactory(),
+              fresh -> {
+                RealmModel realm = fresh.realms().getRealm(realmId);
+                fresh.getContext().setRealm(realm);
+                ProvisioningResource committed = new ProvisioningResource(fresh, config);
+                Race settled = committed.settle(realm, invitation, request);
+                AuditRecorder.record(
+                    fresh,
+                    caller,
+                    new AuditRecorder.Entry(
+                        operation,
+                        settled.code() == null ? "confirmed_after_race" : "refused_after_race",
+                        invitation,
+                        settled.userId(),
+                        request.tenantId(),
+                        correlationId),
+                    OperationType.CREATE,
+                    settled.code());
+                return settled;
+              });
+    } catch (RuntimeException unreadable) {
+      race = new Race(BUSY, null);
+    }
+    if (race.code() == null) {
+      return json(200, Map.of("subject", race.userId()));
+    }
+    Response.ResponseBuilder answer =
+        Response.status(BUSY.equals(race.code()) ? 503 : 409)
+            .type(MediaType.APPLICATION_JSON_TYPE)
+            .entity(text(Map.of("code", race.code())));
+    if (BUSY.equals(race.code())) {
+      answer.header("Retry-After", "1");
+    }
+    return answer.build();
+  }
+
+  private Race settle(RealmModel realm, UUID invitation, RequestBodies.Provision request) {
+    List<UserModel> found = findByInvitation(realm, invitation);
+    if (found.size() > 1) {
+      return new Race("IDENTITY_AMBIGUOUS", null);
+    }
+    if (found.size() == 1) {
+      UserModel user = found.get(0);
+      return matches(user, request)
+          ? new Race(null, user.getId())
+          : new Race("IDENTITY_CONFLICT", user.getId());
+    }
+    if (addressHolder(realm, request.email()) != null) {
+      // The address is bound to an identity that does not carry this invitation.
+      return new Race("IDENTITY_CONFLICT", null);
+    }
+    return new Race(BUSY, null);
+  }
+
+  private UserModel addressHolder(RealmModel realm, String email) {
+    UserModel byUsername = session.users().getUserByUsername(realm, email);
+    return byUsername != null ? byUsername : session.users().getUserByEmail(realm, email);
+  }
+
   /** Exact, bounded lookup: zero, one, or "more than one" (never mutated). */
   private List<UserModel> findByInvitation(RealmModel realm, UUID invitation) {
     String value = invitation.toString();
@@ -557,12 +665,14 @@ public class ProvisioningResource {
   }
 
   private static Response json(int status, Map<String, String> body) {
-    String text;
+    return Response.status(status).type(MediaType.APPLICATION_JSON_TYPE).entity(text(body)).build();
+  }
+
+  private static String text(Map<String, String> body) {
     try {
-      text = JSON.writeValueAsString(body);
+      return JSON.writeValueAsString(body);
     } catch (com.fasterxml.jackson.core.JsonProcessingException impossible) {
-      text = "{}";
+      return "{}";
     }
-    return Response.status(status).type(MediaType.APPLICATION_JSON_TYPE).entity(text).build();
   }
 }
