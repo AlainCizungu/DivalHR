@@ -21,6 +21,7 @@ jobs:
           - { name: core-api, context: apps/core-api, file: apps/core-api/Dockerfile }
           - { name: ai-service, context: apps/ai-service, file: apps/ai-service/Dockerfile }
           - { name: web, context: ., file: apps/web/Dockerfile }
+          - { name: keycloak, context: ., file: infrastructure/docker/keycloak/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -45,7 +46,7 @@ jobs:
       - name: Start stack (development-only configuration)
         run: docker compose -f infrastructure/docker/compose.yaml --env-file .env.example up -d --build --wait --wait-timeout 300
       - run: pnpm install --frozen-lockfile
-      - name: Verify the realm's privileged-MFA configuration (read-only)
+      - name: Verify the realm in final mode (read-only; MVP-011 MFA, Issue #31 narrow provisioning)
         run: pnpm realm:verify
         env:
           KEYCLOAK_VERIFY_TRANSPORT: compose

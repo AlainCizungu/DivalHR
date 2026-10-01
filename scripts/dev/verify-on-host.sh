@@ -118,7 +118,8 @@ use_node24() {
   echo "node $(node -v)"
 }
 
-# MVP-011 (A4): read-only check of the running realm; prints rule names and PASS/FAIL only.
+# MVP-011 (A4) and Issue #31 (A3): read-only check of the running realm in final mode (the only mode
+# acceptable as evidence); prints rule names and PASS/FAIL only.
 realm_verify() {
   (
     export KEYCLOAK_VERIFY_TRANSPORT=compose KEYCLOAK_ADMIN_USER=dev-kc-admin

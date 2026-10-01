@@ -99,3 +99,17 @@ spotbugs {
 tasks.named("check") {
     dependsOn("spotlessCheck")
 }
+
+// Issue #31: the Keycloak container tests run the real extension, and `check` also checks it.
+gradle.includedBuilds.find { it.name == "keycloak-provisioning" }?.let { provisioning ->
+    tasks.test {
+        dependsOn(provisioning.task(":jar"))
+        systemProperty(
+            "divalhr.provisioningJar",
+            provisioning.projectDir.resolve("build/libs/divalhr-provisioning.jar").absolutePath,
+        )
+    }
+    tasks.named("check") {
+        dependsOn(provisioning.task(":check"))
+    }
+}
