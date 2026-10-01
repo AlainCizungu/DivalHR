@@ -35,13 +35,13 @@ dependencies {
     compileOnly("org.keycloak:keycloak-common:$keycloakVersion")
     // The versions Keycloak 26.7.4 ships in lib/lib.
     compileOnly("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
-    compileOnly("org.jboss.logging:jboss-logging:3.6.2.Final")
-    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.21.5")
+    compileOnly("org.jboss.logging:jboss-logging:3.6.3.Final")
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.22.3")
 
-    testImplementation(platform("org.junit:junit-bom:6.0.3"))
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.assertj:assertj-core:3.27.7")
-    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.21.5")
+    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
