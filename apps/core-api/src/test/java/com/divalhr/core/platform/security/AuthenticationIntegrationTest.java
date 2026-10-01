@@ -6,10 +6,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.divalhr.core.support.Hierarchy;
 import com.divalhr.core.support.IntegrationTest;
+import com.divalhr.core.support.Memberships;
 import com.divalhr.core.support.TestTokens;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,10 +31,19 @@ class AuthenticationIntegrationTest {
 
   @Test
   void acceptsValidTokenAndReturnsOnlyTenantAndKnownRoles() throws Exception {
-    String token = TestTokens.token().roles(List.of("tenant-admin", "offline_access")).build();
+    // MVP-012A: the tenant role is effective because the subject is a member with that role.
+    UUID tenant = Hierarchy.newTenant(mvc);
+    String subject = "sub-session-" + tenant;
+    Memberships.grant(tenant, subject, "tenant-admin");
+    String token =
+        TestTokens.token()
+            .tenant(tenant)
+            .subject(subject)
+            .roles(List.of("tenant-admin", "offline_access"))
+            .build();
     mvc.perform(get("/api/v1/session").header("Authorization", "Bearer " + token))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.tenantId").value(TestTokens.TENANT_A.toString()))
+        .andExpect(jsonPath("$.tenantId").value(tenant.toString()))
         .andExpect(jsonPath("$.roles.length()").value(1))
         .andExpect(jsonPath("$.roles[0]").value("tenant-admin"))
         .andExpect(jsonPath("$.sub").doesNotExist());

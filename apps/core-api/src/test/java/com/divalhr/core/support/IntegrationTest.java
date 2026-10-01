@@ -29,5 +29,10 @@ import org.springframework.context.annotation.Import;
       "divalhr.tenant-administration.lock-timeout=3s"
     })
 @AutoConfigureMockMvc
-@Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})
+@Import({
+  TestSecurityConfig.class,
+  PostgresContainerConfig.class,
+  TestInvitationConfig.class,
+  Memberships.Registration.class
+})
 public @interface IntegrationTest {}

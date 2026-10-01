@@ -165,7 +165,7 @@ class SubjectRequiredIntegrationTest {
 
   @Test
   void callersWithASubjectKeepTheExistingPrecedence(CapturedOutput output) throws Exception {
-    String admin = Hierarchy.bearer(tenant, "sub-precedence", "tenant-admin");
+    String admin = Hierarchy.bearer(tenant, "sub-precedence-" + tenant, "tenant-admin");
     // Role before body: an employee still gets ACCESS_DENIED for a malformed body.
     expectSubjectDenial(
         mvc.perform(

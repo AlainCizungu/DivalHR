@@ -105,7 +105,7 @@ class TeamApiIntegrationTest {
         mvc.perform(
                 create(
                         PATH,
-                        bearer(tenant, "sub-team-create", "tenant-admin"),
+                        bearer(tenant, "sub-team-create-" + tenant, "tenant-admin"),
                         Organizations.newKey(),
                         team(
                             resource.field,
@@ -140,7 +140,7 @@ class TeamApiIntegrationTest {
     assertThat(row.get("site_id")).isEqualTo(site);
     assertThat(row.get(resource.column)).isEqualTo(parent(resource));
     assertThat(row.get(resource.other().column)).isNull();
-    assertThat(row.get("created_by")).isEqualTo("sub-team-create");
+    assertThat(row.get("created_by")).isEqualTo("sub-team-create-" + tenant);
 
     Map<String, Object> audit =
         jdbc.queryForMap("SELECT * FROM platform.audit_event WHERE resource_id = ?", id);
@@ -154,7 +154,9 @@ class TeamApiIntegrationTest {
     assertThat(metadata.get(resource.field).asText()).isEqualTo(parent(resource).toString());
     assertThat(metadata.has(resource.otherField)).isFalse();
     assertThat(metadata.get("code").asText()).isEqualTo(code);
-    assertThat(metadata.toString()).doesNotContain(name).doesNotContain("sub-team-create");
+    assertThat(metadata.toString())
+        .doesNotContain(name)
+        .doesNotContain("sub-team-create-" + tenant);
 
     String envelope =
         jdbc.queryForObject(

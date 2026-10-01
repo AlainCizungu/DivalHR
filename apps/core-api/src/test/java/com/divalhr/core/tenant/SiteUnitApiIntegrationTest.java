@@ -84,7 +84,7 @@ class SiteUnitApiIntegrationTest {
         mvc.perform(
                 create(
                         resource.path,
-                        bearer(tenant, "sub-unit-create", "tenant-admin"),
+                        bearer(tenant, "sub-unit-create-" + tenant, "tenant-admin"),
                         Organizations.newKey(),
                         siteUnit(
                             site,
@@ -115,7 +115,7 @@ class SiteUnitApiIntegrationTest {
     assertThat(row.get("site_id")).isEqualTo(site);
     assertThat(row.get("code")).isEqualTo(code);
     assertThat(row.get("name")).isEqualTo(name);
-    assertThat(row.get("created_by")).isEqualTo("sub-unit-create");
+    assertThat(row.get("created_by")).isEqualTo("sub-unit-create-" + tenant);
 
     List<Map<String, Object>> audits =
         jdbc.queryForList("SELECT * FROM platform.audit_event WHERE resource_id = ?", id);

@@ -377,6 +377,13 @@ class TenantAdminBootstrapConcurrencyIntegrationTest {
     String other = address("other");
     invite(mvc, organization, other, "tenant-admin");
     String otherToken = mailer.lastTokenFor(other).orElseThrow();
+    // The inviter stands for an administrator whose authority predates MVP-012A (no membership):
+    // remove the membership the test helper gave it, so that the only administrator membership is
+    // the one that appears while the bootstrap is provisioned.
+    jdbc.update(
+        "DELETE FROM identity.tenant_membership WHERE tenant_id = ? AND source_invitation_id IS"
+            + " NULL",
+        organization);
     // Pause the bootstrap acceptance after its pre-check and before provisioning: another
     // administrator's acceptance commits in between.
     AtomicBoolean once = new AtomicBoolean();
@@ -546,9 +553,11 @@ class TenantAdminBootstrapConcurrencyIntegrationTest {
     assertThat(perform(anonymous("accept", bootstrapToken)).getStatus()).isEqualTo(500);
     assertThat(directory.provisionCalls()).isEmpty();
     assertThat(invitations("origin = 'PLATFORM_BOOTSTRAP' AND state = 'REVOKED'")).isZero();
+    // Only the other administrator's acceptance created a membership.
     assertThat(
             jdbc.queryForObject(
-                "SELECT count(*) FROM identity.tenant_membership WHERE tenant_id = ?",
+                "SELECT count(*) FROM identity.tenant_membership WHERE tenant_id = ?"
+                    + " AND source_invitation_id IS NOT NULL",
                 Integer.class,
                 organization))
         .isEqualTo(1);

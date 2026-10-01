@@ -81,7 +81,7 @@ class RegionApiIntegrationTest {
         mvc.perform(
                 create(
                         PATH,
-                        bearer(tenant, "sub-region-create", "tenant-admin"),
+                        bearer(tenant, "sub-region-create-" + tenant, "tenant-admin"),
                         Organizations.newKey(),
                         region(
                             legalEntity,
@@ -110,21 +110,23 @@ class RegionApiIntegrationTest {
     assertThat(row.get("legal_entity_id")).isEqualTo(legalEntity);
     assertThat(row.get("code")).isEqualTo(code);
     assertThat(row.get("name")).isEqualTo(name);
-    assertThat(row.get("created_by")).isEqualTo("sub-region-create");
+    assertThat(row.get("created_by")).isEqualTo("sub-region-create-" + tenant);
 
     Map<String, Object> audit =
         jdbc.queryForMap("SELECT * FROM platform.audit_event WHERE resource_id = ?", id);
     assertThat(audit.get("action")).isEqualTo("region.create");
     assertThat(audit.get("resource_type")).isEqualTo("region");
     assertThat(audit.get("tenant_id")).isEqualTo(tenant);
-    assertThat(audit.get("actor_subject")).isEqualTo("sub-region-create");
+    assertThat(audit.get("actor_subject")).isEqualTo("sub-region-create-" + tenant);
     assertThat(audit.get("correlation_id")).isEqualTo("mvp002-region-0001");
     JsonNode metadata = json(audit.get("metadata").toString());
     assertThat(metadata.get("legalEntityId").asText()).isEqualTo(legalEntity.toString());
     assertThat(metadata.get("code").asText()).isEqualTo(code);
     assertThat(metadata.get("effectiveFrom").asText()).isEqualTo("2026-02-01");
     assertThat(metadata.get("effectiveTo").asText()).isEqualTo("2026-12-31");
-    assertThat(metadata.toString()).doesNotContain(name).doesNotContain("sub-region-create");
+    assertThat(metadata.toString())
+        .doesNotContain(name)
+        .doesNotContain("sub-region-create-" + tenant);
 
     String envelope =
         jdbc.queryForObject(

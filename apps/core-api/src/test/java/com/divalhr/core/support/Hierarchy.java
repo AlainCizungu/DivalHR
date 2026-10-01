@@ -53,7 +53,8 @@ public final class Hierarchy {
   }
 
   /**
-   * A bearer token for a user of the tenant with the given roles.
+   * A bearer token for a member of the tenant with the given roles. The subject first receives a
+   * membership in that tenant with its tenant role (MVP-012A).
    *
    * @param tenant tenant
    * @param subject subject
@@ -61,6 +62,13 @@ public final class Hierarchy {
    * @return {@code Authorization} header value
    */
   public static String bearer(UUID tenant, String subject, String... roles) {
+    // MVP-012A: a tenant user is a member of the token's tenant (explicit, never a bypass).
+    List<String> claimed = List.of(roles);
+    if (claimed.contains("tenant-admin")) {
+      Memberships.grant(tenant, subject, "tenant-admin");
+    } else if (claimed.contains("employee")) {
+      Memberships.grant(tenant, subject, "employee");
+    }
     return "Bearer "
         + TestTokens.token().tenant(tenant).subject(subject).roles(List.of(roles)).build();
   }

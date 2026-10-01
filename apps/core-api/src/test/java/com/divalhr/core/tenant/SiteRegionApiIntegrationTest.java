@@ -256,7 +256,11 @@ class SiteRegionApiIntegrationTest {
     String key = Organizations.newKey();
     String body =
         mvc.perform(
-                assign(site, bearer(tenant, "sub-assign", "tenant-admin"), key, assignment(region))
+                assign(
+                        site,
+                        bearer(tenant, "sub-assign-" + tenant, "tenant-admin"),
+                        key,
+                        assignment(region))
                     .header("X-Correlation-Id", "mvp002-assign-001"))
             .andExpect(status().isOk())
             .andExpect(header().doesNotExist("Idempotent-Replayed"))
@@ -281,7 +285,7 @@ class SiteRegionApiIntegrationTest {
             site,
             "site.region.assign");
     assertThat(audit.get("resource_type")).isEqualTo("site");
-    assertThat(audit.get("actor_subject")).isEqualTo("sub-assign");
+    assertThat(audit.get("actor_subject")).isEqualTo("sub-assign-" + tenant);
     assertThat(audit.get("tenant_id")).isEqualTo(tenant);
     assertThat(audit.get("correlation_id")).isEqualTo("mvp002-assign-001");
     JsonNode metadata = json(audit.get("metadata").toString());

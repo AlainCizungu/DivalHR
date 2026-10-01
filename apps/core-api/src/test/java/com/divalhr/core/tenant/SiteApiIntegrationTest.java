@@ -52,7 +52,7 @@ class SiteApiIntegrationTest {
         mvc.perform(
                 create(
                         PATH,
-                        bearer(tenant, "sub-site-create", "tenant-admin"),
+                        bearer(tenant, "sub-site-create-" + tenant, "tenant-admin"),
                         Organizations.newKey(),
                         site(parent, code, name, "Africa/Lubumbashi", "2026-02-01", "2026-12-31"))
                     .header("X-Correlation-Id", "mvp002-site-00001"))
@@ -77,7 +77,7 @@ class SiteApiIntegrationTest {
     assertThat(row.get("region_id")).isNull();
     assertThat(row.get("tenant_id")).isEqualTo(tenant);
     assertThat(row.get("legal_entity_id")).isEqualTo(parent);
-    assertThat(row.get("created_by")).isEqualTo("sub-site-create");
+    assertThat(row.get("created_by")).isEqualTo("sub-site-create-" + tenant);
 
     Map<String, Object> audit =
         jdbc.queryForMap("SELECT * FROM platform.audit_event WHERE resource_id = ?", id);
