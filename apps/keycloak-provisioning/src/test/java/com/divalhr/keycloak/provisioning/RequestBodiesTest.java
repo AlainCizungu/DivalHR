@@ -112,7 +112,7 @@ class RequestBodiesTest {
   }
 
   @Test
-  void enforcesTheTransportRulesBeforeBinding() {
+  void enforcesTheTransportRulesBeforeBinding() throws Exception {
     assertThat(code(() -> RequestBodies.readObject(JSON, -1, body(VALID + VALID))))
         .isEqualTo("INVALID_REQUEST/400");
     assertThat(code(() -> RequestBodies.readObject(JSON, -1, body("[" + VALID + "]"))))
@@ -142,15 +142,16 @@ class RequestBodiesTest {
     String padded = "{\"role\":\"" + "x".repeat(RequestBodies.MAX_BYTES) + "\"}";
     assertThat(code(() -> RequestBodies.readObject(JSON, -1, body(padded))))
         .isEqualTo("REQUEST_TOO_LARGE/413");
-    InputStream endless =
+    try (InputStream endless =
         new InputStream() {
           @Override
           public int read() {
             return ' ';
           }
-        };
-    assertThat(code(() -> RequestBodies.readObject(JSON, -1, endless)))
-        .isEqualTo("REQUEST_TOO_LARGE/413");
+        }) {
+      assertThat(code(() -> RequestBodies.readObject(JSON, -1, endless)))
+          .isEqualTo("REQUEST_TOO_LARGE/413");
+    }
   }
 
   @Test

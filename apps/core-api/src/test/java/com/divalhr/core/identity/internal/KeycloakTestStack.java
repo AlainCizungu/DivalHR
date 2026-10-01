@@ -119,7 +119,8 @@ final class KeycloakTestStack implements AutoCloseable {
             "KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__WEB_REDIRECT_URI",
             "http://localhost:5173/auth/callback")
         .withCopyFileToContainer(
-            MountableFile.forHostPath(jar), "/opt/keycloak/providers/divalhr-provisioning.jar");
+            MountableFile.forHostPath(jar, 0644),
+            "/opt/keycloak/providers/divalhr-provisioning.jar");
   }
 
   /**
