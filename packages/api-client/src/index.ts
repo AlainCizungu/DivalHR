@@ -38,6 +38,12 @@ export type Invitation = CoreComponents['schemas']['Invitation'];
 export type InvitationPage = CoreComponents['schemas']['InvitationPage'];
 export type InvitationPreview = CoreComponents['schemas']['InvitationPreview'];
 export type InvitationAcceptance = CoreComponents['schemas']['InvitationAcceptance'];
+/** MVP-014: who created an invitation. */
+export type InvitationOrigin = CoreComponents['schemas']['InvitationOrigin'];
+/** MVP-014: a platform administrator invites an organization's first tenant administrator. */
+export type CreateTenantAdminBootstrap = CoreComponents['schemas']['CreateTenantAdminBootstrap'];
+/** MVP-014: bootstrap availability and the open bootstrap invitation (no address). */
+export type TenantAdminBootstrap = CoreComponents['schemas']['TenantAdminBootstrap'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

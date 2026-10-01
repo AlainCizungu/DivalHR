@@ -132,6 +132,174 @@ paths:
           $ref: "#/components/responses/PrivilegedForbidden"
         "409":
           $ref: "#/components/responses/Conflict"
+  /organizations/{organizationId}/tenant-admin-bootstrap:
+    parameters:
+      - $ref: "#/components/parameters/OrganizationId"
+      - $ref: "#/components/parameters/CorrelationId"
+    get:
+      operationId: getTenantAdminBootstrap
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Whether an organization's first tenant administrator can be invited
+      description: >-
+        MVP-014. available is true only while the organization has no tenant-admin membership and
+        no open (PENDING or ACCEPTING) tenant-admin invitation of any origin. invitation is the
+        organization's open PLATFORM_BOOTSTRAP invitation, if any, as a receipt without the
+        address; tenant-created invitations, memberships, addresses, actors and identity-provider
+        state are never returned. A missing, malformed or non-active organization ID returns 404
+        ORGANIZATION_NOT_FOUND. The caller's own tenant claim is never used.
+      tags: [tenant]
+      responses:
+        "200":
+          description: Bootstrap availability and the open bootstrap invitation
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantAdminBootstrap"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createTenantAdminBootstrap
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Invite an organization's first tenant administrator
+      description: >-
+        MVP-014. Creates a PENDING tenant-admin invitation with origin PLATFORM_BOOTSTRAP and,
+        after the transaction commits, sends the invitation email once. Allowed only while the
+        organization has no tenant-admin membership and no open tenant-admin invitation of any
+        origin; otherwise 409 TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE without params. The rule is
+        checked inside the write transaction under the organization's tenant-administration lock,
+        which every path that creates a tenant-admin invitation or membership shares. The role is
+        fixed by the operation. The address is normalized like createInvitation. The invitation
+        counts toward the tenant's invitation quotas (INVITATION_RATE_LIMITED); each platform
+        administrator may also create at most a small number of bootstrap invitations per hour
+        (RATE_LIMITED). The receipt has no address; a retry with the same Idempotency-Key and an
+        identical payload for the same organization replays the original 201 exactly
+        (Idempotent-Replayed) and sends nothing; the same key for another organization or
+        payload returns IDEMPOTENCY_KEY_REUSED.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTenantAdminBootstrap"
+      responses:
+        "201":
+          description: Bootstrap invitation created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /organizations/{organizationId}/tenant-admin-bootstrap/revoke:
+    parameters:
+      - $ref: "#/components/parameters/OrganizationId"
+      - $ref: "#/components/parameters/CorrelationId"
+    post:
+      operationId: revokeTenantAdminBootstrap
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Revoke an organization's open bootstrap invitation
+      description: >-
+        MVP-014. Revokes the organization's open PLATFORM_BOOTSTRAP invitation (PENDING; the link
+        stops working at once) and returns 204. Idempotent by state: when no open bootstrap
+        invitation exists (already revoked, expired, accepted or never created) it returns 204 and
+        records nothing. A bootstrap invitation being accepted at that moment returns 409
+        INVITATION_NOT_PENDING. Tenant-created invitations are never affected.
+      tags: [tenant]
+      responses:
+        "204":
+          description: No open bootstrap invitation remains
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /organizations/{organizationId}/tenant-admin-bootstrap/resend:
+    parameters:
+      - $ref: "#/components/parameters/OrganizationId"
+      - $ref: "#/components/parameters/CorrelationId"
+    post:
+      operationId: resendTenantAdminBootstrap
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Reissue an organization's open bootstrap invitation
+      description: >-
+        MVP-014. Reissues the open PLATFORM_BOOTSTRAP invitation with a new link under the
+        MVP-010 limits (at most 3 reissues, at least 5 minutes apart: 429
+        INVITATION_RESEND_LIMITED) and sends the email once after commit; the address never
+        changes. Under the organization's tenant-administration lock it rechecks that the
+        organization has no tenant-admin membership and no other open tenant-admin invitation
+        (409 TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE). Without an open bootstrap invitation it returns
+        404 INVITATION_NOT_FOUND. Replays with the same Idempotency-Key for the same organization
+        replay the original 200 exactly and send nothing.
+      tags: [tenant]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: The reissued bootstrap invitation, or the original reissue replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /legal-entities:
     get:
       operationId: listLegalEntities
@@ -804,7 +972,9 @@ paths:
         Generates a new token, invalidates the previous link, restarts the expiry and sends the
         email once after commit. Only the newest link is valid. At most 3 reissues per invitation,
         at least 5 minutes apart (429 INVITATION_RESEND_LIMITED with Retry-After). Replays with the
-        same Idempotency-Key replay the original 200 exactly and send nothing.
+        same Idempotency-Key replay the original 200 exactly and send nothing. An invitation whose
+        origin is PLATFORM_BOOTSTRAP is never reissued by a tenant administrator (409
+        TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE; MVP-014); it can still be revoked.
       tags: [identity]
       parameters:
         - $ref: "#/components/parameters/InvitationId"
@@ -1097,7 +1267,9 @@ components:
         already has a different region; carries no params), or INVITATION_ALREADY_PENDING /
         INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is
         consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being
-        accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params).
+        accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params),
+        or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator
+        or an open tenant-admin invitation; no params, and which of the two is not disclosed).
       content:
         application/problem+json:
           schema:
@@ -1107,7 +1279,9 @@ components:
         LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND,
         COST_CENTER_NOT_FOUND or INVITATION_NOT_FOUND - the referenced resource does
         not exist in the caller's tenant. Missing and foreign-tenant resources are
-        indistinguishable.
+        indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is
+        malformed, unknown or not active; the cases are indistinguishable and the ID is never
+        echoed.
       content:
         application/problem+json:
           schema:
@@ -1116,7 +1290,8 @@ components:
       description: >-
         INVITATION_RATE_LIMITED (the tenant's invitation quota is used up),
         INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or
-        RATE_LIMITED (too many anonymous requests from one client). No params.
+        RATE_LIMITED (too many anonymous requests from one client, or too many bootstrap
+        invitations created by one platform administrator). No params.
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"
@@ -1165,6 +1340,16 @@ components:
         minLength: 16
         maxLength: 128
         pattern: "^[A-Za-z0-9._:-]{16,128}$"
+    OrganizationId:
+      name: organizationId
+      in: path
+      required: true
+      description: >-
+        The target organization (its ID is the tenant ID). Taken only from the path; never from
+        the caller's tenant claim. Malformed, missing and non-active IDs give the same 404
+        ORGANIZATION_NOT_FOUND.
+      schema:
+        type: string
     InvitationId:
       name: invitationId
       in: path
@@ -1718,6 +1903,50 @@ components:
           type: string
           enum: [fr, en]
           description: Language of the invitation email and acceptance page.
+    InvitationOrigin:
+      type: string
+      description: >-
+        Who created the invitation: TENANT_ADMIN (a tenant administrator, MVP-010) or
+        PLATFORM_BOOTSTRAP (a platform administrator inviting the organization's first tenant
+        administrator, MVP-014). Immutable.
+      enum: [TENANT_ADMIN, PLATFORM_BOOTSTRAP]
+    CreateTenantAdminBootstrap:
+      type: object
+      additionalProperties: false
+      description: >-
+        The first tenant administrator's address and invitation language. The role is fixed by the
+        operation; role, tenantId and any other property are rejected (UNKNOWN_PROPERTY).
+      required: [email, locale]
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 3
+          maxLength: 254
+          description: >-
+            Invitee address, validated and normalized exactly like CreateInvitation. Confidential:
+            never echoed in errors and never returned.
+        locale:
+          type: string
+          enum: [fr, en]
+          description: Language of the invitation email and acceptance page.
+    TenantAdminBootstrap:
+      type: object
+      description: >-
+        Bootstrap state of one organization. Never contains addresses, memberships,
+        tenant-created invitations, actors or identity-provider state.
+      required: [available, invitation]
+      properties:
+        available:
+          type: boolean
+          description: >-
+            True only when no tenant-admin membership and no open tenant-admin invitation of any
+            origin exists, so a bootstrap invitation could be created now.
+        invitation:
+          description: The open PLATFORM_BOOTSTRAP invitation, if any.
+          oneOf:
+            - $ref: "#/components/schemas/InvitationReceipt"
+            - type: "null"
     InvitationReceipt:
       type: object
       description: >-
@@ -1750,7 +1979,7 @@ components:
         address; never a token, token hash, identity subject or actor.
       required:
         [id, email, role, locale, status, deliveryState, expiresAt, createdAt, acceptedAt,
-         revokedAt, resendsRemaining]
+         revokedAt, resendsRemaining, origin]
       properties:
         id:
           type: string
@@ -1782,6 +2011,8 @@ components:
           type: integer
           minimum: 0
           maximum: 3
+        origin:
+          $ref: "#/components/schemas/InvitationOrigin"
     InvitationPage:
       type: object
       required: [data]
@@ -1899,6 +2130,8 @@ components:
         - INVITATION_CANNOT_BE_ACCEPTED
         - INVITATION_ACCEPTANCE_IN_PROGRESS
         - IDENTITY_PROVIDER_UNAVAILABLE
+        - ORGANIZATION_NOT_FOUND
+        - TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE
         - RATE_LIMITED
         - MFA_REQUIRED
         - INTERNAL_ERROR
