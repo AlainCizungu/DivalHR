@@ -38,6 +38,8 @@
       <Class name="com.divalhr.core.identity.application.InvitationQueryService"/>
       <Class name="com.divalhr.core.identity.application.PublicInvitationService"/>
       <Class name="com.divalhr.core.identity.application.InvitationAcceptance"/>
+      <Class name="com.divalhr.core.identity.application.TenantAdminBootstrapService"/>
+      <Class name="com.divalhr.core.identity.api.InvitationController"/>
       <Class name="com.divalhr.core.identity.application.InvitationDelivery"/>
       <Class name="com.divalhr.core.identity.application.InvitationEvents"/>
       <Class name="com.divalhr.core.identity.application.InvitationExpiry"/>

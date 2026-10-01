@@ -25,7 +25,8 @@ import org.springframework.context.annotation.Import;
       "divalhr.mail.from=no-reply@divalhr.test",
       "divalhr.mail.starttls=false",
       "divalhr.rate-limit.per-client-requests=1000",
-      "divalhr.rate-limit.global-requests=100000"
+      "divalhr.rate-limit.global-requests=100000",
+      "divalhr.tenant-administration.lock-timeout=3s"
     })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})

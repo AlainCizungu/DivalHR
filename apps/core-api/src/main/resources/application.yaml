@@ -93,6 +93,11 @@ divalhr:
     email-lookup-key: ${DIVALHR_EMAIL_LOOKUP_KEY:}
     jobs:
       enabled: ${DIVALHR_INVITATION_JOBS_ENABLED:true}
+  # MVP-014: the shared organization lock of every tenant-admin creation path, and the bootstrap
+  # limit per platform administrator (rolling hour, across organizations).
+  tenant-administration:
+    lock-timeout: ${DIVALHR_TENANT_ADMIN_LOCK_TIMEOUT:5s}
+    bootstrap-per-actor-per-hour: ${DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR:5}
   identity-provider:
     admin-base-url: ${DIVALHR_KEYCLOAK_ADMIN_URL:http://localhost:8180}
     realm: ${DIVALHR_KEYCLOAK_REALM:divalhr-dev}

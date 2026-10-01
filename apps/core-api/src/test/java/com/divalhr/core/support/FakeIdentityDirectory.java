@@ -50,6 +50,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   private final List<UUID> credentialSetups = new CopyOnWriteArrayList<>();
   private final Map<UUID, TenantRole> credentialSetupRoles = new ConcurrentHashMap<>();
   private final List<UUID> compensations = new CopyOnWriteArrayList<>();
+  private final List<UUID> provisionCalls = new CopyOnWriteArrayList<>();
   private final AtomicReference<Mode> mode = new AtomicReference<>(Mode.UP);
   private final AtomicReference<Runnable> beforeProvision = new AtomicReference<>(() -> {});
 
@@ -60,6 +61,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
     credentialSetups.clear();
     credentialSetupRoles.clear();
     compensations.clear();
+    provisionCalls.clear();
     mode.set(Mode.UP);
     beforeProvision.set(() -> {});
   }
@@ -110,6 +112,16 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   }
 
   /**
+   * Invitations for which the identity provider was asked to provision (MVP-014: proves that a
+   * superseded bootstrap never reaches the provider).
+   *
+   * @return invitation ids, in call order
+   */
+  public List<UUID> provisionCalls() {
+    return List.copyOf(provisionCalls);
+  }
+
+  /**
    * Invitations compensated.
    *
    * @return invitation ids
@@ -120,6 +132,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
 
   @Override
   public ProvisioningResult provision(ProvisioningRequest request) {
+    provisionCalls.add(request.invitationId());
     beforeProvision.get().run();
     if (mode.get() == Mode.DOWN) {
       throw new IdentityProviderUnavailableException("fake_down");

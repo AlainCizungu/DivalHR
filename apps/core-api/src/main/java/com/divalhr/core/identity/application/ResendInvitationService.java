@@ -3,6 +3,7 @@ package com.divalhr.core.identity.application;
 import com.divalhr.core.identity.api.InvitationReceiptResponse;
 import com.divalhr.core.identity.domain.DeliveryState;
 import com.divalhr.core.identity.domain.Invitation;
+import com.divalhr.core.identity.domain.InvitationOrigin;
 import com.divalhr.core.identity.domain.InvitationState;
 import com.divalhr.core.identity.domain.InvitationToken;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
@@ -111,11 +112,20 @@ public class ResendInvitationService {
               return new IdempotentOperation.Completed<>(
                   CreateInvitationService.receipt(reissued.invitation()), id, Outcome.UPDATED);
             });
-    Reissued reissued = sendAfterCommit.get();
-    if (!result.replayed() && reissued != null) {
+    deliverAfterCommit(result.replayed(), sendAfterCommit.get());
+    return result;
+  }
+
+  /**
+   * Sends the email of a committed, non-replayed reissue.
+   *
+   * @param replayed whether the result was replayed
+   * @param reissued the committed reissue, or null
+   */
+  void deliverAfterCommit(boolean replayed, Reissued reissued) {
+    if (!replayed && reissued != null) {
       delivery.deliver(reissued.invitation(), reissued.token(), reissued.organization());
     }
-    return result;
   }
 
   private Reissued reissueInTransaction(
@@ -132,6 +142,35 @@ public class ResendInvitationService {
     if (current.state() != InvitationState.PENDING || !current.expiresAt().isAfter(now)) {
       throw new ApiException(ErrorCode.INVITATION_NOT_PENDING, Map.of());
     }
+    if (current.origin() == InvitationOrigin.PLATFORM_BOOTSTRAP) {
+      // MVP-014: the organization has a tenant administrator (the caller), so the bootstrap can no
+      // longer succeed; tenant administrators may revoke it but never reissue it.
+      throw new ApiException(ErrorCode.TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE, Map.of());
+    }
+    return reissueLocked(tenant, current, actorSubject, organization, now, correlationId);
+  }
+
+  /**
+   * Applies the MVP-010 reissue limits to a locked, pending invitation and reissues it with its
+   * audit record and outbox event (shared with the MVP-014 bootstrap resend). The address never
+   * changes.
+   *
+   * @param tenant the invitation's tenant
+   * @param current the locked invitation, PENDING and not past expiry
+   * @param actorSubject verified subject
+   * @param organization the inviting organization
+   * @param now current time
+   * @param correlationId correlation ID
+   * @return the reissue awaiting its after-commit email
+   */
+  Reissued reissueLocked(
+      TenantId tenant,
+      Invitation current,
+      String actorSubject,
+      OrganizationSummary organization,
+      Instant now,
+      String correlationId) {
+    UUID id = current.id();
     if (current.resendsRemaining() == 0) {
       throw new RateLimitedException(
           ErrorCode.INVITATION_RESEND_LIMITED,
@@ -161,11 +200,18 @@ public class ResendInvitationService {
             DeliveryState.QUEUED,
             null,
             null,
-            current.createdAt());
+            current.createdAt(),
+            current.origin());
     events.reissued(reissued, actorSubject, correlationId);
     return new Reissued(reissued, token, organization);
   }
 
-  private record Reissued(
-      Invitation invitation, InvitationToken token, OrganizationSummary organization) {}
+  /**
+   * A committed reissue awaiting its after-commit email.
+   *
+   * @param invitation the reissued invitation
+   * @param token its in-memory token
+   * @param organization the inviting organization
+   */
+  record Reissued(Invitation invitation, InvitationToken token, OrganizationSummary organization) {}
 }

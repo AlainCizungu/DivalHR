@@ -3,6 +3,7 @@ package com.divalhr.core.tenant.application;
 import com.divalhr.core.platform.tenancy.OrganizationDirectory;
 import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.tenant.internal.JdbcOrganizationRepository;
+import java.time.Duration;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -24,5 +25,11 @@ public class OrganizationDirectoryAdapter implements OrganizationDirectory {
   @Override
   public Optional<OrganizationSummary> find(TenantId tenant) {
     return organizations.summary(tenant);
+  }
+
+  @Override
+  public Optional<OrganizationSummary> lockForTenantAdministration(
+      TenantId tenant, Duration timeout) {
+    return organizations.lockActiveForTenantAdministration(tenant, timeout);
   }
 }

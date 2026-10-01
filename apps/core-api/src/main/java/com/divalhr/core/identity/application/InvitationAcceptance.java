@@ -6,7 +6,9 @@ import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningReque
 import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningResult;
 import com.divalhr.core.identity.domain.CredentialSetupState;
 import com.divalhr.core.identity.domain.Invitation;
+import com.divalhr.core.identity.domain.InvitationOrigin;
 import com.divalhr.core.identity.domain.InvitationState;
+import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository.AcceptanceRow;
 import com.divalhr.core.identity.internal.JdbcMembershipRepository;
@@ -45,6 +47,15 @@ import org.springframework.transaction.support.TransactionTemplate;
  * takes it over and repeats steps 2 and 3, or compensates and expires it when the link has expired
  * meanwhile. The email address is marked verified by the provider adapter only because this flow
  * starts from possession of the single-use token sent to that address.
+ *
+ * <p>MVP-014 (architect decision on #38, A1 and A2): a {@code tenant-admin} membership is inserted
+ * only under the organization's tenant-administration lock ({@link TenantAdministrationLock}). A
+ * {@code PLATFORM_BOOTSTRAP} invitation must still be the organization's first administrator: under
+ * that lock, immediately before provisioning and again before the membership is inserted, it checks
+ * that no other tenant-admin membership exists. If one does, the identity provider is not called
+ * (or the identity it just created is compensated), no membership is created, the invitation ends
+ * as REVOKED by {@code system:bootstrap-superseded} with an audit record, and the invitee gets the
+ * generic {@code INVITATION_INVALID}.
  */
 @Component
 public class InvitationAcceptance {
@@ -57,6 +68,9 @@ public class InvitationAcceptance {
    * invalid_state).
    */
   public static final String CREDENTIAL_METRIC = "divalhr.invitation.credential_setup";
+
+  /** Bootstrap acceptances superseded by another tenant administrator (MVP-014). */
+  public static final String SUPERSEDED_METRIC = "divalhr.invitation.bootstrap_superseded";
 
   /** Compensations refused by the identity provider (Issue #31). */
   public static final String COMPENSATION_METRIC = "divalhr.invitation.compensation_refused";
@@ -72,6 +86,7 @@ public class InvitationAcceptance {
   private final TransactionTemplate transactions;
   private final InvitationProperties properties;
   private final MeterRegistry registry;
+  private final TenantAdministrationLock administration;
   private final Clock clock;
 
   /**
@@ -86,6 +101,7 @@ public class InvitationAcceptance {
    * @param transactions transaction template
    * @param properties settings
    * @param registry metrics
+   * @param administration the shared tenant-administration lock (MVP-014)
    */
   public InvitationAcceptance(
       JdbcInvitationRepository invitations,
@@ -96,7 +112,8 @@ public class InvitationAcceptance {
       IdentityDirectory directory,
       TransactionTemplate transactions,
       InvitationProperties properties,
-      MeterRegistry registry) {
+      MeterRegistry registry,
+      TenantAdministrationLock administration) {
     this.invitations = invitations;
     this.memberships = memberships;
     this.lookups = lookups;
@@ -106,6 +123,7 @@ public class InvitationAcceptance {
     this.transactions = transactions;
     this.properties = properties;
     this.registry = registry;
+    this.administration = administration;
     this.clock = Clock.systemUTC();
   }
 
@@ -188,6 +206,9 @@ public class InvitationAcceptance {
   }
 
   private void provisionAndComplete(Invitation invitation, UUID owner, String correlationId) {
+    if (bootstrap(invitation) && supersededBeforeProvisioning(invitation, owner, correlationId)) {
+      throw new ApiException(ErrorCode.INVITATION_INVALID, Map.of());
+    }
     ProvisioningResult result;
     try {
       result =
@@ -208,15 +229,23 @@ public class InvitationAcceptance {
     }
     String subject = ((Provisioned) result).subject();
     UUID membershipId = UUID.randomUUID();
-    Boolean completed;
+    Completion completed;
     try {
       completed =
           transactions.execute(
               status -> {
+                if (invitation.role() == TenantRole.TENANT_ADMIN) {
+                  // Lock order step 1 before the invitation row (step 3) and the membership.
+                  lockOrganization(invitation);
+                }
                 if (invitations.lockOwnedAcceptance(invitation.id(), owner).isEmpty()) {
-                  return false;
+                  return Completion.LEASE_LOST;
                 }
                 Instant now = now();
+                if (bootstrap(invitation) && anotherAdministrator(invitation)) {
+                  supersede(invitation, owner, now, correlationId);
+                  return Completion.SUPERSEDED;
+                }
                 memberships.insert(
                     invitation.tenant(),
                     membershipId,
@@ -229,7 +258,7 @@ public class InvitationAcceptance {
                   throw new IllegalStateException("lease lost during completion");
                 }
                 events.accepted(invitation, subject, membershipId, correlationId);
-                return true;
+                return Completion.COMPLETED;
               });
     } catch (DataIntegrityViolationException conflicting) {
       // The subject or address already has a membership: undo only what this invitation created.
@@ -244,7 +273,20 @@ public class InvitationAcceptance {
       deny(invitation, owner, correlationId);
       throw new ApiException(ErrorCode.INVITATION_CANNOT_BE_ACCEPTED, Map.of());
     }
-    if (!Boolean.TRUE.equals(completed)) {
+    if (completed == Completion.SUPERSEDED) {
+      // The identity was created just before another administrator appeared: remove it (it has no
+      // credential yet). A refusal or an unreachable provider is alerted; nothing retries it.
+      try {
+        compensate(invitation.id());
+      } catch (RuntimeException deferred) {
+        LOG.atError()
+            .addKeyValue("operation", OPERATION)
+            .addKeyValue("invitationId", invitation.id())
+            .log("invitation_bootstrap_compensation_deferred");
+      }
+      throw new ApiException(ErrorCode.INVITATION_INVALID, Map.of());
+    }
+    if (completed != Completion.COMPLETED) {
       throw new ApiException(ErrorCode.INVITATION_ACCEPTANCE_IN_PROGRESS, Map.of());
     }
     LOG.atInfo()
@@ -253,6 +295,66 @@ public class InvitationAcceptance {
         .addKeyValue("outcome", "accepted")
         .log("invitation_accepted");
     requestCredentialSetup(invitation.id(), 0);
+  }
+
+  /** How the completion transaction ended. */
+  private enum Completion {
+    COMPLETED,
+    LEASE_LOST,
+    SUPERSEDED
+  }
+
+  private static boolean bootstrap(Invitation invitation) {
+    return invitation.origin() == InvitationOrigin.PLATFORM_BOOTSTRAP;
+  }
+
+  private void lockOrganization(Invitation invitation) {
+    if (administration.acquire(invitation.tenant()).isEmpty()) {
+      throw new IllegalStateException("invitation organization is not active");
+    }
+  }
+
+  /** Whether another tenant administrator exists (the caller holds the organization lock). */
+  private boolean anotherAdministrator(Invitation invitation) {
+    return memberships.tenantAdminExists(invitation.tenant(), invitation.id());
+  }
+
+  /**
+   * A2, before provisioning: under the organization lock, a bootstrap acceptance that is no longer
+   * the first administrator ends here without calling the identity provider.
+   *
+   * @return true when superseded (the invitation is now REVOKED by the system)
+   */
+  private boolean supersededBeforeProvisioning(
+      Invitation invitation, UUID owner, String correlationId) {
+    Boolean superseded =
+        transactions.execute(
+            status -> {
+              lockOrganization(invitation);
+              if (invitations.lockOwnedAcceptance(invitation.id(), owner).isEmpty()
+                  || !anotherAdministrator(invitation)) {
+                return false;
+              }
+              supersede(invitation, owner, now(), correlationId);
+              return true;
+            });
+    return Boolean.TRUE.equals(superseded);
+  }
+
+  private void supersede(Invitation invitation, UUID owner, Instant now, String correlationId) {
+    if (!invitations.supersedeBootstrap(invitation.id(), owner, now)) {
+      throw new IllegalStateException("bootstrap acceptance could not be superseded");
+    }
+    events.bootstrapSuperseded(invitation, correlationId);
+    Counter.builder(SUPERSEDED_METRIC)
+        .description("Bootstrap acceptances superseded by another tenant administrator")
+        .register(registry)
+        .increment();
+    LOG.atWarn()
+        .addKeyValue("operation", OPERATION)
+        .addKeyValue("invitationId", invitation.id())
+        .addKeyValue("outcome", "bootstrap_superseded")
+        .log("invitation_bootstrap_superseded");
   }
 
   /**

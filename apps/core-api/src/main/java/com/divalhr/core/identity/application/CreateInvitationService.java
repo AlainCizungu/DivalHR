@@ -4,9 +4,11 @@ import com.divalhr.core.identity.api.CreateInvitationRequest;
 import com.divalhr.core.identity.api.InvitationReceiptResponse;
 import com.divalhr.core.identity.domain.DeliveryState;
 import com.divalhr.core.identity.domain.Invitation;
+import com.divalhr.core.identity.domain.InvitationOrigin;
 import com.divalhr.core.identity.domain.InvitationState;
 import com.divalhr.core.identity.domain.InvitationStatus;
 import com.divalhr.core.identity.domain.InvitationToken;
+import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
 import com.divalhr.core.identity.internal.JdbcMembershipRepository;
 import com.divalhr.core.platform.error.ApiException;
@@ -36,6 +38,10 @@ import org.springframework.stereotype.Service;
  * pending" checks, insert with the token's SHA-256, audit and outbox. The receipt has no email
  * address and is replayed exactly (amendment A2). After commit, and only for a new creation, the
  * email is sent once with the in-memory token (amendment A3).
+ *
+ * <p>MVP-014 (A1): a {@code tenant-admin} invitation first takes the organization's
+ * tenant-administration lock ({@link TenantAdministrationLock}), shared with the platform bootstrap
+ * and with tenant-admin acceptances. {@link #insertNew} is the one insertion path for both origins.
  */
 @Service
 public class CreateInvitationService {
@@ -56,6 +62,7 @@ public class CreateInvitationService {
   private final InvitationExpiry expiry;
   private final InvitationDelivery delivery;
   private final InvitationProperties properties;
+  private final TenantAdministrationLock administration;
   private final Clock clock;
 
   /**
@@ -71,6 +78,7 @@ public class CreateInvitationService {
    * @param expiry inline expiry of due invitations
    * @param delivery after-commit email delivery
    * @param properties settings
+   * @param administration the shared tenant-administration lock (MVP-014)
    */
   public CreateInvitationService(
       InvitationValidator validator,
@@ -82,7 +90,8 @@ public class CreateInvitationService {
       InvitationEvents events,
       InvitationExpiry expiry,
       InvitationDelivery delivery,
-      InvitationProperties properties) {
+      InvitationProperties properties,
+      TenantAdministrationLock administration) {
     this.validator = validator;
     this.creates = creates;
     this.organizations = organizations;
@@ -93,6 +102,7 @@ public class CreateInvitationService {
     this.expiry = expiry;
     this.delivery = delivery;
     this.properties = properties;
+    this.administration = administration;
     this.clock = Clock.systemUTC();
   }
 
@@ -133,11 +143,21 @@ public class CreateInvitationService {
               return new IdempotentCreate.Created<>(
                   receipt(pending.invitation()), pending.invitation().id());
             });
-    Pending pending = sendAfterCommit.get();
-    if (!result.replayed() && pending != null) {
+    deliverAfterCommit(result.replayed(), sendAfterCommit.get());
+    return result;
+  }
+
+  /**
+   * Sends the email of a committed, non-replayed creation (amendment A3; architect decision on #38,
+   * A7: only after the invitation, audit and outbox rows committed together).
+   *
+   * @param replayed whether the result was replayed
+   * @param pending the committed creation, or null
+   */
+  void deliverAfterCommit(boolean replayed, Pending pending) {
+    if (!replayed && pending != null) {
       delivery.deliver(pending.invitation(), pending.token(), pending.organization());
     }
-    return result;
   }
 
   private Pending createInTransaction(
@@ -145,10 +165,37 @@ public class CreateInvitationService {
       String actorSubject,
       InvitationValidator.CreateCommand command,
       String correlationId) {
+    // MVP-014 A1: a tenant-admin invitation is created under the shared organization lock.
     OrganizationSummary organization =
-        organizations
-            .find(tenant)
+        (command.role() == TenantRole.TENANT_ADMIN
+                ? administration.acquire(tenant)
+                : organizations.find(tenant))
             .orElseThrow(() -> new ApiException(ErrorCode.TENANT_CONTEXT_MISSING, Map.of()));
+    return insertNew(
+        tenant, actorSubject, command, InvitationOrigin.TENANT_ADMIN, organization, correlationId);
+  }
+
+  /**
+   * Inserts a new invitation with its audit record and outbox event, inside the caller's
+   * transaction (lock order step 2 onwards). Quotas, the "already member" and "already pending"
+   * checks, inline expiry of a due invitation, the insert and the events are shared by both
+   * origins.
+   *
+   * @param tenant target tenant
+   * @param actorSubject verified subject
+   * @param command normalized command
+   * @param origin who creates it
+   * @param organization the inviting organization (already checked or locked by the caller)
+   * @param correlationId correlation ID
+   * @return the new invitation with its in-memory token
+   */
+  Pending insertNew(
+      TenantId tenant,
+      String actorSubject,
+      InvitationValidator.CreateCommand command,
+      InvitationOrigin origin,
+      OrganizationSummary organization,
+      String correlationId) {
     invitations.lockTenant(tenant);
     Instant now = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);
 
@@ -194,7 +241,8 @@ public class CreateInvitationService {
             DeliveryState.QUEUED,
             null,
             null,
-            now);
+            now,
+            origin);
     try {
       invitations.insert(tenant, invitation, lookup, token.sha256(), actorSubject);
     } catch (DuplicateKeyException concurrent) {
@@ -221,6 +269,12 @@ public class CreateInvitationService {
         invitation.createdAt());
   }
 
-  private record Pending(
-      Invitation invitation, InvitationToken token, OrganizationSummary organization) {}
+  /**
+   * A committed creation awaiting its after-commit email.
+   *
+   * @param invitation the invitation
+   * @param token its in-memory token
+   * @param organization the inviting organization
+   */
+  record Pending(Invitation invitation, InvitationToken token, OrganizationSummary organization) {}
 }

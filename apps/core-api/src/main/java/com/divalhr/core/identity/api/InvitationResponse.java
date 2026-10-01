@@ -2,6 +2,7 @@ package com.divalhr.core.identity.api;
 
 import com.divalhr.core.identity.domain.DeliveryState;
 import com.divalhr.core.identity.domain.Invitation;
+import com.divalhr.core.identity.domain.InvitationOrigin;
 import com.divalhr.core.identity.domain.InvitationStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,6 +24,7 @@ import java.util.UUID;
  * @param acceptedAt acceptance time or {@code null}
  * @param revokedAt revocation time or {@code null}
  * @param resendsRemaining reissues still allowed
+ * @param origin who created it (MVP-014)
  */
 @Schema(name = "Invitation")
 public record InvitationResponse(
@@ -36,7 +38,8 @@ public record InvitationResponse(
     Instant createdAt,
     @JsonInclude(JsonInclude.Include.ALWAYS) Instant acceptedAt,
     @JsonInclude(JsonInclude.Include.ALWAYS) Instant revokedAt,
-    int resendsRemaining) {
+    int resendsRemaining,
+    InvitationOrigin origin) {
 
   /**
    * Maps an invitation.
@@ -57,7 +60,8 @@ public record InvitationResponse(
         invitation.createdAt(),
         invitation.acceptedAt(),
         invitation.revokedAt(),
-        invitation.resendsRemaining());
+        invitation.resendsRemaining(),
+        invitation.origin());
   }
 
   @Override

@@ -47,6 +47,29 @@ public class JdbcMembershipRepository {
   }
 
   /**
+   * Whether the tenant has a tenant-admin membership other than one created by the given invitation
+   * (MVP-014 bootstrap rule; the caller holds the organization lock).
+   *
+   * @param tenant target tenant
+   * @param excludingSourceInvitation an invitation whose own membership does not count, or null
+   * @return true when another tenant administrator exists
+   */
+  public boolean tenantAdminExists(TenantId tenant, UUID excludingSourceInvitation) {
+    return jdbc.sql(
+            """
+            SELECT 1 FROM identity.tenant_membership
+            WHERE tenant_id = :tenant AND role = 'tenant-admin'
+              AND source_invitation_id IS DISTINCT FROM CAST(:excluded AS uuid)
+            LIMIT 1
+            """)
+        .param("tenant", tenant.value())
+        .param("excluded", excludingSourceInvitation)
+        .query(Integer.class)
+        .optional()
+        .isPresent();
+  }
+
+  /**
    * Inserts the membership created by an accepted invitation.
    *
    * @param tenant the invitation's tenant
