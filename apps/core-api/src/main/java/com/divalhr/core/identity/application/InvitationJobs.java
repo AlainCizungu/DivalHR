@@ -169,8 +169,7 @@ public class InvitationJobs {
     int count = due == null ? 0 : due.size();
     if (due != null) {
       for (CredentialSetupRow row : due) {
-        acceptance.requestCredentialSetup(
-            row.invitationId(), row.subject(), row.role(), row.attempts());
+        acceptance.requestCredentialSetup(row.invitationId(), row.role(), row.attempts());
       }
     }
     return report("credential_setup", count);

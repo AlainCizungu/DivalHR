@@ -79,10 +79,7 @@ class KeycloakMfaContainerTest {
                 stack.baseUrl(),
                 REALM,
                 null,
-                KeycloakProvisioningContainerTest.PROVISIONER_SECRET,
-                null,
-                ScriptedBrowser.REDIRECT_URI,
-                null,
+                KeycloakTestStack.PROVISIONER_SECRET,
                 Duration.ofSeconds(5),
                 Duration.ofSeconds(20)),
             "development",
@@ -248,7 +245,7 @@ class KeycloakMfaContainerTest {
     String subject = provision(email, TenantRole.EMPLOYEE);
     assertThat(texts(admin("GET", "/users/" + subject, null).path("requiredActions")))
         .containsExactly("UPDATE_PASSWORD");
-    directory.requestCredentialSetup(subject, TenantRole.EMPLOYEE);
+    directory.requestCredentialSetup(INVITATIONS.get(subject), TenantRole.EMPLOYEE);
     ScriptedBrowser browser = browser();
     AtomicReference<String> secret = new AtomicReference<>();
     Outcome setup =
@@ -398,7 +395,7 @@ class KeycloakMfaContainerTest {
     String subject = provision(email, TenantRole.TENANT_ADMIN);
     assertThat(texts(admin("GET", "/users/" + subject, null).path("requiredActions")))
         .containsExactlyInAnyOrder("UPDATE_PASSWORD", "CONFIGURE_TOTP");
-    directory.requestCredentialSetup(subject, TenantRole.TENANT_ADMIN);
+    directory.requestCredentialSetup(INVITATIONS.get(subject), TenantRole.TENANT_ADMIN);
     ScriptedBrowser browser = browser();
     AtomicReference<String> secret = new AtomicReference<>();
     Outcome setup =
@@ -413,16 +410,20 @@ class KeycloakMfaContainerTest {
     return provision(email, role, InvitationLocale.EN);
   }
 
+  /** Invitation of each provisioned subject (setup is keyed by invitation, Issue #31). */
+  private static final Map<String, UUID> INVITATIONS =
+      new java.util.concurrent.ConcurrentHashMap<>();
+
   private static String provision(String email, TenantRole role, InvitationLocale locale) {
-    return ((Provisioned)
-            directory.provision(
-                new ProvisioningRequest(
-                    UUID.randomUUID(),
-                    TENANT,
-                    EmailAddress.parse(email).orElseThrow(),
-                    role,
-                    locale)))
-        .subject();
+    UUID invitation = UUID.randomUUID();
+    String subject =
+        ((Provisioned)
+                directory.provision(
+                    new ProvisioningRequest(
+                        invitation, TENANT, EmailAddress.parse(email).orElseThrow(), role, locale)))
+            .subject();
+    INVITATIONS.put(subject, invitation);
+    return subject;
   }
 
   /** Clears the setup actions and sets a password, as a realm administrator could. */

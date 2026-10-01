@@ -10,12 +10,21 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
 /**
- * A throwaway Keycloak 26.7 importing the committed development realm, with a Mailpit capture
- * attached as the realm's SMTP server. Test-only credentials.
+ * A throwaway Keycloak 26.7 with the {@code divalhr-provisioning} extension (Issue #31), importing
+ * the committed development realm, with a Mailpit capture attached as the realm's SMTP server.
+ * Test-only credentials.
  */
 final class KeycloakTestStack implements AutoCloseable {
 
   static final String REALM = "divalhr-dev";
+
+  /** Same pinned image as infrastructure/docker/keycloak/Dockerfile. */
+  static final String KEYCLOAK_IMAGE =
+      "quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c";
+
+  /** Development provisioner secret of the committed realm (published, dev-only). */
+  static final String PROVISIONER_SECRET = "dev-only-provisioner-secret-2026";
+
   static final String ADMIN = "test-kc-admin";
   static final String ADMIN_PASSWORD = "test-only-kc-admin-password";
 
@@ -50,10 +59,8 @@ final class KeycloakTestStack implements AutoCloseable {
         Path.of(System.getProperty("divalhr.repoRoot", "../.."))
             .resolve("infrastructure/docker/keycloak/realm-divalhr-dev.json");
     GenericContainer<?> keycloak =
-        new GenericContainer<>(KeycloakProvisioningContainerTest.KEYCLOAK_IMAGE)
+        keycloak(extensionJar())
             .withNetwork(network)
-            .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN)
-            .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
             .withCopyFileToContainer(
                 MountableFile.forHostPath(realm),
                 "/opt/keycloak/data/import/realm-divalhr-dev.json")
@@ -83,6 +90,47 @@ final class KeycloakTestStack implements AutoCloseable {
     return stack;
   }
 
+  /**
+   * The extension JAR built by {@code apps/keycloak-provisioning} (wired by the Gradle build).
+   *
+   * @return path
+   */
+  static Path extensionJar() {
+    String jar = System.getProperty("divalhr.provisioningJar");
+    if (jar == null) {
+      throw new IllegalStateException("divalhr.provisioningJar is not set (run through Gradle)");
+    }
+    return Path.of(jar);
+  }
+
+  /**
+   * A Keycloak container with the given extension JAR and the extension options of the Compose
+   * stack, as in infrastructure/docker/keycloak/Dockerfile.
+   *
+   * @param jar extension JAR
+   * @return the container, not started
+   */
+  static GenericContainer<?> keycloak(Path jar) {
+    return new GenericContainer<>(KEYCLOAK_IMAGE)
+        .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN)
+        .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
+        .withEnv("KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__REALMS", REALM)
+        .withEnv(
+            "KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__WEB_REDIRECT_URI",
+            "http://localhost:5173/auth/callback")
+        .withCopyFileToContainer(
+            MountableFile.forHostPath(jar), "/opt/keycloak/providers/divalhr-provisioning.jar");
+  }
+
+  /**
+   * Keycloak's log so far (for secrecy assertions).
+   *
+   * @return log text
+   */
+  String keycloakLogs() {
+    return keycloak.getLogs();
+  }
+
   private void kcadm(String... arguments) throws Exception {
     String[] command = new String[arguments.length + 1];
     command[0] = "/opt/keycloak/bin/kcadm.sh";
@@ -108,6 +156,24 @@ final class KeycloakTestStack implements AutoCloseable {
    */
   String mailpitUrl() {
     return "http://" + mailpit.getHost() + ":" + mailpit.getMappedPort(8025);
+  }
+
+  /**
+   * Mailpit SMTP host reachable from the test.
+   *
+   * @return host
+   */
+  String mailpitSmtpHost() {
+    return mailpit.getHost();
+  }
+
+  /**
+   * Mailpit SMTP port reachable from the test.
+   *
+   * @return port
+   */
+  int mailpitSmtpPort() {
+    return mailpit.getMappedPort(1025);
   }
 
   /**

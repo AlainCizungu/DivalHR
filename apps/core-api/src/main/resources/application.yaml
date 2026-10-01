@@ -99,8 +99,6 @@ divalhr:
     client-id: ${DIVALHR_KEYCLOAK_PROVISIONER_CLIENT_ID:divalhr-core-provisioner}
     # Required (fail closed); dev-only- values are rejected outside development.
     client-secret: ${DIVALHR_KEYCLOAK_PROVISIONER_SECRET:}
-    web-client-id: divalhr-web
-    web-redirect-uri: ${DIVALHR_WEB_BASE_URL:http://localhost:5173}/auth/callback
   mail:
     host: ${DIVALHR_MAIL_HOST:}
     port: ${DIVALHR_MAIL_PORT:587}

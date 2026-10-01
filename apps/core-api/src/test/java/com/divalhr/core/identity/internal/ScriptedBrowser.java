@@ -13,6 +13,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -180,7 +181,9 @@ final class ScriptedBrowser {
           String secret = fields.get("totpSecret");
           enrolledSecret.accept(secret);
           fields.put("totp", totp(secret, System.currentTimeMillis() / 1000));
-          fields.put("userLabel", "Test authenticator");
+          // Unique: Keycloak refuses a second authenticator with the same device name.
+          fields.put(
+              "userLabel", "Test authenticator " + UUID.randomUUID().toString().substring(0, 8));
           fields.put("mode", "manual");
         }
         case "kc-passwd-update-form" -> {

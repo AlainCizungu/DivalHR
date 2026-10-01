@@ -26,7 +26,13 @@ public class FakeIdentityDirectory implements IdentityDirectory {
     /** Every call fails as unreachable. */
     DOWN,
     /** Provisioning works but the credential-setup request fails. */
-    CREDENTIAL_SETUP_DOWN
+    CREDENTIAL_SETUP_DOWN,
+    /** The provider reports an invalid setup state (Issue #31, A1). */
+    CREDENTIAL_SETUP_INVALID,
+    /** The provider reports that setup is already complete. */
+    CREDENTIAL_SETUP_COMPLETED,
+    /** The provider refuses compensation (identity not pristine). */
+    COMPENSATION_REFUSED
   }
 
   /** A provisioned identity. */
@@ -36,8 +42,8 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   private final Map<String, Identity> byAddress = new ConcurrentHashMap<>();
   private final Object provisioning = new Object();
   private final Set<String> preexisting = ConcurrentHashMap.newKeySet();
-  private final List<String> credentialSetups = new CopyOnWriteArrayList<>();
-  private final Map<String, TenantRole> credentialSetupRoles = new ConcurrentHashMap<>();
+  private final List<UUID> credentialSetups = new CopyOnWriteArrayList<>();
+  private final Map<UUID, TenantRole> credentialSetupRoles = new ConcurrentHashMap<>();
   private final List<UUID> compensations = new CopyOnWriteArrayList<>();
   private final AtomicReference<Mode> mode = new AtomicReference<>(Mode.UP);
   private final AtomicReference<Runnable> beforeProvision = new AtomicReference<>(() -> {});
@@ -90,11 +96,11 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   }
 
   /**
-   * Subjects for which a credential setup was requested.
+   * Invitations for which a credential setup was requested (Issue #31: keyed by invitation).
    *
-   * @return subjects
+   * @return invitation ids
    */
-  public List<String> credentialSetups() {
+  public List<UUID> credentialSetups() {
     return List.copyOf(credentialSetups);
   }
 
@@ -137,29 +143,39 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   }
 
   @Override
-  public void requestCredentialSetup(String subject, TenantRole role) {
-    if (mode.get() != Mode.UP) {
+  public CredentialSetupOutcome requestCredentialSetup(UUID invitationId, TenantRole role) {
+    Mode current = mode.get();
+    if (current == Mode.DOWN || current == Mode.CREDENTIAL_SETUP_DOWN) {
       throw new IdentityProviderUnavailableException("fake_down");
     }
-    credentialSetups.add(subject);
-    credentialSetupRoles.put(subject, role);
+    credentialSetups.add(invitationId);
+    credentialSetupRoles.put(invitationId, role);
+    return switch (current) {
+      case CREDENTIAL_SETUP_INVALID -> CredentialSetupOutcome.STATE_INVALID;
+      case CREDENTIAL_SETUP_COMPLETED -> CredentialSetupOutcome.COMPLETED;
+      default -> CredentialSetupOutcome.EMAIL_SENT;
+    };
   }
 
   /**
-   * The role passed with each credential-setup request, by subject.
+   * The role passed with each credential-setup request, by invitation.
    *
    * @return copy of the roles
    */
-  public Map<String, TenantRole> credentialSetupRoles() {
+  public Map<UUID, TenantRole> credentialSetupRoles() {
     return Map.copyOf(credentialSetupRoles);
   }
 
   @Override
-  public void compensate(UUID invitationId) {
+  public CompensationOutcome compensate(UUID invitationId) {
     if (mode.get() == Mode.DOWN) {
       throw new IdentityProviderUnavailableException("fake_down");
     }
     compensations.add(invitationId);
+    if (mode.get() == Mode.COMPENSATION_REFUSED) {
+      return CompensationOutcome.REFUSED;
+    }
     byAddress.values().removeIf(identity -> identity.invitationId().equals(invitationId));
+    return CompensationOutcome.DELETED_OR_ABSENT;
   }
 }
