@@ -34,7 +34,7 @@ dependencies {
     compileOnly("org.keycloak:keycloak-core:$keycloakVersion")
     compileOnly("org.keycloak:keycloak-common:$keycloakVersion")
     // The versions Keycloak 26.7.4 ships in lib/lib.
-    compileOnly("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
+    compileOnly("jakarta.ws.rs:jakarta.ws.rs-api:4.0.0")
     compileOnly("org.jboss.logging:jboss-logging:3.6.2.Final")
     compileOnly("com.fasterxml.jackson.core:jackson-databind:2.21.5")
 
