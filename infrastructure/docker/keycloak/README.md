@@ -249,10 +249,14 @@ KEYCLOAK_URL=… KEYCLOAK_REALM=… KEYCLOAK_ADMIN_TOKEN=… PREFLIGHT_DB_TRANSP
 ```
 
 It prints counts per tenant and category and membership IDs, never addresses, usernames or
-subjects, and exits non-zero on `MISSING_MEMBERSHIP`, `TENANT_MISMATCH` or `ROLE_MISMATCH`. For a
-missing membership, find the users in Keycloak by tenant and role and use a supported path (MVP-014
-bootstrap for a first administrator, after removing a conflicting hand-created identity; an MVP-010
-invitation otherwise). Emergency removal of a person: disable the user and sign out their sessions
+subjects, and exits non-zero when an enabled user with a tenant role is in `MISSING_MEMBERSHIP`,
+`TENANT_MISMATCH`, `ROLE_MISMATCH` or `MISSING_TENANT_CLAIM` (disabled users are informational).
+For a missing membership, find the users in Keycloak by tenant and role and use a supported path
+(MVP-014 bootstrap for a first administrator, after removing a conflicting hand-created identity;
+an MVP-010 invitation otherwise). For `MISSING_TENANT_CLAIM`, list the enabled users holding
+`employee` or `tenant-admin` (directly or through the `divalhr-role-*` groups) whose `tenant_id`
+attribute is missing or not a UUID; set it to their organization and give them a membership, or
+remove the tenant role. The preflight never prints which users these are. Emergency removal of a person: disable the user and sign out their sessions
 here; do not delete membership rows. The development realm's seed users have fixed IDs: recreate
 old local volumes (`down -v`) after updating.
 

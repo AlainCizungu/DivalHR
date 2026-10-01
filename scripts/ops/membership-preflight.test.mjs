@@ -48,7 +48,8 @@ test('every category is detected and only blocking ones fail the preflight', () 
   assert.ok(lines.includes(`PREFLIGHT ROLE_MISMATCH tenant=${B} count=1`));
   assert.ok(lines.includes(`MEMBERSHIP ORPHAN_MEMBERSHIP id=${id(5)}`));
   assert.ok(lines.includes(`MEMBERSHIP TENANT_MISMATCH id=${id(2)}`));
-  assert.equal(lines.at(-1), 'RESULT FAIL blocking=3');
+  assert.ok(lines.includes('PREFLIGHT MISSING_TENANT_CLAIM tenant=none count=1'));
+  assert.equal(lines.at(-1), 'RESULT FAIL blocking=4');
 });
 
 test('a consistent realm passes', () => {
@@ -79,4 +80,59 @@ test('disabled users never block the rollout', () => {
     'r',
   );
   assert.equal(exitCode, 0);
+});
+
+// PR #41 review (R1): an enabled tenant-role user without a valid tenant claim would be locked out
+// (TENANT_CONTEXT_MISSING) and must fail the preflight; disabled equivalents stay informational.
+const PRIVATE = ['kc-r1-user', 'r1.user@example.cd', 'r1-username'];
+const r1 = (overrides) => ({
+  id: 'kc-r1-user',
+  username: 'r1-username',
+  email: 'r1.user@example.cd',
+  enabled: true,
+  roles: ['tenant-admin'],
+  ...overrides,
+});
+
+test('an enabled tenant-role user with a missing tenant claim fails the preflight', () => {
+  const { lines, exitCode } = report(evaluate([r1({ tenant: null })], []), 'divalhr-dev');
+  assert.equal(exitCode, 1);
+  assert.ok(lines.includes('PREFLIGHT MISSING_TENANT_CLAIM tenant=none count=1'));
+  assert.ok(lines.some((line) => line.startsWith('REMEDIATE MISSING_TENANT_CLAIM tenant=none:')));
+  assert.equal(lines.at(-1), 'RESULT FAIL blocking=1');
+});
+
+test('an enabled tenant-role user with a malformed tenant claim fails the preflight', () => {
+  for (const tenant of ['not-a-uuid', '', '00000000-0000-4000-8000-00000000000Z']) {
+    const { lines, exitCode } = report(
+      evaluate([r1({ tenant, roles: ['employee'] })], []),
+      'divalhr-dev',
+    );
+    assert.equal(exitCode, 1, `tenant claim ${JSON.stringify(tenant)}`);
+    assert.ok(lines.includes('PREFLIGHT MISSING_TENANT_CLAIM tenant=none count=1'));
+  }
+});
+
+test('disabled users without a valid tenant claim stay informational', () => {
+  for (const tenant of [null, 'not-a-uuid']) {
+    const { lines, exitCode } = report(
+      evaluate([r1({ tenant, enabled: false })], []),
+      'divalhr-dev',
+    );
+    assert.equal(exitCode, 0);
+    assert.ok(lines.includes('PREFLIGHT DISABLED_WITHOUT_MEMBERSHIP tenant=none count=1'));
+    assert.ok(!lines.some((line) => line.includes('MISSING_TENANT_CLAIM')));
+    assert.equal(lines.at(-1), 'RESULT PASS blocking=0');
+  }
+});
+
+test('missing-claim output names no subject, username, address or credential', () => {
+  const { lines } = report(
+    evaluate([r1({ tenant: null }), r1({ id: 'kc-r1-other', tenant: 'bad', enabled: false })], []),
+    'divalhr-dev',
+  );
+  const output = lines.join('\n');
+  for (const value of [...PRIVATE, 'kc-r1-other']) assert.ok(!output.includes(value), value);
+  assert.ok(!output.includes('@'));
+  assert.ok(!/password|token|secret|bearer/iu.test(output.replace(/\b[A-Z_]{4,}\b/gu, '')));
 });

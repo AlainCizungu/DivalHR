@@ -9,6 +9,10 @@
 // Credentials and tokens are read from the environment only: never from arguments or files, never
 // written, logged or included in a remediation hint.
 //
+// Blocking (exit 1) for enabled users with a tenant role: MISSING_MEMBERSHIP, TENANT_MISMATCH,
+// ROLE_MISMATCH and MISSING_TENANT_CLAIM (missing or malformed tenant_id). Disabled users and the
+// other categories are informational.
+//
 // Exit code: 0 no blocking discrepancy, 1 blocking discrepancies, 2 the data could not be read.
 //
 // Keycloak (HTTP admin API, GET only):
@@ -28,8 +32,18 @@ import { fileURLToPath } from 'node:url';
 export const TENANT_ROLES = ['tenant-admin', 'employee'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
-/** Categories whose enabled users would lose access when the gate is enabled. */
-export const BLOCKING = new Set(['MISSING_MEMBERSHIP', 'TENANT_MISMATCH', 'ROLE_MISMATCH']);
+/**
+ * Categories whose enabled users would lose tenant access after rollout. An enabled tenant-role
+ * user without a valid tenant claim is blocking too (PR #41 review, R1): the Core answers
+ * TENANT_CONTEXT_MISSING for every tenant operation. Disabled users are reported under DISABLED_*
+ * instead and never block.
+ */
+export const BLOCKING = new Set([
+  'MISSING_MEMBERSHIP',
+  'TENANT_MISMATCH',
+  'ROLE_MISMATCH',
+  'MISSING_TENANT_CLAIM',
+]);
 /** Categories reported with membership IDs (never subjects). */
 const MEMBERSHIP_SIDE = new Set([
   'TENANT_MISMATCH',
@@ -117,6 +131,14 @@ export function report(entries, realm) {
         `with attribute tenant_id=${tenant} and a tenant role; give each a membership through ` +
         'a supported path (MVP-014 bootstrap for a first administrator, MVP-010 invitation ' +
         'otherwise) or remove the role.',
+    );
+  }
+  if (entries.some((e) => e.category === 'MISSING_TENANT_CLAIM')) {
+    lines.push(
+      `REMEDIATE MISSING_TENANT_CLAIM tenant=none: in Keycloak (realm ${realm}), list enabled ` +
+        'users holding employee or tenant-admin (directly or through the divalhr-role-* groups) ' +
+        'whose tenant_id attribute is missing or not a UUID; set it to their organization and ' +
+        'give them a membership through a supported path, or remove the tenant role.',
     );
   }
   const blocking = entries.filter((e) => BLOCKING.has(e.category)).length;
