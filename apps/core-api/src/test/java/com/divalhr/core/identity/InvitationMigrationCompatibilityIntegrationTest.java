@@ -70,7 +70,7 @@ class InvitationMigrationCompatibilityIntegrationTest {
       String before = db.queryForObject(snapshot, String.class);
       String constraintsBefore = db.queryForObject(constraints, String.class);
 
-      migrate(url, null);
+      migrate(url, "8");
       assertThat(
               db.queryForObject(
                   "SELECT max(version::int) FROM flyway_schema_history WHERE success",
@@ -103,7 +103,7 @@ class InvitationMigrationCompatibilityIntegrationTest {
           .isZero();
       assertThat(db.queryForObject(snapshot, String.class)).isEqualTo(before);
       db.update("DELETE FROM flyway_schema_history WHERE version = '8'");
-      migrate(url, null);
+      migrate(url, "8");
       assertThat(db.queryForObject("SELECT to_regclass('identity.invitation')::text", String.class))
           .isEqualTo("identity.invitation");
     } finally {
