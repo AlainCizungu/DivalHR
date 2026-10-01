@@ -65,21 +65,91 @@ only**. The `divalhr-dev` realm therefore sets `"sslRequired": "none"`.
 - Refresh tokens rotate and cannot be reused; no offline access.
 - Login pages in French (default) and English; the web app passes `ui_locales`.
 
-## Invitation provisioning (MVP-010)
+## Invitation provisioning (MVP-010, narrowed by Issue #31)
 
 - Confidential client `divalhr-core-provisioner` (client credentials only, secret
   `dev-only-provisioner-secret-2026` = `DIVALHR_KEYCLOAK_PROVISIONER_SECRET` in `.env.example`).
-  Its service account has `query-users` and `query-groups` only.
-- Fine-grained admin permissions v2 (`adminPermissionsEnabled`): a user policy on the service
-  account grants `view`, `view-members`, `manage-members` and `manage-membership` on exactly two
-  groups, `divalhr-role-employee` (realm role `employee`) and `divalhr-role-tenant-admin` (realm
-  role `tenant-admin`). The provisioner has **no** role-mapping permission: it creates each user
-  directly inside one role group, so it can never grant `platform-admin`.
-- Residual risk: it fully manages members of those two groups (see `docs/SECURITY.md`).
+  It holds **no admin permission**: its service account has only the client role
+  `divalhr-provisioning/provision-invitations`, and an audience mapper adds `divalhr-provisioning`
+  to its tokens. Fine-grained admin permissions are off (`adminPermissionsEnabled: false`).
+- The Core API calls only the extension `divalhr-provisioning`
+  (`/realms/divalhr-dev/divalhr-provisioning/v1/invitations/{invitationId}/identity`), which creates
+  each user directly inside one role group (`divalhr-role-employee` or
+  `divalhr-role-tenant-admin`), sends the setup email and compensates. See `docs/SECURITY.md`,
+  ADR 0006 and `packages/shared-contracts/openapi/keycloak-provisioning.yaml`.
 - Admin-only user-profile attribute `divalhr_invitation_id` links an identity to its invitation.
 - `loginWithEmailAllowed`: invitees sign in with their email address (their username).
 - SMTP goes to the `mailpit` service; open <http://127.0.0.1:8025> to read every email of the
   stack (invitations and password setup). Nothing leaves the machine.
+
+### The extension and the image (Issue #31)
+
+Compose builds `divalhr/keycloak:dev` from `Dockerfile` (repository root as context): the pinned
+Keycloak image plus `apps/keycloak-provisioning`, built with the Core API's Gradle wrapper.
+
+| Option (environment variable) | Meaning |
+|---|---|
+| `KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__REALMS` | Comma-separated realms where the extension answers; empty means nowhere (fail closed) |
+| `KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__WEB_REDIRECT_URI` | Where the setup-email link returns (required when a realm is enabled) |
+| `…__WEB_CLIENT_ID` | Client of the setup-email link (default `divalhr-web`) |
+| `…__ACTION_LIFESPAN_SECONDS` | Validity of the setup-email link (default 86400, at most 7 days) |
+| `…__PROVISIONER_CLIENT_ID` | The only allowed caller (default `divalhr-core-provisioner`) |
+
+Keycloak logs `KC-SERVICES0047 … is implementing the internal SPI realm-restapi-extension`: this
+is expected (ADR 0006). Every extension operation is logged as one `divalhr.provisioning` line
+(operation, outcome and IDs only) and recorded as an admin event.
+
+**Monitoring.** Alert on any `divalhr.provisioning` refusal with status 401 or 403 (a
+configuration fault or an attack), on `error` admin events whose `divalhr.outcome` is `refused`
+with `SETUP_STATE_INVALID`, `IDENTITY_AMBIGUOUS` or `COMPENSATION_REFUSED`, on a sustained rate
+of `outcome=refused_after_race` lines (one alone is a harmless race; `confirmed_after_race` is
+normal under concurrency), on the Core API's
+`invitation_credential_setup_invalid_state` and `invitation_accept_compensation_refused` logs, and
+on **any** Admin API event whose actor is the provisioner client (it has no admin permission, so
+any such event means the configuration drifted).
+
+### Shared environments: rollout (A3)
+
+Each step is verified before the next. Invitations keep working throughout; the window in which the
+provisioner still holds its old broad rights is deliberate and ends at step C.
+
+| Step | Change | Verify |
+|---|---|---|
+| A | Deploy the DivalHR Keycloak image with the extension options; add the client `divalhr-provisioning` with the role `provision-invitations`, grant it to the provisioner's service account, and add the audience mapper to the provisioner client | `pnpm realm:verify:pre-cutover` (prints `MODE pre-cutover … NOT release or sign-off evidence` and `PENDING provisioner-has-no-broad-admin-rights`) |
+| B | Deploy the Core API version that calls the extension | One invitation accepted end to end; admin events from the provisioner show only `divalhr.operation` details |
+| C | Remove the provisioner's `realm-management` roles, any fine-grained admin permission or policy naming it, and any group or composite role that gives it one | `pnpm realm:verify` (**final** mode): every rule passes. The deployment is incomplete until it does |
+
+Pre-cutover mode is never acceptable as release, pilot or sign-off evidence.
+
+**Rollback**, in reverse order, without ever leaving invitations working with broad rights by
+accident:
+
+1. If the Core API must go back to the Admin API version, first re-grant the old rights (a realm
+   administrator, with `kcadm.sh`), then deploy the old Core API. Until both are done, invitations
+   fail closed with `IDENTITY_PROVIDER_UNAVAILABLE` and the reconciler and the durable setup retries
+   resume afterwards.
+2. Only then remove the extension (previous image). With the new Core API, an image without the
+   extension also fails closed; it never restores broad rights.
+3. Run `pnpm realm:verify` again: final mode fails while the old rights exist, as intended.
+
+### Upgrading Keycloak
+
+The extension compiles against exactly one Keycloak release and refuses to start on any other.
+
+1. Change together: the `FROM quay.io/keycloak/keycloak:<version>@sha256:<digest>` line of
+   `Dockerfile`, `keycloakVersion` in `apps/keycloak-provisioning/build.gradle.kts`,
+   `apps/keycloak-provisioning/src/main/resources/META-INF/divalhr-provisioning.properties`, and
+   `KEYCLOAK_IMAGE` in `KeycloakTestStack` (`KeycloakImageConsistencyTest` fails otherwise; a
+   Dependabot bump of the image alone fails CI by design).
+2. Read the release notes and migration guide for changes to: the `realm-restapi-extension` SPI
+   (`RealmResourceProvider`), `AppAuthManager.BearerTokenAuthenticator`,
+   `ExecuteActionsActionToken`, `LoginActionsService.actionTokenProcessor`,
+   `EmailTemplateProvider`, `AdminEvent`/`EventStoreProvider`, `UserProvider`/`GroupProvider`,
+   service accounts and the audience mapper.
+3. Run the full container suite (`KeycloakProvisioningExtensionContainerTest`,
+   `KeycloakProvisioningContainerTest`, `KeycloakMfaContainerTest`) and `scripts/dev/verify-on-host.sh
+   all`. Any warning other than `KC-SERVICES0047` blocks the upgrade.
+4. Bump the extension's build number (`<keycloak>-divalhr.<n>`).
 
 ## Privileged MFA (MVP-011)
 
@@ -201,7 +271,7 @@ MFA-required page says so).
 | `LOGIN_ERROR` `invalid_user_credentials` with `username` | Wrong password | Existing password-spray alerts |
 | `LOGIN_ERROR` `user_temporarily_disabled` | Brute-force lockout | Any privileged user |
 | `LOGIN_ERROR` `access_denied` | Privileged user without an authenticator denied | Any occurrence (setup link needed) |
-| Admin event `DELETE` on `users/<id>/credentials/<id>` | Authenticator removed | Every occurrence, and always when the actor is `divalhr-core-provisioner` (D6) |
+| Admin event `DELETE` on `users/<id>/credentials/<id>` | Authenticator removed | Every occurrence; the provisioner can no longer do this (Issue #31), so its client as actor means drift |
 
 **When enforcement starts.** Existing sessions carry a password-level `acr`, so the first
 privileged request answers `MFA_REQUIRED` and the web app steps up once: enrolled administrators
@@ -218,7 +288,8 @@ Employees are unaffected.
 5. Protect Keycloak administration itself with MFA, a restricted network and monitored admin
    events.
 6. Enroll every privileged user through setup links before enabling the Core check.
-7. Run `pnpm realm:verify` against the realm: every rule must pass.
+7. Run `pnpm realm:verify` (final mode) against the realm: every rule must pass, including the
+   Issue #31 provisioning rules.
 
 **Rollback.** Development: revert and recreate the Keycloak container. Shared environments: bind
 the previous browser flow and remove the web client's `acr` minimum, *together with* reverting

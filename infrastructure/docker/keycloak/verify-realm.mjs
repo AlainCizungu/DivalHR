@@ -1,10 +1,20 @@
 #!/usr/bin/env node
-// MVP-011 (A4): read-only verification of a DivalHR realm's privileged-MFA configuration.
+// Read-only verification of a DivalHR realm: privileged MFA (MVP-011, A4) and narrow provisioning
+// (Issue #31, A3).
 //
 // It reads the realm through the Keycloak admin API (GET only) and prints one line per rule:
-// "PASS <rule>" or "FAIL <rule>". It never prints configuration values, credentials, TOTP secrets,
-// tokens, subjects or personal data. Exit code: 0 all rules pass, 1 a rule fails, 2 the realm
-// could not be read.
+// "PASS <rule>", "FAIL <rule>" or, in pre-cutover mode only, "PENDING <rule>". It never prints
+// configuration values, credentials, TOTP secrets, tokens, subjects or personal data. Exit code:
+// 0 all rules pass (or are pending in pre-cutover mode), 1 a rule fails, 2 the realm could not be
+// read.
+//
+// Modes (KEYCLOAK_VERIFY_MODE or --mode=<mode>; A3):
+//   final        default, and the only mode acceptable as release or operational sign-off evidence:
+//                every rule must pass, including that the provisioner holds no broad admin right.
+//   pre-cutover  rollout steps A and B only (extension and capability deployed, the Core not yet
+//                cut over or the broad rights not yet removed): the broad-rights rule is reported
+//                PENDING instead of FAIL. Never release evidence; a deployment is incomplete until
+//                final mode passes.
 //
 // Transports (KEYCLOAK_VERIFY_TRANSPORT):
 //   http     KEYCLOAK_URL plus KEYCLOAK_ADMIN_TOKEN (a short-lived token of an administrator who
@@ -21,6 +31,20 @@ export const PWD_ACR = 'urn:divalhr:loa:pwd';
 export const MFA_ACR = 'urn:divalhr:loa:mfa';
 export const MARKER_ROLE = 'divalhr-privileged-mfa';
 export const WEB_CLIENT = 'divalhr-web';
+export const PROVISIONER_CLIENT = 'divalhr-core-provisioner';
+export const CAPABILITY_CLIENT = 'divalhr-provisioning';
+export const CAPABILITY_ROLE = 'provision-invitations';
+export const EXTENSION_ID = 'divalhr-provisioning';
+/** Invitation role groups and the only realm roles each may grant (PR #32 review). */
+export const INVITATION_GROUPS = {
+  'divalhr-role-employee': { direct: ['employee'], effective: ['employee'] },
+  'divalhr-role-tenant-admin': {
+    direct: ['tenant-admin'],
+    effective: ['tenant-admin', MARKER_ROLE],
+  },
+};
+/** Rules that pre-cutover mode reports as PENDING when they fail (A3). */
+export const CUTOVER_RULES = new Set(['provisioner-has-no-broad-admin-rights']);
 export const FLOWS = {
   top: 'divalhr browser',
   forms: 'divalhr browser forms',
@@ -52,7 +76,7 @@ const EXPECTED_FLOW = [
  * Reads everything the rules need. `get(path)` returns parsed JSON for an admin-API path relative
  * to the realm ('' is the realm itself).
  */
-export async function collect(get) {
+export async function collect(get, getRoot) {
   const realm = await get('');
   const executions = await get(`/authentication/flows/${encodeURIComponent(FLOWS.top)}/executions`);
   const configs = {};
@@ -74,10 +98,95 @@ export async function collect(get) {
   for (const locale of ['fr', 'en']) {
     messages[locale] = await get(`/localization/${locale}`);
   }
+  // Issue #31: the provisioner, its effective rights and the extension.
+  const allClients = await get('/clients?first=0&max=1000');
+  const provisioner = allClients.find((c) => c.clientId === PROVISIONER_CLIENT) ?? null;
+  const capabilityClient = allClients.find((c) => c.clientId === CAPABILITY_CLIENT) ?? null;
+  const realmManagement = allClients.find((c) => c.clientId === 'realm-management') ?? null;
+  let serviceAccount = null;
+  let effectiveRealmRoles = [];
+  let effectiveAdminRoles = [];
+  let effectiveCapability = [];
+  let serviceAccountGroups = [];
+  if (provisioner) {
+    serviceAccount = await get(`/clients/${provisioner.id}/service-account-user`);
+    effectiveRealmRoles = (
+      await get(`/users/${serviceAccount.id}/role-mappings/realm/composite`)
+    ).map((r) => r.name);
+    if (realmManagement) {
+      effectiveAdminRoles = (
+        await get(
+          `/users/${serviceAccount.id}/role-mappings/clients/${realmManagement.id}/composite`,
+        )
+      ).map((r) => r.name);
+    }
+    if (capabilityClient) {
+      effectiveCapability = (
+        await get(
+          `/users/${serviceAccount.id}/role-mappings/clients/${capabilityClient.id}/composite`,
+        )
+      ).map((r) => r.name);
+    }
+    serviceAccountGroups = await get(`/users/${serviceAccount.id}/groups`);
+  }
+  // Fine-grained admin permissions: v2 (admin-permissions client) and v1 (realm-management).
+  const policies = [];
+  for (const client of allClients) {
+    const v2 = client.clientId === 'admin-permissions' && realm.adminPermissionsEnabled === true;
+    const v1 = client.clientId === 'realm-management' && client.authorizationServicesEnabled;
+    if (v2 || v1) {
+      policies.push(
+        ...(await get(`/clients/${client.id}/authz/resource-server/policy?first=0&max=1000`)),
+      );
+    }
+  }
+  // PR #32 review: what the invitation role groups grant, directly and effectively.
+  const invitationGroups = {};
+  for (const name of Object.keys(INVITATION_GROUPS)) {
+    const matches = (await get(`/groups?search=${encodeURIComponent(name)}&exact=true`)).filter(
+      (g) => g.name === name,
+    );
+    if (matches.length !== 1) {
+      invitationGroups[name] = null;
+      continue;
+    }
+    const id = matches[0].id;
+    const mappings = await get(`/groups/${id}/role-mappings`);
+    const effective = (await get(`/groups/${id}/role-mappings/realm/composite`)).map((r) => r.name);
+    const effectiveComposites = [];
+    for (const role of effective) {
+      effectiveComposites.push(...(await get(`/roles/${encodeURIComponent(role)}/composites`)));
+    }
+    invitationGroups[name] = {
+      direct: (mappings.realmMappings ?? []).map((r) => r.name),
+      clientMappings: Object.keys(mappings.clientMappings ?? {}),
+      effective,
+      clientComposites: effectiveComposites.filter((r) => r.clientRole === true).map((r) => r.name),
+      subGroups: matches[0].subGroupCount ?? (matches[0].subGroups ?? []).length,
+    };
+  }
+  const serverInfo = await getRoot('/serverinfo');
+  const restExtensions = Object.keys(
+    serverInfo?.providers?.['realm-restapi-extension']?.providers ?? {},
+  );
   return {
     realm,
     executions,
     configs,
+    provisioning: {
+      allClients,
+      provisioner,
+      capabilityClient,
+      serviceAccount,
+      effectiveRealmRoles,
+      realmManagementFound: realmManagement !== null,
+      effectiveAdminRoles,
+      effectiveCapability,
+      serviceAccountGroups,
+      policies,
+      restExtensions,
+    },
+    invitationGroups,
     web: clients[0] ?? {},
     composites,
     markerHolders,
@@ -228,6 +337,82 @@ export const RULES = [
       ),
   ],
   [
+    'invitation-groups-least-privilege',
+    (s) =>
+      Object.entries(INVITATION_GROUPS).every(([name, expected]) => {
+        const g = s.invitationGroups[name];
+        const same = (a, b) => a.length === b.length && b.every((x) => a.includes(x));
+        return (
+          g !== null &&
+          same(g.direct, expected.direct) &&
+          same(g.effective, expected.effective) &&
+          g.clientMappings.length === 0 &&
+          g.clientComposites.length === 0 &&
+          g.subGroups === 0
+        );
+      }),
+  ],
+  ['provisioning-extension-deployed', (s) => s.provisioning.restExtensions.includes(EXTENSION_ID)],
+  [
+    'provisioning-capability',
+    (s) => {
+      const p = s.provisioning;
+      if (!p.provisioner || !p.capabilityClient || !p.serviceAccount) return false;
+      const emitsAudience = (client) =>
+        (client.protocolMappers ?? []).some(
+          (m) =>
+            m.protocolMapper === 'oidc-audience-mapper' &&
+            (m.config?.['included.custom.audience'] === CAPABILITY_CLIENT ||
+              m.config?.['included.client.audience'] === CAPABILITY_CLIENT),
+        );
+      const audienceClients = p.allClients.filter(emitsAudience).map((c) => c.clientId);
+      const cap = p.capabilityClient;
+      return (
+        p.effectiveCapability.includes(CAPABILITY_ROLE) &&
+        audienceClients.length === 1 &&
+        audienceClients[0] === PROVISIONER_CLIENT &&
+        p.provisioner.enabled === true &&
+        p.provisioner.publicClient === false &&
+        p.provisioner.serviceAccountsEnabled === true &&
+        p.provisioner.standardFlowEnabled === false &&
+        p.provisioner.directAccessGrantsEnabled === false &&
+        cap.standardFlowEnabled === false &&
+        cap.directAccessGrantsEnabled === false &&
+        cap.serviceAccountsEnabled === false &&
+        cap.implicitFlowEnabled !== true
+      );
+    },
+  ],
+  [
+    'provisioner-has-no-broad-admin-rights',
+    (s) => {
+      const p = s.provisioning;
+      // Fail closed: without realm-management the effective admin roles cannot be checked.
+      if (!p.serviceAccount || !p.provisioner || !p.realmManagementFound) return false;
+      const realmName = s.realm.realm;
+      const defaults = new Set([
+        `default-roles-${realmName}`,
+        'offline_access',
+        'uma_authorization',
+      ]);
+      const namesProvisioner = (policy) => {
+        const text = JSON.stringify(policy.config ?? {});
+        return (
+          text.includes(p.serviceAccount.id) ||
+          text.includes(p.serviceAccount.username) ||
+          text.includes(p.provisioner.id) ||
+          text.includes(PROVISIONER_CLIENT)
+        );
+      };
+      return (
+        p.effectiveAdminRoles.length === 0 &&
+        p.effectiveRealmRoles.every((role) => defaults.has(role)) &&
+        p.serviceAccountGroups.length === 0 &&
+        !p.policies.some(namesProvisioner)
+      );
+    },
+  ],
+  [
     'login-and-admin-events',
     (s) =>
       s.realm.eventsEnabled === true &&
@@ -236,8 +421,11 @@ export const RULES = [
   ],
 ];
 
-/** Evaluates every rule; a rule that throws on unexpected data fails. */
-export function evaluate(snapshot) {
+/**
+ * Evaluates every rule; a rule that throws on unexpected data fails. In pre-cutover mode, the
+ * cut-over rules that fail are PENDING (never PASS).
+ */
+export function evaluate(snapshot, mode = 'final') {
   return RULES.map(([rule, check]) => {
     let pass;
     try {
@@ -245,14 +433,30 @@ export function evaluate(snapshot) {
     } catch {
       pass = false;
     }
-    return { rule, pass };
+    const status = pass
+      ? 'PASS'
+      : mode === 'pre-cutover' && CUTOVER_RULES.has(rule)
+        ? 'PENDING'
+        : 'FAIL';
+    return { rule, pass, status };
   });
 }
 
+/** The mode from --mode=<mode> or KEYCLOAK_VERIFY_MODE; final by default. Unknown modes fail. */
+export function modeOf(argv, env) {
+  const flag = argv.find((a) => a.startsWith('--mode='));
+  const mode = flag ? flag.slice('--mode='.length) : (env.KEYCLOAK_VERIFY_MODE ?? 'final');
+  if (mode !== 'final' && mode !== 'pre-cutover') {
+    throw new Error('mode');
+  }
+  return mode;
+}
+
 function httpTransport(env) {
-  const base = `${env.KEYCLOAK_URL ?? 'http://localhost:8180'}/admin/realms/${env.KEYCLOAK_REALM ?? 'divalhr-dev'}`;
+  const admin = `${env.KEYCLOAK_URL ?? 'http://localhost:8180'}/admin`;
+  const base = `${admin}/realms/${env.KEYCLOAK_REALM ?? 'divalhr-dev'}`;
   let token = env.KEYCLOAK_ADMIN_TOKEN;
-  return async (path) => {
+  const read = async (url) => {
     if (!token) {
       const response = await fetch(
         `${env.KEYCLOAK_URL ?? 'http://localhost:8180'}/realms/master/protocol/openid-connect/token`,
@@ -270,12 +474,13 @@ function httpTransport(env) {
       if (!response.ok) throw new Error('token');
       token = (await response.json()).access_token;
     }
-    const response = await fetch(`${base}${path}`, {
+    const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new Error('read');
     return response.json();
   };
+  return { get: (path) => read(`${base}${path}`), getRoot: (path) => read(`${admin}${path}`) };
 }
 
 function composeTransport(env, root) {
@@ -301,7 +506,7 @@ function composeTransport(env, root) {
       { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
     );
   let signedIn = false;
-  return async (path) => {
+  const signIn = () => {
     if (!signedIn) {
       exec([
         'config',
@@ -317,30 +522,53 @@ function composeTransport(env, root) {
       ]);
       signedIn = true;
     }
+  };
+  const get = async (path) => {
+    signIn();
     const [resource = '', query] = path.slice(1).split('?');
     // kcadm.sh sends the path as given, so it stays percent-encoded (flow aliases contain spaces).
     const target = path === '' ? `realms/${realm}` : resource;
     const params = query ? query.split('&').flatMap((pair) => ['-q', pair]) : [];
     return JSON.parse(exec(['get', target, '-r', realm, ...params]));
   };
+  const getRoot = async (path) => {
+    signIn();
+    return JSON.parse(exec(['get', path.slice(1)]));
+  };
+  return { get, getRoot };
 }
 
 async function main() {
   const env = process.env;
+  let mode;
+  try {
+    mode = modeOf(process.argv.slice(2), env);
+  } catch {
+    console.log('FAIL unknown-mode');
+    process.exit(2);
+  }
+  console.log(
+    mode === 'final'
+      ? 'MODE final'
+      : 'MODE pre-cutover (rollout steps A-B only; NOT release or sign-off evidence)',
+  );
   const root = fileURLToPath(new URL('../../../', import.meta.url));
-  const get =
+  const { get, getRoot } =
     env.KEYCLOAK_VERIFY_TRANSPORT === 'compose' ? composeTransport(env, root) : httpTransport(env);
   let snapshot;
   try {
-    snapshot = await collect(get);
+    snapshot = await collect(get, getRoot);
   } catch {
     // No detail: an error could echo a URL, a token or a server message.
     console.log('FAIL read-realm-configuration');
     process.exit(2);
   }
-  const results = evaluate(snapshot);
-  for (const { rule, pass } of results) console.log(`${pass ? 'PASS' : 'FAIL'} ${rule}`);
-  process.exit(results.every((r) => r.pass) ? 0 : 1);
+  const results = evaluate(snapshot, mode);
+  for (const { rule, status } of results) console.log(`${status} ${rule}`);
+  const pending = results.some((r) => r.status === 'PENDING');
+  if (pending)
+    console.log('INCOMPLETE broad admin rights still present: run final mode after cut-over');
+  process.exit(results.every((r) => r.status !== 'FAIL') ? 0 : 1);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

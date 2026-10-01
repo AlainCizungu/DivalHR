@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Keep exclusions narrow and justified. -->
+<FindBugsFilter>
+  <!--
+    Keycloak hands each request its own KeycloakSession and realm models; the extension's
+    per-request objects hold them by design (copying them is impossible and would be wrong).
+  -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Or>
+      <Class name="com.divalhr.keycloak.provisioning.ProvisioningResource"/>
+      <Class name="com.divalhr.keycloak.provisioning.ProvisioningResourceProvider"/>
+      <Class name="com.divalhr.keycloak.provisioning.CallerAuthorizer$Caller"/>
+    </Or>
+  </Match>
+</FindBugsFilter>

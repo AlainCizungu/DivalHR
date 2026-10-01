@@ -20,7 +20,7 @@
   "offlineSessionIdleTimeout": 0,
   "revokeRefreshToken": true,
   "refreshTokenMaxReuse": 0,
-  "adminPermissionsEnabled": true,
+  "adminPermissionsEnabled": false,
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": false,
   "smtpServer": {
@@ -58,7 +58,17 @@
         "name": "divalhr-privileged-mfa",
         "description": "Internal marker (MVP-011): holders must complete MFA. Never an authorization or assurance signal."
       }
-    ]
+    ],
+    "client": {
+      "divalhr-provisioning": [
+        {
+          "name": "provision-invitations",
+          "description": "The only right of divalhr-core-provisioner: call the divalhr-provisioning extension (Issue #31).",
+          "composite": false,
+          "clientRole": true
+        }
+      ]
+    }
   },
   "clients": [
     {
@@ -137,330 +147,39 @@
         "oauth2.device.authorization.grant.enabled": "false"
       },
       "defaultClientScopes": ["service_account", "basic", "roles"],
-      "optionalClientScopes": []
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "divalhr-provisioning-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "divalhr-provisioning",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ]
     },
     {
-      "clientId": "admin-permissions",
+      "clientId": "divalhr-provisioning",
+      "name": "DivalHR provisioning extension capability (Issue #31)",
+      "description": "Audience and capability role of the divalhr-provisioning Keycloak extension. No flow is enabled; it never authenticates.",
       "enabled": true,
       "publicClient": false,
       "bearerOnly": false,
-      "standardFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "clientAuthenticatorType": "client-secret",
       "serviceAccountsEnabled": false,
-      "authorizationServicesEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
       "fullScopeAllowed": false,
       "attributes": {
-        "realm_client": "false"
-      },
-      "authorizationSettings": {
-        "allowRemoteResourceManagement": true,
-        "policyEnforcementMode": "ENFORCING",
-        "resources": [
-          {
-            "name": "Groups",
-            "type": "Groups",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              {
-                "name": "manage-members"
-              },
-              {
-                "name": "view"
-              },
-              {
-                "name": "manage-membership-of-members"
-              },
-              {
-                "name": "manage-membership"
-              },
-              {
-                "name": "view-members"
-              },
-              {
-                "name": "manage"
-              },
-              {
-                "name": "impersonate-members"
-              }
-            ]
-          },
-          {
-            "name": "Users",
-            "type": "Users",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              {
-                "name": "manage-group-membership"
-              },
-              {
-                "name": "view"
-              },
-              {
-                "name": "impersonate"
-              },
-              {
-                "name": "map-roles"
-              },
-              {
-                "name": "reset-password"
-              },
-              {
-                "name": "manage"
-              }
-            ]
-          },
-          {
-            "name": "Clients",
-            "type": "Clients",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              {
-                "name": "view"
-              },
-              {
-                "name": "map-roles-client-scope"
-              },
-              {
-                "name": "map-roles"
-              },
-              {
-                "name": "manage"
-              },
-              {
-                "name": "map-roles-composite"
-              }
-            ]
-          },
-          {
-            "name": "Organizations",
-            "type": "Organizations",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              {
-                "name": "view"
-              },
-              {
-                "name": "manage"
-              }
-            ]
-          },
-          {
-            "name": "Roles",
-            "type": "Roles",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              {
-                "name": "map-role-composite"
-              },
-              {
-                "name": "map-role-client-scope"
-              },
-              {
-                "name": "map-role"
-              }
-            ]
-          },
-          {
-            "name": "6d0e7f3a-5b1c-4e2a-9f10-0000000000e1",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              {
-                "name": "manage-members"
-              },
-              {
-                "name": "view"
-              },
-              {
-                "name": "manage-membership-of-members"
-              },
-              {
-                "name": "manage-membership"
-              },
-              {
-                "name": "view-members"
-              },
-              {
-                "name": "manage"
-              },
-              {
-                "name": "impersonate-members"
-              }
-            ]
-          },
-          {
-            "name": "6d0e7f3a-5b1c-4e2a-9f10-0000000000e2",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              {
-                "name": "manage-members"
-              },
-              {
-                "name": "view"
-              },
-              {
-                "name": "manage-membership-of-members"
-              },
-              {
-                "name": "manage-membership"
-              },
-              {
-                "name": "view-members"
-              },
-              {
-                "name": "manage"
-              },
-              {
-                "name": "impersonate-members"
-              }
-            ]
-          }
-        ],
-        "policies": [
-          {
-            "name": "divalhr-core-provisioner-service-account",
-            "description": "The Core API provisioner service account",
-            "type": "user",
-            "logic": "POSITIVE",
-            "decisionStrategy": "UNANIMOUS",
-            "config": {
-              "users": "[\"service-account-divalhr-core-provisioner\"]"
-            }
-          },
-          {
-            "name": "divalhr-provisioner-role-groups",
-            "type": "scope",
-            "logic": "POSITIVE",
-            "decisionStrategy": "UNANIMOUS",
-            "config": {
-              "defaultResourceType": "Groups",
-              "resources": "[\"6d0e7f3a-5b1c-4e2a-9f10-0000000000e1\", \"6d0e7f3a-5b1c-4e2a-9f10-0000000000e2\"]",
-              "scopes": "[\"view\", \"view-members\", \"manage-members\", \"manage-membership\"]",
-              "applyPolicies": "[\"divalhr-core-provisioner-service-account\"]"
-            },
-            "description": "Create and manage only members of the two tenant-role groups (FGAP v2)."
-          }
-        ],
-        "scopes": [
-          {
-            "name": "manage-group-membership"
-          },
-          {
-            "name": "map-roles-client-scope"
-          },
-          {
-            "name": "view-members"
-          },
-          {
-            "name": "map-role"
-          },
-          {
-            "name": "reset-password"
-          },
-          {
-            "name": "manage"
-          },
-          {
-            "name": "impersonate-members"
-          },
-          {
-            "name": "manage-members"
-          },
-          {
-            "name": "view"
-          },
-          {
-            "name": "manage-membership-of-members"
-          },
-          {
-            "name": "manage-membership"
-          },
-          {
-            "name": "impersonate"
-          },
-          {
-            "name": "map-role-composite"
-          },
-          {
-            "name": "map-roles"
-          },
-          {
-            "name": "map-role-client-scope"
-          },
-          {
-            "name": "map-roles-composite"
-          }
-        ],
-        "decisionStrategy": "UNANIMOUS",
-        "authorizationSchema": {
-          "resourceTypes": {
-            "Users": {
-              "type": "Users",
-              "scopes": [
-                "manage-group-membership",
-                "manage",
-                "map-roles",
-                "impersonate",
-                "view",
-                "reset-password"
-              ],
-              "scopeAliases": {
-                "impersonate": ["impersonate-members"],
-                "manage": ["manage-members"],
-                "view": ["view-members"],
-                "manage-group-membership": ["manage-membership-of-members"]
-              },
-              "groupType": "Groups"
-            },
-            "Groups": {
-              "type": "Groups",
-              "scopes": [
-                "impersonate-members",
-                "manage-members",
-                "manage-membership-of-members",
-                "manage",
-                "manage-membership",
-                "view-members",
-                "view"
-              ],
-              "scopeAliases": {}
-            },
-            "Roles": {
-              "type": "Roles",
-              "scopes": ["map-role-client-scope", "map-role", "map-role-composite"],
-              "scopeAliases": {}
-            },
-            "Organizations": {
-              "type": "Organizations",
-              "scopes": ["manage", "view"],
-              "scopeAliases": {}
-            },
-            "Clients": {
-              "type": "Clients",
-              "scopes": [
-                "manage",
-                "map-roles-composite",
-                "view",
-                "map-roles-client-scope",
-                "map-roles"
-              ],
-              "scopeAliases": {}
-            }
-          }
-        }
+        "oauth2.device.authorization.grant.enabled": "false"
       }
     }
   ],
@@ -594,7 +313,7 @@
       "enabled": true,
       "serviceAccountClientId": "divalhr-core-provisioner",
       "clientRoles": {
-        "realm-management": ["query-groups", "query-users"]
+        "divalhr-provisioning": ["provision-invitations"]
       }
     }
   ],
@@ -615,26 +334,18 @@
     {
       "id": "6d0e7f3a-5b1c-4e2a-9f10-0000000000e1",
       "name": "divalhr-role-employee",
-      "description": "Invited identities holding the employee tenant role. Membership is managed only by divalhr-core-provisioner.",
+      "description": "Invited identities holding the employee tenant role. Members are created only through the divalhr-provisioning extension (Issue #31).",
       "path": "/divalhr-role-employee",
       "realmRoles": ["employee"]
     },
     {
       "id": "6d0e7f3a-5b1c-4e2a-9f10-0000000000e2",
       "name": "divalhr-role-tenant-admin",
-      "description": "Invited identities holding the tenant-admin tenant role. Membership is managed only by divalhr-core-provisioner.",
+      "description": "Invited identities holding the tenant-admin tenant role. Members are created only through the divalhr-provisioning extension (Issue #31).",
       "path": "/divalhr-role-tenant-admin",
       "realmRoles": ["tenant-admin"]
     }
   ],
-  "clientScopeMappings": {
-    "realm-management": [
-      {
-        "client": "divalhr-core-provisioner",
-        "roles": ["query-groups", "query-users"]
-      }
-    ]
-  },
   "otpPolicyType": "totp",
   "otpPolicyAlgorithm": "HmacSHA1",
   "otpPolicyInitialCounter": 0,

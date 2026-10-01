@@ -4,3 +4,9 @@ plugins {
 }
 
 rootProject.name = "core-api"
+
+// Issue #31: the Keycloak provisioning extension is built with this wrapper. Absent from the Core
+// API image build context (apps/core-api only), where it is not needed.
+if (file("../keycloak-provisioning").isDirectory) {
+    includeBuild("../keycloak-provisioning")
+}

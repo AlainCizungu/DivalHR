@@ -12,7 +12,7 @@ updates:
       npm-minor-and-patch:
         update-types: [minor, patch]
   - package-ecosystem: gradle
-    directory: /apps/core-api
+    directories: [/apps/core-api, /apps/keycloak-provisioning]
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 5
     ignore:
@@ -30,7 +30,9 @@ updates:
       python-minor-and-patch:
         update-types: [minor, patch]
   - package-ecosystem: docker
-    directories: [/apps/core-api, /apps/ai-service, /apps/web]
+    # infrastructure/docker/keycloak: a Keycloak bump must also bump the extension's
+    # keycloakVersion (KeycloakImageConsistencyTest and the start-up guard enforce it).
+    directories: [/apps/core-api, /apps/ai-service, /apps/web, /infrastructure/docker/keycloak]
     schedule: { interval: weekly, day: monday }
     open-pull-requests-limit: 5
     ignore:

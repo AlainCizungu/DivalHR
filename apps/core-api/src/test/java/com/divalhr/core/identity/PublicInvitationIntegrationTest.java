@@ -178,10 +178,11 @@ class PublicInvitationIntegrationTest {
     assertThat(identity.tenant()).isEqualTo(tenant.toString());
     assertThat(identity.role()).isEqualTo("tenant-admin");
     assertThat(identity.invitationId()).isEqualTo(invited.id());
-    assertThat(directory.credentialSetups()).containsExactly(identity.subject());
+    // Issue #31: the setup request is keyed by the invitation, never by the subject.
+    assertThat(directory.credentialSetups()).containsExactly(invited.id());
     // MVP-011: an invited tenant administrator must also enroll an authenticator.
     assertThat(directory.credentialSetupRoles())
-        .containsExactly(Map.entry(identity.subject(), TenantRole.TENANT_ADMIN));
+        .containsExactly(Map.entry(invited.id(), TenantRole.TENANT_ADMIN));
 
     Map<String, Object> row =
         jdbc.queryForMap(
@@ -288,6 +289,59 @@ class PublicInvitationIntegrationTest {
   }
 
   @Test
+  void aLostCreationRaceIsRetryableAndNeverDeniesTheInvitation() throws Exception {
+    // PR #32 review: an identical concurrent call created the identity; this one got the
+    // extension's retryable 503. The invitation stays open, nothing is denied, and the retry
+    // finds the same single identity.
+    Invited invited = invited("tenant-admin");
+    directory.mode(FakeIdentityDirectory.Mode.PROVISION_RACED);
+    mvc.perform(anonymous("accept", invited.token()))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.code").value("IDENTITY_PROVIDER_UNAVAILABLE"));
+    assertThat(state(invited.id())).isEqualTo("PENDING");
+    assertThat(directory.identities()).hasSize(1);
+    String subject = directory.identities().get(invited.email()).subject();
+    directory.mode(FakeIdentityDirectory.Mode.UP);
+    mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+    assertThat(state(invited.id())).isEqualTo("ACCEPTED");
+    assertThat(directory.identities()).hasSize(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT subject FROM identity.tenant_membership WHERE source_invitation_id = ?",
+                String.class,
+                invited.id()))
+        .isEqualTo(subject);
+  }
+
+  @Test
+  void theReconcilerTreatsALostCreationRaceAsDeferredNeverAsAConflict() throws Exception {
+    Invited invited = invited("employee");
+    // A stalled acceptance whose lease expired; the reconciler's first attempt loses a race.
+    jdbc.update(
+        "UPDATE identity.invitation SET state = 'ACCEPTING', acceptance_lease_owner = ?,"
+            + " acceptance_lease_until = now() - interval '1 second' WHERE id = ?",
+        UUID.randomUUID(),
+        invited.id());
+    directory.mode(FakeIdentityDirectory.Mode.PROVISION_RACED);
+    assertThat(jobs.recoverStaleAcceptances()).isEqualTo(1);
+    // Deferred: the lease is released and the invitation reopened, never denied or compensated.
+    assertThat(state(invited.id())).isEqualTo("PENDING");
+    assertThat(directory.compensations()).isEmpty();
+    // The next attempt resolves to the identity the race created.
+    directory.mode(FakeIdentityDirectory.Mode.UP);
+    String subject = directory.identities().get(invited.email()).subject();
+    mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+    assertThat(state(invited.id())).isEqualTo("ACCEPTED");
+    assertThat(directory.identities()).hasSize(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT subject FROM identity.tenant_membership WHERE source_invitation_id = ?",
+                String.class,
+                invited.id()))
+        .isEqualTo(subject);
+  }
+
+  @Test
   void credentialSetupIsDurableAndRetriedUntilSentOrFailed() throws Exception {
     Invited invited = invited("tenant-admin");
     directory.mode(FakeIdentityDirectory.Mode.CREDENTIAL_SETUP_DOWN);
@@ -305,7 +359,7 @@ class PublicInvitationIntegrationTest {
         .containsEntry("credential_setup_state", "SENT")
         .containsEntry("attempts", 2);
     assertThat(directory.credentialSetups()).hasSize(1);
-    // The retry keeps the invited role, so the administrator still gets the TOTP action.
+    // The retry still sets up the identity's own role, so the administrator gets the TOTP action.
     assertThat(directory.credentialSetupRoles().values()).containsExactly(TenantRole.TENANT_ADMIN);
 
     // Exhausted retries end in FAILED, never in an endless loop.
@@ -435,6 +489,61 @@ class PublicInvitationIntegrationTest {
     assertThat(state(invited.id())).isEqualTo("EXPIRED");
     assertThat(directory.compensations()).containsExactly(invited.id());
     assertThat(directory.identities()).isEmpty();
+  }
+
+  @Test
+  void anInvalidSetupStateIsFailedAtOnceAndAlertedNeverSent(CapturedOutput output)
+      throws Exception {
+    // Issue #31 A1: a partial or drifted identity is never recorded as SENT and never retried.
+    Invited invited = invited("tenant-admin");
+    directory.mode(FakeIdentityDirectory.Mode.CREDENTIAL_SETUP_INVALID);
+    mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+    assertThat(credential(invited.id()))
+        .containsEntry("credential_setup_state", "FAILED")
+        .containsEntry("attempts", 1);
+    assertThat(credential(invited.id()).get("next_at")).isNull();
+    assertThat(jobs.retryCredentialSetups()).isZero();
+    assertThat(output.getAll())
+        .contains("invitation_credential_setup_invalid_state")
+        .doesNotContain(invited.email());
+  }
+
+  @Test
+  void aProvenCompletedSetupIsRecordedAsSent() throws Exception {
+    Invited invited = invited("employee");
+    directory.mode(FakeIdentityDirectory.Mode.CREDENTIAL_SETUP_COMPLETED);
+    mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+    assertThat(credential(invited.id())).containsEntry("credential_setup_state", "SENT");
+  }
+
+  @Test
+  void aRefusedCompensationIsAlertedAndNeverLoops(CapturedOutput output) throws Exception {
+    // Issue #31: the provider refuses to delete an identity that is no longer pristine. The
+    // stalled acceptance still expires, and the identity is left to a realm administrator.
+    Invited invited = invited("employee");
+    directory.provision(
+        new com.divalhr.core.identity.application.IdentityDirectory.ProvisioningRequest(
+            invited.id(),
+            new com.divalhr.core.platform.tenancy.TenantId(tenant),
+            new com.divalhr.core.identity.domain.EmailAddress(invited.email()),
+            com.divalhr.core.identity.domain.TenantRole.EMPLOYEE,
+            com.divalhr.core.identity.domain.InvitationLocale.FR));
+    directory.mode(FakeIdentityDirectory.Mode.COMPENSATION_REFUSED);
+    jdbc.update(
+        "UPDATE identity.invitation SET state = 'ACCEPTING', acceptance_lease_owner = ?,"
+            + " acceptance_lease_until = now() - interval '1 second',"
+            + " token_issued_at = now() - interval '9 days', expires_at = now() - interval '1 hour'"
+            + " WHERE id = ?",
+        UUID.randomUUID(),
+        invited.id());
+    assertThat(jobs.recoverStaleAcceptances()).isEqualTo(1);
+    assertThat(state(invited.id())).isEqualTo("EXPIRED");
+    assertThat(jobs.recoverStaleAcceptances()).isZero();
+    assertThat(directory.compensations()).containsExactly(invited.id());
+    assertThat(directory.identities()).hasSize(1);
+    assertThat(output.getAll())
+        .contains("invitation_accept_compensation_refused")
+        .doesNotContain(invited.email());
   }
 
   @Test

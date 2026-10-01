@@ -29,7 +29,11 @@ services:
     # No published port: only the Core API connects. Add "5432:5432" locally if you need psql.
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    # Pinned Keycloak plus the divalhr-provisioning extension (Issue #31): see keycloak/Dockerfile.
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/keycloak/Dockerfile
+    image: divalhr/keycloak:dev
     command: ['start-dev', '--import-realm']
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?}
@@ -38,6 +42,10 @@ services:
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
       KC_HEALTH_ENABLED: 'true'
       KC_HTTP_PORT: '8080'
+      # divalhr-provisioning extension (Issue #31): the only realm it answers in, and where the
+      # setup-email link returns to. Not secrets.
+      KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__REALMS: divalhr-dev
+      KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__WEB_REDIRECT_URI: http://localhost:${WEB_PORT:-5173}/auth/callback
     volumes:
       - ./keycloak/realm-divalhr-dev.json:/opt/keycloak/data/import/realm-divalhr-dev.json:ro
     # Loopback only (Issue #27): the development realm accepts plain HTTP (sslRequired: none),

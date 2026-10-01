@@ -26,21 +26,43 @@ public interface IdentityDirectory {
 
   /**
    * Asks the provider to email the invitee a link to choose a password and, for a role that
-   * requires MFA, to enroll an authenticator app (MVP-011).
+   * requires MFA, to enroll an authenticator app (MVP-011), for the identity this invitation
+   * created (Issue #31: keyed by invitation, never by subject). The provider derives the role, and
+   * so the required actions, from the identity's own role group; the caller never names it.
    *
-   * @param subject identity subject
-   * @param role the invitation's role
+   * @param invitationId invitation whose identity is set up
+   * @return what the provider found
    * @throws IdentityProviderUnavailableException when the provider cannot be reached or refuses
    */
-  void requestCredentialSetup(String subject, TenantRole role);
+  CredentialSetupOutcome requestCredentialSetup(UUID invitationId);
 
   /**
-   * Deletes the identity this invitation created, if any; never touches another identity.
+   * Deletes the identity this invitation created while it is pristine; never touches another
+   * identity, and never one whose setup has started.
    *
    * @param invitationId invitation
+   * @return whether the provider deleted (or found nothing) or refused
    * @throws IdentityProviderUnavailableException when the provider cannot be reached
    */
-  void compensate(UUID invitationId);
+  CompensationOutcome compensate(UUID invitationId);
+
+  /** Outcome of {@link #requestCredentialSetup}. */
+  enum CredentialSetupOutcome {
+    /** Setup is pending: the action email was sent. */
+    EMAIL_SENT,
+    /** The role's proven terminal state: nothing left to set up (A1). */
+    COMPLETED,
+    /** Partial, contradictory or drifted state: nothing was sent; needs a realm administrator. */
+    STATE_INVALID
+  }
+
+  /** Outcome of {@link #compensate}. */
+  enum CompensationOutcome {
+    /** The identity was deleted, or none existed. */
+    DELETED_OR_ABSENT,
+    /** The identity is not pristine and was left in place for a realm administrator. */
+    REFUSED
+  }
 
   /**
    * What to provision.

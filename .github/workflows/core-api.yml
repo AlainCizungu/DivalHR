@@ -3,12 +3,16 @@ on:
   pull_request:
     paths:
       - apps/core-api/**
+      - apps/keycloak-provisioning/**
+      - infrastructure/docker/**
       - docs/API-SPEC.yaml
       - .github/workflows/core-api.yml
   push:
     branches: [main]
     paths:
       - apps/core-api/**
+      - apps/keycloak-provisioning/**
+      - infrastructure/docker/**
       - docs/API-SPEC.yaml
       - .github/workflows/core-api.yml
 permissions:

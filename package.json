@@ -14,11 +14,12 @@
     "test": "pnpm -r --if-present run test",
     "build": "pnpm -r --if-present run build",
     "i18n:check": "pnpm --filter @divalhr/localization run check",
-    "api:lint": "redocly lint docs/API-SPEC.yaml packages/shared-contracts/openapi/ai-service.yaml",
+    "api:lint": "redocly lint docs/API-SPEC.yaml packages/shared-contracts/openapi/ai-service.yaml packages/shared-contracts/openapi/keycloak-provisioning.yaml",
     "api:generate": "pnpm --filter @divalhr/api-client run generate",
     "api:check": "pnpm --filter @divalhr/api-client run check",
     "realm:test": "node --test infrastructure/docker/keycloak/verify-realm.test.mjs",
-    "realm:verify": "node infrastructure/docker/keycloak/verify-realm.mjs"
+    "realm:verify": "node infrastructure/docker/keycloak/verify-realm.mjs --mode=final",
+    "realm:verify:pre-cutover": "node infrastructure/docker/keycloak/verify-realm.mjs --mode=pre-cutover"
   },
   "devDependencies": {
     "@redocly/cli": "2.55.0",

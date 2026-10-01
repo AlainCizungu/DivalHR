@@ -7,7 +7,6 @@ import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningResul
 import com.divalhr.core.identity.domain.CredentialSetupState;
 import com.divalhr.core.identity.domain.Invitation;
 import com.divalhr.core.identity.domain.InvitationState;
-import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository.AcceptanceRow;
 import com.divalhr.core.identity.internal.JdbcMembershipRepository;
@@ -53,8 +52,14 @@ public class InvitationAcceptance {
   /** Operation name for audit, logs and metrics. */
   public static final String OPERATION = "invitation.accept";
 
-  /** Credential-setup outcome metric (tag {@code result}: sent, retry, failed). */
+  /**
+   * Credential-setup outcome metric (tag {@code result}: sent, completed, retry, failed,
+   * invalid_state).
+   */
   public static final String CREDENTIAL_METRIC = "divalhr.invitation.credential_setup";
+
+  /** Compensations refused by the identity provider (Issue #31). */
+  public static final String COMPENSATION_METRIC = "divalhr.invitation.compensation_refused";
 
   private static final Logger LOG = LoggerFactory.getLogger(InvitationAcceptance.class);
 
@@ -163,7 +168,7 @@ public class InvitationAcceptance {
     if (!invitation.expiresAt().isAfter(now())) {
       // The link expired while the acceptance was stalled: remove any identity it created, then
       // expire it. If the provider is unreachable the lease simply expires again and we retry.
-      directory.compensate(invitationId);
+      compensate(invitationId);
       transactions.executeWithoutResult(
           status ->
               invitations
@@ -229,7 +234,7 @@ public class InvitationAcceptance {
     } catch (DataIntegrityViolationException conflicting) {
       // The subject or address already has a membership: undo only what this invitation created.
       try {
-        directory.compensate(invitation.id());
+        compensate(invitation.id());
       } catch (RuntimeException compensationDeferred) {
         LOG.atWarn()
             .addKeyValue("operation", OPERATION)
@@ -247,7 +252,24 @@ public class InvitationAcceptance {
         .addKeyValue("invitationId", invitation.id())
         .addKeyValue("outcome", "accepted")
         .log("invitation_accepted");
-    requestCredentialSetup(invitation.id(), subject, invitation.role(), 0);
+    requestCredentialSetup(invitation.id(), 0);
+  }
+
+  /**
+   * Compensates the identity of an invitation. A refusal (the identity is no longer pristine) is
+   * alerted and left to a realm administrator; it never loops (Issue #31).
+   */
+  private void compensate(UUID invitationId) {
+    if (directory.compensate(invitationId) == IdentityDirectory.CompensationOutcome.REFUSED) {
+      Counter.builder(COMPENSATION_METRIC)
+          .description("Identity compensations refused because the identity is not pristine")
+          .register(registry)
+          .increment();
+      LOG.atError()
+          .addKeyValue("operation", OPERATION)
+          .addKeyValue("invitationId", invitationId)
+          .log("invitation_accept_compensation_refused");
+    }
   }
 
   private void deny(Invitation invitation, UUID owner, String correlationId) {
@@ -267,20 +289,34 @@ public class InvitationAcceptance {
   /**
    * Asks the provider for the "choose your password" email and records the attempt durably.
    *
+   * <p>Policy (Issue #31, A1): an email sent, or the provider's proven completed state, is recorded
+   * as {@code SENT}. An invalid state (partial, contradictory or drifted) is recorded as {@code
+   * FAILED} at once, never as sent, and alerted: retrying cannot repair it and would send nothing.
+   * An unreachable provider is retried with backoff, then {@code FAILED}.
+   *
    * @param invitationId accepted invitation
-   * @param subject member subject
-   * @param role the invitation's role (tenant administrators also enroll an authenticator)
    * @param previousAttempts attempts before this one
    * @return the recorded state
    */
-  public CredentialSetupState requestCredentialSetup(
-      UUID invitationId, String subject, TenantRole role, int previousAttempts) {
+  public CredentialSetupState requestCredentialSetup(UUID invitationId, int previousAttempts) {
     int attempts = previousAttempts + 1;
     CredentialSetupState state;
     Instant nextAt = null;
+    String detail = null;
     try {
-      directory.requestCredentialSetup(subject, role);
-      state = CredentialSetupState.SENT;
+      IdentityDirectory.CredentialSetupOutcome result =
+          directory.requestCredentialSetup(invitationId);
+      switch (result) {
+        case EMAIL_SENT -> state = CredentialSetupState.SENT;
+        case COMPLETED -> {
+          state = CredentialSetupState.SENT;
+          detail = "completed";
+        }
+        default -> {
+          state = CredentialSetupState.FAILED;
+          detail = "invalid_state";
+        }
+      }
     } catch (RuntimeException failed) {
       if (attempts >= properties.credentialSetupMaxAttempts()) {
         state = CredentialSetupState.FAILED;
@@ -291,13 +327,17 @@ public class InvitationAcceptance {
     }
     invitations.recordCredentialSetup(invitationId, state.name(), attempts, nextAt);
     String outcome =
-        state == CredentialSetupState.PENDING ? "retry" : state.name().toLowerCase(Locale.ROOT);
+        detail != null
+            ? detail
+            : state == CredentialSetupState.PENDING
+                ? "retry"
+                : state.name().toLowerCase(Locale.ROOT);
     Counter.builder(CREDENTIAL_METRIC)
         .description("Identity-provider credential setup requests after acceptance")
         .tag("result", outcome)
         .register(registry)
         .increment();
-    LOG.atInfo()
+    ("invalid_state".equals(outcome) ? LOG.atError() : LOG.atInfo())
         .addKeyValue("invitationId", invitationId)
         .addKeyValue("attempts", attempts)
         .addKeyValue("result", outcome)

@@ -1,0 +1,329 @@
+openapi: 3.1.0
+info:
+  title: DivalHR Keycloak provisioning extension
+  version: 1.0.0
+  description: >-
+    Design-first contract of the narrow Keycloak REST extension `divalhr-provisioning` (Issue #31,
+    ADR 0006). Its only caller is the Core API's confidential client `divalhr-core-provisioner`,
+    which holds no Keycloak admin permission. Every operation is keyed by the invitation ID and
+    acts only on the single identity this extension created for that invitation.
+
+
+    **Authorization comes first (A2).** Before the body is read, the path is validated or any
+    identity is looked up, the extension verifies the bearer token (signature, type, expiry,
+    issuer, audience `divalhr-provisioning`), that `azp` is the enabled confidential client
+    `divalhr-core-provisioner`, that the authenticated user is that client's service account and
+    is enabled, that the service account **currently** holds the client role
+    `divalhr-provisioning/provision-invitations` (checked on the live user model, never from token
+    claims), and that the realm is enabled for the extension. Failures answer the same
+    detail-free 401 or 403 whatever the path, body or identity state.
+
+
+    **Bodies (A2).** Only identity creation takes a body: `application/json` only; at most 2048
+    bytes, counted while streaming and before JSON binding; exactly one JSON object; unknown
+    properties rejected. Credential setup and compensation take none.
+
+
+    **Responses** never contain email addresses, usernames, credentials, links or tokens.
+servers:
+  - url: /realms/{realm}/divalhr-provisioning/v1
+    description: Relative to the Keycloak base URL
+    variables:
+      realm:
+        default: divalhr-dev
+        description: A realm listed in the extension's `realms` configuration
+security:
+  - provisionerServiceAccount: []
+tags:
+  - name: invitation-identity
+    description: The identity created for one accepted invitation
+paths:
+  /invitations/{invitationId}/identity:
+    parameters:
+      - $ref: '#/components/parameters/InvitationId'
+      - $ref: '#/components/parameters/CorrelationId'
+    put:
+      operationId: provisionInvitationIdentity
+      summary: Create, or confirm, the identity of an accepted invitation
+      description: >-
+        Creates the user with `username` = `email`, `enabled` and `emailVerified` true, exactly
+        the attributes `tenant_id`, `divalhr_invitation_id` and `locale`, membership of the role
+        group mapped from `role`, the required actions for that role (`UPDATE_PASSWORD`, plus
+        `CONFIGURE_TOTP` for `tenant-admin`) and no credential. The user receives **no** realm
+        default role and no default group: every right comes from the role group alone.
+        Validation and uniqueness checks run before any mutation; creation is one Keycloak
+        transaction. A repeated call for the same invitation with the same values confirms the
+        identity (200); the extension never updates an existing user.
+
+
+        **Identical concurrent calls** never conflict: a call that loses the creation race settles
+        its outcome from committed state in a fresh transaction and confirms the same identity
+        (200). Only when committed state cannot yet show the outcome does it answer the retryable
+        503 `IDENTITY_BUSY`; the Core API treats that, like any other 5xx or any 409 without the
+        `IDENTITY_CONFLICT` code, as "provider unavailable", never as a conflict.
+      tags: [invitation-identity]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProvisionIdentity'
+      responses:
+        '200':
+          description: The identity already exists for this invitation with exactly these values
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentityRef'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentityRef'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: >-
+            `IDENTITY_CONFLICT`, only for a proven differing binding: the address or username
+            belongs to an identity that does not carry this invitation, or this invitation's
+            identity differs in email, role group or tenant. `IDENTITY_AMBIGUOUS`: more than one
+            user carries this invitation ID. Nothing is changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '503':
+          description: >-
+            `IDENTITY_BUSY`: an identical concurrent call is creating this identity and committed
+            state does not yet show it. Retryable; nothing was changed by this call.
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: compensateInvitationIdentity
+      summary: Delete the identity of an invitation whose acceptance did not complete
+      description: >-
+        Deletes the identity only while it is pristine: no credential of any kind and exactly the
+        required actions its role group was created with. Idempotent: no identity answers 204.
+      tags: [invitation-identity]
+      responses:
+        '204':
+          description: Deleted, or no identity exists for this invitation
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: >-
+            `COMPENSATION_REFUSED`: the identity is not pristine (setup started or completed, or
+            its state drifted). `IDENTITY_AMBIGUOUS`: more than one user carries this invitation
+            ID. Nothing is changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /invitations/{invitationId}/identity/credential-setup:
+    parameters:
+      - $ref: '#/components/parameters/InvitationId'
+      - $ref: '#/components/parameters/CorrelationId'
+    post:
+      operationId: requestInvitationCredentialSetup
+      summary: Send the setup email, or confirm that setup is complete
+      description: >-
+        No request body: any content is refused with 400 `INVALID_REQUEST`. The role is derived
+        only from the identity's membership of exactly one approved role group
+        (`/divalhr-role-employee` or `/divalhr-role-tenant-admin`); the required actions, client,
+        redirect URI and link lifespan follow from it and from the extension's configuration,
+        never from the caller. Role-specific states (A1):
+
+
+        - **Pending** (202, an action email for the actions still pending is sent): the identity
+        is in exactly one approved role group, carries only credential types of that role, and for each of them either holds
+        exactly one credential and no longer has the matching action pending, or holds none and
+        still has it pending; at least one action is pending and no other required action exists.
+
+        - **Completed** (200, no email): employee: exactly one password credential and
+        `UPDATE_PASSWORD` no longer pending. Tenant administrator: exactly one password and exactly
+        one OTP credential, and neither `UPDATE_PASSWORD` nor `CONFIGURE_TOTP` pending. No other
+        credential or required action.
+
+        - **Anything else** (409 `SETUP_STATE_INVALID`, no email): for example only one of the
+        required credentials with its action removed, required actions removed without the
+        credentials, unexpected credential types or counts, other required actions, membership
+        of no approved role group or of both, a disabled identity or one without an address.
+      tags: [invitation-identity]
+      responses:
+        '200':
+          description: Setup is already complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupState'
+        '202':
+          description: Setup is pending; an action email was sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupState'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: '`IDENTITY_NOT_FOUND`: no identity carries this invitation ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: '`SETUP_STATE_INVALID` or `IDENTITY_AMBIGUOUS`; nothing is sent or changed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: '`EMAIL_FAILED`: the email could not be sent'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    provisionerServiceAccount:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Client-credentials access token of `divalhr-core-provisioner` with audience
+        `divalhr-provisioning`; the service account must hold
+        `divalhr-provisioning/provision-invitations`.
+  parameters:
+    InvitationId:
+      name: invitationId
+      in: path
+      required: true
+      description: Canonical lowercase UUID; validated only after authorization
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Recorded in the audit evidence when it is a UUID; ignored otherwise
+      schema:
+        type: string
+        format: uuid
+  responses:
+    InvalidRequest:
+      description: '`INVALID_REQUEST`: malformed path, body or field; never echoed'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: '`UNAUTHORIZED`: no valid token for this realm and audience'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: >-
+        `FORBIDDEN`: not the provisioner's live service account with the capability, or the realm
+        is not enabled
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooLarge:
+      description: '`REQUEST_TOO_LARGE`: more than 2048 bytes'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnsupportedMediaType:
+      description: '`UNSUPPORTED_MEDIA_TYPE`: the body is not application/json'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    ProvisionIdentity:
+      type: object
+      additionalProperties: false
+      required: [email, role, tenantId, locale]
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          description: >-
+            Already normalized by the Core API (ASCII, lowercase); a non-canonical value is
+            rejected, never re-normalized
+        role:
+          $ref: '#/components/schemas/Role'
+        tenantId:
+          type: string
+          format: uuid
+          description: From the invitation row; the Core derived it from a verified token
+        locale:
+          type: string
+          enum: [fr, en]
+    Role:
+      type: string
+      enum: [employee, tenant-admin]
+      description: Mapped by a closed table to `/divalhr-role-employee` or `/divalhr-role-tenant-admin`
+    IdentityRef:
+      type: object
+      additionalProperties: false
+      required: [subject]
+      properties:
+        subject:
+          type: string
+          format: uuid
+    SetupState:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [PENDING, COMPLETED]
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - REQUEST_TOO_LARGE
+            - UNSUPPORTED_MEDIA_TYPE
+            - IDENTITY_CONFLICT
+            - IDENTITY_AMBIGUOUS
+            - IDENTITY_NOT_FOUND
+            - SETUP_STATE_INVALID
+            - COMPENSATION_REFUSED
+            - EMAIL_FAILED
+            - IDENTITY_BUSY

@@ -1,0 +1,8 @@
+# Build context of infrastructure/docker/keycloak/Dockerfile (the repository root): only the
+# Gradle wrapper and the extension sources. BuildKit uses this file instead of /.dockerignore.
+*
+!apps/core-api/gradlew
+!apps/core-api/gradle/
+!apps/keycloak-provisioning/
+apps/keycloak-provisioning/build
+apps/keycloak-provisioning/.gradle

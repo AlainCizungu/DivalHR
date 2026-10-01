@@ -332,6 +332,59 @@ class DevelopmentRealmBoundaryTest {
     }
   }
 
+  /**
+   * Issue #31: the provisioner holds only the extension's capability; no admin role, scope mapping
+   * or fine-grained admin permission.
+   */
+  @Test
+  void theProvisionerHoldsOnlyTheProvisioningCapability() {
+    JsonNode realm = devRealm().json();
+    JsonNode serviceAccount = null;
+    for (JsonNode user : realm.path("users")) {
+      if ("service-account-divalhr-core-provisioner".equals(user.path("username").asText())) {
+        serviceAccount = user;
+      }
+    }
+    assertThat(serviceAccount).isNotNull();
+    assertThat(texts(serviceAccount.path("realmRoles"))).isEmpty();
+    assertThat(texts(serviceAccount.path("groups"))).isEmpty();
+    List<String> clients = new ArrayList<>();
+    serviceAccount.path("clientRoles").properties().forEach(e -> clients.add(e.getKey()));
+    assertThat(clients).containsExactly("divalhr-provisioning");
+    assertThat(texts(serviceAccount.path("clientRoles").path("divalhr-provisioning")))
+        .containsExactly("provision-invitations");
+    assertThat(realm.has("clientScopeMappings")).isFalse();
+    assertThat(realm.path("adminPermissionsEnabled").asBoolean(false)).isFalse();
+    for (JsonNode client : realm.path("clients")) {
+      assertThat(client.path("clientId").asText()).isNotEqualTo("admin-permissions");
+    }
+
+    JsonNode provisioner = client(realm, "divalhr-core-provisioner");
+    assertThat(provisioner.path("serviceAccountsEnabled").asBoolean()).isTrue();
+    assertThat(provisioner.path("standardFlowEnabled").asBoolean(true)).isFalse();
+    assertThat(provisioner.path("directAccessGrantsEnabled").asBoolean(true)).isFalse();
+    assertThat(provisioner.path("fullScopeAllowed").asBoolean(true)).isFalse();
+    List<String> audiences = new ArrayList<>();
+    for (JsonNode mapper : provisioner.path("protocolMappers")) {
+      assertThat(mapper.path("protocolMapper").asText()).isEqualTo("oidc-audience-mapper");
+      audiences.add(mapper.path("config").path("included.custom.audience").asText());
+    }
+    assertThat(audiences).containsExactly("divalhr-provisioning");
+
+    JsonNode capability = client(realm, "divalhr-provisioning");
+    assertThat(capability.path("standardFlowEnabled").asBoolean(true)).isFalse();
+    assertThat(capability.path("directAccessGrantsEnabled").asBoolean(true)).isFalse();
+    assertThat(capability.path("serviceAccountsEnabled").asBoolean(true)).isFalse();
+    assertThat(capability.path("publicClient").asBoolean(true)).isFalse();
+    List<String> roles = new ArrayList<>();
+    realm
+        .path("roles")
+        .path("client")
+        .path("divalhr-provisioning")
+        .forEach(role -> roles.add(role.path("name").asText()));
+    assertThat(roles).containsExactly("provision-invitations");
+  }
+
   private static List<String> steps(JsonNode realm, String alias) {
     for (JsonNode flow : realm.path("authenticationFlows")) {
       if (alias.equals(flow.path("alias").asText())) {

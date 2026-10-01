@@ -63,36 +63,17 @@ class InvitationConfigurationTest {
             null,
             "dev-only-provisioner-secret-2026",
             null,
-            "http://localhost:5173/auth/callback",
-            null,
-            null,
             null);
     dev.validate("development");
     assertThatThrownBy(() -> dev.validate("staging"))
         .hasMessageNotContaining("dev-only-provisioner-secret-2026");
     KeycloakProperties plain =
         new KeycloakProperties(
-            "http://id.example.com",
-            "divalhr",
-            null,
-            "a-real-secret-value-123",
-            null,
-            "https://app.example.com/auth/callback",
-            null,
-            null,
-            null);
+            "http://id.example.com", "divalhr", null, "a-real-secret-value-123", null, null);
     assertThatThrownBy(() -> plain.validate("production")).hasMessageContaining("https");
     assertThat(plain.toString()).doesNotContain("a-real-secret-value-123");
     new KeycloakProperties(
-            "https://id.example.com",
-            "divalhr",
-            null,
-            "a-real-secret-value-123",
-            null,
-            "https://app.example.com/auth/callback",
-            null,
-            null,
-            null)
+            "https://id.example.com", "divalhr", null, "a-real-secret-value-123", null, null)
         .validate("production");
   }
 
