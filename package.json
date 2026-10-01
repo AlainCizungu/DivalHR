@@ -18,7 +18,8 @@
     "api:generate": "pnpm --filter @divalhr/api-client run generate",
     "api:check": "pnpm --filter @divalhr/api-client run check",
     "realm:test": "node --test infrastructure/docker/keycloak/verify-realm.test.mjs",
-    "realm:verify": "node infrastructure/docker/keycloak/verify-realm.mjs"
+    "realm:verify": "node infrastructure/docker/keycloak/verify-realm.mjs --mode=final",
+    "realm:verify:pre-cutover": "node infrastructure/docker/keycloak/verify-realm.mjs --mode=pre-cutover"
   },
   "devDependencies": {
     "@redocly/cli": "2.55.0",
