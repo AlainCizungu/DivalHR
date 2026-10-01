@@ -3,9 +3,9 @@ package com.divalhr.core.support;
 import java.security.SecureRandom;
 import java.util.UUID;
 import javax.sql.DataSource;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestContext;
+import org.springframework.test.context.support.AbstractTestExecutionListener;
 
 /**
  * Explicit tenant memberships for integration tests (MVP-012A, M11). The membership gate is never
@@ -49,14 +49,25 @@ public final class Memberships {
         tenant);
   }
 
-  /** Registers the test database (imported by {@link IntegrationTest}). */
-  @TestConfiguration(proxyBeanMethods = false)
-  public static class Registration {
+  /**
+   * Binds the helper to the running test's own database before each test instance and method
+   * (registered by {@link IntegrationTest}). Each Spring test context has its own database, so the
+   * binding follows the context of the test being executed.
+   */
+  public static class Binding extends AbstractTestExecutionListener {
 
-    @Bean
-    Object membershipTestDatabase(DataSource dataSource) {
-      jdbc = new JdbcTemplate(dataSource);
-      return new Object();
+    @Override
+    public void prepareTestInstance(TestContext testContext) {
+      bind(testContext);
+    }
+
+    @Override
+    public void beforeTestMethod(TestContext testContext) {
+      bind(testContext);
+    }
+
+    private static void bind(TestContext testContext) {
+      jdbc = new JdbcTemplate(testContext.getApplicationContext().getBean(DataSource.class));
     }
   }
 }
