@@ -1,6 +1,7 @@
 import type { Organization, Problem } from '@divalhr/api-client';
 import { useId, useRef, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FirstAdministratorPanel } from './FirstAdministratorPanel';
 import { useApi } from '../../app/ApiProvider';
 import {
   COUNTRIES,
@@ -145,6 +146,7 @@ export function CreateOrganizationPage() {
             {org.id}
           </dd>
         </dl>
+        <FirstAdministratorPanel organizationId={org.id} defaultLocale={org.defaultLocale} />
         <button
           type="button"
           className="button"

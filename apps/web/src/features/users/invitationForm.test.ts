@@ -25,6 +25,7 @@ const row = (overrides: Partial<Invitation> = {}): Invitation => ({
   acceptedAt: null,
   revokedAt: null,
   resendsRemaining: 3,
+  origin: 'TENANT_ADMIN',
   ...overrides,
 });
 

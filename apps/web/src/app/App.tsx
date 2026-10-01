@@ -6,6 +6,7 @@ import { CallbackPage } from '../auth/CallbackPage';
 import { MfaRequiredPage } from '../auth/MfaRequiredPage';
 import type { RuntimeConfig } from '../config/runtime';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
+import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { RequirePlatformAdmin } from '../features/admin/RequirePlatformAdmin';
 import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
@@ -42,6 +43,17 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
                       element={
                         <RequirePlatformAdmin>
                           <CreateOrganizationPage />
+                        </RequirePlatformAdmin>
+                      }
+                    />
+                    <Route
+                      path="/admin/organizations/first-admin"
+                      element={
+                        <RequirePlatformAdmin
+                          deniedKey="firstAdmin.unauthorized"
+                          signInKey="firstAdmin.signInRequired"
+                        >
+                          <FirstAdministratorPage />
                         </RequirePlatformAdmin>
                       }
                     />

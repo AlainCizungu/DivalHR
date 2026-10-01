@@ -31,12 +31,19 @@ export const EMAIL_MAX_LENGTH = 254;
 // A usability check only: the Core API normalizes and validates the address authoritatively.
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/u;
 
+/** Client-side address check shared with the first-administrator form (MVP-014). */
+export function emailError(value: string): 'REQUIRED' | 'LENGTH' | 'FORMAT' | undefined {
+  const email = value.trim();
+  if (email === '') return 'REQUIRED';
+  if (email.length > EMAIL_MAX_LENGTH) return 'LENGTH';
+  if (!EMAIL_SHAPE.test(email)) return 'FORMAT';
+  return undefined;
+}
+
 export function validateInvitation(values: InvitationValues): InvitationErrors {
   const errors: InvitationErrors = {};
-  const email = values.email.trim();
-  if (email === '') errors.email = 'REQUIRED';
-  else if (email.length > EMAIL_MAX_LENGTH) errors.email = 'LENGTH';
-  else if (!EMAIL_SHAPE.test(email)) errors.email = 'FORMAT';
+  const email = emailError(values.email);
+  if (email) errors.email = email;
   if (values.role === '') errors.role = 'REQUIRED';
   return errors;
 }
@@ -117,6 +124,7 @@ export function rowFromReceipt(receipt: InvitationReceipt, email: string): Invit
     acceptedAt: null,
     revokedAt: null,
     resendsRemaining: 3,
+    origin: 'TENANT_ADMIN',
   };
 }
 

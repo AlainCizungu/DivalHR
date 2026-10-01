@@ -20,6 +20,7 @@ const PENDING = {
   acceptedAt: null,
   revokedAt: null,
   resendsRemaining: 3,
+  origin: 'TENANT_ADMIN',
 };
 const SENT = {
   ...PENDING,
@@ -373,6 +374,38 @@ describe.each(['en', 'fr'] as const)('users and invitations (%s)', (locale) => {
     expect(screen.getByTestId('announcer')).toHaveTextContent(errors.INVITATION_RESEND_LIMITED);
     expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(screen.queryAllByRole('alert')).toHaveLength(0);
+  });
+
+  it('labels a platform bootstrap invitation and never offers to resend it (MVP-014)', async () => {
+    const BOOTSTRAP = {
+      ...FAILED,
+      id: '55555555-5555-4555-8555-555555555555',
+      email: 'first.admin@example.cd',
+      origin: 'PLATFORM_BOOTSTRAP',
+    };
+    stubApi(() => ({ status: 200, body: { data: [BOOTSTRAP, PENDING] } }));
+    const { container } = await renderPage(locale);
+    await screen.findByTestId('invitation-list');
+    const row = rowOf(BOOTSTRAP.email);
+    expect(row).toHaveTextContent(s.list.origin.PLATFORM_BOOTSTRAP);
+    expect(
+      within(row).queryByRole('button', {
+        name: fill(s.actions.resendLabel, { email: BOOTSTRAP.email }),
+      }),
+    ).toBeNull();
+    expect(
+      within(row).getByRole('button', {
+        name: fill(s.actions.revokeLabel, { email: BOOTSTRAP.email }),
+      }),
+    ).toBeInTheDocument();
+    expect(rowOf(PENDING.email)).not.toHaveTextContent(s.list.origin.PLATFORM_BOOTSTRAP);
+    expect(
+      within(rowOf(PENDING.email)).getByRole('button', {
+        name: fill(s.actions.resendLabel, { email: PENDING.email }),
+      }),
+    ).toBeInTheDocument();
+    const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
 
   it('filters by status with a fresh list', async () => {
