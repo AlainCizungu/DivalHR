@@ -1,48 +1,43 @@
 package com.divalhr.core.identity.api;
 
-import com.divalhr.core.platform.tenancy.TenantContext;
-import com.divalhr.core.platform.tenancy.TenantContextResolver;
+import com.divalhr.core.identity.application.SessionRoles;
 import io.swagger.v3.oas.annotations.Operation;
-import java.util.List;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Returns the verified tenant and roles of the caller; proves end-to-end JWT validation. */
+/**
+ * Returns the verified tenant and effective roles of the caller (MVP-012A: token ∩ membership for
+ * tenant roles; platform-admin from the token). Requires no MFA.
+ */
 @RestController
 @RequestMapping("/api/v1")
 public class SessionController {
 
-  private final TenantContextResolver tenantContextResolver;
+  private final SessionRoles sessions;
 
   /**
    * Creates the controller.
    *
-   * @param tenantContextResolver resolver for the verified tenant
+   * @param sessions effective-session service
    */
-  public SessionController(TenantContextResolver tenantContextResolver) {
-    this.tenantContextResolver = tenantContextResolver;
+  public SessionController(SessionRoles sessions) {
+    this.sessions = sessions;
   }
 
   /**
    * Returns the current session.
    *
    * @param authentication authenticated principal
-   * @return tenant and roles; never names, emails or token contents
+   * @return tenant and effective roles; never names, emails, token contents or reasons
    */
   @Operation(operationId = "getCurrentSession")
   @GetMapping("/session")
   public CurrentSession currentSession(Authentication authentication) {
-    TenantContext context = tenantContextResolver.current();
-    List<String> roles =
-        authentication.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .filter(authority -> authority.startsWith("ROLE_"))
-            .map(authority -> authority.substring("ROLE_".length()))
-            .sorted()
-            .toList();
-    return new CurrentSession(context.tenantId().toString(), roles);
+    SessionRoles.Effective effective = sessions.of(authentication);
+    return new CurrentSession(
+        effective.tenant().map(tenant -> tenant.value().toString()).orElse(null),
+        effective.roles());
   }
 }
