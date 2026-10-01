@@ -17,7 +17,7 @@ export function SessionCard() {
       {state.kind === 'ready' && (
         <dl className="meta">
           <dt>{t('session.tenant')}</dt>
-          <dd data-testid="session-tenant">{state.session.tenantId}</dd>
+          <dd data-testid="session-tenant">{state.session.tenantId ?? t('session.noTenant')}</dd>
           <dt>{t('session.roles')}</dt>
           <dd data-testid="session-roles">
             {state.session.roles.length === 0

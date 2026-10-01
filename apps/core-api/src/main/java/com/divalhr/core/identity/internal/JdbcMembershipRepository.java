@@ -1,18 +1,34 @@
 package com.divalhr.core.identity.internal;
 
+import com.divalhr.core.identity.domain.EmailAddress;
 import com.divalhr.core.identity.domain.TenantRole;
+import com.divalhr.core.platform.tenancy.CrossTenantAccess;
+import com.divalhr.core.platform.tenancy.MembershipAuthority.ActiveMembership;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The only code that touches {@code identity.tenant_membership}. Stores no email address. */
+/**
+ * The only code that touches {@code identity.tenant_membership}. The stored address is confidential
+ * (MVP-012A): it is written once, from the source invitation, and never logged.
+ */
 @Repository
 public class JdbcMembershipRepository {
+
+  /**
+   * The single definition of an active membership (MVP-012A, M1 and A5). Every query that decides
+   * or reports tenant access includes it: the membership gate, {@code GET /session}, the MVP-014
+   * bootstrap rule and, later, the access review, so they can never disagree. Every membership is
+   * active today; the membership lifecycle story (S3) narrows this predicate, for example to {@code
+   * ended_at IS NULL}, in this one place.
+   */
+  static final String ACTIVE = "TRUE";
 
   private final JdbcClient jdbc;
 
@@ -56,17 +72,39 @@ public class JdbcMembershipRepository {
    */
   public boolean tenantAdminExists(TenantId tenant, UUID excludingSourceInvitation) {
     return jdbc.sql(
-            """
-            SELECT 1 FROM identity.tenant_membership
-            WHERE tenant_id = :tenant AND role = 'tenant-admin'
-              AND source_invitation_id IS DISTINCT FROM CAST(:excluded AS uuid)
-            LIMIT 1
-            """)
+            "SELECT 1 FROM identity.tenant_membership"
+                + " WHERE tenant_id = :tenant AND role = 'tenant-admin'"
+                + " AND source_invitation_id IS DISTINCT FROM CAST(:excluded AS uuid)"
+                + " AND "
+                + ACTIVE
+                + " LIMIT 1")
         .param("tenant", tenant.value())
         .param("excluded", excludingSourceInvitation)
         .query(Integer.class)
         .optional()
         .isPresent();
+  }
+
+  /**
+   * The subject's active membership (the subject is unique across tenants), for the membership gate
+   * and the session. Reads committed state; nothing is cached.
+   *
+   * @param subject verified token subject
+   * @return the membership, or empty
+   */
+  @CrossTenantAccess(
+      "Authorization lookup before any tenant is trusted: the subject is unique across tenants and"
+          + " the caller compares the returned tenant with the token's verified tenant")
+  public Optional<ActiveMembership> findActiveBySubject(String subject) {
+    return jdbc.sql(
+            "SELECT tenant_id, role FROM identity.tenant_membership WHERE subject = :subject AND "
+                + ACTIVE)
+        .param("subject", subject)
+        .query(
+            (row, number) ->
+                new ActiveMembership(
+                    new TenantId(row.getObject("tenant_id", UUID.class)), row.getString("role")))
+        .optional();
   }
 
   /**
@@ -76,7 +114,8 @@ public class JdbcMembershipRepository {
    * @param id membership id
    * @param subject identity-provider subject
    * @param role the invitation's role
-   * @param emailLookup the invitation's address lookup
+   * @param email the invitation's validated address (stored, confidential)
+   * @param emailLookup the lookup of that same address
    * @param sourceInvitationId the invitation
    * @param createdAt acceptance time
    */
@@ -86,21 +125,59 @@ public class JdbcMembershipRepository {
       UUID id,
       String subject,
       TenantRole role,
+      EmailAddress email,
       byte[] emailLookup,
       UUID sourceInvitationId,
       Instant createdAt) {
     jdbc.sql(
             """
             INSERT INTO identity.tenant_membership
-              (id, tenant_id, subject, role, email_lookup, source_invitation_id, created_at)
-            VALUES (:id, :tenant, :subject, :role, :lookup, :source, :createdAt)
+              (id, tenant_id, subject, role, email, email_lookup, source_invitation_id,
+               created_at)
+            VALUES (:id, :tenant, :subject, :role, :email, :lookup, :source, :createdAt)
+            """)
+        .param("id", id)
+        .param("tenant", tenant.value())
+        .param("subject", subject)
+        .param("role", role.wireName())
+        .param("email", email.value())
+        .param("lookup", emailLookup)
+        .param("source", sourceInvitationId)
+        .param("createdAt", Timestamp.from(createdAt))
+        .update();
+  }
+
+  /**
+   * DEVELOPMENT ONLY: inserts a seed membership without a source invitation and without an address
+   * (V10 rejects unanchored addresses). Idempotent.
+   *
+   * @param tenant seed tenant
+   * @param id fixed membership id
+   * @param subject fixed realm user id
+   * @param role tenant role
+   * @param emailLookup lookup of the published seed address
+   * @param createdAt seed time
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void insertDevelopmentSeed(
+      TenantId tenant,
+      UUID id,
+      String subject,
+      TenantRole role,
+      byte[] emailLookup,
+      Instant createdAt) {
+    jdbc.sql(
+            """
+            INSERT INTO identity.tenant_membership
+              (id, tenant_id, subject, role, email_lookup, created_at)
+            VALUES (:id, :tenant, :subject, :role, :lookup, :createdAt)
+            ON CONFLICT DO NOTHING
             """)
         .param("id", id)
         .param("tenant", tenant.value())
         .param("subject", subject)
         .param("role", role.wireName())
         .param("lookup", emailLookup)
-        .param("source", sourceInvitationId)
         .param("createdAt", Timestamp.from(createdAt))
         .update();
   }

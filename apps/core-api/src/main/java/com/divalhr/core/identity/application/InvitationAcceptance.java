@@ -5,6 +5,7 @@ import com.divalhr.core.identity.application.IdentityDirectory.Provisioned;
 import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningRequest;
 import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningResult;
 import com.divalhr.core.identity.domain.CredentialSetupState;
+import com.divalhr.core.identity.domain.EmailAddress;
 import com.divalhr.core.identity.domain.Invitation;
 import com.divalhr.core.identity.domain.InvitationOrigin;
 import com.divalhr.core.identity.domain.InvitationState;
@@ -246,12 +247,15 @@ public class InvitationAcceptance {
                   supersede(invitation, owner, now, correlationId);
                   return Completion.SUPERSEDED;
                 }
+                // Address and lookup from the same validated value (A3, A12A-2).
+                EmailAddress address = invitation.email();
                 memberships.insert(
                     invitation.tenant(),
                     membershipId,
                     subject,
                     invitation.role(),
-                    lookups.of(invitation.email()),
+                    address,
+                    lookups.of(address),
                     invitation.id(),
                     now);
                 if (!invitations.completeAcceptance(invitation.id(), owner, membershipId, now)) {

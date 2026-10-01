@@ -58,7 +58,8 @@
       "platform-admin": "Administrateur de la plateforme",
       "tenant-admin": "Administrateur de l’organisation",
       "employee": "Employé"
-    }
+    },
+    "noTenant": "Aucune organisation"
   },
   "status": {
     "title": "État du système",

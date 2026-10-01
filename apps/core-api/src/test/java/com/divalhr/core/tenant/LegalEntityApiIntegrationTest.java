@@ -67,7 +67,7 @@ class LegalEntityApiIntegrationTest {
         mvc.perform(
                 create(
                         PATH,
-                        bearer(tenant, "sub-le-create", "tenant-admin"),
+                        bearer(tenant, "sub-le-create-" + tenant, "tenant-admin"),
                         Organizations.newKey(),
                         legalEntity("  " + code + " ", "  " + name + "  ", "2026-01-01", null))
                     .header("X-Correlation-Id", "mvp002-le-000001"))
@@ -93,7 +93,7 @@ class LegalEntityApiIntegrationTest {
     assertThat(row.get("tenant_id")).isEqualTo(tenant);
     assertThat(row.get("code")).isEqualTo(code.toUpperCase(java.util.Locale.ROOT));
     assertThat(row.get("name")).isEqualTo(name);
-    assertThat(row.get("created_by")).isEqualTo("sub-le-create");
+    assertThat(row.get("created_by")).isEqualTo("sub-le-create-" + tenant);
     assertThat(row.get("effective_to")).isNull();
 
     Map<String, Object> audit =
@@ -101,7 +101,7 @@ class LegalEntityApiIntegrationTest {
     assertThat(audit.get("action")).isEqualTo("legal-entity.create");
     assertThat(audit.get("resource_type")).isEqualTo("legal-entity");
     assertThat(audit.get("tenant_id")).isEqualTo(tenant);
-    assertThat(audit.get("actor_subject")).isEqualTo("sub-le-create");
+    assertThat(audit.get("actor_subject")).isEqualTo("sub-le-create-" + tenant);
     assertThat(audit.get("correlation_id")).isEqualTo("mvp002-le-000001");
     assertThat(audit.get("metadata").toString()).doesNotContain(name).contains("CD");
 
@@ -315,7 +315,9 @@ class LegalEntityApiIntegrationTest {
 
   @Test
   void tokenTenantWithoutOrganizationHasNoUsableContext() throws Exception {
-    // TENANT_A has no organization in the test environment (development fixtures are absent).
+    // TENANT_A has no organization in the test environment (development fixtures are absent), so
+    // no membership can exist for it: since MVP-012A the membership gate denies the request before
+    // the service would report the missing organization.
     mvc.perform(
             create(
                 PATH,
@@ -323,7 +325,7 @@ class LegalEntityApiIntegrationTest {
                 Organizations.newKey(),
                 legalEntity(code("orp"), "Orpheline", "2026-01-01", null)))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_CONTEXT_MISSING"));
+        .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
   }
 
   @Test

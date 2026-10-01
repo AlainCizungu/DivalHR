@@ -63,5 +63,7 @@ jobs:
         run: pnpm test
       - name: Keycloak realm verification rules (MVP-011)
         run: pnpm realm:test
+      - name: Membership preflight rules (MVP-012A)
+        run: pnpm ops:test
       - name: Build
         run: pnpm build

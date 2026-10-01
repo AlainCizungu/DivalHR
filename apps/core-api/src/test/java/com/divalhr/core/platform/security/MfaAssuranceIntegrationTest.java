@@ -11,6 +11,7 @@ import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.support.Hierarchy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Invitations;
+import com.divalhr.core.support.Memberships;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.TestTokens;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -86,9 +87,20 @@ class MfaAssuranceIntegrationTest {
     tenant = Hierarchy.newTenant(mvc);
   }
 
+  /**
+   * A token whose subject (made unique to this test's tenant) is a member of the tenant with its
+   * tenant role (MVP-012A), so that only the assurance level varies.
+   */
   private String bearer(String subject, Object acr, String... roles) {
+    String member = subject == null ? null : subject + "-" + tenant;
+    List<String> claimed = List.of(roles);
+    if (claimed.contains("tenant-admin")) {
+      Memberships.grant(tenant, member, "tenant-admin");
+    } else if (claimed.contains("employee")) {
+      Memberships.grant(tenant, member, "employee");
+    }
     return "Bearer "
-        + TestTokens.token().tenant(tenant).subject(subject).roles(List.of(roles)).acr(acr).build();
+        + TestTokens.token().tenant(tenant).subject(member).roles(claimed).acr(acr).build();
   }
 
   private static MockHttpServletRequestBuilder malformedPost(String path, String bearer) {

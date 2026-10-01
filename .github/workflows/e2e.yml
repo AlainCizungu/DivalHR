@@ -57,6 +57,12 @@ jobs:
         run: pnpm --filter @divalhr/web exec playwright test
         env:
           CI: 'true'
+      - name: Membership preflight (read-only; MVP-012A, counts and IDs only)
+        run: pnpm membership:preflight
+        env:
+          KEYCLOAK_ADMIN_USER: dev-kc-admin
+          KEYCLOAK_ADMIN_PASSWORD: dev-only-keycloak-admin
+          PREFLIGHT_DB_TRANSPORT: compose
       - if: failure()
         name: Service logs
         run: docker compose -f infrastructure/docker/compose.yaml --env-file .env.example logs --no-color

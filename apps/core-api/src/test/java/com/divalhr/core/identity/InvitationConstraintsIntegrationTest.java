@@ -202,7 +202,9 @@ class InvitationConstraintsIntegrationTest {
                 "SELECT state FROM identity.invitation WHERE id = ?", String.class, invitation))
         .isEqualTo("ACCEPTED");
 
-    // A membership whose source invitation is in another tenant.
+    // A membership whose source invitation is in another tenant. Since V10 (MVP-012A) the insert
+    // trigger anchoring the address to the source invitation rejects these before the composite
+    // foreign key, which still holds behind it.
     UUID foreign = UUID.randomUUID();
     invitation(foreign, tenantB, "bob@example.test", "employee");
     assertThat(
@@ -215,7 +217,7 @@ class InvitationConstraintsIntegrationTest {
                         "employee",
                         "bob@example.test",
                         foreign)))
-        .isEqualTo("tenant_membership_source_same_tenant");
+        .isEqualTo("tenant_membership_email_from_source");
     // A membership whose role (or address) differs from its source invitation.
     assertThat(
             constraintOf(
@@ -227,7 +229,7 @@ class InvitationConstraintsIntegrationTest {
                         "tenant-admin",
                         "bob@example.test",
                         foreign)))
-        .isEqualTo("tenant_membership_source_same_tenant");
+        .isEqualTo("tenant_membership_email_from_source");
     assertThat(
             constraintOf(
                 () ->
@@ -238,7 +240,7 @@ class InvitationConstraintsIntegrationTest {
                         "employee",
                         "eve@example.test",
                         foreign)))
-        .isEqualTo("tenant_membership_source_same_tenant");
+        .isEqualTo("tenant_membership_email_from_source");
 
     // An accepted invitation pointing at the membership of another invitation (checked at commit).
     UUID other = UUID.randomUUID();

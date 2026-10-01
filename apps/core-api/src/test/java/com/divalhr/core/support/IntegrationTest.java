@@ -7,6 +7,7 @@ import java.lang.annotation.Target;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestExecutionListeners;
 
 /** Full application context against a real PostgreSQL container. */
 @Target(ElementType.TYPE)
@@ -30,4 +31,7 @@ import org.springframework.context.annotation.Import;
     })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})
+@TestExecutionListeners(
+    listeners = Memberships.Binding.class,
+    mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)
 public @interface IntegrationTest {}

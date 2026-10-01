@@ -223,7 +223,7 @@ class InvitationDeliveryAndJobsIntegrationTest {
   }
 
   @Test
-  void retentionDeletesOldTerminalInvitationsAndKeepsMembershipsWithoutAddresses()
+  void retentionDeletesOldTerminalInvitationsAndKeepsMembershipsWithTheirImmutableAddress()
       throws Exception {
     String email = address("retained");
     UUID accepted = UUID.fromString(invite(mvc, tenant, email, "employee").get("id").asText());
@@ -266,7 +266,7 @@ class InvitationDeliveryAndJobsIntegrationTest {
     assertThat(
             jdbc.queryForObject(
                 "SELECT count(*) FROM identity.tenant_membership WHERE tenant_id = ?"
-                    + " AND source_invitation_id IS NULL",
+                    + " AND source_invitation_id IS NULL AND email IS NOT NULL",
                 Integer.class,
                 tenant))
         .isEqualTo(1);

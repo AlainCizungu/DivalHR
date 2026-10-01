@@ -5,8 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.divalhr.core.support.Hierarchy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.TestTokens;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -42,9 +44,11 @@ class TenantIsolationIntegrationTest {
 
   @Test
   void neverTrustsTenantSuppliedOnlyInRequestBody() throws Exception {
+    // MVP-012A: the tenant-scoped probe is reached only by a member of the token's tenant.
+    UUID tenant = Hierarchy.newTenant(mvc);
     mvc.perform(
             post("/test-support/probes")
-                .header("Authorization", bearer())
+                .header("Authorization", Hierarchy.bearer(tenant, "sub-" + tenant, "employee"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"tenantId\":\"" + TestTokens.TENANT_B + "\"}"))
         .andExpect(status().isForbidden())

@@ -28,8 +28,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Verified tenant and roles of the caller
-         * @description Returns only the verified tenant identifier and recognised roles (platform-admin, tenant-admin, employee). Never returns names, e-mail addresses, token contents or internal identity-provider roles. Requires no MFA assurance, so a privileged user whose session has not reached multifactor level can still load the app and be asked to step up.
+         * Verified tenant and effective roles of the caller
+         * @description Returns only the verified tenant identifier and the caller's effective roles. A tenant role (tenant-admin, employee) is returned only when the access token carries it and the caller's tenant membership belongs to the token's tenant with that same role (MVP-012A). platform-admin is returned from the token alone and is never derived from a membership; a platform administrator's tenant claim grants no tenant role by itself. tenantId is the verified tenant claim, or null for a platform-administrator token without one; it never implies tenant access. A token carrying only tenant roles (or no recognised role) without a valid tenant claim gets 403 TENANT_CONTEXT_MISSING. Never returns names, e-mail addresses, token contents, internal identity-provider roles, or why a role is missing. Requires no MFA assurance, so a privileged user whose session has not reached multifactor level can still load the app and be asked to step up.
          */
         get: operations["getCurrentSession"];
         put?: never;
@@ -885,8 +885,11 @@ export interface components {
             checkedAt: string;
         };
         CurrentSession: {
-            /** Format: uuid */
-            tenantId: string;
+            /**
+             * Format: uuid
+             * @description Verified tenant claim; null only for a platform-administrator token without a tenant claim. Never synthesized.
+             */
+            tenantId: string | null;
             roles: ("platform-admin" | "tenant-admin" | "employee")[];
         };
         /**
@@ -929,7 +932,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Authenticated but not permitted. Privileged operations (x-divalhr-required-assurance: mfa) additionally return MFA_REQUIRED when the verified access token's acr claim is not exactly urn:divalhr:loa:mfa (multifactor authentication not completed for this session). Checks run in this order before the request is read: verified subject, required role (ACCESS_DENIED), verified tenant (TENANT_CONTEXT_MISSING), then MFA assurance (MFA_REQUIRED). MFA_REQUIRED carries no params and never echoes claims, roles, subject, tenant or request data. */
+        /** @description Authenticated but not permitted. Privileged operations (x-divalhr-required-assurance: mfa) additionally return MFA_REQUIRED when the verified access token's acr claim is not exactly urn:divalhr:loa:mfa (multifactor authentication not completed for this session). Checks run in this order before the request is read: verified subject, required role (ACCESS_DENIED), verified tenant (TENANT_CONTEXT_MISSING), then MFA assurance (MFA_REQUIRED), then, for tenant-scoped operations, a matching tenant membership (MVP-012A): the caller's membership must belong to the token's tenant and carry exactly the required role, which the token must also hold. A missing or non-matching membership returns the same ACCESS_DENIED as a missing role, with no further detail. MFA_REQUIRED carries no params and never echoes claims, roles, subject, tenant or request data. */
         PrivilegedForbidden: {
             headers: {
                 "WWW-Authenticate": components["headers"]["WwwAuthenticateStepUp"];

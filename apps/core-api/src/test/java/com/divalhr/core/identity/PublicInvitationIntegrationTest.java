@@ -203,12 +203,15 @@ class PublicInvitationIntegrationTest {
         .containsEntry("subject", identity.subject())
         .containsEntry("role", "tenant-admin")
         .containsEntry("source_invitation_id", invited.id());
+    // MVP-012A (V10): the membership keeps the invitation's own normalized address.
     assertThat(
             jdbc.queryForObject(
-                "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'identity'"
-                    + " AND table_name = 'tenant_membership' AND column_name = 'email'",
-                Integer.class))
-        .isZero();
+                "SELECT m.email = i.email FROM identity.tenant_membership m"
+                    + " JOIN identity.invitation i ON i.id = m.source_invitation_id"
+                    + " WHERE m.id = ?",
+                Boolean.class,
+                row.get("membership_id")))
+        .isTrue();
 
     Map<String, Object> audit =
         jdbc.queryForMap(
