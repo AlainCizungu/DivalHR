@@ -371,6 +371,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-review/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review the active access of the caller's organization
+         * @description MVP-012B. Lists the caller's organization's active tenant memberships, the same authority the membership gate enforces (MVP-012A): every member has organization-wide access, so a legal-entity or site filter returns every member with matchedUnit INHERITED_FROM_TENANT after checking that the unit exists in the caller's tenant (missing and foreign units are indistinguishable 404s). At most one of legalEntityId and siteId. Newest grant first (grantedAt then membershipId, both descending), keyset-paginated: stable and duplicate-free under concurrent inserts, but not a snapshot (a membership added after the first page may be omitted from that traversal and appears on a fresh review). Cursors are bound to the operation, tenant, role filter, unit type, unit ID and page size. Contains confidential email addresses: Cache-Control private, no-store on every response. Every 200 is durably audited as access-review.read before the body is written; if the audit cannot be committed the response is 500 INTERNAL_ERROR without review data. At most 30 review requests per minute per subject across the three access-review operations (429 RATE_LIMITED with Retry-After). Future direct scopes (LEGAL_ENTITY, SITE; inheritance DIRECT) are reserved for story S1 and are not part of this contract yet.
+         */
+        get: operations["listAccessReviewEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-review/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Find the active access of one exact email address
+         * @description MVP-012B. Exact, normalized address match (no partial or prefix search) through the keyed address lookup, in the caller's tenant only. Returns the same page shape with zero or one entry; a non-member, an unknown address and a member of another tenant all give the same empty page. The submitted address is never echoed: a matched membership whose address was not recorded is returned with email null. A read: no Idempotency-Key and no state change. Cache-Control private, no-store; durable access-review.read audit before the body is written (also for an empty result); shared 30 requests per minute per subject.
+         */
+        post: operations["lookupAccessReviewEntry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-review/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the active members of the caller's organization per role
+         * @description MVP-012B. Counts computed with the same active-membership predicate as the entries, so the two never disagree. Cache-Control private, no-store; durable access-review.read audit before the body is written; shared 30 requests per minute per subject.
+         */
+        get: operations["getAccessReviewSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/invitations/inspect": {
         parameters: {
             query?: never;
@@ -484,6 +544,54 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessReviewLookup: {
+            /** @description Exact address; normalized like invitations. Never echoed or logged. */
+            email: string;
+        };
+        AccessReviewPage: {
+            data: components["schemas"]["AccessReviewEntry"][];
+            /** @description Present only when another page exists. */
+            nextCursor?: string;
+        };
+        /** @description One active tenant membership. Never contains the identity subject, username, name, source invitation, tokens, credential or MFA state, or identity-provider roles. */
+        AccessReviewEntry: {
+            /** Format: uuid */
+            membershipId: string;
+            /** @description Confidential; null when the address was not recorded (historical rows). */
+            email: string | null;
+            role: components["schemas"]["InvitationRole"];
+            /** Format: date-time */
+            grantedAt: string;
+            directScope: components["schemas"]["AccessReviewDirectScope"];
+            effectiveScope: components["schemas"]["AccessReviewEffectiveScope"];
+            matchedUnit: components["schemas"]["AccessReviewMatchedUnit"] | null;
+        };
+        /** @description The scope granted by the membership. Only TENANT exists today; LEGAL_ENTITY and SITE are reserved for story S1 and will be added with it. */
+        AccessReviewDirectScope: {
+            /** @enum {string} */
+            type: "TENANT";
+        };
+        AccessReviewEffectiveScope: {
+            /** @enum {string} */
+            type: "TENANT";
+            /** @enum {boolean} */
+            coversAllLegalEntitiesAndSites: true;
+        };
+        /** @description Present when the request filtered by a unit. Only INHERITED_FROM_TENANT exists today; DIRECT is reserved for story S1. */
+        AccessReviewMatchedUnit: {
+            /** @enum {string} */
+            type: "LEGAL_ENTITY" | "SITE";
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            inheritance: "INHERITED_FROM_TENANT";
+        };
+        AccessReviewSummary: {
+            byRole: {
+                "tenant-admin": number;
+                employee: number;
+            };
+        };
         /** @description An organization. Its id is also the tenant identifier. */
         Organization: {
             /** Format: uuid */
@@ -969,7 +1077,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client, or too many bootstrap invitations created by one platform administrator). No params. */
+        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client, too many bootstrap invitations created by one platform administrator, or more than 30 access-review requests per minute by one subject). No params. */
         TooManyRequests: {
             headers: {
                 "Retry-After": components["headers"]["RetryAfter"];
@@ -982,6 +1090,16 @@ export interface components {
         /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. No params. */
         ServiceUnavailable: {
             headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description INTERNAL_ERROR - the request could not be completed; nothing was disclosed or changed. For the access review this includes a disclosure audit that could not be committed. No params. */
+        InternalError: {
+            headers: {
+                "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
                 [name: string]: unknown;
             };
             content: {
@@ -1009,6 +1127,8 @@ export interface components {
         InvitationId: string;
         /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
         Cursor: string;
+        /** @description Entries per page for the access review (1-50, default 25). */
+        AccessReviewLimit: number;
         Limit: number;
     };
     requestBodies: never;
@@ -1853,6 +1973,105 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listAccessReviewEntries: {
+        parameters: {
+            query?: {
+                role?: components["schemas"]["InvitationRole"];
+                legalEntityId?: string;
+                siteId?: string;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Entries per page for the access review (1-50, default 25). */
+                limit?: components["parameters"]["AccessReviewLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of active access */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessReviewPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    lookupAccessReviewEntry: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessReviewLookup"];
+            };
+        };
+        responses: {
+            /** @description Zero or one entry */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessReviewPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAccessReviewSummary: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Members per role */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessReviewSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
         };
     };
     inspectInvitation: {
