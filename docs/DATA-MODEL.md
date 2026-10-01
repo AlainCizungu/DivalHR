@@ -193,6 +193,12 @@
 - Audit actions `invitation.create`, `invitation.resend`, `invitation.revoke`, `invitation.accept`, `invitation.expire`; events `identity.invitation-*.v1`. Audit metadata and events carry ids, role, locale and states, never the address, token or subject.
 - Manual rollback: `db/rollback/V8__rollback.sql` drops both tables with their triggers and functions and purges `invitation.*` idempotency records (every invitation and membership is lost; identities already created in Keycloak stay and must be removed there). Rolling back only the application is preferred: the previous version works unchanged against V8.
 
+## Implemented (MVP-014: first tenant administrator)
+
+- `identity.invitation.origin` (V9): `TENANT_ADMIN` or `PLATFORM_BOOTSTRAP` (`invitation_origin_valid`), `NOT NULL DEFAULT 'TENANT_ADMIN'`, so existing rows and the previous application's inserts become `TENANT_ADMIN`. Origin is immutable (the transition trigger now also guards it). `invitation_bootstrap_is_tenant_admin`: a bootstrap invitation always has role `tenant-admin`. `invitation_superseded_is_bootstrap`: only a bootstrap invitation may carry the system marker `revoked_by = 'system:bootstrap-superseded'`, and the transition function allows `ACCEPTING → REVOKED` only for that case.
+- Partial unique index `invitation_one_open_bootstrap (tenant_id) WHERE origin = 'PLATFORM_BOOTSTRAP' AND state IN ('PENDING','ACCEPTING')`: at most one open bootstrap per organization, verified under concurrent connections. Supporting index `invitation_open_tenant_admin` for the open tenant-administrator check. No development data.
+- Manual rollback: `db/rollback/V9__rollback.sql` refuses while an open bootstrap invitation exists, purges `tenant-admin-bootstrap.*` idempotency records, rewrites the supersession marker (so V8's constraints accept the rows), drops the column, constraints and indexes and restores the V8 transition function exactly (verified by function, constraint, index and column signature). Rolling back only the application is preferred: the previous version works unchanged against V9. MVP-012A uses V10.
+
 ## Implemented (Issue #17 maintenance)
 
 - V4 restores the approved strict operation-name grammar on `idempotency_operation_format` and `audit_action_format`: `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`. A pre-flight counts non-conforming rows and aborts the (single-transaction) migration without rewriting or revealing data. V1-V3 are unchanged; `db/rollback/V4__rollback.sql` restores the V3 superset (non-destructive).

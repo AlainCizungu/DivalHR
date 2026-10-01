@@ -199,3 +199,18 @@ No new application secret. New published development-only data: TOTP seeds of th
 | I18 | Identity data leaks through extension logs, events or responses | Only operation, outcome and IDs recorded; responses carry codes and the subject only | `operationsLeaveSanitizedEvidence` |
 
 New component: the DivalHR Keycloak image with the `divalhr-provisioning` extension (internal Keycloak SPI, ADR 0006). No new secret; no new personal data.
+
+## MVP-014 delta (first tenant administrator, Issue #38)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E21 | A platform administrator adds an administrator to an active tenant (privilege injection, insider or stolen session) | Only while no tenant-admin membership and no open tenant-admin invitation of any origin exists, checked under the organization lock; partial unique index; exact MFA; audit with the platform actor; per-actor limit | `bootstrapIsBlockedByAnAdministratorOrAnyOpenAdministratorInvitation`, `aTenantAdministratorMembershipBlocksBootstrapAndStatusSaysSo`, `onePlatformAdministratorCanBootstrapOnlyAFewOrganizationsPerHour` |
+| E22 | Bootstrap used for impersonation or to set a known password | The invitee alone completes acceptance, password and TOTP in Keycloak; the narrow extension creates the identity without credentials (Issue #31) | `first-admin.spec.ts` (real Keycloak, password and TOTP) |
+| T33 | Concurrent bootstraps, tenant-admin invitations or acceptances create two first administrators | One organization lock with one lock order on every tenant-admin path, predicates re-checked under it; acceptance supersedes a bootstrap before provisioning and again before commit | `everyTenantAdminPathWaitsForTheSameOrganizationLockAndEmployeesDoNot`, `eightConcurrentCreatesWithDifferentKeysYieldOneInvitationAndOneEmail`, `aTenantOriginAdministratorInvitationAndABootstrapNeverCrossTheirChecks`, `aBootstrapAcceptedAfterAnotherAdministratorNeverReachesTheIdentityProvider`, `anAdministratorAppearingWhileTheBootstrapIsProvisionedIsDetectedAndCompensated`, `theOpenBootstrapIndexHoldsEvenWithoutTheLock` |
+| T34 | A key reused against another organization replays or overwrites a bootstrap | Fingerprint includes the organization and canonical payload | `aLostResponseRetryReplaysExactlyAndAKeyCannotMoveToAnotherOrganization` |
+| I21 | The platform administrator learns tenant members, addresses or invitations | Receipts without addresses; status shows only the bootstrap invitation; identical 404 for malformed, missing and non-active organizations; no raw IDs in logs | `statusShowsOnlyTheOpenBootstrapReceipt`, `unknownMalformedAndOtherOrganizationsAreIndistinguishable` |
+| S15 | Tenant-claim confusion (a platform administrator's `tenant_id` claim used as the target) | Target only from the path, resolved through `OrganizationDirectory`; the claim is ignored | `createsATenantAdminInvitationForThePathOrganizationOnly` (tokens carry an unrelated tenant claim) |
+| R7 | Unattributed or partially recorded first-administrator creation | `invitation.bootstrap-*` audit with actor and correlation ID, committed with the invitation and outbox event or not at all; no email before commit | `createResendRevokeAndSupersessionFailClosedWhenTheAuditCannotCommit` |
+| D5 | Lock contention blocks tenant administration | Local `lock_timeout` (default 5 s); a timeout writes nothing and sends nothing | `aLockHeldTooLongFailsSafelyWithoutWritesOrEmail` |
+
+No new secret and no new personal data category. New configuration: `DIVALHR_TENANT_ADMIN_LOCK_TIMEOUT`, `DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR`.
