@@ -214,3 +214,19 @@ New component: the DivalHR Keycloak image with the `divalhr-provisioning` extens
 | D5 | Lock contention blocks tenant administration | Local `lock_timeout` (default 5 s); a timeout writes nothing and sends nothing | `aLockHeldTooLongFailsSafelyWithoutWritesOrEmail` |
 
 No new secret and no new personal data category. New configuration: `DIVALHR_TENANT_ADMIN_LOCK_TIMEOUT`, `DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR`.
+
+## MVP-012A delta (membership authority, Issue #37)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E20 | A role or `tenant_id` granted only in Keycloak (realm-administrator error, compromised mapping) gives Core access | Membership gate: token ∩ active membership, exact role, after MFA and before binding | `everyMembershipMismatchIsAnOrdinaryAccessDeniedBeforeTheBodyIsRead`, `membership-authority.spec.ts` (real Keycloak) |
+| E23 | Role hierarchy confusion (a tenant-admin membership satisfying an employee operation, or a platform role satisfying a tenant one) | Exact equality, one central rule; `platform-admin` never derived from a membership | `roleLessTenantOperationsAcceptOnlyAMembershipRoleTheTokenAlsoHolds`, `aPlatformAdministratorWithATenantClaimGainsNoTenantAccess` |
+| S16 | A member of tenant B presents a token claiming tenant A | The membership's tenant must equal the verified tenant; one tenant per subject | `aMemberOfAnotherTenantCannotUseAForgedTenantClaim` |
+| I22 | Denials or the session reveal why access is missing | Identical `ACCESS_DENIED` bodies; session lists effective roles only; logs carry no subject, tenant or membership ID | Identical-body and log assertions; session matrix |
+| T35 | A cached authorization outlives a membership change | No cross-request cache; committed state read per request | `aMembershipTakesEffectAtTheNextRequestWithoutAnyCache` |
+| T36 | A new invitation-backed membership ends without its address, or with another one | V10 insert trigger anchored to the locked source invitation; immutability | `MembershipEmailMigrationIntegrationTest` (rolling writer included) |
+| D6 | Membership lookup outage | Fail closed with `500` before the handler; nothing written | `aLookupFailureFailsClosedBeforeTheHandler` |
+| E24 | An unnoticed Keycloak-only user loses or keeps access at rollout | Read-only preflight (counts and IDs only) and rollout gate; no runtime off switch | `membership-preflight.test.mjs`, CI and host preflight runs |
+
+No new secret. New development-only data: fixed realm user IDs and four seed memberships (application seeder, development only).
+

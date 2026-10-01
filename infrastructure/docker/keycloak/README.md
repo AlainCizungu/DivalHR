@@ -238,6 +238,25 @@ rule passed, 1 a rule failed, 2 the realm could not be read.
 
 ### Runbooks
 
+**Membership authority (MVP-012A).** The Core grants tenant access only to users whose token
+role matches their DivalHR membership, so a role or `tenant_id` set in Keycloak alone is not
+enough. Before enabling it in a shared environment, run the read-only preflight with credentials
+in the environment only (never as arguments):
+
+```bash
+KEYCLOAK_URL=… KEYCLOAK_REALM=… KEYCLOAK_ADMIN_TOKEN=… PREFLIGHT_DB_TRANSPORT=psql \
+  PGHOST=… PGDATABASE=… PGUSER=… pnpm membership:preflight
+```
+
+It prints counts per tenant and category and membership IDs, never addresses, usernames or
+subjects, and exits non-zero on `MISSING_MEMBERSHIP`, `TENANT_MISMATCH` or `ROLE_MISMATCH`. For a
+missing membership, find the users in Keycloak by tenant and role and use a supported path (MVP-014
+bootstrap for a first administrator, after removing a conflicting hand-created identity; an MVP-010
+invitation otherwise). Emergency removal of a person: disable the user and sign out their sessions
+here; do not delete membership rows. The development realm's seed users have fixed IDs: recreate
+old local volumes (`down -v`) after updating.
+
+
 **Lost or replaced authenticator (A2).** Only an authorized Keycloak realm administrator does this;
 it is a Keycloak administration task, not a DivalHR platform operation.
 

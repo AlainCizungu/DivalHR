@@ -199,6 +199,13 @@
 - Partial unique index `invitation_one_open_bootstrap (tenant_id) WHERE origin = 'PLATFORM_BOOTSTRAP' AND state IN ('PENDING','ACCEPTING')`: at most one open bootstrap per organization, verified under concurrent connections. Supporting index `invitation_open_tenant_admin` for the open tenant-administrator check. No development data.
 - Manual rollback: `db/rollback/V9__rollback.sql` refuses while an open bootstrap invitation exists, purges `tenant-admin-bootstrap.*` idempotency records, rewrites the supersession marker (so V8's constraints accept the rows), drops the column, constraints and indexes and restores the V8 transition function exactly (verified by function, constraint, index and column signature). Rolling back only the application is preferred: the previous version works unchanged against V9. MVP-012A uses V10.
 
+## Implemented (MVP-012A: membership authority)
+
+- `identity.tenant_membership.email` (V10): confidential normalized address, format-checked like the invitation's. Existing rows are backfilled only from their own `source_invitation_id` (same tenant, role and `email_lookup`); rows whose invitation was already purged stay `NULL`.
+- Insert invariant `tenant_membership_email_from_source` (A12A-2): a membership inserted with a source invitation ends its insert with exactly that invitation's address, tenant, role and lookup. A writer that omits the address (the previous application version during a rolling deployment) gets it copied from the locked source row; any other value, a foreign source or an unanchored address (no source) is rejected. The application writes address and lookup from one validated `EmailAddress`.
+- The address is immutable (`tenant_membership_immutable` now covers it); retention may still clear `source_invitation_id` and keep the address. `NULL` remains only for historical rows and development seed rows.
+- No development data in V10. Manual rollback: `db/rollback/V10__rollback.sql` restores V9 exactly (function, constraints, triggers, indexes and columns, verified by signature) and keeps every membership; only stored addresses are lost. Rolling back only the application is preferred and is a documented security downgrade (`SECURITY.md`).
+
 ## Implemented (Issue #17 maintenance)
 
 - V4 restores the approved strict operation-name grammar on `idempotency_operation_format` and `audit_action_format`: `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`. A pre-flight counts non-conforming rows and aborts the (single-transaction) migration without rewriting or revealing data. V1-V3 are unchanged; `db/rollback/V4__rollback.sql` restores the V3 superset (non-destructive).

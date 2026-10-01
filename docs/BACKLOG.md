@@ -68,13 +68,15 @@ Out of scope for MVP-011: passkeys and passwordless sign-in, SMS or email codes,
 
 Authorized security administrators can review active access by user, role, site, and legal entity.
 
-**Issue #37. Approved with amendments; blocked until MVP-014 is merged.** Delivered as two pull requests, 12A then 12B. 12A's migration is V10.
+**Issue #37. Approved with amendments.** Delivered as two pull requests, 12A then 12B.
+
+**12A membership authority: in review.** Every tenant-scoped operation requires a matching active membership (token ∩ membership, exact role, after MFA and before binding); `/session` reports effective roles and supports tenantless platform administrators; the membership keeps its source invitation's address (V10, with a database invariant); development seed memberships; a read-only rollout preflight. Architecture decisions D1-D9, A1-A7, M1-M11, A12A-1 and A12A-2 on Issue #37 apply. 12B (the read-only access review) starts after 12A is merged.
 
 ### MVP-014 Invite an organization's first administrator
 
 A platform administrator invites the first tenant administrator of an active organization, who then invites everyone else.
 
-**Issue #38. In review.** Four platform-scoped operations on `/organizations/{organizationId}/tenant-admin-bootstrap` (status, create, revoke, resend), available only while the organization has no tenant administrator and no open tenant-administrator invitation. Every tenant-admin creation path takes one organization lock in one order; acceptance of a bootstrap invitation fails closed if another administrator appeared; idempotency covers the organization; a per-platform-administrator hourly limit; audit, invitation and outbox commit together before any email. Invitations carry an immutable `origin` (V9). French and English panel after organization creation and under "First administrator". Architecture decision and amendments A1-A8 on Issue #38 apply.
+**Issue #38. Complete.** Four platform-scoped operations on `/organizations/{organizationId}/tenant-admin-bootstrap` (status, create, revoke, resend), available only while the organization has no tenant administrator and no open tenant-administrator invitation. Every tenant-admin creation path takes one organization lock in one order; acceptance of a bootstrap invitation fails closed if another administrator appeared; idempotency covers the organization; a per-platform-administrator hourly limit; audit, invitation and outbox commit together before any email. Invitations carry an immutable `origin` (V9). French and English panel after organization creation and under "First administrator". Architecture decision and amendments A1-A8 on Issue #38 apply.
 
 Out of scope for MVP-014: replacing or removing an existing tenant administrator, platform administrators inviting employees or other roles, listing a tenant's members or invitations from the platform side, organization search, and bulk bootstrap.
 

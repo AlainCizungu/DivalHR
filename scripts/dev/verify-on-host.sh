@@ -128,6 +128,16 @@ realm_verify() {
   )
 }
 
+# MVP-012A (A3, A7): read-only membership preflight against the running stack; prints counts and
+# IDs only. Credentials come from the environment, never from arguments.
+membership_preflight() {
+  (
+    export KEYCLOAK_ADMIN_USER=dev-kc-admin KEYCLOAK_ADMIN_PASSWORD=dev-only-keycloak-admin
+    export PREFLIGHT_DB_TRANSPORT=compose
+    pnpm_pinned membership:preflight
+  )
+}
+
 pnpm_pinned() { (cd "$ROOT" && npm exec --yes -- pnpm@10.34.6 "$@"); }
 
 stage_spike() {
@@ -164,9 +174,11 @@ stage_stack() {
   run node24 use_node24
   run pnpm-install pnpm_pinned install --frozen-lockfile
   run realm-test pnpm_pinned realm:test
+  run ops-test pnpm_pinned ops:test
   run realm-verify realm_verify
   run playwright-browsers pnpm_pinned --filter @divalhr/web exec playwright install chromium
   run e2e pnpm_pinned --filter @divalhr/web exec playwright test
+  run membership-preflight membership_preflight
   run compose-logs bash -c "$compose logs --no-color > '$OUT/compose.log' 2>&1"
   run no-secrets-in-logs bash -c "! grep -E 'eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.|Bearer [A-Za-z0-9._-]{20,}|dev-only-(Admin|Employee|Platform|totp)' '$OUT/compose.log'"
   run compose-down $compose down -v

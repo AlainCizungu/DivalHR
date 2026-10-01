@@ -19,7 +19,9 @@
     "api:check": "pnpm --filter @divalhr/api-client run check",
     "realm:test": "node --test infrastructure/docker/keycloak/verify-realm.test.mjs",
     "realm:verify": "node infrastructure/docker/keycloak/verify-realm.mjs --mode=final",
-    "realm:verify:pre-cutover": "node infrastructure/docker/keycloak/verify-realm.mjs --mode=pre-cutover"
+    "realm:verify:pre-cutover": "node infrastructure/docker/keycloak/verify-realm.mjs --mode=pre-cutover",
+    "membership:preflight": "node scripts/ops/membership-preflight.mjs",
+    "ops:test": "node --test scripts/ops/membership-preflight.test.mjs"
   },
   "devDependencies": {
     "@redocly/cli": "2.55.0",
