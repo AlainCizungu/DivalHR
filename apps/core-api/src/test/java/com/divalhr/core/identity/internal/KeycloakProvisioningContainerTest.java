@@ -188,8 +188,14 @@ class KeycloakProvisioningContainerTest {
       String subject = ((Provisioned) result).subject();
       JsonNode token = exampleAccessToken(subject);
       assertThat(token.path("tenant_id").asString()).isEqualTo(TENANT.toString());
-      assertThat(token.path("realm_access").path("roles").toString())
-          .isEqualTo("[\"" + role.wireName() + "\"]");
+      // The role, plus (MVP-011) the internal MFA marker that tenant-admin implies; nothing else.
+      java.util.List<String> roles = new java.util.ArrayList<>();
+      token.path("realm_access").path("roles").forEach(r -> roles.add(r.asString()));
+      assertThat(roles)
+          .containsExactlyInAnyOrderElementsOf(
+              role.requiresMfa()
+                  ? java.util.List.of(role.wireName(), "divalhr-privileged-mfa")
+                  : java.util.List.of(role.wireName()));
       assertThat(token.has("email")).isFalse();
       assertThat(token.has("preferred_username")).isFalse();
       JsonNode user = adminGet("/users/" + subject);

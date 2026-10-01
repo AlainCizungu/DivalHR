@@ -318,7 +318,8 @@ function composeTransport(env, root) {
       signedIn = true;
     }
     const [resource = '', query] = path.slice(1).split('?');
-    const target = path === '' ? `realms/${realm}` : decodeURIComponent(resource);
+    // kcadm.sh sends the path as given, so it stays percent-encoded (flow aliases contain spaces).
+    const target = path === '' ? `realms/${realm}` : resource;
     const params = query ? query.split('&').flatMap((pair) => ['-q', pair]) : [];
     return JSON.parse(exec(['get', target, '-r', realm, ...params]));
   };
