@@ -101,7 +101,9 @@ is expected (ADR 0006). Every extension operation is logged as one `divalhr.prov
 
 **Monitoring.** Alert on any `divalhr.provisioning` refusal with status 401 or 403 (a
 configuration fault or an attack), on `error` admin events whose `divalhr.outcome` is `refused`
-with `SETUP_STATE_INVALID`, `IDENTITY_AMBIGUOUS` or `COMPENSATION_REFUSED`, on the Core API's
+with `SETUP_STATE_INVALID`, `IDENTITY_AMBIGUOUS` or `COMPENSATION_REFUSED`, on a sustained rate
+of `outcome=refused_after_race` lines (one alone is a harmless race; `confirmed_after_race` is
+normal under concurrency), on the Core API's
 `invitation_credential_setup_invalid_state` and `invitation_accept_compensation_refused` logs, and
 on **any** Admin API event whose actor is the provisioner client (it has no admin permission, so
 any such event means the configuration drifted).

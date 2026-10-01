@@ -36,11 +36,17 @@ contract `packages/shared-contracts/openapi/keycloak-provisioning.yaml`.
   the caller is that client's live, enabled service account; that account currently holds the
   client role `divalhr-provisioning/provision-invitations` (live model check, never token claims
   alone); the realm is enabled in the extension's configuration. Only then is the path validated,
-  the body read (at most 2048 bytes while streaming, `application/json`, one object, strict
-  fields) or any identity looked up.
+  the body read (creation only: at most 2048 bytes while streaming, `application/json`, one
+  object, strict fields; the other two operations take no body) or any identity looked up.
 - **Server-decided values:** group from a closed role mapping, attributes, `enabled`,
   `emailVerified`, required actions, action-email client, redirect URI and lifespan. Callers
-  cannot supply groups, roles, attributes, credentials, flags or actions.
+  cannot supply groups, roles, attributes, credentials, flags or actions. New identities get no
+  realm default role or default group (PR #32 review), and credential setup derives the role from
+  the identity's single approved role group, never from the caller.
+- **Concurrency:** identical concurrent creates resolve to the same identity (a call that loses
+  the race settles from committed state in a fresh transaction) or, when that state cannot yet
+  show the outcome, answer the retryable `503 IDENTITY_BUSY`. `IDENTITY_CONFLICT` means a proven
+  differing binding only.
 - **Setup states (A1):** completed only for the proven role-specific terminal state; a consistent
   in-progress state sends another email; every other state is `SETUP_STATE_INVALID`, which the
   Core alerts on and never records as sent.
