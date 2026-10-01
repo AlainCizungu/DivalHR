@@ -2,6 +2,8 @@ package com.divalhr.core.platform.error;
 
 import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.ratelimit.RateLimitedException;
+import com.divalhr.core.platform.security.AssuranceEvidence;
+import com.divalhr.core.platform.security.MfaRequiredException;
 import com.divalhr.core.platform.security.PlatformScoped;
 import com.divalhr.core.platform.security.PublicOperation;
 import com.divalhr.core.platform.security.TenantScoped;
@@ -137,6 +139,30 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ProblemDetail> handleMethod(
       HttpRequestMethodNotSupportedException exception, HttpServletRequest request) {
     return respond(ErrorCode.NOT_FOUND, Map.of(), request);
+  }
+
+  /**
+   * RFC 9470 step-up challenge for {@code MFA_REQUIRED}. The value is public configuration: the
+   * client repeats authorization with these {@code acr_values}.
+   */
+  static final String STEP_UP_CHALLENGE =
+      "Bearer error=\"insufficient_user_authentication\", acr_values=\""
+          + AssuranceEvidence.MFA_ACR
+          + "\"";
+
+  /**
+   * Handles a privileged request whose token does not prove multifactor authentication.
+   *
+   * @param exception the exception
+   * @param request the current request
+   * @return problem response with the step-up challenge
+   */
+  @ExceptionHandler(MfaRequiredException.class)
+  public ResponseEntity<ProblemDetail> handleMfaRequired(
+      MfaRequiredException exception, HttpServletRequest request) {
+    return ResponseEntity.status(ErrorCode.MFA_REQUIRED.status())
+        .header(HttpHeaders.WWW_AUTHENTICATE, STEP_UP_CHALLENGE)
+        .body(ProblemResponses.of(ErrorCode.MFA_REQUIRED, Map.of(), request));
   }
 
   /**

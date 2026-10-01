@@ -1,36 +1,7 @@
 import { expect, test, type Page, type Request } from '@playwright/test';
-import { CORE_API, USERS, expectAccessible, signInFr } from './support';
+import { CORE_API, USERS, expectAccessible, mailTo, signInFr } from './support';
 
-// DEVELOPMENT-ONLY mail catcher of the compose stack (UI and API bound to 127.0.0.1).
-const MAILPIT = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:8025';
 const LINK = /https?:\/\/[^\s"<>]+\/invitation#token=[A-Za-z0-9_-]{43}/u;
-
-interface MailSummary {
-  ID: string;
-  Subject: string;
-}
-
-/** Waits for a message to the address whose subject matches, and returns its text body. */
-async function mailTo(address: string, subject: RegExp): Promise<string> {
-  let found: MailSummary | undefined;
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(
-          `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${address}"`)}`,
-        );
-        const { messages } = (await response.json()) as { messages: MailSummary[] };
-        found = messages.find((message) => subject.test(message.Subject));
-        return found !== undefined;
-      },
-      { timeout: 30_000 },
-    )
-    .toBe(true);
-  const message = (await (await fetch(`${MAILPIT}/api/v1/message/${found?.ID ?? ''}`)).json()) as {
-    Text: string;
-  };
-  return message.Text;
-}
 
 function invitationLink(text: string): string {
   const match = LINK.exec(text);

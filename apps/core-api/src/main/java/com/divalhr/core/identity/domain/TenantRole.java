@@ -28,6 +28,16 @@ public enum TenantRole {
   }
 
   /**
+   * Whether holders must complete multifactor authentication (MVP-011). Tenant administrators
+   * enroll an authenticator through the invitation's action link before their first sign-in.
+   *
+   * @return true for {@link #TENANT_ADMIN}
+   */
+  public boolean requiresMfa() {
+    return this == TENANT_ADMIN;
+  }
+
+  /**
    * Parses a contract value; anything else (including {@code platform-admin}) is empty.
    *
    * @param raw submitted value

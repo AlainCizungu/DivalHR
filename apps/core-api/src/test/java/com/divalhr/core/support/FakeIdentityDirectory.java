@@ -2,6 +2,7 @@ package com.divalhr.core.support;
 
 import com.divalhr.core.identity.application.IdentityDirectory;
 import com.divalhr.core.identity.application.IdentityProviderUnavailableException;
+import com.divalhr.core.identity.domain.TenantRole;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   private final Object provisioning = new Object();
   private final Set<String> preexisting = ConcurrentHashMap.newKeySet();
   private final List<String> credentialSetups = new CopyOnWriteArrayList<>();
+  private final Map<String, TenantRole> credentialSetupRoles = new ConcurrentHashMap<>();
   private final List<UUID> compensations = new CopyOnWriteArrayList<>();
   private final AtomicReference<Mode> mode = new AtomicReference<>(Mode.UP);
   private final AtomicReference<Runnable> beforeProvision = new AtomicReference<>(() -> {});
@@ -45,6 +47,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
     byAddress.clear();
     preexisting.clear();
     credentialSetups.clear();
+    credentialSetupRoles.clear();
     compensations.clear();
     mode.set(Mode.UP);
     beforeProvision.set(() -> {});
@@ -134,11 +137,21 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   }
 
   @Override
-  public void requestCredentialSetup(String subject) {
+  public void requestCredentialSetup(String subject, TenantRole role) {
     if (mode.get() != Mode.UP) {
       throw new IdentityProviderUnavailableException("fake_down");
     }
     credentialSetups.add(subject);
+    credentialSetupRoles.put(subject, role);
+  }
+
+  /**
+   * The role passed with each credential-setup request, by subject.
+   *
+   * @return copy of the roles
+   */
+  public Map<String, TenantRole> credentialSetupRoles() {
+    return Map.copyOf(credentialSetupRoles);
   }
 
   @Override

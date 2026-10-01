@@ -29,7 +29,7 @@ export interface paths {
         };
         /**
          * Verified tenant and roles of the caller
-         * @description Returns only the verified tenant identifier and recognised roles. Never returns names, e-mail addresses or token contents.
+         * @description Returns only the verified tenant identifier and recognised roles (platform-admin, tenant-admin, employee). Never returns names, e-mail addresses, token contents or internal identity-provider roles. Requires no MFA assurance, so a privileged user whose session has not reached multifactor level can still load the app and be asked to step up.
          */
         get: operations["getCurrentSession"];
         put?: never;
@@ -785,7 +785,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "RATE_LIMITED" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -815,6 +815,16 @@ export interface components {
         /** @description Authenticated but not permitted (including missing or foreign tenant) */
         Forbidden: {
             headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Authenticated but not permitted. Privileged operations (x-divalhr-required-assurance: mfa) additionally return MFA_REQUIRED when the verified access token's acr claim is not exactly urn:divalhr:loa:mfa (multifactor authentication not completed for this session). Checks run in this order before the request is read: verified subject, required role (ACCESS_DENIED), verified tenant (TENANT_CONTEXT_MISSING), then MFA assurance (MFA_REQUIRED). MFA_REQUIRED carries no params and never echoes claims, roles, subject, tenant or request data. */
+        PrivilegedForbidden: {
+            headers: {
+                "WWW-Authenticate": components["headers"]["WwwAuthenticateStepUp"];
                 [name: string]: unknown;
             };
             content: {
@@ -900,6 +910,8 @@ export interface components {
         CacheControlPrivateNoStore: "private, no-store";
         /** @description Seconds to wait before retrying. */
         RetryAfter: number;
+        /** @description RFC 9470 step-up challenge, sent with MFA_REQUIRED only: Bearer error="insufficient_user_authentication", acr_values="urn:divalhr:loa:mfa". The client starts a new authorization request with those acr_values. */
+        WwwAuthenticateStepUp: string;
     };
     pathItems: never;
 }
@@ -1018,7 +1030,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             409: components["responses"]["Conflict"];
         };
     };
@@ -1049,7 +1061,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
         };
     };
     createLegalEntity: {
@@ -1082,7 +1094,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             409: components["responses"]["Conflict"];
         };
     };
@@ -1114,7 +1126,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -1148,7 +1160,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
@@ -1181,7 +1193,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -1215,7 +1227,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
@@ -1252,7 +1264,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
@@ -1285,7 +1297,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -1319,7 +1331,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
@@ -1352,7 +1364,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -1386,7 +1398,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
@@ -1422,7 +1434,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -1456,7 +1468,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
@@ -1490,7 +1502,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
         };
     };
     createInvitation: {
@@ -1524,7 +1536,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
         };
@@ -1555,7 +1567,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
@@ -1589,7 +1601,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];

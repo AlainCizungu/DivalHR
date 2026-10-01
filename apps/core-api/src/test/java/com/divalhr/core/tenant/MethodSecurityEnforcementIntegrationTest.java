@@ -1,9 +1,11 @@
 package com.divalhr.core.tenant;
 
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.divalhr.core.identity.api.CreateInvitationRequest;
 import com.divalhr.core.identity.api.InvitationController;
+import com.divalhr.core.platform.security.AssuranceEvidence;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.TestTokens;
@@ -68,7 +70,11 @@ class MethodSecurityEnforcementIntegrationTest {
             .expiresAt(Instant.now().plusSeconds(60))
             .build();
     JwtAuthenticationToken tenantAdmin =
-        new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_tenant-admin")));
+        new JwtAuthenticationToken(
+            jwt,
+            List.of(
+                new SimpleGrantedAuthority("ROLE_tenant-admin"),
+                new SimpleGrantedAuthority(AssuranceEvidence.MFA_AUTHORITY)));
     SecurityContextHolder.getContext().setAuthentication(tenantAdmin);
 
     assertThatThrownBy(
@@ -83,6 +89,48 @@ class MethodSecurityEnforcementIntegrationTest {
   }
 
   @Test
+  void preAuthorizeRejectsPlatformAdminsWithoutMfaAssurance() {
+    JwtAuthenticationToken platformAdmin =
+        caller("sub-method-security-pwd", List.of("ROLE_platform-admin"));
+    SecurityContextHolder.getContext().setAuthentication(platformAdmin);
+
+    assertThatThrownBy(
+            () ->
+                controller.create(
+                    Organizations.newKey(),
+                    CreateOrganizationRequest.of(
+                        "Bypass attempt", "CD", "fr", "Africa/Kinshasa", List.of("CDF")),
+                    platformAdmin,
+                    new MockHttpServletRequest()))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  void preAuthorizeRejectsTenantAdminsWithoutMfaAssurance() {
+    JwtAuthenticationToken tenantAdmin =
+        caller("sub-method-security-tenant-pwd", List.of("ROLE_tenant-admin"));
+    SecurityContextHolder.getContext().setAuthentication(tenantAdmin);
+
+    assertThatThrownBy(() -> legalEntities.list(null, null))
+        .isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> invitations.list(null, null, null))
+        .isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> teams.list(UUID.randomUUID().toString(), null, null, null))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  void preAuthorizeAdmitsTenantAdminsWithMfaAssurance() {
+    JwtAuthenticationToken tenantAdmin =
+        caller(
+            "sub-method-security-tenant-mfa",
+            List.of("ROLE_tenant-admin", AssuranceEvidence.MFA_AUTHORITY));
+    SecurityContextHolder.getContext().setAuthentication(tenantAdmin);
+
+    assertThatNoException().isThrownBy(() -> legalEntities.list(null, null));
+  }
+
+  @Test
   void preAuthorizeRejectsNonTenantAdminsOnHierarchyBeans() {
     for (String role : List.of("ROLE_employee", "ROLE_platform-admin")) {
       Jwt jwt =
@@ -93,8 +141,13 @@ class MethodSecurityEnforcementIntegrationTest {
               .issuedAt(Instant.now())
               .expiresAt(Instant.now().plusSeconds(60))
               .build();
+      // Even with the assurance authority, the wrong role is denied.
       JwtAuthenticationToken caller =
-          new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority(role)));
+          new JwtAuthenticationToken(
+              jwt,
+              List.of(
+                  new SimpleGrantedAuthority(role),
+                  new SimpleGrantedAuthority(AssuranceEvidence.MFA_AUTHORITY)));
       SecurityContextHolder.getContext().setAuthentication(caller);
 
       assertThatThrownBy(() -> legalEntities.list(null, null))
@@ -200,5 +253,18 @@ class MethodSecurityEnforcementIntegrationTest {
                       new MockHttpServletRequest()))
           .isInstanceOf(AccessDeniedException.class);
     }
+  }
+
+  private static JwtAuthenticationToken caller(String subject, List<String> authorities) {
+    Jwt jwt =
+        Jwt.withTokenValue("t")
+            .header("alg", "RS256")
+            .subject(subject)
+            .claim("tenant_id", TestTokens.TENANT_A.toString())
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(60))
+            .build();
+    return new JwtAuthenticationToken(
+        jwt, authorities.stream().map(SimpleGrantedAuthority::new).toList());
   }
 }

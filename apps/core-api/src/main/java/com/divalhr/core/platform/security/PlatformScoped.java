@@ -18,7 +18,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@PreAuthorize("hasRole('" + PlatformScoped.ROLE + "')")
+@PreAuthorize(
+    "hasRole('"
+        + PlatformScoped.ROLE
+        + "') and hasAuthority('"
+        + AssuranceEvidence.MFA_AUTHORITY
+        + "')")
 public @interface PlatformScoped {
 
   /** Role required for platform-scoped operations. */

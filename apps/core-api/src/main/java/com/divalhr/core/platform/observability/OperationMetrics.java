@@ -41,6 +41,8 @@ public class OperationMetrics {
     STATE_CONFLICT,
     /** The caller exceeded a rate limit or quota. */
     RATE_LIMITED,
+    /** A privileged caller's session has not completed multifactor authentication (MVP-011). */
+    MFA_REQUIRED,
     /** An unexpected server-side failure. */
     FAILURE
   }

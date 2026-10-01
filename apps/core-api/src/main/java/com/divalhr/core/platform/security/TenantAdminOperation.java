@@ -17,7 +17,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @TenantScoped(role = TenantAdminOperation.ROLE)
-@PreAuthorize("hasRole('" + TenantAdminOperation.ROLE + "')")
+@PreAuthorize(
+    "hasRole('"
+        + TenantAdminOperation.ROLE
+        + "') and hasAuthority('"
+        + AssuranceEvidence.MFA_AUTHORITY
+        + "')")
 public @interface TenantAdminOperation {
 
   /** Required role. */

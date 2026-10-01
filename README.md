@@ -44,7 +44,9 @@ docker compose -f infrastructure/docker/compose.yaml --env-file .env.example up 
 ```
 
 Then open <http://localhost:5173>. Sign in with a **development-only** seed user, for example
-`dev-admin-a` / `dev-only-Admin-A-2026` (full list: `infrastructure/docker/keycloak/README.md`).
+`dev-employee-a` / `dev-only-Employee-A-2026`. Administrators (`dev-admin-a`, `dev-admin-b`,
+`dev-platform-admin`) also enter a code from an authenticator app set up with their published
+development-only key (full list and keys: `infrastructure/docker/keycloak/README.md`).
 
 | Service | URL |
 |---|---|

@@ -32,6 +32,17 @@
     "required": "Sign in to continue.",
     "devOnlyNotice": "Development environment. Do not enter real employee data."
   },
+  "mfa": {
+    "title": "Authenticator code required",
+    "explanation": "Your role requires you to confirm your identity with a code from your authenticator app before you can use administration features. Your sign-in did not include this code.",
+    "retry": "Sign in again with my code",
+    "help": {
+      "title": "Need help?",
+      "noAuthenticator": "If you have never set up an authenticator app, ask your administrator to send you a setup link.",
+      "lostDevice": "If you lost or replaced the phone with your authenticator app, contact your administrator. They will verify your identity before removing the old authenticator and sending you a new setup link.",
+      "clock": "If your codes are always refused, check that your phone’s date and time are set automatically."
+    }
+  },
   "home": {
     "title": "Welcome to DivalHR",
     "body": "This is the Sprint 0 application shell. Business features will arrive in later releases."
@@ -73,6 +84,7 @@
     "TENANT_CONTEXT_MISSING": "Your account is not linked to an organization.",
     "TENANT_ACCESS_DENIED": "This belongs to another organization.",
     "NOT_FOUND": "We could not find what you were looking for.",
+    "MFA_REQUIRED": "This action requires your authenticator app. Sign in again with your code to continue.",
     "INTERNAL_ERROR": "An unexpected error occurred. Please try again later.",
     "IDEMPOTENCY_KEY_REUSED": "This request was already submitted with different details. Please review the form and submit again.",
     "COUNTRY_NOT_SUPPORTED": "This country is not supported yet.",

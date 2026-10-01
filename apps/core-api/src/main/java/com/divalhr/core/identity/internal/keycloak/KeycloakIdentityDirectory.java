@@ -120,7 +120,7 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
             List.of(request.invitationId().toString()),
             "locale",
             List.of(request.locale().tag())));
-    user.put("requiredActions", List.of("UPDATE_PASSWORD"));
+    user.put("requiredActions", requiredActions(request.role()));
     try {
       http.post()
           .uri(admin("/users"))
@@ -146,8 +146,19 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
         .orElseThrow(() -> new IdentityProviderUnavailableException("created_user_not_found"));
   }
 
+  /**
+   * Keycloak required actions for a new identity: choose a password and, for a role that requires
+   * MFA (MVP-011), enroll an authenticator app through the same mailbox-proving action link. Never
+   * enrollment at a password-only sign-in.
+   */
+  static List<String> requiredActions(TenantRole role) {
+    return role.requiresMfa()
+        ? List.of("UPDATE_PASSWORD", "CONFIGURE_TOTP")
+        : List.of("UPDATE_PASSWORD");
+  }
+
   @Override
-  public void requestCredentialSetup(String subject) {
+  public void requestCredentialSetup(String subject, TenantRole role) {
     requireId(subject);
     URI uri =
         UriComponentsBuilder.fromUri(admin("/users/" + subject + "/execute-actions-email"))
@@ -162,7 +173,7 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
           .uri(uri)
           .headers(h -> h.setBearerAuth(token()))
           .contentType(MediaType.APPLICATION_JSON)
-          .body("[\"UPDATE_PASSWORD\"]")
+          .body(json.writeValueAsString(requiredActions(role)))
           .retrieve()
           .toBodilessEntity();
     } catch (RestClientResponseException rejected) {

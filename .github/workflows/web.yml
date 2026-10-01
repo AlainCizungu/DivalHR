@@ -4,6 +4,7 @@ on:
     paths:
       - apps/web/**
       - packages/**
+      - infrastructure/docker/keycloak/**
       - docs/API-SPEC.yaml
       - package.json
       - pnpm-lock.yaml
@@ -18,6 +19,7 @@ on:
     paths:
       - apps/web/**
       - packages/**
+      - infrastructure/docker/keycloak/**
       - docs/API-SPEC.yaml
       - package.json
       - pnpm-lock.yaml
@@ -59,5 +61,7 @@ jobs:
         run: pnpm api:check
       - name: Unit, French/English interface and accessibility tests
         run: pnpm test
+      - name: Keycloak realm verification rules (MVP-011)
+        run: pnpm realm:test
       - name: Build
         run: pnpm build

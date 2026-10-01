@@ -118,6 +118,15 @@ use_node24() {
   echo "node $(node -v)"
 }
 
+# MVP-011 (A4): read-only check of the running realm; prints rule names and PASS/FAIL only.
+realm_verify() {
+  (
+    export KEYCLOAK_VERIFY_TRANSPORT=compose KEYCLOAK_ADMIN_USER=dev-kc-admin
+    export KEYCLOAK_ADMIN_PASSWORD=dev-only-keycloak-admin
+    pnpm_pinned realm:verify
+  )
+}
+
 pnpm_pinned() { (cd "$ROOT" && npm exec --yes -- pnpm@10.34.6 "$@"); }
 
 stage_spike() {
@@ -153,10 +162,12 @@ stage_stack() {
   run compose-ps $compose ps
   run node24 use_node24
   run pnpm-install pnpm_pinned install --frozen-lockfile
+  run realm-test pnpm_pinned realm:test
+  run realm-verify realm_verify
   run playwright-browsers pnpm_pinned --filter @divalhr/web exec playwright install chromium
   run e2e pnpm_pinned --filter @divalhr/web exec playwright test
   run compose-logs bash -c "$compose logs --no-color > '$OUT/compose.log' 2>&1"
-  run no-secrets-in-logs bash -c "! grep -E 'eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.|Bearer [A-Za-z0-9._-]{20,}|dev-only-(Admin|Employee|Platform)' '$OUT/compose.log'"
+  run no-secrets-in-logs bash -c "! grep -E 'eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.|Bearer [A-Za-z0-9._-]{20,}|dev-only-(Admin|Employee|Platform|totp)' '$OUT/compose.log'"
   run compose-down $compose down -v
 }
 

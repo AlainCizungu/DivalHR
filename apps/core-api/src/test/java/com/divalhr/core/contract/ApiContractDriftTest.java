@@ -3,8 +3,10 @@ package com.divalhr.core.contract;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.divalhr.core.platform.security.AssuranceEvidence;
 import com.divalhr.core.platform.security.PlatformScoped;
 import com.divalhr.core.platform.security.PublicOperation;
+import com.divalhr.core.platform.security.TenantAdminOperation;
 import com.divalhr.core.platform.security.TenantScoped;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.tenant.domain.SupportedConfiguration;
@@ -178,6 +180,69 @@ class ApiContractDriftTest {
       }
     }
     assertThat(actual).isEqualTo(expected);
+  }
+
+  /**
+   * MVP-011: exactly the operations whose handler requires a privileged role declare {@code
+   * x-divalhr-required-assurance: mfa} and the {@code PrivilegedForbidden} 403; no other operation
+   * does. This covers every operation in the contract, including planned ones.
+   */
+  @Test
+  void requiredAssuranceMatchesPrivilegedHandlers() {
+    Set<String> declared = new TreeSet<>();
+    for (Map.Entry<String, Map<String, Object>> entry : operations(spec, false, false).entrySet()) {
+      Map<String, Object> op = entry.getValue();
+      Object assurance = op.get("x-divalhr-required-assurance");
+      Object forbidden = castMap(op.getOrDefault("responses", Map.of())).get("403");
+      boolean privilegedForbidden =
+          forbidden != null
+              && "#/components/responses/PrivilegedForbidden"
+                  .equals(castMap(forbidden).get("$ref"));
+      Object role = op.get("x-divalhr-required-role");
+      if (assurance == null) {
+        assertThat(privilegedForbidden)
+            .as("only MFA operations reference PrivilegedForbidden: %s", entry.getKey())
+            .isFalse();
+        assertThat(AssuranceEvidence.PRIVILEGED_ROLES.contains(String.valueOf(role)))
+            .as("privileged-role operations declare MFA assurance: %s", entry.getKey())
+            .isFalse();
+        continue;
+      }
+      assertThat(assurance).as("assurance value of %s", entry.getKey()).isEqualTo("mfa");
+      assertThat(privilegedForbidden)
+          .as("MFA operations answer 403 with PrivilegedForbidden: %s", entry.getKey())
+          .isTrue();
+      assertThat(AssuranceEvidence.PRIVILEGED_ROLES).contains(String.valueOf(role));
+      if ("implemented".equals(op.get("x-divalhr-lifecycle"))) {
+        declared.add(entry.getKey());
+      }
+    }
+    Set<String> enforced = new TreeSet<>();
+    for (var mapping : handlerMappings.getHandlerMethods().entrySet()) {
+      HandlerMethod handler = mapping.getValue();
+      TenantScoped tenant =
+          AnnotatedElementUtils.findMergedAnnotation(handler.getMethod(), TenantScoped.class);
+      boolean privileged =
+          handler.getMethodAnnotation(PlatformScoped.class) != null
+              || (tenant != null && AssuranceEvidence.requiredFor(tenant.role()));
+      if (!privileged) {
+        continue;
+      }
+      assertThat(
+              handler.getMethodAnnotation(PlatformScoped.class) != null
+                  || handler.hasMethodAnnotation(TenantAdminOperation.class))
+          .as("privileged handlers carry the method-security annotation: %s", handler)
+          .isTrue();
+      for (String pattern : mapping.getKey().getPatternValues()) {
+        if (!pattern.startsWith(BASE_PATH)) {
+          continue;
+        }
+        for (var method : mapping.getKey().getMethodsCondition().getMethods()) {
+          enforced.add(method.name() + " " + pattern.substring(BASE_PATH.length()));
+        }
+      }
+    }
+    assertThat(enforced).isNotEmpty().isEqualTo(declared);
   }
 
   @Test

@@ -13,11 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.divalhr.core.identity.application.InvitationJobs;
+import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
 import com.divalhr.core.support.FakeIdentityDirectory;
 import com.divalhr.core.support.Hierarchy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.RecordingInvitationMailer;
+import com.divalhr.core.support.TestTokens;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
@@ -132,10 +134,28 @@ class PublicInvitationIntegrationTest {
   }
 
   @Test
+  void employeeAcceptanceRequestsOnlyAPassword() throws Exception {
+    Invited invited = invited("employee");
+    mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+    assertThat(directory.credentialSetupRoles().values()).containsExactly(TenantRole.EMPLOYEE);
+  }
+
+  @Test
   void bearerTokensAreNeitherRequiredNorRead() throws Exception {
     Invited invited = invited("employee");
+    // MVP-011: a password-level privileged token does not trigger MFA_REQUIRED here.
+    String passwordLevelAdmin =
+        "Bearer "
+            + TestTokens.token()
+                .roles(List.of("tenant-admin"))
+                .acr(TestTokens.PASSWORD_ACR)
+                .build();
     for (String header :
-        List.of("Bearer not-a-jwt", admin(Hierarchy.newTenant(mvc)), "Basic Zm9vOmJhcg==")) {
+        List.of(
+            "Bearer not-a-jwt",
+            admin(Hierarchy.newTenant(mvc)),
+            passwordLevelAdmin,
+            "Basic Zm9vOmJhcg==")) {
       mvc.perform(anonymous("inspect", invited.token()).header("Authorization", header))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.role").value("employee"));
@@ -159,6 +179,9 @@ class PublicInvitationIntegrationTest {
     assertThat(identity.role()).isEqualTo("tenant-admin");
     assertThat(identity.invitationId()).isEqualTo(invited.id());
     assertThat(directory.credentialSetups()).containsExactly(identity.subject());
+    // MVP-011: an invited tenant administrator must also enroll an authenticator.
+    assertThat(directory.credentialSetupRoles())
+        .containsExactly(Map.entry(identity.subject(), TenantRole.TENANT_ADMIN));
 
     Map<String, Object> row =
         jdbc.queryForMap(
@@ -266,7 +289,7 @@ class PublicInvitationIntegrationTest {
 
   @Test
   void credentialSetupIsDurableAndRetriedUntilSentOrFailed() throws Exception {
-    Invited invited = invited("employee");
+    Invited invited = invited("tenant-admin");
     directory.mode(FakeIdentityDirectory.Mode.CREDENTIAL_SETUP_DOWN);
     mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
     Map<String, Object> row = credential(invited.id());
@@ -282,6 +305,8 @@ class PublicInvitationIntegrationTest {
         .containsEntry("credential_setup_state", "SENT")
         .containsEntry("attempts", 2);
     assertThat(directory.credentialSetups()).hasSize(1);
+    // The retry keeps the invited role, so the administrator still gets the TOTP action.
+    assertThat(directory.credentialSetupRoles().values()).containsExactly(TenantRole.TENANT_ADMIN);
 
     // Exhausted retries end in FAILED, never in an endless loop.
     Invited other = invited("employee");

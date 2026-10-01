@@ -59,6 +59,7 @@
         "INVITATION_ACCEPTANCE_IN_PROGRESS",
         "IDENTITY_PROVIDER_UNAVAILABLE",
         "RATE_LIMITED",
+        "MFA_REQUIRED",
         "INTERNAL_ERROR"
       ]
     },

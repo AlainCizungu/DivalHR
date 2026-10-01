@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { enterCode } from './support';
 
 // DEVELOPMENT-ONLY seed credentials from infrastructure/docker/keycloak (never valid elsewhere).
 const USERNAME = process.env.E2E_USERNAME ?? 'dev-admin-a';
@@ -62,6 +63,7 @@ test('user signs in with PKCE, sees the verified tenant, and tokens stay out of 
   await page.locator('#username').fill(USERNAME);
   await page.locator('#password').fill(PASSWORD);
   await page.locator('#kc-login').click();
+  await enterCode(page, USERNAME);
 
   await page.waitForURL((url) => url.origin === new URL(page.url()).origin && url.pathname === '/');
   await expect(page.getByTestId('session-tenant')).toHaveText(/^[0-9a-f-]{36}$/);

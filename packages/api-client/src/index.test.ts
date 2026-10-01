@@ -39,4 +39,40 @@ describe('api client', () => {
     expect(data?.status).toBe('UP');
     expect(requests[0]!.headers.get('Authorization')).toBeNull();
   });
+
+  it('reports MFA_REQUIRED without consuming the response', async () => {
+    const onMfaRequired = vi.fn();
+    const reply = (status: number, code: string) =>
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ status, code, params: {} }), {
+            status,
+            headers: { 'Content-Type': 'application/problem+json' },
+          }),
+      ) as unknown as typeof globalThis.fetch;
+    const mfa = createCoreApiClient({
+      baseUrl: 'http://core.test/api/v1',
+      getAccessToken: () => 'token-123',
+      fetch: reply(403, 'MFA_REQUIRED'),
+      onMfaRequired,
+    });
+    const { error, response } = await mfa.GET('/legal-entities');
+    expect(onMfaRequired).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(403);
+    expect(error?.code).toBe('MFA_REQUIRED');
+
+    for (const [status, code] of [
+      [403, 'ACCESS_DENIED'],
+      [401, 'MFA_REQUIRED'],
+      [400, 'VALIDATION_FAILED'],
+    ] as const) {
+      const other = createCoreApiClient({
+        baseUrl: 'http://core.test/api/v1',
+        fetch: reply(status, code),
+        onMfaRequired,
+      });
+      await other.GET('/legal-entities');
+    }
+    expect(onMfaRequired).toHaveBeenCalledTimes(1);
+  });
 });

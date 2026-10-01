@@ -628,7 +628,7 @@ public class JdbcInvitationRepository {
   public List<CredentialSetupRow> claimDueCredentialSetups(Instant now, int limit) {
     return jdbc.sql(
             """
-            SELECT i.id, i.tenant_id, m.subject, i.credential_setup_attempts
+            SELECT i.id, i.tenant_id, m.subject, i.role, i.credential_setup_attempts
             FROM identity.invitation i
             JOIN identity.tenant_membership m
               ON m.tenant_id = i.tenant_id AND m.id = i.membership_id
@@ -646,6 +646,7 @@ public class JdbcInvitationRepository {
                     rs.getObject("id", UUID.class),
                     new TenantId(rs.getObject("tenant_id", UUID.class)),
                     rs.getString("subject"),
+                    TenantRole.fromWire(rs.getString("role")).orElseThrow(),
                     rs.getInt("credential_setup_attempts")))
         .list();
   }
@@ -691,10 +692,11 @@ public class JdbcInvitationRepository {
    * @param invitationId invitation
    * @param tenant tenant
    * @param subject member subject
+   * @param role the invitation's role
    * @param attempts attempts so far
    */
   public record CredentialSetupRow(
-      UUID invitationId, TenantId tenant, String subject, int attempts) {}
+      UUID invitationId, TenantId tenant, String subject, TenantRole role, int attempts) {}
 
   private static Invitation map(ResultSet rs, int row) throws SQLException {
     return new Invitation(

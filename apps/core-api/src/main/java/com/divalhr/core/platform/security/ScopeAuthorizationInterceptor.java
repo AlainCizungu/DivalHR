@@ -17,10 +17,12 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * Enforces {@link PlatformScoped} and {@link TenantScoped} (including {@link TenantAdminOperation})
- * before the request body or query parameters are read: the caller must be a JWT with a non-blank
- * {@code sub}, the required role must be held explicitly, and tenant-scoped calls must carry a
- * verified tenant. Denials write the safe structured security log and a {@code denied} metric.
- * Method security stays in force behind this interceptor.
+ * before the request body or query parameters are read, in this order: the caller must be a JWT
+ * with a non-blank {@code sub}; the required role must be held explicitly; tenant-scoped calls must
+ * carry a verified tenant; and operations for a privileged role ({@code platform-admin}, {@code
+ * tenant-admin}) require the token to prove multifactor authentication ({@link AssuranceEvidence},
+ * MVP-011). Denials write the safe structured security log and a metric. Method security stays in
+ * force behind this interceptor.
  */
 @Component
 public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
@@ -60,6 +62,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     if (platform != null) {
       requireSubject(authentication, "platform", PlatformScoped.ROLE, platform.operation());
       requireRole(authentication, PlatformScoped.ROLE, platform.operation());
+      requireAssurance(authentication, "platform", PlatformScoped.ROLE, platform.operation());
       return true;
     }
     requireSubject(authentication, "tenant", tenant.role(), tenant.operation());
@@ -68,7 +71,36 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     }
     // Throws TENANT_CONTEXT_MISSING when the verified token carries no valid tenant.
     tenants.current();
+    if (AssuranceEvidence.requiredFor(tenant.role())) {
+      requireAssurance(authentication, "tenant", tenant.role(), tenant.operation());
+    }
     return true;
+  }
+
+  /**
+   * Privileged operations need the verified token to prove multifactor authentication for this
+   * session. Checked after subject, role and tenant, and before any argument or body binding. The
+   * log carries only the safe authorization fields: never the subject, claims or assurance value.
+   */
+  private void requireAssurance(
+      Authentication authentication, String scope, String role, String operation) {
+    if (authentication instanceof JwtAuthenticationToken token
+        && AssuranceEvidence.provesMfa(token.getToken())) {
+      return;
+    }
+    if (!operation.isEmpty()) {
+      metrics.record(operation, OperationMetrics.Outcome.MFA_REQUIRED);
+    }
+    SECURITY_LOG
+        .atWarn()
+        .addKeyValue("event", "authorization_denied")
+        .addKeyValue("reason", "mfa_required")
+        .addKeyValue("operation", operation)
+        .addKeyValue("scope", scope)
+        .addKeyValue("requiredRole", role)
+        .addKeyValue("result", "DENIED")
+        .log("authorization_denied");
+    throw new MfaRequiredException();
   }
 
   /**
