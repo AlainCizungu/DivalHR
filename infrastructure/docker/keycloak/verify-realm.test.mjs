@@ -107,7 +107,34 @@ function fakeAdminApi(realm, extensions = ['divalhr-provisioning']) {
     }
     if (parts[1] === 'roles' && parts[3] === 'composites') {
       const role = realm.roles.realm.find((r) => r.name === parts[2]);
-      return (role?.composites?.realm ?? []).map((name) => ({ name }));
+      const realmRoles = (role?.composites?.realm ?? []).map((name) => ({ name }));
+      if (parts[4] === 'realm') return realmRoles;
+      const clientRoles = Object.values(role?.composites?.client ?? {})
+        .flat()
+        .map((name) => ({ name, clientRole: true }));
+      return [...realmRoles, ...clientRoles];
+    }
+    if (parts[1] === 'groups' && parts.length === 2) {
+      return realm.groups
+        .filter((g) => g.name === params.get('search'))
+        .map((g) => ({ ...g, id: g.name, subGroupCount: (g.subGroups ?? []).length }));
+    }
+    if (parts[1] === 'groups' && parts[3] === 'role-mappings' && parts.length === 4) {
+      const group = realm.groups.find((g) => g.name === parts[2]);
+      const clientMappings = Object.fromEntries(
+        Object.entries(group.clientRoles ?? {}).map(([c, roles]) => [
+          c,
+          { mappings: roles.map((name) => ({ name })) },
+        ]),
+      );
+      return {
+        realmMappings: (group.realmRoles ?? []).map((name) => ({ name })),
+        ...(Object.keys(clientMappings).length ? { clientMappings } : {}),
+      };
+    }
+    if (parts[1] === 'groups' && parts[3] === 'role-mappings' && parts[4] === 'realm') {
+      const group = realm.groups.find((g) => g.name === parts[2]);
+      return effectiveRealmRoles(realm, { groups: [group.path] }).map((name) => ({ name }));
     }
     if (parts[1] === 'roles' && parts[3] === 'users') {
       return realm.users.filter((u) => (u.realmRoles ?? []).includes(parts[2]));
@@ -194,6 +221,30 @@ test('each misconfiguration fails its rule', async () => {
       },
     ],
     ['marker-role-composition', (r) => r.users[0].realmRoles.push(MARKER_ROLE)],
+    [
+      'invitation-groups-least-privilege',
+      (r) =>
+        r.groups.find((g) => g.name === 'divalhr-role-employee').realmRoles.push('platform-admin'),
+    ],
+    [
+      'invitation-groups-least-privilege',
+      (r) =>
+        (r.groups.find((g) => g.name === 'divalhr-role-tenant-admin').clientRoles = {
+          'realm-management': ['manage-users'],
+        }),
+    ],
+    [
+      'invitation-groups-least-privilege',
+      (r) => {
+        const employee = r.roles.realm.find((role) => role.name === 'employee');
+        employee.composite = true;
+        employee.composites = { client: { 'realm-management': ['view-users'] } };
+      },
+    ],
+    [
+      'invitation-groups-least-privilege',
+      (r) => (r.groups = r.groups.filter((g) => g.name !== 'divalhr-role-employee')),
+    ],
     [
       'web-client-pkce-no-password-or-device-grant',
       (r) => (client(r).directAccessGrantsEnabled = true),

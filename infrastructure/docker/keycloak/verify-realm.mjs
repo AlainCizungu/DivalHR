@@ -35,6 +35,14 @@ export const PROVISIONER_CLIENT = 'divalhr-core-provisioner';
 export const CAPABILITY_CLIENT = 'divalhr-provisioning';
 export const CAPABILITY_ROLE = 'provision-invitations';
 export const EXTENSION_ID = 'divalhr-provisioning';
+/** Invitation role groups and the only realm roles each may grant (PR #32 review). */
+export const INVITATION_GROUPS = {
+  'divalhr-role-employee': { direct: ['employee'], effective: ['employee'] },
+  'divalhr-role-tenant-admin': {
+    direct: ['tenant-admin'],
+    effective: ['tenant-admin', MARKER_ROLE],
+  },
+};
 /** Rules that pre-cutover mode reports as PENDING when they fail (A3). */
 export const CUTOVER_RULES = new Set(['provisioner-has-no-broad-admin-rights']);
 export const FLOWS = {
@@ -132,6 +140,31 @@ export async function collect(get, getRoot) {
       );
     }
   }
+  // PR #32 review: what the invitation role groups grant, directly and effectively.
+  const invitationGroups = {};
+  for (const name of Object.keys(INVITATION_GROUPS)) {
+    const matches = (await get(`/groups?search=${encodeURIComponent(name)}&exact=true`)).filter(
+      (g) => g.name === name,
+    );
+    if (matches.length !== 1) {
+      invitationGroups[name] = null;
+      continue;
+    }
+    const id = matches[0].id;
+    const mappings = await get(`/groups/${id}/role-mappings`);
+    const effective = (await get(`/groups/${id}/role-mappings/realm/composite`)).map((r) => r.name);
+    const effectiveComposites = [];
+    for (const role of effective) {
+      effectiveComposites.push(...(await get(`/roles/${encodeURIComponent(role)}/composites`)));
+    }
+    invitationGroups[name] = {
+      direct: (mappings.realmMappings ?? []).map((r) => r.name),
+      clientMappings: Object.keys(mappings.clientMappings ?? {}),
+      effective,
+      clientComposites: effectiveComposites.filter((r) => r.clientRole === true).map((r) => r.name),
+      subGroups: matches[0].subGroupCount ?? (matches[0].subGroups ?? []).length,
+    };
+  }
   const serverInfo = await getRoot('/serverinfo');
   const restExtensions = Object.keys(
     serverInfo?.providers?.['realm-restapi-extension']?.providers ?? {},
@@ -153,6 +186,7 @@ export async function collect(get, getRoot) {
       policies,
       restExtensions,
     },
+    invitationGroups,
     web: clients[0] ?? {},
     composites,
     markerHolders,
@@ -301,6 +335,22 @@ export const RULES = [
           typeof s.messages[locale]?.divalhrMfaEnrollmentRequired === 'string' &&
           s.messages[locale].divalhrMfaEnrollmentRequired.trim() !== '',
       ),
+  ],
+  [
+    'invitation-groups-least-privilege',
+    (s) =>
+      Object.entries(INVITATION_GROUPS).every(([name, expected]) => {
+        const g = s.invitationGroups[name];
+        const same = (a, b) => a.length === b.length && b.every((x) => a.includes(x));
+        return (
+          g !== null &&
+          same(g.direct, expected.direct) &&
+          same(g.effective, expected.effective) &&
+          g.clientMappings.length === 0 &&
+          g.clientComposites.length === 0 &&
+          g.subGroups === 0
+        );
+      }),
   ],
   ['provisioning-extension-deployed', (s) => s.provisioning.restExtensions.includes(EXTENSION_ID)],
   [
