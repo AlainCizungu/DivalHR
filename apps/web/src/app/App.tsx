@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { CallbackPage } from '../auth/CallbackPage';
 import { MfaRequiredPage } from '../auth/MfaRequiredPage';
 import type { RuntimeConfig } from '../config/runtime';
+import { AccessReviewPage } from '../features/access-review/AccessReviewPage';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { RequirePlatformAdmin } from '../features/admin/RequirePlatformAdmin';
@@ -78,6 +79,18 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
                           signInKey="users.signInRequired"
                         >
                           <UsersPage />
+                        </RequireRole>
+                      }
+                    />
+                    <Route
+                      path="/admin/access"
+                      element={
+                        <RequireRole
+                          requiredRole="tenant-admin"
+                          deniedKey="accessReview.unauthorized"
+                          signInKey="accessReview.signInRequired"
+                        >
+                          <AccessReviewPage />
                         </RequireRole>
                       }
                     />

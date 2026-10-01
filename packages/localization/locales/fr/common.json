@@ -11,7 +11,8 @@
     "platformAdmin": "Créer une organisation",
     "hierarchy": "Structure organisationnelle",
     "users": "Utilisateurs et invitations",
-    "firstAdmin": "Premier administrateur"
+    "firstAdmin": "Premier administrateur",
+    "accessReview": "Revue des accès"
   },
   "locale": {
     "label": "Langue",
@@ -599,6 +600,73 @@
       "roleNote": "Cette personne devient administrateur de l’organisation.",
       "submit": "Envoyer l’invitation",
       "submitting": "Envoi…"
+    }
+  },
+  "accessReview": {
+    "title": "Revue des accès",
+    "description": "Qui peut accéder aux données de votre organisation dans DivalHR, avec quel rôle. Chaque accès actuel couvre toute l’organisation.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent consulter la revue des accès.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour consulter la revue des accès.",
+    "loading": "Chargement de la revue des accès…",
+    "retry": "Réessayer",
+    "reference": "Référence : {{id}}",
+    "retryAfter_one": "Réessayez dans {{count}} seconde.",
+    "retryAfter_other": "Réessayez dans {{count}} secondes.",
+    "pendingNote": "Les invitations en attente ne donnent pas encore accès.",
+    "pendingLink": "Voir les utilisateurs et invitations",
+    "timeZoneNote": "Dates affichées dans le fuseau horaire de votre appareil.",
+    "summary": {
+      "title": "Membres par rôle",
+      "count": "{{role}} : {{count}}",
+      "show": "Afficher : {{role}}"
+    },
+    "filters": {
+      "title": "Filtrer la liste",
+      "role": "Rôle",
+      "allRoles": "Tous les rôles",
+      "legalEntity": "Entité juridique",
+      "allLegalEntities": "Toutes les entités juridiques",
+      "site": "Site",
+      "allSites": "Tous les sites de l’entité juridique",
+      "apply": "Appliquer les filtres",
+      "reset": "Réinitialiser"
+    },
+    "lookup": {
+      "title": "Rechercher une adresse exacte",
+      "email": "Adresse e-mail exacte",
+      "help": "Saisissez l’adresse complète. La recherche ne trouve que l’adresse exacte, sans correspondance partielle.",
+      "submit": "Rechercher",
+      "back": "Revenir à la liste"
+    },
+    "table": {
+      "caption": "Accès actifs de l’organisation",
+      "address": "Adresse",
+      "role": "Rôle",
+      "scope": "Portée",
+      "grantedAt": "Accès accordé le"
+    },
+    "scope": {
+      "entire": "Toute l’organisation",
+      "inheritedLegalEntity": "Accès hérité de l’organisation (couvre cette entité juridique)",
+      "inheritedSite": "Accès hérité de l’organisation (couvre ce site)"
+    },
+    "addressNotRecorded": "Adresse non enregistrée",
+    "empty": "Aucun membre ne correspond à ces filtres.",
+    "lookupEmpty": "Aucun membre actif ne correspond à cette adresse.",
+    "loadMore": "Afficher plus",
+    "announce": {
+      "results_one": "{{count}} membre affiché.",
+      "results_other": "{{count}} membres affichés.",
+      "lookup_one": "{{count}} membre trouvé.",
+      "lookup_other": "{{count}} membres trouvés.",
+      "none": "Aucun membre trouvé."
+    },
+    "validation": {
+      "email": {
+        "REQUIRED": "Saisissez une adresse e-mail.",
+        "LENGTH": "L’adresse e-mail est trop longue.",
+        "FORMAT": "Saisissez une adresse e-mail valide, par exemple nom@exemple.cd."
+      }
     }
   }
 }

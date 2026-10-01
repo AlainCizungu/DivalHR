@@ -11,7 +11,8 @@
     "platformAdmin": "Create organization",
     "hierarchy": "Organizational structure",
     "users": "Users and invitations",
-    "firstAdmin": "First administrator"
+    "firstAdmin": "First administrator",
+    "accessReview": "Access review"
   },
   "locale": {
     "label": "Language",
@@ -599,6 +600,73 @@
       "roleNote": "This person becomes an organization administrator.",
       "submit": "Send invitation",
       "submitting": "Sending…"
+    }
+  },
+  "accessReview": {
+    "title": "Access review",
+    "description": "Who can access your organization’s data in DivalHR, and with which role. Every current access covers the entire organization.",
+    "unauthorized": "Only organization administrators can view the access review.",
+    "signInRequired": "Sign in as an organization administrator to view the access review.",
+    "loading": "Loading the access review…",
+    "retry": "Try again",
+    "reference": "Reference: {{id}}",
+    "retryAfter_one": "Try again in {{count}} second.",
+    "retryAfter_other": "Try again in {{count}} seconds.",
+    "pendingNote": "Pending invitations do not give access yet.",
+    "pendingLink": "See users and invitations",
+    "timeZoneNote": "Dates shown in your device’s time zone.",
+    "summary": {
+      "title": "Members per role",
+      "count": "{{role}}: {{count}}",
+      "show": "Show: {{role}}"
+    },
+    "filters": {
+      "title": "Filter the list",
+      "role": "Role",
+      "allRoles": "All roles",
+      "legalEntity": "Legal entity",
+      "allLegalEntities": "All legal entities",
+      "site": "Site",
+      "allSites": "All sites of the legal entity",
+      "apply": "Apply filters",
+      "reset": "Reset"
+    },
+    "lookup": {
+      "title": "Find an exact address",
+      "email": "Exact email address",
+      "help": "Enter the full address. The search finds only the exact address, never a partial match.",
+      "submit": "Search",
+      "back": "Back to the list"
+    },
+    "table": {
+      "caption": "Active access of the organization",
+      "address": "Address",
+      "role": "Role",
+      "scope": "Scope",
+      "grantedAt": "Access granted on"
+    },
+    "scope": {
+      "entire": "Entire organization",
+      "inheritedLegalEntity": "Inherited from the organization (covers this legal entity)",
+      "inheritedSite": "Inherited from the organization (covers this site)"
+    },
+    "addressNotRecorded": "Address not recorded",
+    "empty": "No member matches these filters.",
+    "lookupEmpty": "No active member matches this address.",
+    "loadMore": "Show more",
+    "announce": {
+      "results_one": "{{count}} member shown.",
+      "results_other": "{{count}} members shown.",
+      "lookup_one": "{{count}} member found.",
+      "lookup_other": "{{count}} members found.",
+      "none": "No member found."
+    },
+    "validation": {
+      "email": {
+        "REQUIRED": "Enter an email address.",
+        "LENGTH": "The email address is too long.",
+        "FORMAT": "Enter a valid email address, for example name@example.cd."
+      }
     }
   }
 }
