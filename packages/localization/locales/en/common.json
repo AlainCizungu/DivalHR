@@ -58,7 +58,8 @@
       "platform-admin": "Platform administrator",
       "tenant-admin": "Organization administrator",
       "employee": "Employee"
-    }
+    },
+    "noTenant": "No organization"
   },
   "status": {
     "title": "System status",
