@@ -118,6 +118,34 @@ A platform administrator invites the first `tenant-admin` of an existing active 
 - **Address.** The membership keeps its source invitation's normalized address (confidential; never logged or returned by these endpoints). See `DATA-MODEL.md` (V10).
 - **Rollout (A7).** Before a shared environment runs 12A: MVP-014 is deployed; `pnpm membership:preflight` (read-only, counts and IDs only; credentials from the environment only) reports no blocking category (for enabled tenant-role users: missing membership, tenant or role mismatch, or a missing or malformed `tenant_id`); discrepancies are resolved through supported operations (MVP-014 bootstrap, MVP-010 invitation, Keycloak role or attribute fixes) or an explicitly reviewed migration. There is no runtime bypass, shadow mode or off switch. Rolling the application back restores token-only authorization: a security downgrade that needs an incident-style change approval.
 
+### Access review (MVP-012B)
+
+Tenant administrators review who holds DivalHR access in their organization (architect decisions on #37: D4-D8, A4-A6, R1-R8, B1-B5). Read-only: there is no grant, revoke, export or scoped assignment.
+
+- **Endpoints.** `GET /api/v1/access-review/entries`, `POST /api/v1/access-review/lookup` and `GET /api/v1/access-review/summary`, all `@TenantAdminOperation` with exact MFA and the 12A membership gate, checked before any binding. Every query uses the 12A active-membership predicate, so the review, its summary and the gate never disagree.
+- **Inherited views.** Every membership is organization-wide. A `legalEntityId` or `siteId` filter (at most one) is first checked in the caller's tenant through `OrganizationUnitDirectory`; a missing and a foreign unit give the same 404. Every member is then returned with `matchedUnit.inheritance = INHERITED_FROM_TENANT`.
+- **Pagination (B3).** Keyset on `grantedAt` then `membershipId`, both descending; page size 1-50 (default 25). Cursors are HMAC-bound to the operation, tenant, role filter, unit type, unit ID and page size (absent values encoded as `-`) and verified before any membership query. Pagination is stable and duplicate-free under concurrent inserts but is not a snapshot: a membership added after the first page may be missing from that traversal and appears on a fresh review.
+- **Exact lookup.** POST body `{"email"}` only; normalized like invitations and matched through the keyed lookup in the caller's tenant. A non-member, an unknown address and another tenant's member give the same empty page. The submitted address is never echoed; a match without a recorded address returns `email: null`. No partial or prefix search.
+- **Fail-closed disclosure audit (A4, R8, B2).** Each 200 (including an empty lookup and the summary) is built inside one transaction that writes `access-review.read` (actor, tenant, resource `access-review` = the organization, correlation ID, metadata `view`, `filterKinds`, `page`, `resultCount`, `digestVersion`). The body is serialized only after that transaction commits; an audit or commit failure gives `500 INTERNAL_ERROR` with no review data. Validation, authorization, unit-not-found and rate-limit failures disclose nothing and write no `access-review.read` row (denials remain MVP-013).
+- **Digest v1 (R1, B1).** `after_state_sha256` is the lower-case SHA-256 of these exact UTF-8 bytes, every line ending with LF including the last, no blank lines:
+
+  ```text
+  DIVALHR-ACCESS-REVIEW-DIGEST
+  version=1
+  view=<list|lookup|summary>
+  page=<first|next|single>
+  more=<true|false>
+  count=<n>
+  m=<membership id>            one per entry, response order (list, lookup)
+  role=tenant-admin;n=<n>      summary only
+  role=employee;n=<n>          summary only
+  ```
+
+  UUIDs are canonical lower case and integers plain decimal. `AccessReviewDigestTest` pins golden vectors; any structural change needs a new version. The digest is tamper-evidence of what was disclosed, not a reconstruction of past access.
+- **Rate limit (D5, R2, B5).** 30 review requests per minute per subject across the three operations (`DIVALHR_ACCESS_REVIEW_REQUESTS_PER_MINUTE`), counted after successful 12A authorization and before binding, so authorized malformed requests count and unauthorized ones do not. `429 RATE_LIMITED` with `Retry-After` = the rest of the fixed window. In-process per instance: the effective cluster ceiling is 30 × active instances; a shared or durable limiter is a production-scaling follow-up.
+- **Caching.** `Cache-Control: private, no-store` on every response of the three paths, including 400, 403, 404, 429 and 500. The web page fetches with `cache: 'no-store'` and keeps filters, lookup input, cursors and IDs in component state only.
+- **Observability allow-list (B4).** Logs (`divalhr.access-review`), the metric `divalhr.access_review.requests{view, filter_kind, outcome}` and audit metadata carry only view, filter kinds, page, result count, digest version and outcome (bounded closed sets). Never an address, address lookup, subject, membership ID, unit ID, cursor, lookup input, role filter value or response body; the audit row's standard actor and tenant columns are the only accountability identifiers.
+
 ## Privileged multifactor authentication (MVP-011)
 
 Every interactive holder of `platform-admin` or `tenant-admin` completes TOTP, and the Core API enforces it independently. SMS and email codes are never a privileged factor; passkeys are a future, stronger option.

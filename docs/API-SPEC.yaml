@@ -1011,6 +1011,152 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /access-review/entries:
+    get:
+      operationId: listAccessReviewEntries
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Review the active access of the caller's organization
+      description: >-
+        MVP-012B. Lists the caller's organization's active tenant memberships, the same authority
+        the membership gate enforces (MVP-012A): every member has organization-wide access, so a
+        legal-entity or site filter returns every member with matchedUnit INHERITED_FROM_TENANT
+        after checking that the unit exists in the caller's tenant (missing and foreign units are
+        indistinguishable 404s). At most one of legalEntityId and siteId. Newest grant first
+        (grantedAt then membershipId, both descending), keyset-paginated: stable and
+        duplicate-free under concurrent inserts, but not a snapshot (a membership added after the
+        first page may be omitted from that traversal and appears on a fresh review). Cursors are
+        bound to the operation, tenant, role filter, unit type, unit ID and page size. Contains
+        confidential email addresses: Cache-Control private, no-store on every response. Every 200
+        is durably audited as access-review.read before the body is written; if the audit cannot
+        be committed the response is 500 INTERNAL_ERROR without review data. At most 30 review
+        requests per minute per subject across the three access-review operations (429
+        RATE_LIMITED with Retry-After). Future direct scopes (LEGAL_ENTITY, SITE; inheritance
+        DIRECT) are reserved for story S1 and are not part of this contract yet.
+      tags: [identity]
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/InvitationRole"
+        - name: legalEntityId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: siteId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AccessReviewLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of active access
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessReviewPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /access-review/lookup:
+    post:
+      operationId: lookupAccessReviewEntry
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Find the active access of one exact email address
+      description: >-
+        MVP-012B. Exact, normalized address match (no partial or prefix search) through the keyed
+        address lookup, in the caller's tenant only. Returns the same page shape with zero or one
+        entry; a non-member, an unknown address and a member of another tenant all give the same
+        empty page. The submitted address is never echoed: a matched membership whose address was
+        not recorded is returned with email null. A read: no Idempotency-Key and no state change.
+        Cache-Control private, no-store; durable access-review.read audit before the body is
+        written (also for an empty result); shared 30 requests per minute per subject.
+      tags: [identity]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessReviewLookup"
+      responses:
+        "200":
+          description: Zero or one entry
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessReviewPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /access-review/summary:
+    get:
+      operationId: getAccessReviewSummary
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Count the active members of the caller's organization per role
+      description: >-
+        MVP-012B. Counts computed with the same active-membership predicate as the entries, so the
+        two never disagree. Cache-Control private, no-store; durable access-review.read audit
+        before the body is written; shared 30 requests per minute per subject.
+      tags: [identity]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Members per role
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessReviewSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /public/invitations/inspect:
     post:
       operationId: inspectInvitation
@@ -1301,8 +1447,9 @@ components:
       description: >-
         INVITATION_RATE_LIMITED (the tenant's invitation quota is used up),
         INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or
-        RATE_LIMITED (too many anonymous requests from one client, or too many bootstrap
-        invitations created by one platform administrator). No params.
+        RATE_LIMITED (too many anonymous requests from one client, too many bootstrap
+        invitations created by one platform administrator, or more than 30 access-review requests
+        per minute by one subject). No params.
       headers:
         Retry-After:
           $ref: "#/components/headers/RetryAfter"
@@ -1314,6 +1461,17 @@ components:
       description: >-
         IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the
         same token. No params.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    InternalError:
+      description: >-
+        INTERNAL_ERROR - the request could not be completed; nothing was disclosed or changed. For
+        the access review this includes a disclosure audit that could not be committed. No params.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/CacheControlPrivateNoStore"
       content:
         application/problem+json:
           schema:
@@ -1377,6 +1535,15 @@ components:
       schema:
         type: string
         maxLength: 512
+    AccessReviewLimit:
+      name: limit
+      in: query
+      description: Entries per page for the access review (1-50, default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 25
     Limit:
       name: limit
       in: query
@@ -1386,6 +1553,103 @@ components:
         maximum: 200
         default: 50
   schemas:
+    AccessReviewLookup:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          description: Exact address; normalized like invitations. Never echoed or logged.
+    AccessReviewPage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessReviewEntry"
+        nextCursor:
+          type: string
+          description: Present only when another page exists.
+    AccessReviewEntry:
+      type: object
+      description: >-
+        One active tenant membership. Never contains the identity subject, username, name, source
+        invitation, tokens, credential or MFA state, or identity-provider roles.
+      required: [membershipId, email, role, grantedAt, directScope, effectiveScope, matchedUnit]
+      properties:
+        membershipId:
+          type: string
+          format: uuid
+        email:
+          type: [string, "null"]
+          description: Confidential; null when the address was not recorded (historical rows).
+        role:
+          $ref: "#/components/schemas/InvitationRole"
+        grantedAt:
+          type: string
+          format: date-time
+        directScope:
+          $ref: "#/components/schemas/AccessReviewDirectScope"
+        effectiveScope:
+          $ref: "#/components/schemas/AccessReviewEffectiveScope"
+        matchedUnit:
+          oneOf:
+            - $ref: "#/components/schemas/AccessReviewMatchedUnit"
+            - type: "null"
+    AccessReviewDirectScope:
+      type: object
+      description: >-
+        The scope granted by the membership. Only TENANT exists today; LEGAL_ENTITY and SITE are
+        reserved for story S1 and will be added with it.
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [TENANT]
+    AccessReviewEffectiveScope:
+      type: object
+      required: [type, coversAllLegalEntitiesAndSites]
+      properties:
+        type:
+          type: string
+          enum: [TENANT]
+        coversAllLegalEntitiesAndSites:
+          type: boolean
+          enum: [true]
+    AccessReviewMatchedUnit:
+      type: object
+      description: >-
+        Present when the request filtered by a unit. Only INHERITED_FROM_TENANT exists today;
+        DIRECT is reserved for story S1.
+      required: [type, id, inheritance]
+      properties:
+        type:
+          type: string
+          enum: [LEGAL_ENTITY, SITE]
+        id:
+          type: string
+          format: uuid
+        inheritance:
+          type: string
+          enum: [INHERITED_FROM_TENANT]
+    AccessReviewSummary:
+      type: object
+      required: [byRole]
+      properties:
+        byRole:
+          type: object
+          additionalProperties: false
+          required: [tenant-admin, employee]
+          properties:
+            tenant-admin:
+              type: integer
+              minimum: 0
+            employee:
+              type: integer
+              minimum: 0
     Organization:
       type: object
       description: An organization. Its id is also the tenant identifier.

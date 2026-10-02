@@ -98,6 +98,10 @@ divalhr:
   tenant-administration:
     lock-timeout: ${DIVALHR_TENANT_ADMIN_LOCK_TIMEOUT:5s}
     bootstrap-per-actor-per-hour: ${DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR:5}
+  # MVP-012B: per-subject access-review limit, in-process per instance (cluster ceiling: limit x
+  # active instances).
+  access-review:
+    requests-per-minute: ${DIVALHR_ACCESS_REVIEW_REQUESTS_PER_MINUTE:30}
   identity-provider:
     admin-base-url: ${DIVALHR_KEYCLOAK_ADMIN_URL:http://localhost:8180}
     realm: ${DIVALHR_KEYCLOAK_REALM:divalhr-dev}
