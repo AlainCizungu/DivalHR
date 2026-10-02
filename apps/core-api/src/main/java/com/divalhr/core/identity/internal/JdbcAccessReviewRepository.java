@@ -101,16 +101,14 @@ public class JdbcAccessReviewRepository {
    * @return count
    */
   public long count(TenantId tenant, TenantRole role) {
-    Long count =
-        jdbc.sql(
-                "SELECT count(*) FROM identity.tenant_membership"
-                    + " WHERE tenant_id = :tenant AND role = :role AND "
-                    + JdbcMembershipRepository.ACTIVE)
-            .param("tenant", tenant.value())
-            .param("role", role.wireName())
-            .query(Long.class)
-            .single();
-    return count == null ? 0 : count;
+    return jdbc.sql(
+            "SELECT count(*) FROM identity.tenant_membership"
+                + " WHERE tenant_id = :tenant AND role = :role AND "
+                + JdbcMembershipRepository.ACTIVE)
+        .param("tenant", tenant.value())
+        .param("role", role.wireName())
+        .query(Long.class)
+        .single();
   }
 
   private static Row map(ResultSet row, int number) throws SQLException {

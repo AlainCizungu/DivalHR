@@ -236,7 +236,7 @@ describe.each(['fr', 'en'] as const)('access review (%s)', (locale) => {
   });
 
   it('looks up one exact address by POST and never puts it in a URL', async () => {
-    const requests = stubApi((request, url) => {
+    const requests = stubApi((_request, url) => {
       if (url.pathname.endsWith('/access-review/lookup')) {
         return { status: 200, body: { data: [entry(5)] } };
       }
