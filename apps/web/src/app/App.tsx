@@ -13,6 +13,7 @@ import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { RequireRole } from '../features/hierarchy/RequireRole';
 import { HomePage } from '../features/home/HomePage';
+import { EmployeeImportPage } from '../features/people/EmployeeImportPage';
 import { StatusPage } from '../features/status/StatusPage';
 import { UsersPage } from '../features/users/UsersPage';
 import { AppShell } from '../layout/AppShell';
@@ -91,6 +92,18 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
                           signInKey="accessReview.signInRequired"
                         >
                           <AccessReviewPage />
+                        </RequireRole>
+                      }
+                    />
+                    <Route
+                      path="/admin/people/import"
+                      element={
+                        <RequireRole
+                          requiredRole="tenant-admin"
+                          deniedKey="employeeImport.unauthorized"
+                          signInKey="employeeImport.signInRequired"
+                        >
+                          <EmployeeImportPage />
                         </RequireRole>
                       }
                     />

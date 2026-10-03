@@ -12,7 +12,8 @@
     "hierarchy": "Organizational structure",
     "users": "Users and invitations",
     "firstAdmin": "First administrator",
-    "accessReview": "Access review"
+    "accessReview": "Access review",
+    "employeeImport": "Import employees"
   },
   "locale": {
     "label": "Language",
@@ -131,7 +132,17 @@
     "RATE_LIMITED": "Too many attempts. Please wait a moment and try again.",
     "network": "We could not reach DivalHR. Check your connection and try again; your request will not be duplicated.",
     "ORGANIZATION_NOT_FOUND": "This organization does not exist or is not active.",
-    "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE": "This organization already has an administrator or an administrator invitation in progress. Its administrators manage further invitations."
+    "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE": "This organization already has an administrator or an administrator invitation in progress. Its administrators manage further invitations.",
+    "IMPORT_FILE_INVALID": "The file cannot be read as an employee import. Nothing was imported.",
+    "IMPORT_FILE_TOO_LARGE": "The file is larger than 2 MiB. Split it into smaller files.",
+    "IMPORT_UPLOAD_TIMEOUT": "The file took too long to send. Check your connection and try again.",
+    "IMPORT_LIMIT_REACHED": "Your organization already has 3 imports in progress. Import or cancel one of them, or wait until it expires.",
+    "EMPLOYEE_IMPORT_NOT_FOUND": "This import no longer exists.",
+    "IMPORT_NOT_COMMITTABLE": "This import is no longer open. Upload the file again.",
+    "IMPORT_PREVIEW_CHANGED": "The import changed since you reviewed it. Review it again before importing.",
+    "IMPORT_STALE": "Some rows are no longer valid (an employee number or a unit changed). Nothing was imported; upload the file again.",
+    "IMPORT_NOTHING_TO_COMMIT": "The file has no valid row to import.",
+    "IMPORT_TIMEOUT": "The import took too long and was cancelled; nothing was imported. Try again."
   },
   "notFound": {
     "title": "Page not found",
@@ -667,6 +678,157 @@
         "LENGTH": "The email address is too long.",
         "FORMAT": "Enter a valid email address, for example name@example.cd."
       }
+    }
+  },
+  "employeeImport": {
+    "title": "Import employees",
+    "description": "Create employees from a CSV file. The file is checked first; nothing is created until you confirm the import.",
+    "unauthorized": "Only organization administrators can import employees.",
+    "signInRequired": "Sign in as an organization administrator to import employees.",
+    "reference": "Reference: {{id}}",
+    "retryAfter_one": "Try again in {{count}} second.",
+    "retryAfter_other": "Try again in {{count}} seconds.",
+    "timeZoneNote": "Dates and times shown in your device’s time zone.",
+    "template": {
+      "title": "1. Download the template",
+      "help": "Use the template in either language. Required columns: employee number, given names, family name, start date, legal entity code and site code. Department, cost center and team codes are optional.",
+      "fr": "Download the French template",
+      "en": "Download the English template",
+      "failed": "The template could not be downloaded. Try again."
+    },
+    "upload": {
+      "title": "2. Check the file",
+      "file": "CSV file",
+      "help": "UTF-8 CSV, separated by semicolons or commas, at most 2 MiB and 1,000 rows. Dates as YYYY-MM-DD, for example 2026-03-01.",
+      "submit": "Check the file",
+      "checking": "Checking the file…",
+      "required": "Choose a CSV file.",
+      "tooLarge": "The file is larger than 2 MiB. Split it into smaller files.",
+      "column": "Column: {{column}}",
+      "selected": "Selected file: {{name}} ({{size}})"
+    },
+    "fileReasons": {
+      "EMPTY": "The file is empty.",
+      "ENCODING": "The file is not UTF-8 text. Save it again as “CSV UTF-8”.",
+      "DELIMITER": "The separator could not be recognized. Use semicolons or commas.",
+      "MALFORMED": "The file is not valid CSV (check the quotation marks).",
+      "LINE_TOO_LONG": "A line of the file is too long.",
+      "TOO_MANY_COLUMNS": "The file has too many columns.",
+      "COLUMN_UNKNOWN": "A column header is not recognized. Use the template headers.",
+      "COLUMN_DUPLICATE": "A column appears twice.",
+      "COLUMN_MISSING": "A required column is missing.",
+      "NO_ROWS": "The file has headers but no rows.",
+      "TOO_MANY_ROWS": "The file has more than 1,000 rows. Split it into smaller files."
+    },
+    "preview": {
+      "title": "3. Review the result",
+      "counts": "{{total}} rows: {{valid}} valid, {{invalid}} invalid.",
+      "expires": "This check stays available until {{date}}.",
+      "errorsTitle": "Problems found",
+      "errorCount": "{{message}} ({{count}})",
+      "filter": "Rows to show",
+      "all": "All rows",
+      "valid": "Valid rows",
+      "invalid": "Invalid rows",
+      "empty": "No row to show.",
+      "loading": "Loading rows…",
+      "loadMore": "Show more rows",
+      "retry": "Try again"
+    },
+    "table": {
+      "caption": "Rows of the file",
+      "row": "Row",
+      "status": "Status",
+      "employeeNumber": "Employee number",
+      "name": "Name",
+      "units": "Units",
+      "startDate": "Start date",
+      "problems": "Errors",
+      "valid": "Valid",
+      "invalid": "Invalid",
+      "optionalEmpty": "—",
+      "created": "Created",
+      "notImported": "Not imported"
+    },
+    "columns": {
+      "employee_number": "Employee number",
+      "given_names": "Given names",
+      "family_name": "Family name",
+      "start_date": "Start date",
+      "legal_entity_code": "Legal entity code",
+      "site_code": "Site code",
+      "department_code": "Department code",
+      "cost_center_code": "Cost center code",
+      "team_code": "Team code"
+    },
+    "rowErrors": {
+      "ROW_SHAPE": "The row does not have the same number of columns as the header",
+      "ROW_REQUIRED": "Required value missing",
+      "ROW_TOO_LONG": "Value too long",
+      "ROW_CONTROL_CHARACTER": "Invisible or control character",
+      "ROW_FORMAT": "Invalid format",
+      "ROW_DATE_FORMAT": "Date not in YYYY-MM-DD format",
+      "ROW_DATE_RANGE": "Date out of range",
+      "ROW_EMPLOYEE_NUMBER_REPEATED": "Employee number repeated in the file",
+      "ROW_EMPLOYEE_NUMBER_EXISTS": "Employee number already exists",
+      "ROW_UNIT_NOT_FOUND": "Unit not found",
+      "ROW_UNIT_MISMATCH": "Unit does not belong to this legal entity or site",
+      "ROW_UNIT_NOT_EFFECTIVE": "Unit not in effect on the start date",
+      "ROW_PARENT_AMBIGUOUS": "Give either a department or a cost center for the team, not both"
+    },
+    "rowError": "{{column}}: {{message}}",
+    "commit": {
+      "title": "4. Import",
+      "acknowledge_one": "I understand that {{count}} invalid row will not be imported.",
+      "acknowledge_other": "I understand that {{count}} invalid rows will not be imported.",
+      "acknowledgeRequired": "Confirm that the invalid rows will not be imported.",
+      "submit_one": "Import {{count}} employee",
+      "submit_other": "Import {{count}} employees",
+      "confirm_one": "{{count}} employee will be created. This cannot be undone from this page. Continue?",
+      "confirm_other": "{{count}} employees will be created. This cannot be undone from this page. Continue?",
+      "confirmYes": "Yes, import",
+      "confirmNo": "Back",
+      "importing": "Importing…",
+      "nothing": "No row is valid: correct the file and check it again.",
+      "discard": "Cancel this import",
+      "discarding": "Cancelling…",
+      "retry": "Try again"
+    },
+    "result": {
+      "committedTitle": "Import complete",
+      "created_one": "{{count}} employee created.",
+      "created_other": "{{count}} employees created.",
+      "notImported_one": "{{count}} row not imported.",
+      "notImported_other": "{{count}} rows not imported.",
+      "discardedTitle": "Import cancelled",
+      "discarded": "Nothing was imported. The checked rows have been erased.",
+      "again": "Import another file",
+      "notImportedCaption": "Rows not imported"
+    },
+    "announce": {
+      "checked": "File checked: {{valid}} valid rows, {{invalid}} invalid rows.",
+      "rows_one": "{{count}} row shown.",
+      "rows_other": "{{count}} rows shown."
+    },
+    "expired": "This check has expired (after 2 hours) and its rows were erased. Upload the file again.",
+    "format": {
+      "caption": "Columns of the file",
+      "column": "Column",
+      "required": "Required",
+      "content": "Expected content",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "formats": {
+      "employee_number": "Unique number: up to 32 letters, digits, dots, dashes, underscores or slashes, starting with a letter or digit, for example E-001",
+      "given_names": "Letters, spaces, apostrophes, dots and hyphens; up to 100 characters",
+      "family_name": "Letters, spaces, apostrophes, dots and hyphens; up to 100 characters",
+      "start_date": "First working day as YYYY-MM-DD, for example 2026-03-01",
+      "legal_entity_code": "Code of an existing legal entity",
+      "site_code": "Code of a site of that legal entity",
+      "department_code": "Code of a department of that site, or empty",
+      "cost_center_code": "Code of a cost center of that site, or empty; not together with a department",
+      "team_code": "Code of a team, or empty; without a department or cost center, the team’s own is used"
     }
   }
 }
