@@ -221,6 +221,27 @@
 - Writes go through a dedicated two-connection pool with its own transaction manager (`DenialAuditStore`), independent of business transactions.
 - Manual rollback: `db/rollback/V12__rollback.sql` restores V11 exactly, but refuses while any row exists (no override). Destroying evidence needs the operator procedure in SECURITY.md.
 
+## Implemented (MVP-020: employee import)
+
+- V13 adds four tables and one validation function to the `people` schema (created empty by V1). Unit IDs in `people.employment` carry no foreign keys: the people module never reads the tenant module's tables, and placements are resolved through the `OrganizationPlacementDirectory` port. Constraint: hierarchy units cannot be deleted or re-parented today (MVP-002), so these references cannot dangle; any future story that deletes or moves units must first consult `people` through an event or port.
+- `people.employee`: `id`, `tenant_id` (FK to `tenant.organization`), `employee_number` (`^[A-Z0-9][A-Z0-9._/-]{0,31}$`, unique per tenant), `given_names` and `family_name` (checked by `people.person_name_valid`, below), `created_at`, `created_by`, `version`.
+- `people.employment`: `id`, `tenant_id`, `employee_id` (same-tenant FK), `legal_entity_id`, `site_id`, optional `department_id` or `cost_center_id` (at most one), optional `team_id` (only with a parent), `effective_from`, `effective_to` (open), `created_at`, `created_by`, `version`. One employment per imported employee; history changes belong to MVP-021.
+- `people.employee_import`: status `VALIDATED`, `COMMITTED`, `DISCARDED` or `EXPIRED`; `expires_at` (2 hours after creation), `file_sha256`, `preview_digest`, `delimiter`, `header_language`, the row counts, `created_count`, `committed_at` and `committed_by` (set exactly when committed), and `closed_at` (null exactly while open).
+- `people.employee_import_row`: primary key `(tenant_id, import_id, row_number)`, cascading from its import; `status` (`VALID`, `INVALID`, `CREATED`, `NOT_IMPORTED`), `error_columns` and `error_codes` (paired arrays from closed sets; required for invalid rows and absent otherwise), and the staged normalized values, which exist only for valid rows of an open import. Staged values carry the same checks as the stored ones (formats, date range, `people.person_name_valid`).
+- `people.person_name_valid(text)` (R20-1): the import's name grammar, enforced by the database for stored and staged names alike. A name is NFC, 1-100 code points, trimmed and without repeated spaces. It starts with a letter, and continues with letters, combining marks, spaces, apostrophes (`'` and `’`), periods and hyphens. PostgreSQL regular expressions have no Unicode property classes, and `[[:alpha:]]` depends on the server locale (ASCII only under `C`), so letters and marks are listed as explicit code-point ranges taken from Unicode 14.0-18.0 General Category data.
+  - **Exact match:** for every assigned code point, the database accepts exactly what the application accepts. ASCII is identical: letters first, then letters, space, `'`, `.` and `-`.
+  - **Narrow difference:** a code point still unassigned in Unicode 18.0 is accepted by the database but rejected by the application, since it is not a letter. Every assigned punctuation, symbol, digit or invisible character, ASCII included, is rejected by both.
+  - **Drift guard:** `EmployeeNameGrammarDriftTest` compares the ranges with the running JVM's Unicode data for every code point. The behaviour does not depend on the database locale; the migration tests run it under the default and `C` locales.
+- Classification (approved proposal; R20-2):
+  - **Confidential:** the employee number, given names and family name.
+  - **Restricted HR:** employment dates (`effective_from`, `effective_to`) and placement (legal entity, site, department, cost center, team).
+  - **Staged values** in `people.employee_import_row` inherit the class of the field they stage: `employee_number`, `given_names` and `family_name` are Confidential; `start_date` and the five unit codes are Restricted HR.
+  - **Internal:** import records and row results (row numbers, statuses, error codes, counts, digests).
+  - **Employee and employment IDs** are personal-data references (A20-2). They appear only in audit and outbox records, never in import results.
+  - **Minimization is unchanged:** audit metadata and outbox payloads carry IDs and counts only.
+- Lifecycle: staged values are erased at commit, discard or expiry. Closed imports and their rows are deleted 30 days after closing by default (operational policy, 1-90 days); employees, employments, audit and outbox records are never deleted by this job.
+- Manual rollback: `db/rollback/V13__rollback.sql` locks the four tables and restores V12 exactly (tables and the name function), but refuses while any row exists.
+
 ## Implemented (Issue #17 maintenance)
 
 - V4 restores the approved strict operation-name grammar on `idempotency_operation_format` and `audit_action_format`: `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`. A pre-flight counts non-conforming rows and aborts the (single-transaction) migration without rewriting or revealing data. V1-V3 are unchanged; `db/rollback/V4__rollback.sql` restores the V3 superset (non-destructive).

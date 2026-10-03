@@ -16,10 +16,19 @@ spring:
       enabled: true
   lifecycle:
     timeout-per-shutdown-phase: 20s
+  # MVP-020 (A20-5): no endpoint accepts multipart. Disabling it means a multipart body is never
+  # parsed before authorization (Spring parses multipart before interceptors run).
+  servlet:
+    multipart:
+      enabled: false
 
 server:
   port: ${DIVALHR_CORE_API_PORT:8080}
   shutdown: graceful
+  # MVP-020 (A20-5): an idle connection, or a stalled request body between packets, is closed after
+  # this time; the employee import also bounds the whole upload (divalhr.employee-import).
+  tomcat:
+    connection-timeout: 20s
   error:
     include-stacktrace: never
     include-message: never
@@ -102,6 +111,35 @@ divalhr:
   # active instances).
   access-review:
     requests-per-minute: ${DIVALHR_ACCESS_REVIEW_REQUESTS_PER_MINUTE:30}
+  # MVP-020 (A20-4): named request limits, in-process per instance (cluster ceiling: value x active
+  # instances). Subject buckets are per one-minute window.
+  request-limits:
+    subject:
+      employee-import: ${DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE:10}
+    tenant:
+      employee-import-upload:
+        requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
+        window: 10m
+      employee-import-commit:
+        requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_COMMITS:60}
+        window: 10m
+  # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
+  # statutory period) and timeouts (A20-2, A20-5, A20-6).
+  employee-import:
+    max-bytes: 2097152
+    max-rows: ${DIVALHR_EMPLOYEE_IMPORT_MAX_ROWS:1000}
+    staging-ttl: ${DIVALHR_EMPLOYEE_IMPORT_STAGING_TTL:2h}
+    result-retention: ${DIVALHR_EMPLOYEE_IMPORT_RESULT_RETENTION:30d}
+    max-open-imports: 3
+    upload-timeout: 30s
+    validation-statement-timeout: 5s
+    validation-transaction-timeout: 15s
+    commit-statement-timeout: 10s
+    commit-transaction-timeout: 30s
+    cleanup-statement-timeout: 10s
+    cleanup-batch-size: 100
+    jobs:
+      enabled: ${DIVALHR_EMPLOYEE_IMPORT_JOBS_ENABLED:true}
   # MVP-013: durable evidence of privileged authorization denials. Budgets are in-process per
   # instance (cluster ceiling: value x active instances); the bulkhead pool is separate from the
   # application pool.

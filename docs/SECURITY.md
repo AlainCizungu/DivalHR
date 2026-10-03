@@ -183,6 +183,40 @@ Denied attempts at privileged operations by a verified identity leave append-onl
 - **`divalhr.authorization.drift` > 0 (alert).** A privileged handler's `@PreAuthorize` and the scope interceptor disagree. Fix the annotation and redeploy; the reflective tests must cover the handler.
 - **Capacity (warning at 1 GB or 5× the 7-day row-rate baseline).** At the default ceiling an instance writes at most about 0.86 million rows a day. There is no deletion schedule; report sustained growth so a retention decision can be made.
 
+### Employee import (MVP-020)
+
+Tenant administrators create employees from a CSV file in two steps: upload and check, then commit (Issue #45, approved proposal with amendments A20-1 to A20-6). Six `@TenantAdminOperation` operations under `/api/v1/employee-imports`: `employee-import.template`, `.create`, `.read`, `.rows`, `.commit` and `.discard`. All of them check exact MFA and the 12A membership gate, then the request limits, before any argument or body is read; denials and the first rate-limit refusal of a window are recorded as denial evidence (MVP-013).
+
+- **Upload handling (A20-5, A20-6).** The request body is the CSV itself (`text/csv`). Multipart is disabled for the whole application (`spring.servlet.multipart.enabled: false`) and any other media type is `400 VALIDATION_FAILED` on `Content-Type`, checked only after authorization. The body is read as a stream capped at 2 MiB (`413 IMPORT_FILE_TOO_LARGE` after at most one 8 KiB buffer beyond the cap) within 30 seconds (`408 IMPORT_UPLOAD_TIMEOUT`); it is decoded as strict UTF-8 (a byte-order mark is ignored) and never stored. 2 MiB is a conservative transport cap, not a worst-case calculation: the row limit (1,000), the line limit (4,096 characters) and the column limit (20) bound the work independently.
+- **CSV parsing (A20-3).** Apache Commons CSV 1.14.1 (RFC 4180 format, no escape character, no comments, no lenient end of file, no trailing data) behind the people-module port `CsvRecordSource`, which enforces the DivalHR subset. The delimiter (semicolon or comma) is chosen from the header line only. Fuzz tests (2,000 random inputs) and bounded-memory tests (an endless body; worst-case 2 MiB files whose allocation stays linear in the input) are part of the suite.
+- **Row rules (A20-6).** Cells are normalized to NFC and runs of space separators collapsed; control, format, separator, unassigned, surrogate and private-use characters are rejected (`ROW_CONTROL_CHARACTER`). Lengths count Unicode code points after NFC: 160 for any cell, 100 for names. A value starting with `=`, `+`, `-` or `@` is rejected (`ROW_FORMAT`), so a stored value can never become a spreadsheet formula. Names start with a letter and contain only letters, combining marks, spaces, apostrophes, periods and hyphens. The database enforces the same grammar (`people.person_name_valid`, R20-1), so no write path can store a name the import would refuse. Dates are ISO `YYYY-MM-DD` from 1900 to 2999 only. Unit codes are matched in the caller's tenant through the `OrganizationPlacementDirectory` port; an unknown and a foreign code are the same `ROW_UNIT_NOT_FOUND`.
+- **Staging and commit.** Valid rows are staged as normalized values for 2 hours; invalid rows keep only column keys and error codes, never their values. The commit repeats the preview digest and valid-row count it was shown (`409 IMPORT_PREVIEW_CHANGED` otherwise) and, when some rows are invalid, an explicit acknowledgement. One transaction locks the import, re-validates every valid row against the tenant's current employees and units, inserts employees and employments in employee-number order, writes audit and outbox records, marks the rows and erases every staged value. Any change since the preview, including a concurrent import taking an employee number, rolls everything back with `409 IMPORT_STALE`; nothing is ever partially committed. Upload and commit are idempotent: the same key with the same bytes or command replays the original response.
+- **Request limits (A20-4).** Per subject, 10 requests per minute shared by upload and commit (`DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE`). Per tenant, 30 uploads (`DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS`) and 60 commits (`DIVALHR_EMPLOYEE_IMPORT_TENANT_COMMITS`) per 10 minutes. The buckets are independent: another administrator of the same tenant is not limited by the first one's subject bucket, and the tenant bucket applies across all administrators. `429 RATE_LIMITED` with `Retry-After`. At most 3 open imports per tenant (`409 IMPORT_LIMIT_REACHED`). Limits are in-process per instance: the cluster ceiling is the value × active instances. A shared limiter is a production-scaling follow-up.
+- **Timeouts (A20-5).**
+
+  | Stage | Limit | Response |
+  |---|---|---|
+  | Idle connection or stalled body between packets (Tomcat `connection-timeout`) | 20 s | connection closed |
+  | Whole upload body | 30 s | `408 IMPORT_UPLOAD_TIMEOUT`, nothing created |
+  | Validation and staging: statement / transaction | 5 s / 15 s | `503 IMPORT_TIMEOUT`, nothing created |
+  | Commit: statement and lock / transaction | 10 s / 30 s | `503 IMPORT_TIMEOUT`, nothing created, the import stays open |
+  | Expiry and retention jobs: statement | 10 s per batch of 100 | logged, retried on the next run |
+  | Reverse proxy (recommendation) | request body ≥ 2 MiB plus headroom, read timeout ≥ 60 s | - |
+
+  Failures before the transaction starts (authorization, limits, media type, body, file-level problems) create nothing and leave no staged data. Failures after it starts roll it back completely; a retry with the same idempotency key then succeeds.
+- **Privacy (A20-1, A20-2).** Audit metadata carries only counts and versions: `employee-import.create`, `.commit`, `.discard` and `.expire` hold `totalRows`, `validRows`, `invalidRows` or `createdCount` and `notImportedCount`; each `employee.create` holds `importId` and `version`, and its `after_state_sha256` is a hash of the created state. Outbox events `people.employee.created.v1` (`employeeId`, `employmentId`, `importId`) and `people.employee-import.completed.v1` (`importId` and the counts) carry no name, employee number, start date or placement. API results never return employee IDs and never map a row to an employee. Logs and metrics carry counts and bounded codes only. Responses are `Cache-Control: private, no-store`; the web page keeps the file, rows and IDs in memory only.
+- **Retention (A20-2).** Staged values are erased at commit, discard or expiry (2 hours). Closed import records and their row results (row numbers, statuses and error codes) are deleted 30 days after closing by default (`DIVALHR_EMPLOYEE_IMPORT_RESULT_RETENTION`, 1-90 days). This is an operational policy, not a statutory retention period. Retention never touches employees, employments, audit events or outbox events.
+- **CSV output rule.** Every CSV DivalHR writes (today: the template) goes through `CsvCells`: each cell is quoted and a leading `=`, `+`, `-`, `@`, tab or carriage return is neutralized with an apostrophe.
+- **Encryption at rest (proposal, production gate).** Employee numbers and names are Confidential; employment dates and placement are Restricted HR (staged values inherit their field's class). Before real HR data, storage encryption for the database volume and backups must be confirmed (see Production gates).
+- **Rollback.** `db/rollback/V13__rollback.sql` restores V12 exactly but refuses while any people row exists; removing employee data is a separately reviewed operator change, never an application rollback.
+
+#### Runbook: employee import
+
+- **`503 IMPORT_TIMEOUT` repeatedly.** Look for long-running transactions or locks on `people.employee`, `people.employee_import` and the tenant's organization units. Nothing was created; the administrator retries with the same file.
+- **`409 IMPORT_LIMIT_REACHED`.** The tenant has 3 open imports. They are cancelled from the page, or expire after 2 hours.
+- **`employee_import_job_failed` warnings.** The expiry or retention job failed (for example a statement timeout). It retries on its next run (1 minute for expiry, 1 hour for retention). Open imports that are past their expiry are already refused by every operation.
+- **Rate limits.** `429` responses are expected under bulk use; raise the limits only with review.
+
 ## Privileged multifactor authentication (MVP-011)
 
 Every interactive holder of `platform-admin` or `tenant-admin` completes TOTP, and the Core API enforces it independently. SMS and email codes are never a privileged factor; passkeys are a future, stronger option.
@@ -263,7 +297,7 @@ Retryable creates require `Idempotency-Key`. Records are scoped to `(operation, 
 
 Sensitive events include actor, action, tenant, object, result, time, reason, correlation ID, and an integrity-protected reference to relevant before-and-after values.
 
-`platform.audit_event` and `platform.authorization_denial` (MVP-013) are append-only: database triggers reject `UPDATE`, `DELETE` and `TRUNCATE`. Audit metadata carries safe configuration values only (for organizations: country, locale, time zone, currencies; for legal entities and sites: code, country or time zone, parent id and effective dates), never names, tokens or personal data; `after_state_sha256` is the integrity reference to the persisted state.
+`platform.audit_event` and `platform.authorization_denial` (MVP-013) are append-only: database triggers reject `UPDATE`, `DELETE` and `TRUNCATE`. Audit metadata carries safe configuration values only (for organizations: country, locale, time zone, currencies; for legal entities and sites: code, country or time zone, parent id and effective dates), never names, tokens or personal data; `after_state_sha256` is the integrity reference to the persisted state. Employee imports (MVP-020) record only import IDs, counts and versions.
 
 ## Application security
 
@@ -307,6 +341,7 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - Tenant-isolation suite passing
 - Privileged MFA enabled: the target realm passes `pnpm realm:verify` (MVP-011), Keycloak hosts use NTP, login and admin events are monitored, and Keycloak administrator accounts have their own MFA
 - Narrow provisioning (Issue #31): the Keycloak image is DivalHR's (`infrastructure/docker/keycloak/Dockerfile`, extension version equal to the Keycloak version), and `pnpm realm:verify` passes in **final** mode, proving the provisioner holds no broad admin right (pre-cutover mode is never acceptable evidence)
+- Employee data (MVP-020): database volume and backup encryption at rest confirmed; the reverse proxy allows request bodies of at least 2 MiB with a read timeout of at least 60 s on `/api/v1/employee-imports`
 - Secrets and key rotation tested
 - Audit events verified
 - Privacy notice and retention configuration approved

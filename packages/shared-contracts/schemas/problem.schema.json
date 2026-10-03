@@ -62,7 +62,17 @@
         "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE",
         "RATE_LIMITED",
         "MFA_REQUIRED",
-        "INTERNAL_ERROR"
+        "INTERNAL_ERROR",
+        "IMPORT_FILE_INVALID",
+        "IMPORT_FILE_TOO_LARGE",
+        "IMPORT_UPLOAD_TIMEOUT",
+        "IMPORT_LIMIT_REACHED",
+        "EMPLOYEE_IMPORT_NOT_FOUND",
+        "IMPORT_NOT_COMMITTABLE",
+        "IMPORT_PREVIEW_CHANGED",
+        "IMPORT_STALE",
+        "IMPORT_NOTHING_TO_COMMIT",
+        "IMPORT_TIMEOUT"
       ]
     },
     "params": { "type": "object" },

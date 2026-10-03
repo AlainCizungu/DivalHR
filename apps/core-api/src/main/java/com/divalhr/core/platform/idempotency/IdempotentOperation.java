@@ -4,6 +4,7 @@ import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.observability.OperationMetrics.Outcome;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map;
@@ -173,6 +174,44 @@ public class IdempotentOperation {
       Map<String, Object> canonical,
       Class<R> responseType,
       Supplier<Completed<R>> work) {
+    return execute(spec, principal, key, canonical, responseType, transactions, work);
+  }
+
+  /**
+   * Executes the idempotent command in a transaction bounded by a timeout (MVP-020, A20-5): when it
+   * expires the whole transaction, including the idempotency reservation, is rolled back.
+   *
+   * @param spec operation
+   * @param principal verified JWT subject
+   * @param key idempotency key (already validated)
+   * @param canonical key-sorted normalized command, including any scope it depends on
+   * @param responseType body type for replay
+   * @param timeout transaction timeout (whole seconds, at least one)
+   * @param work business writes, run inside the transaction after the key is reserved
+   * @param <R> body type
+   * @return completed or replayed result
+   */
+  public <R> Result<R> execute(
+      Spec spec,
+      String principal,
+      String key,
+      Map<String, Object> canonical,
+      Class<R> responseType,
+      Duration timeout,
+      Supplier<Completed<R>> work) {
+    TransactionTemplate bounded = new TransactionTemplate(transactions.getTransactionManager());
+    bounded.setTimeout((int) Math.max(1, timeout.toSeconds()));
+    return execute(spec, principal, key, canonical, responseType, bounded, work);
+  }
+
+  private <R> Result<R> execute(
+      Spec spec,
+      String principal,
+      String key,
+      Map<String, Object> canonical,
+      Class<R> responseType,
+      TransactionTemplate transactions,
+      Supplier<Completed<R>> work) {
     IdempotencyScope scope = new IdempotencyScope(spec.operation(), principal, key);
     String fingerprint = Fingerprints.sha256(json.writeValueAsString(canonical));
     try {
@@ -234,9 +273,15 @@ public class IdempotentOperation {
           Outcome.DUPLICATE_CONFLICT;
       case SITE_REGION_ALREADY_ASSIGNED,
           INVITATION_NOT_PENDING,
-          TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE ->
+          TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE,
+          IMPORT_NOT_COMMITTABLE,
+          IMPORT_PREVIEW_CHANGED,
+          IMPORT_STALE,
+          IMPORT_NOTHING_TO_COMMIT ->
           Outcome.STATE_CONFLICT;
-      case INVITATION_RATE_LIMITED, INVITATION_RESEND_LIMITED, RATE_LIMITED -> Outcome.RATE_LIMITED;
+      case INVITATION_RATE_LIMITED, INVITATION_RESEND_LIMITED, RATE_LIMITED, IMPORT_LIMIT_REACHED ->
+          Outcome.RATE_LIMITED;
+      case IMPORT_TIMEOUT -> Outcome.FAILURE;
       case LEGAL_ENTITY_NOT_FOUND,
           SITE_NOT_FOUND,
           REGION_NOT_FOUND,
@@ -244,6 +289,7 @@ public class IdempotentOperation {
           COST_CENTER_NOT_FOUND,
           INVITATION_NOT_FOUND,
           ORGANIZATION_NOT_FOUND,
+          EMPLOYEE_IMPORT_NOT_FOUND,
           NOT_FOUND ->
           Outcome.NOT_FOUND;
       case ACCESS_DENIED, TENANT_ACCESS_DENIED, TENANT_CONTEXT_MISSING -> Outcome.DENIED;

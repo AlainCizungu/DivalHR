@@ -75,4 +75,23 @@ class TenantPredicateArchitectureTest {
           .and()
           .areNotAnnotatedWith(CrossTenantAccess.class)
           .should(TAKE_TENANT_ID);
+
+  /**
+   * MVP-020: people repositories follow the same rule; the import expiry and retention jobs are
+   * marked {@link CrossTenantAccess}.
+   */
+  @ArchTest
+  static final ArchRule peopleRepositoriesRequireTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.people.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleNameEndingWith("Repository")
+          .and()
+          .arePublic()
+          .and()
+          .areNotAnnotatedWith(CrossTenantAccess.class)
+          .should(TAKE_TENANT_ID);
 }

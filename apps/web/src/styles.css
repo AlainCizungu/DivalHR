@@ -71,6 +71,7 @@ body {
 
 .nav {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--dv-space-4);
 }
 

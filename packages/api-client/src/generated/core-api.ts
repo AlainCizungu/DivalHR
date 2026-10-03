@@ -431,6 +431,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/employee-imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the employee import template
+         * @description MVP-020. A server-owned CSV with the header row only, in French or English (no sample row, so nothing fictitious can be imported). UTF-8 with a byte-order mark and a comma delimiter; the header labels are those the import accepts.
+         */
+        get: operations["getEmployeeImportTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employee-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload and validate an employee CSV
+         * @description MVP-020. The request body is the CSV itself (text/csv; multipart is rejected). It is read only after authorization and the per-subject and per-tenant request limits, as a stream bounded to 2 MiB and 30 seconds, decoded as strict UTF-8 (a byte-order mark is ignored), and never stored: valid rows are staged as normalized values for 2 hours and invalid rows keep only their error codes. A file-level problem creates nothing (400 IMPORT_FILE_INVALID with params.reason and, for header problems, params.column = the 1-based header position; 413 IMPORT_FILE_TOO_LARGE; 408 IMPORT_UPLOAD_TIMEOUT). At most 3 open imports per tenant (409 IMPORT_LIMIT_REACHED). Retries with the same Idempotency-Key and identical bytes replay the original 201. Cache-Control private, no-store.
+         */
+        post: operations["createEmployeeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employee-imports/{importId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an employee import's status and counts
+         * @description MVP-020. Counts and status only, never personal data. Imports of another tenant, unknown and malformed IDs give the same 404 EMPLOYEE_IMPORT_NOT_FOUND. Import details are kept for 30 days after the import is closed (operational policy, configurable 1-90 days).
+         */
+        get: operations["getEmployeeImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employee-imports/{importId}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview an employee import row by row
+         * @description MVP-020. Rows in file order, keyset-paginated on the row number; cursors are bound to the operation, tenant, import, status filter and page size. Valid rows of an open import carry the normalized values that will be created; invalid rows carry only the row number, column keys and stable codes, never a submitted value. After commit, discard or expiry no row carries values and the new employees are not identified. Cache-Control private, no-store.
+         */
+        get: operations["listEmployeeImportRows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employee-imports/{importId}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the employees of the valid rows
+         * @description MVP-020. Creates one employee and one employment per valid row in a single transaction, or nothing. The command repeats what the administrator reviewed: previewDigest and validRows must match the staged import (409 IMPORT_PREVIEW_CHANGED), and acknowledgeInvalidRows must be true when some rows are invalid (400 VALIDATION_FAILED). Rows are re-validated inside the transaction; any change since the preview (an employee number now taken, a unit no longer valid) creates nothing (409 IMPORT_STALE). An import that is not open answers 409 IMPORT_NOT_COMMITTABLE with params.status; zero valid rows answers 409 IMPORT_NOTHING_TO_COMMIT. A database timeout creates nothing (503 IMPORT_TIMEOUT). Existing employees are never updated, and no user account, invitation or membership is created. Retries with the same Idempotency-Key replay the original 200.
+         */
+        post: operations["commitEmployeeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employee-imports/{importId}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discard an open employee import
+         * @description MVP-020. Erases the staged values of an open import and closes it. Discarding an import that is already discarded returns it unchanged; a committed or expired import answers 409 IMPORT_NOT_COMMITTABLE with params.status.
+         */
+        post: operations["discardEmployeeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/invitations/inspect": {
         parameters: {
             query?: never;
@@ -1000,11 +1120,85 @@ export interface components {
             tenantId: string | null;
             roles: ("platform-admin" | "tenant-admin" | "employee")[];
         };
+        /** @description MVP-020. An employee import: status, counts and the preview digest. Never personal data. */
+        EmployeeImport: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["EmployeeImportStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description When an open import's staged values are erased.
+             */
+            expiresAt: string;
+            totalRows: number;
+            validRows: number;
+            invalidRows: number;
+            /** @description Employees created; set once the import is committed. */
+            createdCount?: number | null;
+            /** @description Rows not imported; set once the import is committed. */
+            notImportedCount?: number | null;
+            /** @enum {string} */
+            delimiter: "COMMA" | "SEMICOLON";
+            /** @enum {string} */
+            headerLanguage: "fr" | "en" | "mixed";
+            /** @description SHA-256 of the canonical preview; repeated in the commit command. */
+            previewDigest: string;
+            /** @description True when some rows are invalid and will not be imported. */
+            requiresAcknowledgement: boolean;
+            errorCounts: components["schemas"]["EmployeeImportErrorCount"][];
+        };
+        /** @enum {string} */
+        EmployeeImportStatus: "VALIDATED" | "COMMITTED" | "DISCARDED" | "EXPIRED";
+        EmployeeImportErrorCount: {
+            code: components["schemas"]["EmployeeImportRowErrorCode"];
+            count: number;
+        };
+        EmployeeImportRowPage: {
+            items: components["schemas"]["EmployeeImportRow"][];
+            nextCursor: string | null;
+        };
+        EmployeeImportRow: {
+            /** @description 1-based position among the data rows (the header and empty lines excluded). */
+            rowNumber: number;
+            /** @enum {string} */
+            status: "VALID" | "INVALID" | "CREATED" | "NOT_IMPORTED";
+            errors: components["schemas"]["EmployeeImportRowError"][];
+            /** @description Only for VALID rows of an open import. */
+            values?: components["schemas"]["EmployeeImportRowValues"] | null;
+        };
+        EmployeeImportRowError: {
+            column: components["schemas"]["EmployeeImportColumn"];
+            code: components["schemas"]["EmployeeImportRowErrorCode"];
+        };
+        /** @enum {string} */
+        EmployeeImportColumn: "employee_number" | "given_names" | "family_name" | "start_date" | "legal_entity_code" | "site_code" | "department_code" | "cost_center_code" | "team_code";
+        /** @enum {string} */
+        EmployeeImportRowErrorCode: "ROW_SHAPE" | "ROW_REQUIRED" | "ROW_TOO_LONG" | "ROW_CONTROL_CHARACTER" | "ROW_FORMAT" | "ROW_DATE_FORMAT" | "ROW_DATE_RANGE" | "ROW_EMPLOYEE_NUMBER_REPEATED" | "ROW_EMPLOYEE_NUMBER_EXISTS" | "ROW_UNIT_NOT_FOUND" | "ROW_UNIT_MISMATCH" | "ROW_UNIT_NOT_EFFECTIVE" | "ROW_PARENT_AMBIGUOUS";
+        /** @description Normalized values that the commit will create. Confidential personal data. */
+        EmployeeImportRowValues: {
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+            /** Format: date */
+            startDate: string;
+            legalEntityCode: string;
+            siteCode: string;
+            departmentCode?: string | null;
+            costCenterCode?: string | null;
+            teamCode?: string | null;
+        };
+        CommitEmployeeImport: {
+            previewDigest: string;
+            validRows: number;
+            acknowledgeInvalidRows: boolean;
+        };
         /**
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -1050,7 +1244,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE, COST_CENTER_PERIOD_OUTSIDE_SITE, REGION_PERIOD_OUTSIDE_LEGAL_ENTITY, TEAM_PERIOD_OUTSIDE_DEPARTMENT and TEAM_PERIOD_OUTSIDE_COST_CENTER carry params.field (effectiveFrom or effectiveTo). TEAM_PARENT_REQUIRED (no parent supplied) and TEAM_PARENT_AMBIGUOUS (both parents supplied) carry no params and follow format validation. SITE_PERIOD_OUTSIDE_REGION and SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no params. Invitation fields (email, role, locale) use VALIDATION_FAILED; an unsupported role, including platform-admin, is constraint FORMAT exactly like any unknown value. Submitted values, and email addresses in particular, are never echoed. */
+        /** @description Invalid request. VALIDATION_FAILED lists params.fields[{field, constraint}] with constraint REQUIRED, LENGTH, FORMAT, RANGE, DUPLICATE or UNKNOWN_PROPERTY. The *_NOT_SUPPORTED codes carry params.field and params.supported. EFFECTIVE_DATE_INVALID, SITE_PERIOD_OUTSIDE_LEGAL_ENTITY, DEPARTMENT_PERIOD_OUTSIDE_SITE, COST_CENTER_PERIOD_OUTSIDE_SITE, REGION_PERIOD_OUTSIDE_LEGAL_ENTITY, TEAM_PERIOD_OUTSIDE_DEPARTMENT and TEAM_PERIOD_OUTSIDE_COST_CENTER carry params.field (effectiveFrom or effectiveTo). TEAM_PARENT_REQUIRED (no parent supplied) and TEAM_PARENT_AMBIGUOUS (both parents supplied) carry no params and follow format validation. SITE_PERIOD_OUTSIDE_REGION and SITE_REGION_LEGAL_ENTITY_MISMATCH carry params.field = regionId. CURSOR_INVALID carries no params. Invitation fields (email, role, locale) use VALIDATION_FAILED; an unsupported role, including platform-admin, is constraint FORMAT exactly like any unknown value. Submitted values, and email addresses in particular, are never echoed. IMPORT_FILE_INVALID (MVP-020) carries params.reason (EMPTY, ENCODING, DELIMITER, MALFORMED, LINE_TOO_LONG, TOO_MANY_COLUMNS, COLUMN_UNKNOWN, COLUMN_DUPLICATE, COLUMN_MISSING, NO_ROWS or TOO_MANY_ROWS) and, for header problems, params.column (1-based header position, or the missing column key for COLUMN_MISSING); the file content is never echoed. A request body that is not text/csv (multipart included) is VALIDATION_FAILED on field Content-Type. */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -1059,7 +1253,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed). */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -1068,7 +1262,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND or INVITATION_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND or EMPLOYEE_IMPORT_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -1077,7 +1271,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client, too many bootstrap invitations created by one platform administrator, or more than 30 access-review requests per minute by one subject). No params. */
+        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client, too many bootstrap invitations created by one platform administrator, more than 30 access-review requests per minute by one subject, or, for employee imports, more than 10 upload and commit requests per minute by one subject, 30 uploads or 60 commits per 10 minutes in one tenant). Limits are per instance. No params. */
         TooManyRequests: {
             headers: {
                 "Retry-After": components["headers"]["RetryAfter"];
@@ -1087,8 +1281,26 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. No params. */
+        /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. IMPORT_TIMEOUT - an employee import's database work exceeded its time limit and was rolled back entirely; retry with the same Idempotency-Key. No params. */
         ServiceUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description IMPORT_UPLOAD_TIMEOUT - the CSV body was not received within the upload time limit; nothing was stored. No params. */
+        RequestTimeout: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description IMPORT_FILE_TOO_LARGE - the CSV body exceeds 2 MiB; reading stopped at the limit and nothing was stored. No params. */
+        PayloadTooLarge: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1127,6 +1339,10 @@ export interface components {
         InvitationId: string;
         /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
         Cursor: string;
+        /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_IMPORT_NOT_FOUND. */
+        EmployeeImportId: string;
+        /** @description Rows per page for the import preview (1-100, default 50). */
+        EmployeeImportRowLimit: number;
         /** @description Entries per page for the access review (1-50, default 25). */
         AccessReviewLimit: number;
         Limit: number;
@@ -2072,6 +2288,214 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
+        };
+    };
+    getEmployeeImportTemplate: {
+        parameters: {
+            query: {
+                lang: "fr" | "en";
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV template */
+            200: {
+                headers: {
+                    /** @description attachment; filename="divalhr-employee-import-<lang>.csv" */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+        };
+    };
+    createEmployeeImport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Import validated and staged, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeImport"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            408: components["responses"]["RequestTimeout"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getEmployeeImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_IMPORT_NOT_FOUND. */
+                importId: components["parameters"]["EmployeeImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The import */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeImport"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listEmployeeImportRows: {
+        parameters: {
+            query?: {
+                status?: "all" | "valid" | "invalid";
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Rows per page for the import preview (1-100, default 50). */
+                limit?: components["parameters"]["EmployeeImportRowLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_IMPORT_NOT_FOUND. */
+                importId: components["parameters"]["EmployeeImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of rows */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeImportRowPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    commitEmployeeImport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_IMPORT_NOT_FOUND. */
+                importId: components["parameters"]["EmployeeImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitEmployeeImport"];
+            };
+        };
+        responses: {
+            /** @description Employees created, or the original commit replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeImport"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    discardEmployeeImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_IMPORT_NOT_FOUND. */
+                importId: components["parameters"]["EmployeeImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The discarded import */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeImport"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     inspectInvitation: {

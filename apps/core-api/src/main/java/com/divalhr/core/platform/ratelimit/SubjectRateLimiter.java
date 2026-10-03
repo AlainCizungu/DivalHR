@@ -27,7 +27,11 @@ public class SubjectRateLimiter {
   private static final String ALGORITHM = "HmacSHA256";
   private static final Duration WINDOW = Duration.ofMinutes(1);
 
+  /** The access-review bucket (MVP-012B), configured by {@link ReviewRateLimitProperties}. */
+  public static final String ACCESS_REVIEW = "access-review";
+
   private final ReviewRateLimitProperties properties;
+  private final RequestLimitProperties buckets;
   private final Clock clock;
   private final SecureRandom random = new SecureRandom();
   private final Object lock = new Object();
@@ -41,8 +45,8 @@ public class SubjectRateLimiter {
    * @param properties limits
    */
   @Autowired
-  public SubjectRateLimiter(ReviewRateLimitProperties properties) {
-    this(properties, Clock.systemUTC());
+  public SubjectRateLimiter(ReviewRateLimitProperties properties, RequestLimitProperties buckets) {
+    this(properties, buckets, Clock.systemUTC());
   }
 
   /**
@@ -51,9 +55,27 @@ public class SubjectRateLimiter {
    * @param properties limits
    * @param clock clock
    */
-  SubjectRateLimiter(ReviewRateLimitProperties properties, Clock clock) {
+  SubjectRateLimiter(
+      ReviewRateLimitProperties properties, RequestLimitProperties buckets, Clock clock) {
     this.properties = properties;
+    this.buckets = buckets;
     this.clock = clock;
+  }
+
+  /**
+   * The bucket's per-minute limit: the access review keeps its own setting (MVP-012B); other
+   * buckets come from {@code divalhr.request-limits.subject} (MVP-020). An unconfigured bucket
+   * fails closed.
+   */
+  private int limitOf(String bucket) {
+    if (ACCESS_REVIEW.equals(bucket)) {
+      return properties.requestsPerMinute();
+    }
+    Integer limit = buckets.subject().get(bucket);
+    if (limit == null) {
+      throw new IllegalStateException("unconfigured subject rate-limit bucket");
+    }
+    return limit;
   }
 
   /**
@@ -65,6 +87,7 @@ public class SubjectRateLimiter {
    *     window, marked when it is the subject's first refusal in that window
    */
   public void acquire(String bucket, String subject) {
+    int limit = limitOf(bucket);
     Instant now = Instant.now(clock);
     long index = Math.floorDiv(now.toEpochMilli(), WINDOW.toMillis());
     synchronized (lock) {
@@ -78,8 +101,8 @@ public class SubjectRateLimiter {
         throw limited(index, now, false);
       }
       int mine = counts.merge(key, 1, Integer::sum);
-      if (mine > properties.requestsPerMinute()) {
-        throw limited(index, now, mine == properties.requestsPerMinute() + 1);
+      if (mine > limit) {
+        throw limited(index, now, mine == limit + 1);
       }
     }
   }

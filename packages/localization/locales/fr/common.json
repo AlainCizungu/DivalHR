@@ -12,7 +12,8 @@
     "hierarchy": "Structure organisationnelle",
     "users": "Utilisateurs et invitations",
     "firstAdmin": "Premier administrateur",
-    "accessReview": "Revue des accès"
+    "accessReview": "Revue des accès",
+    "employeeImport": "Importer des employés"
   },
   "locale": {
     "label": "Langue",
@@ -131,7 +132,17 @@
     "RATE_LIMITED": "Trop de tentatives. Veuillez patienter un instant puis réessayer.",
     "network": "Impossible de joindre DivalHR. Vérifiez votre connexion puis réessayez ; votre demande ne sera pas dupliquée.",
     "ORGANIZATION_NOT_FOUND": "Cette organisation n’existe pas ou n’est pas active.",
-    "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE": "Cette organisation a déjà un administrateur ou une invitation d’administrateur en cours. Ses administrateurs gèrent les invitations suivantes."
+    "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE": "Cette organisation a déjà un administrateur ou une invitation d’administrateur en cours. Ses administrateurs gèrent les invitations suivantes.",
+    "IMPORT_FILE_INVALID": "Le fichier ne peut pas être lu comme un import d’employés. Rien n’a été importé.",
+    "IMPORT_FILE_TOO_LARGE": "Le fichier dépasse 2 Mio. Découpez-le en fichiers plus petits.",
+    "IMPORT_UPLOAD_TIMEOUT": "L’envoi du fichier a pris trop de temps. Vérifiez votre connexion et réessayez.",
+    "IMPORT_LIMIT_REACHED": "Votre organisation a déjà 3 imports en cours. Importez ou annulez l’un d’eux, ou attendez son expiration.",
+    "EMPLOYEE_IMPORT_NOT_FOUND": "Cet import n’existe plus.",
+    "IMPORT_NOT_COMMITTABLE": "Cet import n’est plus ouvert. Envoyez de nouveau le fichier.",
+    "IMPORT_PREVIEW_CHANGED": "L’import a changé depuis votre vérification. Vérifiez-le de nouveau avant d’importer.",
+    "IMPORT_STALE": "Certaines lignes ne sont plus valides (un matricule ou une unité a changé). Rien n’a été importé ; envoyez de nouveau le fichier.",
+    "IMPORT_NOTHING_TO_COMMIT": "Le fichier ne contient aucune ligne valide à importer.",
+    "IMPORT_TIMEOUT": "L’import a pris trop de temps et a été annulé ; rien n’a été importé. Réessayez."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -667,6 +678,157 @@
         "LENGTH": "L’adresse e-mail est trop longue.",
         "FORMAT": "Saisissez une adresse e-mail valide, par exemple nom@exemple.cd."
       }
+    }
+  },
+  "employeeImport": {
+    "title": "Importer des employés",
+    "description": "Créez des employés à partir d’un fichier CSV. Le fichier est d’abord vérifié ; rien n’est créé avant que vous confirmiez l’import.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent importer des employés.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour importer des employés.",
+    "reference": "Référence : {{id}}",
+    "retryAfter_one": "Réessayez dans {{count}} seconde.",
+    "retryAfter_other": "Réessayez dans {{count}} secondes.",
+    "timeZoneNote": "Dates et heures affichées dans le fuseau horaire de votre appareil.",
+    "template": {
+      "title": "1. Télécharger le modèle",
+      "help": "Utilisez le modèle dans l’une ou l’autre langue. Colonnes obligatoires : matricule, prénoms, nom de famille, date d’entrée, code de l’entité juridique et code du site. Les codes du département, du centre de coût et de l’équipe sont facultatifs.",
+      "fr": "Télécharger le modèle en français",
+      "en": "Télécharger le modèle en anglais",
+      "failed": "Le modèle n’a pas pu être téléchargé. Réessayez."
+    },
+    "upload": {
+      "title": "2. Vérifier le fichier",
+      "file": "Fichier CSV",
+      "help": "CSV en UTF-8, séparé par des points-virgules ou des virgules, 2 Mio et 1 000 lignes au maximum. Dates au format AAAA-MM-JJ, par exemple 2026-03-01.",
+      "submit": "Vérifier le fichier",
+      "checking": "Vérification du fichier…",
+      "required": "Choisissez un fichier CSV.",
+      "tooLarge": "Le fichier dépasse 2 Mio. Découpez-le en fichiers plus petits.",
+      "column": "Colonne : {{column}}",
+      "selected": "Fichier choisi : {{name}} ({{size}})"
+    },
+    "fileReasons": {
+      "EMPTY": "Le fichier est vide.",
+      "ENCODING": "Le fichier n’est pas un texte UTF-8. Enregistrez-le de nouveau au format « CSV UTF-8 ».",
+      "DELIMITER": "Le séparateur n’a pas été reconnu. Utilisez des points-virgules ou des virgules.",
+      "MALFORMED": "Le fichier n’est pas un CSV valide (vérifiez les guillemets).",
+      "LINE_TOO_LONG": "Une ligne du fichier est trop longue.",
+      "TOO_MANY_COLUMNS": "Le fichier contient trop de colonnes.",
+      "COLUMN_UNKNOWN": "Un en-tête de colonne n’est pas reconnu. Utilisez les en-têtes du modèle.",
+      "COLUMN_DUPLICATE": "Une colonne apparaît deux fois.",
+      "COLUMN_MISSING": "Une colonne obligatoire est absente.",
+      "NO_ROWS": "Le fichier contient des en-têtes mais aucune ligne.",
+      "TOO_MANY_ROWS": "Le fichier contient plus de 1 000 lignes. Découpez-le en fichiers plus petits."
+    },
+    "preview": {
+      "title": "3. Examiner le résultat",
+      "counts": "{{total}} lignes : {{valid}} valides, {{invalid}} non valides.",
+      "expires": "Cette vérification reste disponible jusqu’au {{date}}.",
+      "errorsTitle": "Problèmes détectés",
+      "errorCount": "{{message}} ({{count}})",
+      "filter": "Lignes à afficher",
+      "all": "Toutes les lignes",
+      "valid": "Lignes valides",
+      "invalid": "Lignes non valides",
+      "empty": "Aucune ligne à afficher.",
+      "loading": "Chargement des lignes…",
+      "loadMore": "Afficher plus de lignes",
+      "retry": "Réessayer"
+    },
+    "table": {
+      "caption": "Lignes du fichier",
+      "row": "Ligne",
+      "status": "État",
+      "employeeNumber": "Matricule",
+      "name": "Nom",
+      "units": "Unités",
+      "startDate": "Date d’entrée",
+      "problems": "Erreurs",
+      "valid": "Valide",
+      "invalid": "Non valide",
+      "optionalEmpty": "—",
+      "created": "Créé",
+      "notImported": "Non importée"
+    },
+    "columns": {
+      "employee_number": "Matricule",
+      "given_names": "Prénoms",
+      "family_name": "Nom de famille",
+      "start_date": "Date d’entrée",
+      "legal_entity_code": "Code de l’entité juridique",
+      "site_code": "Code du site",
+      "department_code": "Code du département",
+      "cost_center_code": "Code du centre de coût",
+      "team_code": "Code de l’équipe"
+    },
+    "rowErrors": {
+      "ROW_SHAPE": "La ligne n’a pas le même nombre de colonnes que l’en-tête",
+      "ROW_REQUIRED": "Valeur obligatoire manquante",
+      "ROW_TOO_LONG": "Valeur trop longue",
+      "ROW_CONTROL_CHARACTER": "Caractère invisible ou de contrôle",
+      "ROW_FORMAT": "Format non valide",
+      "ROW_DATE_FORMAT": "Date qui n’est pas au format AAAA-MM-JJ",
+      "ROW_DATE_RANGE": "Date hors de la plage autorisée",
+      "ROW_EMPLOYEE_NUMBER_REPEATED": "Matricule répété dans le fichier",
+      "ROW_EMPLOYEE_NUMBER_EXISTS": "Matricule déjà existant",
+      "ROW_UNIT_NOT_FOUND": "Unité introuvable",
+      "ROW_UNIT_MISMATCH": "L’unité n’appartient pas à cette entité juridique ou à ce site",
+      "ROW_UNIT_NOT_EFFECTIVE": "Unité non en vigueur à la date d’entrée",
+      "ROW_PARENT_AMBIGUOUS": "Indiquez pour l’équipe soit un département, soit un centre de coût, pas les deux"
+    },
+    "rowError": "{{column}} : {{message}}",
+    "commit": {
+      "title": "4. Importer",
+      "acknowledge_one": "Je comprends que {{count}} ligne non valide ne sera pas importée.",
+      "acknowledge_other": "Je comprends que {{count}} lignes non valides ne seront pas importées.",
+      "acknowledgeRequired": "Confirmez que les lignes non valides ne seront pas importées.",
+      "submit_one": "Importer {{count}} employé",
+      "submit_other": "Importer {{count}} employés",
+      "confirm_one": "{{count}} employé sera créé. Cette action ne peut pas être annulée depuis cette page. Continuer ?",
+      "confirm_other": "{{count}} employés seront créés. Cette action ne peut pas être annulée depuis cette page. Continuer ?",
+      "confirmYes": "Oui, importer",
+      "confirmNo": "Retour",
+      "importing": "Import en cours…",
+      "nothing": "Aucune ligne n’est valide : corrigez le fichier et vérifiez-le de nouveau.",
+      "discard": "Annuler cet import",
+      "discarding": "Annulation…",
+      "retry": "Réessayer"
+    },
+    "result": {
+      "committedTitle": "Import terminé",
+      "created_one": "{{count}} employé créé.",
+      "created_other": "{{count}} employés créés.",
+      "notImported_one": "{{count}} ligne non importée.",
+      "notImported_other": "{{count}} lignes non importées.",
+      "discardedTitle": "Import annulé",
+      "discarded": "Rien n’a été importé. Les lignes vérifiées ont été effacées.",
+      "again": "Importer un autre fichier",
+      "notImportedCaption": "Lignes non importées"
+    },
+    "announce": {
+      "checked": "Fichier vérifié : {{valid}} lignes valides, {{invalid}} lignes non valides.",
+      "rows_one": "{{count}} ligne affichée.",
+      "rows_other": "{{count}} lignes affichées."
+    },
+    "expired": "Cette vérification a expiré (après 2 heures) et ses lignes ont été effacées. Envoyez de nouveau le fichier.",
+    "format": {
+      "caption": "Colonnes du fichier",
+      "column": "Colonne",
+      "required": "Obligatoire",
+      "content": "Contenu attendu",
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "formats": {
+      "employee_number": "Numéro unique : jusqu’à 32 lettres, chiffres, points, tirets, traits de soulignement ou barres obliques, commençant par une lettre ou un chiffre, par exemple E-001",
+      "given_names": "Lettres, espaces, apostrophes, points et traits d’union ; 100 caractères au maximum",
+      "family_name": "Lettres, espaces, apostrophes, points et traits d’union ; 100 caractères au maximum",
+      "start_date": "Premier jour de travail au format AAAA-MM-JJ, par exemple 2026-03-01",
+      "legal_entity_code": "Code d’une entité juridique existante",
+      "site_code": "Code d’un site de cette entité juridique",
+      "department_code": "Code d’un département de ce site, ou vide",
+      "cost_center_code": "Code d’un centre de coût de ce site, ou vide ; pas en même temps qu’un département",
+      "team_code": "Code d’une équipe, ou vide ; sans département ni centre de coût, celui de l’équipe est utilisé"
     }
   }
 }
