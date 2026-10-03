@@ -212,6 +212,15 @@
 - Each successful review writes one `platform.audit_event` (`access-review.read`, digest v1 in `after_state_sha256`).
 - Manual rollback: `db/rollback/V11__rollback.sql` drops the two indexes and restores V10 exactly; no data is touched. Rolling back only the application is preferred.
 
+## Implemented (MVP-013: authorization denial audit)
+
+- V12 adds `platform.authorization_denial`: `id`, `occurred_at`, `actor_subject` (the verified JWT `sub`, unchanged; `text`, non-empty, no length limit), `action` (always `authorization.denied`), `operation` (operation-name grammar), `scope` (`platform`, `tenant`), `stage` (`role`, `tenant_context`, `mfa`, `membership`, `rate_limit`, `method_security`), `tenant_id` (nullable) and `correlation_id` (`^[A-Za-z0-9._-]{8,64}$`). No metadata column.
+- Checks: platform rows carry only `role`, `mfa` or `method_security`; `tenant_id` is present exactly for tenant-scoped `rate_limit` and `method_security` rows (the effective tenant after the membership gate) and never for platform rows.
+- Indexes: `(occurred_at)`, `(actor_subject, occurred_at)`, and `(tenant_id, occurred_at) WHERE tenant_id IS NOT NULL`. Append-only triggers reject `UPDATE`, `DELETE` and `TRUNCATE`.
+- Classification: security evidence. `actor_subject` is a pseudonymous identity-provider identifier; no names, addresses, claims, request data or targets are stored. No retention period is approved yet: rows are kept and never deleted automatically.
+- Writes go through a dedicated two-connection pool with its own transaction manager (`DenialAuditStore`), independent of business transactions.
+- Manual rollback: `db/rollback/V12__rollback.sql` restores V11 exactly, but refuses while any row exists (no override). Destroying evidence needs the operator procedure in SECURITY.md.
+
 ## Implemented (Issue #17 maintenance)
 
 - V4 restores the approved strict operation-name grammar on `idempotency_operation_format` and `audit_action_format`: `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`. A pre-flight counts non-conforming rows and aborts the (single-transaction) migration without rewriting or revealing data. V1-V3 are unchanged; `db/rollback/V4__rollback.sql` restores the V3 superset (non-destructive).

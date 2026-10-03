@@ -68,11 +68,11 @@ Out of scope for MVP-011: passkeys and passwordless sign-in, SMS or email codes,
 
 Authorized security administrators can review active access by user, role, site, and legal entity.
 
-**Issue #37. Approved with amendments.** Delivered as two pull requests, 12A then 12B.
+**Issue #37. Complete.** Delivered as two pull requests, 12A then 12B.
 
 **12A membership authority: complete (PR #41).** Every tenant-scoped operation requires a matching active membership (token ∩ membership, exact role, after MFA and before binding); `/session` reports effective roles and supports tenantless platform administrators; the membership keeps its source invitation's address (V10, with a database invariant); development seed memberships; a read-only rollout preflight. Architecture decisions D1-D9, A1-A7, M1-M11, A12A-1 and A12A-2 on Issue #37 apply. 
 
-**12B access review: in review.** Read-only review for tenant administrators with exact MFA: paginated listing, exact-address lookup and role summary on the 12A active-membership predicate; legal-entity and site views show organization-wide access as inherited; HMAC-bound keyset cursors; 30 review requests per minute per subject; fail-closed `access-review.read` audit with canonical digest v1; French and English page at `/admin/access`. Architecture decisions R1-R8 and guardrails B1-B5 on Issue #37 apply. Follow-ups: S1 scoped roles, S2 grant and revoke, S3 membership lifecycle, a shared rate limiter for production scaling.
+**12B access review: complete (PR #42).** Read-only review for tenant administrators with exact MFA: paginated listing, exact-address lookup and role summary on the 12A active-membership predicate; legal-entity and site views show organization-wide access as inherited; HMAC-bound keyset cursors; 30 review requests per minute per subject; fail-closed `access-review.read` audit with canonical digest v1; French and English page at `/admin/access`. Architecture decisions R1-R8 and guardrails B1-B5 on Issue #37 apply. Follow-ups: S1 scoped roles, S2 grant and revoke, S3 membership lifecycle, a shared rate limiter for production scaling.
 
 ### MVP-014 Invite an organization's first administrator
 
@@ -84,7 +84,11 @@ Out of scope for MVP-014: replacing or removing an existing tenant administrator
 
 ### MVP-013 Durably audit privileged authorization denials
 
-Denied attempts at platform-scoped operations are recorded as append-only audit events (actor subject, operation, result `DENIED`, correlation ID; no request content), in addition to the structured security log and metric introduced by MVP-001. Follow-up from the MVP-001 architect review (#10).
+Denied attempts at privileged operations by a verified identity are recorded as append-only evidence, in addition to the structured security log and metric introduced by MVP-001. Follow-up from the MVP-001 architect review (#10).
+
+**Issue #43. In review.** Covers all 25 privileged operations (5 platform-scoped, 20 tenant-admin; D9). A dedicated typed append-only table `platform.authorization_denial` (V12, no free-form metadata) receives one row per eligible denial: role, tenant context, MFA, membership, the first per-subject rate-limit refusal of a window, and proven method-security drift. Only a verified non-blank JWT subject is an actor; anonymous, invalid-token and subjectless traffic stays log/metric-only. The tenant column holds only the effective tenant (after the membership gate), never a platform token's tenant. Rows are written in their own transaction on a two-connection bulkhead pool with its own transaction manager; a storage failure keeps the normal denial response and is signalled by metric, error log and alert. Per-actor and per-instance budgets bound writes; suppressed attempts are telemetry only. No retention schedule is approved: nothing is deleted. Public responses, FR/EN texts and the MFA challenge are unchanged; the stage-2 security log no longer names the actor. Architecture decisions D1-D11 and amendments A13-1 to A13-6 on Issue #43 apply.
+
+Out of scope for MVP-013: an audit export or search UI, a SIEM, durable counts of suppressed attempts, a retention or archive job, auditing anonymous traffic, and post-binding denials (`TENANT_ACCESS_DENIED`, foreign-parent `404`s, validation errors).
 
 ## Epic 3 Employee Core
 

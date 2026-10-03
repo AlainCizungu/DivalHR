@@ -243,3 +243,17 @@ No new secret. New development-only data: fixed realm user IDs and four seed mem
 
 No new secret and no new personal data category. New configuration: `DIVALHR_ACCESS_REVIEW_REQUESTS_PER_MINUTE`.
 
+
+## MVP-013 delta (authorization denial audit, Issue #43)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| R8 | A privileged denial cannot be attributed to the identity that attempted it | One append-only `platform.authorization_denial` row per eligible denial (stages 2-7), actor = verified `sub` only, written before the denial is thrown | `everyPrivilegedHandlerRecordsEveryApplicableStage`, `eachDurableStageWritesOneRowWithTheEffectiveTenantRule`, `denial-audit.spec.ts` (real Keycloak) |
+| S17 | Anonymous or forged traffic manufactures actor evidence | Only a verified non-blank JWT `sub`; 401s and subjectless tokens are never durable | `anonymousInvalidAndSubjectlessTrafficIsNeverAttributedAndAllowedCallsNeverWrite` |
+| I23 | Denial evidence leaks the actor, a foreign tenant or request data | Typed columns, no metadata; effective tenant only; no subject in logs or metrics (stage-2 log fixed); recorder errors logged by type only | `malformedBodiesQueriesAndPathTargetsNeitherChangeTheStageNorEnterTheEvidence`, `denialTelemetryCarriesOnlyBoundedServerOwnedLabels` |
+| D8 | A valid session floods denial writes or starves the application pool | Per-actor and per-instance budgets checked before any connection; separate two-connection bulkhead with 1 s / 2 s timeouts; first rate-limit refusal per window only | `DenialAuditBoundsIntegrationTest`, `DenialAuditBudgetTest` |
+| T37 | Evidence silently lost or rolled back with the rejected request | `REQUIRES_NEW` on the bulkhead's own transaction manager; failures keep the denial and raise the `failed` metric, error log and alert (no durability claim during an outage) | `theDenialRowSurvivesARolledBackOuterTransactionAndBusinessAuditStillNeedsOne`, `aStorageFailureKeepsTheNormalDenialAndOnlySignalsTheGap`, `aStorageFailureKeepsThe429AndItsRetryAfter` |
+| E25 | Annotation or configuration drift lets method security and the interceptor disagree, or any `AccessDeniedException` is taken for drift | Provenance from Spring method security's own authorization event; drift row, metric and alert only then | `onlyAProvenMethodSecurityDenialIsDriftAndAPlainDenialIsNot` |
+| T38 | Evidence deleted or altered | Append-only triggers; rollback refuses while rows exist; no deletion schedule until one is approved | `AuthorizationDenialMigrationIntegrationTest` |
+
+No new secret and no new personal data category (the subject is already the audit actor). New configuration: `DIVALHR_DENIAL_AUDIT_PER_ACTOR_PER_MINUTE`, `DIVALHR_DENIAL_AUDIT_PER_INSTANCE_PER_MINUTE`. Residual risks: evidence gaps while the database is unavailable (signalled, not prevented); suppressed attempts are counted only in telemetry; no approved retention period.
