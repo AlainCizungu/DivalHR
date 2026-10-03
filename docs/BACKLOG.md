@@ -96,6 +96,10 @@ Out of scope for MVP-013: an audit export or search UI, a SIEM, durable counts o
 
 HR can import a validated CSV, preview errors, and commit valid records idempotently.
 
+**Issue #45. In review.** Tenant administrators download a French or English template, upload a UTF-8 CSV (semicolon or comma, at most 2 MiB and 1,000 rows), review valid and invalid rows with stable error codes, and commit the valid rows in one all-or-nothing, idempotent transaction that re-validates against current employees and units, or cancel. V13 adds the `people` schema (`employee`, one `employment` per employee, `employee_import`, `employee_import_row`). Parsing uses Apache Commons CSV behind a people-module port; per-subject and per-tenant request limits, 3 open imports per tenant, explicit body, database and job timeouts; audit and outbox carry IDs and counts only; staged values are erased within 2 hours and import details deleted after 30 days. French and English page at "Importer des employés" / "Import employees". Approved proposal and amendments A20-1 to A20-6 on Issue #45 apply.
+
+Out of scope for MVP-020: updating, merging or deleting employees, employment history changes (MVP-021) and separations (MVP-022); creating users, invitations, memberships or roles from rows; national IDs, bank accounts, salaries, contracts, documents, photos, dependants or health data; `.xlsx`, `.ods`, connectors, SFTP, scheduled or API-to-API imports; an employee directory or search UI; exporting imported data; a new HR role; and AI-assisted mapping or cleaning.
+
 ### MVP-021 Manage employment history
 
 HR can create effective-dated employment, manager, site, department, contract, and compensation-basis changes without destroying history.

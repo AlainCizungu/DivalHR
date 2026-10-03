@@ -221,6 +221,17 @@
 - Writes go through a dedicated two-connection pool with its own transaction manager (`DenialAuditStore`), independent of business transactions.
 - Manual rollback: `db/rollback/V12__rollback.sql` restores V11 exactly, but refuses while any row exists (no override). Destroying evidence needs the operator procedure in SECURITY.md.
 
+## Implemented (MVP-020: employee import)
+
+- V13 creates the `people` schema with four tables. Unit IDs in `people.employment` carry no foreign keys: the people module never reads the tenant module's tables, and placements are resolved through the `OrganizationPlacementDirectory` port. Constraint: hierarchy units cannot be deleted or re-parented today (MVP-002), so these references cannot dangle; any future story that deletes or moves units must first consult `people` through an event or port.
+- `people.employee`: `id`, `tenant_id` (FK to `tenant.organization`), `employee_number` (`^[A-Z0-9][A-Z0-9._/-]{0,31}$`, unique per tenant), `given_names` and `family_name` (NFC-normalized, 1-100 characters, trimmed, no control characters, no double space, never starting with `=`, `+`, `-` or `@`), `created_at`, `created_by`, `version`.
+- `people.employment`: `id`, `tenant_id`, `employee_id` (same-tenant FK), `legal_entity_id`, `site_id`, optional `department_id` or `cost_center_id` (at most one), optional `team_id` (only with a parent), `effective_from`, `effective_to` (open), `created_at`, `created_by`, `version`. One employment per imported employee; history changes belong to MVP-021.
+- `people.employee_import`: status `VALIDATED`, `COMMITTED`, `DISCARDED` or `EXPIRED`; `expires_at` (2 hours after creation), `file_sha256`, `preview_digest`, `delimiter`, `header_language`, the row counts, `created_count`, `committed_at` and `committed_by` (set exactly when committed), and `closed_at` (null exactly while open).
+- `people.employee_import_row`: primary key `(tenant_id, import_id, row_number)`, cascading from its import; `status` (`VALID`, `INVALID`, `CREATED`, `NOT_IMPORTED`), `error_columns` and `error_codes` (paired arrays from closed sets; required for invalid rows and absent otherwise), and the staged normalized values, which exist only for valid rows of an open import.
+- Classification: names and staged values are Restricted HR; employee numbers, start dates and placements are Confidential. Import records and row results (numbers, statuses, codes) are Internal. Employee IDs are personal-data references (A20-2): they appear only in audit and outbox records, never in import results.
+- Lifecycle: staged values are erased at commit, discard or expiry. Closed imports and their rows are deleted 30 days after closing by default (operational policy, 1-90 days); employees, employments, audit and outbox records are never deleted by this job.
+- Manual rollback: `db/rollback/V13__rollback.sql` locks the four tables and restores V12 exactly, but refuses while any row exists.
+
 ## Implemented (Issue #17 maintenance)
 
 - V4 restores the approved strict operation-name grammar on `idempotency_operation_format` and `audit_action_format`: `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`. A pre-flight counts non-conforming rows and aborts the (single-transaction) migration without rewriting or revealing data. V1-V3 are unchanged; `db/rollback/V4__rollback.sql` restores the V3 superset (non-destructive).
