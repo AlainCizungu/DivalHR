@@ -30,7 +30,9 @@ import org.springframework.test.context.TestExecutionListeners;
       "divalhr.tenant-administration.lock-timeout=3s",
       // MVP-013: the shared test context records every denial of the whole suite; the instance
       // ceiling is exercised by DenialAuditBoundsIntegrationTest with its own small value.
-      "divalhr.denial-audit.per-instance-per-minute=100000"
+      "divalhr.denial-audit.per-instance-per-minute=100000",
+      // MVP-020: integration tests run the employee import jobs directly.
+      "divalhr.employee-import.jobs.enabled=false"
     })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})

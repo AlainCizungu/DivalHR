@@ -115,7 +115,13 @@ class AuthorizationDenialAuditIntegrationTest {
           "invitation.resend",
           "access-review.list",
           "access-review.lookup",
-          "access-review.summary");
+          "access-review.summary",
+          "employee-import.template",
+          "employee-import.create",
+          "employee-import.read",
+          "employee-import.rows",
+          "employee-import.commit",
+          "employee-import.discard");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -521,7 +527,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(25);
+    assertThat(handlers).hasSize(31);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

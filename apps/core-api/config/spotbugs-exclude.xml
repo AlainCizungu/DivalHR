@@ -50,6 +50,10 @@
       <Class name="com.divalhr.core.identity.application.InvitationJobs"/>
       <Class name="com.divalhr.core.identity.internal.InvitationJobScheduler"/>
       <Class name="com.divalhr.core.identity.internal.keycloak.KeycloakIdentityDirectory"/>
+      <Class name="com.divalhr.core.people.application.EmployeeImportEvents"/>
+      <Class name="com.divalhr.core.people.internal.EmployeeImportJobScheduler"/>
+      <Class name="com.divalhr.core.people.internal.JdbcEmployeeImportRepository"/>
+      <Class name="com.divalhr.core.people.internal.JdbcEmployeeRepository"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->

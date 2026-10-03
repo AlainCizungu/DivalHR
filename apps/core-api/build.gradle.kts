@@ -45,6 +45,8 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:$springdocVersion")
     // Compile scope: unique-constraint names are read from PSQLException for narrow error mapping.
     implementation("org.postgresql:postgresql")
+    // MVP-020 (A20-3): pinned, dependency-reviewed CSV parser for employee imports.
+    implementation("org.apache.commons:commons-csv:1.14.1")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
