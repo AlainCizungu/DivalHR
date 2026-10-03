@@ -48,6 +48,13 @@ export type InvitationOrigin = CoreComponents['schemas']['InvitationOrigin'];
 export type CreateTenantAdminBootstrap = CoreComponents['schemas']['CreateTenantAdminBootstrap'];
 /** MVP-014: bootstrap availability and the open bootstrap invitation (no address). */
 export type TenantAdminBootstrap = CoreComponents['schemas']['TenantAdminBootstrap'];
+/** MVP-020: an employee import (status and counts only, never personal data). */
+export type EmployeeImport = CoreComponents['schemas']['EmployeeImport'];
+export type EmployeeImportRowPage = CoreComponents['schemas']['EmployeeImportRowPage'];
+export type EmployeeImportRow = CoreComponents['schemas']['EmployeeImportRow'];
+export type EmployeeImportRowErrorCode = CoreComponents['schemas']['EmployeeImportRowErrorCode'];
+export type EmployeeImportColumn = CoreComponents['schemas']['EmployeeImportColumn'];
+export type CommitEmployeeImport = CoreComponents['schemas']['CommitEmployeeImport'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).
