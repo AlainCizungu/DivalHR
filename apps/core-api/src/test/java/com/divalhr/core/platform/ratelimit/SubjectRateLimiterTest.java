@@ -12,6 +12,9 @@ import org.junit.jupiter.api.Test;
 /** MVP-012B (R2, B5): fixed one-minute window per subject, Retry-After to the window's end. */
 class SubjectRateLimiterTest {
 
+  private static final RequestLimitProperties NO_BUCKETS =
+      new RequestLimitProperties(java.util.Map.of("other-bucket", 3), null, null);
+
   private static Clock at(String instant) {
     return Clock.fixed(Instant.parse(instant), ZoneOffset.UTC);
   }
@@ -19,7 +22,8 @@ class SubjectRateLimiterTest {
   @Test
   void theLimitIsPerSubjectAndBucketAndRetryAfterReachesTheWindowEnd() {
     SubjectRateLimiter limiter =
-        new SubjectRateLimiter(new ReviewRateLimitProperties(3, 100), at("2026-10-01T10:00:15Z"));
+        new SubjectRateLimiter(
+            new ReviewRateLimitProperties(3, 100), NO_BUCKETS, at("2026-10-01T10:00:15Z"));
     for (int i = 0; i < 3; i++) {
       limiter.acquire("access-review", "subject-a");
     }
@@ -38,7 +42,8 @@ class SubjectRateLimiterTest {
   @Test
   void aNewWindowStartsAFreshCount() {
     SubjectRateLimiter first =
-        new SubjectRateLimiter(new ReviewRateLimitProperties(1, 100), at("2026-10-01T10:00:59Z"));
+        new SubjectRateLimiter(
+            new ReviewRateLimitProperties(1, 100), NO_BUCKETS, at("2026-10-01T10:00:59Z"));
     first.acquire("access-review", "s");
     assertThatThrownBy(() -> first.acquire("access-review", "s"))
         .isInstanceOf(RateLimitedException.class)
@@ -48,7 +53,8 @@ class SubjectRateLimiterTest {
   @Test
   void aFullTrackingTableRefusesNewSubjectsUntilTheWindowEnds() {
     SubjectRateLimiter limiter =
-        new SubjectRateLimiter(new ReviewRateLimitProperties(5, 100), at("2026-10-01T10:00:00Z"));
+        new SubjectRateLimiter(
+            new ReviewRateLimitProperties(5, 100), NO_BUCKETS, at("2026-10-01T10:00:00Z"));
     for (int i = 0; i < 100; i++) {
       limiter.acquire("access-review", "subject-" + i);
     }
@@ -71,7 +77,8 @@ class SubjectRateLimiterTest {
   void onlyTheFirstRefusalInAWindowIsMarkedFirst() {
     // MVP-013 (D6): one refusal per subject and window may become denial evidence.
     SubjectRateLimiter limiter =
-        new SubjectRateLimiter(new ReviewRateLimitProperties(2, 100), at("2026-10-01T10:00:00Z"));
+        new SubjectRateLimiter(
+            new ReviewRateLimitProperties(2, 100), NO_BUCKETS, at("2026-10-01T10:00:00Z"));
     limiter.acquire("access-review", "s");
     limiter.acquire("access-review", "s");
     SubjectRateLimitedException first =
@@ -87,7 +94,8 @@ class SubjectRateLimiterTest {
   @Test
   void aFullTrackingTableIsNeverAFirstRefusal() {
     SubjectRateLimiter limiter =
-        new SubjectRateLimiter(new ReviewRateLimitProperties(5, 100), at("2026-10-01T10:00:00Z"));
+        new SubjectRateLimiter(
+            new ReviewRateLimitProperties(5, 100), NO_BUCKETS, at("2026-10-01T10:00:00Z"));
     for (int i = 0; i < 100; i++) {
       limiter.acquire("access-review", "subject-" + i);
     }
@@ -95,5 +103,15 @@ class SubjectRateLimiterTest {
         catchThrowableOfType(
             SubjectRateLimitedException.class, () -> limiter.acquire("access-review", "newcomer"));
     assertThat(full.firstInWindow()).isFalse();
+  }
+
+  @Test
+  void anUnconfiguredBucketFailsClosed() {
+    // MVP-020: every bucket but the access review is configured under divalhr.request-limits.
+    SubjectRateLimiter limiter =
+        new SubjectRateLimiter(
+            new ReviewRateLimitProperties(5, 100), NO_BUCKETS, at("2026-10-01T10:00:00Z"));
+    assertThatThrownBy(() -> limiter.acquire("unknown-bucket", "s"))
+        .isInstanceOf(IllegalStateException.class);
   }
 }

@@ -109,7 +109,27 @@ public enum ErrorCode {
   /** A privileged operation requires multifactor authentication for this session (MVP-011). */
   MFA_REQUIRED(HttpStatus.FORBIDDEN),
   /** An unexpected server error occurred. */
-  INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
+  INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR),
+  /** The employee import file is not an accepted CSV (params.reason, params.column) (MVP-020). */
+  IMPORT_FILE_INVALID(HttpStatus.BAD_REQUEST),
+  /** The employee import body exceeds the size cap (MVP-020). */
+  IMPORT_FILE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+  /** The employee import body was not received in time; nothing was stored (MVP-020). */
+  IMPORT_UPLOAD_TIMEOUT(HttpStatus.REQUEST_TIMEOUT),
+  /** The tenant already has the maximum number of open imports (MVP-020). */
+  IMPORT_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** The import does not exist in the caller's tenant (missing, foreign, malformed) (MVP-020). */
+  EMPLOYEE_IMPORT_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The import is no longer open (params.status) (MVP-020). */
+  IMPORT_NOT_COMMITTABLE(HttpStatus.CONFLICT),
+  /** The commit does not repeat the staged preview (MVP-020). */
+  IMPORT_PREVIEW_CHANGED(HttpStatus.CONFLICT),
+  /** A row became invalid since the preview; nothing was created (MVP-020). */
+  IMPORT_STALE(HttpStatus.CONFLICT),
+  /** The import has no valid row (MVP-020). */
+  IMPORT_NOTHING_TO_COMMIT(HttpStatus.CONFLICT),
+  /** The import's database work timed out and was rolled back entirely (MVP-020). */
+  IMPORT_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE);
 
   private final HttpStatus status;
 
