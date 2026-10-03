@@ -44,7 +44,9 @@ public class RowValidator {
    */
   private static final Pattern UNIT_CODE = Pattern.compile("^[A-Z0-9][A-Z0-9_-]{1,19}$");
 
-  private static final Pattern NAME = Pattern.compile("^\\p{L}[\\p{L}\\p{M} '’.-]*$");
+  /** Name grammar; V13 people.person_name_valid mirrors it (EmployeeNameGrammarDriftTest). */
+  static final Pattern NAME = Pattern.compile("^\\p{L}[\\p{L}\\p{M} '’.-]*$");
+
   private static final Pattern ISO_DATE = Pattern.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
   private static final DateTimeFormatter DATE =
       DateTimeFormatter.ofPattern("uuuu-MM-dd", Locale.ROOT)

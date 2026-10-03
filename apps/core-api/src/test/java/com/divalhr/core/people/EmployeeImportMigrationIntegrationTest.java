@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.divalhr.core.support.IntegrationTest;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.flywaydb.core.Flyway;
@@ -31,14 +32,20 @@ class EmployeeImportMigrationIntegrationTest {
                               FROM pg_indexes WHERE schemaname = 'people'), '')
           || '|' || coalesce((SELECT string_agg(conname, ',' ORDER BY conname) FROM pg_constraint
                               WHERE connamespace = 'people'::regnamespace), '')
+          || '|' || coalesce((SELECT string_agg(proname, ',' ORDER BY proname) FROM pg_proc
+                              WHERE pronamespace = 'people'::regnamespace), '')
       """;
 
   @Autowired private JdbcTemplate jdbc;
   @Autowired private PostgreSQLContainer postgres;
 
   private void withDatabase(Consumer<Db> body) {
+    withDatabase("", body);
+  }
+
+  private void withDatabase(String options, Consumer<Db> body) {
     String database = "people13_" + UUID.randomUUID().toString().replace("-", "");
-    jdbc.execute("CREATE DATABASE " + database);
+    jdbc.execute("CREATE DATABASE " + database + options);
     try {
       String url =
           "jdbc:postgresql://"
@@ -181,6 +188,129 @@ class EmployeeImportMigrationIntegrationTest {
                       .update(
                           "UPDATE people.employee_import SET status = 'COMMITTED' WHERE id = ?",
                           importId));
+        });
+  }
+
+  private static void stagedName(
+      JdbcTemplate db, UUID tenant, UUID importId, int row, String given) {
+    db.update(
+        "INSERT INTO people.employee_import_row (tenant_id, import_id, row_number, status,"
+            + " employee_number, given_names, family_name, start_date, legal_entity_code,"
+            + " site_code) VALUES (?, ?, ?, 'VALID', ?, ?, 'B', DATE '2026-01-01', 'LE-1', 'ST-1')",
+        tenant,
+        importId,
+        row,
+        "S-" + row,
+        given);
+  }
+
+  /**
+   * R20-1: PostgreSQL itself refuses names outside the import grammar (RowValidator.NAME and its
+   * normalization rules), for stored employees and for staged import rows alike.
+   */
+  @Test
+  void v13NamesFollowTheImportGrammarInStoredAndStagedRows() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "13");
+          UUID tenant = organization(db.jdbc());
+          UUID importId = UUID.randomUUID();
+          db.jdbc()
+              .update(
+                  "INSERT INTO people.employee_import (id, tenant_id, status, created_at,"
+                      + " created_by, expires_at, file_sha256, preview_digest, delimiter,"
+                      + " header_language, total_rows, valid_rows, invalid_rows) VALUES (?, ?,"
+                      + " 'VALIDATED', now(), 'test', now() + interval '1 hour', ?, ?, 'COMMA',"
+                      + " 'fr', 1000, 1000, 0)",
+                  importId,
+                  tenant,
+                  "a".repeat(64),
+                  "b".repeat(64));
+          String gothic = new String(Character.toChars(0x10330));
+          List<String> valid =
+              List.of(
+                  "Élodie",
+                  "Jean-Pierre",
+                  "N'Diaye",
+                  "N\u2019Diaye",
+                  "St. John",
+                  "Mukendi Kabeya",
+                  "Œdipe Zoë",
+                  // Combining marks after NFC: Devanagari vowel signs, Greek, Arabic, Hebrew.
+                  "\u0926\u0947\u0935\u0928\u093E\u0917\u0930\u0940",
+                  "\u1F08\u03B8\u03B7\u03BD\u1FB6",
+                  "\u0645\u062D\u0645\u062F",
+                  "\u05E9\u05B8\u05C1\u05DC\u05D5\u05B9\u05DD",
+                  gothic.repeat(100));
+          List<String> invalid =
+              List.of(
+                  "1Ana", // digit first
+                  "Ana2", // digit inside
+                  "<b>Ana</b>", // HTML
+                  "Ana;", // ASCII punctuation
+                  "Ana,Ba",
+                  "Ana\"",
+                  "Ana_Ba",
+                  "Ana/Ba",
+                  "(Ana)",
+                  "=cmd", // formula prefixes
+                  "+Ana",
+                  "@Ana",
+                  "-Ana",
+                  "'Ana", // punctuation first
+                  " Ana", // untrimmed
+                  "Ana ",
+                  "Ana  Ba", // repeated spaces
+                  "\u0301Ana", // combining mark first
+                  "Ana\u200BBa", // zero-width space
+                  "Ana\u202EBa", // bidi override
+                  "Ana\u00A0Ba", // no-break space
+                  "Ana\u00ABBa", // Latin-1 punctuation
+                  "Ana\uFF1CBa", // full-width less-than
+                  "Ana\u0661", // Arabic-Indic digit
+                  "Ana\uD83D\uDE00", // emoji
+                  "E\u0301lodie", // not NFC
+                  "\u00E9".repeat(101)); // too long
+          int row = 0;
+          for (String name : valid) {
+            row++;
+            employee(db.jdbc(), tenant, "V-" + row, name);
+            stagedName(db.jdbc(), tenant, importId, row, name);
+          }
+          for (String name : invalid) {
+            row++;
+            int current = row;
+            assertThatThrownBy(() -> employee(db.jdbc(), tenant, "X-" + current, name))
+                .as("stored name %s", name)
+                .isInstanceOf(DataAccessException.class);
+            assertThatThrownBy(() -> stagedName(db.jdbc(), tenant, importId, current, name))
+                .as("staged name %s", name)
+                .isInstanceOf(DataAccessException.class);
+          }
+        });
+  }
+
+  /** R20-1: the name grammar is the same under the C locale, where [[:alpha:]] is ASCII only. */
+  @Test
+  void theNameGrammarDoesNotDependOnTheDatabaseLocale() {
+    withDatabase(
+        " TEMPLATE template0 ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C'",
+        db -> {
+          migrate(db.url(), "13");
+          assertThat(
+                  db.jdbc()
+                      .queryForObject(
+                          "SELECT datctype FROM pg_database WHERE datname = current_database()",
+                          String.class))
+              .isEqualTo("C");
+          UUID tenant = organization(db.jdbc());
+          employee(db.jdbc(), tenant, "C-1", "Élodie");
+          employee(db.jdbc(), tenant, "C-2", "N\u2019Diaye");
+          employee(db.jdbc(), tenant, "C-3", "\u0926\u0947\u0935\u0928\u093E\u0917\u0930\u0940");
+          rejected(() -> employee(db.jdbc(), tenant, "C-4", "1Ana"));
+          rejected(() -> employee(db.jdbc(), tenant, "C-5", "<b>Ana</b>"));
+          rejected(() -> employee(db.jdbc(), tenant, "C-6", "Ana\u200BBa"));
+          rejected(() -> employee(db.jdbc(), tenant, "C-7", "\u0301Ana"));
         });
   }
 

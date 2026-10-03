@@ -29,5 +29,6 @@ DROP TABLE people.employee_import_row;
 DROP TABLE people.employee_import;
 DROP TABLE people.employment;
 DROP TABLE people.employee;
+DROP FUNCTION people.person_name_valid(text);
 
 COMMIT;
