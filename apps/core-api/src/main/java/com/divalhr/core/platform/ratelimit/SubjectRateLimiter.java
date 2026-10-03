@@ -61,7 +61,8 @@ public class SubjectRateLimiter {
    *
    * @param bucket stable bucket name
    * @param subject verified token subject (never stored)
-   * @throws RateLimitedException {@link ErrorCode#RATE_LIMITED} with the seconds left in the window
+   * @throws SubjectRateLimitedException {@link ErrorCode#RATE_LIMITED} with the seconds left in the
+   *     window, marked when it is the subject's first refusal in that window
    */
   public void acquire(String bucket, String subject) {
     Instant now = Instant.now(clock);
@@ -74,19 +75,19 @@ public class SubjectRateLimiter {
       }
       String key = bucket + ":" + pseudonym(subject);
       if (!counts.containsKey(key) && counts.size() >= properties.maxTrackedSubjects()) {
-        throw limited(index, now);
+        throw limited(index, now, false);
       }
       int mine = counts.merge(key, 1, Integer::sum);
       if (mine > properties.requestsPerMinute()) {
-        throw limited(index, now);
+        throw limited(index, now, mine == properties.requestsPerMinute() + 1);
       }
     }
   }
 
-  private static RateLimitedException limited(long index, Instant now) {
+  private static SubjectRateLimitedException limited(long index, Instant now, boolean first) {
     long windowEnd = (index + 1) * WINDOW.toMillis();
     long seconds = (windowEnd - now.toEpochMilli() + 999) / 1000;
-    return new RateLimitedException(ErrorCode.RATE_LIMITED, seconds);
+    return new SubjectRateLimitedException(seconds, first);
   }
 
   private SecretKeySpec newKey() {

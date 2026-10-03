@@ -1,5 +1,11 @@
 package com.divalhr.core.platform.security;
 
+import com.divalhr.core.platform.audit.AuthorizationDenial.Scope;
+import com.divalhr.core.platform.audit.AuthorizationDenial.Stage;
+import com.divalhr.core.platform.audit.AuthorizationDenialAudit;
+import com.divalhr.core.platform.audit.AuthorizationDenialAudit.Outcome;
+import com.divalhr.core.platform.error.ApiException;
+import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.tenancy.MembershipAuthority;
 import com.divalhr.core.platform.tenancy.MembershipAuthority.ActiveMembership;
@@ -32,6 +38,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * membership. Denials write the safe structured security log and a metric. Method security stays in
  * force behind this interceptor as defense in depth.
  *
+ * <p>MVP-013 (Issue #43): every denial from step 2 on, where the token carries a verified subject,
+ * is also recorded as append-only evidence through {@link AuthorizationDenialAudit} before the
+ * denial is thrown; the public response never changes. The subject appears only in that row, never
+ * in the security log (D11). A request that passes is marked with its {@link AuthorizedOperation}.
+ *
  * <p>Platform-scoped and public handlers return before any membership lookup.
  */
 @Component
@@ -45,6 +56,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
   private final OperationMetrics metrics;
   private final TenantContextResolver tenants;
   private final MembershipAuthority memberships;
+  private final AuthorizationDenialAudit audit;
 
   /**
    * Creates the interceptor.
@@ -52,12 +64,17 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
    * @param metrics operation metrics
    * @param tenants verified tenant resolver
    * @param memberships the Core-side tenant access authority (MVP-012A)
+   * @param audit durable denial evidence (MVP-013)
    */
   public ScopeAuthorizationInterceptor(
-      OperationMetrics metrics, TenantContextResolver tenants, MembershipAuthority memberships) {
+      OperationMetrics metrics,
+      TenantContextResolver tenants,
+      MembershipAuthority memberships,
+      AuthorizationDenialAudit audit) {
     this.metrics = metrics;
     this.tenants = tenants;
     this.memberships = memberships;
+    this.audit = audit;
   }
 
   @Override
@@ -77,23 +94,78 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     }
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (platform != null) {
-      requireSubject(authentication, "platform", PlatformScoped.ROLE, platform.operation());
-      requireRole(authentication, PlatformScoped.ROLE, platform.operation());
-      requireAssurance(authentication, "platform", PlatformScoped.ROLE, platform.operation());
+      Gate gate = new Gate(request, authentication, Scope.PLATFORM, platform.operation());
+      requireSubject(gate, PlatformScoped.ROLE);
+      requireRole(gate, PlatformScoped.ROLE);
+      requireAssurance(gate, PlatformScoped.ROLE);
+      // Never the token's tenant: platform operations have no effective tenant.
+      new AuthorizedOperation(Scope.PLATFORM, platform.operation(), null).bind(request);
       return true;
     }
-    requireSubject(authentication, "tenant", tenant.role(), tenant.operation());
+    Gate gate = new Gate(request, authentication, Scope.TENANT, tenant.operation());
+    requireSubject(gate, tenant.role());
     if (!tenant.role().isEmpty()) {
-      requireRole(authentication, tenant.role(), tenant.operation());
+      requireRole(gate, tenant.role());
     }
-    // Throws TENANT_CONTEXT_MISSING when the verified token carries no valid tenant.
-    TenantContext context = tenants.current();
+    TenantContext context = requireTenant(gate, tenant.role());
     if (AssuranceEvidence.requiredFor(tenant.role())) {
-      requireAssurance(authentication, "tenant", tenant.role(), tenant.operation());
+      requireAssurance(gate, tenant.role());
     }
     // Step 5, only after MFA so that a password-level session learns nothing about memberships.
-    requireMembership(authentication, context.tenantId(), tenant.role(), tenant.operation());
+    requireMembership(gate, context.tenantId(), tenant.role());
+    // The tenant is effective only now: verified token tenant confirmed by an active membership.
+    new AuthorizedOperation(Scope.TENANT, tenant.operation(), context.tenantId()).bind(request);
     return true;
+  }
+
+  /** The request being authorized; the subject is read from the authentication, never logged. */
+  private record Gate(
+      HttpServletRequest request, Authentication authentication, Scope scope, String operation) {
+
+    String scopeValue() {
+      return scope.value();
+    }
+  }
+
+  /**
+   * Step 3: tenant-scoped calls need a valid verified tenant. The resolver's {@code
+   * TENANT_CONTEXT_MISSING} is rethrown unchanged after the safe log, metric and evidence (D10);
+   * the unvalidated claim is never recorded.
+   */
+  private TenantContext requireTenant(Gate gate, String role) {
+    try {
+      return tenants.current();
+    } catch (ApiException missing) {
+      if (missing.code() != ErrorCode.TENANT_CONTEXT_MISSING) {
+        throw missing;
+      }
+      Outcome outcome =
+          audit.record(
+              gate.request(),
+              gate.authentication(),
+              gate.scope(),
+              Stage.TENANT_CONTEXT,
+              gate.operation(),
+              null);
+      if (!gate.operation().isEmpty()) {
+        metrics.record(gate.operation(), OperationMetrics.Outcome.DENIED);
+      }
+      var event =
+          SECURITY_LOG
+              .atWarn()
+              .addKeyValue("event", "authorization_denied")
+              .addKeyValue("reason", "tenant_context_missing")
+              .addKeyValue("operation", gate.operation())
+              .addKeyValue("scope", gate.scopeValue());
+      if (!role.isEmpty()) {
+        event = event.addKeyValue("requiredRole", role);
+      }
+      event
+          .addKeyValue("result", "DENIED")
+          .addKeyValue("audit", outcome.value())
+          .log("authorization_denied");
+      throw missing;
+    }
   }
 
   /**
@@ -103,8 +175,9 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
    * same {@code ACCESS_DENIED} as a missing role, with no membership-specific detail; the log
    * carries only the safe authorization fields. A lookup failure propagates and fails closed (M5).
    */
-  private void requireMembership(
-      Authentication authentication, TenantId tenant, String role, String operation) {
+  private void requireMembership(Gate gate, TenantId tenant, String role) {
+    Authentication authentication = gate.authentication();
+    String operation = gate.operation();
     String subject = ((JwtAuthenticationToken) authentication).getToken().getSubject();
     Optional<ActiveMembership> membership = memberships.find(subject);
     boolean allowed =
@@ -120,6 +193,10 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     if (allowed) {
       return;
     }
+    // The token's tenant is not effective here (it may be foreign): no tenant in the evidence.
+    Outcome outcome =
+        audit.record(
+            gate.request(), authentication, gate.scope(), Stage.MEMBERSHIP, operation, null);
     if (!operation.isEmpty()) {
       metrics.record(operation, OperationMetrics.Outcome.DENIED);
     }
@@ -133,7 +210,10 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     if (!role.isEmpty()) {
       event = event.addKeyValue("requiredRole", role);
     }
-    event.addKeyValue("result", "DENIED").log("authorization_denied");
+    event
+        .addKeyValue("result", "DENIED")
+        .addKeyValue("audit", outcome.value())
+        .log("authorization_denied");
     throw new AccessDeniedException("tenant membership required");
   }
 
@@ -148,12 +228,16 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
    * session. Checked after subject, role and tenant, and before any argument or body binding. The
    * log carries only the safe authorization fields: never the subject, claims or assurance value.
    */
-  private void requireAssurance(
-      Authentication authentication, String scope, String role, String operation) {
-    if (authentication instanceof JwtAuthenticationToken token
+  private void requireAssurance(Gate gate, String role) {
+    if (gate.authentication() instanceof JwtAuthenticationToken token
         && AssuranceEvidence.provesMfa(token.getToken())) {
       return;
     }
+    String operation = gate.operation();
+    // Before the membership gate: the token's tenant is not effective, so none is recorded.
+    Outcome outcome =
+        audit.record(
+            gate.request(), gate.authentication(), gate.scope(), Stage.MFA, operation, null);
     if (!operation.isEmpty()) {
       metrics.record(operation, OperationMetrics.Outcome.MFA_REQUIRED);
     }
@@ -162,9 +246,10 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
         .addKeyValue("event", "authorization_denied")
         .addKeyValue("reason", "mfa_required")
         .addKeyValue("operation", operation)
-        .addKeyValue("scope", scope)
+        .addKeyValue("scope", gate.scopeValue())
         .addKeyValue("requiredRole", role)
         .addKeyValue("result", "DENIED")
+        .addKeyValue("audit", outcome.value())
         .log("authorization_denied");
     throw new MfaRequiredException();
   }
@@ -174,14 +259,16 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
    * is not a JWT, or whose {@code sub} is missing or blank, is denied before role, tenant, query,
    * argument or body processing. The subject value itself is never logged.
    */
-  private void requireSubject(
-      Authentication authentication, String scope, String role, String operation) {
-    if (authentication instanceof JwtAuthenticationToken token) {
+  private void requireSubject(Gate gate, String role) {
+    if (gate.authentication() instanceof JwtAuthenticationToken token) {
       String subject = token.getToken().getSubject();
       if (subject != null && !subject.isBlank()) {
         return;
       }
     }
+    String operation = gate.operation();
+    // No verified actor: never durable, never attributed (A13-3).
+    Outcome outcome = audit.subjectMissing(gate.request(), gate.scope());
     if (!operation.isEmpty()) {
       metrics.record(operation, OperationMetrics.Outcome.DENIED);
     }
@@ -191,15 +278,23 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
             .addKeyValue("event", "authorization_denied")
             .addKeyValue("reason", "subject_missing")
             .addKeyValue("operation", operation)
-            .addKeyValue("scope", scope);
+            .addKeyValue("scope", gate.scopeValue());
     if (!role.isEmpty()) {
       event = event.addKeyValue("requiredRole", role);
     }
-    event.addKeyValue("result", "DENIED").log("authorization_denied");
+    event
+        .addKeyValue("result", "DENIED")
+        .addKeyValue("audit", outcome.value())
+        .log("authorization_denied");
     throw new AccessDeniedException("verified subject required");
   }
 
-  private void requireRole(Authentication authentication, String role, String operation) {
+  /**
+   * Step 2. The security log never names the actor (D11): the subject is kept only in the durable
+   * denial row.
+   */
+  private void requireRole(Gate gate, String role) {
+    Authentication authentication = gate.authentication();
     String authority = "ROLE_" + role;
     boolean allowed =
         authentication != null
@@ -208,24 +303,22 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     if (allowed) {
       return;
     }
+    String operation = gate.operation();
+    Outcome outcome =
+        audit.record(gate.request(), authentication, gate.scope(), Stage.ROLE, operation, null);
     if (!operation.isEmpty()) {
       metrics.record(operation, OperationMetrics.Outcome.DENIED);
     }
     SECURITY_LOG
         .atWarn()
         .addKeyValue("event", "authorization_denied")
+        .addKeyValue("reason", "role_missing")
         .addKeyValue("operation", operation)
+        .addKeyValue("scope", gate.scopeValue())
         .addKeyValue("requiredRole", role)
         .addKeyValue("result", "DENIED")
-        .addKeyValue("actorSubject", subject(authentication))
+        .addKeyValue("audit", outcome.value())
         .log("authorization_denied");
     throw new AccessDeniedException(role + " required");
-  }
-
-  private static String subject(Authentication authentication) {
-    if (authentication instanceof JwtAuthenticationToken token) {
-      return token.getToken().getSubject();
-    }
-    return "unknown";
   }
 }
