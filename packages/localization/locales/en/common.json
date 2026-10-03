@@ -13,6 +13,7 @@
     "users": "Users and invitations",
     "firstAdmin": "First administrator",
     "accessReview": "Access review",
+    "employees": "Employees",
     "employeeImport": "Import employees"
   },
   "locale": {
@@ -142,7 +143,20 @@
     "IMPORT_PREVIEW_CHANGED": "The import changed since you reviewed it. Review it again before importing.",
     "IMPORT_STALE": "Some rows are no longer valid (an employee number or a unit changed). Nothing was imported; upload the file again.",
     "IMPORT_NOTHING_TO_COMMIT": "The file has no valid row to import.",
-    "IMPORT_TIMEOUT": "The import took too long and was cancelled; nothing was imported. Try again."
+    "IMPORT_TIMEOUT": "The import took too long and was cancelled; nothing was imported. Try again.",
+    "EMPLOYEE_NOT_FOUND": "This employee does not exist in your organization.",
+    "EMPLOYMENT_CHANGE_NOT_FOUND": "This change does not exist for this employee.",
+    "EMPLOYMENT_VERSION_CONFLICT": "The employee’s history changed in the meantime. Preview the change again.",
+    "EMPLOYMENT_PREVIEW_CHANGED": "The result no longer matches the preview. Preview the change again.",
+    "EMPLOYMENT_CHANGE_DATE_TAKEN": "A change of the same kind already starts on this date. Correct or cancel it instead.",
+    "EMPLOYMENT_CHANGE_NOT_CANCELLABLE": "Only a business change that starts after today can be cancelled.",
+    "EMPLOYMENT_CHANGE_HAS_DEPENDENTS": "A later change depends on this one. Cancel or correct the later change first.",
+    "EMPLOYMENT_CHANGE_NO_EFFECT": "The change would not modify the history.",
+    "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT": "The date is outside the employment period.",
+    "RETROACTIVE_WINDOW_EXCEEDED": "This date is further in the past than the organization allows for retroactive changes.",
+    "MANAGER_INVALID": "This manager cannot be assigned.",
+    "PLACEMENT_INVALID": "This placement cannot be assigned.",
+    "EMPLOYMENT_CHANGE_TIMEOUT": "The change took too long and nothing was recorded. Try again."
   },
   "notFound": {
     "title": "Page not found",
@@ -829,6 +843,227 @@
       "department_code": "Code of a department of that site, or empty",
       "cost_center_code": "Code of a cost center of that site, or empty; not together with a department",
       "team_code": "Code of a team, or empty; without a department or cost center, the team’s own is used"
+    }
+  },
+  "employees": {
+    "title": "Employees",
+    "unauthorized": "Only organization administrators can view and change employee records.",
+    "signInRequired": "Sign in as an organization administrator to view employees.",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "loadMore": "Show more",
+    "none": "—",
+    "reference": "Reference: {{id}}",
+    "retryAfter_one": "Try again in {{count}} second.",
+    "retryAfter_other": "Try again in {{count}} seconds.",
+    "fullName": "{{given}} {{family}}",
+    "managerName": "{{given}} {{family}} ({{number}})",
+    "period": {
+      "open": "from {{from}}",
+      "closed": "{{from}} – {{to}}"
+    },
+    "fields": {
+      "employeeNumber": "Employee number",
+      "name": "Name",
+      "status": "Status"
+    },
+    "employmentStatus": {
+      "CURRENT": "Employed",
+      "NOT_STARTED": "Not started yet",
+      "ENDED": "Employment ended"
+    },
+    "assignmentStatus": {
+      "CURRENT": "Current",
+      "SCHEDULED": "Scheduled",
+      "ENDED": "Ended"
+    },
+    "kinds": {
+      "PLACEMENT": "Placement",
+      "MANAGER": "Manager",
+      "CONTRACT": "Contract classification",
+      "COMPENSATION": "Compensation basis"
+    },
+    "contract": {
+      "PERMANENT": "Permanent",
+      "FIXED_TERM": "Fixed term",
+      "APPRENTICESHIP": "Apprenticeship",
+      "INTERNSHIP": "Internship",
+      "DAILY": "Daily work"
+    },
+    "compensation": {
+      "MONTHLY": "Monthly",
+      "HOURLY": "Hourly",
+      "DAILY": "Daily",
+      "PIECE_RATE": "Piece rate"
+    },
+    "reasons": {
+      "LATE_NOTIFICATION": "Change reported late",
+      "REORGANIZATION": "Reorganization",
+      "CONTRACT_CHANGE": "Contract change",
+      "OTHER_BUSINESS_CHANGE": "Other business change",
+      "DATA_ENTRY_ERROR": "Data entry error",
+      "IMPORT_ERROR": "Import error",
+      "DOCUMENT_RECEIVED": "Supporting document received"
+    },
+    "timing": {
+      "SCHEDULED": "Scheduled (starts after today)",
+      "CURRENT": "Effective today",
+      "RETROACTIVE": "Retroactive (starts before today)"
+    },
+    "changeType": {
+      "HIRE": "Hire",
+      "CHANGE": "Change",
+      "CORRECTION": "Correction",
+      "CANCELLATION": "Cancellation"
+    },
+    "changeState": {
+      "ACTIVE": "In force",
+      "CANCELLED": "Cancelled"
+    },
+    "announce": {
+      "recorded": "Change from {{date}} recorded.",
+      "corrected": "Correction recorded.",
+      "cancelled": "The change of {{date}} was cancelled."
+    },
+    "directory": {
+      "title": "Employees",
+      "description": "Find an employee, then open their record to see and change their employment history. Every view is recorded in the audit log.",
+      "searchTitle": "Search",
+      "query": "Employee number or name",
+      "queryHelp": "Start of an employee number, or the beginning of name words. Accents and capital letters are ignored.",
+      "queryLength": "Enter between 2 and 100 characters.",
+      "search": "Search",
+      "showAll": "Show all employees",
+      "allTitle": "All employees",
+      "resultsTitle": "Search results",
+      "caption": "Employees by employee number",
+      "found_one": "{{count}} employee shown.",
+      "found_other": "{{count}} employees shown.",
+      "none": "There are no employees yet. Import them first.",
+      "noMatch": "No employee matches this search."
+    },
+    "profile": {
+      "back": "Back to employees",
+      "unavailable": "Employee record unavailable",
+      "employment": "Employment",
+      "businessDate": "Today in the organization’s time zone",
+      "current": "Current situation",
+      "unset": {
+        "PLACEMENT": "No placement",
+        "MANAGER": "No manager",
+        "CONTRACT": "Not recorded",
+        "COMPENSATION": "Not recorded"
+      }
+    },
+    "placement": {
+      "fields": {
+        "legalEntityId": "Legal entity",
+        "siteId": "Site",
+        "departmentId": "Department",
+        "costCenterId": "Cost center",
+        "teamId": "Team"
+      },
+      "unit": "Department or cost center",
+      "choose": "Choose…",
+      "noUnit": "None",
+      "noTeam": "No team",
+      "option": "{{name}} ({{code}})",
+      "unavailable": "The organizational units could not be loaded. Try again later."
+    },
+    "manager": {
+      "clear": "End the reporting line from this date (no manager)",
+      "find": "Find the manager by employee number or name",
+      "search": "Find",
+      "results": "Matching employees",
+      "selected": "Selected manager: {{name}}",
+      "failed": "The search failed. Try again."
+    },
+    "form": {
+      "title": "Record a change",
+      "correctTitle": "Correct a value",
+      "correcting": "{{kind}}, {{period}}: {{value}}",
+      "help": "Today is {{date}} in the organization’s time zone. A change applies from its date until the next recorded change; earlier history is kept.",
+      "effectiveFrom": "Effective from",
+      "dateHelp": "A date before today makes the change retroactive: a reason and a confirmation are then required.",
+      "correctionDateHelp": "A correction replaces the value of this period only; its dates do not change.",
+      "kinds": "What changes",
+      "contractHelp": "A descriptive category, not a legal classification.",
+      "compensationHelp": "How pay is calculated. Amounts are never recorded here.",
+      "reasonRequired": "Reason (required)",
+      "reasonOptional": "Reason (optional)",
+      "preview": "Preview the change",
+      "previewing": "Preparing the preview…",
+      "confirm": "Confirm and record",
+      "saving": "Recording…",
+      "close": "Cancel the correction",
+      "problems": {
+        "title": "Check the following:",
+        "date": "Enter the effective date.",
+        "kinds": "Choose at least one thing to change.",
+        "placement": "Choose a legal entity and a site.",
+        "manager": "Choose a manager, or end the reporting line.",
+        "contract": "Choose a contract classification.",
+        "compensation": "Choose a compensation basis.",
+        "reason": "Choose a reason.",
+        "acknowledge": "Confirm that you are recording a retroactive change."
+      }
+    },
+    "preview": {
+      "title": "Preview",
+      "caption": "Rows replaced and rows recorded",
+      "kind": "What",
+      "before": "Before",
+      "after": "After",
+      "removed": "Removed",
+      "restored": "Restored",
+      "laterChange": "A later recorded change limits this period: it is not changed.",
+      "acknowledge": "I confirm this change applies to past dates."
+    },
+    "timeline": {
+      "title": "Employment history",
+      "caption": "Effective-dated values",
+      "kind": "What",
+      "allKinds": "Everything",
+      "includeSuperseded": "Show replaced values",
+      "period": "Period",
+      "value": "Value",
+      "status": "Status",
+      "actions": "Actions",
+      "replaced": "Replaced",
+      "correct": "Correct",
+      "correctRow": "Correct {{kind}}, {{period}}",
+      "none": "No value recorded."
+    },
+    "changes": {
+      "title": "Recorded changes",
+      "caption": "Changes, newest first",
+      "type": "Type",
+      "effectiveFrom": "Effective from",
+      "kinds": "What",
+      "reason": "Reason",
+      "state": "State",
+      "cancel": "Cancel",
+      "cancelOne": "Cancel the change of {{date}} ({{kinds}})",
+      "cancelTitle": "Cancel the change of {{date}}",
+      "cancelHelp": "The previous values are restored up to the next recorded change, which stays unchanged. The cancelled change stays in the history.",
+      "confirmCancel": "Confirm the cancellation",
+      "keep": "Keep the change"
+    },
+    "problems": {
+      "noEffect": "{{kind}}: the value would not change.",
+      "manager": {
+        "NOT_FOUND": "This manager is not an employee of the organization.",
+        "SELF": "An employee cannot be their own manager.",
+        "NOT_EMPLOYED": "The manager is not employed over the whole period.",
+        "CYCLE": "This would create a reporting loop.",
+        "CHAIN_TOO_DEEP": "The reporting chain would be longer than 50 levels."
+      },
+      "placement": {
+        "NOT_FOUND": "{{field}}: this unit does not exist in the organization.",
+        "MISMATCH": "{{field}}: this unit does not belong to the chosen parent.",
+        "NOT_EFFECTIVE": "{{field}}: this unit is not in effect on the date.",
+        "ENDS_DURING_PERIOD": "{{field}}: this unit ends during the period."
+      }
     }
   }
 }

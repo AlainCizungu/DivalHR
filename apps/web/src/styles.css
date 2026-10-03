@@ -399,3 +399,8 @@ button:disabled {
   outline: 3px solid var(--dv-color-focus);
   outline-offset: -3px;
 }
+
+/* MVP-021: multi-line cells of change previews (one period per line). */
+.preformatted {
+  white-space: pre-line;
+}
