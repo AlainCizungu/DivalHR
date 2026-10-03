@@ -27,7 +27,10 @@ import org.springframework.test.context.TestExecutionListeners;
       "divalhr.mail.starttls=false",
       "divalhr.rate-limit.per-client-requests=1000",
       "divalhr.rate-limit.global-requests=100000",
-      "divalhr.tenant-administration.lock-timeout=3s"
+      "divalhr.tenant-administration.lock-timeout=3s",
+      // MVP-013: the shared test context records every denial of the whole suite; the instance
+      // ceiling is exercised by DenialAuditBoundsIntegrationTest with its own small value.
+      "divalhr.denial-audit.per-instance-per-minute=100000"
     })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})

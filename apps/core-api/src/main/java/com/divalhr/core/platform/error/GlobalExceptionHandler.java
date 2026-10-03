@@ -1,12 +1,19 @@
 package com.divalhr.core.platform.error;
 
+import com.divalhr.core.platform.audit.AuthorizationDenial.Stage;
+import com.divalhr.core.platform.audit.AuthorizationDenialAudit;
+import com.divalhr.core.platform.audit.AuthorizationDenialAudit.Outcome;
 import com.divalhr.core.platform.observability.OperationMetrics;
 import com.divalhr.core.platform.ratelimit.RateLimitedException;
 import com.divalhr.core.platform.security.AssuranceEvidence;
+import com.divalhr.core.platform.security.AuthorizedOperation;
+import com.divalhr.core.platform.security.MethodSecurityDenialMarker;
 import com.divalhr.core.platform.security.MfaRequiredException;
 import com.divalhr.core.platform.security.PlatformScoped;
 import com.divalhr.core.platform.security.PublicOperation;
 import com.divalhr.core.platform.security.TenantScoped;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +27,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -40,16 +48,27 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class GlobalExceptionHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+  private static final Logger SECURITY_LOG = LoggerFactory.getLogger("divalhr.security");
+
+  /** Counter of method-security denials the scope interceptor had allowed (MVP-013, D5). */
+  public static final String DRIFT_METRIC = "divalhr.authorization.drift";
 
   private final OperationMetrics metrics;
+  private final AuthorizationDenialAudit audit;
+  private final MeterRegistry meters;
 
   /**
    * Creates the handler.
    *
    * @param metrics operation metrics
+   * @param audit durable denial evidence (MVP-013)
+   * @param meters meter registry
    */
-  public GlobalExceptionHandler(OperationMetrics metrics) {
+  public GlobalExceptionHandler(
+      OperationMetrics metrics, AuthorizationDenialAudit audit, MeterRegistry meters) {
     this.metrics = metrics;
+    this.audit = audit;
+    this.meters = meters;
   }
 
   /**
@@ -166,7 +185,13 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Handles method-security denials.
+   * Handles access denials from the scope interceptor, method security or application code. The
+   * response is always the same {@code ACCESS_DENIED}.
+   *
+   * <p>MVP-013 (D5, A13-1): only when Spring method security itself denied a privileged handler
+   * that the scope interceptor had allowed ({@link MethodSecurityDenialMarker}) is this annotation
+   * or configuration drift: it is recorded once as a {@code method_security} denial and raises the
+   * drift metric and an error log. Any other {@code AccessDeniedException} is never drift.
    *
    * @param exception the exception
    * @param request the current request
@@ -175,6 +200,31 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(AccessDeniedException.class)
   public ResponseEntity<ProblemDetail> handleAccessDenied(
       AccessDeniedException exception, HttpServletRequest request) {
+    AuthorizedOperation authorized = AuthorizedOperation.of(request);
+    if (authorized != null && MethodSecurityDenialMarker.deniedByMethodSecurity(request)) {
+      Outcome outcome =
+          audit.record(
+              request,
+              SecurityContextHolder.getContext().getAuthentication(),
+              authorized.scope(),
+              Stage.METHOD_SECURITY,
+              authorized.operation(),
+              authorized.effectiveTenant());
+      Counter.builder(DRIFT_METRIC)
+          .description("Method-security denials of handlers the scope interceptor allowed")
+          .tag("scope", authorized.scope().value())
+          .tag("operation", authorized.operation())
+          .register(meters)
+          .increment();
+      SECURITY_LOG
+          .atError()
+          .addKeyValue("event", "authorization_drift")
+          .addKeyValue("operation", authorized.operation())
+          .addKeyValue("scope", authorized.scope().value())
+          .addKeyValue("result", "DENIED")
+          .addKeyValue("audit", outcome.value())
+          .log("authorization_drift");
+    }
     return respond(ErrorCode.ACCESS_DENIED, Map.of(), request);
   }
 

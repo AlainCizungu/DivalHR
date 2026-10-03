@@ -102,6 +102,15 @@ divalhr:
   # active instances).
   access-review:
     requests-per-minute: ${DIVALHR_ACCESS_REVIEW_REQUESTS_PER_MINUTE:30}
+  # MVP-013: durable evidence of privileged authorization denials. Budgets are in-process per
+  # instance (cluster ceiling: value x active instances); the bulkhead pool is separate from the
+  # application pool.
+  denial-audit:
+    per-actor-per-minute: ${DIVALHR_DENIAL_AUDIT_PER_ACTOR_PER_MINUTE:20}
+    per-instance-per-minute: ${DIVALHR_DENIAL_AUDIT_PER_INSTANCE_PER_MINUTE:600}
+    pool-size: 2
+    connection-timeout: 1s
+    statement-timeout: 2s
   identity-provider:
     admin-base-url: ${DIVALHR_KEYCLOAK_ADMIN_URL:http://localhost:8180}
     realm: ${DIVALHR_KEYCLOAK_REALM:divalhr-dev}

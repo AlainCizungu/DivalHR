@@ -66,4 +66,34 @@ class SubjectRateLimiterTest {
         .isInstanceOf(IllegalStateException.class);
     assertThat(new ReviewRateLimitProperties(null, null).requestsPerMinute()).isEqualTo(30);
   }
+
+  @Test
+  void onlyTheFirstRefusalInAWindowIsMarkedFirst() {
+    // MVP-013 (D6): one refusal per subject and window may become denial evidence.
+    SubjectRateLimiter limiter =
+        new SubjectRateLimiter(new ReviewRateLimitProperties(2, 100), at("2026-10-01T10:00:00Z"));
+    limiter.acquire("access-review", "s");
+    limiter.acquire("access-review", "s");
+    SubjectRateLimitedException first =
+        catchThrowableOfType(
+            SubjectRateLimitedException.class, () -> limiter.acquire("access-review", "s"));
+    SubjectRateLimitedException second =
+        catchThrowableOfType(
+            SubjectRateLimitedException.class, () -> limiter.acquire("access-review", "s"));
+    assertThat(first.firstInWindow()).isTrue();
+    assertThat(second.firstInWindow()).isFalse();
+  }
+
+  @Test
+  void aFullTrackingTableIsNeverAFirstRefusal() {
+    SubjectRateLimiter limiter =
+        new SubjectRateLimiter(new ReviewRateLimitProperties(5, 100), at("2026-10-01T10:00:00Z"));
+    for (int i = 0; i < 100; i++) {
+      limiter.acquire("access-review", "subject-" + i);
+    }
+    SubjectRateLimitedException full =
+        catchThrowableOfType(
+            SubjectRateLimitedException.class, () -> limiter.acquire("access-review", "newcomer"));
+    assertThat(full.firstInWindow()).isFalse();
+  }
 }
