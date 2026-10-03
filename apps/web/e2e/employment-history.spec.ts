@@ -129,8 +129,12 @@ test.describe.serial('MVP-021: employment history', () => {
     const form = page.getByTestId('change-form');
     await form.getByLabel('Date d’effet').fill(day);
     await form.getByLabel('Affectation', { exact: true }).check();
-    await form.getByLabel('Entité juridique').selectOption({ label: `Historique Entité ${stamp} (${ENTITY})` });
-    await form.getByLabel('Site', { exact: true }).selectOption({ label: `Historique Site ${stamp} (${SITE})` });
+    await form
+      .getByLabel('Entité juridique')
+      .selectOption({ label: `Historique Entité ${stamp} (${ENTITY})` });
+    await form
+      .getByLabel('Site', { exact: true })
+      .selectOption({ label: `Historique Site ${stamp} (${SITE})` });
     await form
       .getByLabel('Département ou centre de coût')
       .selectOption({ label: `Logistique ${stamp} (${COST_CENTER})` });
@@ -154,7 +158,10 @@ test.describe.serial('MVP-021: employment history', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
 
     // Cancel it: the department is restored to the end.
-    await page.getByTestId('changes-table').getByRole('button', { name: /Annuler le changement/u }).click();
+    await page
+      .getByTestId('changes-table')
+      .getByRole('button', { name: /Annuler le changement/u })
+      .click();
     const panel = page.getByTestId('cancel-panel');
     await expect(panel.getByTestId('cancel-preview')).toContainText(DEPARTMENT);
     await panel.getByRole('button', { name: 'Confirmer l’annulation' }).click();
@@ -186,7 +193,10 @@ test.describe.serial('MVP-021: employment history', () => {
     await page.getByRole('link', { name: 'Employees', exact: true }).click();
     await page.getByLabel('Employee number or name').fill(FIRST.toLowerCase());
     await page.keyboard.press('Enter');
-    await page.getByTestId('directory-table').getByRole('link', { name: `Élodie ${FAMILY}` }).click();
+    await page
+      .getByTestId('directory-table')
+      .getByRole('link', { name: `Élodie ${FAMILY}` })
+      .click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Élodie ${FAMILY}`);
     const form = page.getByTestId('change-form');
     await form.getByLabel('Effective from').fill(plusDays(today(), 3));
