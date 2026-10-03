@@ -67,7 +67,8 @@ class RowValidatorTest {
   @Test
   void lengthsCountCodePointsAfterNfc() {
     assertThat(problem(ImportColumn.FAMILY_NAME, "é".repeat(100))).isNull();
-    assertThat(problem(ImportColumn.FAMILY_NAME, "é".repeat(100))).isNull();
+    // Decomposed: "e" + U+0301 is two code points before NFC and one after.
+    assertThat(problem(ImportColumn.FAMILY_NAME, "e\u0301".repeat(100))).isNull();
     assertThat(problem(ImportColumn.FAMILY_NAME, "é".repeat(101)))
         .isEqualTo(RowErrorCode.ROW_TOO_LONG);
     // A supplementary-plane letter is one code point (two UTF-16 units).

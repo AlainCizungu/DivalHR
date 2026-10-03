@@ -116,6 +116,12 @@ class EmployeeImportMigrationIntegrationTest {
           rejected(() -> employee(db.jdbc(), tenant, "-E4", "Formula"));
           rejected(() -> employee(db.jdbc(), tenant, "E-005", "=cmd"));
           rejected(() -> employee(db.jdbc(), tenant, "E-006", "é".repeat(101)));
+          // Lengths are code points: a supplementary-plane letter (4 UTF-8 bytes) counts once.
+          String gothic = new String(Character.toChars(0x10330));
+          employee(db.jdbc(), tenant, "E-011", gothic.repeat(100));
+          rejected(() -> employee(db.jdbc(), tenant, "E-012", gothic.repeat(101)));
+          // Only NFC is stored: the decomposed form of a valid name is refused.
+          rejected(() -> employee(db.jdbc(), tenant, "E-013", "E\u0301lodie"));
           rejected(() -> employee(db.jdbc(), tenant, "E-007", "é"));
           rejected(() -> employee(db.jdbc(), tenant, "E-008", " padded"));
           rejected(() -> employee(db.jdbc(), tenant, "E-009", "two  spaces"));
