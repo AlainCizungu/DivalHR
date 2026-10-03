@@ -116,12 +116,20 @@ divalhr:
   request-limits:
     subject:
       employee-import: ${DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE:10}
+      employee-read: ${DIVALHR_EMPLOYEE_READ_REQUESTS_PER_MINUTE:60}
+      employment-change: ${DIVALHR_EMPLOYMENT_CHANGE_REQUESTS_PER_MINUTE:20}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
         window: 10m
       employee-import-commit:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_COMMITS:60}
+        window: 10m
+      employee-search:
+        requests: ${DIVALHR_EMPLOYEE_SEARCH_TENANT_REQUESTS:300}
+        window: 10m
+      employment-change-write:
+        requests: ${DIVALHR_EMPLOYMENT_CHANGE_TENANT_WRITES:200}
         window: 10m
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).
@@ -140,6 +148,12 @@ divalhr:
     cleanup-batch-size: 100
     jobs:
       enabled: ${DIVALHR_EMPLOYEE_IMPORT_JOBS_ENABLED:true}
+  # MVP-021: employment history. The retroactive window is a configurable pilot business rule,
+  # not a statutory period (0 to 366 days).
+  employment-history:
+    retroactive-days: ${DIVALHR_EMPLOYMENT_RETROACTIVE_DAYS:60}
+    statement-timeout: 5s
+    transaction-timeout: 15s
   # MVP-013: durable evidence of privileged authorization denials. Budgets are in-process per
   # instance (cluster ceiling: value x active instances); the bulkhead pool is separate from the
   # application pool.
