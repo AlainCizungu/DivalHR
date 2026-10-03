@@ -424,9 +424,8 @@ class EmploymentHistoryMigrationIntegrationTest {
   }
 
   private static String constraint(PSQLException failure) {
-    return failure.getServerErrorMessage() == null
-        ? "unnamed"
-        : String.valueOf(failure.getServerErrorMessage().getConstraint());
+    org.postgresql.util.ServerErrorMessage message = failure.getServerErrorMessage();
+    return message == null ? "unnamed" : String.valueOf(message.getConstraint());
   }
 
   @FunctionalInterface

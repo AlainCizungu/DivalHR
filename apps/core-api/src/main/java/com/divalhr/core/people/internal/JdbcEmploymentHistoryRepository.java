@@ -123,9 +123,9 @@ public class JdbcEmploymentHistoryRepository {
       Instant recordedAt,
       long versionAfter) {
 
-    /** Defensively copies the kinds. */
+    /** Copies the kinds into an unmodifiable set (callers sort them where order matters). */
     public ChangeRecord {
-      kinds = kinds.isEmpty() ? Set.of() : EnumSet.copyOf(kinds);
+      kinds = Set.copyOf(kinds);
     }
   }
 
