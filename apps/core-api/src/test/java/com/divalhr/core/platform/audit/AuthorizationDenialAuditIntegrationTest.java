@@ -14,12 +14,12 @@ import com.divalhr.core.platform.error.GlobalExceptionHandler;
 import com.divalhr.core.platform.security.PlatformScoped;
 import com.divalhr.core.platform.security.TenantScoped;
 import com.divalhr.core.platform.web.CorrelationId;
-import com.divalhr.core.support.DenialProbeTestController;
 import com.divalhr.core.support.Hierarchy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Memberships;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.TestTokens;
+import com.divalhr.probe.DenialProbeTestController;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -49,6 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -74,6 +75,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
  */
 @IntegrationTest
 @ExtendWith(OutputCaptureExtension.class)
+@Import(DenialProbeTestController.class)
 class AuthorizationDenialAuditIntegrationTest {
 
   private static final ObjectMapper JSON = new ObjectMapper();
@@ -169,7 +171,7 @@ class AuthorizationDenialAuditIntegrationTest {
         "SELECT * FROM platform.authorization_denial WHERE correlation_id = ?", correlationId);
   }
 
-  private int rowsOf(String actor) {
+  private Integer rowsOf(String actor) {
     return jdbc.queryForObject(
         "SELECT count(*) FROM platform.authorization_denial WHERE actor_subject = ?",
         Integer.class,
@@ -368,7 +370,7 @@ class AuthorizationDenialAuditIntegrationTest {
   void anonymousInvalidAndSubjectlessTrafficIsNeverAttributedAndAllowedCallsNeverWrite()
       throws Exception {
     long attempts = store.writeAttempts();
-    int total =
+    Integer total =
         jdbc.queryForObject("SELECT count(*) FROM platform.authorization_denial", Integer.class);
     double ineligible = outcome("ineligible", "subject_missing", "tenant");
 
@@ -469,7 +471,7 @@ class AuthorizationDenialAuditIntegrationTest {
     for (Map.Entry<RequestMappingInfo, HandlerMethod> entry :
         mappings.getHandlerMethods().entrySet()) {
       HandlerMethod handler = entry.getValue();
-      if (handler.getBeanType().getPackageName().startsWith("com.divalhr.core.support")) {
+      if (!handler.getBeanType().getPackageName().startsWith("com.divalhr.core.")) {
         continue;
       }
       PlatformScoped platform = handler.getMethodAnnotation(PlatformScoped.class);

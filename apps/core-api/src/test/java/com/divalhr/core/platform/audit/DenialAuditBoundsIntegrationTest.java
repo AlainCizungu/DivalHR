@@ -91,7 +91,7 @@ class DenialAuditBoundsIntegrationTest {
         + TestTokens.token().tenant(tenant).subject(subject).roles(List.of("employee")).build();
   }
 
-  private int rowsOf(String actor, String stage) {
+  private Integer rowsOf(String actor, String stage) {
     return jdbc.queryForObject(
         "SELECT count(*) FROM platform.authorization_denial WHERE actor_subject = ? AND stage = ?",
         Integer.class,
