@@ -55,6 +55,35 @@ export type EmployeeImportRow = CoreComponents['schemas']['EmployeeImportRow'];
 export type EmployeeImportRowErrorCode = CoreComponents['schemas']['EmployeeImportRowErrorCode'];
 export type EmployeeImportColumn = CoreComponents['schemas']['EmployeeImportColumn'];
 export type CommitEmployeeImport = CoreComponents['schemas']['CommitEmployeeImport'];
+export type EmployeeSummary = CoreComponents['schemas']['EmployeeSummary'];
+export type EmployeePage = CoreComponents['schemas']['EmployeePage'];
+export type EmployeeSearch = CoreComponents['schemas']['EmployeeSearch'];
+export type EmployeeProfile = CoreComponents['schemas']['EmployeeProfile'];
+export type Employment = CoreComponents['schemas']['Employment'];
+export type EmploymentStatus = CoreComponents['schemas']['EmploymentStatus'];
+export type Assignment = CoreComponents['schemas']['Assignment'];
+export type AssignmentKind = CoreComponents['schemas']['AssignmentKind'];
+export type AssignmentStatus = CoreComponents['schemas']['AssignmentStatus'];
+export type AssignmentPage = CoreComponents['schemas']['AssignmentPage'];
+export type AssignmentPeriod = CoreComponents['schemas']['AssignmentPeriod'];
+export type PlacementValue = CoreComponents['schemas']['PlacementValue'];
+export type PlacementInput = CoreComponents['schemas']['PlacementInput'];
+export type ManagerValue = CoreComponents['schemas']['ManagerValue'];
+export type UnitRef = CoreComponents['schemas']['UnitRef'];
+export type ContractClassification = CoreComponents['schemas']['ContractClassification'];
+export type CompensationBasis = CoreComponents['schemas']['CompensationBasis'];
+export type EmploymentChange = CoreComponents['schemas']['EmploymentChange'];
+export type EmploymentChangePage = CoreComponents['schemas']['EmploymentChangePage'];
+export type EmploymentChangeReason = CoreComponents['schemas']['EmploymentChangeReason'];
+export type EmploymentChangeTiming = CoreComponents['schemas']['EmploymentChangeTiming'];
+export type EmploymentChangeCommand = CoreComponents['schemas']['EmploymentChangeCommand'];
+export type CreateEmploymentChange = CoreComponents['schemas']['CreateEmploymentChange'];
+export type EmploymentChangePreview = CoreComponents['schemas']['EmploymentChangePreview'];
+export type EmploymentChangeCancellationPreview =
+  CoreComponents['schemas']['EmploymentChangeCancellationPreview'];
+export type CancelEmploymentChange = CoreComponents['schemas']['CancelEmploymentChange'];
+export type EmploymentChangeResult = CoreComponents['schemas']['EmploymentChangeResult'];
+export type PreviewKind = CoreComponents['schemas']['PreviewKind'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

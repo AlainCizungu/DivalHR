@@ -1510,18 +1510,40 @@ paths:
   /employees:
     get:
       operationId: listEmployees
-      x-divalhr-lifecycle: planned
-      summary: List employees within the authorized scope
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the organization's employees
+      description: >-
+        MVP-021. Employees of the caller's tenant ordered by employee number, keyset-paginated;
+        cursors are bound to the operation, tenant and page size. There is no free-text filter on
+        this path: search uses POST /employees/search so that names never appear in URLs. Each
+        successful page is recorded as a disclosure (audit employee.list) before it is returned.
+        Cache-Control private, no-store.
+      tags: [people]
       parameters:
         - $ref: "#/components/parameters/Cursor"
-        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/EmployeeLimit"
+        - $ref: "#/components/parameters/CorrelationId"
       responses:
+        "200":
+          description: A page of employees
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
-        "200":
-          description: Employee page
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
     post:
       operationId: createEmployee
       x-divalhr-lifecycle: planned
@@ -1580,6 +1602,366 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "201":
           description: Webhook created
+  /employees/search:
+    post:
+      operationId: searchEmployees
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Search employees by employee number or name
+      description: >-
+        MVP-021. The query travels only in this body. It matches an employee-number prefix, or
+        every query word as the start of a word of the given names or family name, ignoring
+        letter case and accents. Results are ordered by employee number; cursors are bound to the
+        operation, tenant, page size and a hash of the normalized query (never the query itself).
+        The query is never logged, audited or echoed. Each successful page is recorded as a
+        disclosure (audit employee.search). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeSearch"
+      responses:
+        "200":
+          description: A page of matching employees
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}:
+    get:
+      operationId: getEmployee
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read one employee's profile and current employment state
+      description: >-
+        MVP-021. The employee, the employment period and, per assignment kind, the row covering
+        the business date (today in the organization's time zone), or null. Unknown, foreign and
+        malformed IDs give the same 404 EMPLOYEE_NOT_FOUND. Recorded as a disclosure (audit
+        employee.read). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The employee profile
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/timeline:
+    get:
+      operationId: listEmploymentTimeline
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List an employee's effective-dated assignments
+      description: >-
+        MVP-021. Assignment rows ordered by kind, then start date. By default only active rows
+        (the current history); includeSuperseded=true also lists rows replaced by later changes,
+        corrections or cancellations, with supersededAt. Cursors are bound to the operation,
+        tenant, employee, filters and page size. Recorded as a disclosure (audit
+        employee.timeline). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - name: kind
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AssignmentKind"
+        - name: includeSuperseded
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TimelineLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of assignment rows
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/employment-changes:
+    get:
+      operationId: listEmploymentChanges
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List an employee's recorded employment changes
+      description: >-
+        MVP-021. The append-only change log, newest first: hire, changes, corrections and
+        cancellations, including cancelled changes. The recording actor is not returned (it is in
+        the audit trail). Recorded as a disclosure (audit employment-change.list). Cache-Control
+        private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/EmployeeLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of changes
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentChangePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: createEmploymentChange
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Record an effective-dated change or a correction
+      description: >-
+        MVP-021. Repeats a previewed command with the expectedVersion and previewDigest the
+        preview returned. In one transaction the employment is locked, the version checked (409
+        EMPLOYMENT_VERSION_CONFLICT), every rule re-validated, and the change recomputed; any
+        difference from the preview gives 409 EMPLOYMENT_PREVIEW_CHANGED and nothing is written.
+        A retroactive change needs a reason code and acknowledgeRetroactive=true. Nothing is
+        updated in place: replaced rows are superseded and kept. Business changes, audit and outbox
+        commit together. Retries with the same Idempotency-Key replay the original 201.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmploymentChange"
+      responses:
+        "201":
+          description: Change recorded, or the original recording replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentChangeResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/employment-changes/preview:
+    post:
+      operationId: previewEmploymentChange
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview an effective-dated change or a correction
+      description: >-
+        MVP-021. Validates the command and returns, per affected kind, the exact rows before and
+        after, the timing, whether a reason and acknowledgement are needed, warnings, the
+        employment version and a previewDigest to repeat in the commit. Writes nothing. Recorded as
+        a disclosure (audit employment-change.preview). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentChangeCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentChangePreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/employment-changes/{changeId}/cancel/preview:
+    post:
+      operationId: previewEmploymentChangeCancellation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the cancellation of a scheduled change
+      description: >-
+        MVP-021. Only an ACTIVE change whose effective date is after the business date can be
+        cancelled (409 EMPLOYMENT_CHANGE_NOT_CANCELLABLE). Returns, per kind, the rows removed and
+        the rows restored (bounded by the next active row; later changes are never altered), the
+        employment version and a cancellationDigest. When restoration would alter a later row
+        derived from the change, 409 EMPLOYMENT_CHANGE_HAS_DEPENDENTS. Writes nothing. Recorded as
+        a disclosure (audit employment-change.cancel-preview). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/EmploymentChangeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The cancellation preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentChangeCancellationPreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/employment-changes/{changeId}/cancel:
+    post:
+      operationId: cancelEmploymentChange
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Cancel a scheduled change
+      description: >-
+        MVP-021. Repeats the expectedVersion and cancellationDigest of the cancellation preview.
+        The employment is locked and everything recomputed; a different version gives 409
+        EMPLOYMENT_VERSION_CONFLICT and a different result 409 EMPLOYMENT_PREVIEW_CHANGED. The
+        cancellation is itself a recorded change (type CANCELLATION) that keeps the cancelled
+        change and its rows. Retries with the same Idempotency-Key replay the original 200.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/EmploymentChangeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelEmploymentChange"
+      responses:
+        "200":
+          description: Change cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentChangeResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -1700,7 +2082,12 @@ components:
         for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant),
         IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED
         (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since
-        the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row).
+        the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for
+        employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the
+        preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview),
+        EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date),
+        EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or
+        EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change). No params.
       content:
         application/problem+json:
           schema:
@@ -1708,7 +2095,8 @@ components:
     NotFound:
       description: >-
         LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND,
-        COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND or EMPLOYEE_IMPORT_NOT_FOUND - the referenced
+        COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND
+        or EMPLOYMENT_CHANGE_NOT_FOUND - the referenced
         resource does not exist in the caller's tenant. Missing and foreign-tenant resources are
         indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is
         malformed, unknown or not active; the cases are indistinguishable and the ID is never
@@ -1724,7 +2112,10 @@ components:
         RATE_LIMITED (too many anonymous requests from one client, too many bootstrap
         invitations created by one platform administrator, more than 30 access-review requests
         per minute by one subject, or, for employee imports, more than 10 upload and commit
-        requests per minute by one subject, 30 uploads or 60 commits per 10 minutes in one tenant).
+        requests per minute by one subject, 30 uploads or 60 commits per 10 minutes in one tenant,
+        or, for employees and employment history, more than 60 reads, searches and previews or 20
+        changes and cancellations per minute by one subject, 300 searches or 200 changes and
+        cancellations per 10 minutes in one tenant).
         Limits are per instance. No params.
       headers:
         Retry-After:
@@ -1737,7 +2128,9 @@ components:
       description: >-
         IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the
         same token. IMPORT_TIMEOUT - an employee import's database work exceeded its time limit and
-        was rolled back entirely; retry with the same Idempotency-Key. No params.
+        was rolled back entirely; retry with the same Idempotency-Key. EMPLOYMENT_CHANGE_TIMEOUT -
+        an employment change or cancellation exceeded its time limit and nothing was written; retry
+        with the same Idempotency-Key. No params.
       content:
         application/problem+json:
           schema:
@@ -1754,6 +2147,18 @@ components:
       description: >-
         IMPORT_FILE_TOO_LARGE - the CSV body exceeds 2 MiB; reading stopped at the limit and nothing
         was stored. No params.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnprocessableContent:
+      description: >-
+        MVP-021 business rules. EMPLOYMENT_CHANGE_NO_EFFECT (params.field: the assignment kind whose
+        value would not change), EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT, RETROACTIVE_WINDOW_EXCEEDED
+        (before the configurable pilot window, 60 days by default), MANAGER_INVALID (params.reason:
+        NOT_FOUND, SELF, NOT_EMPLOYED, CYCLE or CHAIN_TOO_DEEP) or PLACEMENT_INVALID (params.field:
+        legalEntityId, siteId, departmentId, costCenterId or teamId; params.reason: NOT_FOUND,
+        MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). Params never carry a date, a value or an ID.
       content:
         application/problem+json:
           schema:
@@ -1839,6 +2244,40 @@ components:
       name: limit
       in: query
       description: Rows per page for the import preview (1-100, default 50).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    EmployeeId:
+      name: employeeId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND.
+      schema:
+        type: string
+    EmploymentChangeId:
+      name: changeId
+      in: path
+      required: true
+      description: >-
+        Malformed, unknown, foreign and other-employee IDs give the same 404
+        EMPLOYMENT_CHANGE_NOT_FOUND.
+      schema:
+        type: string
+    EmployeeLimit:
+      name: limit
+      in: query
+      description: Items per page (1-50, default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 25
+    TimelineLimit:
+      name: limit
+      in: query
+      description: Rows per page (1-100, default 50).
       schema:
         type: integer
         minimum: 1
@@ -2832,6 +3271,520 @@ components:
           maximum: 5000
         acknowledgeInvalidRows:
           type: boolean
+    EmploymentStatus:
+      type: string
+      description: Employment status on the business date (today in the organization's time zone).
+      enum: [CURRENT, NOT_STARTED, ENDED]
+    EmployeeSummary:
+      type: object
+      description: Employee number and names are Confidential.
+      required: [id, employeeNumber, givenNames, familyName, employmentStatus]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+        employmentStatus:
+          $ref: "#/components/schemas/EmploymentStatus"
+    EmployeePage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/EmployeeSummary"
+        nextCursor:
+          type: [string, "null"]
+    EmployeeSearch:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: >-
+            Employee-number prefix or name words (2-100 code points after NFC normalization).
+            Never logged, audited or echoed.
+        cursor:
+          type: [string, "null"]
+          maxLength: 512
+        limit:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 50
+    Employment:
+      type: object
+      description: Employment dates are Restricted HR.
+      required: [id, startDate, endDate, status, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: [string, "null"]
+          format: date
+        status:
+          $ref: "#/components/schemas/EmploymentStatus"
+        version:
+          type: integer
+          minimum: 0
+          description: Timeline version; every recorded change increments it.
+    EmployeeProfile:
+      type: object
+      required: [id, employeeNumber, givenNames, familyName, businessDate, employment, current]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+        businessDate:
+          type: string
+          format: date
+          description: Today in the organization's time zone; statuses are computed against it.
+        employment:
+          $ref: "#/components/schemas/Employment"
+        current:
+          $ref: "#/components/schemas/CurrentAssignments"
+    CurrentAssignments:
+      type: object
+      description: Per kind, the active row covering the business date, or null.
+      required: [placement, manager, contract, compensation]
+      properties:
+        placement:
+          oneOf:
+            - $ref: "#/components/schemas/Assignment"
+            - type: "null"
+        manager:
+          oneOf:
+            - $ref: "#/components/schemas/Assignment"
+            - type: "null"
+        contract:
+          oneOf:
+            - $ref: "#/components/schemas/Assignment"
+            - type: "null"
+        compensation:
+          oneOf:
+            - $ref: "#/components/schemas/Assignment"
+            - type: "null"
+    AssignmentKind:
+      type: string
+      enum: [PLACEMENT, MANAGER, CONTRACT, COMPENSATION]
+    AssignmentStatus:
+      type: string
+      description: CURRENT covers the business date, SCHEDULED starts after it, ENDED ends before it.
+      enum: [CURRENT, SCHEDULED, ENDED]
+    ContractClassification:
+      type: string
+      description: >-
+        Descriptive contract classification. It has no legal effect and is not a legal
+        classification in any jurisdiction.
+      enum: [PERMANENT, FIXED_TERM, APPRENTICESHIP, INTERNSHIP, DAILY]
+    CompensationBasis:
+      type: string
+      description: How pay is expressed. Never an amount, rate, currency, bonus or allowance.
+      enum: [MONTHLY, HOURLY, DAILY, PIECE_RATE]
+    UnitRef:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+    PlacementValue:
+      type: object
+      required: [legalEntity, site, department, costCenter, team]
+      properties:
+        legalEntity:
+          $ref: "#/components/schemas/UnitRef"
+        site:
+          $ref: "#/components/schemas/UnitRef"
+        department:
+          oneOf:
+            - $ref: "#/components/schemas/UnitRef"
+            - type: "null"
+        costCenter:
+          oneOf:
+            - $ref: "#/components/schemas/UnitRef"
+            - type: "null"
+        team:
+          oneOf:
+            - $ref: "#/components/schemas/UnitRef"
+            - type: "null"
+    ManagerValue:
+      type: object
+      required: [employeeId, employeeNumber, givenNames, familyName]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    Assignment:
+      type: object
+      description: >-
+        One effective-dated fact (Restricted HR). Business values and effective dates never change;
+        supersededAt is set once when a later change, correction or cancellation replaces the row.
+      required:
+        [id, kind, effectiveFrom, effectiveTo, status, changeId, supersededAt, placement, manager,
+         contractClassification, compensationBasis]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/AssignmentKind"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Last day (inclusive); null means open-ended.
+        status:
+          $ref: "#/components/schemas/AssignmentStatus"
+        changeId:
+          type: string
+          format: uuid
+          description: The change that recorded this row.
+        supersededAt:
+          type: [string, "null"]
+          format: date-time
+        placement:
+          oneOf:
+            - $ref: "#/components/schemas/PlacementValue"
+            - type: "null"
+        manager:
+          oneOf:
+            - $ref: "#/components/schemas/ManagerValue"
+            - type: "null"
+        contractClassification:
+          oneOf:
+            - $ref: "#/components/schemas/ContractClassification"
+            - type: "null"
+        compensationBasis:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationBasis"
+            - type: "null"
+    AssignmentPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Assignment"
+        nextCursor:
+          type: [string, "null"]
+    EmploymentChangeType:
+      type: string
+      enum: [HIRE, CHANGE, CORRECTION, CANCELLATION]
+    EmploymentChangeTiming:
+      type: string
+      description: Relative to the business date when recorded.
+      enum: [SCHEDULED, CURRENT, RETROACTIVE]
+    EmploymentChangeReason:
+      type: string
+      description: >-
+        LATE_NOTIFICATION, REORGANIZATION, CONTRACT_CHANGE and OTHER_BUSINESS_CHANGE apply to
+        changes; DATA_ENTRY_ERROR, IMPORT_ERROR and DOCUMENT_RECEIVED to corrections.
+      enum:
+        [LATE_NOTIFICATION, REORGANIZATION, CONTRACT_CHANGE, OTHER_BUSINESS_CHANGE,
+         DATA_ENTRY_ERROR, IMPORT_ERROR, DOCUMENT_RECEIVED]
+    EmploymentChange:
+      type: object
+      description: A recorded change (Restricted HR). The recording actor is not exposed.
+      required:
+        [id, type, effectiveFrom, kinds, reasonCode, timing, state, cancelsChangeId, recordedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/EmploymentChangeType"
+        effectiveFrom:
+          type: string
+          format: date
+        kinds:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/AssignmentKind"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentChangeReason"
+            - type: "null"
+        timing:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentChangeTiming"
+            - type: "null"
+          description: Null for the hire.
+        state:
+          type: string
+          enum: [ACTIVE, CANCELLED]
+        cancelsChangeId:
+          type: [string, "null"]
+          format: uuid
+        recordedAt:
+          type: string
+          format: date-time
+    EmploymentChangePage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/EmploymentChange"
+        nextCursor:
+          type: [string, "null"]
+    PlacementInput:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, siteId]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        departmentId:
+          type: [string, "null"]
+          format: uuid
+        costCenterId:
+          type: [string, "null"]
+          format: uuid
+        teamId:
+          type: [string, "null"]
+          format: uuid
+    ManagerInput:
+      type: object
+      additionalProperties: false
+      required: [employeeId]
+      properties:
+        employeeId:
+          type: [string, "null"]
+          format: uuid
+          description: The manager's employee ID, or null to end the reporting line from the date.
+    EmploymentChangeCommand:
+      type: object
+      additionalProperties: false
+      description: >-
+        A CHANGE sets one or more kinds from effectiveFrom; an absent or null kind is unchanged. A
+        CORRECTION replaces the value of one active row (correctsAssignmentId) for its own dates;
+        effectiveFrom must equal that row's start and exactly one kind is given.
+      required: [type, effectiveFrom]
+      properties:
+        type:
+          type: string
+          enum: [CHANGE, CORRECTION]
+        effectiveFrom:
+          type: string
+          format: date
+        placement:
+          oneOf:
+            - $ref: "#/components/schemas/PlacementInput"
+            - type: "null"
+        manager:
+          oneOf:
+            - $ref: "#/components/schemas/ManagerInput"
+            - type: "null"
+        contractClassification:
+          oneOf:
+            - $ref: "#/components/schemas/ContractClassification"
+            - type: "null"
+        compensationBasis:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationBasis"
+            - type: "null"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentChangeReason"
+            - type: "null"
+        correctsAssignmentId:
+          type: [string, "null"]
+          format: uuid
+    CreateEmploymentChange:
+      type: object
+      additionalProperties: false
+      description: The previewed command plus what the preview returned.
+      required: [type, effectiveFrom, expectedVersion, previewDigest, acknowledgeRetroactive]
+      properties:
+        type:
+          type: string
+          enum: [CHANGE, CORRECTION]
+        effectiveFrom:
+          type: string
+          format: date
+        placement:
+          oneOf:
+            - $ref: "#/components/schemas/PlacementInput"
+            - type: "null"
+        manager:
+          oneOf:
+            - $ref: "#/components/schemas/ManagerInput"
+            - type: "null"
+        contractClassification:
+          oneOf:
+            - $ref: "#/components/schemas/ContractClassification"
+            - type: "null"
+        compensationBasis:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationBasis"
+            - type: "null"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/EmploymentChangeReason"
+            - type: "null"
+        correctsAssignmentId:
+          type: [string, "null"]
+          format: uuid
+        expectedVersion:
+          type: integer
+          minimum: 0
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        acknowledgeRetroactive:
+          type: boolean
+    AssignmentPeriod:
+      type: object
+      description: A row before or after the change; assignmentId is null for rows to be created.
+      required:
+        [assignmentId, effectiveFrom, effectiveTo, placement, manager, contractClassification,
+         compensationBasis]
+      properties:
+        assignmentId:
+          type: [string, "null"]
+          format: uuid
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        placement:
+          oneOf:
+            - $ref: "#/components/schemas/PlacementValue"
+            - type: "null"
+        manager:
+          oneOf:
+            - $ref: "#/components/schemas/ManagerValue"
+            - type: "null"
+        contractClassification:
+          oneOf:
+            - $ref: "#/components/schemas/ContractClassification"
+            - type: "null"
+        compensationBasis:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationBasis"
+            - type: "null"
+    PreviewKind:
+      type: object
+      required: [kind, before, after]
+      properties:
+        kind:
+          $ref: "#/components/schemas/AssignmentKind"
+        before:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssignmentPeriod"
+        after:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssignmentPeriod"
+    EmploymentChangePreview:
+      type: object
+      required:
+        [expectedVersion, timing, requiresReason, requiresAcknowledgement, kinds, warnings,
+         previewDigest]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        timing:
+          $ref: "#/components/schemas/EmploymentChangeTiming"
+        requiresReason:
+          type: boolean
+        requiresAcknowledgement:
+          type: boolean
+          description: True for a retroactive change; the commit must set acknowledgeRetroactive.
+        kinds:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PreviewKind"
+        warnings:
+          type: array
+          items:
+            type: string
+            enum: [LATER_CHANGE_LIMITS_PERIOD]
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    EmploymentChangeCancellationPreview:
+      type: object
+      required: [expectedVersion, kinds, cancellationDigest]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        kinds:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PreviewKind"
+        cancellationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    CancelEmploymentChange:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, cancellationDigest]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        cancellationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    EmploymentChangeResult:
+      type: object
+      required: [change, employmentVersion]
+      properties:
+        change:
+          $ref: "#/components/schemas/EmploymentChange"
+        employmentVersion:
+          type: integer
+          minimum: 0
     ErrorCode:
       type: string
       description: Stable machine-readable code. Clients translate it; it is never localized text.
@@ -2896,6 +3849,19 @@ components:
         - IMPORT_STALE
         - IMPORT_NOTHING_TO_COMMIT
         - IMPORT_TIMEOUT
+        - EMPLOYEE_NOT_FOUND
+        - EMPLOYMENT_CHANGE_NOT_FOUND
+        - EMPLOYMENT_VERSION_CONFLICT
+        - EMPLOYMENT_PREVIEW_CHANGED
+        - EMPLOYMENT_CHANGE_DATE_TAKEN
+        - EMPLOYMENT_CHANGE_NOT_CANCELLABLE
+        - EMPLOYMENT_CHANGE_HAS_DEPENDENTS
+        - EMPLOYMENT_CHANGE_NO_EFFECT
+        - EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT
+        - RETROACTIVE_WINDOW_EXCEEDED
+        - MANAGER_INVALID
+        - PLACEMENT_INVALID
+        - EMPLOYMENT_CHANGE_TIMEOUT
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.
