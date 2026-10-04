@@ -84,6 +84,29 @@ export type EmploymentChangeCancellationPreview =
 export type CancelEmploymentChange = CoreComponents['schemas']['CancelEmploymentChange'];
 export type EmploymentChangeResult = CoreComponents['schemas']['EmploymentChangeResult'];
 export type PreviewKind = CoreComponents['schemas']['PreviewKind'];
+export type EmployeeAccess = CoreComponents['schemas']['EmployeeAccess'];
+export type EmployeeAccessLink = CoreComponents['schemas']['EmployeeAccessLink'];
+export type EmployeeAccessLinkState = CoreComponents['schemas']['EmployeeAccessLinkState'];
+export type AccessLinkCandidate = CoreComponents['schemas']['AccessLinkCandidate'];
+export type SeparationReason = CoreComponents['schemas']['SeparationReason'];
+export type SeparationAccessTiming = CoreComponents['schemas']['SeparationAccessTiming'];
+export type SeparationAcknowledgement = CoreComponents['schemas']['SeparationAcknowledgement'];
+export type SeparationReportPlan = CoreComponents['schemas']['SeparationReportPlan'];
+export type SeparationCommand = CoreComponents['schemas']['SeparationCommand'];
+export type CreateSeparation = CoreComponents['schemas']['CreateSeparation'];
+export type SeparationBlocker = CoreComponents['schemas']['SeparationBlocker'];
+export type SeparationReport = CoreComponents['schemas']['SeparationReport'];
+export type SeparationAccessPreview = CoreComponents['schemas']['SeparationAccessPreview'];
+export type SeparationPreview = CoreComponents['schemas']['SeparationPreview'];
+export type SeparationTask = CoreComponents['schemas']['SeparationTask'];
+export type SeparationTaskCode = CoreComponents['schemas']['SeparationTaskCode'];
+export type SeparationTaskStatus = CoreComponents['schemas']['SeparationTaskStatus'];
+export type SeparationAccessState = CoreComponents['schemas']['SeparationAccessState'];
+export type Separation = CoreComponents['schemas']['Separation'];
+export type SeparationList = CoreComponents['schemas']['SeparationList'];
+export type SeparationResult = CoreComponents['schemas']['SeparationResult'];
+export type SeparationCancellationPreview =
+  CoreComponents['schemas']['SeparationCancellationPreview'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

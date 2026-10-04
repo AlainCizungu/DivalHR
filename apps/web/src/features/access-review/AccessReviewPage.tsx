@@ -450,6 +450,7 @@ export function AccessReviewPage() {
                   <th scope="col">{t('accessReview.table.role')}</th>
                   <th scope="col">{t('accessReview.table.scope')}</th>
                   <th scope="col">{t('accessReview.table.grantedAt')}</th>
+                  <th scope="col">{t('accessReview.table.access')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -467,6 +468,9 @@ export function AccessReviewPage() {
                     <td>{roleName(entry.role)}</td>
                     <td>{scopeLabel(entry)}</td>
                     <td>{formatDate(entry.grantedAt)}</td>
+                    <td data-testid="review-access" data-access={entry.accessState}>
+                      {t(`accessReview.accessState.${entry.accessState}`)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

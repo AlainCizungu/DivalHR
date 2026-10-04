@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/ApiProvider';
+import { AccessLinkSection } from './AccessLinkSection';
 import { ChangeForm } from './ChangeForm';
 import { ChangesSection } from './ChangesSection';
 import { HistoryAlert } from './HistoryAlert';
@@ -15,6 +16,7 @@ import {
   valueText,
   type HistoryFailure,
 } from './history';
+import { SeparationsSection } from './SeparationsSection';
 import { TimelineSection } from './TimelineSection';
 
 type Loaded =
@@ -32,7 +34,8 @@ const CURRENT_KEYS = {
 /**
  * MVP-021: one employee's profile on the business date (today in the organization's time zone),
  * the effective-dated history, the recorded changes, and the change, correction and cancellation
- * flows. The employee ID is the only identifier in the URL; nothing else is kept in the URL,
+ * flows; MVP-022 adds the separation and the employee's DivalHR access. The employee ID is the
+ * only identifier in the URL; nothing else is kept in the URL,
  * history or browser storage, and every request uses cache: 'no-store'.
  */
 export function EmployeeProfilePage() {
@@ -89,6 +92,16 @@ export function EmployeeProfilePage() {
     setFormKey((key) => key + 1);
     setRevision((value) => value + 1);
     focusHeading.current = true;
+  };
+
+  const changed = (messageKey: string, values: Record<string, string>, refresh: boolean) => {
+    setAnnouncement(t(messageKey, values));
+    if (refresh) {
+      setCorrecting(null);
+      setFormKey((key) => key + 1);
+      setRevision((value) => value + 1);
+      focusHeading.current = true;
+    }
   };
 
   if (loaded.kind === 'loading') return <p>{t('employees.loading')}</p>;
@@ -167,6 +180,19 @@ export function EmployeeProfilePage() {
               ? 'employees.announce.corrected'
               : 'employees.announce.recorded',
           );
+        }}
+      />
+      <SeparationsSection
+        employeeId={profile.id}
+        businessDate={profile.businessDate}
+        revision={revision}
+        onChanged={changed}
+      />
+      <AccessLinkSection
+        employeeId={profile.id}
+        revision={revision}
+        onChanged={(messageKey) => {
+          changed(messageKey, {}, false);
         }}
       />
       <TimelineSection employeeId={profile.id} revision={revision} onCorrect={setCorrecting} />

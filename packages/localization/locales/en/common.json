@@ -156,7 +156,26 @@
     "RETROACTIVE_WINDOW_EXCEEDED": "This date is further in the past than the organization allows for retroactive changes.",
     "MANAGER_INVALID": "This manager cannot be assigned.",
     "PLACEMENT_INVALID": "This placement cannot be assigned.",
-    "EMPLOYMENT_CHANGE_TIMEOUT": "The change took too long and nothing was recorded. Try again."
+    "EMPLOYMENT_CHANGE_TIMEOUT": "The change took too long and nothing was recorded. Try again.",
+    "SEPARATION_NOT_FOUND": "This separation no longer exists.",
+    "SEPARATION_TASK_NOT_FOUND": "This follow-up task no longer exists.",
+    "MEMBERSHIP_NOT_FOUND": "No member of the organization uses this exact address.",
+    "SEPARATION_EXISTS": "This employee already has a separation in force.",
+    "SEPARATION_FUTURE_CHANGES": "Changes recorded after the last day must be cancelled first.",
+    "SEPARATION_PROTECTED": "This separation is not allowed.",
+    "SEPARATION_PREVIEW_CHANGED": "The result no longer matches the preview. Preview the separation again.",
+    "SEPARATION_NOT_CANCELLABLE": "This separation can no longer be cancelled.",
+    "SEPARATION_TASK_VERSION_CONFLICT": "This task was changed in the meantime. The list was refreshed; try again.",
+    "SEPARATION_TASK_CLOSED": "This task can no longer be changed.",
+    "ACCESS_LINK_CONFLICT": "This access cannot be linked to this employee.",
+    "ACCESS_LINK_LOCKED": "The access link cannot change while a separation is in force.",
+    "ACCESS_LINK_VERSION_CONFLICT": "The access link was changed in the meantime. Reload the page and try again.",
+    "ACCESS_REVOCATION_NOT_RETRYABLE": "The sign-in removal cannot be retried in its current state.",
+    "SEPARATION_DATE_OUT_OF_RANGE": "The last day is outside the allowed period.",
+    "SEPARATION_ACCESS_TIMING_INVALID": "This access timing is not possible for this last day.",
+    "SEPARATION_ACKNOWLEDGEMENT_REQUIRED": "A required confirmation is missing.",
+    "SEPARATION_REPORT_PLAN_REQUIRED": "Choose what happens to the direct reports.",
+    "SEPARATION_TOO_MANY_INTERVALS": "Too many direct-report periods are affected to record this separation at once."
   },
   "notFound": {
     "title": "Page not found",
@@ -664,11 +683,12 @@
       "back": "Back to the list"
     },
     "table": {
-      "caption": "Active access of the organization",
+      "caption": "Members of the organization and their access",
       "address": "Address",
       "role": "Role",
       "scope": "Scope",
-      "grantedAt": "Access granted on"
+      "grantedAt": "Access granted on",
+      "access": "DivalHR access"
     },
     "scope": {
       "entire": "Entire organization",
@@ -692,6 +712,10 @@
         "LENGTH": "The email address is too long.",
         "FORMAT": "Enter a valid email address, for example name@example.cd."
       }
+    },
+    "accessState": {
+      "ACTIVE": "Active",
+      "REVOKED": "Access revoked"
     }
   },
   "employeeImport": {
@@ -903,7 +927,8 @@
       "OTHER_BUSINESS_CHANGE": "Other business change",
       "DATA_ENTRY_ERROR": "Data entry error",
       "IMPORT_ERROR": "Import error",
-      "DOCUMENT_RECEIVED": "Supporting document received"
+      "DOCUMENT_RECEIVED": "Supporting document received",
+      "MANAGER_SEPARATED": "Manager separated"
     },
     "timing": {
       "SCHEDULED": "Scheduled (starts after today)",
@@ -914,7 +939,8 @@
       "HIRE": "Hire",
       "CHANGE": "Change",
       "CORRECTION": "Correction",
-      "CANCELLATION": "Cancellation"
+      "CANCELLATION": "Cancellation",
+      "SEPARATION": "Separation"
     },
     "changeState": {
       "ACTIVE": "In force",
@@ -1064,6 +1090,170 @@
         "NOT_EFFECTIVE": "{{field}}: this unit is not in effect on the date.",
         "ENDS_DURING_PERIOD": "{{field}}: this unit ends during the period."
       }
+    }
+  },
+  "accessLink": {
+    "title": "DivalHR access",
+    "state": {
+      "NOT_LINKED": "No DivalHR access is linked to this employee.",
+      "ACTIVE": "Linked to a DivalHR access.",
+      "REVOCATION_SCHEDULED": "Linked; a separation will end this access.",
+      "REVOKED": "DivalHR access ended by a separation."
+    },
+    "role": "Role",
+    "linkedAt": "Linked on",
+    "remove": "Remove the link",
+    "email": "Exact email address of the member",
+    "emailHelp": "Enter the full address the person signs in with. Only an exact match is found.",
+    "lookup": "Find the access",
+    "candidate": "Member found: {{role}}.",
+    "link": "Link to this employee",
+    "notLinkable": {
+      "ALREADY_LINKED": "This access is already linked to another employee.",
+      "ACCESS_REVOKED": "This access was revoked and cannot be linked.",
+      "EMPLOYEE_LINKED": "This employee already has a linked access."
+    },
+    "announce": {
+      "linked": "DivalHR access linked.",
+      "removed": "Access link removed."
+    }
+  },
+  "separation": {
+    "title": "Separation",
+    "none": "No separation recorded.",
+    "heading": "Last day {{date}} – {{state}}",
+    "state": {
+      "SCHEDULED": "Scheduled",
+      "EFFECTIVE": "In force",
+      "CANCELLED": "Cancelled"
+    },
+    "accessLabel": "DivalHR access",
+    "reasons": {
+      "RESIGNATION": "Resignation",
+      "END_OF_FIXED_TERM": "End of fixed-term contract",
+      "DISMISSAL": "Dismissal",
+      "MUTUAL_AGREEMENT": "Mutual agreement",
+      "RETIREMENT": "Retirement",
+      "OTHER_SEPARATION": "Other separation"
+    },
+    "timing": {
+      "END_OF_LAST_DAY": "At the end of the last day",
+      "IMMEDIATELY": "Immediately, when the separation is recorded"
+    },
+    "form": {
+      "title": "Record a separation",
+      "help": "Today is {{date}} in the organization’s time zone. Employment ends after the last day; the history is kept.",
+      "lastDay": "Last day of employment",
+      "lastDayHelp": "The last day worked, included. A past date makes the separation retroactive.",
+      "reason": "Reason",
+      "accessTiming": "When DivalHR access ends",
+      "timingHelp": "The last day is today: access can end now or at the end of the day.",
+      "timingFuture": "The last day is in the future: access ends at the end of that day.",
+      "timingPast": "The last day is past: access ends immediately.",
+      "reportPlan": "Direct reports",
+      "reportPlanHelp": "If people report to this employee after the last day, choose a new manager for them or end their reporting line. Later recorded changes are kept.",
+      "preview": "Preview the separation",
+      "confirm": "Confirm and record the separation",
+      "problems": {
+        "lastDay": "Enter the last day.",
+        "reason": "Choose a reason.",
+        "timing": "Choose when DivalHR access ends.",
+        "plan": "Choose what happens to the direct reports.",
+        "manager": "Choose the new manager.",
+        "acknowledge": "Tick every confirmation."
+      }
+    },
+    "plan": {
+      "NONE": "Decide after the preview",
+      "REASSIGN": "Reassign to another manager",
+      "CLEAR": "End the reporting line"
+    },
+    "access": {
+      "atCommit": "as soon as the separation is recorded",
+      "preview": {
+        "LINKED": "The linked DivalHR access ends {{at}}.",
+        "NOT_LINKED": "No DivalHR access is linked: nothing is revoked.",
+        "PROTECTED_ADMIN": "The linked access is an organization administrator: this separation is refused.",
+        "SELF": "The linked access is your own: you cannot record this separation."
+      },
+      "state": {
+        "NOT_LINKED": "No access was linked.",
+        "SCHEDULED": "Ends on {{at}}.",
+        "SIGN_OUT_PENDING": "Denied since {{at}}; sign-in removal in progress.",
+        "COMPLETED": "Denied since {{at}}; sign-in removed.",
+        "MANUAL_INTERVENTION": "Denied since {{at}}; the sign-in could not be removed automatically. Retry, or contact your DivalHR administrator.",
+        "CANCELLED": "Kept: the separation was cancelled."
+      },
+      "on": "on {{date}}"
+    },
+    "blockers": {
+      "title": "Cancel these later changes first:",
+      "CANCEL_CHANGE": "{{kind}} from {{date}}: cancel this change in the list of changes.",
+      "NOT_CANCELLABLE": "{{kind}} from {{date}}: this change cannot be cancelled; correct the record first."
+    },
+    "reports": {
+      "count_one": "{{count}} direct report affected ({{intervals}} periods).",
+      "count_other": "{{count}} direct reports affected ({{intervals}} periods).",
+      "caption": "Direct reports after the last day",
+      "employee": "Employee",
+      "periods": "Periods reporting to this employee",
+      "planRequired": "Choose what happens to the direct reports, then preview again.",
+      "willClear": "Their reporting line ends for these periods.",
+      "willReassign": "They report to {{name}} for these periods.",
+      "label": "Direct reports",
+      "noneAffected": "None affected",
+      "summary_one": "{{count}} affected ({{intervals}} periods): {{action}}",
+      "summary_other": "{{count}} affected ({{intervals}} periods): {{action}}"
+    },
+    "checklist": {
+      "title": "Follow-up reminders created:",
+      "item": "{{task}} – due {{date}}",
+      "caption": "Follow-up reminders",
+      "task": "Reminder",
+      "due": "Due",
+      "status": "Status",
+      "statusOf": "Status: {{task}}"
+    },
+    "tasks": {
+      "RETURN_ASSIGNED_ASSETS": "Recover assigned equipment",
+      "COLLECT_OR_ARCHIVE_DOCUMENTS": "Collect or archive documents"
+    },
+    "taskStatus": {
+      "OPEN": "To do",
+      "DONE": "Done",
+      "NOT_APPLICABLE": "Not applicable",
+      "CANCELLED": "Cancelled"
+    },
+    "acknowledgements": {
+      "title": "Confirmations required",
+      "RETROACTIVE": "I confirm this separation applies to past dates.",
+      "NO_LINKED_ACCESS": "I confirm that no DivalHR access is linked to this employee, so none is revoked.",
+      "IMMEDIATE_ACCESS_REMOVAL": "I confirm that this employee’s DivalHR access ends immediately."
+    },
+    "problems": {
+      "protected": {
+        "SELF": "You cannot record your own separation.",
+        "ADMIN_ACCESS": "The employee’s access is an organization administrator; change that access first."
+      },
+      "count": {
+        "SEPARATION_TOO_MANY_INTERVALS_one": "{{count}} period is affected.",
+        "SEPARATION_TOO_MANY_INTERVALS_other": "{{count}} periods are affected.",
+        "SEPARATION_FUTURE_CHANGES_one": "{{count}} later change must be cancelled.",
+        "SEPARATION_FUTURE_CHANGES_other": "{{count}} later changes must be cancelled."
+      }
+    },
+    "cancel": "Cancel the separation",
+    "retry": "Retry the sign-in removal",
+    "cancelTitle": "Cancel the separation (last day {{date}})",
+    "cancelHelp_one": "Employment continues and access is kept. {{count}} direct report’s changes ({{intervals}} periods) are reversed.",
+    "cancelHelp_other": "Employment continues and access is kept. The changes of {{count}} direct reports ({{intervals}} periods) are reversed.",
+    "confirmCancel": "Confirm the cancellation",
+    "keep": "Keep the separation",
+    "announce": {
+      "recorded": "Separation recorded (last day {{date}}).",
+      "cancelled": "The separation (last day {{date}}) was cancelled.",
+      "task": "{{task}}: {{status}}.",
+      "retried": "Sign-in removal relaunched."
     }
   }
 }

@@ -113,7 +113,10 @@ export function ChangesSection({
   };
 
   const cancellable = (change: EmploymentChange) =>
-    change.type === 'CHANGE' && change.state === 'ACTIVE' && change.effectiveFrom > businessDate;
+    change.type === 'CHANGE' &&
+    change.state === 'ACTIVE' &&
+    change.reasonCode !== 'MANAGER_SEPARATED' &&
+    change.effectiveFrom > businessDate;
 
   const previewCancellation = async (change: EmploymentChange) => {
     cancelKey.reset();

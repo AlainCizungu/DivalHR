@@ -210,7 +210,11 @@ function stubApi(route: Route = () => undefined) {
                                   }
                                 : path === '/cost-centers' || path === '/teams'
                                   ? { status: 200, body: { data: [] } }
-                                  : { status: 404, body: problem('NOT_FOUND', 404) });
+                                  : path === `/employees/${EMPLOYEE}/separations`
+                                    ? { status: 200, body: { items: [] } }
+                                    : path === `/employees/${EMPLOYEE}/access-link`
+                                      ? { status: 200, body: { state: 'NOT_LINKED', link: null } }
+                                      : { status: 404, body: problem('NOT_FOUND', 404) });
       return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {
         status: reply.status,
         headers: {

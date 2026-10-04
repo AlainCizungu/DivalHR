@@ -16,6 +16,7 @@ const entry = (n: number, overrides: Record<string, unknown> = {}) => ({
   email: `membre${n}@exemple.cd`,
   role: n % 2 === 0 ? 'tenant-admin' : 'employee',
   grantedAt: '2026-09-30T10:00:00Z',
+  accessState: 'ACTIVE',
   directScope: { type: 'TENANT' },
   effectiveScope: { type: 'TENANT', coversAllLegalEntitiesAndSites: true },
   matchedUnit: null,
@@ -37,7 +38,12 @@ function stubApi(route: Route = () => undefined) {
         (url.pathname.endsWith('/access-review/summary')
           ? { status: 200, body: { byRole: { 'tenant-admin': 1, employee: 2 } } }
           : url.pathname.endsWith('/access-review/entries')
-            ? { status: 200, body: { data: [entry(0, { email: null }), entry(1), entry(3)] } }
+            ? {
+                status: 200,
+                body: {
+                  data: [entry(0, { email: null }), entry(1), entry(3, { accessState: 'REVOKED' })],
+                },
+              }
             : url.pathname.endsWith('/legal-entities')
               ? {
                   status: 200,
@@ -142,12 +148,19 @@ describe.each(['fr', 'en'] as const)('access review (%s)', (locale) => {
       within(table)
         .getAllByRole('columnheader')
         .map((h) => h.textContent),
-    ).toEqual([r.table.address, r.table.role, r.table.scope, r.table.grantedAt]);
+    ).toEqual([r.table.address, r.table.role, r.table.scope, r.table.grantedAt, r.table.access]);
     const rows = screen.getAllByTestId('review-row');
     expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent(r.addressNotRecorded);
     expect(rows[0]).toHaveTextContent(c.users.form.roles['tenant-admin']);
     expect(rows[1]).toHaveTextContent('membre1@exemple.cd');
+    // MVP-022: a membership whose access a separation revoked is labelled, never shown as active.
+    expect(within(rows[1] as HTMLElement).getByTestId('review-access')).toHaveTextContent(
+      r.accessState.ACTIVE,
+    );
+    expect(within(rows[2] as HTMLElement).getByTestId('review-access')).toHaveTextContent(
+      r.accessState.REVOKED,
+    );
     expect(rows[1]).toHaveTextContent(r.scope.entire);
     expect(screen.getByTestId('summary-tenant-admin')).toHaveTextContent(
       r.summary.count
