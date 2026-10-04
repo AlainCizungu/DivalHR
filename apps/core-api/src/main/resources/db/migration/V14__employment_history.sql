@@ -473,7 +473,12 @@ SELECT jsonb_build_array(a.kind, a.legal_entity_id, a.site_id, a.department_id, 
     a.team_id, a.manager_employee_id, a.contract_code, a.compensation_basis_code)
 $fn$;
 
-CREATE FUNCTION people.employment_change_shape() RETURNS trigger
+-- The validator takes a change ID so that every write affecting a change revalidates it (R21-1):
+-- the change row's own insert, and any later insert or supersession of an assignment that names
+-- the change as its writer (created_by_change_id) or its replacer (superseded_by_change_id).
+-- A row's origin needs no separate check: the writer's shape already binds every row it writes to
+-- its origin (new values carry the writer, copies and restorations the replaced row's origin).
+CREATE FUNCTION people.employment_change_shape_check(p_change uuid) RETURNS void
     LANGUAGE plpgsql
 AS $fn$
 DECLARE
@@ -483,12 +488,22 @@ DECLARE
     v_bad      boolean;
     v_created  integer;
     v_replaced integer;
+    v_touched  text[];
+    v_kinds    text[];
 BEGIN
-    SELECT * INTO c FROM people.employment_change WHERE id = NEW.id;
+    SELECT * INTO c FROM people.employment_change WHERE id = p_change;
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
     SELECT count(*) INTO v_created FROM people.employment_assignment
         WHERE created_by_change_id = c.id;
     SELECT count(*) INTO v_replaced FROM people.employment_assignment
         WHERE superseded_by_change_id = c.id;
+    -- The distinct kinds the change actually touched, and its normalized kinds[].
+    SELECT coalesce(array_agg(DISTINCT kind ORDER BY kind), ARRAY[]::text[]) INTO v_touched
+        FROM people.employment_assignment
+        WHERE created_by_change_id = c.id OR superseded_by_change_id = c.id;
+    SELECT array_agg(DISTINCT k ORDER BY k) INTO v_kinds FROM unnest(c.kinds) AS k;
 
     IF c.type = 'HIRE' THEN
         -- One open placement row over the whole employment; nothing replaced.
@@ -502,10 +517,8 @@ BEGIN
 
     ELSIF c.type = 'CHANGE' THEN
         v_bad := v_created + v_replaced = 0
-            -- Only the change's kinds are touched, at most one replaced row per kind.
-            OR EXISTS (SELECT 1 FROM people.employment_assignment a
-                WHERE (a.created_by_change_id = c.id OR a.superseded_by_change_id = c.id)
-                    AND NOT (a.kind = ANY (c.kinds)))
+            -- Exactly the change's kinds are touched (R21-1), at most one replaced row per kind.
+            OR v_touched <> v_kinds
             OR EXISTS (SELECT 1 FROM people.employment_assignment a
                 WHERE a.superseded_by_change_id = c.id
                 GROUP BY a.kind HAVING count(*) > 1)
@@ -542,6 +555,8 @@ BEGIN
         v_bad := v_cancel.type <> 'CHANGE' OR v_cancel.state <> 'CANCELLED'
             OR c.kinds <> v_cancel.kinds OR c.effective_from <> v_cancel.effective_from
             OR v_replaced = 0
+            -- Every kind of the cancelled change takes part (R21-1): no partial cancellation.
+            OR v_touched <> v_kinds
             -- It replaces only rows written by, or carrying the value of, the cancelled change,
             -- and the earlier rows its restored rows extend.
             OR EXISTS (SELECT 1 FROM people.employment_assignment a
@@ -570,6 +585,33 @@ BEGIN
         RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'employment_change_shape',
             MESSAGE = 'an employment change wrote rows its type does not allow';
     END IF;
+END
+$fn$;
+
+CREATE FUNCTION people.employment_change_shape() RETURNS trigger
+    LANGUAGE plpgsql
+AS $fn$
+BEGIN
+    PERFORM people.employment_change_shape_check(NEW.id);
+    RETURN NULL;
+END
+$fn$;
+
+-- Queued for every assignment insert and supersession (R21-1), so a later transaction that adds
+-- or replaces rows in the name of an already committed change is checked against that change.
+CREATE FUNCTION people.employment_assignment_change_shape() RETURNS trigger
+    LANGUAGE plpgsql
+AS $fn$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM people.employment_change_shape_check(NEW.created_by_change_id);
+        IF NEW.superseded_by_change_id IS NOT NULL THEN
+            PERFORM people.employment_change_shape_check(NEW.superseded_by_change_id);
+        END IF;
+    ELSIF NEW.superseded_by_change_id IS NOT NULL
+        AND NEW.superseded_by_change_id IS DISTINCT FROM OLD.superseded_by_change_id THEN
+        PERFORM people.employment_change_shape_check(NEW.superseded_by_change_id);
+    END IF;
     RETURN NULL;
 END
 $fn$;
@@ -578,3 +620,8 @@ CREATE CONSTRAINT TRIGGER employment_change_shape
     AFTER INSERT ON people.employment_change
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION people.employment_change_shape();
+
+CREATE CONSTRAINT TRIGGER employment_assignment_change_shape
+    AFTER INSERT OR UPDATE ON people.employment_assignment
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION people.employment_assignment_change_shape();

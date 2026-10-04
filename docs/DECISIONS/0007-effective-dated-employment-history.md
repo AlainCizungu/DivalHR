@@ -36,10 +36,19 @@ Option 3.
   the next change starts: later changes are never altered. A correction replaces one row's value
   for its own dates. A cancellation (scheduled changes only) restores the replaced value up to the
   next active row, or is refused when a later row depends on the change.
+- Cancelling an earlier change after a later one (architect decision on PR #48): with A, then B,
+  then C recorded, cancelling B restores A only until C, and C is unchanged. Cancelling C afterwards
+  extends that restored A through C's former end. The restored row names the row it extends
+  (`restores_assignment_id`), which must itself be a restoration with the same value and origin,
+  so transaction-time lineage is kept. Any other replacement of the copy (a later change or a
+  correction) still makes the cancellation `EMPLOYMENT_CHANGE_HAS_DEPENDENTS`.
 - PostgreSQL is the final authority (M21-4, M21-5): exclusion constraints (`btree_gist`) for
   non-overlap, deferred constraint triggers for gap-free placement, acyclic reporting lines under
   the trigger's own per-tenant advisory lock, and the exact shape of each change type; triggers
-  refuse updates of values, deletes and truncation. The application computes the same plan first
+  refuse updates of values, deletes and truncation. The shape of a change is validated by change
+  ID whenever its row is inserted and whenever an assignment is later inserted or superseded in
+  its name, so a committed change can never be extended afterwards (R21-1). A change, and a
+  cancellation, must touch exactly its `kinds[]`: no extra kind, no partial cancellation. The application computes the same plan first
   (`EmploymentTimeline`) so users get stable business codes; only named constraints are mapped.
 - Commits are bound to their preview by the employment version and a digest; writes are
   idempotent.

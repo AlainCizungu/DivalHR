@@ -703,7 +703,8 @@ public class JdbcEmploymentHistoryRepository {
     jdbc.sql(
             "SET CONSTRAINTS people.employment_placement_coverage,"
                 + " people.employment_placement_coverage_on_employment,"
-                + " people.employment_manager_acyclic, people.employment_change_shape IMMEDIATE")
+                + " people.employment_manager_acyclic, people.employment_change_shape,"
+                + " people.employment_assignment_change_shape IMMEDIATE")
         .update();
   }
 

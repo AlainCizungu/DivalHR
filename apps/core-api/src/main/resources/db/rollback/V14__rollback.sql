@@ -59,6 +59,8 @@ DROP FUNCTION people.employment_assignment_value(people.employment_assignment);
 DROP TABLE people.employment_assignment;
 DROP TABLE people.employment_change;
 DROP FUNCTION people.employment_change_shape();
+DROP FUNCTION people.employment_assignment_change_shape();
+DROP FUNCTION people.employment_change_shape_check(uuid);
 DROP FUNCTION people.employment_manager_acyclic();
 DROP FUNCTION people.employment_placement_coverage();
 DROP FUNCTION people.employment_placement_covered(uuid);

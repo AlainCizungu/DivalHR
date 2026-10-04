@@ -687,6 +687,201 @@ class EmploymentHistoryMigrationIntegrationTest {
         });
   }
 
+  /**
+   * R21-1: a committed change is revalidated whenever a later transaction writes or replaces a row
+   * in its name, and a change or cancellation must touch exactly its kinds.
+   */
+  @Test
+  void laterWritesInTheNameOfACommittedChangeAreRevalidated() throws Exception {
+    withDatabase(
+        false,
+        db -> {
+          migrate(db.url(), "latest");
+          try {
+            UUID tenant = organization(db.jdbc());
+            Hired h;
+            try (Connection c = connect(db)) {
+              h = hire(c, tenant, "E-1");
+              c.commit();
+            }
+            String shape = "employment_change_shape";
+            LocalDate june = LocalDate.of(2026, 6, 1);
+            LocalDate september = LocalDate.of(2026, 9, 1);
+            LocalDate november = LocalDate.of(2026, 11, 1);
+
+            // A committed placement change.
+            UUID moved;
+            try (Connection c = connect(db)) {
+              moved = change(c, h, "CHANGE", "{PLACEMENT}", june);
+              supersede(c, h.placement(), moved);
+              placementRow(c, h, START, june.minusDays(1), moved, h.hire());
+              placementRow(c, h, june, null, moved, moved);
+              c.commit();
+            }
+            // A committed contract change (a gap insertion).
+            UUID contracted;
+            UUID contractRow;
+            try (Connection c = connect(db)) {
+              contracted = change(c, h, "CHANGE", "{CONTRACT}", september);
+              contractRow =
+                  coded(
+                      c, h, "CONTRACT", "PERMANENT", september, null, contracted, contracted, null);
+              c.commit();
+            }
+
+            // 1. An extra row written in the name of the committed placement change.
+            refused(
+                db,
+                shape,
+                c -> coded(c, h, "COMPENSATION", "MONTHLY", june, null, moved, moved, null));
+            // 2. A supersession in the name of the committed placement change.
+            refused(db, shape, c -> supersede(c, contractRow, moved));
+            // 3. A change whose kinds[] names a kind it does not touch.
+            refused(
+                db,
+                shape,
+                c -> {
+                  UUID extra = change(c, h, "CHANGE", "{COMPENSATION,MANAGER}", november);
+                  coded(c, h, "COMPENSATION", "HOURLY", november, null, extra, extra, null);
+                });
+
+            // Positive control: a multi-kind change (contract split, compensation gap insertion).
+            UUID both;
+            UUID contractCopy;
+            UUID contractValue;
+            UUID compensationValue;
+            try (Connection c = connect(db)) {
+              both = change(c, h, "CHANGE", "{CONTRACT,COMPENSATION}", november);
+              supersede(c, contractRow, both);
+              contractCopy =
+                  coded(
+                      c,
+                      h,
+                      "CONTRACT",
+                      "PERMANENT",
+                      september,
+                      november.minusDays(1),
+                      both,
+                      contracted,
+                      null);
+              contractValue =
+                  coded(c, h, "CONTRACT", "FIXED_TERM", november, null, both, both, null);
+              compensationValue =
+                  coded(c, h, "COMPENSATION", "MONTHLY", november, null, both, both, null);
+              c.commit();
+            }
+            UUID multi = both;
+            UUID copied = contractCopy;
+            UUID valued = contractValue;
+            UUID paid = compensationValue;
+            UUID replaced = contractRow;
+            UUID original = contracted;
+
+            // 4. A partial cancellation of the multi-kind change (the compensation stays).
+            refused(
+                db,
+                shape,
+                c -> {
+                  UUID cancel = cancellationOf(c, h, multi, november, "{CONTRACT,COMPENSATION}");
+                  exec(
+                      c,
+                      "UPDATE people.employment_change SET state = 'CANCELLED' WHERE id = ?",
+                      multi);
+                  supersede(c, copied, cancel);
+                  supersede(c, valued, cancel);
+                  coded(c, h, "CONTRACT", "PERMANENT", september, null, cancel, original, replaced);
+                });
+            // Positive control: the full cancellation commits.
+            try (Connection c = connect(db)) {
+              UUID cancel = cancellationOf(c, h, multi, november, "{CONTRACT,COMPENSATION}");
+              exec(
+                  c, "UPDATE people.employment_change SET state = 'CANCELLED' WHERE id = ?", multi);
+              supersede(c, copied, cancel);
+              supersede(c, valued, cancel);
+              supersede(c, paid, cancel);
+              coded(c, h, "CONTRACT", "PERMANENT", september, null, cancel, original, replaced);
+              c.commit();
+            }
+            // ... and it cannot be extended afterwards either.
+            UUID cancelled =
+                db.jdbc()
+                    .queryForObject(
+                        "SELECT id FROM people.employment_change WHERE cancels_change_id = ?",
+                        UUID.class,
+                        multi);
+            refused(
+                db,
+                shape,
+                c -> coded(c, h, "MANAGER", null, november, null, cancelled, cancelled, null));
+          } catch (Exception e) {
+            throw new IllegalStateException(e);
+          }
+        });
+  }
+
+  /** A CONTRACT, COMPENSATION or MANAGER row (a MANAGER row reports to a new employee). */
+  private static UUID coded(
+      Connection c,
+      Hired h,
+      String kind,
+      String code,
+      LocalDate from,
+      LocalDate to,
+      UUID createdBy,
+      UUID origin,
+      UUID restores)
+      throws SQLException {
+    UUID id = UUID.randomUUID();
+    UUID manager = null;
+    if ("MANAGER".equals(kind)) {
+      manager =
+          hire(
+                  c,
+                  h.tenant(),
+                  "E-M-" + id.toString().substring(0, 8).toUpperCase(java.util.Locale.ROOT))
+              .employee();
+    }
+    exec(
+        c,
+        "INSERT INTO people.employment_assignment (id, tenant_id, employee_id, employment_id,"
+            + " kind, effective_from, effective_to, contract_code, compensation_basis_code,"
+            + " manager_employee_id, created_by_change_id, origin_change_id,"
+            + " restores_assignment_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        id,
+        h.tenant(),
+        h.employee(),
+        h.employment(),
+        kind,
+        from,
+        to,
+        "CONTRACT".equals(kind) ? code : null,
+        "COMPENSATION".equals(kind) ? code : null,
+        manager,
+        createdBy,
+        origin,
+        restores);
+    return id;
+  }
+
+  private static UUID cancellationOf(
+      Connection c, Hired h, UUID cancelled, LocalDate from, String kinds) throws SQLException {
+    UUID id = UUID.randomUUID();
+    exec(
+        c,
+        "INSERT INTO people.employment_change (id, tenant_id, employee_id, employment_id, type,"
+            + " effective_from, kinds, timing, cancels_change_id, recorded_at, recorded_by,"
+            + " version_after) VALUES (?, ?, ?, ?, 'CANCELLATION', ?, ?::text[], 'SCHEDULED', ?,"
+            + " now(), 'test', 9)",
+        id,
+        h.tenant(),
+        h.employee(),
+        h.employment(),
+        from,
+        kinds,
+        cancelled);
+    return id;
+  }
+
   private static UUID cancellation(Connection c, Hired h, UUID cancelled, LocalDate from)
       throws SQLException {
     UUID id = UUID.randomUUID();
