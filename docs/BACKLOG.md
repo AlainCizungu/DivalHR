@@ -112,6 +112,10 @@ Out of scope for MVP-021: separations and rehires (MVP-022); editing names or em
 
 HR can complete an approved separation that revokes access and creates asset and document follow-up tasks.
 
+**Issue #49. In review.** Tenant administrators link an employee record to the DivalHR access of an exact address, and separate an employee from an inclusive last day with a closed reason. The separation is previewed (the employee's rows, future changes that must be cancelled first, every affected direct-report interval, the access to revoke, the reminders and the required acknowledgements) and committed with the preview's version and digest. Direct reports are reassigned or left without a manager for every affected interval (at most 200). DivalHR access ends at the start of the day after the last day, or immediately when the last day is today or earlier, through a database-checked revocation the membership gate enforces at once; a job then disables the Keycloak identity through the provisioning extension, with retries, revalidation of the binding before every call, and an administrator retry from manual intervention. Two follow-up reminders (recover equipment, collect or archive documents) can be completed, marked not applicable or reopened. A scheduled separation can be cancelled before it takes effect, reversing everything. Tenant administrators and the caller's own access are never separated here. V15; ADR 0008. French and English sections on the employee record and an access column in the access review. Approved proposal D22-1 to D22-22 with amendments A22-1 to A22-6 on Issue #49 apply.
+
+Out of scope for MVP-022: separating tenant administrators (a later governance story), corrections of a separation after it takes effect, rehires, final pay, documents and asset records, notes or attachments, approvals, an HR role, bulk separations, re-enabling identities, and AI features.
+
 ## Epic 4 Contracts and Documents
 
 ### MVP-030 Create and acknowledge a contract

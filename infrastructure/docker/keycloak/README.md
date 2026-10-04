@@ -78,6 +78,16 @@ only**. The `divalhr-dev` realm therefore sets `"sslRequired": "none"`.
   `divalhr-role-tenant-admin`), sends the setup email and compensates. See `docs/SECURITY.md`,
   ADR 0006 and `packages/shared-contracts/openapi/keycloak-provisioning.yaml`.
 - Admin-only user-profile attribute `divalhr_invitation_id` links an identity to its invitation.
+- Access revocation (MVP-022, ADR 0008): when a separation ends an employee's DivalHR access, the
+  Core API's job calls
+  `PUT /realms/divalhr-dev/divalhr-provisioning/v1/tenants/{tenantId}/identities/{subject}/access-revocation`
+  (empty body, `X-Revocation-Id`). The extension disables the user, removes its online and
+  offline sessions and sets not-before, only for an employee identity it created for that tenant
+  (one invitation attribute, the same `tenant_id`, one group, the employee role, no service
+  account or platform role); anything else is `409 REVOCATION_REFUSED` and left unchanged. A
+  replay returns the same `200 {"state":"REVOKED"}`; an unknown subject is `404
+  IDENTITY_NOT_FOUND`. The admin event carries `divalhr.revocationId`, never an address. Reverting
+  a disablement is a deliberate administrator action in the admin console.
 - `loginWithEmailAllowed`: invitees sign in with their email address (their username).
 - SMTP goes to the `mailpit` service; open <http://127.0.0.1:8025> to read every email of the
   stack (invitations and password setup). Nothing leaves the machine.
@@ -105,6 +115,8 @@ with `SETUP_STATE_INVALID`, `IDENTITY_AMBIGUOUS` or `COMPENSATION_REFUSED`, on a
 of `outcome=refused_after_race` lines (one alone is a harmless race; `confirmed_after_race` is
 normal under concurrency), on the Core API's
 `invitation_credential_setup_invalid_state` and `invitation_accept_compensation_refused` logs, and
+on any `identity.revoke` refusal (the Core API then shows the revocation as needing an
+administrator; see the separation runbook in `docs/SECURITY.md`), and
 on **any** Admin API event whose actor is the provisioner client (it has no admin permission, so
 any such event means the configuration drifted).
 
