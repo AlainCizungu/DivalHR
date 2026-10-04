@@ -29,10 +29,7 @@ public final class ContractRenderer {
 
     /** Copies the missing set. */
     public Rendering {
-      missing =
-          missing.isEmpty()
-              ? Set.of()
-              : java.util.Collections.unmodifiableSet(EnumSet.copyOf(missing));
+      missing = Set.copyOf(missing);
     }
   }
 

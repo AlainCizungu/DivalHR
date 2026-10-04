@@ -259,10 +259,10 @@ test.describe.serial('MVP-030: create and acknowledge a contract', () => {
     await form.getByRole('button', { name: 'Prévisualiser le contrat' }).click();
     const preview = section.getByTestId('contract-preview');
     await expect(preview.getByRole('heading', { name: 'Aperçu du contrat' })).toBeFocused();
-    const document = preview.getByTestId('contract-document');
-    await expect(document).toHaveAttribute('lang', 'fr');
-    await expect(document).toContainText(`Bénédicte ${FAMILY}`);
-    await expect(document).not.toContainText('{{');
+    const contractText = preview.getByTestId('contract-document');
+    await expect(contractText).toHaveAttribute('lang', 'fr');
+    await expect(contractText).toContainText(`Bénédicte ${FAMILY}`);
+    await expect(contractText).not.toContainText('{{');
     await expectAccessible(page);
     await page.setViewportSize({ width: 320, height: 800 });
     expect(

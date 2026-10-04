@@ -114,10 +114,7 @@ public final class TemplateGrammar {
     /** Copies the collections. */
     public Parsed {
       blocks = List.copyOf(blocks);
-      placeholders =
-          placeholders.isEmpty()
-              ? Set.of()
-              : java.util.Collections.unmodifiableSet(EnumSet.copyOf(placeholders));
+      placeholders = Set.copyOf(placeholders);
       problems = List.copyOf(problems);
     }
 
