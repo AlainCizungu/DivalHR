@@ -375,8 +375,11 @@ class MembershipGateIntegrationTest {
       boolean platformScoped = method.getMethodAnnotation(PlatformScoped.class) != null;
       if (scoped != null && !platformScoped) {
         tenantScoped++;
+        // Role-less and employee self-service handlers (MVP-030) take an employee token.
         String bearer =
-            scoped.role().isEmpty() ? employeeWithoutMembership : adminWithoutMembership;
+            scoped.role().isEmpty() || scoped.role().equals("employee")
+                ? employeeWithoutMembership
+                : adminWithoutMembership;
         int before = lookups.calls();
         mvc.perform(request(verb, path, bearer))
             .andExpect(status().isForbidden())
