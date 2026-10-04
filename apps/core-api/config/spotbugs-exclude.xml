@@ -59,6 +59,15 @@
       <Class name="com.divalhr.core.people.application.EmploymentHistoryViews"/>
       <Class name="com.divalhr.core.people.application.EmploymentHistoryRules"/>
       <Class name="com.divalhr.core.people.api.EmployeeController"/>
+      <Class name="com.divalhr.core.identity.api.EmployeeAccessLinkController"/>
+      <Class name="com.divalhr.core.identity.application.AccessLinkEvents"/>
+      <Class name="com.divalhr.core.identity.application.AccessRevocationJobs"/>
+      <Class name="com.divalhr.core.identity.application.EmployeeAccessLinkService"/>
+      <Class name="com.divalhr.core.identity.application.EmployeeAccessLinksAdapter"/>
+      <Class name="com.divalhr.core.people.application.EmployeeSeparationService"/>
+      <Class name="com.divalhr.core.people.application.PeopleEmployeeRecords"/>
+      <Class name="com.divalhr.core.people.application.SeparationEvents"/>
+      <Class name="com.divalhr.core.people.application.SeparationJobs"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->

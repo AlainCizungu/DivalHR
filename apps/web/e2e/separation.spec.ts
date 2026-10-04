@@ -302,7 +302,9 @@ test.describe.serial('MVP-022: separate an employee', () => {
     await page.getByRole('link', { name: 'Revue des accès' }).click();
     await page.getByLabel('Adresse e-mail exacte').fill(EMAIL);
     await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
-    await expect(page.getByTestId('review-access')).toHaveAttribute('data-access', 'REVOKED');
+    await expect(
+      page.getByTestId('review-row').filter({ hasText: EMAIL }).getByTestId('review-access'),
+    ).toHaveAttribute('data-access', 'REVOKED');
 
     // Nothing personal in browser storage; audit and outbox carry identifiers and counts only.
     expect(await storage(page)).not.toMatch(/Élodie|Tshisekedi|SEP-|Mukendi|sortie\./iu);

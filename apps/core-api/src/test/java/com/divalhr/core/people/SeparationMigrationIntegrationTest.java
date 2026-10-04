@@ -37,7 +37,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @IntegrationTest
 class SeparationMigrationIntegrationTest {
 
-  /** The people and identity schemas: tables, columns, indexes, constraints, triggers, functions. */
+  /**
+   * The people and identity schemas: tables, columns, indexes, constraints, triggers, functions.
+   */
   private static final String SIGNATURE =
       """
       SELECT coalesce((SELECT string_agg(table_schema || '.' || table_name, ','
@@ -91,7 +93,8 @@ class SeparationMigrationIntegrationTest {
           new Db(
               url,
               new JdbcTemplate(
-                  new DriverManagerDataSource(url, postgres.getUsername(), postgres.getPassword()))));
+                  new DriverManagerDataSource(
+                      url, postgres.getUsername(), postgres.getPassword()))));
     } finally {
       jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
     }
@@ -328,7 +331,12 @@ class SeparationMigrationIntegrationTest {
   private record Sep(UUID id, UUID change, LocalDate lastDay) {}
 
   private static Sep header(
-      Connection c, Hired h, LocalDate lastDay, String kinds, String action, UUID replacement,
+      Connection c,
+      Hired h,
+      LocalDate lastDay,
+      String kinds,
+      String action,
+      UUID replacement,
       int intervals)
       throws SQLException {
     Sep s = new Sep(UUID.randomUUID(), UUID.randomUUID(), lastDay);
@@ -418,7 +426,12 @@ class SeparationMigrationIntegrationTest {
   }
 
   private static UUID revocation(
-      Connection c, Hired h, UUID membership, String role, UUID link, UUID separation,
+      Connection c,
+      Hired h,
+      UUID membership,
+      String role,
+      UUID link,
+      UUID separation,
       Instant effectiveAt)
       throws SQLException {
     UUID id = UUID.randomUUID();
@@ -474,8 +487,7 @@ class SeparationMigrationIntegrationTest {
             // Re-apply V15 by hand (Flyway still records it) and add a separation: refused.
             db.jdbc()
                 .execute(
-                    new ClassPathResource(
-                            "db/migration/V15__separation_and_access_revocation.sql")
+                    new ClassPathResource("db/migration/V15__separation_and_access_revocation.sql")
                         .getContentAsString(StandardCharsets.UTF_8));
             assertThat(signature(db)).isEqualTo(v15);
             separate(db, h, LocalDate.now().plusDays(30));
@@ -552,8 +564,8 @@ class SeparationMigrationIntegrationTest {
             Hired withContract;
             try (Connection c = connect(db)) {
               withContract = hire(c, tenant, "E-2");
-              UUID contract = change(c, withContract, "CHANGE", "{CONTRACT}", START.plusDays(5),
-                  null, null);
+              UUID contract =
+                  change(c, withContract, "CHANGE", "{CONTRACT}", START.plusDays(5), null, null);
               exec(
                   c,
                   "INSERT INTO people.employment_assignment (id, tenant_id, employee_id,"
@@ -718,10 +730,7 @@ class SeparationMigrationIntegrationTest {
             + " separation_id FROM people.employment_change WHERE id = ?",
         id,
         s.change());
-    exec(
-        c,
-        "UPDATE people.employment_change SET state = 'CANCELLED' WHERE id = ?",
-        s.change());
+    exec(c, "UPDATE people.employment_change SET state = 'CANCELLED' WHERE id = ?", s.change());
     return id;
   }
 
@@ -777,7 +786,13 @@ class SeparationMigrationIntegrationTest {
                 db,
                 "employment_change_separation_valid",
                 c ->
-                    change(c, report, "CHANGE", "{MANAGER}", d.plusDays(1), "MANAGER_SEPARATED",
+                    change(
+                        c,
+                        report,
+                        "CHANGE",
+                        "{MANAGER}",
+                        d.plusDays(1),
+                        "MANAGER_SEPARATED",
                         null));
 
             // A bound change that writes another manager than the plan's is refused.
@@ -790,7 +805,13 @@ class SeparationMigrationIntegrationTest {
                   supersede(c, manager.placement(), s.change());
                   copy(c, manager.placement(), START, d, s.change(), null);
                   UUID bound =
-                      change(c, report, "CHANGE", "{MANAGER}", d.plusDays(1), "MANAGER_SEPARATED",
+                      change(
+                          c,
+                          report,
+                          "CHANGE",
+                          "{MANAGER}",
+                          d.plusDays(1),
+                          "MANAGER_SEPARATED",
                           s.id());
                   supersede(c, line, bound);
                   copy(c, line, START.plusDays(10), d, bound, null);
@@ -807,7 +828,13 @@ class SeparationMigrationIntegrationTest {
                   supersede(c, manager.placement(), s.change());
                   copy(c, manager.placement(), START, d, s.change(), null);
                   UUID bound =
-                      change(c, report, "CHANGE", "{MANAGER}", d.minusDays(3), "MANAGER_SEPARATED",
+                      change(
+                          c,
+                          report,
+                          "CHANGE",
+                          "{MANAGER}",
+                          d.minusDays(3),
+                          "MANAGER_SEPARATED",
                           s.id());
                   supersede(c, line, bound);
                   copy(c, line, START.plusDays(10), d.minusDays(4), bound, null);
@@ -826,7 +853,13 @@ class SeparationMigrationIntegrationTest {
                   supersede(c, manager.placement(), s.change());
                   copy(c, manager.placement(), START, d, s.change(), null);
                   UUID bound =
-                      change(c, report, "CHANGE", "{MANAGER}", d.plusDays(1), "MANAGER_SEPARATED",
+                      change(
+                          c,
+                          report,
+                          "CHANGE",
+                          "{MANAGER}",
+                          d.plusDays(1),
+                          "MANAGER_SEPARATED",
                           s.id());
                   supersede(c, line, bound);
                   copy(c, line, START.plusDays(10), d, bound, null);
@@ -842,8 +875,8 @@ class SeparationMigrationIntegrationTest {
                 db,
                 employed,
                 c -> {
-                  UUID other = change(c, replacement, "CHANGE", "{MANAGER}", d.plusDays(5), null,
-                      null);
+                  UUID other =
+                      change(c, replacement, "CHANGE", "{MANAGER}", d.plusDays(5), null, null);
                   managerRow(c, replacement, manager.employee(), d.plusDays(5), null, other);
                 });
             // Before D it is still allowed.
@@ -917,13 +950,11 @@ class SeparationMigrationIntegrationTest {
               c.commit();
             }
             // A membership of another tenant can never be linked.
-            refused(
-                db, "employee_access_link_membership", c -> link(c, h, foreignMember));
+            refused(db, "employee_access_link_membership", c -> link(c, h, foreignMember));
             UUID[] linked = new UUID[1];
             committed(db, c -> linked[0] = link(c, h, employee));
             // One active link per employee and per membership.
-            refused(
-                db, "employee_access_link_membership_active", c -> link(c, other, employee));
+            refused(db, "employee_access_link_membership_active", c -> link(c, other, employee));
             refused(db, "employee_access_link_employee_active", c -> link(c, h, admin));
 
             LocalDate d = LocalDate.now().plusDays(30);
@@ -1097,8 +1128,7 @@ class SeparationMigrationIntegrationTest {
             // DONE, then OPEN again; never DONE -> NOT_APPLICABLE; never CANCELLED while the
             // separation is not cancelled.
             committed(db, c -> status(c, task, "DONE", 1));
-            refused(
-                db, "separation_task_immutable", c -> status(c, task, "NOT_APPLICABLE", 2));
+            refused(db, "separation_task_immutable", c -> status(c, task, "NOT_APPLICABLE", 2));
             refused(db, "separation_task_immutable", c -> status(c, task, "CANCELLED", 2));
             refused(db, "separation_task_immutable", c -> status(c, task, "OPEN", 5));
             committed(db, c -> status(c, task, "OPEN", 2));

@@ -114,7 +114,7 @@ public final class SeparationPlanner {
 
     /** Copies the intervals. */
     public ReportIntervals {
-      intervals = intervals.stream().map(List::copyOf).toList();
+      intervals = List.copyOf(intervals.stream().map(List::copyOf).toList());
     }
 
     /**
