@@ -104,6 +104,27 @@ class SeparationPlannerTest {
   }
 
   @Test
+  void theSafetyLimitCountsIntervalsAcrossReportsNotReports() {
+    UUID first = UUID.randomUUID();
+    UUID second = UUID.randomUUID();
+    UUID employment = UUID.randomUUID();
+    // Two reports: one with two disjoint X intervals (X, Y, X), one with a single interval.
+    List<ReportIntervals> grouped =
+        SeparationPlanner.intervals(
+            List.of(
+                new ReportRow(
+                    first, employment, manager(TODAY.plusDays(20), TODAY.plusDays(29), X)),
+                new ReportRow(first, employment, manager(TODAY.plusDays(40), null, X)),
+                new ReportRow(second, UUID.randomUUID(), manager(TODAY.minusDays(5), null, X))),
+            D);
+    assertThat(grouped).hasSize(2);
+    assertThat(SeparationPlanner.intervalCount(grouped)).isEqualTo(3);
+    assertThat(SeparationPlanner.tooManyIntervals(grouped, 3)).isFalse();
+    assertThat(SeparationPlanner.tooManyIntervals(grouped, 2)).isTrue();
+    assertThat(SeparationPlanner.intervalCount(List.of())).isZero();
+  }
+
+  @Test
   void aCrossingRowIsSplitAtTheDayAfterAndALaterRowIsRewrittenInPlace() {
     UUID change = UUID.randomUUID();
     Assignment crossing = manager(TODAY.minusDays(30), TODAY.plusDays(19), X);

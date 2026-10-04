@@ -243,8 +243,8 @@ public class EmployeeSeparationService {
     // Direct reports (A22-2): every interval of every report naming the employee after D.
     List<ReportIntervals> reports =
         SeparationPlanner.intervals(separations.reportRows(tenant, employeeId, lastDay), lastDay);
-    int intervalCount = reports.stream().mapToInt(r -> r.intervals().size()).sum();
-    if (intervalCount > MAX_INTERVALS) {
+    int intervalCount = SeparationPlanner.intervalCount(reports);
+    if (SeparationPlanner.tooManyIntervals(reports, MAX_INTERVALS)) {
       throw new ApiException(
           ErrorCode.SEPARATION_TOO_MANY_INTERVALS, Map.of("count", intervalCount));
     }

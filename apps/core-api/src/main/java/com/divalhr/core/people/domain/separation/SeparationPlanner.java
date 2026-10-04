@@ -174,6 +174,28 @@ public final class SeparationPlanner {
   }
 
   /**
+   * The total number of affected intervals across all reports, which the A22-2 safety limit counts
+   * (not the number of reports).
+   *
+   * @param reports affected reports
+   * @return intervals in total
+   */
+  public static int intervalCount(List<ReportIntervals> reports) {
+    return reports.stream().mapToInt(report -> report.intervals().size()).sum();
+  }
+
+  /**
+   * Whether a separation affects more intervals than allowed.
+   *
+   * @param reports affected reports
+   * @param limit the most intervals one separation may rewrite
+   * @return true when over the limit
+   */
+  public static boolean tooManyIntervals(List<ReportIntervals> reports, int limit) {
+    return intervalCount(reports) > limit;
+  }
+
+  /**
    * The effective date of the change that rewrites one affected row: D+1 for a row covering D, else
    * the row's own start.
    *
