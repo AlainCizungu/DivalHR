@@ -85,11 +85,22 @@ public final class RequestBodies {
   public record Provision(String email, InvitationRole role, UUID tenantId, String locale) {}
 
   /**
-   * Validates the path's invitation ID (canonical lowercase UUID).
+   * Validates a canonical lowercase UUID path value (tenant or subject, MVP-022).
    *
    * @param value path value
    * @return the ID
-   * @throws Rejected when it is not canonical
+   * @throws Rejected 400 {@code INVALID_REQUEST}
+   */
+  public static UUID canonicalId(String value) throws Rejected {
+    return invitationId(value);
+  }
+
+  /**
+   * Validates an invitation ID path value.
+   *
+   * @param value path value
+   * @return the ID
+   * @throws Rejected 400 {@code INVALID_REQUEST}
    */
   public static UUID invitationId(String value) throws Rejected {
     if (value == null || !UUID_TEXT.matcher(value).matches()) {
