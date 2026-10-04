@@ -1022,9 +1022,10 @@ paths:
       x-divalhr-required-assurance: mfa
       summary: Review the active access of the caller's organization
       description: >-
-        MVP-012B. Lists the caller's organization's active tenant memberships, the same authority
-        the membership gate enforces (MVP-012A): every member has organization-wide access, so a
-        legal-entity or site filter returns every member with matchedUnit INHERITED_FROM_TENANT
+        MVP-012B. Lists the caller's organization's tenant memberships with the same authority the
+        membership gate enforces (MVP-012A): accessState ACTIVE exactly when the gate admits the
+        membership; MVP-022 adds memberships whose access a separation revoked, labelled REVOKED.
+        Every member has organization-wide access, so a legal-entity or site filter returns every member with matchedUnit INHERITED_FROM_TENANT
         after checking that the unit exists in the caller's tenant (missing and foreign units are
         indistinguishable 404s). At most one of legalEntityId and siteId. Newest grant first
         (grantedAt then membershipId, both descending), keyset-paginated: stable and
@@ -1962,6 +1963,503 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/access-link:
+    get:
+      operationId: getEmployeeAccessLink
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read the DivalHR access linked to an employee
+      description: >-
+        MVP-022. The employee's active link to one tenant membership, or none, and the access state
+        that follows from any separation. Never returns the identity subject or the address.
+        Recorded as a disclosure (audit employee-access-link.read). Cache-Control private,
+        no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The employee's access link
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeAccess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: createEmployeeAccessLink
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Link an employee to one tenant membership
+      description: >-
+        MVP-022. Links the employee to a membership of the caller's tenant found through the exact
+        address lookup. One active link per employee and per membership (409 ACCESS_LINK_CONFLICT
+        with params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED). Never inferred from
+        names. Retries with the same Idempotency-Key replay the original 201.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmployeeAccessLink"
+      responses:
+        "201":
+          description: Link created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeAccess"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/access-link/lookup:
+    post:
+      operationId: lookupEmployeeAccessCandidate
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Find the membership of one exact address to link
+      description: >-
+        MVP-022. Exact, normalized address match through the keyed address lookup, in the caller's
+        tenant only; no list, prefix or name search. An unknown address and a member of another
+        tenant both give 404 MEMBERSHIP_NOT_FOUND. The address is never echoed or logged. A read:
+        no Idempotency-Key. Recorded as a disclosure (audit employee-access-link.lookup).
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessReviewLookup"
+      responses:
+        "200":
+          description: The candidate membership
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessLinkCandidate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/access-link/remove:
+    post:
+      operationId: removeEmployeeAccessLink
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Remove an employee's access link
+      description: >-
+        MVP-022. Ends the active link (the row is kept). Refused while the employee has a separation
+        that is not cancelled (409 ACCESS_LINK_LOCKED); a stale version gives 409
+        ACCESS_LINK_VERSION_CONFLICT. Retries with the same Idempotency-Key replay the original 200.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoveEmployeeAccessLink"
+      responses:
+        "200":
+          description: Link removed, or the original removal replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeAccess"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/separations:
+    get:
+      operationId: listEmployeeSeparations
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List an employee's separations
+      description: >-
+        MVP-022. Separations newest first, including cancelled ones, each with its access state and
+        follow-up checklist. Recorded as a disclosure (audit employee-separation.read).
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The separations
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeparationList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: createEmployeeSeparation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Record a separation
+      description: >-
+        MVP-022. Repeats a previewed separation with the expectedVersion and previewDigest the
+        preview returned and the acknowledgements it required. In one transaction the reporting
+        graph, the employments and the access link are locked in the global order, everything is
+        recomputed, and the employment is closed on the last day; direct-report intervals are
+        rewritten by lineage-backed changes; the linked membership's revocation is scheduled; the
+        checklist is created; audit and outbox commit together. Nothing is deleted. Retries with the
+        same Idempotency-Key replay the original 201.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSeparation"
+      responses:
+        "201":
+          description: Separation recorded, or the original recording replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeparationResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/separations/preview:
+    post:
+      operationId: previewEmployeeSeparation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a separation
+      description: >-
+        MVP-022. Validates the separation and returns the employee's own timeline effects, the
+        blocking future effects (to cancel first), the affected direct-report intervals, the access
+        consequence, the checklist, the acknowledgements the commit needs, the employment version
+        and a previewDigest. Writes nothing. Recorded as a disclosure (audit
+        employee-separation.preview). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeparationCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeparationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/separations/{separationId}/cancel/preview:
+    post:
+      operationId: previewEmployeeSeparationCancellation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the cancellation of a scheduled separation
+      description: >-
+        MVP-022. Only a SCHEDULED separation whose access revocation has not taken effect can be
+        cancelled (409 SEPARATION_NOT_CANCELLABLE with params.reason NOT_SCHEDULED,
+        ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE). Returns the rows restored for the
+        employee and the number of direct-report intervals restored, the employment version and a
+        cancellationDigest. Writes nothing. Recorded as a disclosure (audit
+        employee-separation.cancel-preview).
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/SeparationId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The cancellation preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeparationCancellationPreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/separations/{separationId}/cancel:
+    post:
+      operationId: cancelEmployeeSeparation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Cancel a scheduled separation
+      description: >-
+        MVP-022. Repeats the expectedVersion and cancellationDigest of the cancellation preview. In
+        one transaction, with the same lock order as the separation, the employee's rows and every
+        rewritten direct-report interval are restored by recorded cancellations, the employment is
+        reopened, the scheduled revocation and the checklist are cancelled, and audit and outbox
+        commit together. Retries with the same Idempotency-Key replay the original 200.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/SeparationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelSeparation"
+      responses:
+        "200":
+          description: Separation cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeparationResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/separations/{separationId}/tasks/{taskId}/status:
+    post:
+      operationId: updateSeparationTaskStatus
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Mark a follow-up task done, not applicable, or open again
+      description: >-
+        MVP-022. A checklist task is a follow-up reminder, not an asset or document record. A stale
+        version gives 409 SEPARATION_TASK_VERSION_CONFLICT; the tasks of a cancelled separation
+        are closed (409 SEPARATION_TASK_CLOSED). Retries with the same Idempotency-Key replay the
+        original 200.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/SeparationId"
+        - $ref: "#/components/parameters/SeparationTaskId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSeparationTask"
+      responses:
+        "200":
+          description: Task updated, or the original update replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeparationTask"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/separations/{separationId}/access-revocation/retry:
+    post:
+      operationId: retrySeparationAccessRevocation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Retry the sign-in removal of a separated employee
+      description: >-
+        MVP-022. Only when the revocation needs manual intervention (409
+        ACCESS_REVOCATION_NOT_RETRYABLE otherwise). Re-queues the identity-provider step with a
+        fresh attempt budget; access to DivalHR data stays denied throughout. The request has no
+        body. Retries with the same Idempotency-Key replay the original 200.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+        - $ref: "#/components/parameters/SeparationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Retry queued, or the original request replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Separation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     oauth2:
@@ -2087,7 +2585,15 @@ components:
         preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview),
         EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date),
         EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or
-        EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change). No params.
+        EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for
+        separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is
+        not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be
+        cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS),
+        SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED,
+        ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT,
+        SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED,
+        ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or
+        ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params.
       content:
         application/problem+json:
           schema:
@@ -2095,8 +2601,9 @@ components:
     NotFound:
       description: >-
         LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND,
-        COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND
-        or EMPLOYMENT_CHANGE_NOT_FOUND - the referenced
+        COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND,
+        EMPLOYMENT_CHANGE_NOT_FOUND, SEPARATION_NOT_FOUND, SEPARATION_TASK_NOT_FOUND or
+        MEMBERSHIP_NOT_FOUND (MVP-022; also for an address with no membership) - the referenced
         resource does not exist in the caller's tenant. Missing and foreign-tenant resources are
         indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is
         malformed, unknown or not active; the cases are indistinguishable and the ID is never
@@ -2129,8 +2636,9 @@ components:
         IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the
         same token. IMPORT_TIMEOUT - an employee import's database work exceeded its time limit and
         was rolled back entirely; retry with the same Idempotency-Key. EMPLOYMENT_CHANGE_TIMEOUT -
-        an employment change or cancellation exceeded its time limit and nothing was written; retry
-        with the same Idempotency-Key. No params.
+        an employment change or cancellation, a separation, its cancellation or an access-link
+        change exceeded its time limit or met a lock held by a background job, and nothing was
+        written; retry with the same Idempotency-Key. No params.
       content:
         application/problem+json:
           schema:
@@ -2158,7 +2666,12 @@ components:
         (before the configurable pilot window, 60 days by default), MANAGER_INVALID (params.reason:
         NOT_FOUND, SELF, NOT_EMPLOYED, CYCLE or CHAIN_TOO_DEEP) or PLACEMENT_INVALID (params.field:
         legalEntityId, siteId, departmentId, costCenterId or teamId; params.reason: NOT_FOUND,
-        MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). Params never carry a date, a value or an ID.
+        MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). MVP-022: SEPARATION_DATE_OUT_OF_RANGE
+        (before the employment start, the retroactive window, or more than 180 days ahead),
+        SEPARATION_ACCESS_TIMING_INVALID (IMMEDIATELY with a future last day),
+        SEPARATION_ACKNOWLEDGEMENT_REQUIRED (params.acknowledgement),
+        SEPARATION_REPORT_PLAN_REQUIRED, SEPARATION_TOO_MANY_INTERVALS (params.count) and
+        MANAGER_INVALID for the replacement manager. Params never carry a date, a value or an ID.
       content:
         application/problem+json:
           schema:
@@ -2265,6 +2778,21 @@ components:
         EMPLOYMENT_CHANGE_NOT_FOUND.
       schema:
         type: string
+    SeparationId:
+      name: separationId
+      in: path
+      required: true
+      description: >-
+        Malformed, unknown, foreign and other-employee IDs give the same 404 SEPARATION_NOT_FOUND.
+      schema:
+        type: string
+    SeparationTaskId:
+      name: taskId
+      in: path
+      required: true
+      description: Malformed, unknown and other-separation IDs give the same 404 SEPARATION_TASK_NOT_FOUND.
+      schema:
+        type: string
     EmployeeLimit:
       name: limit
       in: query
@@ -2324,10 +2852,20 @@ components:
     AccessReviewEntry:
       type: object
       description: >-
-        One active tenant membership. Never contains the identity subject, username, name, source
+        One tenant membership: an active one, or (MVP-022) one whose access a separation revoked,
+        labelled accessState REVOKED. Never contains the identity subject, username, name, source
         invitation, tokens, credential or MFA state, or identity-provider roles.
-      required: [membershipId, email, role, grantedAt, directScope, effectiveScope, matchedUnit]
+      required:
+        [membershipId, email, role, grantedAt, accessState, directScope, effectiveScope,
+         matchedUnit]
       properties:
+        accessState:
+          type: string
+          description: >-
+            ACTIVE (the membership gate admits it) or REVOKED (MVP-022: a separation ended its
+            DivalHR access; the gate denies it). A revocation that is only scheduled is still
+            ACTIVE until it takes effect.
+          enum: [ACTIVE, REVOKED]
         membershipId:
           type: string
           format: uuid
@@ -3503,7 +4041,7 @@ components:
           type: [string, "null"]
     EmploymentChangeType:
       type: string
-      enum: [HIRE, CHANGE, CORRECTION, CANCELLATION]
+      enum: [HIRE, CHANGE, CORRECTION, CANCELLATION, SEPARATION]
     EmploymentChangeTiming:
       type: string
       description: Relative to the business date when recorded.
@@ -3513,9 +4051,12 @@ components:
       description: >-
         LATE_NOTIFICATION, REORGANIZATION, CONTRACT_CHANGE and OTHER_BUSINESS_CHANGE apply to
         changes; DATA_ENTRY_ERROR, IMPORT_ERROR and DOCUMENT_RECEIVED to corrections.
+        MANAGER_SEPARATED (MVP-022) is recorded only on the direct-report changes a separation
+        generates and is never accepted in a request; a SEPARATION change carries its
+        SeparationReason in the separation, not here (reasonCode null).
       enum:
         [LATE_NOTIFICATION, REORGANIZATION, CONTRACT_CHANGE, OTHER_BUSINESS_CHANGE,
-         DATA_ENTRY_ERROR, IMPORT_ERROR, DOCUMENT_RECEIVED]
+         DATA_ENTRY_ERROR, IMPORT_ERROR, DOCUMENT_RECEIVED, MANAGER_SEPARATED]
     EmploymentChange:
       type: object
       description: A recorded change (Restricted HR). The recording actor is not exposed.
@@ -3785,6 +4326,436 @@ components:
         employmentVersion:
           type: integer
           minimum: 0
+    EmployeeAccessLinkState:
+      type: string
+      description: >-
+        NOT_LINKED (no active link), ACTIVE (linked; access not affected by a separation),
+        REVOCATION_SCHEDULED (a separation will end the access) or REVOKED (DivalHR access ended).
+      enum: [NOT_LINKED, ACTIVE, REVOCATION_SCHEDULED, REVOKED]
+    EmployeeAccessLink:
+      type: object
+      description: >-
+        An employee-to-membership link. The membership ID is a personal-data reference; the
+        identity subject and the address are never returned here.
+      required: [id, membershipId, role, linkedAt, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        membershipId:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/InvitationRole"
+        linkedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          minimum: 0
+    EmployeeAccess:
+      type: object
+      required: [state, link]
+      properties:
+        state:
+          $ref: "#/components/schemas/EmployeeAccessLinkState"
+        link:
+          oneOf:
+            - $ref: "#/components/schemas/EmployeeAccessLink"
+            - type: "null"
+    AccessLinkCandidate:
+      type: object
+      description: >-
+        The membership holding the looked-up address. notLinkableReason is ALREADY_LINKED (linked
+        to another employee), ACCESS_REVOKED (its access was revoked) or EMPLOYEE_LINKED (this
+        employee already has a link).
+      required: [membershipId, role, linkable, notLinkableReason]
+      properties:
+        membershipId:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/InvitationRole"
+        linkable:
+          type: boolean
+        notLinkableReason:
+          type: [string, "null"]
+          enum: [ALREADY_LINKED, ACCESS_REVOKED, EMPLOYEE_LINKED, null]
+    CreateEmployeeAccessLink:
+      type: object
+      additionalProperties: false
+      required: [membershipId]
+      properties:
+        membershipId:
+          type: string
+          format: uuid
+    RemoveEmployeeAccessLink:
+      type: object
+      additionalProperties: false
+      required: [linkId, expectedVersion]
+      properties:
+        linkId:
+          type: string
+          format: uuid
+        expectedVersion:
+          type: integer
+          minimum: 0
+    SeparationReason:
+      type: string
+      description: Closed separation reason (Restricted HR). No free-form notes.
+      enum: [RESIGNATION, END_OF_FIXED_TERM, DISMISSAL, MUTUAL_AGREEMENT, RETIREMENT, OTHER_SEPARATION]
+    SeparationAccessTiming:
+      type: string
+      description: >-
+        END_OF_LAST_DAY ends DivalHR access at the start of the day after the last day in the
+        organization's time zone. IMMEDIATELY ends it at the commit and is allowed only when the
+        last day is today or earlier (422 SEPARATION_ACCESS_TIMING_INVALID otherwise); it requires
+        the IMMEDIATE_ACCESS_REMOVAL acknowledgement and is forced for a retroactive separation.
+      enum: [END_OF_LAST_DAY, IMMEDIATELY]
+    SeparationAcknowledgement:
+      type: string
+      enum: [RETROACTIVE, NO_LINKED_ACCESS, IMMEDIATE_ACCESS_REMOVAL]
+    SeparationReportPlan:
+      type: object
+      additionalProperties: false
+      description: >-
+        Applies to every affected direct-report interval: REASSIGN to managerEmployeeId, or CLEAR
+        (no manager for those intervals).
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [REASSIGN, CLEAR]
+        managerEmployeeId:
+          type: [string, "null"]
+          format: uuid
+    SeparationCommand:
+      type: object
+      additionalProperties: false
+      required: [lastDay, reasonCode, accessTiming]
+      properties:
+        lastDay:
+          type: string
+          format: date
+          description: Inclusive last day of employment, a date in the organization's time zone.
+        reasonCode:
+          $ref: "#/components/schemas/SeparationReason"
+        accessTiming:
+          $ref: "#/components/schemas/SeparationAccessTiming"
+        reportPlan:
+          oneOf:
+            - $ref: "#/components/schemas/SeparationReportPlan"
+            - type: "null"
+    CreateSeparation:
+      type: object
+      additionalProperties: false
+      description: The previewed separation plus what the preview returned.
+      required:
+        [lastDay, reasonCode, accessTiming, expectedVersion, previewDigest, acknowledgements]
+      properties:
+        lastDay:
+          type: string
+          format: date
+        reasonCode:
+          $ref: "#/components/schemas/SeparationReason"
+        accessTiming:
+          $ref: "#/components/schemas/SeparationAccessTiming"
+        reportPlan:
+          oneOf:
+            - $ref: "#/components/schemas/SeparationReportPlan"
+            - type: "null"
+        expectedVersion:
+          type: integer
+          minimum: 0
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        acknowledgements:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/SeparationAcknowledgement"
+    EmployeeRef:
+      type: object
+      description: Employee number and names are Confidential.
+      required: [id, employeeNumber, givenNames, familyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    SeparationBlocker:
+      type: object
+      description: >-
+        A future effect on the employee's own timeline after the last day that must be cancelled
+        first. changeId is the change to cancel next (resolution CANCEL_CHANGE), or null when it
+        cannot be cancelled (resolution NOT_CANCELLABLE).
+      required: [kind, effectiveFrom, resolution, changeId]
+      properties:
+        kind:
+          $ref: "#/components/schemas/AssignmentKind"
+        effectiveFrom:
+          type: string
+          format: date
+        resolution:
+          type: string
+          enum: [CANCEL_CHANGE, NOT_CANCELLABLE]
+        changeId:
+          type: [string, "null"]
+          format: uuid
+    SeparationReportInterval:
+      type: object
+      required: [effectiveFrom, effectiveTo]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+    SeparationReport:
+      type: object
+      required: [employee, intervals]
+      properties:
+        employee:
+          $ref: "#/components/schemas/EmployeeRef"
+        intervals:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SeparationReportInterval"
+    SeparationAccessPreview:
+      type: object
+      description: >-
+        LINKED (an employee-role membership is linked and will be revoked), NOT_LINKED (no DivalHR
+        access is linked; nothing is revoked), PROTECTED_ADMIN (the linked membership is a tenant
+        administrator: refused) or SELF (the caller's own access: refused).
+      required: [status, accessEndsAt]
+      properties:
+        status:
+          type: string
+          enum: [LINKED, NOT_LINKED, PROTECTED_ADMIN, SELF]
+        accessEndsAt:
+          type: [string, "null"]
+          format: date-time
+    SeparationTaskCode:
+      type: string
+      enum: [RETURN_ASSIGNED_ASSETS, COLLECT_OR_ARCHIVE_DOCUMENTS]
+    SeparationTaskStatus:
+      type: string
+      enum: [OPEN, DONE, NOT_APPLICABLE, CANCELLED]
+    SeparationPreview:
+      type: object
+      required:
+        [employmentId, expectedVersion, businessDate, lastDay, timing, accessTiming, kinds,
+         blockers, reports, reportPlanRequired, access, checklist, requiredAcknowledgements,
+         previewDigest]
+      properties:
+        employmentId:
+          type: string
+          format: uuid
+        expectedVersion:
+          type: integer
+          minimum: 0
+        businessDate:
+          type: string
+          format: date
+        lastDay:
+          type: string
+          format: date
+        timing:
+          $ref: "#/components/schemas/EmploymentChangeTiming"
+        accessTiming:
+          $ref: "#/components/schemas/SeparationAccessTiming"
+        kinds:
+          type: array
+          description: The employee's own rows before and after, per affected kind.
+          items:
+            $ref: "#/components/schemas/PreviewKind"
+        blockers:
+          type: array
+          description: Must be empty to commit (409 SEPARATION_FUTURE_CHANGES).
+          items:
+            $ref: "#/components/schemas/SeparationBlocker"
+        reports:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/SeparationReport"
+        reportPlanRequired:
+          type: boolean
+        access:
+          $ref: "#/components/schemas/SeparationAccessPreview"
+        checklist:
+          type: array
+          items:
+            type: object
+            required: [code, dueDate]
+            properties:
+              code:
+                $ref: "#/components/schemas/SeparationTaskCode"
+              dueDate:
+                type: string
+                format: date
+        requiredAcknowledgements:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeparationAcknowledgement"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    SeparationTask:
+      type: object
+      description: A follow-up reminder (Restricted HR); never an asset or document record.
+      required: [id, code, status, dueDate, updatedAt, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          $ref: "#/components/schemas/SeparationTaskCode"
+        status:
+          $ref: "#/components/schemas/SeparationTaskStatus"
+        dueDate:
+          type: string
+          format: date
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          minimum: 0
+    SeparationAccessState:
+      type: string
+      description: >-
+        NOT_LINKED (no access was linked), SCHEDULED (access ends at accessEndsAt), SIGN_OUT_PENDING
+        (DivalHR access is denied; sign-in removal is in progress), COMPLETED (access denied and
+        sign-in removed), MANUAL_INTERVENTION (DivalHR access is denied; sign-in removal needs an
+        administrator) or CANCELLED (the separation was cancelled before access ended).
+      enum: [NOT_LINKED, SCHEDULED, SIGN_OUT_PENDING, COMPLETED, MANUAL_INTERVENTION, CANCELLED]
+    Separation:
+      type: object
+      description: A separation (Restricted HR).
+      required:
+        [id, employmentId, lastDay, reasonCode, accessTiming, reportAction, reportCount,
+         intervalCount, state, effectiveAt, recordedAt, cancelledAt, cancellable, access,
+         accessEndsAt, tasks, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employmentId:
+          type: string
+          format: uuid
+        lastDay:
+          type: string
+          format: date
+        reasonCode:
+          $ref: "#/components/schemas/SeparationReason"
+        accessTiming:
+          $ref: "#/components/schemas/SeparationAccessTiming"
+        reportAction:
+          type: [string, "null"]
+          enum: [REASSIGN, CLEAR, null]
+        reportCount:
+          type: integer
+          minimum: 0
+        intervalCount:
+          type: integer
+          minimum: 0
+        state:
+          type: string
+          enum: [SCHEDULED, EFFECTIVE, CANCELLED]
+        effectiveAt:
+          type: string
+          format: date-time
+          description: Start of the day after the last day in the organization's time zone.
+        recordedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: [string, "null"]
+          format: date-time
+        cancellable:
+          type: boolean
+        access:
+          $ref: "#/components/schemas/SeparationAccessState"
+        accessEndsAt:
+          type: [string, "null"]
+          format: date-time
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeparationTask"
+        version:
+          type: integer
+          minimum: 0
+    SeparationList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/Separation"
+    SeparationResult:
+      type: object
+      required: [separation, employmentVersion]
+      properties:
+        separation:
+          $ref: "#/components/schemas/Separation"
+        employmentVersion:
+          type: integer
+          minimum: 0
+    SeparationCancellationPreview:
+      type: object
+      required: [expectedVersion, kinds, reportCount, intervalCount, cancellationDigest]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        kinds:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreviewKind"
+        reportCount:
+          type: integer
+          minimum: 0
+        intervalCount:
+          type: integer
+          minimum: 0
+        cancellationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    CancelSeparation:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, cancellationDigest]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        cancellationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    UpdateSeparationTask:
+      type: object
+      additionalProperties: false
+      required: [status, expectedVersion]
+      properties:
+        status:
+          type: string
+          enum: [OPEN, DONE, NOT_APPLICABLE]
+        expectedVersion:
+          type: integer
+          minimum: 0
     ErrorCode:
       type: string
       description: Stable machine-readable code. Clients translate it; it is never localized text.
@@ -3862,6 +4833,25 @@ components:
         - MANAGER_INVALID
         - PLACEMENT_INVALID
         - EMPLOYMENT_CHANGE_TIMEOUT
+        - SEPARATION_NOT_FOUND
+        - SEPARATION_TASK_NOT_FOUND
+        - MEMBERSHIP_NOT_FOUND
+        - SEPARATION_EXISTS
+        - SEPARATION_FUTURE_CHANGES
+        - SEPARATION_PROTECTED
+        - SEPARATION_PREVIEW_CHANGED
+        - SEPARATION_NOT_CANCELLABLE
+        - SEPARATION_TASK_VERSION_CONFLICT
+        - SEPARATION_TASK_CLOSED
+        - ACCESS_LINK_CONFLICT
+        - ACCESS_LINK_LOCKED
+        - ACCESS_LINK_VERSION_CONFLICT
+        - ACCESS_REVOCATION_NOT_RETRYABLE
+        - SEPARATION_DATE_OUT_OF_RANGE
+        - SEPARATION_ACCESS_TIMING_INVALID
+        - SEPARATION_ACKNOWLEDGEMENT_REQUIRED
+        - SEPARATION_REPORT_PLAN_REQUIRED
+        - SEPARATION_TOO_MANY_INTERVALS
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.
