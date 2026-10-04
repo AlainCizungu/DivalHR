@@ -122,6 +122,10 @@ Out of scope for MVP-022: separating tenant administrators (a later governance s
 
 HR can create a contract from an approved template in French or English and record employee acknowledgment.
 
+**Issue #51. In review.** Tenant administrators write contract templates in a restricted plain-text grammar (headings, paragraphs, lists and 12 allow-listed fields; links, web addresses, encoded text and markup are refused with a closed reason and a line number), one language per version, and approve each version with an explicit confirmation that the organization verified the legal wording; approving a new version retires the previous one, and approved text never changes. From an employee's record they preview the exact contract text for a period (warnings when the type differs from the recorded classification; missing values and invalid dates block issue) and issue it with the preview's employment version and digest; the rendered snapshot is stored once, immutable, with a domain-separated SHA-256 digest. An issued contract can be voided with a closed reason until it is acknowledged. Employees linked to their record see « Mes contrats » / "My contracts", read the contract and acknowledge receipt with a server-owned statement in their language; the evidence binds the snapshot, the statement, their membership and active link and the database time, and is not an electronic signature. Employee self-service denials are not durable privileged-denial evidence. V16; ADR 0009. Approved proposal D1–D16 with amendments A30-1 to A30-4 on Issue #51 apply.
+
+Out of scope for MVP-030: PDF files, uploads and object storage, e-signature providers, amendments, renewals and replacement contracts, termination documents, notifications, bulk issue, offline or administrator-recorded acknowledgement, four-eyes approval, job titles, salaries and addresses in templates, bilingual documents, a retention period, and AI wording or translation.
+
 ### MVP-031 Track document expiration
 
 Authorized users receive alerts for expiring contracts, credentials, and identity records.

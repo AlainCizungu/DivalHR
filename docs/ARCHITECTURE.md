@@ -78,7 +78,7 @@ Events are published through a transactional outbox. Consumers must be idempoten
 ## Data architecture
 
 - Transactional domain data remains in PostgreSQL.
-- Documents use encrypted object storage; databases retain metadata and access references.
+- Documents use encrypted object storage; databases retain metadata and access references. Exception (ADR 0009): the rendered text of an issued contract (at most 64 KiB) is stored in PostgreSQL with its digest; no file is generated.
 - Search indexes enforce tenant and authorization boundaries.
 - Analytical projections are fed by governed events.
 - Effective-dated records preserve employment, organization, policy, and country-rule history.
