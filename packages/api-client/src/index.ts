@@ -107,6 +107,48 @@ export type SeparationList = CoreComponents['schemas']['SeparationList'];
 export type SeparationResult = CoreComponents['schemas']['SeparationResult'];
 export type SeparationCancellationPreview =
   CoreComponents['schemas']['SeparationCancellationPreview'];
+export type ContractLocale = CoreComponents['schemas']['ContractLocale'];
+export type ContractTemplateVersionState =
+  CoreComponents['schemas']['ContractTemplateVersionState'];
+export type ContractState = CoreComponents['schemas']['ContractState'];
+export type ContractVoidReason = CoreComponents['schemas']['ContractVoidReason'];
+export type ContractTemplateProblemReason =
+  CoreComponents['schemas']['ContractTemplateProblemReason'];
+export type ContractPlaceholder = CoreComponents['schemas']['ContractPlaceholder'];
+export type CreateContractTemplate = CoreComponents['schemas']['CreateContractTemplate'];
+export type ContractTemplateLine = CoreComponents['schemas']['ContractTemplateLine'];
+export type ContractTemplateSummary = CoreComponents['schemas']['ContractTemplateSummary'];
+export type ContractTemplatePage = CoreComponents['schemas']['ContractTemplatePage'];
+export type ContractTemplateVersionSummary =
+  CoreComponents['schemas']['ContractTemplateVersionSummary'];
+export type ContractTemplate = CoreComponents['schemas']['ContractTemplate'];
+export type ContractTemplateVersion = CoreComponents['schemas']['ContractTemplateVersion'];
+export type ContractTemplateValidation = CoreComponents['schemas']['ContractTemplateValidation'];
+export type ContractTemplateProblem = CoreComponents['schemas']['ContractTemplateProblem'];
+export type CreateContractTemplateVersion =
+  CoreComponents['schemas']['CreateContractTemplateVersion'];
+export type UpdateContractTemplateVersion =
+  CoreComponents['schemas']['UpdateContractTemplateVersion'];
+export type ContractBlock = CoreComponents['schemas']['ContractBlock'];
+export type ContractSnapshot = CoreComponents['schemas']['ContractSnapshot'];
+export type ContractIntegrity = CoreComponents['schemas']['ContractIntegrity'];
+export type ContractPreviewCommand = CoreComponents['schemas']['ContractPreviewCommand'];
+export type IssueContract = CoreComponents['schemas']['IssueContract'];
+export type ContractWarning = CoreComponents['schemas']['ContractWarning'];
+export type ContractPreview = CoreComponents['schemas']['ContractPreview'];
+export type ContractAcknowledgementEvidence =
+  CoreComponents['schemas']['ContractAcknowledgementEvidence'];
+export type ContractSummary = CoreComponents['schemas']['ContractSummary'];
+export type ContractPage = CoreComponents['schemas']['ContractPage'];
+export type Contract = CoreComponents['schemas']['Contract'];
+export type VoidContract = CoreComponents['schemas']['VoidContract'];
+export type MyContractSummary = CoreComponents['schemas']['MyContractSummary'];
+export type MyContractPage = CoreComponents['schemas']['MyContractPage'];
+export type AcknowledgementStatement = CoreComponents['schemas']['AcknowledgementStatement'];
+export type MyContract = CoreComponents['schemas']['MyContract'];
+export type AcknowledgeContract = CoreComponents['schemas']['AcknowledgeContract'];
+export type ContractAcknowledgementResult =
+  CoreComponents['schemas']['ContractAcknowledgementResult'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

@@ -51,6 +51,12 @@ public class EmployeeAccessLinksAdapter implements EmployeeAccessLinks {
 
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
+  public Optional<SelfLink> linkedEmployee(TenantId tenant, String subject) {
+    return links.lockSelfLink(tenant, subject);
+  }
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public UUID scheduleRevocation(TenantId tenant, RevocationRequest request) {
     UUID id = UUID.randomUUID();
     boolean effective =

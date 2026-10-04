@@ -330,6 +330,25 @@ public class JdbcEmploymentHistoryRepository {
   }
 
   /**
+   * Locks one employment {@code FOR SHARE} (MVP-030 contract issue): changes, corrections and
+   * separations, which lock it {@code FOR UPDATE}, wait until the caller commits.
+   *
+   * @param tenant verified tenant
+   * @param employmentId employment
+   * @return the employment
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional<EmploymentRecord> shareEmployment(TenantId tenant, UUID employmentId) {
+    return jdbc.sql(
+            "SELECT id, employee_id, effective_from, effective_to, version FROM people.employment"
+                + " WHERE tenant_id = :tenant AND id = :id FOR SHARE")
+        .param("tenant", tenant.value())
+        .param("id", employmentId)
+        .query(JdbcEmploymentHistoryRepository::employment)
+        .optional();
+  }
+
+  /**
    * Takes the tenant's manager-graph transaction lock (the same key the V14 trigger takes).
    *
    * @param tenant verified tenant

@@ -995,6 +995,302 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contract-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List contract templates
+         * @description MVP-030. The tenant's contract templates ordered by code, each with its approved version and draft per language. Templates hold organization text, not personal data, and reads are not disclosure-audited (D14). Cache-Control private, no-store.
+         */
+        get: operations["listContractTemplates"];
+        put?: never;
+        /**
+         * Create a contract template
+         * @description MVP-030. Creates a template identity (code, administrative name, contract type). Its text lives in versions. Code and type never change.
+         */
+        post: operations["createContractTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contract-templates/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate template text
+         * @description MVP-030 (A30-2). Checks a title and body against grammar v1 without writing anything: forbidden constructs (URI schemes, protocol-relative paths, web addresses, encoded content, Markdown links, HTML markup), placeholders and limits. Problems carry a closed reason and a line number only, never the text.
+         */
+        post: operations["validateContractTemplateText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contract-templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a contract template
+         * @description MVP-030. The template and all its versions, without bodies.
+         */
+        get: operations["getContractTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contract-templates/{templateId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a draft version
+         * @description MVP-030. Creates a DRAFT version in one language with the next version number for that language. The text must pass grammar v1 (422 CONTRACT_TEMPLATE_INVALID otherwise).
+         */
+        post: operations["createContractTemplateVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contract-templates/{templateId}/versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a template version
+         * @description MVP-030. The version with its title and body.
+         */
+        get: operations["getContractTemplateVersion"];
+        /**
+         * Edit a draft version
+         * @description MVP-030. Replaces a DRAFT version's title and body (expectedVersion). Approved and retired versions never change (409 CONTRACT_TEMPLATE_NOT_DRAFT).
+         */
+        put: operations["updateContractTemplateVersion"];
+        post?: never;
+        /**
+         * Delete a never-approved draft
+         * @description MVP-030. Deletes a DRAFT version that was never approved (expectedVersion as a query parameter). The only delete of contract data.
+         */
+        delete: operations["deleteContractTemplateVersion"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contract-templates/{templateId}/versions/{versionId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a draft version
+         * @description MVP-030. Approves a DRAFT version (expectedVersion, acknowledgement TEXT_VERIFIED: the administrator verified the text; DivalHR does not guarantee its legal validity). Approval is irreversible. The previous approved version of the same template and language is retired in the same transaction.
+         */
+        post: operations["approveContractTemplateVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contract-templates/{templateId}/versions/{versionId}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire an approved version
+         * @description MVP-030. Retires an APPROVED version: it can no longer be issued. Issued contracts keep their snapshot.
+         */
+        post: operations["retireContractTemplateVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an employee's contracts
+         * @description MVP-030. Contracts newest first, without content. Recorded as a disclosure (audit contract.read). Cache-Control private, no-store.
+         */
+        get: operations["listEmployeeContracts"];
+        put?: never;
+        /**
+         * Issue a contract
+         * @description MVP-030. Repeats a preview with the expectedEmploymentVersion and previewDigest it returned. Under the employment lock everything is re-rendered and the digest recomputed (409 CONTRACT_PREVIEW_CHANGED on any difference); the immutable snapshot, audit and outbox commit together. Employment history is never changed.
+         */
+        post: operations["issueEmployeeContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/contracts/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a contract
+         * @description MVP-030. Renders an approved template version for the employee's current employment and returns the exact snapshot, warnings and the preview digest. Writes nothing but the disclosure audit (contract.preview).
+         */
+        post: operations["previewEmployeeContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/contracts/{contractId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an employee's contract
+         * @description MVP-030. The contract with its snapshot and acknowledgement evidence. Recorded as a disclosure (audit contract.read).
+         */
+        get: operations["getEmployeeContract"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/contracts/{contractId}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Void an unacknowledged contract
+         * @description MVP-030. Voids an ISSUED contract (expectedVersion, closed reason). An acknowledged contract is never voided. Content and digests are kept.
+         */
+        post: operations["voidEmployeeContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my contracts
+         * @description MVP-030. The caller's own contracts, newest first, without content. Requires the employee role, an active membership and the active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise). Recorded as a disclosure (audit contract.self-read).
+         */
+        get: operations["listMyContracts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/contracts/{contractId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read my contract
+         * @description MVP-030. One of the caller's own contracts with its snapshot, the acknowledgement statements in French and English with their digests, and the evidence once acknowledged. Another employee's or tenant's contract is the same 404 as an unknown one.
+         */
+        get: operations["getMyContract"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/contracts/{contractId}/acknowledgement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge my contract
+         * @description MVP-030. Records that the authenticated employee confirmed the stated acknowledgement of the displayed contract. This is not an electronic signature. The client repeats the snapshot digest, its versions and the statement digest it displayed; the server recomputes its own values and compares them (409 CONTRACT_ACKNOWLEDGEMENT_CHANGED). Idempotent: an already acknowledged contract returns its evidence with alreadyAcknowledged true.
+         */
+        post: operations["acknowledgeMyContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1941,6 +2237,142 @@ export interface components {
          * @enum {string}
          */
         SeparationAccessState: "NOT_LINKED" | "SCHEDULED" | "SIGN_OUT_PENDING" | "COMPLETED" | "MANUAL_INTERVENTION" | "CANCELLED";
+        /**
+         * @description Language of a template version and of the contracts issued from it.
+         * @enum {string}
+         */
+        ContractLocale: "fr" | "en";
+        /** @enum {string} */
+        ContractTemplateVersionState: "DRAFT" | "APPROVED" | "RETIRED";
+        /**
+         * @description ISSUED (awaiting the employee's acknowledgement), ACKNOWLEDGED (the employee made the stated confirmation; not an electronic signature) or VOID.
+         * @enum {string}
+         */
+        ContractState: "ISSUED" | "ACKNOWLEDGED" | "VOID";
+        /** @enum {string} */
+        ContractVoidReason: "ISSUED_IN_ERROR" | "WRONG_TEMPLATE" | "WRONG_DATA" | "OTHER";
+        /**
+         * @description Closed reason of a template-text problem (A30-2).
+         * @enum {string}
+         */
+        ContractTemplateProblemReason: "EMPTY" | "TOO_LONG" | "CONTROL_CHARACTER" | "UNSAFE_CHARACTER" | "URI_SCHEME" | "PROTOCOL_RELATIVE" | "WEB_ADDRESS" | "ENCODED_CONTENT" | "MARKDOWN_LINK" | "HTML_MARKUP" | "UNKNOWN_PLACEHOLDER" | "MALFORMED_PLACEHOLDER" | "TOO_MANY_PLACEHOLDERS" | "BRACES" | "HEADING_EMPTY";
+        /** @enum {string} */
+        ContractPlaceholder: "employee.givenNames" | "employee.familyName" | "employee.fullName" | "employee.number" | "organization.name" | "legalEntity.name" | "site.name" | "employment.startDate" | "contract.type" | "contract.startDate" | "contract.endDate" | "issue.date";
+        CreateContractTemplate: {
+            /** @description Upper-case code, unique in the tenant. */
+            code: string;
+            /** @description Administrative label (organization data). */
+            name: string;
+            contractType: components["schemas"]["ContractClassification"];
+        };
+        ContractTemplateLine: {
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: uuid */
+            approvedVersionId: string | null;
+            approvedVersionNumber: number | null;
+            /** Format: uuid */
+            draftVersionId: string | null;
+        };
+        ContractTemplateSummary: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            contractType: components["schemas"]["ContractClassification"];
+            /** @description One entry per language that has a version. */
+            lines: components["schemas"]["ContractTemplateLine"][];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ContractTemplatePage: {
+            items: components["schemas"]["ContractTemplateSummary"][];
+            nextCursor: string | null;
+        };
+        ContractTemplateVersionSummary: {
+            /** Format: uuid */
+            id: string;
+            locale: components["schemas"]["ContractLocale"];
+            versionNumber: number;
+            state: components["schemas"]["ContractTemplateVersionState"];
+            /** @description Distinct placeholders used, sorted. */
+            placeholders: components["schemas"]["ContractPlaceholder"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            approvedAt: string | null;
+            /** Format: date-time */
+            retiredAt: string | null;
+            version: number;
+        };
+        ContractTemplate: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            contractType: components["schemas"]["ContractClassification"];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Newest first per language. */
+            versions: components["schemas"]["ContractTemplateVersionSummary"][];
+        };
+        ContractTemplateVersion: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            templateId: string;
+            locale: components["schemas"]["ContractLocale"];
+            versionNumber: number;
+            state: components["schemas"]["ContractTemplateVersionState"];
+            title: string;
+            /** @description Grammar v1 text (Confidential organization text). */
+            body: string;
+            placeholders: components["schemas"]["ContractPlaceholder"][];
+            /** @description DIVALHR-CONTRACT-TEMPLATE-BODY v1 digest (A30-4). */
+            bodySha256: string;
+            /** @enum {integer} */
+            grammarVersion: 1;
+            /** @enum {integer} */
+            digestVersion: 1;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            approvedAt: string | null;
+            /** Format: date-time */
+            retiredAt: string | null;
+            version: number;
+        };
+        ValidateContractTemplateText: {
+            title: string;
+            body: string;
+        };
+        ContractTemplateProblem: {
+            reason: components["schemas"]["ContractTemplateProblemReason"];
+            /** @description 1-based body line; 0 for the title. */
+            line: number;
+        };
+        ContractTemplateValidation: {
+            valid: boolean;
+            problems: components["schemas"]["ContractTemplateProblem"][];
+            placeholders: components["schemas"]["ContractPlaceholder"][];
+        };
+        CreateContractTemplateVersion: {
+            locale: components["schemas"]["ContractLocale"];
+            title: string;
+            body: string;
+        };
+        UpdateContractTemplateVersion: {
+            title: string;
+            body: string;
+            expectedVersion: number;
+        };
+        ApproveContractTemplateVersion: {
+            expectedVersion: number;
+            acknowledgements: "TEXT_VERIFIED"[];
+        };
         /** @description A separation (Restricted HR). */
         Separation: {
             /** Format: uuid */
@@ -1996,11 +2428,212 @@ export interface components {
             status: "OPEN" | "DONE" | "NOT_APPLICABLE";
             expectedVersion: number;
         };
+        RetireContractTemplateVersion: {
+            expectedVersion: number;
+        };
+        ContractBlock: {
+            /** @enum {string} */
+            type: "h1" | "h2" | "p" | "li";
+            text: string;
+        };
+        /** @description The exact rendered content (Restricted HR). Rendered as text only. */
+        ContractSnapshot: {
+            title: string;
+            blocks: components["schemas"]["ContractBlock"][];
+        };
+        ContractIntegrity: {
+            /** @description DIVALHR-CONTRACT-SNAPSHOT v1 digest of the canonical snapshot (A30-4). */
+            snapshotSha256: string;
+            /** @enum {string} */
+            digestAlgorithm: "SHA-256";
+            /** @enum {integer} */
+            digestVersion: 1;
+            /** @enum {integer} */
+            grammarVersion: 1;
+            /** @enum {integer} */
+            rendererVersion: 1;
+        };
+        ContractPreviewCommand: {
+            /** Format: uuid */
+            templateVersionId: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate?: string | null;
+        };
+        IssueContract: {
+            /** Format: uuid */
+            templateVersionId: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate?: string | null;
+            expectedEmploymentVersion: number;
+            previewDigest: string;
+        };
+        /** @enum {string} */
+        ContractWarning: "TYPE_DIFFERS_FROM_CLASSIFICATION";
+        ContractPreview: {
+            /** Format: uuid */
+            employmentId: string;
+            employmentVersion: number;
+            /** Format: uuid */
+            templateVersionId: string;
+            contractType: components["schemas"]["ContractClassification"];
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            snapshot: components["schemas"]["ContractSnapshot"];
+            integrity: components["schemas"]["ContractIntegrity"];
+            warnings: components["schemas"]["ContractWarning"][];
+            /** @description DIVALHR-CONTRACT-PREVIEW v1 digest (A30-4). */
+            previewDigest: string;
+        };
+        /** @description What the employee confirmed and when. This is not an electronic signature. */
+        ContractAcknowledgementEvidence: {
+            /** Format: date-time */
+            acknowledgedAt: string;
+            /** @enum {string} */
+            statementCode: "RECEIVED_AND_REVIEWED";
+            /** @enum {integer} */
+            statementVersion: 1;
+            statementLocale: components["schemas"]["ContractLocale"];
+            /** @description The exact statement shown, re-rendered from its version and language. */
+            statementText: string;
+            statementSha256: string;
+            evidenceSha256: string;
+        };
+        ContractSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            employmentId: string;
+            /** Format: uuid */
+            templateId: string;
+            /** Format: uuid */
+            templateVersionId: string;
+            contractType: components["schemas"]["ContractClassification"];
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            state: components["schemas"]["ContractState"];
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            acknowledgedAt: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            voidReason: components["schemas"]["ContractVoidReason"] | null;
+            version: number;
+        };
+        ContractPage: {
+            items: components["schemas"]["ContractSummary"][];
+            nextCursor: string | null;
+        };
+        Contract: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            employmentId: string;
+            /** Format: uuid */
+            templateId: string;
+            /** Format: uuid */
+            templateVersionId: string;
+            contractType: components["schemas"]["ContractClassification"];
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            state: components["schemas"]["ContractState"];
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            acknowledgedAt: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            voidReason: components["schemas"]["ContractVoidReason"] | null;
+            version: number;
+            snapshot: components["schemas"]["ContractSnapshot"];
+            integrity: components["schemas"]["ContractIntegrity"];
+            acknowledgement: components["schemas"]["ContractAcknowledgementEvidence"] | null;
+        };
+        VoidContract: {
+            expectedVersion: number;
+            reasonCode: components["schemas"]["ContractVoidReason"];
+        };
+        MyContractSummary: {
+            /** Format: uuid */
+            id: string;
+            contractType: components["schemas"]["ContractClassification"];
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            state: components["schemas"]["ContractState"];
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            acknowledgedAt: string | null;
+        };
+        MyContractPage: {
+            items: components["schemas"]["MyContractSummary"][];
+            nextCursor: string | null;
+        };
+        AcknowledgementStatement: {
+            /** @enum {string} */
+            code: "RECEIVED_AND_REVIEWED";
+            /** @enum {integer} */
+            version: 1;
+            locale: components["schemas"]["ContractLocale"];
+            text: string;
+            /** @description DIVALHR-CONTRACT-ACKNOWLEDGEMENT-STATEMENT v1 digest (A30-4). */
+            sha256: string;
+        };
+        MyContract: {
+            /** Format: uuid */
+            id: string;
+            contractType: components["schemas"]["ContractClassification"];
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            state: components["schemas"]["ContractState"];
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            acknowledgedAt: string | null;
+            snapshot: components["schemas"]["ContractSnapshot"];
+            integrity: components["schemas"]["ContractIntegrity"];
+            /** @description The current statement in French and English; the client shows one. */
+            statements: components["schemas"]["AcknowledgementStatement"][];
+            acknowledgement: components["schemas"]["ContractAcknowledgementEvidence"] | null;
+        };
+        AcknowledgeContract: {
+            snapshotSha256: string;
+            snapshotDigestVersion: number;
+            grammarVersion: number;
+            rendererVersion: number;
+            statementCode: string;
+            statementVersion: number;
+            statementLocale: components["schemas"]["ContractLocale"];
+            statementSha256: string;
+        };
+        ContractAcknowledgementResult: {
+            contract: components["schemas"]["MyContract"];
+            alreadyAcknowledged: boolean;
+        };
         /**
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -2169,6 +2802,15 @@ export interface components {
         /** @description Entries per page for the access review (1-50, default 25). */
         AccessReviewLimit: number;
         Limit: number;
+        /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+        ContractTemplateId: string;
+        /** @description Malformed, unknown, foreign and other-template IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+        ContractTemplateVersionId: string;
+        /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND. */
+        ContractId: string;
+        /** @description Items per page (1-50, default 25). */
+        ContractLimit: number;
+        ExpectedVersion: number;
     };
     requestBodies: never;
     headers: {
@@ -4219,6 +4861,676 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listContractTemplates: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["ContractLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplatePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createContractTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContractTemplate"];
+            };
+        };
+        responses: {
+            /** @description Created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    validateContractTemplateText: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateContractTemplateText"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateValidation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getContractTemplate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                templateId: components["parameters"]["ContractTemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplate"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createContractTemplateVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                templateId: components["parameters"]["ContractTemplateId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContractTemplateVersion"];
+            };
+        };
+        responses: {
+            /** @description Created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getContractTemplateVersion: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                templateId: components["parameters"]["ContractTemplateId"];
+                /** @description Malformed, unknown, foreign and other-template IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                versionId: components["parameters"]["ContractTemplateVersionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateVersion"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    updateContractTemplateVersion: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                templateId: components["parameters"]["ContractTemplateId"];
+                /** @description Malformed, unknown, foreign and other-template IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                versionId: components["parameters"]["ContractTemplateVersionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContractTemplateVersion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    deleteContractTemplateVersion: {
+        parameters: {
+            query: {
+                expectedVersion: components["parameters"]["ExpectedVersion"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                templateId: components["parameters"]["ContractTemplateId"];
+                /** @description Malformed, unknown, foreign and other-template IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                versionId: components["parameters"]["ContractTemplateVersionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    approveContractTemplateVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                templateId: components["parameters"]["ContractTemplateId"];
+                /** @description Malformed, unknown, foreign and other-template IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                versionId: components["parameters"]["ContractTemplateVersionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveContractTemplateVersion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    retireContractTemplateVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                templateId: components["parameters"]["ContractTemplateId"];
+                /** @description Malformed, unknown, foreign and other-template IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND. */
+                versionId: components["parameters"]["ContractTemplateVersionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireContractTemplateVersion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listEmployeeContracts: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["ContractLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    issueEmployeeContract: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueContract"];
+            };
+        };
+        responses: {
+            /** @description Issued, or the original issue replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contract"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewEmployeeContract: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractPreviewCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getEmployeeContract: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND. */
+                contractId: components["parameters"]["ContractId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contract"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    voidEmployeeContract: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND. */
+                contractId: components["parameters"]["ContractId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidContract"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contract"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listMyContracts: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["ContractLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyContractPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getMyContract: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND. */
+                contractId: components["parameters"]["ContractId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyContract"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    acknowledgeMyContract: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND. */
+                contractId: components["parameters"]["ContractId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcknowledgeContract"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractAcknowledgementResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
 }

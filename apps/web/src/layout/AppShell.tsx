@@ -77,6 +77,7 @@ export function AppShell({ environment, children }: { environment: string; child
   const { t } = useTranslation();
   const isPlatformAdmin = useHasRole('platform-admin');
   const isTenantAdmin = useHasRole('tenant-admin');
+  const isEmployee = useHasRole('employee');
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -112,6 +113,10 @@ export function AppShell({ environment, children }: { environment: string; child
             </NavLink>
           )}
           {isTenantAdmin && <NavLink to="/admin/people/import">{t('nav.employeeImport')}</NavLink>}
+          {isTenantAdmin && (
+            <NavLink to="/admin/contract-templates">{t('nav.contractTemplates')}</NavLink>
+          )}
+          {isEmployee && <NavLink to="/me/contracts">{t('nav.myContracts')}</NavLink>}
         </nav>
         <div className="toolbar">
           <LocaleSwitcher />

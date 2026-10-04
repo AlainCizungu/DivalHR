@@ -202,14 +202,17 @@ public class GlobalExceptionHandler {
       AccessDeniedException exception, HttpServletRequest request) {
     AuthorizedOperation authorized = AuthorizedOperation.of(request);
     if (authorized != null && MethodSecurityDenialMarker.deniedByMethodSecurity(request)) {
+      // Durable evidence for privileged operations only (A30-1); drift is still logged and counted.
       Outcome outcome =
-          audit.record(
-              request,
-              SecurityContextHolder.getContext().getAuthentication(),
-              authorized.scope(),
-              Stage.METHOD_SECURITY,
-              authorized.operation(),
-              authorized.effectiveTenant());
+          authorized.privileged()
+              ? audit.record(
+                  request,
+                  SecurityContextHolder.getContext().getAuthentication(),
+                  authorized.scope(),
+                  Stage.METHOD_SECURITY,
+                  authorized.operation(),
+                  authorized.effectiveTenant())
+              : Outcome.INELIGIBLE;
       Counter.builder(DRIFT_METRIC)
           .description("Method-security denials of handlers the scope interceptor allowed")
           .tag("scope", authorized.scope().value())

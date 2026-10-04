@@ -12,6 +12,8 @@ import com.divalhr.core.platform.tenancy.MembershipAuthority.ActiveMembership;
 import com.divalhr.core.platform.tenancy.TenantContext;
 import com.divalhr.core.platform.tenancy.TenantContextResolver;
 import com.divalhr.core.platform.tenancy.TenantId;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Optional;
@@ -57,6 +59,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
   private final TenantContextResolver tenants;
   private final MembershipAuthority memberships;
   private final AuthorizationDenialAudit audit;
+  private final MeterRegistry meters;
 
   /**
    * Creates the interceptor.
@@ -65,16 +68,19 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
    * @param tenants verified tenant resolver
    * @param memberships the Core-side tenant access authority (MVP-012A)
    * @param audit durable denial evidence (MVP-013)
+   * @param meters meter registry (employee self-service denial counter, A30-1)
    */
   public ScopeAuthorizationInterceptor(
       OperationMetrics metrics,
       TenantContextResolver tenants,
       MembershipAuthority memberships,
-      AuthorizationDenialAudit audit) {
+      AuthorizationDenialAudit audit,
+      MeterRegistry meters) {
     this.metrics = metrics;
     this.tenants = tenants;
     this.memberships = memberships;
     this.audit = audit;
+    this.meters = meters;
   }
 
   @Override
@@ -94,15 +100,17 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     }
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (platform != null) {
-      Gate gate = new Gate(request, authentication, Scope.PLATFORM, platform.operation());
+      Gate gate =
+          new Gate(
+              request, authentication, Scope.PLATFORM, platform.operation(), PlatformScoped.ROLE);
       requireSubject(gate, PlatformScoped.ROLE);
       requireRole(gate, PlatformScoped.ROLE);
       requireAssurance(gate, PlatformScoped.ROLE);
       // Never the token's tenant: platform operations have no effective tenant.
-      new AuthorizedOperation(Scope.PLATFORM, platform.operation(), null).bind(request);
+      new AuthorizedOperation(Scope.PLATFORM, platform.operation(), null, true).bind(request);
       return true;
     }
-    Gate gate = new Gate(request, authentication, Scope.TENANT, tenant.operation());
+    Gate gate = new Gate(request, authentication, Scope.TENANT, tenant.operation(), tenant.role());
     requireSubject(gate, tenant.role());
     if (!tenant.role().isEmpty()) {
       requireRole(gate, tenant.role());
@@ -114,17 +122,64 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     // Step 5, only after MFA so that a password-level session learns nothing about memberships.
     requireMembership(gate, context.tenantId(), tenant.role());
     // The tenant is effective only now: verified token tenant confirmed by an active membership.
-    new AuthorizedOperation(Scope.TENANT, tenant.operation(), context.tenantId()).bind(request);
+    new AuthorizedOperation(
+            Scope.TENANT,
+            tenant.operation(),
+            context.tenantId(),
+            AssuranceEvidence.requiredFor(tenant.role()))
+        .bind(request);
     return true;
   }
 
   /** The request being authorized; the subject is read from the authentication, never logged. */
   private record Gate(
-      HttpServletRequest request, Authentication authentication, Scope scope, String operation) {
+      HttpServletRequest request,
+      Authentication authentication,
+      Scope scope,
+      String operation,
+      String role) {
 
     String scopeValue() {
       return scope.value();
     }
+
+    /** MVP-013 durable evidence covers privileged operations only (A30-1). */
+    boolean privileged() {
+      return scope == Scope.PLATFORM || AssuranceEvidence.requiredFor(role);
+    }
+  }
+
+  /**
+   * Records a denial: durable evidence for a privileged operation (MVP-013); for an ordinary
+   * employee self-service operation (A30-1) only the bounded counter {@value #SELF_SERVICE_DENIALS}
+   * (operation and closed stage), never a {@code platform.authorization_denial} row.
+   */
+  private Outcome record(Gate gate, Stage stage) {
+    if (gate.privileged()) {
+      return audit.record(
+          gate.request(), gate.authentication(), gate.scope(), stage, gate.operation(), null);
+    }
+    selfServiceDenied(meters, gate.operation(), stage.name().toLowerCase(java.util.Locale.ROOT));
+    return Outcome.INELIGIBLE;
+  }
+
+  /** Counter of employee self-service denials (operation and closed reason only). */
+  public static final String SELF_SERVICE_DENIALS = "divalhr.employee.self_service.denials";
+
+  /**
+   * Counts an employee self-service denial (A30-1): bounded labels from closed sets.
+   *
+   * @param meters registry
+   * @param operation operation name
+   * @param reason closed reason
+   */
+  public static void selfServiceDenied(MeterRegistry meters, String operation, String reason) {
+    Counter.builder(SELF_SERVICE_DENIALS)
+        .description("Employee self-service denials (never durable privileged-denial evidence)")
+        .tag("operation", operation.isEmpty() ? "unnamed" : operation)
+        .tag("reason", reason)
+        .register(meters)
+        .increment();
   }
 
   /**
@@ -139,14 +194,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
       if (missing.code() != ErrorCode.TENANT_CONTEXT_MISSING) {
         throw missing;
       }
-      Outcome outcome =
-          audit.record(
-              gate.request(),
-              gate.authentication(),
-              gate.scope(),
-              Stage.TENANT_CONTEXT,
-              gate.operation(),
-              null);
+      Outcome outcome = record(gate, Stage.TENANT_CONTEXT);
       if (!gate.operation().isEmpty()) {
         metrics.record(gate.operation(), OperationMetrics.Outcome.DENIED);
       }
@@ -194,9 +242,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
       return;
     }
     // The token's tenant is not effective here (it may be foreign): no tenant in the evidence.
-    Outcome outcome =
-        audit.record(
-            gate.request(), authentication, gate.scope(), Stage.MEMBERSHIP, operation, null);
+    Outcome outcome = record(gate, Stage.MEMBERSHIP);
     if (!operation.isEmpty()) {
       metrics.record(operation, OperationMetrics.Outcome.DENIED);
     }
@@ -235,9 +281,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
     }
     String operation = gate.operation();
     // Before the membership gate: the token's tenant is not effective, so none is recorded.
-    Outcome outcome =
-        audit.record(
-            gate.request(), gate.authentication(), gate.scope(), Stage.MFA, operation, null);
+    Outcome outcome = record(gate, Stage.MFA);
     if (!operation.isEmpty()) {
       metrics.record(operation, OperationMetrics.Outcome.MFA_REQUIRED);
     }
@@ -304,8 +348,7 @@ public class ScopeAuthorizationInterceptor implements HandlerInterceptor {
       return;
     }
     String operation = gate.operation();
-    Outcome outcome =
-        audit.record(gate.request(), authentication, gate.scope(), Stage.ROLE, operation, null);
+    Outcome outcome = record(gate, Stage.ROLE);
     if (!operation.isEmpty()) {
       metrics.record(operation, OperationMetrics.Outcome.DENIED);
     }

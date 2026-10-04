@@ -4,6 +4,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.divalhr.core.platform.access.EmployeeAccessLinks;
+import com.divalhr.core.platform.access.EmploymentContractFacts;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -29,13 +30,16 @@ import org.springframework.transaction.annotation.Transactional;
  * A22-4: the people separation service is the only transaction coordinator. Every identity port
  * method it calls that locks or writes joins the existing transaction ({@code MANDATORY}) and never
  * opens its own; and neither module queries the other's tables (the cross-schema foreign keys of
- * ADR 0008 are constraints, never reads).
+ * ADR 0008 are constraints, never reads). MVP-030 (ADR 0009): the documents module coordinates
+ * issue and acknowledgement the same way, through the locking people and identity port methods, and
+ * no module names another's tables.
  */
 @AnalyzeClasses(packages = "com.divalhr.core", importOptions = ImportOption.DoNotIncludeTests.class)
 class AccessPortArchitectureTest {
 
   private static final Set<String> JOINING =
-      Set.of("lockForSeparation", "scheduleRevocation", "cancelRevocation", "retry");
+      Set.of(
+          "lockForSeparation", "scheduleRevocation", "cancelRevocation", "retry", "linkedEmployee");
 
   private static final ArchCondition<JavaMethod> JOIN_THE_CALLER =
       new ArchCondition<>("join the caller's transaction (MANDATORY)") {
@@ -56,8 +60,29 @@ class AccessPortArchitectureTest {
           .areDeclaredInClassesThat()
           .implement(EmployeeAccessLinks.class)
           .and()
-          .haveNameMatching("lockForSeparation|scheduleRevocation|cancelRevocation|retry")
+          .haveNameMatching(
+              "lockForSeparation|scheduleRevocation|cancelRevocation|retry|linkedEmployee")
           .should(JOIN_THE_CALLER);
+
+  /** MVP-030: the employment lock of an issue joins the documents transaction. */
+  @ArchTest
+  static final ArchRule peopleContractPortLocksJoinTheCoordinatorsTransaction =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .implement(EmploymentContractFacts.class)
+          .and()
+          .haveName("lockForContract")
+          .should(JOIN_THE_CALLER);
+
+  @Test
+  void theContractPortLocksOnlyThroughItsJoiningMethod() {
+    assertThat(
+            Stream.of(EmploymentContractFacts.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactlyInAnyOrder("read", "lockForContract");
+  }
 
   @Test
   void theSetOfJoiningMethodsCoversEveryWritingPortMethod() {
@@ -76,12 +101,19 @@ class AccessPortArchitectureTest {
       Pattern.compile(
           "\\bpeople\\.(employee|employment|employment_[a-z_]+|separation_task[a-z_]*)\\b");
 
+  private static final Pattern DOCUMENTS_TABLE =
+      Pattern.compile("\\bdocuments\\.(contract[a-z_]*)\\b");
+
   @Test
   void neitherModuleQueriesTheOthersTables() throws IOException {
     Path root = Path.of("src/main/java/com/divalhr/core");
     List<String> offenders = new ArrayList<>();
     scan(root.resolve("people"), IDENTITY_TABLE, offenders);
     scan(root.resolve("identity"), PEOPLE_TABLE, offenders);
+    scan(root.resolve("documents"), IDENTITY_TABLE, offenders);
+    scan(root.resolve("documents"), PEOPLE_TABLE, offenders);
+    scan(root.resolve("people"), DOCUMENTS_TABLE, offenders);
+    scan(root.resolve("identity"), DOCUMENTS_TABLE, offenders);
     assertThat(offenders).isEmpty();
   }
 

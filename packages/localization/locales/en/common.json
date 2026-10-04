@@ -14,7 +14,9 @@
     "firstAdmin": "First administrator",
     "accessReview": "Access review",
     "employees": "Employees",
-    "employeeImport": "Import employees"
+    "employeeImport": "Import employees",
+    "contractTemplates": "Contract templates",
+    "myContracts": "My contracts"
   },
   "locale": {
     "label": "Language",
@@ -175,7 +177,26 @@
     "SEPARATION_ACCESS_TIMING_INVALID": "This access timing is not possible for this last day.",
     "SEPARATION_ACKNOWLEDGEMENT_REQUIRED": "A required confirmation is missing.",
     "SEPARATION_REPORT_PLAN_REQUIRED": "Choose what happens to the direct reports.",
-    "SEPARATION_TOO_MANY_INTERVALS": "Too many direct-report periods are affected to record this separation at once."
+    "SEPARATION_TOO_MANY_INTERVALS": "Too many direct-report periods are affected to record this separation at once.",
+    "CONTRACT_TEMPLATE_NOT_FOUND": "This contract template does not exist in your organization.",
+    "CONTRACT_NOT_FOUND": "This contract does not exist.",
+    "CONTRACT_TEMPLATE_VERSION_CONFLICT": "This template changed in the meantime. Reload it and try again.",
+    "CONTRACT_TEMPLATE_NOT_DRAFT": "Only a draft can be changed or deleted. Approved and retired versions never change.",
+    "CONTRACT_TEMPLATE_NOT_APPROVED": "This template version is not approved, or no longer is.",
+    "CONTRACT_TEMPLATE_CODE_TAKEN": "This template code is already used in your organization.",
+    "CONTRACT_PREVIEW_CHANGED": "The employee, the employment or the template changed since the preview. Preview the contract again.",
+    "CONTRACT_VERSION_CONFLICT": "This contract changed in the meantime. Reload it and try again.",
+    "CONTRACT_PERIOD_OVERLAP": "This period overlaps another contract of this employment. Void that contract or choose other dates.",
+    "CONTRACT_EMPLOYMENT_ENDED": "A separation is recorded for this employee: no new contract can be issued.",
+    "CONTRACT_NOT_VOIDABLE": "Only an issued contract that has not been acknowledged can be voided.",
+    "CONTRACT_NOT_ACKNOWLEDGEABLE": "This contract can no longer be acknowledged.",
+    "CONTRACT_ACKNOWLEDGEMENT_CHANGED": "The contract or the statement shown has changed. Reload the contract and read it again.",
+    "CONTRACT_TEMPLATE_INVALID": "The text does not follow the contract format.",
+    "CONTRACT_VALUE_MISSING": "A field of the template has no value for this employee.",
+    "CONTRACT_DATES_INVALID": "Check the contract dates.",
+    "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED": "Confirm that you have verified the text before approving it.",
+    "EMPLOYEE_LINK_REQUIRED": "Your account is not yet linked to your employee record. Contact your organization’s administrator.",
+    "CONTRACT_TIMEOUT": "The request took too long and nothing was saved. Please try again."
   },
   "notFound": {
     "title": "Page not found",
@@ -1254,6 +1275,210 @@
       "cancelled": "The separation (last day {{date}}) was cancelled.",
       "task": "{{task}}: {{status}}.",
       "retried": "Sign-in removal relaunched."
+    }
+  },
+  "contracts": {
+    "unauthorized": "Only organization administrators can manage contracts.",
+    "signInRequired": "Sign in to manage contracts.",
+    "loading": "Loading…",
+    "languages": {
+      "fr": "French",
+      "en": "English"
+    },
+    "templates": {
+      "title": "Contract templates",
+      "intro": "Your organization’s employment contract models. Your organization verifies the legal wording; DivalHR does not guarantee its legal validity.",
+      "empty": "No contract template yet.",
+      "more": "Show more templates",
+      "open": "Open {{name}}",
+      "back": "Back to contract templates",
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "type": "Contract type",
+        "lines": "Versions in force"
+      },
+      "line": {
+        "approved": "{{language}}: version {{number}} approved",
+        "draft": "{{language}}: draft open",
+        "none": "{{language}}: no approved version"
+      },
+      "create": {
+        "title": "Create a contract template",
+        "code": "Code",
+        "codeHelp": "Capital letters, digits, hyphens and underscores; up to 32 characters.",
+        "name": "Name",
+        "type": "Contract type",
+        "submit": "Create the template",
+        "problems": {
+          "code": "Enter a code in the format shown.",
+          "name": "Enter a name of 2 to 160 characters.",
+          "type": "Choose a contract type."
+        }
+      },
+      "announce": {
+        "created": "The template was created.",
+        "drafted": "The draft was saved.",
+        "deleted": "The draft was deleted.",
+        "approved": "The version was approved.",
+        "retired": "The version was retired."
+      },
+      "list": "List of contract templates"
+    },
+    "versions": {
+      "title": "Versions",
+      "none": "No version yet.",
+      "heading": "{{language}} – version {{number}}",
+      "state": {
+        "DRAFT": "Draft",
+        "APPROVED": "Approved",
+        "RETIRED": "Retired"
+      },
+      "newDraft": "Write a new draft",
+      "language": "Language",
+      "titleLabel": "Title",
+      "body": "Text",
+      "bodyHelp": "Plain text only. A line starting with # is a heading, ## a sub-heading and - a list item; a blank line ends a paragraph. Links, web addresses, encoded text and markup are refused.",
+      "placeholders": "Field to insert",
+      "insert": "Insert the field",
+      "check": "Check the text",
+      "valid": "The text follows the contract format.",
+      "problemsTitle": "Correct the text:",
+      "problemLine": "Line {{line}}: {{reason}}",
+      "problemTitle": "Title: {{reason}}",
+      "save": "Save the draft",
+      "cancel": "Cancel",
+      "edit": "Edit the draft",
+      "delete": "Delete the draft",
+      "view": "Show the text",
+      "hide": "Hide the text",
+      "sample": "Sample rendering (sample labels, never real employee data)",
+      "approve": "Approve this version",
+      "approveConfirm": "I have verified this text; DivalHR does not guarantee its legal validity.",
+      "approveHelp": "Approval is final. The previously approved version in this language is retired at the same time.",
+      "tickConfirm": "Tick the confirmation first.",
+      "retire": "Retire this version",
+      "retireHelp": "A retired version can no longer be issued. Contracts already issued keep their text.",
+      "bodySha256": "Integrity reference of the text: {{digest}}",
+      "updated": "Last edited {{at}}"
+    },
+    "problems": {
+      "EMPTY": "the text is empty.",
+      "TOO_LONG": "the text is too long.",
+      "CONTROL_CHARACTER": "it contains a control character.",
+      "UNSAFE_CHARACTER": "it contains an invisible or unsupported character.",
+      "URI_SCHEME": "links and web schemes are not allowed.",
+      "PROTOCOL_RELATIVE": "addresses starting with // are not allowed.",
+      "WEB_ADDRESS": "web addresses are not allowed.",
+      "ENCODED_CONTENT": "encoded text (such as %3C or &lt;) is not allowed.",
+      "MARKDOWN_LINK": "link or image syntax is not allowed.",
+      "HTML_MARKUP": "markup is not allowed.",
+      "UNKNOWN_PLACEHOLDER": "this field does not exist.",
+      "MALFORMED_PLACEHOLDER": "this field is written incorrectly; put double braces around a field name.",
+      "TOO_MANY_PLACEHOLDERS": "the text has too many fields.",
+      "BRACES": "double braces are only for fields.",
+      "HEADING_EMPTY": "the heading has no text."
+    },
+    "fields": {
+      "employee.givenNames": "Given names",
+      "employee.familyName": "Family name",
+      "employee.fullName": "Full name",
+      "employee.number": "Employee number",
+      "organization.name": "Organization",
+      "legalEntity.name": "Legal entity",
+      "site.name": "Site",
+      "employment.startDate": "Employment start date",
+      "contract.type": "Contract type",
+      "contract.startDate": "Contract start date",
+      "contract.endDate": "Contract end date",
+      "issue.date": "Issue date"
+    },
+    "issue": {
+      "title": "Contracts",
+      "none": "No contract issued.",
+      "formTitle": "Issue a contract",
+      "template": "Approved template version",
+      "templateOption": "{{name}} ({{code}}) – {{language}} version {{number}}",
+      "noTemplate": "No approved template version. Approve a template first.",
+      "start": "Contract start date",
+      "end": "Contract end date",
+      "endHelp": "Required for fixed-term, apprenticeship and internship contracts.",
+      "preview": "Preview the contract",
+      "previewTitle": "Contract preview",
+      "confirm": "Confirm and issue the contract",
+      "warnings": {
+        "TYPE_DIFFERS_FROM_CLASSIFICATION": "The contract type differs from the contract classification recorded for this employee on the start date."
+      },
+      "problems": {
+        "template": "Choose a template version.",
+        "start": "Enter the start date.",
+        "end": "Enter a valid end date."
+      },
+      "dateFields": {
+        "startDate": "Check the start date: it must be within the employment and within one year of today.",
+        "endDate": "Check the end date: it is required for this contract type and cannot be before the start date."
+      },
+      "missingValue": "This contract cannot be issued: “{{field}}” has no value for this employee.",
+      "columns": {
+        "type": "Type",
+        "period": "Period",
+        "language": "Language",
+        "state": "State",
+        "issued": "Issued"
+      },
+      "state": {
+        "ISSUED": "Issued – awaiting acknowledgement",
+        "ACKNOWLEDGED": "Acknowledged",
+        "VOID": "Void"
+      },
+      "view": "Show the contract",
+      "hide": "Hide the contract",
+      "void": "Void this contract",
+      "voidReason": "Reason",
+      "voidHelp": "Only a contract that has not been acknowledged can be voided. Its text and integrity reference are kept.",
+      "voidConfirm": "Confirm and void",
+      "voidReasons": {
+        "ISSUED_IN_ERROR": "Issued in error",
+        "WRONG_TEMPLATE": "Wrong template",
+        "WRONG_DATA": "Wrong information",
+        "OTHER": "Other reason"
+      },
+      "voided": "Voided on {{at}} – {{reason}}",
+      "more": "Show more contracts",
+      "announce": {
+        "issued": "The contract was issued.",
+        "voided": "The contract was voided."
+      },
+      "list": "List of contracts"
+    },
+    "document": {
+      "language": "Contract language: {{language}}",
+      "integrity": "Integrity reference: {{digest}}",
+      "print": "Print"
+    },
+    "evidence": {
+      "title": "Acknowledgement",
+      "at": "Acknowledged on {{at}}",
+      "statement": "Statement shown ({{language}})",
+      "integrity": "Evidence reference: {{digest}}",
+      "only": "This records only that the employee made the statement above."
+    },
+    "my": {
+      "title": "My contracts",
+      "intro": "Contracts your organization issued to you.",
+      "unauthorized": "This page is for employees of an organization.",
+      "signInRequired": "Sign in to see your contracts.",
+      "none": "You have no contract.",
+      "open": "Open the contract",
+      "back": "Back to my contracts",
+      "acknowledgeTitle": "Acknowledge receipt",
+      "disclaimer": "Acknowledging records only that you made the statement above about this contract as displayed. It is not an electronic signature.",
+      "acknowledge": "Acknowledge",
+      "acknowledged": "Acknowledged",
+      "tick": "Tick the statement first.",
+      "voided": "This contract was voided: it cannot be acknowledged.",
+      "changed": "The contract or the statement changed. The page was reloaded: read it again before acknowledging.",
+      "linkRequired": "Your account is not yet linked to your employee record. Contact your organization’s administrator."
     }
   }
 }

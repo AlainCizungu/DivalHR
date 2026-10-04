@@ -14,7 +14,9 @@
     "firstAdmin": "Premier administrateur",
     "accessReview": "Revue des accès",
     "employees": "Employés",
-    "employeeImport": "Importer des employés"
+    "employeeImport": "Importer des employés",
+    "contractTemplates": "Modèles de contrat",
+    "myContracts": "Mes contrats"
   },
   "locale": {
     "label": "Langue",
@@ -175,7 +177,26 @@
     "SEPARATION_ACCESS_TIMING_INVALID": "Ce moment de fin d’accès n’est pas possible pour ce dernier jour.",
     "SEPARATION_ACKNOWLEDGEMENT_REQUIRED": "Une confirmation requise manque.",
     "SEPARATION_REPORT_PLAN_REQUIRED": "Choisissez ce qu’il advient des collaborateurs directs.",
-    "SEPARATION_TOO_MANY_INTERVALS": "Trop de périodes de collaborateurs directs sont concernées pour enregistrer cette sortie en une fois."
+    "SEPARATION_TOO_MANY_INTERVALS": "Trop de périodes de collaborateurs directs sont concernées pour enregistrer cette sortie en une fois.",
+    "CONTRACT_TEMPLATE_NOT_FOUND": "Ce modèle de contrat n’existe pas dans votre organisation.",
+    "CONTRACT_NOT_FOUND": "Ce contrat n’existe pas.",
+    "CONTRACT_TEMPLATE_VERSION_CONFLICT": "Ce modèle a changé entre-temps. Rechargez-le et réessayez.",
+    "CONTRACT_TEMPLATE_NOT_DRAFT": "Seul un brouillon peut être modifié ou supprimé. Les versions approuvées et retirées ne changent jamais.",
+    "CONTRACT_TEMPLATE_NOT_APPROVED": "Cette version de modèle n’est pas approuvée, ou ne l’est plus.",
+    "CONTRACT_TEMPLATE_CODE_TAKEN": "Ce code de modèle est déjà utilisé dans votre organisation.",
+    "CONTRACT_PREVIEW_CHANGED": "L’employé, l’emploi ou le modèle a changé depuis l’aperçu. Prévisualisez de nouveau le contrat.",
+    "CONTRACT_VERSION_CONFLICT": "Ce contrat a changé entre-temps. Rechargez-le et réessayez.",
+    "CONTRACT_PERIOD_OVERLAP": "Cette période chevauche un autre contrat de cet emploi. Annulez ce contrat ou choisissez d’autres dates.",
+    "CONTRACT_EMPLOYMENT_ENDED": "Une sortie est enregistrée pour cet employé : aucun nouveau contrat ne peut être émis.",
+    "CONTRACT_NOT_VOIDABLE": "Seul un contrat émis dont la réception n’a pas été confirmée peut être annulé.",
+    "CONTRACT_NOT_ACKNOWLEDGEABLE": "La réception de ce contrat ne peut plus être confirmée.",
+    "CONTRACT_ACKNOWLEDGEMENT_CHANGED": "Le contrat ou la déclaration affichée a changé. Rechargez le contrat et relisez-le.",
+    "CONTRACT_TEMPLATE_INVALID": "Le texte ne respecte pas le format des contrats.",
+    "CONTRACT_VALUE_MISSING": "Un champ du modèle n’a pas de valeur pour cet employé.",
+    "CONTRACT_DATES_INVALID": "Vérifiez les dates du contrat.",
+    "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED": "Confirmez avoir vérifié le texte avant de l’approuver.",
+    "EMPLOYEE_LINK_REQUIRED": "Votre compte n’est pas encore relié à votre dossier d’employé. Contactez l’administrateur de votre organisation.",
+    "CONTRACT_TIMEOUT": "La demande a pris trop de temps et rien n’a été enregistré. Veuillez réessayer."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -1254,6 +1275,210 @@
       "cancelled": "La sortie (dernier jour le {{date}}) a été annulée.",
       "task": "{{task}} : {{status}}.",
       "retried": "Suppression de la connexion relancée."
+    }
+  },
+  "contracts": {
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les contrats.",
+    "signInRequired": "Connectez-vous pour gérer les contrats.",
+    "loading": "Chargement…",
+    "languages": {
+      "fr": "Français",
+      "en": "Anglais"
+    },
+    "templates": {
+      "title": "Modèles de contrat",
+      "intro": "Les modèles de contrat de travail de votre organisation. Votre organisation vérifie la rédaction juridique ; DivalHR n’en garantit pas la validité juridique.",
+      "empty": "Aucun modèle de contrat pour l’instant.",
+      "more": "Afficher plus de modèles",
+      "open": "Ouvrir {{name}}",
+      "back": "Retour aux modèles de contrat",
+      "columns": {
+        "code": "Code",
+        "name": "Nom",
+        "type": "Type de contrat",
+        "lines": "Versions en vigueur"
+      },
+      "line": {
+        "approved": "{{language}} : version {{number}} approuvée",
+        "draft": "{{language}} : brouillon en cours",
+        "none": "{{language}} : aucune version approuvée"
+      },
+      "create": {
+        "title": "Créer un modèle de contrat",
+        "code": "Code",
+        "codeHelp": "Lettres majuscules, chiffres, tirets et tirets bas ; 32 caractères au plus.",
+        "name": "Nom",
+        "type": "Type de contrat",
+        "submit": "Créer le modèle",
+        "problems": {
+          "code": "Saisissez un code au format indiqué.",
+          "name": "Saisissez un nom de 2 à 160 caractères.",
+          "type": "Choisissez un type de contrat."
+        }
+      },
+      "announce": {
+        "created": "Le modèle a été créé.",
+        "drafted": "Le brouillon a été enregistré.",
+        "deleted": "Le brouillon a été supprimé.",
+        "approved": "La version a été approuvée.",
+        "retired": "La version a été retirée."
+      },
+      "list": "Liste des modèles de contrat"
+    },
+    "versions": {
+      "title": "Versions",
+      "none": "Aucune version pour l’instant.",
+      "heading": "{{language}} – version {{number}}",
+      "state": {
+        "DRAFT": "Brouillon",
+        "APPROVED": "Approuvée",
+        "RETIRED": "Retirée"
+      },
+      "newDraft": "Rédiger un nouveau brouillon",
+      "language": "Langue",
+      "titleLabel": "Titre",
+      "body": "Texte",
+      "bodyHelp": "Texte brut uniquement. Une ligne commençant par # est un titre, ## un sous-titre et - un élément de liste ; une ligne vide termine un paragraphe. Les liens, adresses web, textes encodés et balises sont refusés.",
+      "placeholders": "Champ à insérer",
+      "insert": "Insérer le champ",
+      "check": "Vérifier le texte",
+      "valid": "Le texte respecte le format des contrats.",
+      "problemsTitle": "Corrigez le texte :",
+      "problemLine": "Ligne {{line}} : {{reason}}",
+      "problemTitle": "Titre : {{reason}}",
+      "save": "Enregistrer le brouillon",
+      "cancel": "Annuler",
+      "edit": "Modifier le brouillon",
+      "delete": "Supprimer le brouillon",
+      "view": "Afficher le texte",
+      "hide": "Masquer le texte",
+      "sample": "Rendu d’exemple (libellés d’exemple, jamais de données réelles d’employé)",
+      "approve": "Approuver cette version",
+      "approveConfirm": "J’ai vérifié ce texte ; DivalHR n’en garantit pas la validité juridique.",
+      "approveHelp": "L’approbation est définitive. La version approuvée précédente dans cette langue est retirée en même temps.",
+      "tickConfirm": "Cochez d’abord la confirmation.",
+      "retire": "Retirer cette version",
+      "retireHelp": "Une version retirée ne peut plus être émise. Les contrats déjà émis conservent leur texte.",
+      "bodySha256": "Référence d’intégrité du texte : {{digest}}",
+      "updated": "Dernière modification le {{at}}"
+    },
+    "problems": {
+      "EMPTY": "le texte est vide.",
+      "TOO_LONG": "le texte est trop long.",
+      "CONTROL_CHARACTER": "il contient un caractère de contrôle.",
+      "UNSAFE_CHARACTER": "il contient un caractère invisible ou non pris en charge.",
+      "URI_SCHEME": "les liens et schémas web ne sont pas autorisés.",
+      "PROTOCOL_RELATIVE": "les adresses commençant par // ne sont pas autorisées.",
+      "WEB_ADDRESS": "les adresses web ne sont pas autorisées.",
+      "ENCODED_CONTENT": "le texte encodé (comme %3C ou &lt;) n’est pas autorisé.",
+      "MARKDOWN_LINK": "la syntaxe de lien ou d’image n’est pas autorisée.",
+      "HTML_MARKUP": "les balises ne sont pas autorisées.",
+      "UNKNOWN_PLACEHOLDER": "ce champ n’existe pas.",
+      "MALFORMED_PLACEHOLDER": "ce champ est mal écrit ; entourez un nom de champ de doubles accolades.",
+      "TOO_MANY_PLACEHOLDERS": "le texte contient trop de champs.",
+      "BRACES": "les doubles accolades sont réservées aux champs.",
+      "HEADING_EMPTY": "le titre n’a pas de texte."
+    },
+    "fields": {
+      "employee.givenNames": "Prénoms",
+      "employee.familyName": "Nom de famille",
+      "employee.fullName": "Nom complet",
+      "employee.number": "Matricule",
+      "organization.name": "Organisation",
+      "legalEntity.name": "Entité juridique",
+      "site.name": "Site",
+      "employment.startDate": "Date d’embauche",
+      "contract.type": "Type de contrat",
+      "contract.startDate": "Date de début du contrat",
+      "contract.endDate": "Date de fin du contrat",
+      "issue.date": "Date d’émission"
+    },
+    "issue": {
+      "title": "Contrats",
+      "none": "Aucun contrat émis.",
+      "formTitle": "Émettre un contrat",
+      "template": "Version de modèle approuvée",
+      "templateOption": "{{name}} ({{code}}) – {{language}} version {{number}}",
+      "noTemplate": "Aucune version de modèle approuvée. Approuvez d’abord un modèle.",
+      "start": "Date de début du contrat",
+      "end": "Date de fin du contrat",
+      "endHelp": "Obligatoire pour les contrats à durée déterminée, d’apprentissage et de stage.",
+      "preview": "Prévisualiser le contrat",
+      "previewTitle": "Aperçu du contrat",
+      "confirm": "Confirmer et émettre le contrat",
+      "warnings": {
+        "TYPE_DIFFERS_FROM_CLASSIFICATION": "Le type de contrat diffère de la catégorie de contrat enregistrée pour cet employé à la date de début."
+      },
+      "problems": {
+        "template": "Choisissez une version de modèle.",
+        "start": "Saisissez la date de début.",
+        "end": "Saisissez une date de fin valide."
+      },
+      "dateFields": {
+        "startDate": "Vérifiez la date de début : elle doit se situer pendant l’emploi et à moins d’un an d’aujourd’hui.",
+        "endDate": "Vérifiez la date de fin : elle est obligatoire pour ce type de contrat et ne peut pas précéder la date de début."
+      },
+      "missingValue": "Ce contrat ne peut pas être émis : « {{field}} » n’a pas de valeur pour cet employé.",
+      "columns": {
+        "type": "Type",
+        "period": "Période",
+        "language": "Langue",
+        "state": "État",
+        "issued": "Émis le"
+      },
+      "state": {
+        "ISSUED": "Émis – en attente d’accusé de réception",
+        "ACKNOWLEDGED": "Réception confirmée",
+        "VOID": "Annulé"
+      },
+      "view": "Afficher le contrat",
+      "hide": "Masquer le contrat",
+      "void": "Annuler ce contrat",
+      "voidReason": "Motif",
+      "voidHelp": "Seul un contrat dont la réception n’a pas été confirmée peut être annulé. Son texte et sa référence d’intégrité sont conservés.",
+      "voidConfirm": "Confirmer l’annulation",
+      "voidReasons": {
+        "ISSUED_IN_ERROR": "Émis par erreur",
+        "WRONG_TEMPLATE": "Mauvais modèle",
+        "WRONG_DATA": "Informations erronées",
+        "OTHER": "Autre motif"
+      },
+      "voided": "Annulé le {{at}} – {{reason}}",
+      "more": "Afficher plus de contrats",
+      "announce": {
+        "issued": "Le contrat a été émis.",
+        "voided": "Le contrat a été annulé."
+      },
+      "list": "Liste des contrats"
+    },
+    "document": {
+      "language": "Langue du contrat : {{language}}",
+      "integrity": "Référence d’intégrité : {{digest}}",
+      "print": "Imprimer"
+    },
+    "evidence": {
+      "title": "Accusé de réception",
+      "at": "Réception confirmée le {{at}}",
+      "statement": "Déclaration affichée ({{language}})",
+      "integrity": "Référence de la preuve : {{digest}}",
+      "only": "Ceci enregistre uniquement que l’employé a fait la déclaration ci-dessus."
+    },
+    "my": {
+      "title": "Mes contrats",
+      "intro": "Les contrats que votre organisation vous a remis.",
+      "unauthorized": "Cette page est réservée aux employés d’une organisation.",
+      "signInRequired": "Connectez-vous pour voir vos contrats.",
+      "none": "Vous n’avez aucun contrat.",
+      "open": "Ouvrir le contrat",
+      "back": "Retour à mes contrats",
+      "acknowledgeTitle": "Accuser réception",
+      "disclaimer": "Accuser réception enregistre uniquement que vous avez fait la déclaration ci-dessus au sujet de ce contrat tel qu’il est affiché. Ce n’est pas une signature électronique.",
+      "acknowledge": "Accuser réception",
+      "acknowledged": "Réception confirmée",
+      "tick": "Cochez d’abord la déclaration.",
+      "voided": "Ce contrat a été annulé : sa réception ne peut pas être confirmée.",
+      "changed": "Le contrat ou la déclaration a changé. La page a été rechargée : relisez-la avant d’accuser réception.",
+      "linkRequired": "Votre compte n’est pas encore relié à votre dossier d’employé. Contactez l’administrateur de votre organisation."
     }
   }
 }

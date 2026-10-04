@@ -118,6 +118,9 @@ divalhr:
       employee-import: ${DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE:10}
       employee-read: ${DIVALHR_EMPLOYEE_READ_REQUESTS_PER_MINUTE:60}
       employment-change: ${DIVALHR_EMPLOYMENT_CHANGE_REQUESTS_PER_MINUTE:20}
+      contract-read: ${DIVALHR_CONTRACT_READ_REQUESTS_PER_MINUTE:60}
+      contract-write: ${DIVALHR_CONTRACT_WRITE_REQUESTS_PER_MINUTE:20}
+      contract-self: ${DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE:30}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -130,6 +133,9 @@ divalhr:
         window: 10m
       employment-change-write:
         requests: ${DIVALHR_EMPLOYMENT_CHANGE_TENANT_WRITES:200}
+        window: 10m
+      contract-write:
+        requests: ${DIVALHR_CONTRACT_TENANT_WRITES:200}
         window: 10m
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).
@@ -169,6 +175,15 @@ divalhr:
     jobs:
       enabled: ${DIVALHR_SEPARATION_JOBS_ENABLED:true}
       interval: PT1M
+  # MVP-030: contract write limits and the read-only daily integrity job (ADR 0009).
+  contracts:
+    statement-timeout: 5s
+    transaction-timeout: 15s
+    integrity-batch-size: 200
+    jobs:
+      enabled: ${DIVALHR_CONTRACT_JOBS_ENABLED:true}
+      initial-delay: PT10M
+      interval: P1D
   # MVP-013: durable evidence of privileged authorization denials. Budgets are in-process per
   # instance (cluster ceiling: value x active instances); the bulkhead pool is separate from the
   # application pool.

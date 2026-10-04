@@ -94,4 +94,23 @@ class TenantPredicateArchitectureTest {
           .and()
           .areNotAnnotatedWith(CrossTenantAccess.class)
           .should(TAKE_TENANT_ID);
+
+  /**
+   * MVP-030: documents repositories follow the same rule; the read-only contract integrity job is
+   * marked {@link CrossTenantAccess}.
+   */
+  @ArchTest
+  static final ArchRule documentsRepositoriesRequireTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.documents.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleNameEndingWith("Repository")
+          .and()
+          .arePublic()
+          .and()
+          .areNotAnnotatedWith(CrossTenantAccess.class)
+          .should(TAKE_TENANT_ID);
 }

@@ -92,6 +92,40 @@ public interface EmployeeAccessLinks {
   RetryOutcome retry(TenantId tenant, UUID separationId, String actor, String correlationId);
 
   /**
+   * The caller's own employee binding (MVP-030 self-service; MANDATORY): the active link of the
+   * caller's {@code employee} membership in the tenant, with the link and the membership locked
+   * {@code FOR SHARE} until the caller's transaction ends (an unlink or a revocation waits). Lock
+   * order step 4 (ADR 0008/0009).
+   *
+   * @param tenant verified tenant
+   * @param subject verified subject
+   * @return the binding, or empty when the caller has no active link
+   */
+  Optional<SelfLink> linkedEmployee(TenantId tenant, String subject);
+
+  /**
+   * An employee's own active link.
+   *
+   * @param employeeId the linked employee
+   * @param membershipId the caller's membership
+   * @param linkId the active link
+   */
+  record SelfLink(UUID employeeId, UUID membershipId, UUID linkId) {
+
+    /** Requires every ID. */
+    public SelfLink {
+      Objects.requireNonNull(employeeId, "employeeId");
+      Objects.requireNonNull(membershipId, "membershipId");
+      Objects.requireNonNull(linkId, "linkId");
+    }
+
+    @Override
+    public String toString() {
+      return "SelfLink[redacted]";
+    }
+  }
+
+  /**
    * An employee's active link.
    *
    * @param linkId link

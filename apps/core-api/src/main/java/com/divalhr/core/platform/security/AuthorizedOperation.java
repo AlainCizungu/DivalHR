@@ -11,11 +11,14 @@ import java.util.Objects;
  * operation, scope and effective tenant of their denial evidence; nothing here comes from the
  * request itself.
  *
- * @param scope privileged scope
+ * @param scope scope
  * @param operation the handler's operation name (possibly empty)
  * @param effectiveTenant the tenant confirmed by token and membership; {@code null} for platform
+ * @param privileged whether the operation requires a privileged role (MVP-013 durable denial
+ *     evidence applies only then; A30-1)
  */
-public record AuthorizedOperation(Scope scope, String operation, TenantId effectiveTenant) {
+public record AuthorizedOperation(
+    Scope scope, String operation, TenantId effectiveTenant, boolean privileged) {
 
   private static final String ATTRIBUTE = AuthorizedOperation.class.getName();
 

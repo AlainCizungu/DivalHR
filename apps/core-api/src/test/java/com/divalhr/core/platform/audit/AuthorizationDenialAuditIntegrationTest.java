@@ -11,7 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.divalhr.core.platform.audit.AuthorizationDenial.Scope;
 import com.divalhr.core.platform.audit.AuthorizationDenial.Stage;
 import com.divalhr.core.platform.error.GlobalExceptionHandler;
+import com.divalhr.core.platform.security.AssuranceEvidence;
 import com.divalhr.core.platform.security.PlatformScoped;
+import com.divalhr.core.platform.security.ScopeAuthorizationInterceptor;
 import com.divalhr.core.platform.security.TenantScoped;
 import com.divalhr.core.platform.web.CorrelationId;
 import com.divalhr.core.support.Hierarchy;
@@ -141,7 +143,27 @@ class AuthorizationDenialAuditIntegrationTest {
           "employee-separation.cancel-preview",
           "employee-separation.cancel",
           "separation-task.update",
-          "access-revocation.retry");
+          "access-revocation.retry",
+          // MVP-030 (A30-1): tenant-admin contract operations are privileged.
+          "contract-template.list",
+          "contract-template.create",
+          "contract-template.validate",
+          "contract-template.read",
+          "contract-template-version.create",
+          "contract-template-version.read",
+          "contract-template-version.update",
+          "contract-template-version.delete",
+          "contract-template-version.approve",
+          "contract-template-version.retire",
+          "contract.list",
+          "contract.preview",
+          "contract.issue",
+          "contract.read",
+          "contract.void");
+
+  /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
+  private static final Set<String> SELF_SERVICE_OPERATIONS =
+      Set.of("contract.self-list", "contract.self-read", "contract.acknowledge");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -493,6 +515,11 @@ class AuthorizationDenialAuditIntegrationTest {
   private record Privileged(String operation, Scope scope, RequestMethod method, String path) {}
 
   private List<Privileged> privilegedHandlers() {
+    return scopedHandlers(true);
+  }
+
+  /** Tenant-scoped handlers whose role is privileged (MVP-013) or not (employee self-service). */
+  private List<Privileged> scopedHandlers(boolean privileged) {
     List<Privileged> found = new ArrayList<>();
     for (Map.Entry<RequestMappingInfo, HandlerMethod> entry :
         mappings.getHandlerMethods().entrySet()) {
@@ -503,7 +530,13 @@ class AuthorizationDenialAuditIntegrationTest {
       PlatformScoped platform = handler.getMethodAnnotation(PlatformScoped.class);
       TenantScoped scoped =
           AnnotatedElementUtils.findMergedAnnotation(handler.getMethod(), TenantScoped.class);
-      if (platform == null && (scoped == null || scoped.role().isEmpty())) {
+      if (platform != null && !privileged) {
+        continue;
+      }
+      if (platform == null
+          && (scoped == null
+              || scoped.role().isEmpty()
+              || AssuranceEvidence.requiredFor(scoped.role()) != privileged)) {
         continue;
       }
       RequestMethod method = entry.getKey().getMethodsCondition().getMethods().iterator().next();
@@ -547,7 +580,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(51);
+    assertThat(handlers).hasSize(66);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).
@@ -588,6 +621,95 @@ class AuthorizationDenialAuditIntegrationTest {
         single(c, nonMember, handler.operation(), Scope.TENANT, Stage.MEMBERSHIP, null);
       }
     }
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Employee self-service denials are not durable evidence (MVP-030, A30-1)
+  // ------------------------------------------------------------------------------------------
+
+  @Test
+  void employeeSelfServiceDenialsWriteNoRowAndAreCountedOnly() throws Exception {
+    List<Privileged> handlers = scopedHandlers(false);
+    Set<String> operations = new TreeSet<>();
+    handlers.forEach(h -> operations.add(h.operation()));
+    assertThat(operations).isEqualTo(new TreeSet<>(SELF_SERVICE_OPERATIONS));
+
+    long rowsBefore = denialRows();
+    double countedBefore = selfServiceDenials();
+    int calls = 0;
+    while (calls < 50) {
+      for (Privileged handler : handlers) {
+        // Role: a tenant administrator holds no employee role.
+        String admin = subject("self-role");
+        Memberships.grant(tenant, admin, "tenant-admin");
+        assertThat(
+                perform(call(handler, token(tenant, admin, null, "tenant-admin")), correlation())
+                    .getResponse()
+                    .getStatus())
+            .isEqualTo(403);
+        // Tenant context: an employee token without a tenant.
+        assertThat(
+                perform(
+                        call(handler, token(null, subject("self-ctx"), null, "employee")),
+                        correlation())
+                    .getResponse()
+                    .getStatus())
+            .isEqualTo(403);
+        // Membership: an employee of no membership in this tenant.
+        assertThat(
+                perform(
+                        call(handler, token(tenant, subject("self-member"), null, "employee")),
+                        correlation())
+                    .getResponse()
+                    .getStatus())
+            .isEqualTo(403);
+        calls += 3;
+      }
+    }
+    assertThat(denialRows()).as("no platform.authorization_denial rows").isEqualTo(rowsBefore);
+    assertThat(selfServiceDenials()).isEqualTo(countedBefore + calls);
+  }
+
+  @Test
+  void anUnlinkedEmployeeGetsTheBusinessDenialWithoutARow() throws Exception {
+    String employee = subject("self-unlinked");
+    Memberships.grant(tenant, employee, "employee");
+    long rowsBefore = denialRows();
+    double linkRequiredBefore = selfServiceDenials("link_required");
+    for (int i = 0; i < 10; i++) {
+      MvcResult result =
+          perform(
+              get("/api/v1/me/contracts")
+                  .header("Authorization", token(tenant, employee, null, "employee")),
+              correlation());
+      assertThat(result.getResponse().getStatus()).isEqualTo(403);
+      assertThat(JSON.readTree(result.getResponse().getContentAsString()).get("code").asText())
+          .isEqualTo("EMPLOYEE_LINK_REQUIRED");
+    }
+    assertThat(denialRows()).isEqualTo(rowsBefore);
+    assertThat(selfServiceDenials("link_required")).isEqualTo(linkRequiredBefore + 10);
+  }
+
+  private long denialRows() {
+    Long count =
+        jdbc.queryForObject("SELECT count(*) FROM platform.authorization_denial", Long.class);
+    return count == null ? 0 : count;
+  }
+
+  private double selfServiceDenials() {
+    return meters.find(ScopeAuthorizationInterceptor.SELF_SERVICE_DENIALS).counters().stream()
+        .mapToDouble(Counter::count)
+        .sum();
+  }
+
+  private double selfServiceDenials(String reason) {
+    return meters
+        .find(ScopeAuthorizationInterceptor.SELF_SERVICE_DENIALS)
+        .tag("reason", reason)
+        .counters()
+        .stream()
+        .mapToDouble(Counter::count)
+        .sum();
   }
 
   // ------------------------------------------------------------------------------------------

@@ -468,7 +468,7 @@ class SeparationMigrationIntegrationTest {
         db -> {
           migrate(db.url(), "14.2");
           String v14 = signature(db);
-          migrate(db.url(), "latest");
+          migrate(db.url(), "15");
           String v15 = signature(db);
           assertThat(v15)
               .isNotEqualTo(v14)
