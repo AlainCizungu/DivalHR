@@ -15,7 +15,12 @@ public enum ChangeReason {
   /** An imported value was wrong. */
   IMPORT_ERROR(true),
   /** A document showed the recorded value was wrong. */
-  DOCUMENT_RECEIVED(true);
+  DOCUMENT_RECEIVED(true),
+  /**
+   * The manager was separated (MVP-022): recorded only on the direct-report changes a separation
+   * generates; never accepted in a request.
+   */
+  MANAGER_SEPARATED(false);
 
   private final boolean correction;
 

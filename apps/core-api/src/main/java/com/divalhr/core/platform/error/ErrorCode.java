@@ -155,7 +155,45 @@ public enum ErrorCode {
   /** The placement cannot be assigned (params.field, params.reason) (MVP-021). */
   PLACEMENT_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
   /** The change's database work timed out and was rolled back entirely (MVP-021). */
-  EMPLOYMENT_CHANGE_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE);
+  EMPLOYMENT_CHANGE_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE),
+  /** The separation does not exist for that employee in the tenant (MVP-022). */
+  SEPARATION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The checklist task does not exist for that separation (MVP-022). */
+  SEPARATION_TASK_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** No membership of the caller's tenant holds the address (MVP-022). */
+  MEMBERSHIP_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The employment already has a separation that is not cancelled (MVP-022). */
+  SEPARATION_EXISTS(HttpStatus.CONFLICT),
+  /** Future effects after the last day must be cancelled first (params.count) (MVP-022). */
+  SEPARATION_FUTURE_CHANGES(HttpStatus.CONFLICT),
+  /** The linked access is protected (params.reason SELF or ADMIN_ACCESS) (MVP-022). */
+  SEPARATION_PROTECTED(HttpStatus.CONFLICT),
+  /** The recomputed separation differs from the preview (MVP-022). */
+  SEPARATION_PREVIEW_CHANGED(HttpStatus.CONFLICT),
+  /** The separation can no longer be cancelled (params.reason) (MVP-022). */
+  SEPARATION_NOT_CANCELLABLE(HttpStatus.CONFLICT),
+  /** The checklist task changed since it was read (MVP-022). */
+  SEPARATION_TASK_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** The checklist of a cancelled separation is closed (MVP-022). */
+  SEPARATION_TASK_CLOSED(HttpStatus.CONFLICT),
+  /** The link cannot be created (params.reason) (MVP-022). */
+  ACCESS_LINK_CONFLICT(HttpStatus.CONFLICT),
+  /** A separation holds the link (MVP-022). */
+  ACCESS_LINK_LOCKED(HttpStatus.CONFLICT),
+  /** The link changed since it was read (MVP-022). */
+  ACCESS_LINK_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** The sign-in removal does not need a manual retry (MVP-022). */
+  ACCESS_REVOCATION_NOT_RETRYABLE(HttpStatus.CONFLICT),
+  /** The last day is outside the permitted window (MVP-022). */
+  SEPARATION_DATE_OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** IMMEDIATELY requires a last day of today or earlier (MVP-022, A22-1). */
+  SEPARATION_ACCESS_TIMING_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** An acknowledgement the preview required is missing (params.acknowledgement) (MVP-022). */
+  SEPARATION_ACKNOWLEDGEMENT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** Direct-report intervals need a plan (MVP-022). */
+  SEPARATION_REPORT_PLAN_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** More direct-report intervals than one separation may rewrite (params.count) (MVP-022). */
+  SEPARATION_TOO_MANY_INTERVALS(HttpStatus.UNPROCESSABLE_CONTENT);
 
   private final HttpStatus status;
 

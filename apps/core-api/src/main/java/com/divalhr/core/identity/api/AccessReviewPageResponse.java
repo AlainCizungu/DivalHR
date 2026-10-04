@@ -24,12 +24,13 @@ public record AccessReviewPageResponse(
   }
 
   /**
-   * One active membership.
+   * One membership: active, or (MVP-022) revoked by a separation.
    *
    * @param membershipId membership
    * @param email confidential address, or null when not recorded
    * @param role tenant role
    * @param grantedAt membership creation
+   * @param accessState {@code ACTIVE} or {@code REVOKED}
    * @param directScope granted scope (TENANT only until story S1)
    * @param effectiveScope effective scope
    * @param matchedUnit the filtered unit, or null
@@ -40,6 +41,7 @@ public record AccessReviewPageResponse(
       @JsonInclude(JsonInclude.Include.ALWAYS) String email,
       String role,
       Instant grantedAt,
+      String accessState,
       DirectScope directScope,
       EffectiveScope effectiveScope,
       @JsonInclude(JsonInclude.Include.ALWAYS) MatchedUnit matchedUnit) {}

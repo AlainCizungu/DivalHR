@@ -10,6 +10,7 @@ import com.divalhr.core.people.api.EmploymentHistoryResponses.PreviewWarning;
 import com.divalhr.core.people.domain.history.Assignment;
 import com.divalhr.core.people.domain.history.AssignmentKind;
 import com.divalhr.core.people.domain.history.AssignmentValue;
+import com.divalhr.core.people.domain.history.ChangeReason;
 import com.divalhr.core.people.domain.history.ChangeTiming;
 import com.divalhr.core.people.domain.history.ChangeType;
 import com.divalhr.core.people.domain.history.EmploymentTimeline;
@@ -574,6 +575,8 @@ public class EmploymentChangeService {
     LocalDate today = calendar.today(tenant);
     if (change.type() != ChangeType.CHANGE
         || change.cancelled()
+        // MVP-022: a separation's direct-report changes are reversed only with the separation.
+        || change.reason() == ChangeReason.MANAGER_SEPARATED
         || !change.effectiveFrom().isAfter(today)) {
       throw new ApiException(ErrorCode.EMPLOYMENT_CHANGE_NOT_CANCELLABLE, Map.of());
     }

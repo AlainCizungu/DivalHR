@@ -42,18 +42,41 @@ public class BusinessCalendar {
    * @return the business date
    */
   public LocalDate today(TenantId tenant) {
-    ZoneId zone =
-        organizations
-            .find(tenant)
-            .map(
-                summary -> {
-                  try {
-                    return ZoneId.of(summary.timezone());
-                  } catch (DateTimeException invalid) {
-                    throw new IllegalStateException("organization time zone is not valid");
-                  }
-                })
-            .orElseThrow(() -> new IllegalStateException("organization not found"));
-    return LocalDate.now(clock.withZone(zone));
+    return LocalDate.now(clock.withZone(zone(tenant)));
+  }
+
+  /**
+   * The instant a business day starts for a tenant (MVP-022: a separation is effective at the start
+   * of the day after the last day).
+   *
+   * @param tenant verified tenant
+   * @param day business date
+   * @return its first instant in the organization's time zone
+   */
+  public java.time.Instant startOf(TenantId tenant, LocalDate day) {
+    return day.atStartOfDay(zone(tenant)).toInstant();
+  }
+
+  /**
+   * The current instant of the calendar's clock.
+   *
+   * @return now
+   */
+  public java.time.Instant now() {
+    return clock.instant();
+  }
+
+  private ZoneId zone(TenantId tenant) {
+    return organizations
+        .find(tenant)
+        .map(
+            summary -> {
+              try {
+                return ZoneId.of(summary.timezone());
+              } catch (DateTimeException invalid) {
+                throw new IllegalStateException("organization time zone is not valid");
+              }
+            })
+        .orElseThrow(() -> new IllegalStateException("organization not found"));
   }
 }

@@ -130,7 +130,18 @@ class AuthorizationDenialAuditIntegrationTest {
           "employment-change.preview",
           "employment-change.create",
           "employment-change.cancel-preview",
-          "employment-change.cancel");
+          "employment-change.cancel",
+          "employee-access-link.read",
+          "employee-access-link.lookup",
+          "employee-access-link.create",
+          "employee-access-link.remove",
+          "employee-separation.read",
+          "employee-separation.preview",
+          "employee-separation.create",
+          "employee-separation.cancel-preview",
+          "employee-separation.cancel",
+          "separation-task.update",
+          "access-revocation.retry");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

@@ -2,6 +2,7 @@ package com.divalhr.core.identity.internal.keycloak;
 
 import com.divalhr.core.identity.application.IdentityDirectory;
 import com.divalhr.core.identity.application.IdentityProviderUnavailableException;
+import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.platform.web.CorrelationId;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -32,10 +33,12 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>Issue #31: the provisioner client holds no Keycloak admin permission. It calls only the narrow
  * extension {@code divalhr-provisioning} (contract {@code
- * packages/shared-contracts/openapi/keycloak-provisioning.yaml}), whose three operations are keyed
- * by invitation ID and act only on the identity created for that invitation. The extension decides
- * the role group, attributes, required actions and setup-email settings; this adapter sends only
- * the normalized address, the tenant role, the tenant ID from the invitation and the locale.
+ * packages/shared-contracts/openapi/keycloak-provisioning.yaml}), whose three invitation operations
+ * are keyed by invitation ID and act only on the identity created for that invitation, and whose
+ * MVP-022 access revocation is keyed by tenant and subject and acts only on an employee identity of
+ * that tenant created by the extension. The extension decides the role group, attributes, required
+ * actions and setup-email settings; this adapter sends only the normalized address, the tenant
+ * role, the tenant ID from the invitation and the locale.
  *
  * <p>Response bodies, addresses and tokens are never logged.
  */
@@ -132,6 +135,39 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
     throw failure(reply);
   }
 
+  @Override
+  public RevocationOutcome revokeAccess(TenantId tenant, String subject, UUID revocationId) {
+    if (subject == null || !ID.matcher(subject).matches()) {
+      // Never put a non-canonical value in a provider path: the provider would refuse it anyway.
+      return RevocationOutcome.REFUSED;
+    }
+    String path =
+        "/realms/"
+            + properties.realm()
+            + "/divalhr-provisioning/v1/tenants/"
+            + tenant
+            + "/identities/"
+            + subject
+            + "/access-revocation";
+    Reply reply = call("PUT", path, null, revocationId);
+    return switch (reply.status()) {
+      case 200 -> RevocationOutcome.REVOKED;
+      case 404 -> {
+        if ("IDENTITY_NOT_FOUND".equals(reply.code())) {
+          yield RevocationOutcome.ABSENT;
+        }
+        throw failure(reply);
+      }
+      case 409 -> {
+        if ("REVOCATION_REFUSED".equals(reply.code())) {
+          yield RevocationOutcome.REFUSED;
+        }
+        throw failure(reply);
+      }
+      default -> throw failure(reply);
+    };
+  }
+
   // ---------------------------------------------------------------------------------------------
 
   /** HTTP status and stable error code (no other content is kept). */
@@ -146,6 +182,10 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
   }
 
   private Reply call(String method, String path, String body) {
+    return call(method, path, body, null);
+  }
+
+  private Reply call(String method, String path, String body, UUID revocationId) {
     String correlationId = MDC.get(CorrelationId.MDC_KEY);
     try {
       RestClient.RequestBodySpec spec =
@@ -156,6 +196,9 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
                     headers.setBearerAuth(token());
                     if (correlationId != null) {
                       headers.set(CorrelationId.HEADER, correlationId);
+                    }
+                    if (revocationId != null) {
+                      headers.set("X-Revocation-Id", revocationId.toString());
                     }
                   });
       if (body != null) {

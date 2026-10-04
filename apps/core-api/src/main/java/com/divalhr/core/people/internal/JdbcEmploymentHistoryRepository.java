@@ -362,6 +362,27 @@ public class JdbcEmploymentHistoryRepository {
         .update();
   }
 
+  /**
+   * Ends or reopens an employment and sets its version (MVP-022; the V15 trigger allows it only
+   * with a separation that ends it on that day, or once that separation is cancelled).
+   *
+   * @param tenant verified tenant
+   * @param employmentId employment
+   * @param end the last day, or {@code null} to reopen
+   * @param version the new version
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void setEnd(TenantId tenant, UUID employmentId, LocalDate end, long version) {
+    jdbc.sql(
+            "UPDATE people.employment SET effective_to = :end, version = :version"
+                + " WHERE tenant_id = :tenant AND id = :id")
+        .param("end", end)
+        .param("version", version)
+        .param("tenant", tenant.value())
+        .param("id", employmentId)
+        .update();
+  }
+
   private static EmploymentRecord employment(ResultSet rs, int row) throws SQLException {
     return new EmploymentRecord(
         rs.getObject("id", UUID.class),
@@ -665,12 +686,28 @@ public class JdbcEmploymentHistoryRepository {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void insertChange(TenantId tenant, ChangeRecord change, String recordedBy) {
+    insertChange(tenant, change, recordedBy, null);
+  }
+
+  /**
+   * Inserts a change bound to a separation (MVP-022): its SEPARATION change, the direct-report
+   * changes it generates and the cancellations that reverse them.
+   *
+   * @param tenant verified tenant
+   * @param change the change
+   * @param recordedBy verified subject
+   * @param separationId the separation, or {@code null}
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void insertChange(
+      TenantId tenant, ChangeRecord change, String recordedBy, UUID separationId) {
     jdbc.sql(
             "INSERT INTO people.employment_change (id, tenant_id, employee_id, employment_id,"
                 + " type, effective_from, kinds, reason_code, timing, cancels_change_id, state,"
-                + " recorded_at, recorded_by, version_after) VALUES (:id, :tenant, :employee,"
-                + " :employment, :type, :from, :kinds, :reason, :timing, :cancels, 'ACTIVE', :at,"
-                + " :by, :version)")
+                + " recorded_at, recorded_by, version_after, separation_id) VALUES (:id, :tenant,"
+                + " :employee, :employment, :type, :from, :kinds, :reason, :timing, :cancels,"
+                + " 'ACTIVE', :at, :by, :version, :separation)")
+        .param("separation", separationId)
         .param("id", change.id())
         .param("tenant", tenant.value())
         .param("employee", change.employeeId())
@@ -699,12 +736,17 @@ public class JdbcEmploymentHistoryRepository {
   @Transactional(propagation = Propagation.MANDATORY)
   public void checkDeferred(TenantId tenant) {
     java.util.Objects.requireNonNull(tenant, "tenant");
-    // Only the V14 checks: other deferred checks (the idempotency record's) stay at commit.
+    // Only the V14 and V15 history checks: other deferred checks (the idempotency record's, the
+    // change log's separation key) stay at commit.
     jdbc.sql(
             "SET CONSTRAINTS people.employment_placement_coverage,"
                 + " people.employment_placement_coverage_on_employment,"
                 + " people.employment_manager_acyclic, people.employment_change_shape,"
-                + " people.employment_assignment_change_shape IMMEDIATE")
+                + " people.employment_assignment_change_shape,"
+                + " people.employment_assignment_within_employment,"
+                + " people.employment_within_employment, people.employment_manager_employed,"
+                + " people.employment_manager_employed_on_employment,"
+                + " people.employment_separation_shape IMMEDIATE")
         .update();
   }
 

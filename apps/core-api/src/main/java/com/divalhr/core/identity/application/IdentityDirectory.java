@@ -46,6 +46,31 @@ public interface IdentityDirectory {
    */
   CompensationOutcome compensate(UUID invitationId);
 
+  /**
+   * Disables a separated employee's identity in the provider and ends its sessions (MVP-022,
+   * D22-13). The provider acts only on an identity it created, of exactly this tenant and with the
+   * employee role group; anything else is refused unchanged. Idempotent: an identity that is
+   * already disabled and has no session is reported revoked again.
+   *
+   * @param tenant the revocation's tenant
+   * @param subject the subject read from the membership just before the call (A22-5)
+   * @param revocationId the revocation (audit correlation in the provider)
+   * @return what the provider did
+   * @throws IdentityProviderUnavailableException when the provider cannot be reached or answers
+   *     anything else
+   */
+  RevocationOutcome revokeAccess(TenantId tenant, String subject, UUID revocationId);
+
+  /** Outcome of {@link #revokeAccess}. */
+  enum RevocationOutcome {
+    /** The identity is disabled and has no session. */
+    REVOKED,
+    /** No identity has this subject: nothing to revoke. */
+    ABSENT,
+    /** Not an employee identity of this tenant created by the provider extension: unchanged. */
+    REFUSED
+  }
+
   /** Outcome of {@link #requestCredentialSetup}. */
   enum CredentialSetupOutcome {
     /** Setup is pending: the action email was sent. */
