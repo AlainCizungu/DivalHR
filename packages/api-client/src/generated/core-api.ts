@@ -2300,7 +2300,7 @@ export interface components {
         /** @enum {string} */
         ContractTemplateVersionState: "DRAFT" | "APPROVED" | "RETIRED";
         /**
-         * @description ISSUED (awaiting the employee's acknowledgement), ACKNOWLEDGED (the employee made the stated confirmation; never an electronic signature) or VOID.
+         * @description ISSUED (awaiting the employee's acknowledgement), ACKNOWLEDGED (the employee made the stated confirmation; not an electronic signature) or VOID.
          * @enum {string}
          */
         ContractState: "ISSUED" | "ACKNOWLEDGED" | "VOID";
@@ -2491,7 +2491,7 @@ export interface components {
             /** @description DIVALHR-CONTRACT-PREVIEW v1 digest (A30-4). */
             previewDigest: string;
         };
-        /** @description What the employee confirmed and when. Never an electronic signature. */
+        /** @description What the employee confirmed and when. This is not an electronic signature. */
         ContractAcknowledgementEvidence: {
             /** Format: date-time */
             acknowledgedAt: string;

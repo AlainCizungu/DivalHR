@@ -330,6 +330,111 @@ class ContractConcurrencyIntegrationTest {
   }
 
   @Test
+  void anIssueRacingASeparationNeitherDeadlocksNorIssuesAfterIt() throws Exception {
+    World w = world();
+    UUID employee = hire(w);
+    String version = approvedVersion(w);
+    Map<String, Object> issue = issueBody(w, employee, version, w.today().minusDays(5));
+    Map<String, Object> separation = new LinkedHashMap<>();
+    separation.put("lastDay", w.today().toString());
+    separation.put("reasonCode", "RESIGNATION");
+    separation.put("accessTiming", "END_OF_LAST_DAY");
+    JsonNode preview =
+        expect(
+            mvc.perform(
+                    postJson(
+                        w.admin(),
+                        "/api/v1/employees/" + employee + "/separations/preview",
+                        JSON.writeValueAsString(separation)))
+                .andReturn(),
+            200);
+    Map<String, Object> commit = new LinkedHashMap<>(separation);
+    commit.put("expectedVersion", preview.get("expectedVersion").asLong());
+    commit.put("previewDigest", preview.get("previewDigest").asText());
+    List<String> acks = new ArrayList<>();
+    preview.get("requiredAcknowledgements").forEach(a -> acks.add(a.asText()));
+    commit.put("acknowledgements", acks);
+    List<String> outcomes =
+        race(
+            keyed(w.admin(), "/api/v1/employees/" + employee + "/contracts", issue),
+            keyed(w.admin(), "/api/v1/employees/" + employee + "/separations", commit));
+    // The separation always wins or follows; an issue never lands after a recorded separation.
+    assertThat(outcomes.get(1)).startsWith("201");
+    assertThat(outcomes.get(0))
+        .isIn("201", "409 CONTRACT_PREVIEW_CHANGED", "409 CONTRACT_EMPLOYMENT_ENDED");
+    Integer issued =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM documents.contract WHERE employee_id = ?",
+            Integer.class,
+            employee);
+    assertThat(issued).isEqualTo(outcomes.get(0).equals("201") ? 1 : 0);
+  }
+
+  @Test
+  void anAcknowledgementRacingAnUnlinkLeavesEvidenceOnlyFromAnActiveLink() throws Exception {
+    World w = world();
+    UUID employee = hire(w);
+    String bearer = linked(w, employee);
+    String version = approvedVersion(w);
+    String id =
+        expect(
+                mvc.perform(
+                        keyed(
+                            w.admin(),
+                            "/api/v1/employees/" + employee + "/contracts",
+                            issueBody(w, employee, version, w.today())))
+                    .andReturn(),
+                201)
+            .get("id")
+            .asText();
+    JsonNode mine =
+        expect(
+            mvc.perform(get("/api/v1/me/contracts/" + id).header("Authorization", bearer))
+                .andReturn(),
+            200);
+    JsonNode link =
+        expect(
+                mvc.perform(
+                        get("/api/v1/employees/" + employee + "/access-link")
+                            .header("Authorization", w.admin()))
+                    .andReturn(),
+                200)
+            .get("link");
+    Map<String, Object> ack = new LinkedHashMap<>();
+    ack.put("snapshotSha256", mine.get("integrity").get("snapshotSha256").asText());
+    ack.put("snapshotDigestVersion", 1);
+    ack.put("grammarVersion", 1);
+    ack.put("rendererVersion", 1);
+    ack.put("statementCode", "RECEIVED_AND_REVIEWED");
+    ack.put("statementVersion", 1);
+    ack.put("statementLocale", "fr");
+    ack.put("statementSha256", mine.get("statements").get(0).get("sha256").asText());
+    List<String> outcomes =
+        race(
+            keyed(bearer, "/api/v1/me/contracts/" + id + "/acknowledgement", ack),
+            keyed(
+                w.admin(),
+                "/api/v1/employees/" + employee + "/access-link/remove",
+                Map.of(
+                    "linkId",
+                    link.get("id").asText(),
+                    "expectedVersion",
+                    link.get("version").asLong())));
+    assertThat(outcomes.get(1)).isEqualTo("200");
+    assertThat(outcomes.get(0)).isIn("200 false", "403 EMPLOYEE_LINK_REQUIRED");
+    // Any evidence names the link that was active when it was recorded.
+    Integer evidence =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM documents.contract_acknowledgement a"
+                + " JOIN identity.employee_access_link l ON l.tenant_id = a.tenant_id"
+                + " AND l.id = a.link_id WHERE a.contract_id = ?"
+                + " AND (l.unlinked_at IS NULL OR l.unlinked_at >= a.acknowledged_at)",
+            Integer.class,
+            UUID.fromString(id));
+    assertThat(evidence).isEqualTo(outcomes.get(0).startsWith("200") ? 1 : 0);
+  }
+
+  @Test
   void theIntegrityJobReportsATamperedDigestAndRepairsNothing() throws Exception {
     World w = world();
     UUID employee = hire(w);

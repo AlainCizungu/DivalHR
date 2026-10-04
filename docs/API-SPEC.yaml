@@ -5566,7 +5566,7 @@ components:
       - ACKNOWLEDGED
       - VOID
       description: ISSUED (awaiting the employee's acknowledgement), ACKNOWLEDGED (the employee made the stated
-        confirmation; never an electronic signature) or VOID.
+        confirmation; not an electronic signature) or VOID.
     ContractVoidReason:
       type: string
       enum:
@@ -6109,7 +6109,7 @@ components:
       - statementText
       - statementSha256
       - evidenceSha256
-      description: What the employee confirmed and when. Never an electronic signature.
+      description: What the employee confirmed and when. This is not an electronic signature.
       properties:
         acknowledgedAt:
           type: string
