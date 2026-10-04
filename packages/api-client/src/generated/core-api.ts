@@ -2534,7 +2534,30 @@ export interface components {
             items: components["schemas"]["ContractSummary"][];
             nextCursor: string | null;
         };
-        Contract: components["schemas"]["ContractSummary"] & {
+        Contract: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            employmentId: string;
+            /** Format: uuid */
+            templateId: string;
+            /** Format: uuid */
+            templateVersionId: string;
+            contractType: components["schemas"]["ContractClassification"];
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            state: components["schemas"]["ContractState"];
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            acknowledgedAt: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            voidReason: components["schemas"]["ContractVoidReason"] | null;
+            version: number;
             snapshot: components["schemas"]["ContractSnapshot"];
             integrity: components["schemas"]["ContractIntegrity"];
             acknowledgement: components["schemas"]["ContractAcknowledgementEvidence"] | null;
@@ -2572,7 +2595,20 @@ export interface components {
             /** @description DIVALHR-CONTRACT-ACKNOWLEDGEMENT-STATEMENT v1 digest (A30-4). */
             sha256: string;
         };
-        MyContract: components["schemas"]["MyContractSummary"] & {
+        MyContract: {
+            /** Format: uuid */
+            id: string;
+            contractType: components["schemas"]["ContractClassification"];
+            locale: components["schemas"]["ContractLocale"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            state: components["schemas"]["ContractState"];
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            acknowledgedAt: string | null;
             snapshot: components["schemas"]["ContractSnapshot"];
             integrity: components["schemas"]["ContractIntegrity"];
             /** @description The current statement in French and English; the client shows one. */

@@ -6212,22 +6212,80 @@ components:
           - string
           - 'null'
     Contract:
-      allOf:
-      - $ref: '#/components/schemas/ContractSummary'
-      - type: object
-        required:
-        - snapshot
-        - integrity
-        - acknowledgement
-        properties:
-          snapshot:
-            $ref: '#/components/schemas/ContractSnapshot'
-          integrity:
-            $ref: '#/components/schemas/ContractIntegrity'
-          acknowledgement:
-            oneOf:
-            - $ref: '#/components/schemas/ContractAcknowledgementEvidence'
-            - type: 'null'
+      type: object
+      required:
+      - id
+      - employmentId
+      - templateId
+      - templateVersionId
+      - contractType
+      - locale
+      - startDate
+      - endDate
+      - state
+      - issuedAt
+      - acknowledgedAt
+      - voidedAt
+      - voidReason
+      - version
+      - snapshot
+      - integrity
+      - acknowledgement
+      properties:
+        id:
+          type: string
+          format: uuid
+        employmentId:
+          type: string
+          format: uuid
+        templateId:
+          type: string
+          format: uuid
+        templateVersionId:
+          type: string
+          format: uuid
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        state:
+          $ref: '#/components/schemas/ContractState'
+        issuedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        voidedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        voidReason:
+          oneOf:
+          - $ref: '#/components/schemas/ContractVoidReason'
+          - type: 'null'
+        version:
+          type: integer
+          minimum: 0
+        snapshot:
+          $ref: '#/components/schemas/ContractSnapshot'
+        integrity:
+          $ref: '#/components/schemas/ContractIntegrity'
+        acknowledgement:
+          oneOf:
+          - $ref: '#/components/schemas/ContractAcknowledgementEvidence'
+          - type: 'null'
     VoidContract:
       type: object
       additionalProperties: false
@@ -6317,28 +6375,59 @@ components:
           pattern: ^[0-9a-f]{64}$
           description: DIVALHR-CONTRACT-ACKNOWLEDGEMENT-STATEMENT v1 digest (A30-4).
     MyContract:
-      allOf:
-      - $ref: '#/components/schemas/MyContractSummary'
-      - type: object
-        required:
-        - snapshot
-        - integrity
-        - statements
-        - acknowledgement
-        properties:
-          snapshot:
-            $ref: '#/components/schemas/ContractSnapshot'
-          integrity:
-            $ref: '#/components/schemas/ContractIntegrity'
-          statements:
-            type: array
-            items:
-              $ref: '#/components/schemas/AcknowledgementStatement'
-            description: The current statement in French and English; the client shows one.
-          acknowledgement:
-            oneOf:
-            - $ref: '#/components/schemas/ContractAcknowledgementEvidence'
-            - type: 'null'
+      type: object
+      required:
+      - id
+      - contractType
+      - locale
+      - startDate
+      - endDate
+      - state
+      - issuedAt
+      - acknowledgedAt
+      - snapshot
+      - integrity
+      - statements
+      - acknowledgement
+      properties:
+        id:
+          type: string
+          format: uuid
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        state:
+          $ref: '#/components/schemas/ContractState'
+        issuedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        snapshot:
+          $ref: '#/components/schemas/ContractSnapshot'
+        integrity:
+          $ref: '#/components/schemas/ContractIntegrity'
+        statements:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcknowledgementStatement'
+          description: The current statement in French and English; the client shows one.
+        acknowledgement:
+          oneOf:
+          - $ref: '#/components/schemas/ContractAcknowledgementEvidence'
+          - type: 'null'
     AcknowledgeContract:
       type: object
       additionalProperties: false

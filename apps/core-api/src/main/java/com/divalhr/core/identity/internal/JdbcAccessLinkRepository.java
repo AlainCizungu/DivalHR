@@ -1,5 +1,6 @@
 package com.divalhr.core.identity.internal;
 
+import com.divalhr.core.platform.access.EmployeeAccessLinks.SelfLink;
 import com.divalhr.core.platform.tenancy.CrossTenantAccess;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.sql.ResultSet;
@@ -217,6 +218,35 @@ public class JdbcAccessLinkRepository {
                     rs.getString("role"),
                     rs.getBoolean("linked"),
                     rs.getBoolean("revoked")))
+        .optional();
+  }
+
+  /**
+   * The caller's own active link (MVP-030 self-service): the employee-role membership of the
+   * subject in the tenant and its active link, both locked {@code FOR SHARE}. Correlated on the
+   * tenant and the membership (R22-1).
+   *
+   * @param tenant verified tenant
+   * @param subject verified subject (never logged)
+   * @return the binding, if any
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional<SelfLink> lockSelfLink(TenantId tenant, String subject) {
+    return jdbc.sql(
+            "SELECT l.employee_id, m.id AS membership_id, l.id AS link_id"
+                + " FROM identity.tenant_membership m JOIN identity.employee_access_link l"
+                + " ON l.tenant_id = m.tenant_id AND l.membership_id = m.id"
+                + " AND l.unlinked_at IS NULL"
+                + " WHERE m.tenant_id = :tenant AND m.subject = :subject AND m.role = 'employee'"
+                + " FOR SHARE OF m, l")
+        .param("tenant", tenant.value())
+        .param("subject", subject)
+        .query(
+            (rs, row) ->
+                new SelfLink(
+                    rs.getObject("employee_id", UUID.class),
+                    rs.getObject("membership_id", UUID.class),
+                    rs.getObject("link_id", UUID.class)))
         .optional();
   }
 

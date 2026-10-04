@@ -193,7 +193,45 @@ public enum ErrorCode {
   /** Direct-report intervals need a plan (MVP-022). */
   SEPARATION_REPORT_PLAN_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
   /** More direct-report intervals than one separation may rewrite (params.count) (MVP-022). */
-  SEPARATION_TOO_MANY_INTERVALS(HttpStatus.UNPROCESSABLE_CONTENT);
+  SEPARATION_TOO_MANY_INTERVALS(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** Unknown, malformed or foreign template or version (MVP-030). */
+  CONTRACT_TEMPLATE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** Unknown, malformed, foreign or another employee's contract (MVP-030). */
+  CONTRACT_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The template version changed since it was read (MVP-030). */
+  CONTRACT_TEMPLATE_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** Only a draft version is edited, approved or deleted (MVP-030). */
+  CONTRACT_TEMPLATE_NOT_DRAFT(HttpStatus.CONFLICT),
+  /** Only an approved version is issued or retired (MVP-030). */
+  CONTRACT_TEMPLATE_NOT_APPROVED(HttpStatus.CONFLICT),
+  /** The template code is already used in the organization, or a draft already exists (MVP-030). */
+  CONTRACT_TEMPLATE_CODE_TAKEN(HttpStatus.CONFLICT),
+  /** The result no longer matches the preview (MVP-030). */
+  CONTRACT_PREVIEW_CHANGED(HttpStatus.CONFLICT),
+  /** The contract changed since it was read (MVP-030). */
+  CONTRACT_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** Another non-void contract of the employment overlaps the period (MVP-030, D11). */
+  CONTRACT_PERIOD_OVERLAP(HttpStatus.CONFLICT),
+  /** A separation is recorded for the employee (MVP-030). */
+  CONTRACT_EMPLOYMENT_ENDED(HttpStatus.CONFLICT),
+  /** Only an issued, unacknowledged contract is voided (MVP-030). */
+  CONTRACT_NOT_VOIDABLE(HttpStatus.CONFLICT),
+  /** A void contract is never acknowledged (MVP-030). */
+  CONTRACT_NOT_ACKNOWLEDGEABLE(HttpStatus.CONFLICT),
+  /** The displayed snapshot or statement does not match the server's (MVP-030, A30-4). */
+  CONTRACT_ACKNOWLEDGEMENT_CHANGED(HttpStatus.CONFLICT),
+  /** The template text breaks grammar v1 (params.reason, params.line) (MVP-030, A30-2). */
+  CONTRACT_TEMPLATE_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** A placeholder has no value for this employee (params.placeholder) (MVP-030, D9). */
+  CONTRACT_VALUE_MISSING(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The contract dates break the rules (params.field) (MVP-030, D10). */
+  CONTRACT_DATES_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** Approval needs the TEXT_VERIFIED acknowledgement (MVP-030). */
+  CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The caller's employee membership has no active employee link (MVP-030, A30-1). */
+  EMPLOYEE_LINK_REQUIRED(HttpStatus.FORBIDDEN),
+  /** The contract operation took too long and nothing was written (MVP-030). */
+  CONTRACT_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE);
 
   private final HttpStatus status;
 

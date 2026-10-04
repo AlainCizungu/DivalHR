@@ -34,7 +34,8 @@ import org.springframework.test.context.TestExecutionListeners;
       // MVP-020: integration tests run the employee import jobs directly.
       "divalhr.employee-import.jobs.enabled=false",
       "divalhr.access-revocation.jobs.enabled=false",
-      "divalhr.separation.jobs.enabled=false"
+      "divalhr.separation.jobs.enabled=false",
+      "divalhr.contracts.jobs.enabled=false"
     })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})
