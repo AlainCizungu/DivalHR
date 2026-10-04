@@ -5432,123 +5432,6 @@ components:
         sign-in removed), MANUAL_INTERVENTION (DivalHR access is denied; sign-in removal needs an
         administrator) or CANCELLED (the separation was cancelled before access ended).
       enum: [NOT_LINKED, SCHEDULED, SIGN_OUT_PENDING, COMPLETED, MANUAL_INTERVENTION, CANCELLED]
-    Separation:
-      type: object
-      description: A separation (Restricted HR).
-      required:
-        [id, employmentId, lastDay, reasonCode, accessTiming, reportAction, reportCount,
-         intervalCount, state, effectiveAt, recordedAt, cancelledAt, cancellable, access,
-         accessEndsAt, tasks, version]
-      properties:
-        id:
-          type: string
-          format: uuid
-        employmentId:
-          type: string
-          format: uuid
-        lastDay:
-          type: string
-          format: date
-        reasonCode:
-          $ref: "#/components/schemas/SeparationReason"
-        accessTiming:
-          $ref: "#/components/schemas/SeparationAccessTiming"
-        reportAction:
-          type: [string, "null"]
-          enum: [REASSIGN, CLEAR, null]
-        reportCount:
-          type: integer
-          minimum: 0
-        intervalCount:
-          type: integer
-          minimum: 0
-        state:
-          type: string
-          enum: [SCHEDULED, EFFECTIVE, CANCELLED]
-        effectiveAt:
-          type: string
-          format: date-time
-          description: Start of the day after the last day in the organization's time zone.
-        recordedAt:
-          type: string
-          format: date-time
-        cancelledAt:
-          type: [string, "null"]
-          format: date-time
-        cancellable:
-          type: boolean
-        access:
-          $ref: "#/components/schemas/SeparationAccessState"
-        accessEndsAt:
-          type: [string, "null"]
-          format: date-time
-        tasks:
-          type: array
-          items:
-            $ref: "#/components/schemas/SeparationTask"
-        version:
-          type: integer
-          minimum: 0
-    SeparationList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          maxItems: 50
-          items:
-            $ref: "#/components/schemas/Separation"
-    SeparationResult:
-      type: object
-      required: [separation, employmentVersion]
-      properties:
-        separation:
-          $ref: "#/components/schemas/Separation"
-        employmentVersion:
-          type: integer
-          minimum: 0
-    SeparationCancellationPreview:
-      type: object
-      required: [expectedVersion, kinds, reportCount, intervalCount, cancellationDigest]
-      properties:
-        expectedVersion:
-          type: integer
-          minimum: 0
-        kinds:
-          type: array
-          items:
-            $ref: "#/components/schemas/PreviewKind"
-        reportCount:
-          type: integer
-          minimum: 0
-        intervalCount:
-          type: integer
-          minimum: 0
-        cancellationDigest:
-          type: string
-          pattern: "^[0-9a-f]{64}$"
-    CancelSeparation:
-      type: object
-      additionalProperties: false
-      required: [expectedVersion, cancellationDigest]
-      properties:
-        expectedVersion:
-          type: integer
-          minimum: 0
-        cancellationDigest:
-          type: string
-          pattern: "^[0-9a-f]{64}$"
-    UpdateSeparationTask:
-      type: object
-      additionalProperties: false
-      required: [status, expectedVersion]
-      properties:
-        status:
-          type: string
-          enum: [OPEN, DONE, NOT_APPLICABLE]
-        expectedVersion:
-          type: integer
-          minimum: 0
     ContractLocale:
       type: string
       enum: [fr, en]
@@ -5873,6 +5756,123 @@ components:
             enum: [TEXT_VERIFIED]
           minItems: 1
           maxItems: 1
+    Separation:
+      type: object
+      description: A separation (Restricted HR).
+      required:
+        [id, employmentId, lastDay, reasonCode, accessTiming, reportAction, reportCount,
+         intervalCount, state, effectiveAt, recordedAt, cancelledAt, cancellable, access,
+         accessEndsAt, tasks, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employmentId:
+          type: string
+          format: uuid
+        lastDay:
+          type: string
+          format: date
+        reasonCode:
+          $ref: "#/components/schemas/SeparationReason"
+        accessTiming:
+          $ref: "#/components/schemas/SeparationAccessTiming"
+        reportAction:
+          type: [string, "null"]
+          enum: [REASSIGN, CLEAR, null]
+        reportCount:
+          type: integer
+          minimum: 0
+        intervalCount:
+          type: integer
+          minimum: 0
+        state:
+          type: string
+          enum: [SCHEDULED, EFFECTIVE, CANCELLED]
+        effectiveAt:
+          type: string
+          format: date-time
+          description: Start of the day after the last day in the organization's time zone.
+        recordedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: [string, "null"]
+          format: date-time
+        cancellable:
+          type: boolean
+        access:
+          $ref: "#/components/schemas/SeparationAccessState"
+        accessEndsAt:
+          type: [string, "null"]
+          format: date-time
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeparationTask"
+        version:
+          type: integer
+          minimum: 0
+    SeparationList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/Separation"
+    SeparationResult:
+      type: object
+      required: [separation, employmentVersion]
+      properties:
+        separation:
+          $ref: "#/components/schemas/Separation"
+        employmentVersion:
+          type: integer
+          minimum: 0
+    SeparationCancellationPreview:
+      type: object
+      required: [expectedVersion, kinds, reportCount, intervalCount, cancellationDigest]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        kinds:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreviewKind"
+        reportCount:
+          type: integer
+          minimum: 0
+        intervalCount:
+          type: integer
+          minimum: 0
+        cancellationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    CancelSeparation:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, cancellationDigest]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        cancellationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    UpdateSeparationTask:
+      type: object
+      additionalProperties: false
+      required: [status, expectedVersion]
+      properties:
+        status:
+          type: string
+          enum: [OPEN, DONE, NOT_APPLICABLE]
+        expectedVersion:
+          type: integer
+          minimum: 0
     RetireContractTemplateVersion:
       type: object
       additionalProperties: false

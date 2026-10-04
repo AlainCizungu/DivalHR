@@ -2237,61 +2237,6 @@ export interface components {
          * @enum {string}
          */
         SeparationAccessState: "NOT_LINKED" | "SCHEDULED" | "SIGN_OUT_PENDING" | "COMPLETED" | "MANUAL_INTERVENTION" | "CANCELLED";
-        /** @description A separation (Restricted HR). */
-        Separation: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            employmentId: string;
-            /** Format: date */
-            lastDay: string;
-            reasonCode: components["schemas"]["SeparationReason"];
-            accessTiming: components["schemas"]["SeparationAccessTiming"];
-            /** @enum {string|null} */
-            reportAction: "REASSIGN" | "CLEAR" | null;
-            reportCount: number;
-            intervalCount: number;
-            /** @enum {string} */
-            state: "SCHEDULED" | "EFFECTIVE" | "CANCELLED";
-            /**
-             * Format: date-time
-             * @description Start of the day after the last day in the organization's time zone.
-             */
-            effectiveAt: string;
-            /** Format: date-time */
-            recordedAt: string;
-            /** Format: date-time */
-            cancelledAt: string | null;
-            cancellable: boolean;
-            access: components["schemas"]["SeparationAccessState"];
-            /** Format: date-time */
-            accessEndsAt: string | null;
-            tasks: components["schemas"]["SeparationTask"][];
-            version: number;
-        };
-        SeparationList: {
-            items: components["schemas"]["Separation"][];
-        };
-        SeparationResult: {
-            separation: components["schemas"]["Separation"];
-            employmentVersion: number;
-        };
-        SeparationCancellationPreview: {
-            expectedVersion: number;
-            kinds: components["schemas"]["PreviewKind"][];
-            reportCount: number;
-            intervalCount: number;
-            cancellationDigest: string;
-        };
-        CancelSeparation: {
-            expectedVersion: number;
-            cancellationDigest: string;
-        };
-        UpdateSeparationTask: {
-            /** @enum {string} */
-            status: "OPEN" | "DONE" | "NOT_APPLICABLE";
-            expectedVersion: number;
-        };
         /**
          * @description Language of a template version and of the contracts issued from it.
          * @enum {string}
@@ -2427,6 +2372,61 @@ export interface components {
         ApproveContractTemplateVersion: {
             expectedVersion: number;
             acknowledgements: "TEXT_VERIFIED"[];
+        };
+        /** @description A separation (Restricted HR). */
+        Separation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            employmentId: string;
+            /** Format: date */
+            lastDay: string;
+            reasonCode: components["schemas"]["SeparationReason"];
+            accessTiming: components["schemas"]["SeparationAccessTiming"];
+            /** @enum {string|null} */
+            reportAction: "REASSIGN" | "CLEAR" | null;
+            reportCount: number;
+            intervalCount: number;
+            /** @enum {string} */
+            state: "SCHEDULED" | "EFFECTIVE" | "CANCELLED";
+            /**
+             * Format: date-time
+             * @description Start of the day after the last day in the organization's time zone.
+             */
+            effectiveAt: string;
+            /** Format: date-time */
+            recordedAt: string;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancellable: boolean;
+            access: components["schemas"]["SeparationAccessState"];
+            /** Format: date-time */
+            accessEndsAt: string | null;
+            tasks: components["schemas"]["SeparationTask"][];
+            version: number;
+        };
+        SeparationList: {
+            items: components["schemas"]["Separation"][];
+        };
+        SeparationResult: {
+            separation: components["schemas"]["Separation"];
+            employmentVersion: number;
+        };
+        SeparationCancellationPreview: {
+            expectedVersion: number;
+            kinds: components["schemas"]["PreviewKind"][];
+            reportCount: number;
+            intervalCount: number;
+            cancellationDigest: string;
+        };
+        CancelSeparation: {
+            expectedVersion: number;
+            cancellationDigest: string;
+        };
+        UpdateSeparationTask: {
+            /** @enum {string} */
+            status: "OPEN" | "DONE" | "NOT_APPLICABLE";
+            expectedVersion: number;
         };
         RetireContractTemplateVersion: {
             expectedVersion: number;
