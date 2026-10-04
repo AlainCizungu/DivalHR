@@ -8,6 +8,7 @@ import com.divalhr.core.identity.application.IdentityDirectory.IdentityConflict;
 import com.divalhr.core.identity.application.IdentityDirectory.Provisioned;
 import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningRequest;
 import com.divalhr.core.identity.application.IdentityDirectory.ProvisioningResult;
+import com.divalhr.core.identity.application.IdentityDirectory.RevocationOutcome;
 import com.divalhr.core.identity.application.InvitationMailer.InvitationMessage;
 import com.divalhr.core.identity.domain.DeliveryState;
 import com.divalhr.core.identity.domain.EmailAddress;
@@ -24,6 +25,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -183,6 +185,81 @@ class KeycloakProvisioningContainerTest {
     assertThat(directory.compensate(started)).isEqualTo(CompensationOutcome.REFUSED);
     assertThat(calls.adminAs(calls.adminToken(), "GET", "/users/" + other, null).status())
         .isEqualTo(200);
+  }
+
+  /**
+   * MVP-022 (A22-5): the access-revocation call disables an employee identity the extension created
+   * for the tenant, ends its sessions (refresh fails) and blocks the next sign-in; it refuses,
+   * unchanged, every other identity, and reports an unknown subject as absent.
+   */
+  @Test
+  void accessRevocationDisablesOnlyAnEmployeeIdentityOfTheTenant() throws Exception {
+    String password = "test-only-Password-2026!";
+    String email = unique("revoke");
+    String subject =
+        ((Provisioned) directory.provision(request(UUID.randomUUID(), email, TenantRole.EMPLOYEE)))
+            .subject();
+    calls.admin(
+        "PUT",
+        "/users/" + subject + "/reset-password",
+        "{\"type\":\"password\",\"value\":\"" + password + "\",\"temporary\":false}");
+    calls.admin("PUT", "/users/" + subject, "{\"requiredActions\":[]}");
+    ScriptedBrowser browser = new ScriptedBrowser(stack.baseUrl(), KeycloakTestStack.REALM);
+    ScriptedBrowser.Outcome signedIn =
+        browser.drive(browser.authorize(Map.of()), email, password, null, secret -> {});
+    assertThat(signedIn.reachedApplication()).isTrue();
+    String refreshToken =
+        KeycloakCalls.JSON
+            .readTree(browser.exchange(signedIn.last()))
+            .path("refresh_token")
+            .asString();
+    assertThat(calls.admin("GET", "/users/" + subject + "/sessions", null).size()).isOne();
+
+    // Another tenant's path, a tenant administrator and a seed identity are refused, unchanged.
+    TenantId other = new TenantId(UUID.fromString("00000000-0000-4000-8000-00000000000b"));
+    assertThat(directory.revokeAccess(other, subject, UUID.randomUUID()))
+        .isEqualTo(RevocationOutcome.REFUSED);
+    String admin =
+        ((Provisioned)
+                directory.provision(
+                    request(UUID.randomUUID(), unique("revoke-admin"), TenantRole.TENANT_ADMIN)))
+            .subject();
+    assertThat(directory.revokeAccess(TENANT, admin, UUID.randomUUID()))
+        .isEqualTo(RevocationOutcome.REFUSED);
+    assertThat(calls.admin("GET", "/users/" + admin, null).path("enabled").asBoolean()).isTrue();
+    String seed =
+        calls
+            .admin("GET", "/users?username=dev-employee-a&exact=true", null)
+            .get(0)
+            .path("id")
+            .asString();
+    assertThat(directory.revokeAccess(TENANT, seed, UUID.randomUUID()))
+        .isEqualTo(RevocationOutcome.REFUSED);
+    assertThat(calls.admin("GET", "/users/" + seed, null).path("enabled").asBoolean()).isTrue();
+    assertThat(calls.admin("GET", "/users/" + subject, null).path("enabled").asBoolean()).isTrue();
+
+    // The employee identity: disabled, no session, refresh and sign-in refused; idempotent.
+    UUID revocation = UUID.randomUUID();
+    assertThat(directory.revokeAccess(TENANT, subject, revocation))
+        .isEqualTo(RevocationOutcome.REVOKED);
+    assertThat(directory.revokeAccess(TENANT, subject, revocation))
+        .isEqualTo(RevocationOutcome.REVOKED);
+    JsonNode user = calls.admin("GET", "/users/" + subject, null);
+    assertThat(user.path("enabled").asBoolean()).isFalse();
+    assertThat(calls.admin("GET", "/users/" + subject + "/sessions", null).size()).isZero();
+    assertThat(KeycloakCalls.JSON.readTree(browser.refresh(refreshToken)).path("error").asString())
+        .isEqualTo("invalid_grant");
+    ScriptedBrowser again = new ScriptedBrowser(stack.baseUrl(), KeycloakTestStack.REALM);
+    assertThat(
+            again
+                .drive(again.authorize(Map.of()), email, password, null, secret -> {})
+                .reachedApplication())
+        .isFalse();
+    assertThat(directory.revokeAccess(TENANT, UUID.randomUUID().toString(), UUID.randomUUID()))
+        .isEqualTo(RevocationOutcome.ABSENT);
+    // The extension's evidence carries the revocation ID, never the address.
+    String events = calls.admin("GET", "/admin-events?resourceTypes=USER&max=500", null).toString();
+    assertThat(events).contains(revocation.toString()).doesNotContain(email);
   }
 
   @Test
