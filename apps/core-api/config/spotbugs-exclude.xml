@@ -68,6 +68,15 @@
       <Class name="com.divalhr.core.people.application.PeopleEmployeeRecords"/>
       <Class name="com.divalhr.core.people.application.SeparationEvents"/>
       <Class name="com.divalhr.core.people.application.SeparationJobs"/>
+      <Class name="com.divalhr.core.platform.security.ScopeAuthorizationInterceptor"/>
+      <Class name="com.divalhr.core.people.application.PeopleContractFacts"/>
+      <Class name="com.divalhr.core.documents.api.ContractTemplateController"/>
+      <Class name="com.divalhr.core.documents.application.ContractEvents"/>
+      <Class name="com.divalhr.core.documents.application.ContractViews"/>
+      <Class name="com.divalhr.core.documents.application.ContractTemplateService"/>
+      <Class name="com.divalhr.core.documents.application.ContractService"/>
+      <Class name="com.divalhr.core.documents.application.MyContractService"/>
+      <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->

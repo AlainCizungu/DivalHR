@@ -151,12 +151,11 @@ class ContractMigrationIntegrationTest {
           .as(constraint)
           .isInstanceOfSatisfying(
               PSQLException.class,
-              e ->
-                  assertThat(
-                          e.getServerErrorMessage() == null
-                              ? "unnamed"
-                              : String.valueOf(e.getServerErrorMessage().getConstraint()))
-                      .isEqualTo(constraint));
+              e -> {
+                org.postgresql.util.ServerErrorMessage message = e.getServerErrorMessage();
+                assertThat(message == null ? "unnamed" : String.valueOf(message.getConstraint()))
+                    .isEqualTo(constraint);
+              });
       c.rollback();
     }
   }
@@ -503,22 +502,18 @@ class ContractMigrationIntegrationTest {
                         v1));
 
             committed(db, c -> approve(c, v1));
-            for (String change :
+            for (String update :
                 List.of(
-                    "body = 'Modifié'",
-                    "title = 'Autre'",
-                    "body_sha256 = '" + "d".repeat(64) + "'",
-                    "state = 'DRAFT', approved_at = NULL, approved_by = NULL")) {
-              refused(
-                  db,
-                  immutable,
-                  c ->
-                      exec(
-                          c,
-                          "UPDATE documents.contract_template_version SET "
-                              + change
-                              + ", version = version + 1 WHERE id = ?",
-                          v1));
+                    "UPDATE documents.contract_template_version SET body = 'Modifié',"
+                        + " version = version + 1 WHERE id = ?",
+                    "UPDATE documents.contract_template_version SET title = 'Autre',"
+                        + " version = version + 1 WHERE id = ?",
+                    "UPDATE documents.contract_template_version SET body_sha256 = repeat('d', 64),"
+                        + " version = version + 1 WHERE id = ?",
+                    "UPDATE documents.contract_template_version SET state = 'DRAFT',"
+                        + " approved_at = NULL, approved_by = NULL, version = version + 1"
+                        + " WHERE id = ?")) {
+              refused(db, immutable, c -> exec(c, update, v1));
             }
             refused(
                 db,
@@ -633,19 +628,13 @@ class ContractMigrationIntegrationTest {
                         DIGEST));
             for (String change :
                 List.of(
-                    "snapshot_canonical = '{}', snapshot = '{}'",
-                    "snapshot_sha256 = '" + "e".repeat(64) + "'",
-                    "start_date = start_date + 1")) {
-              refused(
-                  db,
-                  immutable,
-                  c ->
-                      exec(
-                          c,
-                          "UPDATE documents.contract SET "
-                              + change
-                              + ", version = version + 1 WHERE id = ?",
-                          issued));
+                    "UPDATE documents.contract SET snapshot_canonical = '{}', snapshot = '{}',"
+                        + " version = version + 1 WHERE id = ?",
+                    "UPDATE documents.contract SET snapshot_sha256 = repeat('e', 64),"
+                        + " version = version + 1 WHERE id = ?",
+                    "UPDATE documents.contract SET start_date = start_date + 1,"
+                        + " version = version + 1 WHERE id = ?")) {
+              refused(db, immutable, c -> exec(c, change, issued));
             }
             refused(
                 db,
