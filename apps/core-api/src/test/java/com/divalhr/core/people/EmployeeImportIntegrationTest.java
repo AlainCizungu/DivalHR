@@ -189,9 +189,14 @@ class EmployeeImportIntegrationTest {
         .isEqualTo(2);
     Map<String, Object> employee =
         jdbc.queryForMap(
-            "SELECT e.given_names, e.family_name, m.legal_entity_id, m.site_id, m.department_id,"
-                + " m.cost_center_id, m.team_id, m.effective_from::text AS start, m.effective_to"
+            "SELECT e.given_names, e.family_name, a.legal_entity_id, a.site_id, a.department_id,"
+                + " a.cost_center_id, a.team_id, m.effective_from::text AS start, m.effective_to,"
+                + " a.effective_from::text AS placed_from, a.effective_to AS placed_to,"
+                + " c.type AS change_type, m.version"
                 + " FROM people.employee e JOIN people.employment m ON m.employee_id = e.id"
+                + " JOIN people.employment_assignment a ON a.employment_id = m.id"
+                + " AND a.kind = 'PLACEMENT' AND a.superseded_by_change_id IS NULL"
+                + " JOIN people.employment_change c ON c.id = a.created_by_change_id"
                 + " WHERE e.tenant_id = ? AND e.employee_number = ?",
             org.tenant(),
             n1);
@@ -201,6 +206,11 @@ class EmployeeImportIntegrationTest {
     assertThat(employee.get("team_id")).isEqualTo(org.teamId());
     assertThat(employee.get("start")).isEqualTo("2026-03-01");
     assertThat(employee.get("effective_to")).isNull();
+    // MVP-021: the placement is the hire's open PLACEMENT row over the whole employment.
+    assertThat(employee.get("placed_from")).isEqualTo("2026-03-01");
+    assertThat(employee.get("placed_to")).isNull();
+    assertThat(employee.get("change_type")).isEqualTo("HIRE");
+    assertThat(employee.get("version")).isEqualTo(0L);
     assertThat(
             jdbc.queryForObject(
                 "SELECT given_names FROM people.employee WHERE tenant_id = ? AND employee_number ="

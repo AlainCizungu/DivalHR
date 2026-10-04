@@ -54,6 +54,11 @@
       <Class name="com.divalhr.core.people.internal.EmployeeImportJobScheduler"/>
       <Class name="com.divalhr.core.people.internal.JdbcEmployeeImportRepository"/>
       <Class name="com.divalhr.core.people.internal.JdbcEmployeeRepository"/>
+      <Class name="com.divalhr.core.people.internal.JdbcEmploymentHistoryRepository"/>
+      <Class name="com.divalhr.core.people.application.EmploymentHistoryEvents"/>
+      <Class name="com.divalhr.core.people.application.EmploymentHistoryViews"/>
+      <Class name="com.divalhr.core.people.application.EmploymentHistoryRules"/>
+      <Class name="com.divalhr.core.people.api.EmployeeController"/>
     </Or>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->

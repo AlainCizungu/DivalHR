@@ -1,5 +1,6 @@
 package com.divalhr.core.people.internal;
 
+import com.divalhr.core.people.domain.EmployeeSearchKey;
 import com.divalhr.core.people.domain.NewEmployee;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.sql.Timestamp;
@@ -7,6 +8,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -17,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Employee and employment persistence (MVP-020). Every method takes the verified {@link TenantId}.
  * MVP-020 only creates; the tenant-unique employee number is enforced by {@code
- * employee_number_unique}, the final authority under concurrency (E8).
+ * employee_number_unique}, the final authority under concurrency (E8). Since MVP-021 (V14) the
+ * first placement is the employment's first timeline row, written by a HIRE change in the same
+ * transaction, and every employee carries its search key ({@link EmployeeSearchKey}).
  */
 @Repository
 public class JdbcEmployeeRepository {
@@ -61,7 +65,8 @@ public class JdbcEmployeeRepository {
   }
 
   /**
-   * Inserts employees and their first employments, in the given order.
+   * Inserts employees, their first employments, the HIRE changes and the first placement rows, in
+   * the given order.
    *
    * @param tenant verified tenant
    * @param employees new employees, ordered by employee number
@@ -74,6 +79,7 @@ public class JdbcEmployeeRepository {
     Timestamp at = Timestamp.from(now);
     MapSqlParameterSource[] people = new MapSqlParameterSource[employees.size()];
     MapSqlParameterSource[] employments = new MapSqlParameterSource[employees.size()];
+    MapSqlParameterSource[] hires = new MapSqlParameterSource[employees.size()];
     for (int i = 0; i < employees.size(); i++) {
       NewEmployee e = employees.get(i);
       people[i] =
@@ -83,6 +89,7 @@ public class JdbcEmployeeRepository {
               .addValue("number", e.employeeNumber())
               .addValue("given", e.givenNames())
               .addValue("family", e.familyName())
+              .addValue("key", EmployeeSearchKey.of(e.givenNames(), e.familyName()))
               .addValue("at", at)
               .addValue("by", createdBy);
       employments[i] =
@@ -90,6 +97,16 @@ public class JdbcEmployeeRepository {
               .addValue("id", e.employmentId())
               .addValue("tenant", tenant.value())
               .addValue("employee", e.employeeId())
+              .addValue("start", e.startDate())
+              .addValue("at", at)
+              .addValue("by", createdBy);
+      hires[i] =
+          new MapSqlParameterSource()
+              .addValue("change", UUID.randomUUID())
+              .addValue("assignment", UUID.randomUUID())
+              .addValue("tenant", tenant.value())
+              .addValue("employee", e.employeeId())
+              .addValue("employment", e.employmentId())
               .addValue("le", e.legalEntityId())
               .addValue("site", e.siteId())
               .addValue("dept", e.departmentId())
@@ -101,13 +118,24 @@ public class JdbcEmployeeRepository {
     }
     batch.batchUpdate(
         "INSERT INTO people.employee (id, tenant_id, employee_number, given_names, family_name,"
-            + " created_at, created_by) VALUES (:id, :tenant, :number, :given, :family, :at, :by)",
+            + " search_key, created_at, created_by)"
+            + " VALUES (:id, :tenant, :number, :given, :family, :key, :at, :by)",
         people);
     batch.batchUpdate(
-        "INSERT INTO people.employment (id, tenant_id, employee_id, legal_entity_id, site_id,"
-            + " department_id, cost_center_id, team_id, effective_from, effective_to, created_at,"
-            + " created_by) VALUES (:id, :tenant, :employee, :le, :site, :dept, :cc, :team,"
-            + " :start, NULL, :at, :by)",
+        "INSERT INTO people.employment (id, tenant_id, employee_id, effective_from, effective_to,"
+            + " created_at, created_by) VALUES (:id, :tenant, :employee, :start, NULL, :at, :by)",
         employments);
+    batch.batchUpdate(
+        "INSERT INTO people.employment_change (id, tenant_id, employee_id, employment_id, type,"
+            + " effective_from, kinds, recorded_at, recorded_by, version_after) VALUES (:change,"
+            + " :tenant, :employee, :employment, 'HIRE', :start, ARRAY['PLACEMENT'], :at, :by, 0)",
+        hires);
+    batch.batchUpdate(
+        "INSERT INTO people.employment_assignment (id, tenant_id, employee_id, employment_id,"
+            + " kind, effective_from, effective_to, legal_entity_id, site_id, department_id,"
+            + " cost_center_id, team_id, created_by_change_id, origin_change_id) VALUES"
+            + " (:assignment, :tenant, :employee, :employment, 'PLACEMENT', :start, NULL, :le,"
+            + " :site, :dept, :cc, :team, :change, :change)",
+        hires);
   }
 }

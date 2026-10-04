@@ -24,6 +24,93 @@ public interface OrganizationPlacementDirectory {
   Placements resolve(TenantId tenant, PlacementCodes codes);
 
   /**
+   * Resolves units by ID in the caller's tenant (MVP-021): one query, read-only. IDs of another
+   * tenant, of no unit, or of a unit of another kind than expected are simply absent, so callers
+   * treat foreign and unknown alike.
+   *
+   * @param tenant verified tenant
+   * @param ids unit IDs of any kind
+   * @return the units found, by ID
+   */
+  Map<UUID, UnitView> resolveIds(TenantId tenant, Set<UUID> ids);
+
+  /** Kinds of organizational unit a placement references. */
+  enum UnitKind {
+    /** Legal entity. */
+    LEGAL_ENTITY,
+    /** Site. */
+    SITE,
+    /** Department. */
+    DEPARTMENT,
+    /** Cost center. */
+    COST_CENTER,
+    /** Team. */
+    TEAM
+  }
+
+  /**
+   * A unit with its display code and name (organizational data, not personal data), period and
+   * parents.
+   *
+   * @param id unit ID
+   * @param kind unit kind
+   * @param code code as stored
+   * @param name display name
+   * @param effectiveFrom first day
+   * @param effectiveTo last day, or {@code null}
+   * @param legalEntityId parent legal entity (sites), or {@code null}
+   * @param siteId parent site (departments, cost centers, teams), or {@code null}
+   * @param departmentId parent department (teams), or {@code null}
+   * @param costCenterId parent cost center (teams), or {@code null}
+   */
+  record UnitView(
+      UUID id,
+      UnitKind kind,
+      String code,
+      String name,
+      LocalDate effectiveFrom,
+      LocalDate effectiveTo,
+      UUID legalEntityId,
+      UUID siteId,
+      UUID departmentId,
+      UUID costCenterId) {
+
+    /** Requires the identity, kind and start. */
+    public UnitView {
+      Objects.requireNonNull(id, "id");
+      Objects.requireNonNull(kind, "kind");
+      Objects.requireNonNull(effectiveFrom, "effectiveFrom");
+    }
+
+    /**
+     * Whether the unit is in effect on every day of a period.
+     *
+     * @param from first day
+     * @param to last day, or {@code null} for open-ended
+     * @return true when the unit's period contains the whole period
+     */
+    public boolean effectiveThroughout(LocalDate from, LocalDate to) {
+      if (from.isBefore(effectiveFrom)) {
+        return false;
+      }
+      if (effectiveTo == null) {
+        return true;
+      }
+      return to != null && !to.isAfter(effectiveTo);
+    }
+
+    /**
+     * Whether the unit is in effect on a day.
+     *
+     * @param day day
+     * @return true when the unit's period contains it
+     */
+    public boolean effectiveOn(LocalDate day) {
+      return !day.isBefore(effectiveFrom) && (effectiveTo == null || !day.isAfter(effectiveTo));
+    }
+  }
+
+  /**
    * Codes to resolve, per unit kind.
    *
    * @param legalEntities legal entity codes

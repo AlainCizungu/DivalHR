@@ -598,7 +598,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List employees within the authorized scope */
+        /**
+         * List the organization's employees
+         * @description MVP-021. Employees of the caller's tenant ordered by employee number, keyset-paginated; cursors are bound to the operation, tenant and page size. There is no free-text filter on this path: search uses POST /employees/search so that names never appear in URLs. Each successful page is recorded as a disclosure (audit employee.list) before it is returned. Cache-Control private, no-store.
+         */
         get: operations["listEmployees"];
         put?: never;
         /** Create an employee */
@@ -654,6 +657,150 @@ export interface paths {
         put?: never;
         /** Create a signed webhook subscription */
         post: operations["createWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search employees by employee number or name
+         * @description MVP-021. The query travels only in this body. It matches an employee-number prefix, or every query word as the start of a word of the given names or family name, ignoring letter case and accents. Results are ordered by employee number; cursors are bound to the operation, tenant, page size and a hash of the normalized query (never the query itself). The query is never logged, audited or echoed. Each successful page is recorded as a disclosure (audit employee.search). Cache-Control private, no-store.
+         */
+        post: operations["searchEmployees"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one employee's profile and current employment state
+         * @description MVP-021. The employee, the employment period and, per assignment kind, the row covering the business date (today in the organization's time zone), or null. Unknown, foreign and malformed IDs give the same 404 EMPLOYEE_NOT_FOUND. Recorded as a disclosure (audit employee.read). Cache-Control private, no-store.
+         */
+        get: operations["getEmployee"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an employee's effective-dated assignments
+         * @description MVP-021. Assignment rows ordered by kind, then start date. By default only active rows (the current history); includeSuperseded=true also lists rows replaced by later changes, corrections or cancellations, with supersededAt. Cursors are bound to the operation, tenant, employee, filters and page size. Recorded as a disclosure (audit employee.timeline). Cache-Control private, no-store.
+         */
+        get: operations["listEmploymentTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/employment-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an employee's recorded employment changes
+         * @description MVP-021. The append-only change log, newest first: hire, changes, corrections and cancellations, including cancelled changes. The recording actor is not returned (it is in the audit trail). Recorded as a disclosure (audit employment-change.list). Cache-Control private, no-store.
+         */
+        get: operations["listEmploymentChanges"];
+        put?: never;
+        /**
+         * Record an effective-dated change or a correction
+         * @description MVP-021. Repeats a previewed command with the expectedVersion and previewDigest the preview returned. In one transaction the employment is locked, the version checked (409 EMPLOYMENT_VERSION_CONFLICT), every rule re-validated, and the change recomputed; any difference from the preview gives 409 EMPLOYMENT_PREVIEW_CHANGED and nothing is written. A retroactive change needs a reason code and acknowledgeRetroactive=true. Nothing is updated in place: replaced rows are superseded and kept. Business changes, audit and outbox commit together. Retries with the same Idempotency-Key replay the original 201.
+         */
+        post: operations["createEmploymentChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/employment-changes/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview an effective-dated change or a correction
+         * @description MVP-021. Validates the command and returns, per affected kind, the exact rows before and after, the timing, whether a reason and acknowledgement are needed, warnings, the employment version and a previewDigest to repeat in the commit. Writes nothing. Recorded as a disclosure (audit employment-change.preview). Cache-Control private, no-store.
+         */
+        post: operations["previewEmploymentChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/employment-changes/{changeId}/cancel/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the cancellation of a scheduled change
+         * @description MVP-021. Only an ACTIVE change whose effective date is after the business date can be cancelled (409 EMPLOYMENT_CHANGE_NOT_CANCELLABLE). Returns, per kind, the rows removed and the rows restored (bounded by the next active row; later changes are never altered), the employment version and a cancellationDigest. When restoration would alter a later row derived from the change, 409 EMPLOYMENT_CHANGE_HAS_DEPENDENTS. Writes nothing. Recorded as a disclosure (audit employment-change.cancel-preview). Cache-Control private, no-store.
+         */
+        post: operations["previewEmploymentChangeCancellation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/employment-changes/{changeId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a scheduled change
+         * @description MVP-021. Repeats the expectedVersion and cancellationDigest of the cancellation preview. The employment is locked and everything recomputed; a different version gives 409 EMPLOYMENT_VERSION_CONFLICT and a different result 409 EMPLOYMENT_PREVIEW_CHANGED. The cancellation is itself a recorded change (type CANCELLATION) that keeps the cancelled change and its rows. Retries with the same Idempotency-Key replay the original 200.
+         */
+        post: operations["cancelEmploymentChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1195,10 +1342,258 @@ export interface components {
             acknowledgeInvalidRows: boolean;
         };
         /**
+         * @description Employment status on the business date (today in the organization's time zone).
+         * @enum {string}
+         */
+        EmploymentStatus: "CURRENT" | "NOT_STARTED" | "ENDED";
+        /** @description Employee number and names are Confidential. */
+        EmployeeSummary: {
+            /** Format: uuid */
+            id: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+            employmentStatus: components["schemas"]["EmploymentStatus"];
+        };
+        EmployeePage: {
+            items: components["schemas"]["EmployeeSummary"][];
+            nextCursor: string | null;
+        };
+        EmployeeSearch: {
+            /** @description Employee-number prefix or name words (2-100 code points after NFC normalization). Never logged, audited or echoed. */
+            query: string;
+            cursor?: string | null;
+            limit?: number | null;
+        };
+        /** @description Employment dates are Restricted HR. */
+        Employment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string | null;
+            status: components["schemas"]["EmploymentStatus"];
+            /** @description Timeline version; every recorded change increments it. */
+            version: number;
+        };
+        EmployeeProfile: {
+            /** Format: uuid */
+            id: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+            /**
+             * Format: date
+             * @description Today in the organization's time zone; statuses are computed against it.
+             */
+            businessDate: string;
+            employment: components["schemas"]["Employment"];
+            current: components["schemas"]["CurrentAssignments"];
+        };
+        /** @description Per kind, the active row covering the business date, or null. */
+        CurrentAssignments: {
+            placement: components["schemas"]["Assignment"] | null;
+            manager: components["schemas"]["Assignment"] | null;
+            contract: components["schemas"]["Assignment"] | null;
+            compensation: components["schemas"]["Assignment"] | null;
+        };
+        /** @enum {string} */
+        AssignmentKind: "PLACEMENT" | "MANAGER" | "CONTRACT" | "COMPENSATION";
+        /**
+         * @description CURRENT covers the business date, SCHEDULED starts after it, ENDED ends before it.
+         * @enum {string}
+         */
+        AssignmentStatus: "CURRENT" | "SCHEDULED" | "ENDED";
+        /**
+         * @description Descriptive contract classification. It has no legal effect and is not a legal classification in any jurisdiction.
+         * @enum {string}
+         */
+        ContractClassification: "PERMANENT" | "FIXED_TERM" | "APPRENTICESHIP" | "INTERNSHIP" | "DAILY";
+        /**
+         * @description How pay is expressed. Never an amount, rate, currency, bonus or allowance.
+         * @enum {string}
+         */
+        CompensationBasis: "MONTHLY" | "HOURLY" | "DAILY" | "PIECE_RATE";
+        UnitRef: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+        };
+        PlacementValue: {
+            legalEntity: components["schemas"]["UnitRef"];
+            site: components["schemas"]["UnitRef"];
+            department: components["schemas"]["UnitRef"] | null;
+            costCenter: components["schemas"]["UnitRef"] | null;
+            team: components["schemas"]["UnitRef"] | null;
+        };
+        ManagerValue: {
+            /** Format: uuid */
+            employeeId: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+        };
+        /** @description One effective-dated fact (Restricted HR). Business values and effective dates never change; supersededAt is set once when a later change, correction or cancellation replaces the row. */
+        Assignment: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["AssignmentKind"];
+            /** Format: date */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Last day (inclusive); null means open-ended.
+             */
+            effectiveTo: string | null;
+            status: components["schemas"]["AssignmentStatus"];
+            /**
+             * Format: uuid
+             * @description The change that recorded this row.
+             */
+            changeId: string;
+            /** Format: date-time */
+            supersededAt: string | null;
+            placement: components["schemas"]["PlacementValue"] | null;
+            manager: components["schemas"]["ManagerValue"] | null;
+            contractClassification: components["schemas"]["ContractClassification"] | null;
+            compensationBasis: components["schemas"]["CompensationBasis"] | null;
+        };
+        AssignmentPage: {
+            items: components["schemas"]["Assignment"][];
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        EmploymentChangeType: "HIRE" | "CHANGE" | "CORRECTION" | "CANCELLATION";
+        /**
+         * @description Relative to the business date when recorded.
+         * @enum {string}
+         */
+        EmploymentChangeTiming: "SCHEDULED" | "CURRENT" | "RETROACTIVE";
+        /**
+         * @description LATE_NOTIFICATION, REORGANIZATION, CONTRACT_CHANGE and OTHER_BUSINESS_CHANGE apply to changes; DATA_ENTRY_ERROR, IMPORT_ERROR and DOCUMENT_RECEIVED to corrections.
+         * @enum {string}
+         */
+        EmploymentChangeReason: "LATE_NOTIFICATION" | "REORGANIZATION" | "CONTRACT_CHANGE" | "OTHER_BUSINESS_CHANGE" | "DATA_ENTRY_ERROR" | "IMPORT_ERROR" | "DOCUMENT_RECEIVED";
+        /** @description A recorded change (Restricted HR). The recording actor is not exposed. */
+        EmploymentChange: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["EmploymentChangeType"];
+            /** Format: date */
+            effectiveFrom: string;
+            kinds: components["schemas"]["AssignmentKind"][];
+            reasonCode: components["schemas"]["EmploymentChangeReason"] | null;
+            /** @description Null for the hire. */
+            timing: components["schemas"]["EmploymentChangeTiming"] | null;
+            /** @enum {string} */
+            state: "ACTIVE" | "CANCELLED";
+            /** Format: uuid */
+            cancelsChangeId: string | null;
+            /** Format: date-time */
+            recordedAt: string;
+        };
+        EmploymentChangePage: {
+            items: components["schemas"]["EmploymentChange"][];
+            nextCursor: string | null;
+        };
+        PlacementInput: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: uuid */
+            departmentId?: string | null;
+            /** Format: uuid */
+            costCenterId?: string | null;
+            /** Format: uuid */
+            teamId?: string | null;
+        };
+        ManagerInput: {
+            /**
+             * Format: uuid
+             * @description The manager's employee ID, or null to end the reporting line from the date.
+             */
+            employeeId: string | null;
+        };
+        /** @description A CHANGE sets one or more kinds from effectiveFrom; an absent or null kind is unchanged. A CORRECTION replaces the value of one active row (correctsAssignmentId) for its own dates; effectiveFrom must equal that row's start and exactly one kind is given. */
+        EmploymentChangeCommand: {
+            /** @enum {string} */
+            type: "CHANGE" | "CORRECTION";
+            /** Format: date */
+            effectiveFrom: string;
+            placement?: components["schemas"]["PlacementInput"] | null;
+            manager?: components["schemas"]["ManagerInput"] | null;
+            contractClassification?: components["schemas"]["ContractClassification"] | null;
+            compensationBasis?: components["schemas"]["CompensationBasis"] | null;
+            reasonCode?: components["schemas"]["EmploymentChangeReason"] | null;
+            /** Format: uuid */
+            correctsAssignmentId?: string | null;
+        };
+        /** @description The previewed command plus what the preview returned. */
+        CreateEmploymentChange: {
+            /** @enum {string} */
+            type: "CHANGE" | "CORRECTION";
+            /** Format: date */
+            effectiveFrom: string;
+            placement?: components["schemas"]["PlacementInput"] | null;
+            manager?: components["schemas"]["ManagerInput"] | null;
+            contractClassification?: components["schemas"]["ContractClassification"] | null;
+            compensationBasis?: components["schemas"]["CompensationBasis"] | null;
+            reasonCode?: components["schemas"]["EmploymentChangeReason"] | null;
+            /** Format: uuid */
+            correctsAssignmentId?: string | null;
+            expectedVersion: number;
+            previewDigest: string;
+            acknowledgeRetroactive: boolean;
+        };
+        /** @description A row before or after the change; assignmentId is null for rows to be created. */
+        AssignmentPeriod: {
+            /** Format: uuid */
+            assignmentId: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            placement: components["schemas"]["PlacementValue"] | null;
+            manager: components["schemas"]["ManagerValue"] | null;
+            contractClassification: components["schemas"]["ContractClassification"] | null;
+            compensationBasis: components["schemas"]["CompensationBasis"] | null;
+        };
+        PreviewKind: {
+            kind: components["schemas"]["AssignmentKind"];
+            before: components["schemas"]["AssignmentPeriod"][];
+            after: components["schemas"]["AssignmentPeriod"][];
+        };
+        EmploymentChangePreview: {
+            expectedVersion: number;
+            timing: components["schemas"]["EmploymentChangeTiming"];
+            requiresReason: boolean;
+            /** @description True for a retroactive change; the commit must set acknowledgeRetroactive. */
+            requiresAcknowledgement: boolean;
+            kinds: components["schemas"]["PreviewKind"][];
+            warnings: "LATER_CHANGE_LIMITS_PERIOD"[];
+            previewDigest: string;
+        };
+        EmploymentChangeCancellationPreview: {
+            expectedVersion: number;
+            kinds: components["schemas"]["PreviewKind"][];
+            cancellationDigest: string;
+        };
+        CancelEmploymentChange: {
+            expectedVersion: number;
+            cancellationDigest: string;
+        };
+        EmploymentChangeResult: {
+            change: components["schemas"]["EmploymentChange"];
+            employmentVersion: number;
+        };
+        /**
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -1253,7 +1648,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row). */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change). No params. */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -1262,7 +1657,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND or EMPLOYEE_IMPORT_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND or EMPLOYMENT_CHANGE_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -1271,7 +1666,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client, too many bootstrap invitations created by one platform administrator, more than 30 access-review requests per minute by one subject, or, for employee imports, more than 10 upload and commit requests per minute by one subject, 30 uploads or 60 commits per 10 minutes in one tenant). Limits are per instance. No params. */
+        /** @description INVITATION_RATE_LIMITED (the tenant's invitation quota is used up), INVITATION_RESEND_LIMITED (at most 3 reissues per invitation, at least 5 minutes apart) or RATE_LIMITED (too many anonymous requests from one client, too many bootstrap invitations created by one platform administrator, more than 30 access-review requests per minute by one subject, or, for employee imports, more than 10 upload and commit requests per minute by one subject, 30 uploads or 60 commits per 10 minutes in one tenant, or, for employees and employment history, more than 60 reads, searches and previews or 20 changes and cancellations per minute by one subject, 300 searches or 200 changes and cancellations per 10 minutes in one tenant). Limits are per instance. No params. */
         TooManyRequests: {
             headers: {
                 "Retry-After": components["headers"]["RetryAfter"];
@@ -1281,7 +1676,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. IMPORT_TIMEOUT - an employee import's database work exceeded its time limit and was rolled back entirely; retry with the same Idempotency-Key. No params. */
+        /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. IMPORT_TIMEOUT - an employee import's database work exceeded its time limit and was rolled back entirely; retry with the same Idempotency-Key. EMPLOYMENT_CHANGE_TIMEOUT - an employment change or cancellation exceeded its time limit and nothing was written; retry with the same Idempotency-Key. No params. */
         ServiceUnavailable: {
             headers: {
                 [name: string]: unknown;
@@ -1301,6 +1696,15 @@ export interface components {
         };
         /** @description IMPORT_FILE_TOO_LARGE - the CSV body exceeds 2 MiB; reading stopped at the limit and nothing was stored. No params. */
         PayloadTooLarge: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description MVP-021 business rules. EMPLOYMENT_CHANGE_NO_EFFECT (params.field: the assignment kind whose value would not change), EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT, RETROACTIVE_WINDOW_EXCEEDED (before the configurable pilot window, 60 days by default), MANAGER_INVALID (params.reason: NOT_FOUND, SELF, NOT_EMPLOYED, CYCLE or CHAIN_TOO_DEEP) or PLACEMENT_INVALID (params.field: legalEntityId, siteId, departmentId, costCenterId or teamId; params.reason: NOT_FOUND, MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). Params never carry a date, a value or an ID. */
+        UnprocessableContent: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1343,6 +1747,14 @@ export interface components {
         EmployeeImportId: string;
         /** @description Rows per page for the import preview (1-100, default 50). */
         EmployeeImportRowLimit: number;
+        /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+        EmployeeId: string;
+        /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 EMPLOYMENT_CHANGE_NOT_FOUND. */
+        EmploymentChangeId: string;
+        /** @description Items per page (1-50, default 25). */
+        EmployeeLimit: number;
+        /** @description Rows per page (1-100, default 50). */
+        TimelineLimit: number;
         /** @description Entries per page for the access review (1-50, default 25). */
         AccessReviewLimit: number;
         Limit: number;
@@ -2567,23 +2979,32 @@ export interface operations {
             query?: {
                 /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
                 cursor?: components["parameters"]["Cursor"];
-                limit?: components["parameters"]["Limit"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["EmployeeLimit"];
             };
-            header?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Employee page */
+            /** @description A page of employees */
             200: {
                 headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EmployeePage"];
+                };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     createEmployee: {
@@ -2672,6 +3093,302 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    searchEmployees: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeSearch"];
+            };
+        };
+        responses: {
+            /** @description A page of matching employees */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getEmployee: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The employee profile */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeProfile"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listEmploymentTimeline: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["AssignmentKind"];
+                includeSuperseded?: boolean;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Rows per page (1-100, default 50). */
+                limit?: components["parameters"]["TimelineLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of assignment rows */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listEmploymentChanges: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["EmployeeLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of changes */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmploymentChangePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createEmploymentChange: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmploymentChange"];
+            };
+        };
+        responses: {
+            /** @description Change recorded, or the original recording replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmploymentChangeResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewEmploymentChange: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmploymentChangeCommand"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmploymentChangePreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewEmploymentChangeCancellation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 EMPLOYMENT_CHANGE_NOT_FOUND. */
+                changeId: components["parameters"]["EmploymentChangeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cancellation preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmploymentChangeCancellationPreview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    cancelEmploymentChange: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 EMPLOYMENT_CHANGE_NOT_FOUND. */
+                changeId: components["parameters"]["EmploymentChangeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelEmploymentChange"];
+            };
+        };
+        responses: {
+            /** @description Change cancelled, or the original cancellation replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmploymentChangeResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
 }

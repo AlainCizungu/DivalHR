@@ -165,6 +165,10 @@ class SiteUnitConstraintsIntegrationTest {
           transactions.execute(
               status -> {
                 jdbc.execute("SET LOCAL enable_seqscan = off");
+                // Once the shared test database holds enough units to be analyzed, a one-row
+                // estimate makes "another index plus a sort" as cheap; the question here is only
+                // whether the keyset index can serve the order by itself.
+                jdbc.execute("SET LOCAL enable_sort = off");
                 return jdbc.queryForList(
                     "EXPLAIN SELECT id FROM "
                         + resource.table

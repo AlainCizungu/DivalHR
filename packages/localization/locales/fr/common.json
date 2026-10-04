@@ -13,6 +13,7 @@
     "users": "Utilisateurs et invitations",
     "firstAdmin": "Premier administrateur",
     "accessReview": "Revue des accès",
+    "employees": "Employés",
     "employeeImport": "Importer des employés"
   },
   "locale": {
@@ -142,7 +143,20 @@
     "IMPORT_PREVIEW_CHANGED": "L’import a changé depuis votre vérification. Vérifiez-le de nouveau avant d’importer.",
     "IMPORT_STALE": "Certaines lignes ne sont plus valides (un matricule ou une unité a changé). Rien n’a été importé ; envoyez de nouveau le fichier.",
     "IMPORT_NOTHING_TO_COMMIT": "Le fichier ne contient aucune ligne valide à importer.",
-    "IMPORT_TIMEOUT": "L’import a pris trop de temps et a été annulé ; rien n’a été importé. Réessayez."
+    "IMPORT_TIMEOUT": "L’import a pris trop de temps et a été annulé ; rien n’a été importé. Réessayez.",
+    "EMPLOYEE_NOT_FOUND": "Cet employé n’existe pas dans votre organisation.",
+    "EMPLOYMENT_CHANGE_NOT_FOUND": "Ce changement n’existe pas pour cet employé.",
+    "EMPLOYMENT_VERSION_CONFLICT": "L’historique de l’employé a changé entre-temps. Prévisualisez de nouveau le changement.",
+    "EMPLOYMENT_PREVIEW_CHANGED": "Le résultat ne correspond plus à l’aperçu. Prévisualisez de nouveau le changement.",
+    "EMPLOYMENT_CHANGE_DATE_TAKEN": "Un changement du même élément commence déjà à cette date. Corrigez-le ou annulez-le plutôt.",
+    "EMPLOYMENT_CHANGE_NOT_CANCELLABLE": "Seul un changement qui commence après aujourd’hui peut être annulé.",
+    "EMPLOYMENT_CHANGE_HAS_DEPENDENTS": "Un changement ultérieur dépend de celui-ci. Annulez ou corrigez d’abord le changement ultérieur.",
+    "EMPLOYMENT_CHANGE_NO_EFFECT": "Le changement ne modifierait pas l’historique.",
+    "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT": "La date est en dehors de la période d’emploi.",
+    "RETROACTIVE_WINDOW_EXCEEDED": "Cette date est plus ancienne que ce que l’organisation autorise pour un changement rétroactif.",
+    "MANAGER_INVALID": "Ce responsable ne peut pas être attribué.",
+    "PLACEMENT_INVALID": "Cette affectation ne peut pas être attribuée.",
+    "EMPLOYMENT_CHANGE_TIMEOUT": "Le changement a pris trop de temps et rien n’a été enregistré. Réessayez."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -829,6 +843,227 @@
       "department_code": "Code d’un département de ce site, ou vide",
       "cost_center_code": "Code d’un centre de coût de ce site, ou vide ; pas en même temps qu’un département",
       "team_code": "Code d’une équipe, ou vide ; sans département ni centre de coût, celui de l’équipe est utilisé"
+    }
+  },
+  "employees": {
+    "title": "Employés",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent consulter et modifier les dossiers des employés.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour consulter les employés.",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "loadMore": "Afficher plus",
+    "none": "—",
+    "reference": "Référence : {{id}}",
+    "retryAfter_one": "Réessayez dans {{count}} seconde.",
+    "retryAfter_other": "Réessayez dans {{count}} secondes.",
+    "fullName": "{{given}} {{family}}",
+    "managerName": "{{given}} {{family}} ({{number}})",
+    "period": {
+      "open": "à partir du {{from}}",
+      "closed": "du {{from}} au {{to}}"
+    },
+    "fields": {
+      "employeeNumber": "Matricule",
+      "name": "Nom",
+      "status": "Statut"
+    },
+    "employmentStatus": {
+      "CURRENT": "En poste",
+      "NOT_STARTED": "Pas encore entré",
+      "ENDED": "Contrat terminé"
+    },
+    "assignmentStatus": {
+      "CURRENT": "En cours",
+      "SCHEDULED": "Programmé",
+      "ENDED": "Terminé"
+    },
+    "kinds": {
+      "PLACEMENT": "Affectation",
+      "MANAGER": "Responsable hiérarchique",
+      "CONTRACT": "Catégorie de contrat",
+      "COMPENSATION": "Mode de rémunération"
+    },
+    "contract": {
+      "PERMANENT": "Durée indéterminée",
+      "FIXED_TERM": "Durée déterminée",
+      "APPRENTICESHIP": "Apprentissage",
+      "INTERNSHIP": "Stage",
+      "DAILY": "Travail journalier"
+    },
+    "compensation": {
+      "MONTHLY": "Mensuel",
+      "HOURLY": "Horaire",
+      "DAILY": "Journalier",
+      "PIECE_RATE": "À la tâche"
+    },
+    "reasons": {
+      "LATE_NOTIFICATION": "Changement signalé en retard",
+      "REORGANIZATION": "Réorganisation",
+      "CONTRACT_CHANGE": "Changement de contrat",
+      "OTHER_BUSINESS_CHANGE": "Autre changement",
+      "DATA_ENTRY_ERROR": "Erreur de saisie",
+      "IMPORT_ERROR": "Erreur d’import",
+      "DOCUMENT_RECEIVED": "Justificatif reçu"
+    },
+    "timing": {
+      "SCHEDULED": "Programmé (commence après aujourd’hui)",
+      "CURRENT": "En vigueur aujourd’hui",
+      "RETROACTIVE": "Rétroactif (commence avant aujourd’hui)"
+    },
+    "changeType": {
+      "HIRE": "Embauche",
+      "CHANGE": "Changement",
+      "CORRECTION": "Correction",
+      "CANCELLATION": "Annulation"
+    },
+    "changeState": {
+      "ACTIVE": "En vigueur",
+      "CANCELLED": "Annulé"
+    },
+    "announce": {
+      "recorded": "Changement à partir du {{date}} enregistré.",
+      "corrected": "Correction enregistrée.",
+      "cancelled": "Le changement du {{date}} a été annulé."
+    },
+    "directory": {
+      "title": "Employés",
+      "description": "Trouvez un employé, puis ouvrez son dossier pour consulter et modifier son historique d’emploi. Chaque consultation est inscrite au journal d’audit.",
+      "searchTitle": "Recherche",
+      "query": "Matricule ou nom",
+      "queryHelp": "Début d’un matricule, ou début des mots du nom. Les accents et les majuscules sont ignorés.",
+      "queryLength": "Saisissez entre 2 et 100 caractères.",
+      "search": "Rechercher",
+      "showAll": "Afficher tous les employés",
+      "allTitle": "Tous les employés",
+      "resultsTitle": "Résultats de la recherche",
+      "caption": "Employés par matricule",
+      "found_one": "{{count}} employé affiché.",
+      "found_other": "{{count}} employés affichés.",
+      "none": "Aucun employé pour l’instant. Importez-les d’abord.",
+      "noMatch": "Aucun employé ne correspond à cette recherche."
+    },
+    "profile": {
+      "back": "Retour aux employés",
+      "unavailable": "Dossier de l’employé indisponible",
+      "employment": "Emploi",
+      "businessDate": "Aujourd’hui dans le fuseau horaire de l’organisation",
+      "current": "Situation actuelle",
+      "unset": {
+        "PLACEMENT": "Aucune affectation",
+        "MANAGER": "Aucun responsable",
+        "CONTRACT": "Non renseignée",
+        "COMPENSATION": "Non renseigné"
+      }
+    },
+    "placement": {
+      "fields": {
+        "legalEntityId": "Entité juridique",
+        "siteId": "Site",
+        "departmentId": "Département",
+        "costCenterId": "Centre de coût",
+        "teamId": "Équipe"
+      },
+      "unit": "Département ou centre de coût",
+      "choose": "Choisir…",
+      "noUnit": "Aucun",
+      "noTeam": "Aucune équipe",
+      "option": "{{name}} ({{code}})",
+      "unavailable": "Les unités organisationnelles n’ont pas pu être chargées. Réessayez plus tard."
+    },
+    "manager": {
+      "clear": "Mettre fin au rattachement hiérarchique à cette date (aucun responsable)",
+      "find": "Trouver le responsable par matricule ou par nom",
+      "search": "Trouver",
+      "results": "Employés correspondants",
+      "selected": "Responsable choisi : {{name}}",
+      "failed": "La recherche a échoué. Réessayez."
+    },
+    "form": {
+      "title": "Enregistrer un changement",
+      "correctTitle": "Corriger une valeur",
+      "correcting": "{{kind}}, {{period}} : {{value}}",
+      "help": "Nous sommes le {{date}} dans le fuseau horaire de l’organisation. Un changement s’applique de sa date jusqu’au changement suivant ; l’historique antérieur est conservé.",
+      "effectiveFrom": "Date d’effet",
+      "dateHelp": "Une date antérieure à aujourd’hui rend le changement rétroactif : un motif et une confirmation sont alors exigés.",
+      "correctionDateHelp": "Une correction remplace la valeur de cette période seulement ; ses dates ne changent pas.",
+      "kinds": "Ce qui change",
+      "contractHelp": "Une catégorie descriptive, pas une qualification juridique.",
+      "compensationHelp": "La façon dont la paie est calculée. Aucun montant n’est enregistré ici.",
+      "reasonRequired": "Motif (obligatoire)",
+      "reasonOptional": "Motif (facultatif)",
+      "preview": "Prévisualiser le changement",
+      "previewing": "Préparation de l’aperçu…",
+      "confirm": "Confirmer et enregistrer",
+      "saving": "Enregistrement…",
+      "close": "Annuler la correction",
+      "problems": {
+        "title": "Vérifiez les points suivants :",
+        "date": "Saisissez la date d’effet.",
+        "kinds": "Choisissez au moins un élément à modifier.",
+        "placement": "Choisissez une entité juridique et un site.",
+        "manager": "Choisissez un responsable, ou mettez fin au rattachement.",
+        "contract": "Choisissez une catégorie de contrat.",
+        "compensation": "Choisissez un mode de rémunération.",
+        "reason": "Choisissez un motif.",
+        "acknowledge": "Confirmez que vous enregistrez un changement rétroactif."
+      }
+    },
+    "preview": {
+      "title": "Aperçu",
+      "caption": "Lignes remplacées et lignes enregistrées",
+      "kind": "Élément",
+      "before": "Avant",
+      "after": "Après",
+      "removed": "Retiré",
+      "restored": "Rétabli",
+      "laterChange": "Un changement ultérieur déjà enregistré limite cette période : il n’est pas modifié.",
+      "acknowledge": "Je confirme que ce changement s’applique à des dates passées."
+    },
+    "timeline": {
+      "title": "Historique d’emploi",
+      "caption": "Valeurs datées",
+      "kind": "Élément",
+      "allKinds": "Tout",
+      "includeSuperseded": "Afficher les valeurs remplacées",
+      "period": "Période",
+      "value": "Valeur",
+      "status": "Statut",
+      "actions": "Actions",
+      "replaced": "Remplacée",
+      "correct": "Corriger",
+      "correctRow": "Corriger {{kind}}, {{period}}",
+      "none": "Aucune valeur enregistrée."
+    },
+    "changes": {
+      "title": "Changements enregistrés",
+      "caption": "Changements, du plus récent au plus ancien",
+      "type": "Type",
+      "effectiveFrom": "Date d’effet",
+      "kinds": "Éléments",
+      "reason": "Motif",
+      "state": "État",
+      "cancel": "Annuler",
+      "cancelOne": "Annuler le changement du {{date}} ({{kinds}})",
+      "cancelTitle": "Annuler le changement du {{date}}",
+      "cancelHelp": "Les valeurs précédentes sont rétablies jusqu’au changement suivant, qui reste inchangé. Le changement annulé reste dans l’historique.",
+      "confirmCancel": "Confirmer l’annulation",
+      "keep": "Conserver le changement"
+    },
+    "problems": {
+      "noEffect": "{{kind}} : la valeur ne changerait pas.",
+      "manager": {
+        "NOT_FOUND": "Ce responsable n’est pas un employé de l’organisation.",
+        "SELF": "Un employé ne peut pas être son propre responsable.",
+        "NOT_EMPLOYED": "Le responsable n’est pas en poste pendant toute la période.",
+        "CYCLE": "Cela créerait une boucle hiérarchique.",
+        "CHAIN_TOO_DEEP": "La chaîne hiérarchique dépasserait 50 niveaux."
+      },
+      "placement": {
+        "NOT_FOUND": "{{field}} : cette unité n’existe pas dans l’organisation.",
+        "MISMATCH": "{{field}} : cette unité ne dépend pas du parent choisi.",
+        "NOT_EFFECTIVE": "{{field}} : cette unité n’est pas en vigueur à cette date.",
+        "ENDS_DURING_PERIOD": "{{field}} : cette unité prend fin pendant la période."
+      }
     }
   }
 }

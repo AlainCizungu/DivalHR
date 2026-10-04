@@ -1,0 +1,14 @@
+# MVP-021 search-key golden vectors (H16): given names<TAB>family name<TAB>normalized words.
+# The stored key is the words with one space before and after each (" " + words + " "), so a
+# word-prefix match is LIKE '% word%'. Shared by the application normalizer test and the V14_1
+# backfill test.
+Élodie Marie	N’Kanza-Mbuyi	elodie marie nkanza mbuyi
+Jean-Pierre	O'Neil	jean pierre oneil
+St. John	Œdipe	st john œdipe
+Zoë	Mukendi Kabeya	zoe mukendi kabeya
+Ἀθηνᾶ	Παπαδοπούλου	αθηνα παπαδοπουλου
+İlkay	Gündoğan	ilkay gundogan
+देवनागरी	Sharma	दवनगर sharma
+محمد	Ali	محمد ali
+Ngalula	Tshibola-Mwamba	ngalula tshibola mwamba
+François	D’Almeida	francois dalmeida

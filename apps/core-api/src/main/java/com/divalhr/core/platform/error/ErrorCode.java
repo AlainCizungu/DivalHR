@@ -129,7 +129,33 @@ public enum ErrorCode {
   /** The import has no valid row (MVP-020). */
   IMPORT_NOTHING_TO_COMMIT(HttpStatus.CONFLICT),
   /** The import's database work timed out and was rolled back entirely (MVP-020). */
-  IMPORT_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE);
+  IMPORT_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE),
+  /** The employee does not exist in the caller's tenant (missing, foreign, malformed) (MVP-021). */
+  EMPLOYEE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The change does not exist for this employee in the caller's tenant (MVP-021). */
+  EMPLOYMENT_CHANGE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The employment changed since the caller read its version (MVP-021). */
+  EMPLOYMENT_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** The commit does not repeat the current preview (MVP-021). */
+  EMPLOYMENT_PREVIEW_CHANGED(HttpStatus.CONFLICT),
+  /** A row of the kind already starts on the effective date (params.field) (MVP-021). */
+  EMPLOYMENT_CHANGE_DATE_TAKEN(HttpStatus.CONFLICT),
+  /** Only an active scheduled business change can be cancelled (MVP-021). */
+  EMPLOYMENT_CHANGE_NOT_CANCELLABLE(HttpStatus.CONFLICT),
+  /** A later change depends on the change to cancel (MVP-021, M21-2). */
+  EMPLOYMENT_CHANGE_HAS_DEPENDENTS(HttpStatus.CONFLICT),
+  /** The change would not alter the timeline (params.field) (MVP-021). */
+  EMPLOYMENT_CHANGE_NO_EFFECT(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The effective date is outside the employment (MVP-021). */
+  EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The date is earlier than the configured retroactive window allows (MVP-021). */
+  RETROACTIVE_WINDOW_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The manager cannot be assigned (params.reason) (MVP-021). */
+  MANAGER_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The placement cannot be assigned (params.field, params.reason) (MVP-021). */
+  PLACEMENT_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The change's database work timed out and was rolled back entirely (MVP-021). */
+  EMPLOYMENT_CHANGE_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE);
 
   private final HttpStatus status;
 

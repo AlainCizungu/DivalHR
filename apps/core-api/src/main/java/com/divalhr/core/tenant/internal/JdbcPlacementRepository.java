@@ -1,6 +1,8 @@
 package com.divalhr.core.tenant.internal;
 
 import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory.PlacementUnit;
+import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory.UnitKind;
+import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory.UnitView;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,9 +15,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * Batched, read-only resolution of organizational units by code (MVP-020, E13). Every method takes
- * the verified {@link TenantId} and filters on it; codes are matched through the case-insensitive
- * unique indexes. Names are never read.
+ * Batched, read-only resolution of organizational units by code (MVP-020, E13) and by ID with
+ * display codes and names (MVP-021). Every method takes the verified {@link TenantId} and filters
+ * on it; codes are matched through the case-insensitive unique indexes.
  */
 @Repository
 public class JdbcPlacementRepository {
@@ -109,6 +111,56 @@ public class JdbcPlacementRepository {
         "SELECT id, upper(code) AS code, effective_from, effective_to, NULL::uuid AS le,"
             + " site_id AS site, department_id AS dept, cost_center_id AS cc"
             + " FROM tenant.team WHERE tenant_id = :tenant AND upper(code) = ANY(:codes)");
+  }
+
+  /**
+   * Units of every kind by ID, in one query.
+   *
+   * @param tenant verified tenant
+   * @param ids unit IDs
+   * @return units found, by ID
+   */
+  public Map<UUID, UnitView> byIds(TenantId tenant, Set<UUID> ids) {
+    Map<UUID, UnitView> units = new HashMap<>();
+    if (ids.isEmpty()) {
+      return units;
+    }
+    jdbc.sql(
+            "SELECT 'LEGAL_ENTITY' AS kind, id, code, name, effective_from, effective_to,"
+                + " NULL::uuid AS le, NULL::uuid AS site, NULL::uuid AS dept, NULL::uuid AS cc"
+                + " FROM tenant.legal_entity WHERE tenant_id = :tenant AND id = ANY(:ids)"
+                + " UNION ALL SELECT 'SITE', id, code, name, effective_from, effective_to,"
+                + " legal_entity_id, NULL, NULL, NULL"
+                + " FROM tenant.site WHERE tenant_id = :tenant AND id = ANY(:ids)"
+                + " UNION ALL SELECT 'DEPARTMENT', id, code, name, effective_from, effective_to,"
+                + " NULL, site_id, NULL, NULL"
+                + " FROM tenant.department WHERE tenant_id = :tenant AND id = ANY(:ids)"
+                + " UNION ALL SELECT 'COST_CENTER', id, code, name, effective_from, effective_to,"
+                + " NULL, site_id, NULL, NULL"
+                + " FROM tenant.cost_center WHERE tenant_id = :tenant AND id = ANY(:ids)"
+                + " UNION ALL SELECT 'TEAM', id, code, name, effective_from, effective_to,"
+                + " NULL, site_id, department_id, cost_center_id"
+                + " FROM tenant.team WHERE tenant_id = :tenant AND id = ANY(:ids)")
+        .param("tenant", tenant.value())
+        .param("ids", ids.toArray(UUID[]::new))
+        .query(
+            (ResultSet rs, int row) -> {
+              UnitView unit =
+                  new UnitView(
+                      rs.getObject("id", UUID.class),
+                      UnitKind.valueOf(rs.getString("kind")),
+                      rs.getString("code"),
+                      rs.getString("name"),
+                      rs.getObject("effective_from", LocalDate.class),
+                      rs.getObject("effective_to", LocalDate.class),
+                      rs.getObject("le", UUID.class),
+                      rs.getObject("site", UUID.class),
+                      rs.getObject("dept", UUID.class),
+                      rs.getObject("cc", UUID.class));
+              return units.put(unit.id(), unit);
+            })
+        .list();
+    return units;
   }
 
   private Map<String, PlacementUnit> query(TenantId tenant, Set<String> codes, String sql) {
