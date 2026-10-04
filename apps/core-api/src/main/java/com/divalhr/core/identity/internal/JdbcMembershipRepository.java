@@ -22,13 +22,27 @@ import org.springframework.transaction.annotation.Transactional;
 public class JdbcMembershipRepository {
 
   /**
+   * Whether a separation revoked the membership's DivalHR access (MVP-022, D22-7): a revocation
+   * that is not cancelled and whose instant has passed on the database clock. It holds from that
+   * instant, whatever the background worker or the identity provider has done since. Correlated on
+   * both the tenant and the membership (R22-1), so tenant isolation never rests on the global
+   * uniqueness of a membership ID; served by the index {@code access_revocation_one_open}. Requires
+   * {@code identity.tenant_membership} unaliased in the query.
+   */
+  static final String REVOKED =
+      "EXISTS (SELECT 1 FROM identity.access_revocation access_revocation"
+          + " WHERE access_revocation.tenant_id = identity.tenant_membership.tenant_id"
+          + " AND access_revocation.membership_id = identity.tenant_membership.id"
+          + " AND access_revocation.state <> 'CANCELLED'"
+          + " AND access_revocation.effective_at <= statement_timestamp())";
+
+  /**
    * The single definition of an active membership (MVP-012A, M1 and A5). Every query that decides
    * or reports tenant access includes it: the membership gate, {@code GET /session}, the MVP-014
-   * bootstrap rule and, later, the access review, so they can never disagree. Every membership is
-   * active today; the membership lifecycle story (S3) narrows this predicate, for example to {@code
-   * ended_at IS NULL}, in this one place.
+   * bootstrap rule and the access review, so they can never disagree. MVP-022 narrows it, in this
+   * one place, to memberships whose access no separation revoked.
    */
-  static final String ACTIVE = "TRUE";
+  static final String ACTIVE = "NOT " + REVOKED;
 
   private final JdbcClient jdbc;
 

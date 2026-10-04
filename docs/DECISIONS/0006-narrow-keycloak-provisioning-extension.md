@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted (Issue #31, architect decision with amendments A1–A3).
+Accepted (Issue #31, architect decision with amendments A1–A3). Extended by ADR 0008 (Issue #49):
+one by-subject operation, access revocation, restricted to employee identities the extension
+created for the path tenant.
 
 ## Context
 
@@ -29,8 +31,8 @@ contract `packages/shared-contracts/openapi/keycloak-provisioning.yaml`.
 
 - **Operations**, keyed by invitation ID, acting only on the single user carrying that exact
   `divalhr_invitation_id`: create or confirm the identity; send the setup email or confirm that
-  setup is complete; delete a pristine identity (compensation). There is no read, search or
-  by-subject operation.
+  setup is complete; delete a pristine identity (compensation). There is no read or search
+  operation; the only by-subject operation is the access revocation added by ADR 0008.
 - **Authorization before input (A2):** token signature, type, expiry, issuer and audience
   `divalhr-provisioning`; `azp` = the enabled confidential client `divalhr-core-provisioner`;
   the caller is that client's live, enabled service account; that account currently holds the

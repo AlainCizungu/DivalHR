@@ -154,6 +154,21 @@ divalhr:
     retroactive-days: ${DIVALHR_EMPLOYMENT_RETROACTIVE_DAYS:60}
     statement-timeout: 5s
     transaction-timeout: 15s
+  # MVP-022: identity-provider sign-in removal of separated employees (D22-14). DivalHR access never
+  # depends on these jobs: the membership gate denies a revoked membership from its instant on.
+  access-revocation:
+    batch-size: ${DIVALHR_ACCESS_REVOCATION_BATCH_SIZE:20}
+    lease: 2m
+    max-attempts: 10
+    first-backoff: 1m
+    max-backoff: 60m
+    jobs:
+      enabled: ${DIVALHR_ACCESS_REVOCATION_JOBS_ENABLED:true}
+      interval: PT1M
+  separation:
+    jobs:
+      enabled: ${DIVALHR_SEPARATION_JOBS_ENABLED:true}
+      interval: PT1M
   # MVP-013: durable evidence of privileged authorization denials. Budgets are in-process per
   # instance (cluster ceiling: value x active instances); the bulkhead pool is separate from the
   # application pool.

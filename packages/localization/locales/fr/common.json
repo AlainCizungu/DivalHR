@@ -156,7 +156,26 @@
     "RETROACTIVE_WINDOW_EXCEEDED": "Cette date est plus ancienne que ce que l’organisation autorise pour un changement rétroactif.",
     "MANAGER_INVALID": "Ce responsable ne peut pas être attribué.",
     "PLACEMENT_INVALID": "Cette affectation ne peut pas être attribuée.",
-    "EMPLOYMENT_CHANGE_TIMEOUT": "Le changement a pris trop de temps et rien n’a été enregistré. Réessayez."
+    "EMPLOYMENT_CHANGE_TIMEOUT": "Le changement a pris trop de temps et rien n’a été enregistré. Réessayez.",
+    "SEPARATION_NOT_FOUND": "Cette sortie n’existe plus.",
+    "SEPARATION_TASK_NOT_FOUND": "Cette tâche de suivi n’existe plus.",
+    "MEMBERSHIP_NOT_FOUND": "Aucun membre de l’organisation n’utilise cette adresse exacte.",
+    "SEPARATION_EXISTS": "Cet employé a déjà une sortie en vigueur.",
+    "SEPARATION_FUTURE_CHANGES": "Les changements enregistrés après le dernier jour doivent d’abord être annulés.",
+    "SEPARATION_PROTECTED": "Cette sortie n’est pas autorisée.",
+    "SEPARATION_PREVIEW_CHANGED": "Le résultat ne correspond plus à l’aperçu. Prévisualisez de nouveau la sortie.",
+    "SEPARATION_NOT_CANCELLABLE": "Cette sortie ne peut plus être annulée.",
+    "SEPARATION_TASK_VERSION_CONFLICT": "Cette tâche a été modifiée entre-temps. La liste a été actualisée ; réessayez.",
+    "SEPARATION_TASK_CLOSED": "Cette tâche ne peut plus être modifiée.",
+    "ACCESS_LINK_CONFLICT": "Cet accès ne peut pas être lié à cet employé.",
+    "ACCESS_LINK_LOCKED": "Le lien d’accès ne peut pas changer pendant qu’une sortie est en vigueur.",
+    "ACCESS_LINK_VERSION_CONFLICT": "Le lien d’accès a été modifié entre-temps. Rechargez la page et réessayez.",
+    "ACCESS_REVOCATION_NOT_RETRYABLE": "La suppression de la connexion ne peut pas être relancée dans son état actuel.",
+    "SEPARATION_DATE_OUT_OF_RANGE": "Le dernier jour est en dehors de la période autorisée.",
+    "SEPARATION_ACCESS_TIMING_INVALID": "Ce moment de fin d’accès n’est pas possible pour ce dernier jour.",
+    "SEPARATION_ACKNOWLEDGEMENT_REQUIRED": "Une confirmation requise manque.",
+    "SEPARATION_REPORT_PLAN_REQUIRED": "Choisissez ce qu’il advient des collaborateurs directs.",
+    "SEPARATION_TOO_MANY_INTERVALS": "Trop de périodes de collaborateurs directs sont concernées pour enregistrer cette sortie en une fois."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -664,11 +683,12 @@
       "back": "Revenir à la liste"
     },
     "table": {
-      "caption": "Accès actifs de l’organisation",
+      "caption": "Membres de l’organisation et leur accès",
       "address": "Adresse",
       "role": "Rôle",
       "scope": "Portée",
-      "grantedAt": "Accès accordé le"
+      "grantedAt": "Accès accordé le",
+      "access": "Accès DivalHR"
     },
     "scope": {
       "entire": "Toute l’organisation",
@@ -692,6 +712,10 @@
         "LENGTH": "L’adresse e-mail est trop longue.",
         "FORMAT": "Saisissez une adresse e-mail valide, par exemple nom@exemple.cd."
       }
+    },
+    "accessState": {
+      "ACTIVE": "Actif",
+      "REVOKED": "Accès révoqué"
     }
   },
   "employeeImport": {
@@ -903,7 +927,8 @@
       "OTHER_BUSINESS_CHANGE": "Autre changement",
       "DATA_ENTRY_ERROR": "Erreur de saisie",
       "IMPORT_ERROR": "Erreur d’import",
-      "DOCUMENT_RECEIVED": "Justificatif reçu"
+      "DOCUMENT_RECEIVED": "Justificatif reçu",
+      "MANAGER_SEPARATED": "Sortie du responsable"
     },
     "timing": {
       "SCHEDULED": "Programmé (commence après aujourd’hui)",
@@ -914,7 +939,8 @@
       "HIRE": "Embauche",
       "CHANGE": "Changement",
       "CORRECTION": "Correction",
-      "CANCELLATION": "Annulation"
+      "CANCELLATION": "Annulation",
+      "SEPARATION": "Sortie"
     },
     "changeState": {
       "ACTIVE": "En vigueur",
@@ -1064,6 +1090,170 @@
         "NOT_EFFECTIVE": "{{field}} : cette unité n’est pas en vigueur à cette date.",
         "ENDS_DURING_PERIOD": "{{field}} : cette unité prend fin pendant la période."
       }
+    }
+  },
+  "accessLink": {
+    "title": "Accès à DivalHR",
+    "state": {
+      "NOT_LINKED": "Aucun accès DivalHR n’est lié à cet employé.",
+      "ACTIVE": "Lié à un accès DivalHR.",
+      "REVOCATION_SCHEDULED": "Lié ; une sortie mettra fin à cet accès.",
+      "REVOKED": "Accès DivalHR terminé par une sortie."
+    },
+    "role": "Rôle",
+    "linkedAt": "Lié le",
+    "remove": "Supprimer le lien",
+    "email": "Adresse e-mail exacte du membre",
+    "emailHelp": "Saisissez l’adresse complète avec laquelle la personne se connecte. Seule une correspondance exacte est trouvée.",
+    "lookup": "Trouver l’accès",
+    "candidate": "Membre trouvé : {{role}}.",
+    "link": "Lier à cet employé",
+    "notLinkable": {
+      "ALREADY_LINKED": "Cet accès est déjà lié à un autre employé.",
+      "ACCESS_REVOKED": "Cet accès a été révoqué et ne peut pas être lié.",
+      "EMPLOYEE_LINKED": "Cet employé a déjà un accès lié."
+    },
+    "announce": {
+      "linked": "Accès DivalHR lié.",
+      "removed": "Lien d’accès supprimé."
+    }
+  },
+  "separation": {
+    "title": "Sortie",
+    "none": "Aucune sortie enregistrée.",
+    "heading": "Dernier jour le {{date}} – {{state}}",
+    "state": {
+      "SCHEDULED": "Planifiée",
+      "EFFECTIVE": "En vigueur",
+      "CANCELLED": "Annulée"
+    },
+    "accessLabel": "Accès DivalHR",
+    "reasons": {
+      "RESIGNATION": "Démission",
+      "END_OF_FIXED_TERM": "Fin de contrat à durée déterminée",
+      "DISMISSAL": "Licenciement",
+      "MUTUAL_AGREEMENT": "Accord mutuel",
+      "RETIREMENT": "Départ à la retraite",
+      "OTHER_SEPARATION": "Autre sortie"
+    },
+    "timing": {
+      "END_OF_LAST_DAY": "À la fin du dernier jour",
+      "IMMEDIATELY": "Immédiatement, à l’enregistrement de la sortie"
+    },
+    "form": {
+      "title": "Enregistrer une sortie",
+      "help": "Nous sommes le {{date}} dans le fuseau horaire de l’organisation. L’emploi prend fin après le dernier jour ; l’historique est conservé.",
+      "lastDay": "Dernier jour d’emploi",
+      "lastDayHelp": "Le dernier jour travaillé, inclus. Une date passée rend la sortie rétroactive.",
+      "reason": "Motif",
+      "accessTiming": "Fin de l’accès à DivalHR",
+      "timingHelp": "Le dernier jour est aujourd’hui : l’accès peut prendre fin maintenant ou à la fin de la journée.",
+      "timingFuture": "Le dernier jour est à venir : l’accès prend fin à la fin de ce jour.",
+      "timingPast": "Le dernier jour est passé : l’accès prend fin immédiatement.",
+      "reportPlan": "Collaborateurs directs",
+      "reportPlanHelp": "Si des personnes relèvent de cet employé après le dernier jour, choisissez-leur un nouveau responsable ou mettez fin à leur rattachement. Les changements enregistrés ultérieurement sont conservés.",
+      "preview": "Prévisualiser la sortie",
+      "confirm": "Confirmer et enregistrer la sortie",
+      "problems": {
+        "lastDay": "Saisissez le dernier jour.",
+        "reason": "Choisissez un motif.",
+        "timing": "Choisissez quand l’accès à DivalHR prend fin.",
+        "plan": "Choisissez ce qu’il advient des collaborateurs directs.",
+        "manager": "Choisissez le nouveau responsable.",
+        "acknowledge": "Cochez chaque confirmation."
+      }
+    },
+    "plan": {
+      "NONE": "Décider après l’aperçu",
+      "REASSIGN": "Réaffecter à un autre responsable",
+      "CLEAR": "Mettre fin au rattachement"
+    },
+    "access": {
+      "atCommit": "dès l’enregistrement de la sortie",
+      "preview": {
+        "LINKED": "L’accès DivalHR lié prend fin {{at}}.",
+        "NOT_LINKED": "Aucun accès DivalHR n’est lié : rien n’est révoqué.",
+        "PROTECTED_ADMIN": "L’accès lié est un administrateur de l’organisation : cette sortie est refusée.",
+        "SELF": "L’accès lié est le vôtre : vous ne pouvez pas enregistrer cette sortie."
+      },
+      "state": {
+        "NOT_LINKED": "Aucun accès n’était lié.",
+        "SCHEDULED": "Prend fin le {{at}}.",
+        "SIGN_OUT_PENDING": "Refusé depuis le {{at}} ; suppression de la connexion en cours.",
+        "COMPLETED": "Refusé depuis le {{at}} ; connexion supprimée.",
+        "MANUAL_INTERVENTION": "Refusé depuis le {{at}} ; la connexion n’a pas pu être supprimée automatiquement. Réessayez ou contactez votre administrateur DivalHR.",
+        "CANCELLED": "Conservé : la sortie a été annulée."
+      },
+      "on": "le {{date}}"
+    },
+    "blockers": {
+      "title": "Annulez d’abord ces changements ultérieurs :",
+      "CANCEL_CHANGE": "{{kind}} à partir du {{date}} : annulez ce changement dans la liste des changements.",
+      "NOT_CANCELLABLE": "{{kind}} à partir du {{date}} : ce changement ne peut pas être annulé ; corrigez d’abord le dossier."
+    },
+    "reports": {
+      "count_one": "{{count}} collaborateur direct concerné ({{intervals}} périodes).",
+      "count_other": "{{count}} collaborateurs directs concernés ({{intervals}} périodes).",
+      "caption": "Collaborateurs directs après le dernier jour",
+      "employee": "Employé",
+      "periods": "Périodes de rattachement à cet employé",
+      "planRequired": "Choisissez ce qu’il advient des collaborateurs directs, puis prévisualisez de nouveau.",
+      "willClear": "Leur rattachement prend fin pour ces périodes.",
+      "willReassign": "Ils relèvent de {{name}} pour ces périodes.",
+      "label": "Collaborateurs directs",
+      "noneAffected": "Aucun concerné",
+      "summary_one": "{{count}} concerné ({{intervals}} périodes) : {{action}}",
+      "summary_other": "{{count}} concernés ({{intervals}} périodes) : {{action}}"
+    },
+    "checklist": {
+      "title": "Rappels de suivi créés :",
+      "item": "{{task}} – échéance le {{date}}",
+      "caption": "Rappels de suivi",
+      "task": "Rappel",
+      "due": "Échéance",
+      "status": "Statut",
+      "statusOf": "Statut : {{task}}"
+    },
+    "tasks": {
+      "RETURN_ASSIGNED_ASSETS": "Récupérer le matériel attribué",
+      "COLLECT_OR_ARCHIVE_DOCUMENTS": "Collecter ou archiver les documents"
+    },
+    "taskStatus": {
+      "OPEN": "À faire",
+      "DONE": "Fait",
+      "NOT_APPLICABLE": "Sans objet",
+      "CANCELLED": "Annulé"
+    },
+    "acknowledgements": {
+      "title": "Confirmations requises",
+      "RETROACTIVE": "Je confirme que cette sortie s’applique à des dates passées.",
+      "NO_LINKED_ACCESS": "Je confirme qu’aucun accès DivalHR n’est lié à cet employé ; aucun n’est donc révoqué.",
+      "IMMEDIATE_ACCESS_REMOVAL": "Je confirme que l’accès DivalHR de cet employé prend fin immédiatement."
+    },
+    "problems": {
+      "protected": {
+        "SELF": "Vous ne pouvez pas enregistrer votre propre sortie.",
+        "ADMIN_ACCESS": "L’accès de l’employé est un administrateur de l’organisation ; modifiez d’abord cet accès."
+      },
+      "count": {
+        "SEPARATION_TOO_MANY_INTERVALS_one": "{{count}} période est concernée.",
+        "SEPARATION_TOO_MANY_INTERVALS_other": "{{count}} périodes sont concernées.",
+        "SEPARATION_FUTURE_CHANGES_one": "{{count}} changement ultérieur doit être annulé.",
+        "SEPARATION_FUTURE_CHANGES_other": "{{count}} changements ultérieurs doivent être annulés."
+      }
+    },
+    "cancel": "Annuler la sortie",
+    "retry": "Relancer la suppression de la connexion",
+    "cancelTitle": "Annuler la sortie (dernier jour le {{date}})",
+    "cancelHelp_one": "L’emploi continue et l’accès est conservé. Les changements de {{count}} collaborateur direct ({{intervals}} périodes) sont annulés.",
+    "cancelHelp_other": "L’emploi continue et l’accès est conservé. Les changements de {{count}} collaborateurs directs ({{intervals}} périodes) sont annulés.",
+    "confirmCancel": "Confirmer l’annulation",
+    "keep": "Conserver la sortie",
+    "announce": {
+      "recorded": "Sortie enregistrée (dernier jour le {{date}}).",
+      "cancelled": "La sortie (dernier jour le {{date}}) a été annulée.",
+      "task": "{{task}} : {{status}}.",
+      "retried": "Suppression de la connexion relancée."
     }
   }
 }

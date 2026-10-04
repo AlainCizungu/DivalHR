@@ -5,8 +5,11 @@ info:
   description: >-
     Design-first contract of the narrow Keycloak REST extension `divalhr-provisioning` (Issue #31,
     ADR 0006). Its only caller is the Core API's confidential client `divalhr-core-provisioner`,
-    which holds no Keycloak admin permission. Every operation is keyed by the invitation ID and
-    acts only on the single identity this extension created for that invitation.
+    which holds no Keycloak admin permission. The invitation operations are keyed by the invitation
+    ID and act only on the single identity this extension created for that invitation. The
+    access-revocation operation (MVP-022, Issue #49) is keyed by tenant and subject and acts only
+    on an identity this extension created (it carries `divalhr_invitation_id`) whose `tenant_id`
+    is that tenant and whose only role group is the employee group.
 
 
     **Authorization comes first (A2).** Before the body is read, the path is validated or any
@@ -21,7 +24,7 @@ info:
 
     **Bodies (A2).** Only identity creation takes a body: `application/json` only; at most 2048
     bytes, counted while streaming and before JSON binding; exactly one JSON object; unknown
-    properties rejected. Credential setup and compensation take none.
+    properties rejected. Credential setup, compensation and access revocation take none.
 
 
     **Responses** never contain email addresses, usernames, credentials, links or tokens.
@@ -37,6 +40,8 @@ security:
 tags:
   - name: invitation-identity
     description: The identity created for one accepted invitation
+  - name: tenant-access
+    description: Ending a separated employee's sign-in (MVP-022)
 paths:
   /invitations/{invitationId}/identity:
     parameters:
@@ -206,6 +211,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /tenants/{tenantId}/identities/{subject}/access-revocation:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/Subject'
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/RevocationId'
+    put:
+      operationId: revokeTenantAccess
+      summary: Disable a separated employee's identity and end its sessions
+      description: >-
+        No request body: any content is refused with 400 `INVALID_REQUEST`. After authorization the
+        path is validated, then the identity is checked, in order: it exists (otherwise 404
+        `IDENTITY_NOT_FOUND`, which the Core API treats as nothing left to revoke); it carries
+        `divalhr_invitation_id` (created by this extension); its single `tenant_id` attribute
+        equals the path tenant; it is not a service account; and it is a member of exactly one
+        approved role group, the employee group. Any failed check answers 409
+        `REVOCATION_REFUSED` and changes nothing: a tenant administrator, a platform administrator,
+        a service account or another tenant's identity is never disabled here.
+
+
+        Then, in one Keycloak transaction, the user is disabled, every user session and offline
+        session is removed (refresh tokens stop working) and the user's not-before time is set to
+        now. Nothing is deleted. A repeated call on an identity that is already disabled and has
+        no session answers the same 200: retries are idempotent.
+      tags: [tenant-access]
+      responses:
+        '200':
+          description: The identity is disabled and has no session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationState'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: '`IDENTITY_NOT_FOUND`: no identity has this subject in the realm'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: >-
+            `REVOCATION_REFUSED`: the identity is not an employee identity of this tenant created
+            by this extension. Nothing is changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   securitySchemes:
     provisionerServiceAccount:
@@ -225,6 +282,30 @@ components:
       schema:
         type: string
         pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      description: Canonical lowercase UUID; validated only after authorization
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    Subject:
+      name: subject
+      in: path
+      required: true
+      description: The identity's canonical lowercase UUID; validated only after authorization
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    RevocationId:
+      name: X-Revocation-Id
+      in: header
+      required: false
+      description: The Core API's revocation ID, recorded in the audit evidence when it is a UUID
+      schema:
+        type: string
+        format: uuid
     CorrelationId:
       name: X-Correlation-Id
       in: header
@@ -299,6 +380,14 @@ components:
         subject:
           type: string
           format: uuid
+    RevocationState:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [REVOKED]
     SetupState:
       type: object
       additionalProperties: false
@@ -327,3 +416,4 @@ components:
             - COMPENSATION_REFUSED
             - EMAIL_FAILED
             - IDENTITY_BUSY
+            - REVOCATION_REFUSED

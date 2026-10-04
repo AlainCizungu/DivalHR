@@ -32,14 +32,16 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.services.resources.LoginActionsService;
 
 /**
- * The three invitation-keyed operations of {@code packages/shared-contracts/openapi/
- * keycloak-provisioning.yaml}. Every method authorizes first; only then is the path validated, the
- * body read or any identity looked up (A2). Deliberately not a root resource (no class-level
- * {@code @Path}): Keycloak serves it only through {@link ProvisioningResourceProvider}.
+ * The three invitation-keyed operations and the MVP-022 tenant- and subject-keyed access revocation
+ * of {@code packages/shared-contracts/openapi/keycloak-provisioning.yaml}. Every method authorizes
+ * first; only then is the path validated, the body read or any identity looked up (A2).
+ * Deliberately not a root resource (no class-level {@code @Path}): Keycloak serves it only through
+ * {@link ProvisioningResourceProvider}.
  */
 public class ProvisioningResource {
 
@@ -51,6 +53,12 @@ public class ProvisioningResource {
 
   /** Tenant attribute mapped into tokens. */
   static final String TENANT_ATTRIBUTE = "tenant_id";
+
+  /** Path of the MVP-022 access revocation, relative to the extension root. */
+  static final String REVOCATION = "v1/tenants/{tenantId}/identities/{subject}/access-revocation";
+
+  /** Realm role of platform administrators: never a revocation target. */
+  static final String PLATFORM_ADMIN_ROLE = "platform-admin";
 
   /** Retryable outcome of a creation race whose committed state is not yet settled. */
   static final String BUSY = "IDENTITY_BUSY";
@@ -458,6 +466,125 @@ public class ProvisioningResource {
         OperationType.DELETE,
         null);
     return Response.noContent().build();
+  }
+
+  /**
+   * Disables a separated employee's identity and ends its sessions (MVP-022, D22-13). Only an
+   * identity this extension created ({@code divalhr_invitation_id}), whose single {@code tenant_id}
+   * is the path tenant, that is not a service account, holds no {@code platform-admin} realm role
+   * and is a member of exactly one group, the employee role group, is ever changed; anything else
+   * is refused unchanged. Idempotent.
+   *
+   * @param tenantId path value
+   * @param subject path value
+   * @param contentLength declared length
+   * @param correlation correlation ID header
+   * @param revocation the Core API's revocation ID header
+   * @param body request body, which must be empty
+   * @return response
+   */
+  @PUT
+  @Path(REVOCATION)
+  @Consumes(MediaType.WILDCARD)
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response revoke(
+      @PathParam("tenantId") String tenantId,
+      @PathParam("subject") String subject,
+      @HeaderParam("Content-Length") String contentLength,
+      @HeaderParam("X-Correlation-Id") String correlation,
+      @HeaderParam("X-Revocation-Id") String revocation,
+      InputStream body) {
+    String operation = "identity.revoke";
+    CallerAuthorizer.Caller caller;
+    try {
+      caller = CallerAuthorizer.authorize(session, config);
+    } catch (CallerAuthorizer.Denied denied) {
+      return deny(operation, denied);
+    }
+    String correlationId = RequestBodies.correlationId(correlation).orElse(null);
+    UUID revocationId = RequestBodies.correlationId(revocation).map(UUID::fromString).orElse(null);
+    UUID tenant;
+    UUID userId;
+    try {
+      tenant = RequestBodies.canonicalId(tenantId);
+      userId = RequestBodies.canonicalId(subject);
+      RequestBodies.requireEmpty(length(contentLength), body);
+    } catch (RequestBodies.Rejected rejected) {
+      return refuseRevocation(
+          caller, null, null, correlationId, revocationId, rejected.code(), rejected.status());
+    }
+    RealmModel realm = session.getContext().getRealm();
+    UserModel user = session.users().getUserById(realm, userId.toString());
+    if (user == null) {
+      AuditRecorder.record(
+          session,
+          caller,
+          new AuditRecorder.Entry(
+              operation, "absent", null, null, tenant, correlationId, revocationId),
+          OperationType.UPDATE,
+          null);
+      return json(404, Map.of("code", "IDENTITY_NOT_FOUND"));
+    }
+    if (!revocable(realm, user, tenant)) {
+      return refuseRevocation(
+          caller, user.getId(), tenant, correlationId, revocationId, "REVOCATION_REFUSED", 409);
+    }
+    user.setEnabled(false);
+    for (UserSessionModel online : session.sessions().getUserSessionsStream(realm, user).toList()) {
+      session.sessions().removeUserSession(realm, online);
+    }
+    for (UserSessionModel offline :
+        session.sessions().getOfflineUserSessionsStream(realm, user).toList()) {
+      session.sessions().removeOfflineUserSession(realm, offline);
+    }
+    session.users().setNotBeforeForUser(realm, user, (int) (System.currentTimeMillis() / 1000L));
+    AuditRecorder.record(
+        session,
+        caller,
+        new AuditRecorder.Entry(
+            operation, "revoked", null, user.getId(), tenant, correlationId, revocationId),
+        OperationType.UPDATE,
+        null);
+    return json(200, Map.of("state", "REVOKED"));
+  }
+
+  /**
+   * Whether the identity is an employee identity of the tenant created by this extension.
+   *
+   * @param realm realm
+   * @param user identity
+   * @param tenant path tenant
+   * @return true when it may be disabled
+   */
+  private boolean revocable(RealmModel realm, UserModel user, UUID tenant) {
+    return RevocationPolicy.revocable(
+        new RevocationPolicy.Identity(
+            user.getAttributeStream(INVITATION_ATTRIBUTE).toList(),
+            tenantOf(user),
+            user.getServiceAccountClientLink() != null,
+            user.getRealmRoleMappingsStream()
+                .anyMatch(role -> PLATFORM_ADMIN_ROLE.equals(role.getName())),
+            user.getGroupsCount(),
+            singleRole(realm, user)),
+        tenant);
+  }
+
+  private Response refuseRevocation(
+      CallerAuthorizer.Caller caller,
+      String userId,
+      UUID tenant,
+      String correlationId,
+      UUID revocationId,
+      String code,
+      int status) {
+    AuditRecorder.record(
+        session,
+        caller,
+        new AuditRecorder.Entry(
+            "identity.revoke", "refused", null, userId, tenant, correlationId, revocationId),
+        OperationType.UPDATE,
+        code);
+    return json(status, Map.of("code", code));
   }
 
   // ---------------------------------------------------------------------------------------------

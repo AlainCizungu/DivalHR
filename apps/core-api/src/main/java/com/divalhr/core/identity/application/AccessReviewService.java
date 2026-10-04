@@ -506,6 +506,7 @@ public class AccessReviewService {
         row.email(),
         row.role().wireName(),
         row.grantedAt(),
+        row.revoked() ? "REVOKED" : "ACTIVE",
         DirectScope.TENANT,
         EffectiveScope.TENANT,
         matched);

@@ -115,6 +115,13 @@ export type HistoryFailure = {
 
 export const HISTORY_NETWORK_FAILURE: HistoryFailure = { messageKey: 'errors.network' };
 
+const LINK_CONFLICTS = new Set(['ALREADY_LINKED', 'ACCESS_REVOKED', 'EMPLOYEE_LINKED']);
+const SEPARATION_PROTECTED = new Set(['SELF', 'ADMIN_ACCESS']);
+const SEPARATION_ACKNOWLEDGEMENTS = new Set([
+  'RETROACTIVE',
+  'NO_LINKED_ACCESS',
+  'IMMEDIATE_ACCESS_REMOVAL',
+]);
 const MANAGER_REASONS = new Set(['NOT_FOUND', 'SELF', 'NOT_EMPLOYED', 'CYCLE', 'CHAIN_TOO_DEEP']);
 const PLACEMENT_REASONS = new Set(['NOT_FOUND', 'MISMATCH', 'NOT_EFFECTIVE', 'ENDS_DURING_PERIOD']);
 const PLACEMENT_FIELDS = new Set([
@@ -152,6 +159,23 @@ export function historyFailureOf(response: Response, error: unknown): HistoryFai
   ) {
     failure.detailKey = `employees.problems.placement.${reason}`;
     failure.detailValues = { field };
+  } else if (problem?.code === 'ACCESS_LINK_CONFLICT' && LINK_CONFLICTS.has(reason)) {
+    failure.detailKey = `accessLink.notLinkable.${reason}`;
+  } else if (problem?.code === 'SEPARATION_PROTECTED' && SEPARATION_PROTECTED.has(reason)) {
+    failure.detailKey = `separation.problems.protected.${reason}`;
+  } else if (
+    problem?.code === 'SEPARATION_ACKNOWLEDGEMENT_REQUIRED' &&
+    typeof params.acknowledgement === 'string' &&
+    SEPARATION_ACKNOWLEDGEMENTS.has(params.acknowledgement)
+  ) {
+    failure.detailKey = `separation.acknowledgements.${params.acknowledgement}`;
+  } else if (
+    (problem?.code === 'SEPARATION_TOO_MANY_INTERVALS' ||
+      problem?.code === 'SEPARATION_FUTURE_CHANGES') &&
+    Number.isInteger(params.count)
+  ) {
+    failure.detailKey = `separation.problems.count.${problem.code}`;
+    failure.detailValues = { count: String(params.count) };
   } else if (
     problem?.code === 'EMPLOYMENT_CHANGE_NO_EFFECT' &&
     (KINDS as readonly string[]).includes(field)

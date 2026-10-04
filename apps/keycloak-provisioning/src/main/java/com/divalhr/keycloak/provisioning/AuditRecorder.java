@@ -31,7 +31,29 @@ public final class AuditRecorder {
       UUID invitationId,
       String userId,
       UUID tenantId,
-      String correlationId) {}
+      String correlationId,
+      UUID revocationId) {
+
+    /**
+     * An entry of an invitation operation (no revocation).
+     *
+     * @param operation operation name
+     * @param outcome outcome
+     * @param invitationId invitation, or null
+     * @param userId user, or null
+     * @param tenantId tenant, or null
+     * @param correlationId correlation ID, or null
+     */
+    public Entry(
+        String operation,
+        String outcome,
+        UUID invitationId,
+        String userId,
+        UUID tenantId,
+        String correlationId) {
+      this(operation, outcome, invitationId, userId, tenantId, correlationId, null);
+    }
+  }
 
   /**
    * Logs a refused caller (401/403). No admin event: the caller is not an authorized identity, and
@@ -66,6 +88,9 @@ public final class AuditRecorder {
     details.put("divalhr.outcome", entry.outcome());
     if (entry.invitationId() != null) {
       details.put("divalhr.invitationId", entry.invitationId().toString());
+    }
+    if (entry.revocationId() != null) {
+      details.put("divalhr.revocationId", entry.revocationId().toString());
     }
     if (entry.tenantId() != null) {
       details.put("divalhr.tenantId", entry.tenantId().toString());

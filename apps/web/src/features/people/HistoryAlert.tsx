@@ -22,6 +22,7 @@ export function HistoryAlert({
           {t(failure.detailKey, {
             field: values.field ? t(`employees.placement.fields.${values.field}`) : '',
             kind: values.kind ? t(`employees.kinds.${values.kind}`) : '',
+            count: values.count ? Number(values.count) : 0,
           })}
         </p>
       )}

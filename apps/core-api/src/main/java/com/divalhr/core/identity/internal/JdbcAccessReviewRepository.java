@@ -14,9 +14,11 @@ import org.springframework.stereotype.Repository;
 
 /**
  * Read-only access-review queries on {@code identity.tenant_membership} (MVP-012B). Every query is
- * bound to the verified tenant and uses the single active-membership predicate shared with the
- * membership gate ({@link JdbcMembershipRepository#ACTIVE}), so the review, its summary and the
- * gate can never disagree. Results contain confidential addresses and are never logged.
+ * bound to the verified tenant and uses the single predicates shared with the membership gate
+ * ({@link JdbcMembershipRepository#ACTIVE} and {@link JdbcMembershipRepository#REVOKED}), so the
+ * review, its summary and the gate can never disagree: a listed member is labelled REVOKED exactly
+ * when the gate denies it (MVP-022); the summary counts active members only. Results contain
+ * confidential addresses and are never logged.
  */
 @Repository
 public class JdbcAccessReviewRepository {
@@ -40,7 +42,7 @@ public class JdbcAccessReviewRepository {
    * @param role tenant role
    * @param grantedAt membership creation
    */
-  public record Row(UUID id, String email, TenantRole role, Instant grantedAt) {}
+  public record Row(UUID id, String email, TenantRole role, Instant grantedAt, boolean revoked) {}
 
   /**
    * Members newest grant first, strictly after a keyset position.
@@ -58,9 +60,9 @@ public class JdbcAccessReviewRepository {
     String keyset = afterId == null ? "" : " AND (created_at, id) < (:afterGrantedAt, :afterId)";
     JdbcClient.StatementSpec spec =
         jdbc.sql(
-                "SELECT id, email, role, created_at FROM identity.tenant_membership"
-                    + " WHERE tenant_id = :tenant AND "
-                    + JdbcMembershipRepository.ACTIVE
+                "SELECT id, email, role, created_at, "
+                    + JdbcMembershipRepository.REVOKED
+                    + " AS revoked FROM identity.tenant_membership WHERE tenant_id = :tenant"
                     + roleFilter
                     + keyset
                     + " ORDER BY created_at DESC, id DESC LIMIT :rows")
@@ -84,9 +86,10 @@ public class JdbcAccessReviewRepository {
    */
   public Optional<Row> findByLookup(TenantId tenant, byte[] emailLookup) {
     return jdbc.sql(
-            "SELECT id, email, role, created_at FROM identity.tenant_membership"
-                + " WHERE tenant_id = :tenant AND email_lookup = :lookup AND "
-                + JdbcMembershipRepository.ACTIVE)
+            "SELECT id, email, role, created_at, "
+                + JdbcMembershipRepository.REVOKED
+                + " AS revoked FROM identity.tenant_membership"
+                + " WHERE tenant_id = :tenant AND email_lookup = :lookup")
         .param("tenant", tenant.value())
         .param("lookup", emailLookup)
         .query(JdbcAccessReviewRepository::map)
@@ -116,6 +119,7 @@ public class JdbcAccessReviewRepository {
         row.getObject("id", UUID.class),
         row.getString("email"),
         TenantRole.fromWire(row.getString("role")).orElseThrow(),
-        row.getTimestamp("created_at").toInstant());
+        row.getTimestamp("created_at").toInstant(),
+        row.getBoolean("revoked"));
   }
 }

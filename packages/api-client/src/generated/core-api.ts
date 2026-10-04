@@ -380,7 +380,7 @@ export interface paths {
         };
         /**
          * Review the active access of the caller's organization
-         * @description MVP-012B. Lists the caller's organization's active tenant memberships, the same authority the membership gate enforces (MVP-012A): every member has organization-wide access, so a legal-entity or site filter returns every member with matchedUnit INHERITED_FROM_TENANT after checking that the unit exists in the caller's tenant (missing and foreign units are indistinguishable 404s). At most one of legalEntityId and siteId. Newest grant first (grantedAt then membershipId, both descending), keyset-paginated: stable and duplicate-free under concurrent inserts, but not a snapshot (a membership added after the first page may be omitted from that traversal and appears on a fresh review). Cursors are bound to the operation, tenant, role filter, unit type, unit ID and page size. Contains confidential email addresses: Cache-Control private, no-store on every response. Every 200 is durably audited as access-review.read before the body is written; if the audit cannot be committed the response is 500 INTERNAL_ERROR without review data. At most 30 review requests per minute per subject across the three access-review operations (429 RATE_LIMITED with Retry-After). Future direct scopes (LEGAL_ENTITY, SITE; inheritance DIRECT) are reserved for story S1 and are not part of this contract yet.
+         * @description MVP-012B. Lists the caller's organization's tenant memberships with the same authority the membership gate enforces (MVP-012A): accessState ACTIVE exactly when the gate admits the membership; MVP-022 adds memberships whose access a separation revoked, labelled REVOKED. Every member has organization-wide access, so a legal-entity or site filter returns every member with matchedUnit INHERITED_FROM_TENANT after checking that the unit exists in the caller's tenant (missing and foreign units are indistinguishable 404s). At most one of legalEntityId and siteId. Newest grant first (grantedAt then membershipId, both descending), keyset-paginated: stable and duplicate-free under concurrent inserts, but not a snapshot (a membership added after the first page may be omitted from that traversal and appears on a fresh review). Cursors are bound to the operation, tenant, role filter, unit type, unit ID and page size. Contains confidential email addresses: Cache-Control private, no-store on every response. Every 200 is durably audited as access-review.read before the body is written; if the audit cannot be committed the response is 500 INTERNAL_ERROR without review data. At most 30 review requests per minute per subject across the three access-review operations (429 RATE_LIMITED with Retry-After). Future direct scopes (LEGAL_ENTITY, SITE; inheritance DIRECT) are reserved for story S1 and are not part of this contract yet.
          */
         get: operations["listAccessReviewEntries"];
         put?: never;
@@ -807,6 +807,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/employees/{employeeId}/access-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the DivalHR access linked to an employee
+         * @description MVP-022. The employee's active link to one tenant membership, or none, and the access state that follows from any separation. Never returns the identity subject or the address. Recorded as a disclosure (audit employee-access-link.read). Cache-Control private, no-store.
+         */
+        get: operations["getEmployeeAccessLink"];
+        put?: never;
+        /**
+         * Link an employee to one tenant membership
+         * @description MVP-022. Links the employee to a membership of the caller's tenant found through the exact address lookup. One active link per employee and per membership (409 ACCESS_LINK_CONFLICT with params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED). Never inferred from names. Retries with the same Idempotency-Key replay the original 201.
+         */
+        post: operations["createEmployeeAccessLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/access-link/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Find the membership of one exact address to link
+         * @description MVP-022. Exact, normalized address match through the keyed address lookup, in the caller's tenant only; no list, prefix or name search. An unknown address and a member of another tenant both give 404 MEMBERSHIP_NOT_FOUND. The address is never echoed or logged. A read: no Idempotency-Key. Recorded as a disclosure (audit employee-access-link.lookup).
+         */
+        post: operations["lookupEmployeeAccessCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/access-link/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove an employee's access link
+         * @description MVP-022. Ends the active link (the row is kept). Refused while the employee has a separation that is not cancelled (409 ACCESS_LINK_LOCKED); a stale version gives 409 ACCESS_LINK_VERSION_CONFLICT. Retries with the same Idempotency-Key replay the original 200.
+         */
+        post: operations["removeEmployeeAccessLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/separations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an employee's separations
+         * @description MVP-022. Separations newest first, including cancelled ones, each with its access state and follow-up checklist. Recorded as a disclosure (audit employee-separation.read). Cache-Control private, no-store.
+         */
+        get: operations["listEmployeeSeparations"];
+        put?: never;
+        /**
+         * Record a separation
+         * @description MVP-022. Repeats a previewed separation with the expectedVersion and previewDigest the preview returned and the acknowledgements it required. In one transaction the reporting graph, the employments and the access link are locked in the global order, everything is recomputed, and the employment is closed on the last day; direct-report intervals are rewritten by lineage-backed changes; the linked membership's revocation is scheduled; the checklist is created; audit and outbox commit together. Nothing is deleted. Retries with the same Idempotency-Key replay the original 201.
+         */
+        post: operations["createEmployeeSeparation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/separations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a separation
+         * @description MVP-022. Validates the separation and returns the employee's own timeline effects, the blocking future effects (to cancel first), the affected direct-report intervals, the access consequence, the checklist, the acknowledgements the commit needs, the employment version and a previewDigest. Writes nothing. Recorded as a disclosure (audit employee-separation.preview). Cache-Control private, no-store.
+         */
+        post: operations["previewEmployeeSeparation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/separations/{separationId}/cancel/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the cancellation of a scheduled separation
+         * @description MVP-022. Only a SCHEDULED separation whose access revocation has not taken effect can be cancelled (409 SEPARATION_NOT_CANCELLABLE with params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE). Returns the rows restored for the employee and the number of direct-report intervals restored, the employment version and a cancellationDigest. Writes nothing. Recorded as a disclosure (audit employee-separation.cancel-preview).
+         */
+        post: operations["previewEmployeeSeparationCancellation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/separations/{separationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a scheduled separation
+         * @description MVP-022. Repeats the expectedVersion and cancellationDigest of the cancellation preview. In one transaction, with the same lock order as the separation, the employee's rows and every rewritten direct-report interval are restored by recorded cancellations, the employment is reopened, the scheduled revocation and the checklist are cancelled, and audit and outbox commit together. Retries with the same Idempotency-Key replay the original 200.
+         */
+        post: operations["cancelEmployeeSeparation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/separations/{separationId}/tasks/{taskId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a follow-up task done, not applicable, or open again
+         * @description MVP-022. A checklist task is a follow-up reminder, not an asset or document record. A stale version gives 409 SEPARATION_TASK_VERSION_CONFLICT; the tasks of a cancelled separation are closed (409 SEPARATION_TASK_CLOSED). Retries with the same Idempotency-Key replay the original 200.
+         */
+        post: operations["updateSeparationTaskStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/separations/{separationId}/access-revocation/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry the sign-in removal of a separated employee
+         * @description MVP-022. Only when the revocation needs manual intervention (409 ACCESS_REVOCATION_NOT_RETRYABLE otherwise). Re-queues the identity-provider step with a fresh attempt budget; access to DivalHR data stays denied throughout. The request has no body. Retries with the same Idempotency-Key replay the original 200.
+         */
+        post: operations["retrySeparationAccessRevocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -820,8 +1008,13 @@ export interface components {
             /** @description Present only when another page exists. */
             nextCursor?: string;
         };
-        /** @description One active tenant membership. Never contains the identity subject, username, name, source invitation, tokens, credential or MFA state, or identity-provider roles. */
+        /** @description One tenant membership: an active one, or (MVP-022) one whose access a separation revoked, labelled accessState REVOKED. Never contains the identity subject, username, name, source invitation, tokens, credential or MFA state, or identity-provider roles. */
         AccessReviewEntry: {
+            /**
+             * @description ACTIVE (the membership gate admits it) or REVOKED (MVP-022: a separation ended its DivalHR access; the gate denies it). A revocation that is only scheduled is still ACTIVE until it takes effect.
+             * @enum {string}
+             */
+            accessState: "ACTIVE" | "REVOKED";
             /** Format: uuid */
             membershipId: string;
             /** @description Confidential; null when the address was not recorded (historical rows). */
@@ -1465,17 +1658,17 @@ export interface components {
             nextCursor: string | null;
         };
         /** @enum {string} */
-        EmploymentChangeType: "HIRE" | "CHANGE" | "CORRECTION" | "CANCELLATION";
+        EmploymentChangeType: "HIRE" | "CHANGE" | "CORRECTION" | "CANCELLATION" | "SEPARATION";
         /**
          * @description Relative to the business date when recorded.
          * @enum {string}
          */
         EmploymentChangeTiming: "SCHEDULED" | "CURRENT" | "RETROACTIVE";
         /**
-         * @description LATE_NOTIFICATION, REORGANIZATION, CONTRACT_CHANGE and OTHER_BUSINESS_CHANGE apply to changes; DATA_ENTRY_ERROR, IMPORT_ERROR and DOCUMENT_RECEIVED to corrections.
+         * @description LATE_NOTIFICATION, REORGANIZATION, CONTRACT_CHANGE and OTHER_BUSINESS_CHANGE apply to changes; DATA_ENTRY_ERROR, IMPORT_ERROR and DOCUMENT_RECEIVED to corrections. MANAGER_SEPARATED (MVP-022) is recorded only on the direct-report changes a separation generates and is never accepted in a request; a SEPARATION change carries its SeparationReason in the separation, not here (reasonCode null).
          * @enum {string}
          */
-        EmploymentChangeReason: "LATE_NOTIFICATION" | "REORGANIZATION" | "CONTRACT_CHANGE" | "OTHER_BUSINESS_CHANGE" | "DATA_ENTRY_ERROR" | "IMPORT_ERROR" | "DOCUMENT_RECEIVED";
+        EmploymentChangeReason: "LATE_NOTIFICATION" | "REORGANIZATION" | "CONTRACT_CHANGE" | "OTHER_BUSINESS_CHANGE" | "DATA_ENTRY_ERROR" | "IMPORT_ERROR" | "DOCUMENT_RECEIVED" | "MANAGER_SEPARATED";
         /** @description A recorded change (Restricted HR). The recording actor is not exposed. */
         EmploymentChange: {
             /** Format: uuid */
@@ -1590,10 +1783,224 @@ export interface components {
             employmentVersion: number;
         };
         /**
+         * @description NOT_LINKED (no active link), ACTIVE (linked; access not affected by a separation), REVOCATION_SCHEDULED (a separation will end the access) or REVOKED (DivalHR access ended).
+         * @enum {string}
+         */
+        EmployeeAccessLinkState: "NOT_LINKED" | "ACTIVE" | "REVOCATION_SCHEDULED" | "REVOKED";
+        /** @description An employee-to-membership link. The membership ID is a personal-data reference; the identity subject and the address are never returned here. */
+        EmployeeAccessLink: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            membershipId: string;
+            role: components["schemas"]["InvitationRole"];
+            /** Format: date-time */
+            linkedAt: string;
+            version: number;
+        };
+        EmployeeAccess: {
+            state: components["schemas"]["EmployeeAccessLinkState"];
+            link: components["schemas"]["EmployeeAccessLink"] | null;
+        };
+        /** @description The membership holding the looked-up address. notLinkableReason is ALREADY_LINKED (linked to another employee), ACCESS_REVOKED (its access was revoked) or EMPLOYEE_LINKED (this employee already has a link). */
+        AccessLinkCandidate: {
+            /** Format: uuid */
+            membershipId: string;
+            role: components["schemas"]["InvitationRole"];
+            linkable: boolean;
+            /** @enum {string|null} */
+            notLinkableReason: "ALREADY_LINKED" | "ACCESS_REVOKED" | "EMPLOYEE_LINKED" | null;
+        };
+        CreateEmployeeAccessLink: {
+            /** Format: uuid */
+            membershipId: string;
+        };
+        RemoveEmployeeAccessLink: {
+            /** Format: uuid */
+            linkId: string;
+            expectedVersion: number;
+        };
+        /**
+         * @description Closed separation reason (Restricted HR). No free-form notes.
+         * @enum {string}
+         */
+        SeparationReason: "RESIGNATION" | "END_OF_FIXED_TERM" | "DISMISSAL" | "MUTUAL_AGREEMENT" | "RETIREMENT" | "OTHER_SEPARATION";
+        /**
+         * @description END_OF_LAST_DAY ends DivalHR access at the start of the day after the last day in the organization's time zone. IMMEDIATELY ends it at the commit and is allowed only when the last day is today or earlier (422 SEPARATION_ACCESS_TIMING_INVALID otherwise); it requires the IMMEDIATE_ACCESS_REMOVAL acknowledgement and is forced for a retroactive separation.
+         * @enum {string}
+         */
+        SeparationAccessTiming: "END_OF_LAST_DAY" | "IMMEDIATELY";
+        /** @enum {string} */
+        SeparationAcknowledgement: "RETROACTIVE" | "NO_LINKED_ACCESS" | "IMMEDIATE_ACCESS_REMOVAL";
+        /** @description Applies to every affected direct-report interval: REASSIGN to managerEmployeeId, or CLEAR (no manager for those intervals). */
+        SeparationReportPlan: {
+            /** @enum {string} */
+            action: "REASSIGN" | "CLEAR";
+            /** Format: uuid */
+            managerEmployeeId?: string | null;
+        };
+        SeparationCommand: {
+            /**
+             * Format: date
+             * @description Inclusive last day of employment, a date in the organization's time zone.
+             */
+            lastDay: string;
+            reasonCode: components["schemas"]["SeparationReason"];
+            accessTiming: components["schemas"]["SeparationAccessTiming"];
+            reportPlan?: components["schemas"]["SeparationReportPlan"] | null;
+        };
+        /** @description The previewed separation plus what the preview returned. */
+        CreateSeparation: {
+            /** Format: date */
+            lastDay: string;
+            reasonCode: components["schemas"]["SeparationReason"];
+            accessTiming: components["schemas"]["SeparationAccessTiming"];
+            reportPlan?: components["schemas"]["SeparationReportPlan"] | null;
+            expectedVersion: number;
+            previewDigest: string;
+            acknowledgements: components["schemas"]["SeparationAcknowledgement"][];
+        };
+        /** @description Employee number and names are Confidential. */
+        EmployeeRef: {
+            /** Format: uuid */
+            id: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+        };
+        /** @description A future effect on the employee's own timeline after the last day that must be cancelled first. changeId is the change to cancel next (resolution CANCEL_CHANGE), or null when it cannot be cancelled (resolution NOT_CANCELLABLE). */
+        SeparationBlocker: {
+            kind: components["schemas"]["AssignmentKind"];
+            /** Format: date */
+            effectiveFrom: string;
+            /** @enum {string} */
+            resolution: "CANCEL_CHANGE" | "NOT_CANCELLABLE";
+            /** Format: uuid */
+            changeId: string | null;
+        };
+        SeparationReportInterval: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+        };
+        SeparationReport: {
+            employee: components["schemas"]["EmployeeRef"];
+            intervals: components["schemas"]["SeparationReportInterval"][];
+        };
+        /** @description LINKED (an employee-role membership is linked and will be revoked), NOT_LINKED (no DivalHR access is linked; nothing is revoked), PROTECTED_ADMIN (the linked membership is a tenant administrator: refused) or SELF (the caller's own access: refused). */
+        SeparationAccessPreview: {
+            /** @enum {string} */
+            status: "LINKED" | "NOT_LINKED" | "PROTECTED_ADMIN" | "SELF";
+            /** Format: date-time */
+            accessEndsAt: string | null;
+        };
+        /** @enum {string} */
+        SeparationTaskCode: "RETURN_ASSIGNED_ASSETS" | "COLLECT_OR_ARCHIVE_DOCUMENTS";
+        /** @enum {string} */
+        SeparationTaskStatus: "OPEN" | "DONE" | "NOT_APPLICABLE" | "CANCELLED";
+        SeparationPreview: {
+            /** Format: uuid */
+            employmentId: string;
+            expectedVersion: number;
+            /** Format: date */
+            businessDate: string;
+            /** Format: date */
+            lastDay: string;
+            timing: components["schemas"]["EmploymentChangeTiming"];
+            accessTiming: components["schemas"]["SeparationAccessTiming"];
+            /** @description The employee's own rows before and after, per affected kind. */
+            kinds: components["schemas"]["PreviewKind"][];
+            /** @description Must be empty to commit (409 SEPARATION_FUTURE_CHANGES). */
+            blockers: components["schemas"]["SeparationBlocker"][];
+            reports: components["schemas"]["SeparationReport"][];
+            reportPlanRequired: boolean;
+            access: components["schemas"]["SeparationAccessPreview"];
+            checklist: {
+                code: components["schemas"]["SeparationTaskCode"];
+                /** Format: date */
+                dueDate: string;
+            }[];
+            requiredAcknowledgements: components["schemas"]["SeparationAcknowledgement"][];
+            previewDigest: string;
+        };
+        /** @description A follow-up reminder (Restricted HR); never an asset or document record. */
+        SeparationTask: {
+            /** Format: uuid */
+            id: string;
+            code: components["schemas"]["SeparationTaskCode"];
+            status: components["schemas"]["SeparationTaskStatus"];
+            /** Format: date */
+            dueDate: string;
+            /** Format: date-time */
+            updatedAt: string;
+            version: number;
+        };
+        /**
+         * @description NOT_LINKED (no access was linked), SCHEDULED (access ends at accessEndsAt), SIGN_OUT_PENDING (DivalHR access is denied; sign-in removal is in progress), COMPLETED (access denied and sign-in removed), MANUAL_INTERVENTION (DivalHR access is denied; sign-in removal needs an administrator) or CANCELLED (the separation was cancelled before access ended).
+         * @enum {string}
+         */
+        SeparationAccessState: "NOT_LINKED" | "SCHEDULED" | "SIGN_OUT_PENDING" | "COMPLETED" | "MANUAL_INTERVENTION" | "CANCELLED";
+        /** @description A separation (Restricted HR). */
+        Separation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            employmentId: string;
+            /** Format: date */
+            lastDay: string;
+            reasonCode: components["schemas"]["SeparationReason"];
+            accessTiming: components["schemas"]["SeparationAccessTiming"];
+            /** @enum {string|null} */
+            reportAction: "REASSIGN" | "CLEAR" | null;
+            reportCount: number;
+            intervalCount: number;
+            /** @enum {string} */
+            state: "SCHEDULED" | "EFFECTIVE" | "CANCELLED";
+            /**
+             * Format: date-time
+             * @description Start of the day after the last day in the organization's time zone.
+             */
+            effectiveAt: string;
+            /** Format: date-time */
+            recordedAt: string;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancellable: boolean;
+            access: components["schemas"]["SeparationAccessState"];
+            /** Format: date-time */
+            accessEndsAt: string | null;
+            tasks: components["schemas"]["SeparationTask"][];
+            version: number;
+        };
+        SeparationList: {
+            items: components["schemas"]["Separation"][];
+        };
+        SeparationResult: {
+            separation: components["schemas"]["Separation"];
+            employmentVersion: number;
+        };
+        SeparationCancellationPreview: {
+            expectedVersion: number;
+            kinds: components["schemas"]["PreviewKind"][];
+            reportCount: number;
+            intervalCount: number;
+            cancellationDigest: string;
+        };
+        CancelSeparation: {
+            expectedVersion: number;
+            cancellationDigest: string;
+        };
+        UpdateSeparationTask: {
+            /** @enum {string} */
+            status: "OPEN" | "DONE" | "NOT_APPLICABLE";
+            expectedVersion: number;
+        };
+        /**
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS";
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -1648,7 +2055,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change). No params. */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS), SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT, SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params. */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -1657,7 +2064,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND or EMPLOYMENT_CHANGE_NOT_FOUND - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND, EMPLOYMENT_CHANGE_NOT_FOUND, SEPARATION_NOT_FOUND, SEPARATION_TASK_NOT_FOUND or MEMBERSHIP_NOT_FOUND (MVP-022; also for an address with no membership) - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -1676,7 +2083,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. IMPORT_TIMEOUT - an employee import's database work exceeded its time limit and was rolled back entirely; retry with the same Idempotency-Key. EMPLOYMENT_CHANGE_TIMEOUT - an employment change or cancellation exceeded its time limit and nothing was written; retry with the same Idempotency-Key. No params. */
+        /** @description IDENTITY_PROVIDER_UNAVAILABLE - the identity provider could not be reached; retry with the same token. IMPORT_TIMEOUT - an employee import's database work exceeded its time limit and was rolled back entirely; retry with the same Idempotency-Key. EMPLOYMENT_CHANGE_TIMEOUT - an employment change or cancellation, a separation, its cancellation or an access-link change exceeded its time limit or met a lock held by a background job, and nothing was written; retry with the same Idempotency-Key. No params. */
         ServiceUnavailable: {
             headers: {
                 [name: string]: unknown;
@@ -1703,7 +2110,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description MVP-021 business rules. EMPLOYMENT_CHANGE_NO_EFFECT (params.field: the assignment kind whose value would not change), EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT, RETROACTIVE_WINDOW_EXCEEDED (before the configurable pilot window, 60 days by default), MANAGER_INVALID (params.reason: NOT_FOUND, SELF, NOT_EMPLOYED, CYCLE or CHAIN_TOO_DEEP) or PLACEMENT_INVALID (params.field: legalEntityId, siteId, departmentId, costCenterId or teamId; params.reason: NOT_FOUND, MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). Params never carry a date, a value or an ID. */
+        /** @description MVP-021 business rules. EMPLOYMENT_CHANGE_NO_EFFECT (params.field: the assignment kind whose value would not change), EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT, RETROACTIVE_WINDOW_EXCEEDED (before the configurable pilot window, 60 days by default), MANAGER_INVALID (params.reason: NOT_FOUND, SELF, NOT_EMPLOYED, CYCLE or CHAIN_TOO_DEEP) or PLACEMENT_INVALID (params.field: legalEntityId, siteId, departmentId, costCenterId or teamId; params.reason: NOT_FOUND, MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). MVP-022: SEPARATION_DATE_OUT_OF_RANGE (before the employment start, the retroactive window, or more than 180 days ahead), SEPARATION_ACCESS_TIMING_INVALID (IMMEDIATELY with a future last day), SEPARATION_ACKNOWLEDGEMENT_REQUIRED (params.acknowledgement), SEPARATION_REPORT_PLAN_REQUIRED, SEPARATION_TOO_MANY_INTERVALS (params.count) and MANAGER_INVALID for the replacement manager. Params never carry a date, a value or an ID. */
         UnprocessableContent: {
             headers: {
                 [name: string]: unknown;
@@ -1751,6 +2158,10 @@ export interface components {
         EmployeeId: string;
         /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 EMPLOYMENT_CHANGE_NOT_FOUND. */
         EmploymentChangeId: string;
+        /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 SEPARATION_NOT_FOUND. */
+        SeparationId: string;
+        /** @description Malformed, unknown and other-separation IDs give the same 404 SEPARATION_TASK_NOT_FOUND. */
+        SeparationTaskId: string;
         /** @description Items per page (1-50, default 25). */
         EmployeeLimit: number;
         /** @description Rows per page (1-100, default 50). */
@@ -3389,6 +3800,425 @@ export interface operations {
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getEmployeeAccessLink: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The employee's access link */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAccess"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createEmployeeAccessLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmployeeAccessLink"];
+            };
+        };
+        responses: {
+            /** @description Link created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAccess"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    lookupEmployeeAccessCandidate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessReviewLookup"];
+            };
+        };
+        responses: {
+            /** @description The candidate membership */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLinkCandidate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    removeEmployeeAccessLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveEmployeeAccessLink"];
+            };
+        };
+        responses: {
+            /** @description Link removed, or the original removal replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAccess"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listEmployeeSeparations: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The separations */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createEmployeeSeparation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSeparation"];
+            };
+        };
+        responses: {
+            /** @description Separation recorded, or the original recording replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewEmployeeSeparation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeparationCommand"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewEmployeeSeparationCancellation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 SEPARATION_NOT_FOUND. */
+                separationId: components["parameters"]["SeparationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cancellation preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationCancellationPreview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    cancelEmployeeSeparation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 SEPARATION_NOT_FOUND. */
+                separationId: components["parameters"]["SeparationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelSeparation"];
+            };
+        };
+        responses: {
+            /** @description Separation cancelled, or the original cancellation replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    updateSeparationTaskStatus: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 SEPARATION_NOT_FOUND. */
+                separationId: components["parameters"]["SeparationId"];
+                /** @description Malformed, unknown and other-separation IDs give the same 404 SEPARATION_TASK_NOT_FOUND. */
+                taskId: components["parameters"]["SeparationTaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSeparationTask"];
+            };
+        };
+        responses: {
+            /** @description Task updated, or the original update replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeparationTask"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    retrySeparationAccessRevocation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND. */
+                employeeId: components["parameters"]["EmployeeId"];
+                /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 SEPARATION_NOT_FOUND. */
+                separationId: components["parameters"]["SeparationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Retry queued, or the original request replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Separation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
 }

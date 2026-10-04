@@ -152,7 +152,10 @@ public record EmploymentChangeCommand(
     ChangeReason reason = null;
     if (request.getReasonCode() != null) {
       reason = enumValue(ChangeReason.class, request.getReasonCode(), "reasonCode", errors);
-      if (reason != null
+      if (reason == ChangeReason.MANAGER_SEPARATED) {
+        // MVP-022: only a separation records this reason, on the changes it generates.
+        errors.add("reasonCode", Constraint.FORMAT);
+      } else if (reason != null
           && type != null
           && reason.correction() != (type == ChangeType.CORRECTION)) {
         errors.add("reasonCode", Constraint.FORMAT);
@@ -240,7 +243,7 @@ public record EmploymentChangeCommand(
     return new CancellationConfirmation(version, digest);
   }
 
-  private static Long version(Object raw, String field, FieldErrors errors) {
+  static Long version(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -257,7 +260,7 @@ public record EmploymentChangeCommand(
     return value;
   }
 
-  private static String digest(Object raw, String field, FieldErrors errors) {
+  static String digest(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -292,7 +295,7 @@ public record EmploymentChangeCommand(
     return date;
   }
 
-  private static UUID uuid(Object raw, String field, FieldErrors errors) {
+  static UUID uuid(Object raw, String field, FieldErrors errors) {
     if (!(raw instanceof String text) || text.length() != 36) {
       errors.add(field, Constraint.FORMAT);
       return null;
@@ -310,7 +313,7 @@ public record EmploymentChangeCommand(
     }
   }
 
-  private static <E extends Enum<E>> E enumValue(
+  static <E extends Enum<E>> E enumValue(
       Class<E> type, Object raw, String field, FieldErrors errors) {
     if (raw instanceof String text) {
       for (E value : type.getEnumConstants()) {

@@ -259,12 +259,26 @@ class KeycloakProvisioningExtensionContainerTest {
               "{\"role\":\"employee\"}",
               false));
       replies.add(calls.extensionRaw(token, "DELETE", identity, null, null, false));
+      // MVP-022: the access revocation answers the same way, whatever the subject or body.
+      String subject =
+          path[0].equals(existing.invitation().toString()) ? existing.subject() : path[0];
+      String revocation =
+          "/realms/divalhr-dev/divalhr-provisioning/v1/tenants/"
+              + TENANT_A
+              + "/identities/"
+              + subject
+              + "/access-revocation";
+      replies.add(calls.extensionRaw(token, "PUT", revocation, null, null, false));
+      replies.add(
+          calls.extensionRaw(token, "PUT", revocation, "application/json", "{\"x\":1}", false));
       for (Reply reply : replies) {
         assertThat(reply.status()).as("status for %s", path[0].length()).isEqualTo(status);
         assertThat(reply.body()).isEqualTo(body);
       }
     }
     assertThat(calls.messagesTo(existing.email())).isZero();
+    assertThat(calls.admin("GET", "/users/" + existing.subject(), null).path("enabled").asBoolean())
+        .isTrue();
   }
 
   /** A divalhr-web access token from a real browser sign-in. */

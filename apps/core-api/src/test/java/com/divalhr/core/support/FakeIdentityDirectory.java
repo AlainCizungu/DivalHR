@@ -3,6 +3,7 @@ package com.divalhr.core.support;
 import com.divalhr.core.identity.application.IdentityDirectory;
 import com.divalhr.core.identity.application.IdentityProviderUnavailableException;
 import com.divalhr.core.identity.domain.TenantRole;
+import com.divalhr.core.platform.tenancy.TenantId;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,10 @@ public class FakeIdentityDirectory implements IdentityDirectory {
     CREDENTIAL_SETUP_COMPLETED,
     /** The provider refuses compensation (identity not pristine). */
     COMPENSATION_REFUSED,
+    /** The provider refuses access revocation (not an employee identity of the tenant). */
+    REVOCATION_REFUSED,
+    /** The provider has no identity for the subject. */
+    REVOCATION_ABSENT,
     /**
      * This call loses a creation race: an identical concurrent call has committed the identity, and
      * this one gets the extension's retryable {@code 503 IDENTITY_BUSY} (PR #32 review).
@@ -50,6 +55,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
   private final List<UUID> credentialSetups = new CopyOnWriteArrayList<>();
   private final Map<UUID, TenantRole> credentialSetupRoles = new ConcurrentHashMap<>();
   private final List<UUID> compensations = new CopyOnWriteArrayList<>();
+  private final List<Revocation> revocations = new CopyOnWriteArrayList<>();
   private final List<UUID> provisionCalls = new CopyOnWriteArrayList<>();
   private final AtomicReference<Mode> mode = new AtomicReference<>(Mode.UP);
   private final AtomicReference<Runnable> beforeProvision = new AtomicReference<>(() -> {});
@@ -61,6 +67,7 @@ public class FakeIdentityDirectory implements IdentityDirectory {
     credentialSetups.clear();
     credentialSetupRoles.clear();
     compensations.clear();
+    revocations.clear();
     provisionCalls.clear();
     mode.set(Mode.UP);
     beforeProvision.set(() -> {});
@@ -193,6 +200,38 @@ public class FakeIdentityDirectory implements IdentityDirectory {
    */
   public Map<UUID, TenantRole> credentialSetupRoles() {
     return Map.copyOf(credentialSetupRoles);
+  }
+
+  /**
+   * One access-revocation call (MVP-022).
+   *
+   * @param tenant tenant sent
+   * @param subject subject sent
+   * @param revocationId revocation
+   */
+  public record Revocation(String tenant, String subject, UUID revocationId) {}
+
+  /**
+   * Access-revocation calls that reached the provider, in call order (A22-5 tests prove that a
+   * stale binding never reaches it).
+   *
+   * @return calls
+   */
+  public List<Revocation> revocations() {
+    return List.copyOf(revocations);
+  }
+
+  @Override
+  public RevocationOutcome revokeAccess(TenantId tenant, String subject, UUID revocationId) {
+    if (mode.get() == Mode.DOWN) {
+      throw new IdentityProviderUnavailableException("fake_down");
+    }
+    revocations.add(new Revocation(tenant.toString(), subject, revocationId));
+    return switch (mode.get()) {
+      case REVOCATION_REFUSED -> RevocationOutcome.REFUSED;
+      case REVOCATION_ABSENT -> RevocationOutcome.ABSENT;
+      default -> RevocationOutcome.REVOKED;
+    };
   }
 
   @Override
