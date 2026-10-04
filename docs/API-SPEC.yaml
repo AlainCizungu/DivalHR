@@ -12,6 +12,8 @@ tags:
     description: Tenant and organization configuration
   - name: people
     description: Employees and their employment (MVP-020)
+  - name: documents
+    description: Contract templates, issued contracts and acknowledgements (MVP-030)
 servers:
   - url: https://api.divalhr.com/api/v1
 security:
@@ -2460,6 +2462,758 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /contract-templates:
+    get:
+      operationId: listContractTemplates
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List contract templates
+      description: MVP-030. The tenant's contract templates ordered by code, each with its approved version
+        and draft per language. Templates hold organization text, not personal data, and reads are not disclosure-audited
+        (D14). Cache-Control private, no-store.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/ContractLimit'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplatePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      operationId: createContractTemplate
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a contract template
+      description: MVP-030. Creates a template identity (code, administrative name, contract type). Its
+        text lives in versions. Code and type never change.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractTemplate'
+      responses:
+        '201':
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /contract-templates/validate:
+    post:
+      operationId: validateContractTemplateText
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Validate template text
+      description: 'MVP-030 (A30-2). Checks a title and body against grammar v1 without writing anything:
+        forbidden constructs (URI schemes, protocol-relative paths, web addresses, encoded content, Markdown
+        links, HTML markup), placeholders and limits. Problems carry a closed reason and a line number only,
+        never the text.'
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateContractTemplateText'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplateValidation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /contract-templates/{templateId}:
+    get:
+      operationId: getContractTemplate
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a contract template
+      description: MVP-030. The template and all its versions, without bodies.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractTemplateId'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /contract-templates/{templateId}/versions:
+    post:
+      operationId: createContractTemplateVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a draft version
+      description: MVP-030. Creates a DRAFT version in one language with the next version number for that
+        language. The text must pass grammar v1 (422 CONTRACT_TEMPLATE_INVALID otherwise).
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractTemplateId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractTemplateVersion'
+      responses:
+        '201':
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplateVersion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /contract-templates/{templateId}/versions/{versionId}:
+    get:
+      operationId: getContractTemplateVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a template version
+      description: MVP-030. The version with its title and body.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractTemplateId'
+      - $ref: '#/components/parameters/ContractTemplateVersionId'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplateVersion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    put:
+      operationId: updateContractTemplateVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Edit a draft version
+      description: MVP-030. Replaces a DRAFT version's title and body (expectedVersion). Approved and retired
+        versions never change (409 CONTRACT_TEMPLATE_NOT_DRAFT).
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractTemplateId'
+      - $ref: '#/components/parameters/ContractTemplateVersionId'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContractTemplateVersion'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplateVersion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    delete:
+      operationId: deleteContractTemplateVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Delete a never-approved draft
+      description: MVP-030. Deletes a DRAFT version that was never approved (expectedVersion as a query
+        parameter). The only delete of contract data.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractTemplateId'
+      - $ref: '#/components/parameters/ContractTemplateVersionId'
+      - $ref: '#/components/parameters/ExpectedVersion'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '204':
+          description: Deleted
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /contract-templates/{templateId}/versions/{versionId}/approve:
+    post:
+      operationId: approveContractTemplateVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Approve a draft version
+      description: 'MVP-030. Approves a DRAFT version (expectedVersion, acknowledgement TEXT_VERIFIED: the
+        administrator verified the text; DivalHR does not guarantee its legal validity). Approval is irreversible.
+        The previous approved version of the same template and language is retired in the same transaction.'
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractTemplateId'
+      - $ref: '#/components/parameters/ContractTemplateVersionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveContractTemplateVersion'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplateVersion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /contract-templates/{templateId}/versions/{versionId}/retire:
+    post:
+      operationId: retireContractTemplateVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Retire an approved version
+      description: 'MVP-030. Retires an APPROVED version: it can no longer be issued. Issued contracts keep
+        their snapshot.'
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractTemplateId'
+      - $ref: '#/components/parameters/ContractTemplateVersionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetireContractTemplateVersion'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractTemplateVersion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /employees/{employeeId}/contracts:
+    get:
+      operationId: listEmployeeContracts
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List an employee's contracts
+      description: MVP-030. Contracts newest first, without content. Recorded as a disclosure (audit contract.read).
+        Cache-Control private, no-store.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/ContractLimit'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      operationId: issueEmployeeContract
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Issue a contract
+      description: MVP-030. Repeats a preview with the expectedEmploymentVersion and previewDigest it returned.
+        Under the employment lock everything is re-rendered and the digest recomputed (409 CONTRACT_PREVIEW_CHANGED
+        on any difference); the immutable snapshot, audit and outbox commit together. Employment history
+        is never changed.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueContract'
+      responses:
+        '201':
+          description: Issued, or the original issue replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contract'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /employees/{employeeId}/contracts/preview:
+    post:
+      operationId: previewEmployeeContract
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a contract
+      description: MVP-030. Renders an approved template version for the employee's current employment and
+        returns the exact snapshot, warnings and the preview digest. Writes nothing but the disclosure audit
+        (contract.preview).
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractPreviewCommand'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractPreview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /employees/{employeeId}/contracts/{contractId}:
+    get:
+      operationId: getEmployeeContract
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read an employee's contract
+      description: MVP-030. The contract with its snapshot and acknowledgement evidence. Recorded as a disclosure
+        (audit contract.read).
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+      - $ref: '#/components/parameters/ContractId'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contract'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /employees/{employeeId}/contracts/{contractId}/void:
+    post:
+      operationId: voidEmployeeContract
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Void an unacknowledged contract
+      description: MVP-030. Voids an ISSUED contract (expectedVersion, closed reason). An acknowledged contract
+        is never voided. Content and digests are kept.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+      - $ref: '#/components/parameters/ContractId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidContract'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contract'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PrivilegedForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /me/contracts:
+    get:
+      operationId: listMyContracts
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my contracts
+      description: MVP-030. The caller's own contracts, newest first, without content. Requires the employee
+        role, an active membership and the active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise).
+        Recorded as a disclosure (audit contract.self-read).
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      - $ref: '#/components/parameters/ContractLimit'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyContractPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /me/contracts/{contractId}:
+    get:
+      operationId: getMyContract
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read my contract
+      description: MVP-030. One of the caller's own contracts with its snapshot, the acknowledgement statements
+        in French and English with their digests, and the evidence once acknowledged. Another employee's
+        or tenant's contract is the same 404 as an unknown one.
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractId'
+      - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyContract'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /me/contracts/{contractId}/acknowledgement:
+    post:
+      operationId: acknowledgeMyContract
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Acknowledge my contract
+      description: 'MVP-030. Records that the authenticated employee confirmed the stated acknowledgement
+        of the displayed contract. This is not an electronic signature. The client repeats the snapshot
+        digest, its versions and the statement digest it displayed; the server recomputes its own values
+        and compares them (409 CONTRACT_ACKNOWLEDGEMENT_CHANGED). Idempotent: an already acknowledged contract
+        returns its evidence with alreadyAcknowledged true.'
+      tags:
+      - documents
+      parameters:
+      - $ref: '#/components/parameters/ContractId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcknowledgeContract'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControlPrivateNoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractAcknowledgementResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 components:
   securitySchemes:
     oauth2:
@@ -2828,6 +3582,43 @@ components:
         minimum: 1
         maximum: 200
         default: 50
+    ContractTemplateId:
+      name: templateId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND.
+      schema:
+        type: string
+    ContractTemplateVersionId:
+      name: versionId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign and other-template IDs give the same 404 CONTRACT_TEMPLATE_NOT_FOUND.
+      schema:
+        type: string
+    ContractId:
+      name: contractId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND.
+      schema:
+        type: string
+    ContractLimit:
+      name: limit
+      in: query
+      description: Items per page (1-50, default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 25
+    ExpectedVersion:
+      name: expectedVersion
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 0
   schemas:
     AccessReviewLookup:
       type: object
@@ -4756,6 +5547,839 @@ components:
         expectedVersion:
           type: integer
           minimum: 0
+    ContractLocale:
+      type: string
+      enum:
+      - fr
+      - en
+      description: Language of a template version and of the contracts issued from it.
+    ContractTemplateVersionState:
+      type: string
+      enum:
+      - DRAFT
+      - APPROVED
+      - RETIRED
+    ContractState:
+      type: string
+      enum:
+      - ISSUED
+      - ACKNOWLEDGED
+      - VOID
+      description: ISSUED (awaiting the employee's acknowledgement), ACKNOWLEDGED (the employee made the stated
+        confirmation; never an electronic signature) or VOID.
+    ContractVoidReason:
+      type: string
+      enum:
+      - ISSUED_IN_ERROR
+      - WRONG_TEMPLATE
+      - WRONG_DATA
+      - OTHER
+    ContractTemplateProblemReason:
+      type: string
+      enum:
+      - EMPTY
+      - TOO_LONG
+      - CONTROL_CHARACTER
+      - UNSAFE_CHARACTER
+      - URI_SCHEME
+      - PROTOCOL_RELATIVE
+      - WEB_ADDRESS
+      - ENCODED_CONTENT
+      - MARKDOWN_LINK
+      - HTML_MARKUP
+      - UNKNOWN_PLACEHOLDER
+      - MALFORMED_PLACEHOLDER
+      - TOO_MANY_PLACEHOLDERS
+      - BRACES
+      - HEADING_EMPTY
+      description: Closed reason of a template-text problem (A30-2).
+    ContractPlaceholder:
+      type: string
+      enum:
+      - employee.givenNames
+      - employee.familyName
+      - employee.fullName
+      - employee.number
+      - organization.name
+      - legalEntity.name
+      - site.name
+      - employment.startDate
+      - contract.type
+      - contract.startDate
+      - contract.endDate
+      - issue.date
+    CreateContractTemplate:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - name
+      - contractType
+      properties:
+        code:
+          type: string
+          pattern: ^[A-Z0-9][A-Z0-9_-]{0,31}$
+          description: Upper-case code, unique in the tenant.
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+          description: Administrative label (organization data).
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+    ContractTemplateLine:
+      type: object
+      required:
+      - locale
+      - approvedVersionId
+      - approvedVersionNumber
+      - draftVersionId
+      properties:
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        approvedVersionId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        approvedVersionNumber:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+        draftVersionId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+    ContractTemplateSummary:
+      type: object
+      required:
+      - id
+      - code
+      - name
+      - contractType
+      - lines
+      - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractTemplateLine'
+          description: One entry per language that has a version.
+        createdAt:
+          type: string
+          format: date-time
+    ContractTemplatePage:
+      type: object
+      required:
+      - items
+      - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractTemplateSummary'
+        nextCursor:
+          type:
+          - string
+          - 'null'
+    ContractTemplateVersionSummary:
+      type: object
+      required:
+      - id
+      - locale
+      - versionNumber
+      - state
+      - placeholders
+      - createdAt
+      - updatedAt
+      - approvedAt
+      - retiredAt
+      - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        versionNumber:
+          type: integer
+          minimum: 1
+        state:
+          $ref: '#/components/schemas/ContractTemplateVersionState'
+        placeholders:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractPlaceholder'
+          description: Distinct placeholders used, sorted.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        approvedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        retiredAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        version:
+          type: integer
+          minimum: 0
+    ContractTemplate:
+      type: object
+      required:
+      - id
+      - code
+      - name
+      - contractType
+      - createdAt
+      - versions
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+        createdAt:
+          type: string
+          format: date-time
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractTemplateVersionSummary'
+          description: Newest first per language.
+    ContractTemplateVersion:
+      type: object
+      required:
+      - id
+      - templateId
+      - locale
+      - versionNumber
+      - state
+      - title
+      - body
+      - placeholders
+      - bodySha256
+      - grammarVersion
+      - digestVersion
+      - createdAt
+      - updatedAt
+      - approvedAt
+      - retiredAt
+      - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        templateId:
+          type: string
+          format: uuid
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        versionNumber:
+          type: integer
+          minimum: 1
+        state:
+          $ref: '#/components/schemas/ContractTemplateVersionState'
+        title:
+          type: string
+        body:
+          type: string
+          description: Grammar v1 text (Confidential organization text).
+        placeholders:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractPlaceholder'
+        bodySha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: DIVALHR-CONTRACT-TEMPLATE-BODY v1 digest (A30-4).
+        grammarVersion:
+          type: integer
+          enum:
+          - 1
+        digestVersion:
+          type: integer
+          enum:
+          - 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        approvedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        retiredAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        version:
+          type: integer
+          minimum: 0
+    ValidateContractTemplateText:
+      type: object
+      additionalProperties: false
+      required:
+      - title
+      - body
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+    ContractTemplateProblem:
+      type: object
+      required:
+      - reason
+      - line
+      properties:
+        reason:
+          $ref: '#/components/schemas/ContractTemplateProblemReason'
+        line:
+          type: integer
+          minimum: 0
+          description: 1-based body line; 0 for the title.
+    ContractTemplateValidation:
+      type: object
+      required:
+      - valid
+      - problems
+      - placeholders
+      properties:
+        valid:
+          type: boolean
+        problems:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/ContractTemplateProblem'
+        placeholders:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractPlaceholder'
+    CreateContractTemplateVersion:
+      type: object
+      additionalProperties: false
+      required:
+      - locale
+      - title
+      - body
+      properties:
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        body:
+          type: string
+          minLength: 1
+          maxLength: 40000
+    UpdateContractTemplateVersion:
+      type: object
+      additionalProperties: false
+      required:
+      - title
+      - body
+      - expectedVersion
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        body:
+          type: string
+          minLength: 1
+          maxLength: 40000
+        expectedVersion:
+          type: integer
+          minimum: 0
+    ApproveContractTemplateVersion:
+      type: object
+      additionalProperties: false
+      required:
+      - expectedVersion
+      - acknowledgements
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        acknowledgements:
+          type: array
+          items:
+            type: string
+            enum:
+            - TEXT_VERIFIED
+          minItems: 1
+          maxItems: 1
+    RetireContractTemplateVersion:
+      type: object
+      additionalProperties: false
+      required:
+      - expectedVersion
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+    ContractBlock:
+      type: object
+      required:
+      - type
+      - text
+      properties:
+        type:
+          type: string
+          enum:
+          - h1
+          - h2
+          - p
+          - li
+        text:
+          type: string
+    ContractSnapshot:
+      type: object
+      required:
+      - title
+      - blocks
+      description: The exact rendered content (Restricted HR). Rendered as text only.
+      properties:
+        title:
+          type: string
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractBlock'
+    ContractIntegrity:
+      type: object
+      required:
+      - snapshotSha256
+      - digestAlgorithm
+      - digestVersion
+      - grammarVersion
+      - rendererVersion
+      properties:
+        snapshotSha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: DIVALHR-CONTRACT-SNAPSHOT v1 digest of the canonical snapshot (A30-4).
+        digestAlgorithm:
+          type: string
+          enum:
+          - SHA-256
+        digestVersion:
+          type: integer
+          enum:
+          - 1
+        grammarVersion:
+          type: integer
+          enum:
+          - 1
+        rendererVersion:
+          type: integer
+          enum:
+          - 1
+    ContractPreviewCommand:
+      type: object
+      additionalProperties: false
+      required:
+      - templateVersionId
+      - startDate
+      properties:
+        templateVersionId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+          - string
+          - 'null'
+          format: date
+    IssueContract:
+      type: object
+      additionalProperties: false
+      required:
+      - templateVersionId
+      - startDate
+      - expectedEmploymentVersion
+      - previewDigest
+      properties:
+        templateVersionId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        expectedEmploymentVersion:
+          type: integer
+          minimum: 0
+        previewDigest:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+    ContractWarning:
+      type: string
+      enum:
+      - TYPE_DIFFERS_FROM_CLASSIFICATION
+    ContractPreview:
+      type: object
+      required:
+      - employmentId
+      - employmentVersion
+      - templateVersionId
+      - contractType
+      - locale
+      - startDate
+      - endDate
+      - snapshot
+      - integrity
+      - warnings
+      - previewDigest
+      properties:
+        employmentId:
+          type: string
+          format: uuid
+        employmentVersion:
+          type: integer
+          minimum: 0
+        templateVersionId:
+          type: string
+          format: uuid
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        snapshot:
+          $ref: '#/components/schemas/ContractSnapshot'
+        integrity:
+          $ref: '#/components/schemas/ContractIntegrity'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractWarning'
+        previewDigest:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: DIVALHR-CONTRACT-PREVIEW v1 digest (A30-4).
+    ContractAcknowledgementEvidence:
+      type: object
+      required:
+      - acknowledgedAt
+      - statementCode
+      - statementVersion
+      - statementLocale
+      - statementText
+      - statementSha256
+      - evidenceSha256
+      description: What the employee confirmed and when. Never an electronic signature.
+      properties:
+        acknowledgedAt:
+          type: string
+          format: date-time
+        statementCode:
+          type: string
+          enum:
+          - RECEIVED_AND_REVIEWED
+        statementVersion:
+          type: integer
+          enum:
+          - 1
+        statementLocale:
+          $ref: '#/components/schemas/ContractLocale'
+        statementText:
+          type: string
+          description: The exact statement shown, re-rendered from its version and language.
+        statementSha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        evidenceSha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+    ContractSummary:
+      type: object
+      required:
+      - id
+      - employmentId
+      - templateId
+      - templateVersionId
+      - contractType
+      - locale
+      - startDate
+      - endDate
+      - state
+      - issuedAt
+      - acknowledgedAt
+      - voidedAt
+      - voidReason
+      - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        employmentId:
+          type: string
+          format: uuid
+        templateId:
+          type: string
+          format: uuid
+        templateVersionId:
+          type: string
+          format: uuid
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        state:
+          $ref: '#/components/schemas/ContractState'
+        issuedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        voidedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        voidReason:
+          oneOf:
+          - $ref: '#/components/schemas/ContractVoidReason'
+          - type: 'null'
+        version:
+          type: integer
+          minimum: 0
+    ContractPage:
+      type: object
+      required:
+      - items
+      - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractSummary'
+        nextCursor:
+          type:
+          - string
+          - 'null'
+    Contract:
+      allOf:
+      - $ref: '#/components/schemas/ContractSummary'
+      - type: object
+        required:
+        - snapshot
+        - integrity
+        - acknowledgement
+        properties:
+          snapshot:
+            $ref: '#/components/schemas/ContractSnapshot'
+          integrity:
+            $ref: '#/components/schemas/ContractIntegrity'
+          acknowledgement:
+            oneOf:
+            - $ref: '#/components/schemas/ContractAcknowledgementEvidence'
+            - type: 'null'
+    VoidContract:
+      type: object
+      additionalProperties: false
+      required:
+      - expectedVersion
+      - reasonCode
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        reasonCode:
+          $ref: '#/components/schemas/ContractVoidReason'
+    MyContractSummary:
+      type: object
+      required:
+      - id
+      - contractType
+      - locale
+      - startDate
+      - endDate
+      - state
+      - issuedAt
+      - acknowledgedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        contractType:
+          $ref: '#/components/schemas/ContractClassification'
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        state:
+          $ref: '#/components/schemas/ContractState'
+        issuedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    MyContractPage:
+      type: object
+      required:
+      - items
+      - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyContractSummary'
+        nextCursor:
+          type:
+          - string
+          - 'null'
+    AcknowledgementStatement:
+      type: object
+      required:
+      - code
+      - version
+      - locale
+      - text
+      - sha256
+      properties:
+        code:
+          type: string
+          enum:
+          - RECEIVED_AND_REVIEWED
+        version:
+          type: integer
+          enum:
+          - 1
+        locale:
+          $ref: '#/components/schemas/ContractLocale'
+        text:
+          type: string
+        sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: DIVALHR-CONTRACT-ACKNOWLEDGEMENT-STATEMENT v1 digest (A30-4).
+    MyContract:
+      allOf:
+      - $ref: '#/components/schemas/MyContractSummary'
+      - type: object
+        required:
+        - snapshot
+        - integrity
+        - statements
+        - acknowledgement
+        properties:
+          snapshot:
+            $ref: '#/components/schemas/ContractSnapshot'
+          integrity:
+            $ref: '#/components/schemas/ContractIntegrity'
+          statements:
+            type: array
+            items:
+              $ref: '#/components/schemas/AcknowledgementStatement'
+            description: The current statement in French and English; the client shows one.
+          acknowledgement:
+            oneOf:
+            - $ref: '#/components/schemas/ContractAcknowledgementEvidence'
+            - type: 'null'
+    AcknowledgeContract:
+      type: object
+      additionalProperties: false
+      required:
+      - snapshotSha256
+      - snapshotDigestVersion
+      - grammarVersion
+      - rendererVersion
+      - statementCode
+      - statementVersion
+      - statementLocale
+      - statementSha256
+      properties:
+        snapshotSha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        snapshotDigestVersion:
+          type: integer
+        grammarVersion:
+          type: integer
+        rendererVersion:
+          type: integer
+        statementCode:
+          type: string
+        statementVersion:
+          type: integer
+        statementLocale:
+          $ref: '#/components/schemas/ContractLocale'
+        statementSha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+    ContractAcknowledgementResult:
+      type: object
+      required:
+      - contract
+      - alreadyAcknowledged
+      properties:
+        contract:
+          $ref: '#/components/schemas/MyContract'
+        alreadyAcknowledged:
+          type: boolean
     ErrorCode:
       type: string
       description: Stable machine-readable code. Clients translate it; it is never localized text.
@@ -4852,6 +6476,25 @@ components:
         - SEPARATION_ACKNOWLEDGEMENT_REQUIRED
         - SEPARATION_REPORT_PLAN_REQUIRED
         - SEPARATION_TOO_MANY_INTERVALS
+        - CONTRACT_TEMPLATE_NOT_FOUND
+        - CONTRACT_NOT_FOUND
+        - CONTRACT_TEMPLATE_VERSION_CONFLICT
+        - CONTRACT_TEMPLATE_NOT_DRAFT
+        - CONTRACT_TEMPLATE_NOT_APPROVED
+        - CONTRACT_TEMPLATE_CODE_TAKEN
+        - CONTRACT_PREVIEW_CHANGED
+        - CONTRACT_VERSION_CONFLICT
+        - CONTRACT_PERIOD_OVERLAP
+        - CONTRACT_EMPLOYMENT_ENDED
+        - CONTRACT_NOT_VOIDABLE
+        - CONTRACT_NOT_ACKNOWLEDGEABLE
+        - CONTRACT_ACKNOWLEDGEMENT_CHANGED
+        - CONTRACT_TEMPLATE_INVALID
+        - CONTRACT_VALUE_MISSING
+        - CONTRACT_DATES_INVALID
+        - CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED
+        - EMPLOYEE_LINK_REQUIRED
+        - CONTRACT_TIMEOUT
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.
