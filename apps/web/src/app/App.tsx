@@ -7,6 +7,10 @@ import { MfaRequiredPage } from '../auth/MfaRequiredPage';
 import type { RuntimeConfig } from '../config/runtime';
 import { AccessReviewPage } from '../features/access-review/AccessReviewPage';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
+import { ContractTemplatePage } from '../features/contracts/ContractTemplatePage';
+import { ContractTemplatesPage } from '../features/contracts/ContractTemplatesPage';
+import { MyContractPage } from '../features/contracts/MyContractPage';
+import { MyContractsPage } from '../features/contracts/MyContractsPage';
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { RequirePlatformAdmin } from '../features/admin/RequirePlatformAdmin';
 import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
@@ -130,6 +134,54 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
                           signInKey="employeeImport.signInRequired"
                         >
                           <EmployeeImportPage />
+                        </RequireRole>
+                      }
+                    />
+                    <Route
+                      path="/admin/contract-templates"
+                      element={
+                        <RequireRole
+                          requiredRole="tenant-admin"
+                          deniedKey="contracts.unauthorized"
+                          signInKey="contracts.signInRequired"
+                        >
+                          <ContractTemplatesPage />
+                        </RequireRole>
+                      }
+                    />
+                    <Route
+                      path="/admin/contract-templates/:templateId"
+                      element={
+                        <RequireRole
+                          requiredRole="tenant-admin"
+                          deniedKey="contracts.unauthorized"
+                          signInKey="contracts.signInRequired"
+                        >
+                          <ContractTemplatePage />
+                        </RequireRole>
+                      }
+                    />
+                    <Route
+                      path="/me/contracts"
+                      element={
+                        <RequireRole
+                          requiredRole="employee"
+                          deniedKey="contracts.my.unauthorized"
+                          signInKey="contracts.my.signInRequired"
+                        >
+                          <MyContractsPage />
+                        </RequireRole>
+                      }
+                    />
+                    <Route
+                      path="/me/contracts/:contractId"
+                      element={
+                        <RequireRole
+                          requiredRole="employee"
+                          deniedKey="contracts.my.unauthorized"
+                          signInKey="contracts.my.signInRequired"
+                        >
+                          <MyContractPage />
                         </RequireRole>
                       }
                     />

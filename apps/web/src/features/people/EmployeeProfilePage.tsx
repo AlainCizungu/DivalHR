@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/ApiProvider';
+import { EmployeeContractsSection } from '../contracts/EmployeeContractsSection';
 import { AccessLinkSection } from './AccessLinkSection';
 import { ChangeForm } from './ChangeForm';
 import { ChangesSection } from './ChangesSection';
@@ -34,9 +35,9 @@ const CURRENT_KEYS = {
 /**
  * MVP-021: one employee's profile on the business date (today in the organization's time zone),
  * the effective-dated history, the recorded changes, and the change, correction and cancellation
- * flows; MVP-022 adds the separation and the employee's DivalHR access. The employee ID is the
- * only identifier in the URL; nothing else is kept in the URL,
- * history or browser storage, and every request uses cache: 'no-store'.
+ * flows; MVP-022 adds the separation and the employee's DivalHR access; MVP-030 the contracts.
+ * The employee ID is the only identifier in the URL; nothing else is kept in the URL, history or
+ * browser storage, and every request uses cache: 'no-store'.
  */
 export function EmployeeProfilePage() {
   const { employeeId = '' } = useParams();
@@ -183,6 +184,12 @@ export function EmployeeProfilePage() {
         }}
       />
       <SeparationsSection
+        employeeId={profile.id}
+        businessDate={profile.businessDate}
+        revision={revision}
+        onChanged={changed}
+      />
+      <EmployeeContractsSection
         employeeId={profile.id}
         businessDate={profile.businessDate}
         revision={revision}

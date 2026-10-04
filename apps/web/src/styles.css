@@ -404,3 +404,58 @@ button:disabled {
 .preformatted {
   white-space: pre-line;
 }
+
+/* MVP-030: contracts. Text is shown as plain text nodes; digests may wrap at any character. */
+.field textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 12rem;
+  padding: var(--dv-space-2) var(--dv-space-3);
+  border-radius: var(--dv-radius);
+  border: 1px solid var(--dv-color-border);
+  background: var(--dv-color-surface-raised);
+  color: var(--dv-color-text);
+}
+
+.plain-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.contract-document {
+  max-width: 48rem;
+  padding: var(--dv-space-4);
+  border: 1px solid var(--dv-color-border);
+  border-radius: var(--dv-radius);
+  background: var(--dv-color-surface-raised);
+  overflow-wrap: anywhere;
+}
+
+.contract-document__digest {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.contract-document__footer {
+  margin-top: var(--dv-space-4);
+  border-top: 1px solid var(--dv-color-border);
+}
+
+@media print {
+  .header,
+  .skip-link,
+  .notice,
+  .button,
+  .button-row,
+  form,
+  [data-testid='acknowledge'] {
+    display: none !important;
+  }
+
+  .contract-document {
+    border: none;
+    max-width: none;
+    padding: 0;
+  }
+}
