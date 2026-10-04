@@ -26,12 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class JdbcAccessLinkRepository {
 
   private static final String LINK_COLUMNS =
-      "l.id, l.employee_id, l.membership_id, l.linked_at, l.version, m.role, m.subject,"
-          + " EXISTS (SELECT 1 FROM identity.access_revocation r WHERE r.membership_id = m.id"
-          + " AND r.state <> 'CANCELLED') AS revoked,"
-          + " EXISTS (SELECT 1 FROM identity.access_revocation r WHERE r.membership_id = m.id"
-          + " AND r.state <> 'CANCELLED' AND r.effective_at <= statement_timestamp())"
-          + " AS revocation_effective";
+      "l.id, l.employee_id, l.membership_id, l.linked_at, l.version, m.role, m.subject, EXISTS"
+          + " (SELECT 1 FROM identity.access_revocation r WHERE r.tenant_id = m.tenant_id AND"
+          + " r.membership_id = m.id AND r.state <> 'CANCELLED') AS revoked, EXISTS (SELECT 1 FROM"
+          + " identity.access_revocation r WHERE r.tenant_id = m.tenant_id AND r.membership_id ="
+          + " m.id AND r.state <> 'CANCELLED' AND r.effective_at <= statement_timestamp()) AS"
+          + " revocation_effective";
 
   private static final String REVOCATION_COLUMNS =
       "id, tenant_id, membership_id, membership_role, link_id, employee_id, separation_id,"
@@ -202,13 +202,12 @@ public class JdbcAccessLinkRepository {
    */
   public Optional<MembershipRow> membershipByLookup(TenantId tenant, byte[] emailLookup) {
     return jdbc.sql(
-            "SELECT m.id, m.role,"
-                + " EXISTS (SELECT 1 FROM identity.employee_access_link l"
-                + " WHERE l.membership_id = m.id AND l.unlinked_at IS NULL) AS linked,"
-                + " EXISTS (SELECT 1 FROM identity.access_revocation r"
-                + " WHERE r.membership_id = m.id AND r.state <> 'CANCELLED') AS revoked"
-                + " FROM identity.tenant_membership m"
-                + " WHERE m.tenant_id = :tenant AND m.email_lookup = :lookup")
+            "SELECT m.id, m.role, EXISTS (SELECT 1 FROM identity.employee_access_link l WHERE"
+                + " l.tenant_id = m.tenant_id AND l.membership_id = m.id AND l.unlinked_at IS NULL)"
+                + " AS linked, EXISTS (SELECT 1 FROM identity.access_revocation r WHERE r.tenant_id"
+                + " = m.tenant_id AND r.membership_id = m.id AND r.state <> 'CANCELLED') AS revoked"
+                + " FROM identity.tenant_membership m WHERE m.tenant_id = :tenant AND"
+                + " m.email_lookup = :lookup")
         .param("tenant", tenant.value())
         .param("lookup", emailLookup)
         .query(
@@ -232,13 +231,12 @@ public class JdbcAccessLinkRepository {
   @Transactional(propagation = Propagation.MANDATORY)
   public Optional<MembershipRow> lockMembership(TenantId tenant, UUID membershipId) {
     return jdbc.sql(
-            "SELECT m.id, m.role,"
-                + " EXISTS (SELECT 1 FROM identity.employee_access_link l"
-                + " WHERE l.membership_id = m.id AND l.unlinked_at IS NULL) AS linked,"
-                + " EXISTS (SELECT 1 FROM identity.access_revocation r"
-                + " WHERE r.membership_id = m.id AND r.state <> 'CANCELLED') AS revoked"
-                + " FROM identity.tenant_membership m"
-                + " WHERE m.tenant_id = :tenant AND m.id = :id FOR SHARE OF m")
+            "SELECT m.id, m.role, EXISTS (SELECT 1 FROM identity.employee_access_link l WHERE"
+                + " l.tenant_id = m.tenant_id AND l.membership_id = m.id AND l.unlinked_at IS NULL)"
+                + " AS linked, EXISTS (SELECT 1 FROM identity.access_revocation r WHERE r.tenant_id"
+                + " = m.tenant_id AND r.membership_id = m.id AND r.state <> 'CANCELLED') AS revoked"
+                + " FROM identity.tenant_membership m WHERE m.tenant_id = :tenant AND m.id = :id"
+                + " FOR SHARE OF m")
         .param("tenant", tenant.value())
         .param("id", membershipId)
         .query(

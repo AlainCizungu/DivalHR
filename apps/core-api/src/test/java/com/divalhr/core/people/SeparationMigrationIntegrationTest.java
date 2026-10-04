@@ -3,6 +3,7 @@ package com.divalhr.core.people;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.divalhr.core.identity.internal.JdbcMembershipRepository;
 import com.divalhr.core.support.IntegrationTest;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -25,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
@@ -927,6 +929,89 @@ class SeparationMigrationIntegrationTest {
   // ------------------------------------------------------------------------------------------
   // identity: links and revocations (D22-6, D22-7)
   // ------------------------------------------------------------------------------------------
+
+  /**
+   * R22-1: the membership gate correlates a revocation with its membership by tenant and ID, so a
+   * revocation denies only the membership of its own tenant. The foreign row below cannot exist
+   * through the composite key; it is forged with constraint triggers disabled to prove the gate
+   * does not rely on that key (or on membership IDs being globally unique) for tenant isolation.
+   */
+  @Test
+  void aRevocationDeniesOnlyTheMembershipOfItsOwnTenant() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "latest");
+          try {
+            assertThat(
+                    db.jdbc()
+                        .queryForObject(
+                            "SELECT indexdef FROM pg_indexes WHERE schemaname = 'identity'"
+                                + " AND indexname = 'access_revocation_one_open'",
+                            String.class))
+                .contains("(tenant_id, membership_id)")
+                .contains("WHERE (state <> 'CANCELLED'::text)");
+            UUID tenant = organization(db.jdbc());
+            UUID foreign = organization(db.jdbc());
+            Hired h;
+            UUID own;
+            UUID other;
+            try (Connection c = connect(db)) {
+              h = hire(c, tenant, "E-1");
+              own = membership(c, tenant, "employee");
+              other = membership(c, foreign, "employee");
+              c.commit();
+            }
+            String ownSubject = subject(db, own);
+            String otherSubject = subject(db, other);
+            JdbcMembershipRepository gate =
+                new JdbcMembershipRepository(JdbcClient.create(db.jdbc().getDataSource()));
+            assertThat(gate.findActiveBySubject(ownSubject)).isPresent();
+            assertThat(gate.findActiveBySubject(otherSubject)).isPresent();
+
+            UUID[] linked = new UUID[1];
+            committed(db, c -> linked[0] = link(c, h, own));
+            Sep s = separate(db, h, LocalDate.now().plusDays(30));
+            Instant past = Instant.now().minus(1, ChronoUnit.MINUTES);
+            committed(db, c -> revocation(c, h, own, "employee", linked[0], s.id(), past));
+            assertThat(gate.findActiveBySubject(ownSubject)).isEmpty();
+            assertThat(gate.findActiveBySubject(otherSubject)).isPresent();
+
+            // A forged revocation of tenant A naming tenant B's membership denies nothing.
+            committed(
+                db,
+                c -> {
+                  try (Statement st = c.createStatement()) {
+                    st.execute("SET LOCAL session_replication_role = replica");
+                  }
+                  revocation(c, h, other, "employee", linked[0], UUID.randomUUID(), past);
+                });
+            assertThat(
+                    db.jdbc()
+                        .queryForObject(
+                            "SELECT count(*) FROM identity.access_revocation"
+                                + " WHERE tenant_id = ? AND membership_id = ?",
+                            Integer.class,
+                            tenant,
+                            other))
+                .isOne();
+            assertThat(gate.findActiveBySubject(otherSubject))
+                .get()
+                .extracting(m -> m.tenant().value())
+                .isEqualTo(foreign);
+            assertThat(gate.findActiveBySubject(ownSubject)).isEmpty();
+          } catch (SQLException e) {
+            throw new IllegalStateException(e);
+          }
+        });
+  }
+
+  private static String subject(Db db, UUID membership) {
+    return db.jdbc()
+        .queryForObject(
+            "SELECT subject FROM identity.tenant_membership WHERE id = ?",
+            String.class,
+            membership);
+  }
 
   @Test
   void linksAndRevocationsAreTenantBoundEmployeeOnlyAndMoveOnlyForward() {

@@ -56,8 +56,10 @@ The design had to guarantee that:
   (A22-1). A composite key and `CHECK (membership_role = 'employee')` make a tenant administrator
   impossible to target.
 - `tenant_membership` stays immutable. The membership gate's single predicate becomes "no
-  non-cancelled revocation with `effective_at <= statement_timestamp()`", shared by the gate, the
-  session endpoint and the access review, so they never disagree. Denial is exact and independent
+  non-cancelled revocation of the same tenant and membership with
+  `effective_at <= statement_timestamp()`", shared by the gate, the session endpoint and the access
+  review, so they never disagree. The predicate correlates the tenant explicitly (R22-1): tenant
+  isolation never depends on membership IDs being globally unique. Denial is exact and independent
   of any job.
 - `AccessRevocationJobs` (identity) moves due revocations to `IDP_PENDING`, then calls the
   extension's new operation `PUT …/tenants/{tenantId}/identities/{subject}/access-revocation`

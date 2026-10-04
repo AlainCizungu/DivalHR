@@ -808,9 +808,11 @@ COMMENT ON TABLE identity.access_revocation IS
     'MVP-022 DivalHR access revocation of a linked employee membership and its identity-provider '
     'retry state. No subject, address, token or error body is stored.';
 
--- One revocation that is not cancelled per membership; also the membership gate's index.
+-- One revocation that is not cancelled per membership (a membership ID belongs to one tenant
+-- through the composite key), and the membership gate's index: the gate correlates the tenant and
+-- the membership (R22-1).
 CREATE UNIQUE INDEX access_revocation_one_open
-    ON identity.access_revocation (membership_id) WHERE state <> 'CANCELLED';
+    ON identity.access_revocation (tenant_id, membership_id) WHERE state <> 'CANCELLED';
 CREATE UNIQUE INDEX access_revocation_one_per_separation
     ON identity.access_revocation (separation_id) WHERE state <> 'CANCELLED';
 CREATE INDEX access_revocation_link ON identity.access_revocation (link_id);
