@@ -98,7 +98,7 @@ class SeparationPlannerTest {
                 new ReportRow(report, employment, before),
                 new ReportRow(report, employment, second)),
             D);
-    assertThat(grouped).singleElement();
+    assertThat(grouped).hasSize(1);
     assertThat(grouped.get(0).intervals()).containsExactly(List.of(first), List.of(second, third));
     assertThat(grouped.get(0).rows()).containsExactly(first, second, third);
   }
