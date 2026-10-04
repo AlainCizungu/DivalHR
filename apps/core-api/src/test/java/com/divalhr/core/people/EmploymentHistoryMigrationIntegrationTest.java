@@ -228,7 +228,7 @@ class EmploymentHistoryMigrationIntegrationTest {
           List<V13Employment> seeded = seedV13(db.jdbc());
           assertThat(btreeGist(db)).isFalse();
 
-          migrate(db.url(), "latest");
+          migrate(db.url(), "14.2");
           String v14 = signature(db);
           assertThat(v14).isNotEqualTo(v13).contains("employment_assignment,employment_change");
           assertThat(btreeGist(db)).as("provisioned by V14").isTrue();
@@ -281,7 +281,8 @@ class EmploymentHistoryMigrationIntegrationTest {
                 .isEqualTo(vectors.get(i).key());
           }
 
-          // Rollback: V13 exactly, its data restored; Flyway history and btree_gist untouched.
+          // Rollback: V13 exactly, its data restored; Flyway history and btree_gist untouched. (V15
+          // has its own rollback, applied first in an MVP-022 rollback; see V15 migration test.)
           db.jdbc().execute(rollback());
           assertThat(signature(db)).isEqualTo(v13);
           assertThat(history(db)).isEqualTo(recorded);
@@ -299,7 +300,7 @@ class EmploymentHistoryMigrationIntegrationTest {
         db -> {
           migrate(db.url(), "13");
           List<V13Employment> seeded = seedV13(db.jdbc());
-          migrate(db.url(), "latest");
+          migrate(db.url(), "14.2");
           assertThat(btreeGist(db)).as("pre-existing").isTrue();
           String v14 = signature(db);
           V13Employment e = seeded.get(0);
