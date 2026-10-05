@@ -41,6 +41,16 @@ No module reads another module's private tables directly.
 
 Kafka is a target event platform when scale or integration requires it. A simpler managed queue or event service is acceptable initially if event contracts remain portable.
 
+## Web application shell
+
+UI-001 (Issue #53) gives the web app one shell for every module:
+
+- **Route registry** (`apps/web/src/app/routes.tsx`): each URL with its existing guard, breadcrumb trail and frame. It is presentation metadata only; the guards remain usability measures and the Core API authorizes every request.
+- **Navigation model** (`apps/web/src/shell/navigation.ts`): groups of registry paths with the role each requires. Only a loaded, server-verified session grants roles, so anonymous, loading and failed sessions see Home only. A unit test keeps the navigation and the registry consistent.
+- **Frames:** signed-in users get the sidebar, top bar and account menu; anonymous visitors and the public flows (invitation, sign-in callback) get a public frame without them.
+- **Browser storage:** only UI preferences through `app/preferences.ts` (language, theme, sidebar collapse). No tokens, roles, tenant identifiers, route history or HR content.
+- **Design system:** tokens in `packages/design-system`; primitives in `apps/web/src/ui`, extracted to the package when a second application needs them.
+
 ## Tenant hierarchy
 
 Organization → Country → Legal Entity → Region → Site → Department or Cost Center → Team → Worker

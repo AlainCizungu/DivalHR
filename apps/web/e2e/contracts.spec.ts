@@ -1,5 +1,14 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, mailTo, signIn, sql } from './support';
+import {
+  CORE_API,
+  TENANT_A,
+  USERS,
+  expectAccessible,
+  mailTo,
+  signIn,
+  sql,
+  primaryNav,
+} from './support';
 
 // MVP-030 (Issue #51): create and acknowledge a contract with the real identity provider and
 // database. An administrator creates a template, writes a French draft with the editor, checks
@@ -63,7 +72,7 @@ async function post(page: Page, bearer: () => string, path: string, key: string,
 
 /** Opens a profile through the directory (a full page load would end the in-memory session). */
 async function openProfile(page: Page, number: string, name: string) {
-  await page.getByRole('link', { name: 'Employés', exact: true }).click();
+  await primaryNav(page).getByRole('link', { name: 'Employés', exact: true }).click();
   await page.getByLabel('Matricule ou nom').fill(number);
   await page.keyboard.press('Enter');
   await page.getByTestId('directory-table').getByRole('link', { name }).click();
@@ -191,7 +200,7 @@ test.describe.serial('MVP-030: create and acknowledge a contract', () => {
   test('the administrator writes, checks and approves a French template', async ({ page }) => {
     test.setTimeout(120_000);
     await signIn(page, USERS.adminA, 'fr');
-    await page.getByRole('link', { name: 'Modèles de contrat', exact: true }).click();
+    await primaryNav(page).getByRole('link', { name: 'Modèles de contrat', exact: true }).click();
     const create = page.getByTestId('create-template');
     await create.getByLabel('Code').fill(TEMPLATE_CODE);
     await create.getByLabel('Nom').fill(TEMPLATE_NAME);
@@ -214,14 +223,20 @@ test.describe.serial('MVP-030: create and acknowledge a contract', () => {
     await body.fill('# Article 1 : Engagement\nEntre ');
     await editor.getByLabel('Champ à insérer').selectOption('organization.name');
     await editor.getByRole('button', { name: 'Insérer le champ' }).click();
+    // The page moves the caret after the field on the next frame; type only once it has.
+    await expect(body).toBeFocused();
     await body.press('End');
     await body.pressSequentially(' et ');
     await editor.getByLabel('Champ à insérer').selectOption('employee.fullName');
     await editor.getByRole('button', { name: 'Insérer le champ' }).click();
+    // The page moves the caret after the field on the next frame; type only once it has.
+    await expect(body).toBeFocused();
     await body.press('End');
     await body.pressSequentially('.\n- Début : ');
     await editor.getByLabel('Champ à insérer').selectOption('contract.startDate');
     await editor.getByRole('button', { name: 'Insérer le champ' }).click();
+    // The page moves the caret after the field on the next frame; type only once it has.
+    await expect(body).toBeFocused();
     await editor.getByRole('button', { name: 'Vérifier le texte' }).click();
     await expect(editor.getByTestId('validation')).toHaveText(
       'Le texte respecte le format des contrats.',
@@ -285,7 +300,7 @@ test.describe.serial('MVP-030: create and acknowledge a contract', () => {
   }) => {
     test.setTimeout(120_000);
     await signIn(page, [OWNER_EMAIL, PASSWORD], 'fr', undefined);
-    await page.getByRole('link', { name: 'Mes contrats', exact: true }).click();
+    await primaryNav(page).getByRole('link', { name: 'Mes contrats', exact: true }).click();
     await expect(page.getByTestId('my-contract-state')).toHaveText(
       'Émis – en attente d’accusé de réception',
     );
@@ -392,7 +407,7 @@ test.describe.serial('MVP-030: create and acknowledge a contract', () => {
     const employee = await browser.newContext({ locale: 'fr-FR' });
     const employeePage = await employee.newPage();
     await signIn(employeePage, [OTHER_EMAIL, PASSWORD], 'fr', undefined);
-    await employeePage.getByRole('link', { name: 'Mes contrats', exact: true }).click();
+    await primaryNav(employeePage).getByRole('link', { name: 'Mes contrats', exact: true }).click();
     await employeePage.getByRole('link', { name: 'Durée indéterminée' }).click();
     await expect(employeePage.getByTestId('voided')).toHaveText(
       'Ce contrat a été annulé : sa réception ne peut pas être confirmée.',

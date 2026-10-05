@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppShell } from '../../layout/AppShell';
+import { AppShell } from '../../shell/AppShell';
 import { renderWithSession, sessionWithRoles } from '../../test/renderWithSession';
 import { RequireRole } from '../hierarchy/RequireRole';
 import { AccessReviewPage } from './AccessReviewPage';

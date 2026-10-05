@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Request } from '@playwright/test';
-import { CORE_API, USERS, expectAccessible, mailTo, signInFr } from './support';
+import { CORE_API, USERS, expectAccessible, mailTo, signInFr, primaryNav } from './support';
 
 const LINK = /https?:\/\/[^\s"<>]+\/invitation#token=[A-Za-z0-9_-]{43}/u;
 
@@ -10,7 +10,7 @@ function invitationLink(text: string): string {
 }
 
 async function openUsers(page: Page) {
-  await page.getByRole('link', { name: 'Utilisateurs et invitations' }).click();
+  await primaryNav(page).getByRole('link', { name: 'Utilisateurs et invitations' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Utilisateurs et invitations');
 }
 

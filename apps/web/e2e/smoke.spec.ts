@@ -74,13 +74,19 @@ test('user signs in with PKCE, sees the verified tenant, and tokens stay out of 
   expect(stored).not.toContain('access_token');
   expect(stored).not.toContain('refresh_token');
 
+  // UI-001: the signed-in home and the account menu (sign-out moved into the menu).
   await chooseLocale(page, 'Français');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bienvenue sur DivalHR');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Administration de l’organisation',
+  );
   await expect(page.getByTestId('session-roles')).toHaveText('Administrateur de l’organisation');
+  await page.getByRole('button', { name: /Menu du compte/ }).click();
   await expect(page.getByRole('button', { name: 'Se déconnecter' })).toBeVisible();
   await expectAccessible(page);
+  await page.keyboard.press('Escape');
 
   await chooseLocale(page, 'English');
+  await page.getByRole('button', { name: /Account menu/ }).click();
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
   await expectAccessible(page);
 });

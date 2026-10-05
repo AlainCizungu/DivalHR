@@ -9,6 +9,7 @@ import {
   signInFr,
   typeCode,
   totp,
+  primaryNav,
 } from './support';
 
 // MVP-011. One-time codes and the authenticator secret created during the invited journey stay in
@@ -18,7 +19,7 @@ const INVITATION_LINK = /https?:\/\/[^\s"<>]+\/invitation#token=[A-Za-z0-9_-]{43
 const SETUP_LINK = /https?:\/\/[^\s"<>]+\/login-actions\/action-token\?[^\s"<>]+/u;
 
 async function openUsers(page: Page) {
-  await page.getByRole('link', { name: 'Utilisateurs et invitations' }).click();
+  await primaryNav(page).getByRole('link', { name: 'Utilisateurs et invitations' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Utilisateurs et invitations');
 }
 
@@ -61,7 +62,7 @@ test.describe.serial('MVP-011: privileged roles complete MFA', () => {
     await expect(page.getByTestId('session-tenant')).toHaveText(/^[0-9a-f-]{36}$/);
 
     // A privileged page works without any further prompt.
-    await page.getByRole('link', { name: 'Create organization' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Create organization' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Authenticator code required' })).toHaveCount(0);
     await expectAccessible(page);

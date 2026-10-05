@@ -1,10 +1,12 @@
 /**
- * The only module allowed to use localStorage. It stores non-sensitive UI preferences (language
- * and theme). Tokens, user data and API responses must never be stored here.
+ * The only module allowed to use localStorage. It stores non-sensitive UI preferences (language,
+ * theme and, since UI-001, whether the desktop sidebar is collapsed). Tokens, user data, tenant
+ * identifiers, roles, route history and API responses must never be stored here.
  */
 const KEYS = {
   locale: 'divalhr.locale',
   theme: 'divalhr.theme',
+  sidebar: 'divalhr.sidebar',
 } as const;
 
 export type PreferenceKey = keyof typeof KEYS;

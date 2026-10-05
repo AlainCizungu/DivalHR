@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { CORE_API, USERS, expectAccessible, signIn, sql } from './support';
+import { CORE_API, USERS, expectAccessible, signIn, sql, primaryNav } from './support';
 
 // MVP-012A (Issue #37): the tenant membership is the Core-side authority for tenant access. With
 // the real Keycloak, a privileged user whose token carries tenant-admin (password and TOTP
@@ -93,7 +93,7 @@ test.describe.serial('MVP-012A: membership authority with the real identity prov
   }) => {
     await signIn(page, USERS.platformAdmin, 'en');
     await expect(page.getByTestId('session-roles')).toHaveText('Platform administrator');
-    await expect(page.getByRole('link', { name: 'Create organization' })).toBeVisible();
+    await expect(primaryNav(page).getByRole('link', { name: 'Create organization' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Users and invitations' })).toHaveCount(0);
   });
 });

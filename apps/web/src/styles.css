@@ -13,6 +13,10 @@ body {
   background: var(--dv-color-bg);
 }
 
+a {
+  color: var(--dv-color-link);
+}
+
 :focus-visible {
   outline: 3px solid var(--dv-color-focus);
   outline-offset: 2px;
@@ -42,51 +46,6 @@ body {
   text-align: center;
 }
 
-.header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--dv-space-4);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--dv-space-4) var(--dv-space-6);
-  background: var(--dv-color-surface);
-  border-bottom: 1px solid var(--dv-color-border);
-}
-
-.brand {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand__name {
-  font-weight: 700;
-  font-size: var(--dv-font-size-lg);
-  color: var(--dv-color-primary);
-}
-
-.brand__tagline {
-  font-size: var(--dv-font-size-sm);
-  color: var(--dv-color-text-muted);
-}
-
-.nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--dv-space-4);
-}
-
-.nav a {
-  color: var(--dv-color-text);
-  text-decoration: none;
-  padding: var(--dv-space-2) var(--dv-space-1);
-  border-bottom: 3px solid transparent;
-}
-
-.nav a[aria-current='page'] {
-  border-bottom-color: var(--dv-color-primary);
-  font-weight: 600;
-}
-
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -94,18 +53,6 @@ body {
   align-items: center;
 }
 
-.switcher {
-  display: flex;
-  gap: var(--dv-space-2);
-  align-items: center;
-}
-
-.switcher__label {
-  font-size: var(--dv-font-size-sm);
-  color: var(--dv-color-text-muted);
-}
-
-.switcher__option,
 select,
 .button {
   font: inherit;
@@ -116,12 +63,6 @@ select,
   background: var(--dv-color-surface-raised);
   color: var(--dv-color-text);
   cursor: pointer;
-}
-
-.switcher__option[aria-pressed='true'] {
-  background: var(--dv-color-primary);
-  color: var(--dv-color-primary-contrast);
-  border-color: var(--dv-color-primary);
 }
 
 .button {
@@ -135,12 +76,6 @@ select,
   background: transparent;
   color: var(--dv-color-text);
   border-color: var(--dv-color-border);
-}
-
-.main {
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: var(--dv-space-8) var(--dv-space-6);
 }
 
 .muted {
@@ -443,7 +378,10 @@ button:disabled {
 }
 
 @media print {
-  .header,
+  .topbar,
+  .sidebar,
+  .drawer,
+  .breadcrumbs,
   .skip-link,
   .notice,
   .button,

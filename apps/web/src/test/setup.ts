@@ -14,6 +14,21 @@ window.cancelAnimationFrame = (handle) => {
   window.clearTimeout(handle);
 };
 
+// UI-001: jsdom has no HTMLDialogElement.showModal/close. Test scaffolding only: the native modal
+// behaviour (inert page, focus containment, Esc) is verified in Chromium by Playwright.
+if (typeof HTMLDialogElement !== 'undefined' && !('showModal' in HTMLDialogElement.prototype)) {
+  Object.assign(HTMLDialogElement.prototype, {
+    showModal(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    },
+    close(this: HTMLDialogElement) {
+      if (!this.hasAttribute('open')) return;
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    },
+  });
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();

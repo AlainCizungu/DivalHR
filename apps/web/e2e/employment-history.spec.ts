@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, signIn, sql } from './support';
+import { CORE_API, TENANT_A, USERS, expectAccessible, signIn, sql, primaryNav } from './support';
 
 // MVP-021 (Issue #47): the employee directory and employment history with the real identity
 // provider and database. The seed tenant administrator finds an employee (accents ignored),
@@ -110,7 +110,7 @@ test.describe.serial('MVP-021: employment history', () => {
     const first = employeeId(FIRST);
 
     // Search: accents and case ignored; the query never reaches the URL.
-    await page.getByRole('link', { name: 'Employés', exact: true }).click();
+    await primaryNav(page).getByRole('link', { name: 'Employés', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Employés');
     await page.getByLabel('Matricule ou nom').fill(`ELODIE ${FAMILY.toUpperCase()}`);
     await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
@@ -190,7 +190,7 @@ test.describe.serial('MVP-021: employment history', () => {
   test('an administrator assigns a manager by keyboard in English', async ({ page }) => {
     await signIn(page, USERS.adminA, 'en');
     // Tokens live in memory only: navigate inside the app rather than reloading it.
-    await page.getByRole('link', { name: 'Employees', exact: true }).click();
+    await primaryNav(page).getByRole('link', { name: 'Employees', exact: true }).click();
     await page.getByLabel('Employee number or name').fill(FIRST.toLowerCase());
     await page.keyboard.press('Enter');
     await page

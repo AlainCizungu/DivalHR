@@ -1,5 +1,7 @@
 import '@divalhr/design-system/tokens.css';
 import './styles.css';
+import './ui/ui.css';
+import './shell/shell.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';

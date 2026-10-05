@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, signInFr, sql } from './support';
+import { CORE_API, TENANT_A, USERS, expectAccessible, signInFr, sql, primaryNav } from './support';
 
 test.describe.serial('MVP-002 organizational hierarchy', () => {
   const stamp = Date.now().toString(36).toUpperCase();
@@ -11,7 +11,7 @@ test.describe.serial('MVP-002 organizational hierarchy', () => {
 
   test('tenant administrator A creates a legal entity and a site in French', async ({ page }) => {
     await signInFr(page, USERS.adminA);
-    await page.getByRole('link', { name: 'Structure organisationnelle' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Structure organisationnelle');
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
     await expectAccessible(page);
@@ -75,7 +75,7 @@ test.describe.serial('MVP-002 organizational hierarchy', () => {
     request,
   }) => {
     const bearer = await signInFr(page, USERS.adminB);
-    await page.getByRole('link', { name: 'Structure organisationnelle' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Structure organisationnelle');
     await expect(page.getByText(/Chargement/)).toHaveCount(0);
     await expect(page.getByRole('main')).not.toContainText(leCode);

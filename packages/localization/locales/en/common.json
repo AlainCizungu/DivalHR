@@ -16,7 +16,45 @@
     "employees": "Employees",
     "employeeImport": "Import employees",
     "contractTemplates": "Contract templates",
-    "myContracts": "My contracts"
+    "myContracts": "My contracts",
+    "groups": {
+      "overview": "Overview",
+      "platform": "Platform",
+      "people": "People",
+      "organization": "Organization",
+      "documents": "Documents",
+      "access": "Access and security",
+      "mySpace": "My space"
+    }
+  },
+  "shell": {
+    "tagline": "Workforce operations",
+    "workspace": "Workspace",
+    "workspaceOrganization": "Your organization",
+    "workspacePlatform": "DivalHR platform",
+    "environment": {
+      "development": "Development environment",
+      "test": "Test environment",
+      "staging": "Staging environment"
+    },
+    "environmentShort": {
+      "development": "Development",
+      "test": "Test",
+      "staging": "Staging"
+    },
+    "accountMenu": "Account menu",
+    "signedInAs": "Signed in as",
+    "organizationId": "Organization ID",
+    "collapseNavigation": "Collapse navigation",
+    "expandNavigation": "Expand navigation",
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation",
+    "breadcrumb": "Breadcrumb",
+    "crumb": {
+      "employeeRecord": "Employee record",
+      "contractTemplate": "Contract template",
+      "contract": "Contract"
+    }
   },
   "locale": {
     "label": "Language",
@@ -35,8 +73,7 @@
     "signingIn": "Signing you in…",
     "signedInTenant": "Signed in to tenant {{tenantId}}",
     "error": "Sign-in could not be completed. Please try again.",
-    "required": "Sign in to continue.",
-    "devOnlyNotice": "Development environment. Do not enter real employee data."
+    "required": "Sign in to continue."
   },
   "mfa": {
     "title": "Authenticator code required",
@@ -51,12 +88,108 @@
   },
   "home": {
     "title": "Welcome to DivalHR",
-    "body": "This is the Sprint 0 application shell. Business features will arrive in later releases."
+    "open": "Open",
+    "retry": "Try again",
+    "sessionError": "Your session could not be loaded.",
+    "noAccess": {
+      "title": "No access yet",
+      "description": "Your account does not have access to DivalHR yet. Ask your organization’s administrator."
+    },
+    "platform": {
+      "eyebrow": "Platform workspace",
+      "title": "Platform administration",
+      "description": "Create organizations and hand them over to their first administrator.",
+      "tasksTitle": "Platform tasks",
+      "createOrganization": {
+        "title": "Create an organization",
+        "description": "Register a new customer organization and its legal settings."
+      },
+      "firstAdmin": {
+        "title": "Set up the first administrator",
+        "description": "Invite, resend or revoke the first administrator of an organization."
+      },
+      "status": {
+        "description": "Check that DivalHR services respond."
+      }
+    },
+    "tenant": {
+      "eyebrow": "Organization workspace",
+      "title": "Organization administration",
+      "description": "Set up your organization, manage your people and contracts, and control who has access.",
+      "quickActions": "Quick actions",
+      "actions": {
+        "importEmployees": "Import employees",
+        "inviteUser": "Invite a user",
+        "createTemplate": "Create a contract template",
+        "reviewAccess": "Review access"
+      },
+      "modulesTitle": "Your modules",
+      "modulesDescription": "Everything available to you today.",
+      "cards": {
+        "employees": "Search the directory, open employee records and record employment changes and separations.",
+        "hierarchy": "Legal entities, sites, regions, departments, cost centers and teams.",
+        "users": "Invite people to DivalHR and follow each invitation.",
+        "accessReview": "See who can access what, and from which assignment.",
+        "contractTemplates": "Write, approve and retire the templates used to issue contracts.",
+        "employeeImport": "Bring existing employees in from a spreadsheet, with a preview first."
+      }
+    },
+    "employee": {
+      "eyebrow": "Employee space",
+      "title": "My space",
+      "description": "Your employment documents in one place. More services will appear here as they become available.",
+      "contractsDescription": "Read the contracts your organization has issued to you and confirm that you received them.",
+      "contractsAction": "Open my contracts"
+    }
+  },
+  "roadmap": {
+    "title": "Coming later",
+    "description": "On the DivalHR roadmap. Not available yet.",
+    "badge": "Coming later",
+    "items": {
+      "leave": {
+        "title": "Leave and approvals",
+        "description": "Requests, balances and approval chains."
+      },
+      "attendance": {
+        "title": "Attendance and timesheets",
+        "description": "Online and offline time capture."
+      },
+      "scheduling": {
+        "title": "Scheduling and rotations",
+        "description": "Shifts and rotations for sites and teams."
+      },
+      "documentExpiry": {
+        "title": "Document expiration",
+        "description": "Follow expiring documents and credentials."
+      },
+      "payrollInputs": {
+        "title": "Payroll inputs",
+        "description": "Prepare and export payroll inputs."
+      },
+      "expenses": {
+        "title": "Expenses and allowances",
+        "description": "Claims, allowances and reimbursements."
+      },
+      "myLeave": {
+        "title": "Leave",
+        "description": "Request time off and follow your balances."
+      },
+      "myDocuments": {
+        "title": "Documents",
+        "description": "Your other employment documents."
+      },
+      "benefits": {
+        "title": "Benefits",
+        "description": "See the benefits you are enrolled in."
+      },
+      "payslips": {
+        "title": "Payroll and payslips",
+        "description": "Access your payslips."
+      }
+    }
   },
   "session": {
-    "title": "Your session",
-    "tenant": "Tenant",
-    "roles": "Roles",
     "noRoles": "No roles assigned",
     "loading": "Loading your session…",
     "role": {

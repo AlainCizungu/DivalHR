@@ -34,14 +34,21 @@ async function expectNoAxeViolations(container: HTMLElement) {
 describe.each(['en', 'fr'] as const)('application shell (%s)', (locale) => {
   const strings = resources[locale].common;
 
-  it('renders the complete shell with no raw translation keys', async () => {
+  it('renders the public shell with no raw translation keys', async () => {
     stubStatusFetch('UP', 'UP');
     const { container } = await renderApp('/', locale);
     expect(document.documentElement.lang).toBe(locale);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(strings.home.title);
-    expect(screen.getByRole('navigation', { name: strings.nav.primary })).toBeInTheDocument();
-    expect(screen.getByTestId('dev-notice')).toHaveTextContent(strings.auth.devOnlyNotice);
-    expect(container.textContent).not.toMatch(/\b(nav|auth|home|status|theme|locale)\.[a-z]/);
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+    // UI-001: anonymous visitors get the public frame, without the signed-in navigation.
+    expect(screen.queryByRole('navigation', { name: strings.nav.primary })).toBeNull();
+    expect(screen.getByTestId('environment-badge')).toHaveTextContent(
+      strings.shell.environment.development,
+    );
+    expect(container.textContent).not.toMatch(
+      /\b(nav|auth|home|status|theme|locale|shell|roadmap)\.[a-z]/,
+    );
   });
 
   it('shows both services on the status page', async () => {

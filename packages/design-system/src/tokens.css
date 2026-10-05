@@ -1,55 +1,117 @@
 /*
- * DivalHR design tokens. Placeholder values pending confirmation of the Dival design
- * direction (docs/ROADMAP.md, Phase 0). Text/background pairs meet WCAG 2.2 AA (4.5:1).
+ * DivalHR design tokens (UI-001). An operational adaptation of the DivalHR identity: deep navy
+ * navigation, teal primary actions, restrained gold accents and neutral surfaces. Every text and
+ * background pair meets WCAG 2.2 AA (4.5:1; 3:1 for UI boundaries). The semantic mapping and the
+ * contrast of each pair are documented in packages/design-system/README.md.
  */
 :root,
 [data-theme='light'] {
   color-scheme: light;
-  --dv-color-bg: #ffffff;
-  --dv-color-surface: #f5f7fa;
+  --dv-color-bg: #f5f7fa;
+  --dv-color-surface: #ffffff;
   --dv-color-surface-raised: #ffffff;
-  --dv-color-border: #d4dbe3;
-  --dv-color-text: #16202b;
-  --dv-color-text-muted: #4a5868;
-  --dv-color-primary: #0b6e5f;
+  --dv-color-surface-sunken: #eef2f6;
+  --dv-color-border: #d6dee8;
+  --dv-color-border-strong: #7b8a9c;
+  --dv-color-text: #0f1e33;
+  --dv-color-text-muted: #4b5b70;
+  --dv-color-primary: #0f766e;
+  --dv-color-primary-hover: #0b5f58;
   --dv-color-primary-contrast: #ffffff;
+  --dv-color-primary-subtle: #e3f4f1;
+  --dv-color-primary-subtle-text: #0b5f58;
+  --dv-color-accent: #c9a227;
+  --dv-color-accent-text: #7a5c00;
   --dv-color-focus: #1f5fd6;
+  --dv-color-link: #0b5f58;
   --dv-color-success: #13703a;
-  --dv-color-warning: #8a5a00;
+  --dv-color-success-bg: #e7f5ec;
+  --dv-color-warning: #7a4f00;
+  --dv-color-warning-bg: #fff4d6;
   --dv-color-danger: #b3261e;
-  --dv-color-notice-bg: #fff4d6;
-  --dv-color-notice-text: #5c3c00;
+  --dv-color-danger-bg: #fdecea;
+  --dv-color-info: #1d4e89;
+  --dv-color-info-bg: #e8f0fb;
+  --dv-color-neutral: #3e4c5e;
+  --dv-color-neutral-bg: #e9eef4;
+  /* Kept for existing pages: the former notice pair is now the warning pair. */
+  --dv-color-notice-bg: var(--dv-color-warning-bg);
+  --dv-color-notice-text: var(--dv-color-warning);
+
+  /* Navigation (navy in both themes). */
+  --dv-nav-bg: #0b1f3a;
+  --dv-nav-text: #e3eaf3;
+  --dv-nav-text-muted: #9fb1c8;
+  --dv-nav-hover-bg: #12294a;
+  --dv-nav-active-bg: #173a66;
+  --dv-nav-active-text: #ffffff;
+  --dv-nav-indicator: #2dd4bf;
+  --dv-nav-focus: #f2c14e;
+  --dv-nav-border: #1b3457;
+  --dv-brand-mark-bg: #0f766e;
+  --dv-brand-mark-dot: #e9c46a;
 
   --dv-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --dv-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --dv-font-size-xs: 0.75rem;
   --dv-font-size-sm: 0.875rem;
   --dv-font-size-md: 1rem;
   --dv-font-size-lg: 1.25rem;
-  --dv-font-size-xl: 1.75rem;
+  --dv-font-size-xl: 1.5rem;
+  --dv-font-size-2xl: 1.75rem;
   --dv-space-1: 0.25rem;
   --dv-space-2: 0.5rem;
   --dv-space-3: 0.75rem;
   --dv-space-4: 1rem;
+  --dv-space-5: 1.25rem;
   --dv-space-6: 1.5rem;
   --dv-space-8: 2rem;
+  --dv-space-10: 2.5rem;
+  --dv-radius-sm: 0.375rem;
   --dv-radius: 0.5rem;
-  --dv-shadow: 0 1px 2px rgb(16 24 40 / 8%), 0 1px 3px rgb(16 24 40 / 10%);
+  --dv-radius-lg: 0.75rem;
+  --dv-shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 10%);
+  --dv-shadow-overlay: 0 12px 32px rgb(16 24 40 / 18%);
+
+  --dv-sidebar-width: 16.5rem;
+  --dv-sidebar-rail: 4.5rem;
+  --dv-topbar-height: 3.75rem;
+  --dv-content-max: 75rem;
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --dv-color-bg: #0f1419;
-  --dv-color-surface: #161d25;
-  --dv-color-surface-raised: #1c252f;
-  --dv-color-border: #2e3a47;
-  --dv-color-text: #e7edf3;
-  --dv-color-text-muted: #a7b4c2;
-  --dv-color-primary: #4fc2ad;
-  --dv-color-primary-contrast: #06231e;
+  --dv-color-bg: #0a1220;
+  --dv-color-surface: #101b2d;
+  --dv-color-surface-raised: #14223a;
+  --dv-color-surface-sunken: #0c1626;
+  --dv-color-border: #22324a;
+  --dv-color-border-strong: #5d708a;
+  --dv-color-text: #e6edf5;
+  --dv-color-text-muted: #a3b3c7;
+  --dv-color-primary: #2dd4bf;
+  --dv-color-primary-hover: #5eead4;
+  --dv-color-primary-contrast: #042f2a;
+  --dv-color-primary-subtle: #0f2e33;
+  --dv-color-primary-subtle-text: #5eead4;
+  --dv-color-accent: #e9c46a;
+  --dv-color-accent-text: #e9c46a;
   --dv-color-focus: #8cb4ff;
+  --dv-color-link: #5eead4;
   --dv-color-success: #5fd08b;
+  --dv-color-success-bg: #0f2a1c;
   --dv-color-warning: #f2c56b;
+  --dv-color-warning-bg: #33270a;
   --dv-color-danger: #ff8a80;
-  --dv-color-notice-bg: #3a2d0c;
-  --dv-color-notice-text: #fbe3a6;
-  --dv-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+  --dv-color-danger-bg: #3a1414;
+  --dv-color-info: #9cc3ff;
+  --dv-color-info-bg: #0f2440;
+  --dv-color-neutral: #c3cfdd;
+  --dv-color-neutral-bg: #1a2638;
+  --dv-nav-bg: #071426;
+  --dv-nav-hover-bg: #0d1f38;
+  --dv-nav-active-bg: #123158;
+  --dv-nav-border: #16294a;
+  --dv-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+  --dv-shadow-overlay: 0 12px 32px rgb(0 0 0 / 55%);
 }

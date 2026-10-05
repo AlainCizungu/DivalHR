@@ -2,36 +2,42 @@ import type { UserManager } from 'oidc-client-ts';
 import type { ReactNode } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
-import { CallbackPage } from '../auth/CallbackPage';
 import { MfaRequiredPage } from '../auth/MfaRequiredPage';
 import type { RuntimeConfig } from '../config/runtime';
-import { AccessReviewPage } from '../features/access-review/AccessReviewPage';
-import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
-import { ContractTemplatePage } from '../features/contracts/ContractTemplatePage';
-import { ContractTemplatesPage } from '../features/contracts/ContractTemplatesPage';
-import { MyContractPage } from '../features/contracts/MyContractPage';
-import { MyContractsPage } from '../features/contracts/MyContractsPage';
-import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { RequirePlatformAdmin } from '../features/admin/RequirePlatformAdmin';
-import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
-import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { RequireRole } from '../features/hierarchy/RequireRole';
-import { HomePage } from '../features/home/HomePage';
-import { EmployeeDirectoryPage } from '../features/people/EmployeeDirectoryPage';
-import { EmployeeImportPage } from '../features/people/EmployeeImportPage';
-import { EmployeeProfilePage } from '../features/people/EmployeeProfilePage';
-import { StatusPage } from '../features/status/StatusPage';
-import { UsersPage } from '../features/users/UsersPage';
-import { AppShell } from '../layout/AppShell';
 import { NotFoundPage } from '../layout/NotFoundPage';
+import { AppShell } from '../shell/AppShell';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { ApiProvider } from './ApiProvider';
+import { ROUTES, type AppRoute } from './routes';
 import { SessionProvider } from './SessionProvider';
 
 /** After a refused step-up, the MFA-required page replaces the current page (MVP-011). */
 function MfaGate({ children }: { children: ReactNode }) {
   const { mfaBlocked } = useAuth();
   return mfaBlocked ? <MfaRequiredPage returnTo={mfaBlocked.returnTo} /> : children;
+}
+
+/** Each registry entry keeps the guard it had before UI-001 (usability only; the API decides). */
+function guarded({ element, access }: AppRoute): ReactNode {
+  if (!access) return element;
+  if (access.role === 'platform-admin') {
+    return (
+      <RequirePlatformAdmin deniedKey={access.deniedKey} signInKey={access.signInKey}>
+        {element}
+      </RequirePlatformAdmin>
+    );
+  }
+  return (
+    <RequireRole
+      requiredRole={access.role}
+      deniedKey={access.deniedKey}
+      signInKey={access.signInKey}
+    >
+      {element}
+    </RequireRole>
+  );
 }
 
 export function App({ config, userManager }: { config: RuntimeConfig; userManager: UserManager }) {
@@ -44,149 +50,9 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
               <AppShell environment={config.environment}>
                 <MfaGate>
                   <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/status" element={<StatusPage />} />
-                    <Route
-                      path="/admin/organizations/new"
-                      element={
-                        <RequirePlatformAdmin>
-                          <CreateOrganizationPage />
-                        </RequirePlatformAdmin>
-                      }
-                    />
-                    <Route
-                      path="/admin/organizations/first-admin"
-                      element={
-                        <RequirePlatformAdmin
-                          deniedKey="firstAdmin.unauthorized"
-                          signInKey="firstAdmin.signInRequired"
-                        >
-                          <FirstAdministratorPage />
-                        </RequirePlatformAdmin>
-                      }
-                    />
-                    <Route
-                      path="/admin/hierarchy"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="hierarchy.unauthorized"
-                          signInKey="hierarchy.signInRequired"
-                        >
-                          <HierarchyPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/admin/users"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="users.unauthorized"
-                          signInKey="users.signInRequired"
-                        >
-                          <UsersPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/admin/access"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="accessReview.unauthorized"
-                          signInKey="accessReview.signInRequired"
-                        >
-                          <AccessReviewPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/admin/people"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="employees.unauthorized"
-                          signInKey="employees.signInRequired"
-                        >
-                          <EmployeeDirectoryPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/admin/people/:employeeId"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="employees.unauthorized"
-                          signInKey="employees.signInRequired"
-                        >
-                          <EmployeeProfilePage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/admin/people/import"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="employeeImport.unauthorized"
-                          signInKey="employeeImport.signInRequired"
-                        >
-                          <EmployeeImportPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/admin/contract-templates"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="contracts.unauthorized"
-                          signInKey="contracts.signInRequired"
-                        >
-                          <ContractTemplatesPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/admin/contract-templates/:templateId"
-                      element={
-                        <RequireRole
-                          requiredRole="tenant-admin"
-                          deniedKey="contracts.unauthorized"
-                          signInKey="contracts.signInRequired"
-                        >
-                          <ContractTemplatePage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/me/contracts"
-                      element={
-                        <RequireRole
-                          requiredRole="employee"
-                          deniedKey="contracts.my.unauthorized"
-                          signInKey="contracts.my.signInRequired"
-                        >
-                          <MyContractsPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route
-                      path="/me/contracts/:contractId"
-                      element={
-                        <RequireRole
-                          requiredRole="employee"
-                          deniedKey="contracts.my.unauthorized"
-                          signInKey="contracts.my.signInRequired"
-                        >
-                          <MyContractPage />
-                        </RequireRole>
-                      }
-                    />
-                    <Route path="/invitation" element={<AcceptInvitationPage />} />
-                    <Route path="/auth/callback" element={<CallbackPage />} />
+                    {ROUTES.map((route) => (
+                      <Route key={route.path} path={route.path} element={guarded(route)} />
+                    ))}
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </MfaGate>
