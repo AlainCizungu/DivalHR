@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { AppShell } from '../../layout/AppShell';
+import { AppShell } from '../../shell/AppShell';
 import { renderWithSession, sessionWithRoles } from '../../test/renderWithSession';
 import { CreateOrganizationPage } from './CreateOrganizationPage';
 import { RequirePlatformAdmin } from './RequirePlatformAdmin';

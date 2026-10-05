@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithSession, sessionWithRoles } from '../../test/renderWithSession';
-import { AppShell } from '../../layout/AppShell';
+import { AppShell } from '../../shell/AppShell';
 import { RequireRole } from '../hierarchy/RequireRole';
 import { UsersPage } from './UsersPage';
 
