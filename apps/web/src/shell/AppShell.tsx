@@ -7,7 +7,7 @@ import { useAuth } from '../auth/AuthProvider';
 import type { Environment } from '../config/runtime';
 import { Icon } from '../ui/Icon';
 import { Breadcrumbs } from '../ui/primitives';
-import { BrandMark, EnvironmentBadge, LanguageSwitcher, ThemeSelect } from './controls';
+import { BrandMark, EnvironmentBadge, LanguageSwitcher, ThemeSelect, Wordmark } from './controls';
 import { DESKTOP_QUERY, useMediaQuery, useSidebarCollapsed } from './hooks';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { Brand, Sidebar } from './Navigation';
@@ -165,7 +165,9 @@ export function AppShell({
           </button>
           <Link className="topbar__brand" to="/">
             <BrandMark />
-            <span className="topbar__brand-name">{t('app.name')}</span>
+            <span className="topbar__brand-name">
+              <Wordmark />
+            </span>
           </Link>
           {session.kind === 'ready' && roles.length > 0 && (
             <WorkspaceContext platformOnly={platformOnly} />

@@ -112,6 +112,22 @@ export function EnvironmentBadge({ environment }: { environment: Environment }) 
   );
 }
 
+/**
+ * The DivalHR wordmark as on the landing page: "Dival" in the surrounding colour and "HR" in teal.
+ * One text run for assistive technology ("DivalHR"); the split is presentational only.
+ */
+export function Wordmark() {
+  const { t } = useTranslation();
+  const name = t('app.name');
+  const accent = name.endsWith('HR') ? name.slice(-2) : '';
+  return (
+    <>
+      {name.slice(0, name.length - accent.length)}
+      {accent && <span className="brand__accent">{accent}</span>}
+    </>
+  );
+}
+
 export function BrandMark() {
   return (
     <span className="brand-mark" aria-hidden="true">

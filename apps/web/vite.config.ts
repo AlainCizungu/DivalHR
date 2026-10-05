@@ -18,7 +18,7 @@ export default defineConfig({
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: '#0b6e5f',
+        theme_color: '#082638',
         icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
       },
       // Cache the application shell only. API responses and identity-provider pages are never
