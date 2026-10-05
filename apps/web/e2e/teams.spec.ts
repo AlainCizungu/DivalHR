@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, signInFr, sql } from './support';
+import { CORE_API, TENANT_A, USERS, expectAccessible, signInFr, sql, primaryNav } from './support';
 
 test.describe.serial('MVP-002 Increment 3B: teams', () => {
   const stamp = Date.now().toString(36).toUpperCase();
@@ -22,7 +22,7 @@ test.describe.serial('MVP-002 Increment 3B: teams', () => {
   }) => {
     // 1-2. Tenant A administrator selects a legal entity and a site (created here).
     await signInFr(page, USERS.adminA);
-    await page.getByRole('link', { name: 'Structure organisationnelle' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }).click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
 
     const leForm = page.getByTestId('legal-entity-form');
@@ -194,7 +194,7 @@ test.describe.serial('MVP-002 Increment 3B: teams', () => {
     });
     expect(create.status()).toBe(404);
     expect(((await create.json()) as { code: string }).code).toBe('DEPARTMENT_NOT_FOUND');
-    await page.getByRole('link', { name: 'Structure organisationnelle' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }).click();
     await expect(page.getByText(/Chargement/)).toHaveCount(0);
     await expect(page.getByRole('main')).not.toContainText(deptTeamName);
     await expect(page.getByRole('main')).not.toContainText(ccTeamName);

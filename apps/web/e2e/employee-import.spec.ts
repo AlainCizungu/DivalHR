@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, signIn, sql } from './support';
+import { CORE_API, TENANT_A, USERS, expectAccessible, signIn, sql, primaryNav } from './support';
 
 // MVP-020 (Issue #45): employee import with the real identity provider and database. The seed
 // tenant administrator steps up with TOTP, downloads the template, checks a French semicolon file
@@ -61,7 +61,7 @@ test.describe.serial('MVP-020: employee import', () => {
     });
     expect(site.status()).toBe(201);
 
-    await page.getByRole('link', { name: 'Importer des employés' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Importer des employés' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Importer des employés');
     await expectAccessible(page);
 
@@ -127,7 +127,7 @@ test.describe.serial('MVP-020: employee import', () => {
     page,
   }) => {
     await signIn(page, USERS.adminA, 'en');
-    await page.getByRole('link', { name: 'Import employees' }).focus();
+    await primaryNav(page).getByRole('link', { name: 'Import employees' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Import employees');
     const file = [

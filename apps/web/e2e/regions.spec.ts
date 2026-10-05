@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, signInFr, sql } from './support';
+import { CORE_API, TENANT_A, USERS, expectAccessible, signInFr, sql, primaryNav } from './support';
 
 test.describe.serial('MVP-002 Increment 3A: regions and optional site assignment', () => {
   const stamp = Date.now().toString(36).toUpperCase();
@@ -23,7 +23,7 @@ test.describe.serial('MVP-002 Increment 3A: regions and optional site assignment
     request,
   }) => {
     const bearer = await signInFr(page, USERS.adminA);
-    await page.getByRole('link', { name: 'Structure organisationnelle' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }).click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
 
     const leForm = page.getByTestId('legal-entity-form');
@@ -163,7 +163,7 @@ test.describe.serial('MVP-002 Increment 3A: regions and optional site assignment
     page,
   }) => {
     await signInFr(page, USERS.adminA);
-    await page.getByRole('link', { name: 'Structure organisationnelle' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }).click();
     await page.getByRole('button', { name: `Voir les sites de ${leName} (${leCode})` }).click();
 
     const siteForm = page.getByTestId('site-form');
@@ -218,7 +218,7 @@ test.describe.serial('MVP-002 Increment 3A: regions and optional site assignment
     });
     expect(assign.status()).toBe(404);
     expect(((await assign.json()) as { code: string }).code).toBe('SITE_NOT_FOUND');
-    await page.getByRole('link', { name: 'Structure organisationnelle' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }).click();
     await expect(page.getByText(/Chargement/)).toHaveCount(0);
     await expect(page.getByRole('main')).not.toContainText(regionName);
     await expect(page.getByRole('main')).not.toContainText(leName);

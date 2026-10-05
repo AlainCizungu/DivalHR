@@ -1,5 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
-import { CORE_API, USERS, expectAccessible, freshCode, mailTo, signIn, typeCode } from './support';
+import {
+  CORE_API,
+  USERS,
+  expectAccessible,
+  freshCode,
+  mailTo,
+  signIn,
+  typeCode,
+  primaryNav,
+} from './support';
 
 // MVP-014 (Issue #38). A platform administrator creates an organization and invites its first
 // administrator; the invitee accepts, sets a password and an authenticator in the real Keycloak,
@@ -37,7 +46,7 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
     page,
   }) => {
     await signIn(page, USERS.platformAdmin, 'en');
-    await page.getByRole('link', { name: 'Create organization' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Create organization' }).click();
     await page.getByLabel('Organization name').fill(name);
     await page.getByRole('button', { name: 'Create organization' }).click();
     const success = page.getByTestId('organization-created');
@@ -128,7 +137,7 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
     await signIn(page, [invited, password], 'fr', invitedSecret ?? '');
     // The session belongs to the new organization, never to a fixture tenant.
     await expect(page.getByTestId('session-tenant')).toHaveText(organizationId);
-    await page.getByRole('link', { name: 'Utilisateurs et invitations' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Utilisateurs et invitations' }).click();
     expect((await list).status()).toBe(200);
     const own = page.getByTestId('invitation-row').filter({ hasText: invited });
     await expect(own).toContainText('Invité par DivalHR lors de la création de l’organisation');
@@ -148,7 +157,7 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
     page,
   }) => {
     await signIn(page, USERS.platformAdmin, 'fr');
-    await page.getByRole('link', { name: 'Premier administrateur' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Premier administrateur' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       'Inviter le premier administrateur d’une organisation',
     );

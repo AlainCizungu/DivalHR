@@ -1,5 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, mailTo, signIn, sql } from './support';
+import {
+  CORE_API,
+  TENANT_A,
+  USERS,
+  expectAccessible,
+  mailTo,
+  signIn,
+  sql,
+  primaryNav,
+} from './support';
 
 // MVP-022 (Issue #49): separate an employee with the real identity provider, extension, database
 // and jobs. An invited employee signs in; the administrator links the employee record to that
@@ -61,7 +70,7 @@ async function post(page: Page, bearer: () => string, path: string, key: string,
 }
 
 async function openProfile(page: Page, number: string, name: string, label: string) {
-  await page.getByRole('link', { name: label, exact: true }).click();
+  await primaryNav(page).getByRole('link', { name: label, exact: true }).click();
   await page
     .getByLabel(label === 'Employés' ? 'Matricule ou nom' : 'Employee number or name')
     .fill(number);
@@ -292,14 +301,14 @@ test.describe.serial('MVP-022: separate an employee', () => {
     await check.close();
 
     // The profile shows the completed removal; the access review labels the membership REVOKED.
-    await page.getByRole('link', { name: 'Employés', exact: true }).click();
+    await primaryNav(page).getByRole('link', { name: 'Employés', exact: true }).click();
     await openProfile(page, LEAVER, `Élodie ${FAMILY}`, 'Employés');
     await expect(page.getByTestId('separation-access-state')).toHaveAttribute(
       'data-access',
       'COMPLETED',
     );
     await expect(page.getByTestId('access-link-state')).toHaveAttribute('data-state', 'REVOKED');
-    await page.getByRole('link', { name: 'Revue des accès' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Revue des accès' }).click();
     await page.getByLabel('Adresse e-mail exacte').fill(EMAIL);
     await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
     await expect(

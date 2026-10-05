@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { CORE_API, TENANT_A, USERS, expectAccessible, signIn, sql } from './support';
+import { CORE_API, TENANT_A, USERS, expectAccessible, signIn, sql, primaryNav } from './support';
 
 // MVP-012B (Issue #37): the read-only access review with the real identity provider. The seed
 // tenant administrator steps up with TOTP, reviews by role, legal entity, site and exact address,
@@ -45,7 +45,7 @@ test.describe.serial('MVP-012B: access review', () => {
     });
     expect(site.status()).toBe(201);
 
-    await page.getByRole('link', { name: 'Revue des accès' }).click();
+    await primaryNav(page).getByRole('link', { name: 'Revue des accès' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Revue des accès');
     const table = page.getByTestId('review-table');
     await expect(table).toBeVisible();
@@ -105,7 +105,7 @@ test.describe.serial('MVP-012B: access review', () => {
 
   test('the review is usable by keyboard only, in English', async ({ page }) => {
     await signIn(page, USERS.adminA, 'en');
-    await page.getByRole('link', { name: 'Access review' }).focus();
+    await primaryNav(page).getByRole('link', { name: 'Access review' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Access review');
     await expect(page.getByTestId('review-table')).toBeVisible();

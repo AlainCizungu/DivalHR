@@ -20,7 +20,7 @@ export const USERS = {
  * DEVELOPMENT-ONLY published TOTP seeds of the privileged seed users (MVP-011, realm import).
  * Codes are computed in memory and typed through the DOM, never through a logged step argument.
  */
-const TOTP_SEEDS: Readonly<Partial<Record<string, string>>> = {
+export const TOTP_SEEDS: Readonly<Partial<Record<string, string>>> = {
   'dev-admin-a': 'dev-only-totp-admin-a-2026',
   'dev-admin-b': 'dev-only-totp-admin-b-2026',
   'dev-platform-admin': 'dev-only-totp-platform-2026',
@@ -199,6 +199,14 @@ export async function signIn(
   await expect(page.getByTestId('session-tenant')).toHaveText(/^[0-9a-f-]{36}$/);
   await expect.poll(() => bearer).toBeDefined();
   return () => bearer ?? '';
+}
+
+/**
+ * UI-001: the primary navigation landmark (sidebar on desktop) in either language. Home now has
+ * cards with the same names as navigation links, so navigation steps are scoped to the landmark.
+ */
+export function primaryNav(page: Page) {
+  return page.getByRole('navigation', { name: /^(Main navigation|Navigation principale)$/ });
 }
 
 export async function expectAccessible(page: Page) {

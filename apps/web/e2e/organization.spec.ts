@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { enterCode } from './support';
+import { enterCode, primaryNav } from './support';
 
 // DEVELOPMENT-ONLY seed credentials (infrastructure/docker/keycloak/README.md).
 const USERNAME = process.env.E2E_PLATFORM_ADMIN_USERNAME ?? 'dev-platform-admin';
@@ -49,7 +49,7 @@ test('platform administrator creates an organization in French and it is persist
   await enterCode(page, USERNAME);
   await page.waitForURL((url) => url.pathname === '/');
 
-  await page.getByRole('link', { name: 'Créer une organisation' }).click();
+  await primaryNav(page).getByRole('link', { name: 'Créer une organisation' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Créer une organisation');
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
   expect(
