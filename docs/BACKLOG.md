@@ -217,3 +217,13 @@ Authorized administrators can create signed webhooks, inspect delivery, rotate s
 ### MVP-111 Deliver one messaging connector
 
 The first design partner selects WhatsApp Business, Microsoft Teams, or Slack. Sensitive details require an authenticated DivalHR deep link.
+
+## Epic 13 Product Experience
+
+### UI-001 Product shell and role-based home experience
+
+The web application becomes a workforce operations product with a reusable interface foundation for every module.
+
+**Issue #53. In review.** A responsive shell replaces the horizontal header: a persistent navy sidebar on desktop that collapses to an icon rail (remembered), an icon rail by default on tablet and a native modal navigation drawer on phones; a top bar with the workspace context, a textual badge for every non-production environment ("Development environment" / « Environnement de développement », "Test environment", "Staging environment" / « Environnement de préproduction »), the English/French switch and an account menu holding the roles, the organization ID, the theme, the system status link and sign-out. Navigation shows only destinations the verified session's roles can open, grouped (Overview, Platform, People, Organization, Documents, Access and security, My space); the route registry is presentation metadata and the existing guards and the Core API remain authoritative; URLs, deep links and history are unchanged; the invitation and sign-in callback flows keep a public frame. Role homes for platform administrators, organization administrators and employees are static entry points with no figures; planned modules appear only as "Coming later" / « À venir » text. Bounded primitives (icon registry, page header, breadcrumbs, navigation group, cards, status badge, empty state, skeleton, error panel) and a navy, teal and gold token set (packages/design-system/README.md). Frontend only. Approved proposal D1–D14 (D9 as amended) with amendments UI1-1 to UI1-3 on Issue #53 apply.
+
+Out of scope for UI-001: backend, API, realm or database changes (the organization's display name and the user's own name are follow-ups), redesign of feature pages, tables and forms, live metrics, notifications or activity, global search, an organization switcher, and staging or production deployment.
