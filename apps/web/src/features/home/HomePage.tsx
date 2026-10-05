@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { lazy, Suspense, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useSession, useSessionRetry } from '../../app/SessionProvider';
@@ -225,30 +225,8 @@ function headerFor(roles: readonly Role[]): 'platform' | 'tenant' | 'employee' {
   return 'employee';
 }
 
-function PublicWelcome() {
-  const { t } = useTranslation();
-  const { signIn } = useAuth();
-  return (
-    <section className="public-welcome" aria-labelledby="home-title">
-      <PageHeader titleId="home-title" title={t('home.title')} description={t('app.tagline')} />
-      <Card className="public-welcome__card">
-        <p>{t('auth.required')}</p>
-        <div className="button-row">
-          <button
-            type="button"
-            className="button"
-            onClick={() => {
-              void signIn('/');
-            }}
-          >
-            {t('auth.signIn')}
-          </button>
-          <Link to="/status">{t('nav.status')}</Link>
-        </div>
-      </Card>
-    </section>
-  );
-}
+/** UI-002: the public landing page, loaded only for anonymous visitors (D8). */
+const LandingContent = lazy(() => import('../landing/LandingContent'));
 
 export function HomePage() {
   const { t } = useTranslation();
@@ -256,7 +234,13 @@ export function HomePage() {
   const retry = useSessionRetry();
   const { signOut } = useAuth();
 
-  if (session.kind === 'anonymous') return <PublicWelcome />;
+  if (session.kind === 'anonymous') {
+    return (
+      <Suspense fallback={<Skeleton lines={4} />}>
+        <LandingContent />
+      </Suspense>
+    );
+  }
   if (session.kind === 'loading') {
     return (
       <div className="home-loading">

@@ -36,9 +36,9 @@ describe.each(['en', 'fr'] as const)('application shell (%s)', (locale) => {
 
   it('renders the public shell with no raw translation keys', async () => {
     stubStatusFetch('UP', 'UP');
-    const { container } = await renderApp('/', locale);
+    const { container } = await renderApp('/status', locale);
     expect(document.documentElement.lang).toBe(locale);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(strings.home.title);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(strings.status.title);
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
     // UI-001: anonymous visitors get the public frame, without the signed-in navigation.
@@ -80,12 +80,11 @@ describe('locale switching', () => {
   it('switches the whole shell between French and English and remembers the choice', async () => {
     stubStatusFetch('UP', 'UP');
     const user = userEvent.setup();
-    await renderApp('/', 'en');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Welcome to DivalHR');
+    await renderApp('/status', 'en');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('System status');
 
     await user.click(screen.getByRole('button', { name: 'Français' }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Bienvenue sur DivalHR');
-    expect(screen.getByRole('link', { name: 'État du système' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('État du système');
     expect(screen.getByRole('button', { name: 'Français' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -94,7 +93,7 @@ describe('locale switching', () => {
     expect(window.localStorage.getItem('divalhr.locale')).toBe('fr');
 
     await user.click(screen.getByRole('button', { name: 'English' }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Welcome to DivalHR');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('System status');
     expect(window.localStorage.getItem('divalhr.locale')).toBe('en');
   });
 });
@@ -103,7 +102,7 @@ describe('theme', () => {
   it('applies and remembers the selected theme', async () => {
     stubStatusFetch('UP', 'UP');
     const user = userEvent.setup();
-    await renderApp('/', 'en');
+    await renderApp('/status', 'en');
     await user.selectOptions(screen.getByLabelText('Theme'), 'dark');
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(window.localStorage.getItem('divalhr.theme')).toBe('dark');

@@ -5,6 +5,7 @@ import { ROUTES, type AppRoute } from '../app/routes';
 import { useSession } from '../app/SessionProvider';
 import { useAuth } from '../auth/AuthProvider';
 import type { Environment } from '../config/runtime';
+import { LandingFrame } from '../features/landing/LandingFrame';
 import { Icon } from '../ui/Icon';
 import { Breadcrumbs } from '../ui/primitives';
 import { BrandMark, EnvironmentBadge, LanguageSwitcher, ThemeSelect, Wordmark } from './controls';
@@ -130,6 +131,9 @@ export function AppShell({
   const loading = session.kind === 'loading';
   const platformOnly = roles.length > 0 && roles.every((role) => role === 'platform-admin');
 
+  if (session.kind === 'anonymous' && route?.anonymousFrame === 'landing') {
+    return <LandingFrame environment={environment}>{children}</LandingFrame>;
+  }
   if (session.kind === 'anonymous' || route?.frame === 'public') {
     return (
       <PublicFrame environment={environment} route={route}>

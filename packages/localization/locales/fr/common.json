@@ -72,8 +72,7 @@
     "signOut": "Se déconnecter",
     "signingIn": "Connexion en cours…",
     "signedInTenant": "Connecté au locataire {{tenantId}}",
-    "error": "La connexion n’a pas pu aboutir. Veuillez réessayer.",
-    "required": "Connectez-vous pour continuer."
+    "error": "La connexion n’a pas pu aboutir. Veuillez réessayer."
   },
   "mfa": {
     "title": "Code d’authentification requis",
@@ -1612,6 +1611,300 @@
       "voided": "Ce contrat a été annulé : sa réception ne peut pas être confirmée.",
       "changed": "Le contrat ou la déclaration a changé. La page a été rechargée : relisez-la avant d’accuser réception.",
       "linkRequired": "Votre compte n’est pas encore relié à votre dossier d’employé. Contactez l’administrateur de votre organisation."
+    }
+  },
+  "landing": {
+    "documentTitle": "DivalHR — La plateforme de gestion des effectifs pour l’Afrique",
+    "sectionsLabel": "Sections de la page",
+    "nav": {
+      "platform": "Plateforme",
+      "payroll": "Paie et versements",
+      "integrations": "Intégrations",
+      "why": "Pourquoi DivalHR"
+    },
+    "menu": "Menu",
+    "signIn": "Se connecter",
+    "requestDemo": "Demander une démo",
+    "demoSubject": "Demande de démo DivalHR",
+    "hero": {
+      "eyebrow": "La plateforme de gestion des effectifs pour l’Afrique",
+      "line1": "Gérez vos talents.",
+      "line2": "Pilotez vos opérations.",
+      "intro": "DivalHR réunit RH, opérations terrain, préparation de la paie, accès financier des employés et IA de confiance dans une seule plateforme—conçue pour la réalité des organisations africaines.",
+      "signIn": "Se connecter à DivalHR",
+      "note": "Déjà client ? Connectez-vous en toute sécurité."
+    },
+    "preview": {
+      "caption": "Aperçu illustratif de l’accueil administrateur DivalHR. Aucune donnée client.",
+      "eyebrow": "Administrateur de l’organisation",
+      "title": "Accueil",
+      "nav": {
+        "home": "Accueil",
+        "employees": "Employés",
+        "organization": "Organisation",
+        "contracts": "Contrats",
+        "access": "Revue des accès"
+      },
+      "actions": {
+        "import": "Importer des employés",
+        "invite": "Inviter un utilisateur",
+        "template": "Créer un modèle"
+      },
+      "cards": {
+        "employees": {
+          "title": "Employés",
+          "description": "Dossiers et historique d’emploi"
+        },
+        "organization": {
+          "title": "Organisation",
+          "description": "Entités, sites et équipes"
+        },
+        "contracts": {
+          "title": "Modèles de contrat",
+          "description": "Contrats bilingues"
+        }
+      }
+    },
+    "sectors": {
+      "label": "Conçue pour les organisations qui font avancer l’Afrique",
+      "healthcare": "Santé",
+      "education": "Éducation",
+      "ngos": "ONG",
+      "financial": "Services financiers",
+      "manufacturing": "Industrie"
+    },
+    "platform": {
+      "kicker": "Un seul système opérationnel",
+      "title": "Du dossier employé à l’action sur le terrain.",
+      "body": "Ne dépendez plus de feuilles de calcul, de fichiers de paie et d’applications isolées. DivalHR offre à chaque équipe une vue fiable des effectifs et les outils pour agir.",
+      "steps": {
+        "people": {
+          "title": "Socle RH",
+          "description": "Dossiers, contrats, historique et accès au même endroit."
+        },
+        "operations": {
+          "title": "Opérations",
+          "description": "Sites, horaires, présence et validations."
+        },
+        "pay": {
+          "title": "Paie + avantages",
+          "description": "Éléments de paie validés, versements et avantages partenaires."
+        },
+        "intelligence": {
+          "title": "Intelligence",
+          "description": "Des réponses sourcées, avec validation humaine."
+        }
+      }
+    },
+    "modules": {
+      "kicker": "La plateforme DivalHR",
+      "title": "Tout ce dont vos équipes ont besoin. Une seule plateforme.",
+      "body": "Commencez avec les modules utiles aujourd’hui. Ajoutez-en à mesure qu’ils arrivent et que votre organisation grandit.",
+      "available": "Disponible",
+      "later": "À venir",
+      "legend": "Les modules « Disponible » sont déjà dans le produit. Les modules « À venir » sont prévus et ne sont pas encore disponibles.",
+      "todayTitle": "Dans DivalHR aujourd’hui",
+      "items": {
+        "employees": {
+          "title": "Gestion des employés",
+          "description": "Dossiers employés, historique d’emploi, import en masse et départs."
+        },
+        "leave": {
+          "title": "Gestion des congés",
+          "description": "Demandes, validations, soldes et calendrier d’équipe."
+        },
+        "payroll": {
+          "title": "Paie et paiements",
+          "description": "Éléments de paie validés et paiements vers banques, mobile money ou fichier bancaire."
+        },
+        "loans": {
+          "title": "Prêts et avances sur salaire",
+          "description": "Crédit responsable par des partenaires agréés, remboursé via la paie."
+        },
+        "benefits": {
+          "title": "Avantages et assurance",
+          "description": "Santé, assurance et produits partenaires accessibles aux employés."
+        },
+        "performance": {
+          "title": "Performance",
+          "description": "Cycles d’évaluation, objectifs et développement des talents."
+        },
+        "documents": {
+          "title": "Documents",
+          "description": "Dossiers versionnés, intègres, avec accusés de réception et API."
+        },
+        "analytics": {
+          "title": "Analytique",
+          "description": "Intelligence RH et opérationnelle."
+        },
+        "workflow": {
+          "title": "Automatisation",
+          "description": "Chaînes de validation et processus automatisés fiables."
+        },
+        "ai": {
+          "title": "Dival AI",
+          "description": "Un assistant intelligent et gouverné pour chaque processus."
+        },
+        "integrations": {
+          "title": "Intégrations",
+          "description": "Banques, paiements, comptabilité et outils existants."
+        },
+        "mobile": {
+          "title": "Applications mobiles",
+          "description": "Expériences iOS et Android pour chaque employé."
+        },
+        "organization": {
+          "title": "Structure de l’organisation",
+          "description": "Entités juridiques, sites, régions, départements, centres de coûts et équipes."
+        },
+        "contracts": {
+          "title": "Contrats",
+          "description": "Modèles de contrat bilingues, émission et accusé de réception par l’employé."
+        },
+        "access": {
+          "title": "Accès et sécurité",
+          "description": "Invitations, rôles, connexion sécurisée et revue des accès."
+        }
+      }
+    },
+    "payroll": {
+      "kicker": "De la paie au versement",
+      "title": "Payez chaque employé par le canal local adapté.",
+      "body": "Après validation de la paie, DivalHR prépare les instructions de paiement vers les portefeuilles mobiles, les comptes bancaires ou un fichier bancaire contrôlé, puis centralise les résultats pour le rapprochement.",
+      "steps": {
+        "approved": {
+          "title": "Paie validée",
+          "description": "Éléments de paie vérifiés et validés par votre équipe."
+        },
+        "instructions": {
+          "title": "Instructions de paiement",
+          "description": "Préparées de façon sécurisée pour le canal de chaque employé."
+        },
+        "rails": {
+          "title": "Mobile money ou banque",
+          "description": "Exécutées par votre banque ou un prestataire de paiement agréé."
+        },
+        "reconciliation": {
+          "title": "Statut et rapprochement",
+          "description": "Résultats rapatriés pour contrôle et rapprochement."
+        }
+      },
+      "railsLabel": "Canaux de paiement prévus",
+      "bankAccount": "Compte bancaire",
+      "bankFile": "Fichier bancaire",
+      "note": "Les paiements sont exécutés par votre banque ou un prestataire de paiement agréé. DivalHR prépare et suit les instructions ; elle ne détient pas les fonds des employés. Les versements et canaux de paiement sont prévus et à venir."
+    },
+    "integrations": {
+      "kicker": "Écosystème connecté",
+      "title": "Conçue pour fonctionner avec les outils qui font déjà avancer votre organisation.",
+      "body": "Paie, paiements, comptabilité, identité et collaboration—grâce à des intégrations gouvernées et des API ouvertes.",
+      "groups": {
+        "payments": "Paiements et paie",
+        "accounting": "Comptabilité et gestion",
+        "work": "Travail et productivité",
+        "identity": "Identité et plateforme"
+      },
+      "generic": {
+        "bankTransfer": "Virement bancaire",
+        "isoFiles": "Fichiers bancaires ISO 20022",
+        "restApi": "API REST",
+        "webhooks": "Webhooks",
+        "sso": "SSO / SAML"
+      },
+      "planned": "Prévu",
+      "note": "Les intégrations sont prévues. Leur disponibilité variera selon le pays, le fournisseur et la phase de déploiement. Les noms et logos indiquent une compatibilité prévue ; aucune affiliation ni approbation n’est sous-entendue. Les marques appartiennent à leurs propriétaires respectifs."
+    },
+    "ai": {
+      "kicker": "Dival AI",
+      "title": "Une intelligence qui comprend le travail derrière les données.",
+      "body": "Posez vos questions en langage naturel, préparez les synthèses quotidiennes et faites avancer le travail—avec sources, autorisations et validation humaine intégrées.",
+      "examplesLabel": "Exemples de questions",
+      "examples": {
+        "staffing": "Quels sites ont besoin de renfort aujourd’hui ?",
+        "approvals": "Résume les validations en attente pour la paie",
+        "contracts": "Affiche les contrats qui expirent dans les 30 jours"
+      },
+      "guarantees": {
+        "sources": "Une source pour chaque réponse",
+        "authorization": "Uniquement les données autorisées",
+        "approval": "Une personne valide chaque décision"
+      }
+    },
+    "why": {
+      "kicker": "Pensée d’abord pour l’Afrique",
+      "title": "Une technologie de classe mondiale, ancrée dans la réalité locale.",
+      "body": "Français et anglais dès le départ. CDF et USD. Banques et mobile money. Opérations multisites. Connectivité intermittente. Règles pays sans fragmenter le produit.",
+      "principles": {
+        "languages": {
+          "title": "FR · EN",
+          "description": "Français et anglais, à égalité"
+        },
+        "currency": {
+          "title": "CDF · USD",
+          "description": "Multi-devises"
+        },
+        "offline": {
+          "title": "Hors ligne",
+          "description": "Processus terrain malgré une connexion faible"
+        },
+        "multisite": {
+          "title": "Multisite",
+          "description": "Entités, sites et équipes"
+        }
+      }
+    },
+    "finance": {
+      "kicker": "Au-delà des RH",
+      "title": "Transformer l’emploi en possibilités financières.",
+      "body": "Avec le consentement des employés et des partenaires financiers agréés, les données d’emploi vérifiées peuvent ouvrir l’accès à des avances sur salaire responsables, à l’assurance et aux avantages. DivalHR ne prend aucune décision de crédit.",
+      "steps": {
+        "consent": {
+          "title": "Consentement de l’employé",
+          "description": "L’employé choisit de partager."
+        },
+        "verified": {
+          "title": "Emploi vérifié",
+          "description": "DivalHR confirme les informations d’emploi."
+        },
+        "partner": {
+          "title": "Décision du partenaire",
+          "description": "Un partenaire agréé décide."
+        },
+        "repayment": {
+          "title": "Remboursement sur paie",
+          "description": "Les remboursements convenus passent par la paie."
+        }
+      }
+    },
+    "outcomes": {
+      "title": "Une journée plus claire pour chaque équipe.",
+      "items": {
+        "hr": {
+          "title": "Équipes RH",
+          "description": "Un historique unique, de l’intégration au départ."
+        },
+        "operations": {
+          "title": "Opérations",
+          "description": "Sites, horaires et validations dans une seule vue."
+        },
+        "finance": {
+          "title": "Finance",
+          "description": "Éléments de paie traçables et exports plus fiables."
+        },
+        "employees": {
+          "title": "Employés",
+          "description": "Les contrats aujourd’hui ; congés, paie et avantages sur mobile plus tard."
+        }
+      }
+    },
+    "cta": {
+      "title": "Construisez des opérations plus solides.",
+      "body": "Découvrez comment DivalHR peut aider votre organisation à opérer avec clarté, confiance et rapidité.",
+      "or": "ou écrivez à"
+    },
+    "footer": {
+      "tagline": "La technologie des effectifs pour l’Afrique.",
+      "copyright": "© 2026 DivalHR · Une société Dival AI"
     }
   }
 }

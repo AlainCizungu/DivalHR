@@ -170,7 +170,7 @@ test.describe('desktop', () => {
     await expect(page.getByTestId('directory-table')).toBeVisible();
   });
 
-  test('anonymous visitors get the public frame, accessible in both languages', async ({
+  test('anonymous visitors get the landing page (UI-002), accessible in both languages', async ({
     page,
   }) => {
     await page.goto('/');
@@ -180,6 +180,7 @@ test.describe('desktop', () => {
     await expect(page.getByRole('main')).toBeFocused();
     for (const label of ['English', 'Français'] as const) {
       await chooseLocale(page, label);
+      // The only button in the landing content is the hero's Sign in (UI-002).
       await expect(page.getByRole('main').getByRole('button')).toHaveCount(1);
       await expectAccessible(page);
     }

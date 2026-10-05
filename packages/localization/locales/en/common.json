@@ -72,8 +72,7 @@
     "signOut": "Sign out",
     "signingIn": "Signing you in…",
     "signedInTenant": "Signed in to tenant {{tenantId}}",
-    "error": "Sign-in could not be completed. Please try again.",
-    "required": "Sign in to continue."
+    "error": "Sign-in could not be completed. Please try again."
   },
   "mfa": {
     "title": "Authenticator code required",
@@ -1612,6 +1611,300 @@
       "voided": "This contract was voided: it cannot be acknowledged.",
       "changed": "The contract or the statement changed. The page was reloaded: read it again before acknowledging.",
       "linkRequired": "Your account is not yet linked to your employee record. Contact your organization’s administrator."
+    }
+  },
+  "landing": {
+    "documentTitle": "DivalHR — The workforce operating platform for Africa",
+    "sectionsLabel": "Page sections",
+    "nav": {
+      "platform": "Platform",
+      "payroll": "Payroll & payouts",
+      "integrations": "Integrations",
+      "why": "Why DivalHR"
+    },
+    "menu": "Menu",
+    "signIn": "Sign in",
+    "requestDemo": "Request a demo",
+    "demoSubject": "DivalHR demo request",
+    "hero": {
+      "eyebrow": "The workforce operating platform for Africa",
+      "line1": "Run your people.",
+      "line2": "Power your operations.",
+      "intro": "DivalHR brings HR, field operations, payroll preparation, employee financial access and trustworthy AI together in one connected platform—built for how African organizations actually work.",
+      "signIn": "Sign in to DivalHR",
+      "note": "Already a customer? Sign in securely."
+    },
+    "preview": {
+      "caption": "Illustrative preview of the DivalHR administrator home. No customer data.",
+      "eyebrow": "Organization administrator",
+      "title": "Home",
+      "nav": {
+        "home": "Home",
+        "employees": "Employees",
+        "organization": "Organization",
+        "contracts": "Contracts",
+        "access": "Access review"
+      },
+      "actions": {
+        "import": "Import employees",
+        "invite": "Invite a user",
+        "template": "Create a template"
+      },
+      "cards": {
+        "employees": {
+          "title": "Employees",
+          "description": "Records and employment history"
+        },
+        "organization": {
+          "title": "Organization",
+          "description": "Entities, sites and teams"
+        },
+        "contracts": {
+          "title": "Contract templates",
+          "description": "Bilingual contracts"
+        }
+      }
+    },
+    "sectors": {
+      "label": "Designed for organizations moving Africa forward",
+      "healthcare": "Healthcare",
+      "education": "Education",
+      "ngos": "NGOs",
+      "financial": "Financial services",
+      "manufacturing": "Manufacturing"
+    },
+    "platform": {
+      "kicker": "One operational system",
+      "title": "From employee record to real-world action.",
+      "body": "Stop stitching together spreadsheets, payroll files and disconnected apps. DivalHR gives every team one reliable view of the workforce—and the tools to act on it.",
+      "steps": {
+        "people": {
+          "title": "People core",
+          "description": "Records, contracts, history and access in one place."
+        },
+        "operations": {
+          "title": "Daily operations",
+          "description": "Sites, shifts, attendance and approvals."
+        },
+        "pay": {
+          "title": "Pay + benefits",
+          "description": "Approved pay inputs, payouts and partner benefits."
+        },
+        "intelligence": {
+          "title": "Intelligence",
+          "description": "Grounded answers with sources and human approval."
+        }
+      }
+    },
+    "modules": {
+      "kicker": "The DivalHR platform",
+      "title": "Everything your workforce needs. One connected platform.",
+      "body": "Start with the modules you need today. Add more as they arrive and as your organization grows.",
+      "available": "Available now",
+      "later": "Coming later",
+      "legend": "“Available now” modules are in the product today. “Coming later” modules are on the roadmap and are not yet available.",
+      "todayTitle": "In DivalHR today",
+      "items": {
+        "employees": {
+          "title": "Employee Management",
+          "description": "Employee records, employment history, bulk import and separation."
+        },
+        "leave": {
+          "title": "Leave Management",
+          "description": "Requests, approvals, balances and team calendars."
+        },
+        "payroll": {
+          "title": "Payroll & Payments",
+          "description": "Approved pay inputs and payments by bank, mobile money or bank file."
+        },
+        "loans": {
+          "title": "Loans & Salary Advances",
+          "description": "Responsible employee credit from approved partners, repaid through payroll."
+        },
+        "benefits": {
+          "title": "Benefits & Insurance",
+          "description": "Health, insurance and partner products employees can enroll in."
+        },
+        "performance": {
+          "title": "Performance",
+          "description": "Review cycles, goals and talent development."
+        },
+        "documents": {
+          "title": "Documents",
+          "description": "Versioned, tamper-evident records with acknowledgments and APIs."
+        },
+        "analytics": {
+          "title": "Analytics",
+          "description": "Workforce and operational intelligence."
+        },
+        "workflow": {
+          "title": "Workflow Automation",
+          "description": "Approval chains and reliable automated processes."
+        },
+        "ai": {
+          "title": "Dival AI",
+          "description": "A governed intelligent assistant for every workflow."
+        },
+        "integrations": {
+          "title": "Integrations",
+          "description": "Banks, payment providers, accounting and existing tools."
+        },
+        "mobile": {
+          "title": "Mobile Apps",
+          "description": "iOS and Android experiences for every employee."
+        },
+        "organization": {
+          "title": "Organization structure",
+          "description": "Legal entities, sites, regions, departments, cost centers and teams."
+        },
+        "contracts": {
+          "title": "Contracts",
+          "description": "Bilingual contract templates, issue and employee acknowledgment."
+        },
+        "access": {
+          "title": "Access and security",
+          "description": "Invitations, roles, secure sign-in and access review."
+        }
+      }
+    },
+    "payroll": {
+      "kicker": "From payroll to payout",
+      "title": "Pay every employee through the right local rail.",
+      "body": "After payroll is reviewed and approved, DivalHR prepares payment instructions for mobile wallets, bank accounts or a controlled bank file—then brings the results back for reconciliation.",
+      "steps": {
+        "approved": {
+          "title": "Approved payroll",
+          "description": "Pay inputs reviewed and approved by your team."
+        },
+        "instructions": {
+          "title": "Payment instructions",
+          "description": "Prepared securely for each employee’s chosen rail."
+        },
+        "rails": {
+          "title": "Mobile money or bank",
+          "description": "Sent by your bank or a licensed payment provider."
+        },
+        "reconciliation": {
+          "title": "Status and reconciliation",
+          "description": "Results returned for review and reconciliation."
+        }
+      },
+      "railsLabel": "Planned payment rails",
+      "bankAccount": "Bank account",
+      "bankFile": "Bank file",
+      "note": "Payments are executed by your bank or a licensed payment provider. DivalHR prepares and tracks instructions; it does not hold employee funds. Payouts and payment rails are planned and coming later."
+    },
+    "integrations": {
+      "kicker": "Connected ecosystem",
+      "title": "Built to work with the tools that already move your business.",
+      "body": "Payroll, payments, accounting, identity and collaboration—through governed integrations and open APIs.",
+      "groups": {
+        "payments": "Payments and payroll",
+        "accounting": "Accounting and enterprise",
+        "work": "Work and productivity",
+        "identity": "Identity and platform"
+      },
+      "generic": {
+        "bankTransfer": "Bank transfer",
+        "isoFiles": "ISO 20022 bank files",
+        "restApi": "REST API",
+        "webhooks": "Webhooks",
+        "sso": "SSO / SAML"
+      },
+      "planned": "Planned",
+      "note": "Integrations are planned. Availability will vary by country, provider and implementation phase. Names and logos identify planned compatibility; no partnership or endorsement is implied. Trademarks belong to their respective owners."
+    },
+    "ai": {
+      "kicker": "Dival AI",
+      "title": "Intelligence that understands the work behind the data.",
+      "body": "Ask workforce questions in plain language, prepare daily summaries and move work forward—with source links, authorization and human approval built in.",
+      "examplesLabel": "Example questions",
+      "examples": {
+        "staffing": "Which sites need staffing attention today?",
+        "approvals": "Summarize pending approvals for payroll",
+        "contracts": "Show contracts expiring in the next 30 days"
+      },
+      "guarantees": {
+        "sources": "Sources for every answer",
+        "authorization": "Only data you are allowed to see",
+        "approval": "A person approves every decision"
+      }
+    },
+    "why": {
+      "kicker": "Built African-first",
+      "title": "Global-grade software, grounded in local reality.",
+      "body": "French and English from day one. CDF and USD. Bank and mobile money rails. Multi-site operations. Intermittent connectivity. Country rules without product forks.",
+      "principles": {
+        "languages": {
+          "title": "FR · EN",
+          "description": "French and English, equally"
+        },
+        "currency": {
+          "title": "CDF · USD",
+          "description": "Multi-currency"
+        },
+        "offline": {
+          "title": "Offline",
+          "description": "Field workflows for weak connectivity"
+        },
+        "multisite": {
+          "title": "Multi-site",
+          "description": "Entities, sites and teams"
+        }
+      }
+    },
+    "finance": {
+      "kicker": "Beyond HR",
+      "title": "Turn employment into financial possibility.",
+      "body": "With employee consent and approved financial partners, verified employment data can unlock responsible salary advances, insurance and benefits. DivalHR does not make lending decisions.",
+      "steps": {
+        "consent": {
+          "title": "Employee consent",
+          "description": "The employee chooses to share."
+        },
+        "verified": {
+          "title": "Verified employment",
+          "description": "DivalHR confirms employment facts."
+        },
+        "partner": {
+          "title": "Partner decision",
+          "description": "An approved partner decides."
+        },
+        "repayment": {
+          "title": "Payroll repayment",
+          "description": "Agreed repayments flow through payroll."
+        }
+      }
+    },
+    "outcomes": {
+      "title": "A clearer day for every team.",
+      "items": {
+        "hr": {
+          "title": "HR teams",
+          "description": "One employee history, from onboarding to separation."
+        },
+        "operations": {
+          "title": "Operations",
+          "description": "Sites, shifts and approvals in one view."
+        },
+        "finance": {
+          "title": "Finance",
+          "description": "Traceable pay inputs and cleaner exports."
+        },
+        "employees": {
+          "title": "Employees",
+          "description": "Contracts today; leave, pay and benefits on mobile later."
+        }
+      }
+    },
+    "cta": {
+      "title": "Build a stronger workforce operation.",
+      "body": "See how DivalHR can help your organization operate with clarity, trust and speed.",
+      "or": "or write to"
+    },
+    "footer": {
+      "tagline": "Workforce technology for Africa.",
+      "copyright": "© 2026 DivalHR · A Dival AI company"
     }
   }
 }
