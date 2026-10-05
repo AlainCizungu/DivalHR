@@ -16,7 +16,45 @@
     "employees": "Employés",
     "employeeImport": "Importer des employés",
     "contractTemplates": "Modèles de contrat",
-    "myContracts": "Mes contrats"
+    "myContracts": "Mes contrats",
+    "groups": {
+      "overview": "Vue d’ensemble",
+      "platform": "Plateforme",
+      "people": "Personnel",
+      "organization": "Organisation",
+      "documents": "Documents",
+      "access": "Accès et sécurité",
+      "mySpace": "Mon espace"
+    }
+  },
+  "shell": {
+    "tagline": "Opérations RH",
+    "workspace": "Espace de travail",
+    "workspaceOrganization": "Votre organisation",
+    "workspacePlatform": "Plateforme DivalHR",
+    "environment": {
+      "development": "Environnement de développement",
+      "test": "Environnement de test",
+      "staging": "Environnement de préproduction"
+    },
+    "environmentShort": {
+      "development": "Développement",
+      "test": "Test",
+      "staging": "Préproduction"
+    },
+    "accountMenu": "Menu du compte",
+    "signedInAs": "Connecté en tant que",
+    "organizationId": "Identifiant de l’organisation",
+    "collapseNavigation": "Réduire le menu",
+    "expandNavigation": "Développer le menu",
+    "openNavigation": "Ouvrir le menu",
+    "closeNavigation": "Fermer le menu",
+    "breadcrumb": "Fil d’Ariane",
+    "crumb": {
+      "employeeRecord": "Dossier de l’employé",
+      "contractTemplate": "Modèle de contrat",
+      "contract": "Contrat"
+    }
   },
   "locale": {
     "label": "Langue",
@@ -35,8 +73,7 @@
     "signingIn": "Connexion en cours…",
     "signedInTenant": "Connecté au locataire {{tenantId}}",
     "error": "La connexion n’a pas pu aboutir. Veuillez réessayer.",
-    "required": "Connectez-vous pour continuer.",
-    "devOnlyNotice": "Environnement de développement. Ne saisissez aucune donnée réelle d’employé."
+    "required": "Connectez-vous pour continuer."
   },
   "mfa": {
     "title": "Code d’authentification requis",
@@ -51,12 +88,108 @@
   },
   "home": {
     "title": "Bienvenue sur DivalHR",
-    "body": "Ceci est la structure de l’application du Sprint 0. Les fonctionnalités métier arriveront dans les prochaines versions."
+    "open": "Ouvrir",
+    "retry": "Réessayer",
+    "sessionError": "Votre session n’a pas pu être chargée.",
+    "noAccess": {
+      "title": "Pas encore d’accès",
+      "description": "Votre compte n’a pas encore accès à DivalHR. Adressez-vous à l’administrateur de votre organisation."
+    },
+    "platform": {
+      "eyebrow": "Espace plateforme",
+      "title": "Administration de la plateforme",
+      "description": "Créez des organisations et confiez-les à leur premier administrateur.",
+      "tasksTitle": "Tâches de la plateforme",
+      "createOrganization": {
+        "title": "Créer une organisation",
+        "description": "Enregistrez une nouvelle organisation cliente et ses paramètres juridiques."
+      },
+      "firstAdmin": {
+        "title": "Configurer le premier administrateur",
+        "description": "Invitez, relancez ou révoquez le premier administrateur d’une organisation."
+      },
+      "status": {
+        "description": "Vérifiez que les services DivalHR répondent."
+      }
+    },
+    "tenant": {
+      "eyebrow": "Espace de l’organisation",
+      "title": "Administration de l’organisation",
+      "description": "Configurez votre organisation, gérez votre personnel et vos contrats, et contrôlez qui a accès à quoi.",
+      "quickActions": "Actions rapides",
+      "actions": {
+        "importEmployees": "Importer des employés",
+        "inviteUser": "Inviter un utilisateur",
+        "createTemplate": "Créer un modèle de contrat",
+        "reviewAccess": "Passer en revue les accès"
+      },
+      "modulesTitle": "Vos modules",
+      "modulesDescription": "Tout ce qui est disponible aujourd’hui.",
+      "cards": {
+        "employees": "Recherchez dans l’annuaire, ouvrez les dossiers et enregistrez les changements d’emploi et les sorties.",
+        "hierarchy": "Entités juridiques, sites, régions, départements, centres de coûts et équipes.",
+        "users": "Invitez des personnes sur DivalHR et suivez chaque invitation.",
+        "accessReview": "Voyez qui a accès à quoi, et par quelle affectation.",
+        "contractTemplates": "Rédigez, approuvez et retirez les modèles servant à émettre les contrats.",
+        "employeeImport": "Reprenez vos employés existants depuis un tableur, avec un aperçu préalable."
+      }
+    },
+    "employee": {
+      "eyebrow": "Espace employé",
+      "title": "Mon espace",
+      "description": "Vos documents d’emploi au même endroit. D’autres services apparaîtront ici dès qu’ils seront disponibles.",
+      "contractsDescription": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus.",
+      "contractsAction": "Ouvrir mes contrats"
+    }
+  },
+  "roadmap": {
+    "title": "À venir",
+    "description": "Prévu dans la feuille de route DivalHR. Pas encore disponible.",
+    "badge": "À venir",
+    "items": {
+      "leave": {
+        "title": "Congés et approbations",
+        "description": "Demandes, soldes et circuits d’approbation."
+      },
+      "attendance": {
+        "title": "Présences et feuilles de temps",
+        "description": "Pointage en ligne et hors ligne."
+      },
+      "scheduling": {
+        "title": "Plannings et rotations",
+        "description": "Horaires et rotations par site et par équipe."
+      },
+      "documentExpiry": {
+        "title": "Échéances des documents",
+        "description": "Suivi des documents et habilitations qui expirent."
+      },
+      "payrollInputs": {
+        "title": "Éléments de paie",
+        "description": "Préparation et export des éléments de paie."
+      },
+      "expenses": {
+        "title": "Frais et indemnités",
+        "description": "Notes de frais, indemnités et remboursements."
+      },
+      "myLeave": {
+        "title": "Congés",
+        "description": "Demandez des congés et suivez vos soldes."
+      },
+      "myDocuments": {
+        "title": "Documents",
+        "description": "Vos autres documents d’emploi."
+      },
+      "benefits": {
+        "title": "Avantages sociaux",
+        "description": "Consultez les avantages auxquels vous êtes inscrit."
+      },
+      "payslips": {
+        "title": "Paie et bulletins",
+        "description": "Accédez à vos bulletins de paie."
+      }
+    }
   },
   "session": {
-    "title": "Votre session",
-    "tenant": "Locataire",
-    "roles": "Rôles",
     "noRoles": "Aucun rôle attribué",
     "loading": "Chargement de votre session…",
     "role": {
