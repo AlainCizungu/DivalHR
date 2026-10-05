@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Design tokens (light and dark) and theme utilities. Placeholder palette until the Dival design direction is confirmed.",
+  "description": "Design tokens (light and dark, navy, teal and gold identity) and theme utilities. See README.md.",
   "exports": {
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens.css"
