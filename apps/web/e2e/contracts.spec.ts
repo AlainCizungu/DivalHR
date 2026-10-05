@@ -223,14 +223,20 @@ test.describe.serial('MVP-030: create and acknowledge a contract', () => {
     await body.fill('# Article 1 : Engagement\nEntre ');
     await editor.getByLabel('Champ à insérer').selectOption('organization.name');
     await editor.getByRole('button', { name: 'Insérer le champ' }).click();
+    // The page moves the caret after the field on the next frame; type only once it has.
+    await expect(body).toBeFocused();
     await body.press('End');
     await body.pressSequentially(' et ');
     await editor.getByLabel('Champ à insérer').selectOption('employee.fullName');
     await editor.getByRole('button', { name: 'Insérer le champ' }).click();
+    // The page moves the caret after the field on the next frame; type only once it has.
+    await expect(body).toBeFocused();
     await body.press('End');
     await body.pressSequentially('.\n- Début : ');
     await editor.getByLabel('Champ à insérer').selectOption('contract.startDate');
     await editor.getByRole('button', { name: 'Insérer le champ' }).click();
+    // The page moves the caret after the field on the next frame; type only once it has.
+    await expect(body).toBeFocused();
     await editor.getByRole('button', { name: 'Vérifier le texte' }).click();
     await expect(editor.getByTestId('validation')).toHaveText(
       'Le texte respecte le format des contrats.',
