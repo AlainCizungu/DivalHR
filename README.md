@@ -24,6 +24,7 @@ Product and architecture planning is maintained in the `docs/` directory.
 | `packages/api-client` | Typed client generated from the approved contracts |
 | `packages/shared-contracts` | Event envelope, error schema, AI Service public contract |
 | `infrastructure/docker` | Docker Compose stack, Keycloak development realm, PostgreSQL init |
+| `infrastructure/hr-dev`, `ops/` | Test environment at `hr-dev.dival.ai` and its operations (`docs/OPS-HR-DEV.md`) |
 | `infrastructure/terraform` | Placeholder only |
 | `docs/API-SPEC.yaml` | **Authoritative** design-first Core API contract |
 
@@ -77,8 +78,9 @@ pnpm --filter @divalhr/web exec playwright test
 ```
 
 `make lint`, `make test`, `make build` and `make e2e` wrap the same commands.
-`scripts/dev/verify-on-host.sh all` runs the Core API checks and the full-stack smoke test and
-writes logs to `.git/divalhr-verify/`.
+`scripts/dev/verify-on-host.sh all` runs the Core API checks, the full-stack smoke test and (on
+the AWS instance, through `ops/aws/aws-verify.sh`) the test-environment rehearsal, and writes logs
+to `.git/divalhr-verify/`.
 
 ## Contracts
 

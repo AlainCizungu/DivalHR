@@ -1,0 +1,11 @@
+# OPS-001 (section 9): nightly logical backup of the test environment's two databases.
+[Unit]
+Description=DivalHR test environment nightly backup
+RequiresMountsFor=/srv/divalhr-test
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/divalhr-test/current/ops/hr-dev/backup.sh --reason nightly
+TimeoutStartSec=1800

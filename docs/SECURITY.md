@@ -345,6 +345,19 @@ MVP-012A: the development realm gives the four tenant seed users fixed user IDs,
 
 The local Compose stack serves Keycloak over plain HTTP on loopback. Its only realm, `divalhr-dev`, sets `sslRequired: none` because Docker Desktop for macOS forwards published ports from an address Keycloak does not treat as private. Keycloak is published on `127.0.0.1` only. `DevelopmentSeedGuard` parses the configured issuer as a URI: in every environment it must be absolute `http(s)` with a host and without user information, query or fragment; in staging and production the normalized scheme must be exactly `https` and the `divalhr-dev` realm is refused. `DevelopmentRealmBoundaryTest` fails if any other realm import in the repository relaxes TLS, and pins the development browser client's PKCE, redirect URI, web origin and disabled grants.
 
+## Test environment hr-dev.dival.ai (OPS-001)
+
+`https://hr-dev.dival.ai` is a test environment with synthetic data only (runbook: `docs/OPS-HR-DEV.md`, Issue #65). Its controls:
+
+- **Exposure:** only Caddy publishes ports (80 and 443; its operator site on `127.0.0.1:18180` only); the security group allows 80 and 443 from anywhere and SSH from the owner's address only. The public site refuses the Keycloak admin console and API, the master realm, the account console, health, metrics, the provisioning endpoints and the actuator. Evidence: `ops/aws/hr-dev-aws.sh evidence` (redacted), the `hr-dev exposure` workflow (external scan) and `ops/hr-dev/evidence-host.sh`.
+- **Identity:** realm `divalhr-test` with `sslRequired: all`, public issuer `https://hr-dev.dival.ai/identity/realms/divalhr-test`, privileged MFA as in MVP-011 (verified in final mode by every rehearsal), no seeded users or credentials. Keycloak is reachable only from Caddy and trusts forwarded headers only from Caddy's address; the Core API reaches the token, certificate and provisioning endpoints through a private Caddy route that overwrites the forwarded headers. The admin console uses a separate admin URL through an SSH tunnel; the bootstrap administrator is replaced by a permanent operator after the first start.
+- **Secrets:** generated on the instance, files only (`0400`, owned by the reading container user), never environment variables, never printed; the realm template holds placeholders only.
+- **Data at rest:** a dedicated encrypted EBS volume holds the databases, secrets, certificates, mail and backups; scripts refuse to run on any other volume. Nightly logical dumps are authoritative; encrypted daily EBS snapshots are additional.
+- **Search engines:** `X-Robots-Tag: noindex, nofollow, noarchive` on every response, `robots.txt` disallows everything, one-day HSTS without subdomains or preload (D10).
+- **Mail:** caught by Mailpit on the instance; nothing is delivered outside.
+- **Logs:** Caddy's access log drops query strings and the `Authorization`, `Cookie` and `Set-Cookie` headers.
+- **Changes:** deployments only of commits on `main` with green checks and a complete verification of the same SHA; one host-wide lock serialises every operation.
+
 ## Idempotency
 
 Retryable creates require `Idempotency-Key`. Records are scoped to `(operation, verified JWT sub, key)`, store only successful responses, and are written in the same transaction as the business change, audit event and outbox event. They are retained for at least the configured period (`divalhr.idempotency.retention`, default 7 days) and honoured until a cleanup job removes them; cleanup must never delete a record before its `expires_at`.

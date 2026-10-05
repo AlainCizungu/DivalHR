@@ -5,6 +5,9 @@ on:
       - apps/web/**
       - packages/**
       - infrastructure/docker/keycloak/**
+      - infrastructure/hr-dev/**
+      - ops/**
+      - scripts/ops/**
       - docs/API-SPEC.yaml
       - package.json
       - pnpm-lock.yaml
@@ -20,6 +23,9 @@ on:
       - apps/web/**
       - packages/**
       - infrastructure/docker/keycloak/**
+      - infrastructure/hr-dev/**
+      - ops/**
+      - scripts/ops/**
       - docs/API-SPEC.yaml
       - package.json
       - pnpm-lock.yaml

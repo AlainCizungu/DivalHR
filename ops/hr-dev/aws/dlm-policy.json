@@ -1,0 +1,14 @@
+{
+  "PolicyType": "EBS_SNAPSHOT_MANAGEMENT",
+  "ResourceTypes": ["VOLUME"],
+  "TargetTags": [{ "Key": "divalhr-backup", "Value": "hr-dev-data" }],
+  "Schedules": [
+    {
+      "Name": "daily-03utc-keep-7",
+      "CreateRule": { "Interval": 24, "IntervalUnit": "HOURS", "Times": ["03:00"] },
+      "RetainRule": { "Count": 7 },
+      "CopyTags": true,
+      "TagsToAdd": [{ "Key": "divalhr-snapshot", "Value": "hr-dev-data" }]
+    }
+  ]
+}

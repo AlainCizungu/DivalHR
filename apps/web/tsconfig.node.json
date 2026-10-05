@@ -11,5 +11,11 @@
     "allowImportingTsExtensions": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "e2e", "src/pwa/workbox.ts"]
+  "include": [
+    "vite.config.ts",
+    "playwright.config.ts",
+    "playwright.hr-dev.config.ts",
+    "e2e",
+    "src/pwa/workbox.ts"
+  ]
 }

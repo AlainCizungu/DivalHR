@@ -1,0 +1,49 @@
+name: hr-dev exposure
+# OPS-001 (A65-4): external evidence that the test environment exposes only HTTP and HTTPS.
+# Run by hand after a deployment or a security-group change. The GitHub-hosted runner is a
+# network outside the owner's SSH allow-list, so SSH must appear filtered here.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hr-dev-exposure
+  cancel-in-progress: false
+jobs:
+  scan:
+    name: external scan of hr-dev.dival.ai
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HR_DEV_HOST: hr-dev.dival.ai
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install nmap
+        run: sudo apt-get update -q && sudo apt-get install -y -q nmap
+      - name: Full TCP scan (IPv4), only 80 and 443 may be open
+        run: |
+          ip=$(dig +short A "$HR_DEV_HOST" | tail -1)
+          test -n "$ip"
+          nmap -Pn -sT -p- --min-rate 2000 -T4 --open -oG scan.txt "$ip" > /dev/null
+          open=$(grep -oE '[0-9]+/open' scan.txt | cut -d/ -f1 | sort -n | tr '\n' ' ')
+          echo "open TCP ports: ${open:-none}"
+          test "$open" = "80 443 "
+          for p in 22 5173 5432 8025 8080 8081 8090 8180 9000 18180 18025; do
+            if grep -qE "(^| )$p/open" scan.txt; then echo "FAIL port $p is open"; exit 1; fi
+            echo "PASS port $p not open"
+          done
+      - name: IPv6
+        run: |
+          aaaa=$(dig +short AAAA "$HR_DEV_HOST" | tail -1)
+          if [ -z "$aaaa" ]; then echo "no AAAA record: the service is not reachable over IPv6"; exit 0; fi
+          if ! ping -6 -c1 -W2 2001:4860:4860::8888 >/dev/null 2>&1; then
+            echo "the runner has no IPv6 route; the IPv6 rules are covered by ops/aws/hr-dev-aws.sh evidence"; exit 0
+          fi
+          nmap -6 -Pn -sT -p- --min-rate 2000 -T4 --open -oG scan6.txt "$aaaa" > /dev/null
+          open=$(grep -oE '[0-9]+/open' scan6.txt | cut -d/ -f1 | sort -n | tr '\n' ' ')
+          echo "open TCP ports (IPv6): ${open:-none}"
+          test "$open" = "80 443 " || test -z "$open"
+      - name: HTTP checks from outside (headers, denied paths, bare address)
+        run: |
+          ip=$(dig +short A "$HR_DEV_HOST" | tail -1)
+          HR_DEV_BARE_IP_URL="http://$ip/" bash ops/hr-dev/http-checks.sh

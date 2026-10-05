@@ -19,4 +19,7 @@ FROM quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1
 COPY --from=build /src/keycloak-provisioning/build/libs/divalhr-provisioning.jar /opt/keycloak/providers/divalhr-provisioning.jar
 # Pre-builds the server with the provider. `start-dev` re-augments on its own; production starts
 # with `start --optimized` after its own `kc.sh build` options (Keycloak README, production checklist).
-RUN /opt/keycloak/bin/kc.sh build
+# Default: the development build (start-dev). The OPS-001 test environment passes production-mode
+# build options (PostgreSQL, single node, /identity path, health): see infrastructure/hr-dev.
+ARG KC_BUILD_OPTIONS=""
+RUN /opt/keycloak/bin/kc.sh build ${KC_BUILD_OPTIONS}
