@@ -8,7 +8,7 @@ The tokens translate the DivalHR landing page into operational software. The lan
 
 **Source.** The landing-page source archive `DivalHR-landing-page-source-b698321.tar.gz`, snapshot `b698321c9dac0c8d9c99b2b4f44996fb32728f1c`, authoritative files `app/globals.css`, `app/page.tsx`, `app/layout.tsx` and `public/favicon.svg`.
 
-- The archive received has SHA-256 `6a2ceb2816e7f6b808bce11555829c4768dbc3a36c3638ab77c943670650f1c8`. The checksum published with the request (`cddf3c04…23ec2f`) did not match; the owner confirmed `6a2ceb28…` is the file he holds.
+- The archive's SHA-256 is `6a2ceb2816e7f6b808bce11555829c4768dbc3a36c3638ab77c943670650f1c8`, confirmed by the owner. An earlier checksum (`cddf3c04…23ec2f`) belonged to a previous packaging attempt and is disregarded.
 - The archive is a visual reference only and is not part of this repository.
 
 | Landing page                      | Value                                         | Token(s)                                                                                                      | Use in the product                                                                                                                                     |
