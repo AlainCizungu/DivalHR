@@ -17,6 +17,13 @@ a {
   color: var(--dv-color-link);
 }
 
+/* Names and other user data in headings can be one long word: wrap it rather than scroll at 320 px. */
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+}
+
 :focus-visible {
   outline: 3px solid var(--dv-color-focus);
   outline-offset: 2px;
