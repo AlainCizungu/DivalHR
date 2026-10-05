@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Icon } from '../ui/Icon';
-import { BrandMark } from './controls';
+import { BrandMark, Wordmark } from './controls';
 import { NavGroup, Skeleton } from '../ui/primitives';
 import type { NavGroupDef } from './navigation';
 
@@ -58,7 +58,9 @@ export function Brand() {
     <Link className="brand" to="/">
       <BrandMark />
       <span className="brand__text">
-        <span className="brand__name">{t('app.name')}</span>
+        <span className="brand__name">
+          <Wordmark />
+        </span>
         <span className="brand__tagline">{t('shell.tagline')}</span>
       </span>
     </Link>
