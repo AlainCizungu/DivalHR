@@ -530,14 +530,6 @@
   min-height: 100vh;
 }
 
-.public-welcome .surface-card {
-  max-width: 40rem;
-}
-
-.public-welcome .surface-card p {
-  margin-top: 0;
-}
-
 /* Homes */
 .home-section {
   margin-top: var(--dv-space-8);

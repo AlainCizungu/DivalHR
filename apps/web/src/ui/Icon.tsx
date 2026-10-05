@@ -166,6 +166,74 @@ const PATHS = {
       <path d="m16 16 4.5 4.5" />
     </>
   ),
+  // UI-002 landing page.
+  arrowUpRight: <path d="M7 17 17 7M9 7h8v8" />,
+  signIn: (
+    <>
+      <path d="M10 4H5v16h5" />
+      <path d="m14 8 4 4-4 4M18 12H8" />
+    </>
+  ),
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5M12 8v.01" />
+    </>
+  ),
+  bank: (
+    <>
+      <path d="M3 9.5 12 4l9 5.5" />
+      <path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18" />
+    </>
+  ),
+  phone: (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2" />
+      <path d="M11 18h2" />
+    </>
+  ),
+  workflow: (
+    <>
+      <rect x="3" y="4" width="6" height="5" rx="1" />
+      <rect x="15" y="15" width="6" height="5" rx="1" />
+      <path d="M6 9v3a2 2 0 0 0 2 2h7" />
+      <path d="m13 12 2 2-2 2" />
+    </>
+  ),
+  chart: <path d="M4 4v16h16M8 16v-5M12 16V8M16 16v-3" />,
+  spark: (
+    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" />
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 12v.01" />
+    </>
+  ),
+  school: (
+    <>
+      <path d="m3 9 9-5 9 5-9 5z" />
+      <path d="M7 11v5c3 2 7 2 10 0v-5" />
+    </>
+  ),
+  factory: <path d="M3 20V10l6 3v-3l6 3V6h6v14z" />,
+  handshake: (
+    <>
+      <path d="m3 12 4-4 4 3 3-3 7 5" />
+      <path d="m7 14 3 3 3-2 3 3" />
+    </>
+  ),
+  network: (
+    <>
+      <circle cx="12" cy="5" r="2" />
+      <circle cx="5" cy="19" r="2" />
+      <circle cx="19" cy="19" r="2" />
+      <path d="M12 7v5m0 0-5.5 5.5M12 12l5.5 5.5" />
+    </>
+  ),
+  code: <path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14" />,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof PATHS;

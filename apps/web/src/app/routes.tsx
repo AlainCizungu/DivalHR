@@ -36,6 +36,8 @@ export interface AppRoute {
   access?: { role: Role; deniedKey: string; signInKey: string };
   /** Public flows render without the signed-in sidebar and user menu, even when signed in. */
   frame?: 'public';
+  /** UI-002: anonymous visitors see this route in the landing-page frame (D1). */
+  anonymousFrame?: 'landing';
   crumbs?: CrumbDef[];
 }
 
@@ -51,7 +53,7 @@ const tenantAdmin = (deniedKey: string, signInKey: string) =>
   ({ role: 'tenant-admin', deniedKey, signInKey }) as const;
 
 export const ROUTES: AppRoute[] = [
-  { path: '/', element: <HomePage /> },
+  { path: '/', element: <HomePage />, anonymousFrame: 'landing' },
   { path: '/status', element: <StatusPage />, crumbs: [HOME, { key: 'nav.status' }] },
   {
     path: '/admin/organizations/new',

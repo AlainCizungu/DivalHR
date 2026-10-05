@@ -111,11 +111,12 @@ describe('role homes', () => {
 });
 
 describe('session states on Home', () => {
-  it('welcomes anonymous visitors with sign-in and the system status link', async () => {
+  it('shows anonymous visitors the landing page (UI-002)', async () => {
     await renderHome({ kind: 'anonymous' });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(en.home.title);
-    expect(screen.getByRole('button', { name: en.auth.signIn })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: en.nav.status })).toHaveAttribute('href', '/status');
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
+      en.landing.hero.line1,
+    );
+    expect(screen.getByRole('button', { name: en.landing.hero.signIn })).toBeInTheDocument();
   });
 
   it('announces loading', async () => {
