@@ -1,33 +1,35 @@
 /*
- * DivalHR design tokens (UI-001). An operational adaptation of the DivalHR identity: deep navy
- * navigation, teal primary actions, restrained gold accents and neutral surfaces. Every text and
- * background pair meets WCAG 2.2 AA (4.5:1; 3:1 for UI boundaries). The semantic mapping and the
- * contrast of each pair are documented in packages/design-system/README.md.
+ * DivalHR design tokens (UI-001). An operational translation of the DivalHR landing page
+ * (source snapshot b698321: app/globals.css, app/page.tsx, public/favicon.svg): deep navy
+ * navigation, teal primary actions, restrained gold accents and the landing page's paper, ink and
+ * line neutrals. Every text and background pair meets WCAG 2.2 AA (4.5:1; 3:1 for UI boundaries).
+ * The mapping from each landing-page value and the contrast of each pair are documented in
+ * packages/design-system/README.md.
  */
 :root,
 [data-theme='light'] {
   color-scheme: light;
-  --dv-color-bg: #f5f7fa;
+  --dv-color-bg: #f6faf9;
   --dv-color-surface: #ffffff;
   --dv-color-surface-raised: #ffffff;
-  --dv-color-surface-sunken: #eef2f6;
-  --dv-color-border: #d6dee8;
+  --dv-color-surface-sunken: #edf3f3;
+  --dv-color-border: #dce5e8;
   --dv-color-border-strong: #7b8a9c;
-  --dv-color-text: #0f1e33;
-  --dv-color-text-muted: #4b5b70;
-  --dv-color-primary: #0f766e;
-  --dv-color-primary-hover: #0b5f58;
-  --dv-color-primary-contrast: #ffffff;
-  --dv-color-primary-subtle: #e3f4f1;
-  --dv-color-primary-subtle-text: #0b5f58;
-  --dv-color-accent: #c9a227;
-  --dv-color-accent-text: #7a5c00;
+  --dv-color-text: #102231;
+  --dv-color-text-muted: #5d6b75;
+  --dv-color-primary: #13b8a6;
+  --dv-color-primary-hover: #24c8b6;
+  --dv-color-primary-contrast: #032824;
+  --dv-color-primary-subtle: #e6f7f3;
+  --dv-color-primary-subtle-text: #0a6b60;
+  --dv-color-accent: #d6a747;
+  --dv-color-accent-text: #8a6510;
   --dv-color-focus: #1f5fd6;
-  --dv-color-link: #0b5f58;
+  --dv-color-link: #0a7468;
   --dv-color-success: #13703a;
   --dv-color-success-bg: #e7f5ec;
   --dv-color-warning: #7a4f00;
-  --dv-color-warning-bg: #fff4d6;
+  --dv-color-warning-bg: #fff3dc;
   --dv-color-danger: #b3261e;
   --dv-color-danger-bg: #fdecea;
   --dv-color-info: #1d4e89;
@@ -39,19 +41,26 @@
   --dv-color-notice-text: var(--dv-color-warning);
 
   /* Navigation (navy in both themes). */
-  --dv-nav-bg: #0b1f3a;
-  --dv-nav-text: #e3eaf3;
-  --dv-nav-text-muted: #9fb1c8;
-  --dv-nav-hover-bg: #12294a;
-  --dv-nav-active-bg: #173a66;
-  --dv-nav-active-text: #ffffff;
-  --dv-nav-indicator: #2dd4bf;
-  --dv-nav-focus: #f2c14e;
-  --dv-nav-border: #1b3457;
-  --dv-brand-mark-bg: #0f766e;
-  --dv-brand-mark-dot: #e9c46a;
+  --dv-nav-bg: #082638;
+  --dv-nav-text: #d3dfe4;
+  --dv-nav-text-muted: #9fb4bf;
+  --dv-nav-hover-bg: #093241;
+  --dv-nav-active-bg: #0a3a47;
+  --dv-nav-active-text: #6ae4d6;
+  --dv-nav-indicator: #13b8a6;
+  --dv-nav-focus: #d6a747;
+  --dv-nav-border: #12344a;
+  /* The DivalHR mark: a teal gradient tile with a white "D" (landing page .brand-mark). */
+  --dv-brand-mark-from: #13b8a6;
+  --dv-brand-mark-to: #177b9a;
+  --dv-brand-mark-text: #ffffff;
+  /* "HR" in the wordmark: the landing page's teal in the navy navigation, a darker teal on light
+     surfaces so it keeps 4.5:1 text contrast. */
+  --dv-brand-wordmark-accent: #0c7d71;
+  --dv-nav-wordmark-accent: #13b8a6;
 
-  --dv-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --dv-font-family:
+    'Segoe UI', Inter, ui-sans-serif, system-ui, -apple-system, Roboto, 'Noto Sans', sans-serif;
   --dv-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --dv-font-size-xs: 0.75rem;
   --dv-font-size-sm: 0.875rem;
@@ -67,9 +76,9 @@
   --dv-space-6: 1.5rem;
   --dv-space-8: 2rem;
   --dv-space-10: 2.5rem;
-  --dv-radius-sm: 0.375rem;
-  --dv-radius: 0.5rem;
-  --dv-radius-lg: 0.75rem;
+  --dv-radius-sm: 0.4375rem;
+  --dv-radius: 0.5625rem;
+  --dv-radius-lg: 1rem;
   --dv-shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 10%);
   --dv-shadow-overlay: 0 12px 32px rgb(16 24 40 / 18%);
 
@@ -81,23 +90,24 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --dv-color-bg: #0a1220;
-  --dv-color-surface: #101b2d;
-  --dv-color-surface-raised: #14223a;
-  --dv-color-surface-sunken: #0c1626;
-  --dv-color-border: #22324a;
-  --dv-color-border-strong: #5d708a;
-  --dv-color-text: #e6edf5;
-  --dv-color-text-muted: #a3b3c7;
-  --dv-color-primary: #2dd4bf;
-  --dv-color-primary-hover: #5eead4;
-  --dv-color-primary-contrast: #042f2a;
-  --dv-color-primary-subtle: #0f2e33;
-  --dv-color-primary-subtle-text: #5eead4;
-  --dv-color-accent: #e9c46a;
-  --dv-color-accent-text: #e9c46a;
+  --dv-color-bg: #061826;
+  --dv-color-surface: #0a2638;
+  --dv-color-surface-raised: #0b3043;
+  --dv-color-surface-sunken: #071e2d;
+  --dv-color-border: #16394c;
+  --dv-color-border-strong: #5d7d8c;
+  --dv-color-text: #e6f0f2;
+  --dv-color-text-muted: #9fb4bf;
+  --dv-color-primary: #62e0d2;
+  --dv-color-primary-hover: #6ae4d6;
+  --dv-color-primary-contrast: #032824;
+  --dv-color-primary-subtle: #0e3a44;
+  --dv-color-primary-subtle-text: #6ae4d6;
+  --dv-color-accent: #d6a747;
+  --dv-color-accent-text: #e0c377;
   --dv-color-focus: #8cb4ff;
-  --dv-color-link: #5eead4;
+  --dv-color-link: #62e0d2;
+  --dv-brand-wordmark-accent: #62e0d2;
   --dv-color-success: #5fd08b;
   --dv-color-success-bg: #0f2a1c;
   --dv-color-warning: #f2c56b;
@@ -108,10 +118,10 @@
   --dv-color-info-bg: #0f2440;
   --dv-color-neutral: #c3cfdd;
   --dv-color-neutral-bg: #1a2638;
-  --dv-nav-bg: #071426;
-  --dv-nav-hover-bg: #0d1f38;
-  --dv-nav-active-bg: #123158;
-  --dv-nav-border: #16294a;
+  --dv-nav-bg: #041420;
+  --dv-nav-hover-bg: #05232c;
+  --dv-nav-active-bg: #062e35;
+  --dv-nav-border: #0f2a3a;
   --dv-shadow: 0 1px 3px rgb(0 0 0 / 45%);
   --dv-shadow-overlay: 0 12px 32px rgb(0 0 0 / 55%);
 }
