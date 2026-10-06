@@ -14,12 +14,17 @@ process.env.PLAYWRIGHT_NO_COPY_PROMPT = '1';
  *   HR_DEV_EMPLOYEE_USERNAME / HR_DEV_EMPLOYEE_PASSWORD   the synthetic smoke employee (live only)
  *   HR_DEV_BROWSER_ARGS   extra Chromium arguments (a rehearsal maps the public name to its port)
  *   HR_DEV_REHEARSAL=1    a rehearsal behind Caddy's internal CA: the browser accepts that CA's
- *                         certificate; every curl check still validates it with --cacert
+ *                         certificate (also for service-worker registration, which Chromium
+ *                         otherwise refuses on a certificate error); every curl check still
+ *                         validates it with --cacert
  *
  * Credentials come from the environment only; traces, screenshots and videos stay off (MVP-011).
  */
 const rehearsal = process.env.HR_DEV_REHEARSAL === '1';
-const args = (process.env.HR_DEV_BROWSER_ARGS ?? '').split('\n').filter(Boolean);
+const args = [
+  ...(process.env.HR_DEV_BROWSER_ARGS ?? '').split('\n').filter(Boolean),
+  ...(rehearsal ? ['--ignore-certificate-errors'] : []),
+];
 
 export default defineConfig({
   testDir: './e2e/hr-dev',
