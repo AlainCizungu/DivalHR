@@ -687,8 +687,8 @@ function awsWorld(environment) {
   spawnSync('ln', ['-s', join(FIXTURES, 'fake-aws.sh'), join(bin, 'aws')]);
   spawnSync('ln', ['-s', join(FIXTURES, 'fake-aws.sh'), join(bin, 'dig')]);
   writeFileSync(join(dir, 'log'), '');
-  const openWeb = () =>
-    run('bash', [join(ROOT, 'ops/aws/hr-dev-aws.sh'), 'open-web', '--yes'], {
+  const aws = (...args) =>
+    run('bash', [join(ROOT, 'ops/aws/hr-dev-aws.sh'), ...args], {
       env: {
         ...process.env,
         PATH: `${bin}:${process.env.PATH}`,
@@ -696,7 +696,8 @@ function awsWorld(environment) {
         ...environment,
       },
     });
-  return { openWeb, calls: () => readFileSync(join(dir, 'log'), 'utf8') };
+  const openWeb = () => aws('open-web', '--yes');
+  return { aws, openWeb, calls: () => readFileSync(join(dir, 'log'), 'utf8') };
 }
 
 test('R66-3: open-web refuses a web group shared with another instance and changes nothing', () => {
@@ -717,4 +718,156 @@ test('R66-3: open-web uses a dedicated group and never edits the existing one', 
   assert.match(log, /authorize .*--group-id sg-0123456789abc0web .*FromPort=443/);
   assert.doesNotMatch(log, /authorize .*sg-0123456789abc0ssh/);
   assert.match(log, /modify .*--groups sg-0123456789abc0ssh sg-0123456789abc0web/);
+});
+
+// --- Issue #68: deployment tooling corrections --------------------------------------------------
+const DLM_ALLOWED = /^[0-9A-Za-z _-]{1,500}$/;
+
+test('#68: the DLM policy is created with a description AWS accepts', () => {
+  const { aws, calls } = awsWorld({});
+  const r = aws('snapshots', '--yes');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /created policy policy-/);
+  const description = /create-lifecycle-policy description=\[([^\]]*)\]/.exec(calls())?.[1];
+  assert.ok(description, 'create-lifecycle-policy was called with a description');
+  assert.match(description, DLM_ALLOWED);
+  // The fake applies AWS's rule: the description used before #68 is rejected.
+  const old = run(
+    join(FIXTURES, 'fake-aws.sh'),
+    [
+      'dlm',
+      'create-lifecycle-policy',
+      '--description',
+      'DivalHR hr-dev data volume, daily, keep 7',
+    ],
+    { env: { ...process.env, FAKE_LOG: join(tmp(), 'log') } },
+  );
+  assert.notEqual(old.status, 0);
+  assert.match(old.stderr, /InvalidRequestException/);
+});
+
+test('#68: an existing DLM policy is kept, and the policy schedule names use the same character set', () => {
+  const { aws, calls } = awsWorld({ FAKE_DLM_POLICIES: 'policy-0123456789abcdef0' });
+  const r = aws('snapshots', '--yes');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /already exists/);
+  assert.doesNotMatch(calls(), /create-lifecycle-policy/);
+  const policy = JSON.parse(read('ops/hr-dev/aws/dlm-policy.json'));
+  for (const schedule of policy.Schedules) assert.match(schedule.Name, DLM_ALLOWED);
+});
+
+const deployLib = (script, environment = {}) =>
+  run('bash', ['-c', `set -u; . "$LIB"; ${script}`], {
+    env: { ...process.env, LIB: join(OPS, 'deploy-lib.sh'), ...environment },
+  });
+// A fake instance: state/ is root 0700, so only the sudo -n read returns the release.
+const FAKE_INSTANCE = `
+rsh() {
+  case "$1" in
+    "sudo -n cat /srv/divalhr-test/state/current-release 2>/dev/null") printf '%s\\n' "$RUNNING" ;;
+    "sudo -n /srv/divalhr-test/current/ops/hr-dev/evidence-host.sh")
+      printf '== checks\\n%s\\n' "$EVIDENCE"; [ "$EVIDENCE" = "ALL HOST CHECKS PASSED" ] ;;
+    *) return 1 ;;
+  esac
+}`;
+
+test('#68: a successful deployment is reported as deployed, reading the release with sudo -n', () => {
+  const out = tmp();
+  const ok = deployLib(`${FAKE_INSTANCE}\nhr_deploy_finish 0 "$SHA" "$OUT"`, {
+    SHA,
+    OUT: out,
+    RUNNING: SHA,
+    EVIDENCE: 'ALL HOST CHECKS PASSED',
+  });
+  assert.equal(ok.status, 0, ok.stderr + ok.stdout);
+  assert.match(ok.stdout, new RegExp(`DEPLOYED ${SHA} to https://hr-dev\\.dival\\.ai`));
+  assert.doesNotMatch(ok.stdout, /DEPLOYMENT FAILED/);
+  assert.match(readFileSync(join(out, 'evidence-host.txt'), 'utf8'), /ALL HOST CHECKS PASSED/);
+
+  const cases = [
+    {
+      rc: '1',
+      running: SHA,
+      evidence: 'ALL HOST CHECKS PASSED',
+      expect: /DEPLOYMENT FAILED \(exit 1\)/,
+    },
+    {
+      rc: '0',
+      running: 'b'.repeat(40),
+      evidence: 'ALL HOST CHECKS PASSED',
+      expect: /DEPLOYMENT FAILED \(exit 0\); running release is b{40}/,
+    },
+    {
+      rc: '0',
+      running: '',
+      evidence: 'ALL HOST CHECKS PASSED',
+      expect: /DEPLOYMENT FAILED \(exit 0\); running release is none/,
+    },
+    {
+      rc: '0',
+      running: SHA,
+      evidence: 'FAIL port 5432',
+      expect: /DEPLOYED[\s\S]*WARNING: host evidence reported FAIL lines/,
+    },
+  ];
+  for (const c of cases) {
+    const r = deployLib(`${FAKE_INSTANCE}\nhr_deploy_finish "$RC" "$SHA" "$OUT"`, {
+      SHA,
+      OUT: tmp(),
+      RC: c.rc,
+      RUNNING: c.running,
+      EVIDENCE: c.evidence,
+    });
+    assert.equal(r.status, 1, JSON.stringify(c));
+    assert.match(r.stdout, c.expect);
+  }
+  // deploy.sh itself never reads the root-only state directory without sudo.
+  const deploy = source('deploy.sh');
+  assert.match(deploy, /deploy-lib\.sh/);
+  assert.match(deploy, /hr_deploy_finish "\$RC" "\$SHA" "\$OUT"/);
+  assert.doesNotMatch(deploy, /rsh '(cat|head|tail) \/srv\/divalhr-test\/state\//);
+});
+
+test('#68: the log follower prints every line exactly once, blank lines included', () => {
+  // Three polls of a log that grows with the blank lines Docker's build output contains.
+  const polls = [
+    '#1 [internal] load build definition\n#1 DONE 0.0s\n\n#2 [web] build',
+    '#1 [internal] load build definition\n#1 DONE 0.0s\n\n#2 [web] build\n#2 DONE 1.0s\n\n\n#3 exporting',
+    '#1 [internal] load build definition\n#1 DONE 0.0s\n\n#2 [web] build\n#2 DONE 1.0s\n\n\n#3 exporting\n\nstarting\n12:13:56Z deployed',
+  ];
+  const r = deployLib(
+    `SEEN=0
+     for LINES in "$P1" "$P2" "$P3" "$P3"; do
+       N=$(hr_log_line_count "$LINES")
+       if [ "$N" -gt "$SEEN" ]; then hr_log_new_lines "$LINES" "$SEEN"; SEEN=$N; fi
+     done`,
+    { P1: polls[0], P2: polls[1], P3: polls[2] },
+  );
+  assert.equal(r.status, 0, r.stderr);
+  const expected =
+    polls[2]
+      .split('\n')
+      .map((line) => `  ${line}`)
+      .join('\n') + '\n';
+  assert.equal(r.stdout, expected);
+  const counts = deployLib('hr_log_line_count ""; hr_log_line_count "a"; hr_log_line_count "$X"', {
+    X: 'a\n\nb',
+  });
+  assert.equal(counts.stdout, '0\n1\n3\n');
+});
+
+test('#68: the follower reads only complete lines of the remote log, then the exit code', () => {
+  const home = tmp();
+  const dir = join(home, 'divalhr-deploy', 'RUN1');
+  spawnSync('mkdir', ['-p', dir]);
+  const poll = () => {
+    const command = deployLib('hr_deploy_log_command RUN1').stdout;
+    return run('bash', ['-c', command], { env: { ...process.env, HOME: home } }).stdout;
+  };
+  assert.equal(poll(), '@@EXIT \n');
+  writeFileSync(join(dir, 'deploy.log'), 'one\n\nthree\npart');
+  assert.equal(poll(), 'one\n\nthree\n@@EXIT \n');
+  writeFileSync(join(dir, 'deploy.log'), 'one\n\nthree\npartial line\n');
+  writeFileSync(join(dir, 'exit'), '0\n');
+  assert.equal(poll(), 'one\n\nthree\npartial line\n@@EXIT 0\n');
 });
