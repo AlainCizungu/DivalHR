@@ -21,6 +21,8 @@ YES="${2:-}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TAG_KEY="divalhr-backup" TAG_VALUE="hr-dev-data"
 VOLUME_SIZE="${HR_DEV_DATA_VOLUME_GIB:-20}"
+# AWS DLM accepts only letters, digits, spaces, "_" and "-" in a description (Issue #68).
+DLM_DESCRIPTION="DivalHR hr-dev data volume daily keep 7"
 FAIL=0
 
 die() { echo "STOP: $*" >&2; exit 1; }
@@ -182,7 +184,7 @@ case "$CMD" in
     if aws dlm get-lifecycle-policies --target-tags "$TAG_KEY=$TAG_VALUE" --query 'Policies[].PolicyId' --output text | grep -q .; then
       echo "a policy for $TAG_KEY=$TAG_VALUE already exists"
     else
-      aws dlm create-lifecycle-policy --description "DivalHR hr-dev data volume, daily, keep 7" --state ENABLED \
+      aws dlm create-lifecycle-policy --description "$DLM_DESCRIPTION" --state ENABLED \
         --execution-role-arn "$role" --policy-details "file://$HERE/../hr-dev/aws/dlm-policy.json" \
         --query PolicyId --output text | sed 's/^/created policy /' | redact
     fi

@@ -27,6 +27,8 @@ SHA="${1:-}"
 FIRST_RUN="${2:-}"
 die() { echo "STOP: $*" >&2; exit 1; }
 rsh() { ssh $SSHO "$HOST" "$@"; }
+# shellcheck source=ops/hr-dev/deploy-lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/deploy-lib.sh" || die "deploy-lib.sh is missing"
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "run from the DivalHR repository"
 cd "$ROOT" || exit 1
@@ -109,10 +111,10 @@ echo "Following the deployment (Ctrl-C stops following, not the deployment)"
 SEEN=0
 while :; do
   sleep 15
-  LOG=$(rsh "cat \"\$HOME/divalhr-deploy/$RUN/deploy.log\" 2>/dev/null; echo \"@@EXIT \$(cat \"\$HOME/divalhr-deploy/$RUN/exit\" 2>/dev/null)\"" 2>/dev/null) || { echo "  (instance unreachable, retrying)"; continue; }
+  LOG=$(rsh "$(hr_deploy_log_command "$RUN")" 2>/dev/null) || { echo "  (instance unreachable, retrying)"; continue; }
   LINES=$(printf '%s\n' "$LOG" | grep -v '^@@EXIT')
-  N=$(printf '%s\n' "$LINES" | grep -c .)
-  [ "$N" -gt "$SEEN" ] && printf '%s\n' "$LINES" | sed -n "$((SEEN + 1)),\$p" | sed 's/^/  /' && SEEN=$N
+  N=$(hr_log_line_count "$LINES")
+  if [ "$N" -gt "$SEEN" ]; then hr_log_new_lines "$LINES" "$SEEN"; SEEN=$N; fi
   RC=$(printf '%s\n' "$LOG" | sed -n 's/^@@EXIT //p')
   [ -n "$RC" ] && break
 done
@@ -122,17 +124,4 @@ echo "== inventory after (redacted) and comparison"
 git show "$SHA:ops/hr-dev/inventory-host.sh" | rsh 'sudo bash -s' > "$OUT/inventory-after.txt" 2>&1
 diff -u "$OUT/inventory-before.txt" "$OUT/inventory-after.txt" > "$OUT/inventory.diff"
 echo "saved $OUT/inventory.diff ($(grep -c '^[-+][^-+]' "$OUT/inventory.diff") changed lines)"
-running=$(rsh 'cat /srv/divalhr-test/state/current-release 2>/dev/null')
-
-if [ "$RC" = 0 ] && [ "$running" = "$SHA" ]; then
-  echo "== host evidence (redacted)"
-  rsh "sudo -n /srv/divalhr-test/current/ops/hr-dev/evidence-host.sh" > "$OUT/evidence-host.txt" 2>&1
-  EV=$?
-  cat "$OUT/evidence-host.txt" | sed -n '/== checks/,$p'
-  echo ""
-  echo "DEPLOYED $SHA to https://hr-dev.dival.ai (evidence: $OUT)"
-  [ "$EV" = 0 ] || { echo "WARNING: host evidence reported FAIL lines; send $OUT to Claude"; exit 1; }
-  exit 0
-fi
-echo "DEPLOYMENT FAILED (exit $RC); running release is ${running:-none}. Send $OUT to Claude."
-exit 1
+hr_deploy_finish "$RC" "$SHA" "$OUT"
