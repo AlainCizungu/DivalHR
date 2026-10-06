@@ -86,17 +86,30 @@ if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$SHA" ]; then
     || hr_die "pre-deploy backup failed; nothing was changed"
 fi
 
+# The timers (watchdog, nightly backup) are part of the release's checks (R66-4): the release
+# is recorded as current only after they are installed, so a failure here rolls back like any
+# other failed check. install-units.sh restores the previous unit files when it fails.
+install_units() {
+  if [ -n "${HR_DEV_INSTALL_UNITS_CMD:-}" ]; then
+    $HR_DEV_INSTALL_UNITS_CMD
+  elif [ "${HR_DEV_REHEARSAL:-}" = "1" ]; then
+    hr_log "rehearsal: systemd timers not installed"
+  else
+    "$REL/ops/hr-dev/install-units.sh"
+  fi
+}
+
 hr_log "starting $SHA"
 if hr_compose "$SHA" up -d --wait --wait-timeout 600 --remove-orphans \
   && "$REL/ops/hr-dev/keycloak-admin-setup.sh" \
   && "$REL/ops/hr-dev/http-checks.sh" \
-  && "$REL/ops/hr-dev/backchannel-check.sh" "$SHA"; then
+  && "$REL/ops/hr-dev/backchannel-check.sh" "$SHA" \
+  && install_units; then
   if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$SHA" ]; then
     printf '%s\n' "$PREVIOUS" > "$HR_DEV_DATA/state/previous-release"
   fi
   hr_set_current "$SHA"
   rm -f "$HR_DEV_DATA/state/failed-release"
-  [ "${HR_DEV_REHEARSAL:-}" = "1" ] || "$REL/ops/hr-dev/install-units.sh" || hr_die "installing the timers failed"
   hr_log "deployed $SHA"
 else
   hr_log "release $SHA failed its checks"
@@ -107,7 +120,7 @@ else
     exit 1
   fi
   hr_compose "$SHA" stop
-  hr_die "first deployment failed; the stack is stopped for investigation"
+  hr_die "first deployment failed; the stack is stopped and no release is recorded as current"
 fi
 
 # --- keep the last releases (exact tags only; never a global prune) -----------------------------

@@ -8,7 +8,8 @@
 #   bash ops/aws/hr-dev-aws.sh encryption-default --yes   enable EBS encryption by default (region)
 #   bash ops/aws/hr-dev-aws.sh data-volume --yes          create + attach the encrypted gp3 data volume
 #   bash ops/aws/hr-dev-aws.sh snapshots --yes            DLM policy: daily snapshots of that volume
-#   bash ops/aws/hr-dev-aws.sh open-web --yes             security group: TCP 80/443 from anywhere
+#   bash ops/aws/hr-dev-aws.sh open-web --yes             TCP 80/443 from anywhere, through a dedicated
+#                                                         security group attached only to this instance
 #
 # Changing commands run only with --yes and only during the approved deployment (Issue #65);
 # nothing here touches the instance's operating system. Compatible with macOS bash 3.2.
@@ -45,9 +46,18 @@ IID=$(aws ec2 describe-instances --filters "Name=ip-address,Values=$IP" \
 [ -n "$IID" ] && [ "$IID" != None ] || die "no instance with the address of $HOST"
 AZ=$(aws ec2 describe-instances --instance-ids "$IID" --query 'Reservations[0].Instances[0].Placement.AvailabilityZone' --output text)
 SGS=$(aws ec2 describe-instances --instance-ids "$IID" --query 'Reservations[0].Instances[0].SecurityGroups[].GroupId' --output text)
-data_volume() {
+WEB_SG_TAG_KEY="divalhr-sg" WEB_SG_TAG_VALUE="hr-dev-web"
+# Every volume tagged for the test environment in this zone (R66-1: must be exactly one).
+data_volumes() {
   aws ec2 describe-volumes --filters "Name=tag:$TAG_KEY,Values=$TAG_VALUE" "Name=availability-zone,Values=$AZ" \
-    --query 'Volumes[?State!=`deleting`].VolumeId' --output text
+    --query 'Volumes[?State!=`deleting`].VolumeId' --output text | tr '\t' '\n' | grep -v '^None$' | grep .
+}
+# R66-3: a security group is exclusive when every network interface carrying it belongs to this
+# instance. Prints "<interfaces> <foreign>"; an unattached group is exclusive (0 0).
+sg_scope() {
+  aws ec2 describe-network-interfaces --filters "Name=group-id,Values=$1" \
+    --query 'NetworkInterfaces[].[NetworkInterfaceId,Attachment.InstanceId]' --output text \
+    | awk -v i="$IID" 'NF {n++; if ($2 != i) f++} END {printf "%d %d\n", n, f}'
 }
 
 evidence() {
@@ -64,10 +74,14 @@ evidence() {
     --output text | while read -r id dev size type enc tag; do
       echo "volume $id $dev ${size}GiB $type encrypted=$enc ${tag:+tag=$tag}"
     done | redact
-  vol=$(data_volume)
-  if [ -z "$vol" ] || [ "$vol" = None ]; then
+  vols=$(data_volumes)
+  vol="$vols"
+  if [ -z "$vols" ]; then
     fail "no data volume tagged $TAG_KEY=$TAG_VALUE"
+  elif [ "$(printf '%s\n' "$vols" | grep -c .)" != 1 ]; then
+    fail "$(printf '%s\n' "$vols" | grep -c .) volumes are tagged $TAG_KEY=$TAG_VALUE; exactly one is required"
   else
+    pass "exactly one volume is tagged $TAG_KEY=$TAG_VALUE"
     enc=$(aws ec2 describe-volumes --volume-ids "$vol" --query 'Volumes[0].Encrypted' --output text)
     att=$(aws ec2 describe-volumes --volume-ids "$vol" --query 'Volumes[0].Attachments[0].InstanceId' --output text)
     [ "$enc" = True ] && pass "data volume is encrypted" || fail "data volume encrypted=$enc"
@@ -90,12 +104,23 @@ evidence() {
   fi
   printf '%s\n' "$policies" | sed 's/^/policy /' | redact
 
-  echo "== security groups (A65-4): final inbound rules, IPv4 and IPv6"
+  echo "== security groups (A65-4, R66-3): attachment scope and final inbound rules, IPv4 and IPv6"
   for sg in $SGS; do
+    read -r interfaces foreign <<EOF_SCOPE
+$(sg_scope "$sg")
+EOF_SCOPE
+    if [ "$foreign" = 0 ]; then
+      pass "security group $sg is attached only to this instance ($interfaces interface(s))" | redact
+      exclusive=1
+    else
+      echo "INFO security group $sg is shared: $foreign interface(s) of other resources" | redact
+      exclusive=0
+    fi
     aws ec2 describe-security-groups --group-ids "$sg" --output json \
-      --query 'SecurityGroups[0].IpPermissions' | python3 -c '
-import json, sys
+      --query 'SecurityGroups[0].IpPermissions' | EXCLUSIVE="$exclusive" python3 -c '
+import json, os, sys
 bad = False
+exclusive = os.environ.get("EXCLUSIVE") == "1"
 for p in json.load(sys.stdin):
     proto, lo, hi = p.get("IpProtocol"), p.get("FromPort"), p.get("ToPort")
     ports = "all" if proto == "-1" else (str(lo) if lo == hi else f"{lo}-{hi}")
@@ -108,6 +133,8 @@ for p in json.load(sys.stdin):
         print(f"rule {family} {proto} {ports} from {s}")
         if public and not (proto == "tcp" and lo == hi and lo in (80, 443)):
             bad = True; print(f"FAIL port {ports} is open to {s}")
+        elif public and not exclusive:
+            bad = True; print(f"FAIL port {ports} is public in a security group shared with other resources")
         if not public and not (proto == "tcp" and lo == hi == 22):
             bad = True; print(f"FAIL port {ports} is open to a non-public source")
 sys.exit(1 if bad else 0)' | redact || FAIL=1
@@ -126,8 +153,11 @@ case "$CMD" in
     need_yes
     [ "$(aws ec2 get-ebs-encryption-by-default --query EbsEncryptionByDefault --output text)" = True ] \
       || die "enable encryption by default first (encryption-default --yes)"
-    vol=$(data_volume)
-    if [ -z "$vol" ] || [ "$vol" = None ]; then
+    vols=$(data_volumes)
+    [ "$(printf '%s\n' "$vols" | grep -c .)" -le 1 ] \
+      || die "more than one volume is tagged $TAG_KEY=$TAG_VALUE in $AZ; resolve that by hand first"
+    vol="$vols"
+    if [ -z "$vol" ]; then
       vol=$(aws ec2 create-volume --availability-zone "$AZ" --size "$VOLUME_SIZE" --volume-type gp3 --encrypted \
         --tag-specifications "ResourceType=volume,Tags=[{Key=Name,Value=divalhr-test-data},{Key=$TAG_KEY,Value=$TAG_VALUE}]" \
         --query VolumeId --output text) || die "create-volume failed"
@@ -136,10 +166,12 @@ case "$CMD" in
     fi
     att=$(aws ec2 describe-volumes --volume-ids "$vol" --query 'Volumes[0].Attachments[0].InstanceId' --output text)
     if [ "$att" != "$IID" ]; then
+      [ "$att" = None ] || [ -z "$att" ] || die "the tagged volume is attached to another instance"
       aws ec2 attach-volume --volume-id "$vol" --instance-id "$IID" --device /dev/sdf >/dev/null || die "attach failed"
       aws ec2 wait volume-in-use --volume-ids "$vol" || die "the volume did not attach"
     fi
-    echo "attached; on the instance run: sudo ops/hr-dev/prepare-data-volume.sh (it finds the one blank, unmounted EBS volume)"
+    echo "attached. On the instance (do not post this ID):"
+    echo "  sudo ops/hr-dev/prepare-data-volume.sh --volume-id $vol --format"
     ;;
   snapshots)
     need_yes
@@ -156,13 +188,43 @@ case "$CMD" in
     fi
     ;;
   open-web)
+    # R66-3: never edit a group other workloads may carry. Ports 80/443 go into a dedicated group
+    # (tag divalhr-sg=hr-dev-web) that is attached to nothing but this instance's interface.
     need_yes
-    [ "$(echo "$SGS" | wc -w | tr -d ' ')" = 1 ] || die "expected exactly one security group"
+    VPC=$(aws ec2 describe-instances --instance-ids "$IID" --query 'Reservations[0].Instances[0].VpcId' --output text)
+    ENIS=$(aws ec2 describe-instances --instance-ids "$IID" \
+      --query 'Reservations[0].Instances[0].NetworkInterfaces[].NetworkInterfaceId' --output text)
+    [ "$(echo "$ENIS" | wc -w | tr -d ' ')" = 1 ] || die "expected exactly one network interface on the instance"
+    ENI="$ENIS"
+    WEB_SG=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC" \
+      "Name=tag:$WEB_SG_TAG_KEY,Values=$WEB_SG_TAG_VALUE" --query 'SecurityGroups[].GroupId' --output text)
+    [ "$(echo "$WEB_SG" | wc -w | tr -d ' ')" -le 1 ] || die "more than one group is tagged $WEB_SG_TAG_KEY=$WEB_SG_TAG_VALUE"
+    if [ -z "$WEB_SG" ] || [ "$WEB_SG" = None ]; then
+      WEB_SG=$(aws ec2 create-security-group --group-name divalhr-hr-dev-web --vpc-id "$VPC" \
+        --description "DivalHR hr-dev: HTTP and HTTPS from anywhere, this instance only" \
+        --tag-specifications "ResourceType=security-group,Tags=[{Key=$WEB_SG_TAG_KEY,Value=$WEB_SG_TAG_VALUE}]" \
+        --query GroupId --output text) || die "creating the dedicated web security group failed"
+      echo "created dedicated web security group $WEB_SG" | redact
+    fi
+    read -r interfaces foreign <<EOF_SCOPE
+$(sg_scope "$WEB_SG")
+EOF_SCOPE
+    [ "$foreign" = 0 ] || die "the web security group is attached to $foreign interface(s) of other resources; nothing was changed"
     for port in 80 443; do
-      aws ec2 authorize-security-group-ingress --group-id "$SGS" --ip-permissions \
+      aws ec2 authorize-security-group-ingress --group-id "$WEB_SG" --ip-permissions \
         "IpProtocol=tcp,FromPort=$port,ToPort=$port,IpRanges=[{CidrIp=0.0.0.0/0,Description=hr-dev-web}],Ipv6Ranges=[{CidrIpv6=::/0,Description=hr-dev-web}]" \
-        >/dev/null 2>&1 && echo "opened TCP $port (IPv4 and IPv6)" || echo "TCP $port: already open or refused (see evidence)"
+        >/dev/null 2>&1 && echo "opened TCP $port (IPv4 and IPv6) in the dedicated group" || echo "TCP $port: already open in the dedicated group"
     done
+    current=$(aws ec2 describe-network-interfaces --network-interface-ids "$ENI" \
+      --query 'NetworkInterfaces[0].Groups[].GroupId' --output text)
+    case " $current " in
+      *" $WEB_SG "*) echo "the dedicated group is already attached" ;;
+      *)
+        # shellcheck disable=SC2086
+        aws ec2 modify-network-interface-attribute --network-interface-id "$ENI" --groups $current "$WEB_SG" \
+          || die "attaching the dedicated group failed"
+        echo "attached the dedicated web group to this instance's interface (existing groups unchanged)" ;;
+    esac
     ;;
   *) die "usage: hr-dev-aws.sh evidence | encryption-default --yes | data-volume --yes | snapshots --yes | open-web --yes" ;;
 esac

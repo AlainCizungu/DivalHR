@@ -3,12 +3,16 @@
 #
 #   sudo ops/hr-dev/rollback.sh --to <previous sha> [--from <failed sha>]
 #
-# Called by remote-deploy.sh when a new release fails its checks, or by the owner. Two paths:
-#   * no migration: the databases hold no Flyway version unknown to the target release, so the
-#     target's images are started against the current data;
-#   * migration: the failed release applied migrations the target does not ship. The application
-#     containers are stopped, the pre-deploy dumps taken for the failed release are restored into
-#     empty databases (hr_restore_backup), and only then are the target's images started.
+# Called by remote-deploy.sh when a new release fails its checks, or by the owner.
+#
+# Both databases are always returned to the state taken just before the failed release started
+# (R66-2): Core's schema is versioned by Flyway, but Keycloak migrates its own database when a
+# newer Keycloak image starts, and that change is not visible in Core's history. So the
+# application containers are stopped, BOTH pre-deploy dumps of the failed release (divalhr and
+# keycloak) are restored into empty databases (hr_restore_backup), and only then are the target's
+# images started. Without such dumps the rollback refuses to run and changes nothing; recovery
+# from a nightly dump is the runbook's manual procedure. Data written by the failed release is
+# discarded, which is the intended behaviour for the synthetic test environment.
 # Every step is timed; the result is written to $HR_DEV_DATA/state/last-rollback.
 set -u
 . "$(dirname "$0")/lib.sh"
@@ -33,27 +37,17 @@ TO_DIR="$(hr_release_dir "$TO")"
 hr_export_tls
 started=$(date +%s)
 
+backup="$(hr_latest_backup pre-deploy "$FROM")"
+[ -n "$backup" ] || hr_die "no pre-deploy backup for $FROM: its effect on the Core and Keycloak databases cannot be undone safely; no change was made (docs/OPS-HR-DEV.md, manual recovery)"
 applied=$(hr_applied_migrations "$FROM")
 known=$(hr_release_migrations "$TO")
-[ -n "$applied" ] || hr_die "cannot read the applied migrations; no change was made"
 unknown=$(LC_ALL=C comm -23 <(printf '%s\n' "$applied") <(printf '%s\n' "$known") | grep -c . || true)
-
-path="no-migration"
-restore_seconds=0
-if [ "$unknown" -gt 0 ]; then
-  path="migration"
-  backup="$(hr_latest_backup pre-deploy "$FROM")"
-  [ -n "$backup" ] || hr_die "the database holds $unknown migration(s) unknown to $TO and no pre-deploy backup for $FROM exists; no change was made"
-  hr_log "migration rollback: $unknown migration(s) unknown to $TO; restoring $(basename "$backup")"
-  hr_compose "$FROM" stop core-api keycloak ai-service web || hr_die "stopping the application failed"
-  t=$(date +%s)
-  hr_restore_backup "$FROM" "$backup"
-  restore_seconds=$(( $(date +%s) - t ))
-  [ "$(hr_applied_migrations "$FROM")" = "$(LC_ALL=C comm -12 <(printf '%s\n' "$applied") <(printf '%s\n' "$known"))" ] \
-    || hr_log "note: restored history differs from the target's known set (checked by Flyway at start)"
-else
-  hr_log "no-migration rollback: every applied migration is known to $TO"
-fi
+path="restore"
+hr_log "rollback: restoring both pre-deploy dumps $(basename "$backup") ($unknown Core migration(s) unknown to $TO; Keycloak schema restored regardless)"
+hr_compose "$FROM" stop core-api keycloak ai-service web || hr_die "stopping the application failed"
+t=$(date +%s)
+hr_restore_backup "$FROM" "$backup"
+restore_seconds=$(( $(date +%s) - t ))
 
 hr_log "starting $TO"
 if hr_compose "$TO" up -d --no-build --wait --wait-timeout 600 --remove-orphans \

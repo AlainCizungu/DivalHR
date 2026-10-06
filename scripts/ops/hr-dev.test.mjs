@@ -454,3 +454,267 @@ test('rollback knows every shipped Flyway version, SQL and Java migrations alike
   assert.deepEqual([...versions].sort(), [...new Set(expected)].sort());
   assert.ok(versions.includes('14.1'), 'the Java migration V14_1 is included');
 });
+
+// --- R66-1: data-volume preparation never formats the wrong disk -----------------------------
+const FIXTURES = join(ROOT, 'scripts/ops/fixtures');
+function blockWorld(disks, extra = {}) {
+  const dir = tmp();
+  const bin = join(dir, 'bin');
+  spawnSync('mkdir', ['-p', bin, join(dir, 'data')]);
+  for (const t of [
+    'id',
+    'lsblk',
+    'findmnt',
+    'blkid',
+    'wipefs',
+    'swapon',
+    'mkfs.ext4',
+    'mount',
+    'mountpoint',
+    'systemctl',
+  ]) {
+    spawnSync('ln', ['-s', join(FIXTURES, 'fake-block-tools.py'), join(bin, t)]);
+  }
+  writeFileSync(join(dir, 'world.json'), JSON.stringify({ disks, ...extra }));
+  writeFileSync(join(dir, 'fstab'), '');
+  writeFileSync(join(dir, 'lock'), '');
+  writeFileSync(join(dir, 'log'), '');
+  const prepare = (...args) =>
+    run('bash', [join(OPS, 'prepare-data-volume.sh'), ...args], {
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        FAKE_WORLD: join(dir, 'world.json'),
+        FAKE_LOG: join(dir, 'log'),
+        HR_DEV_DATA: join(dir, 'data'),
+        HR_DEV_FSTAB: join(dir, 'fstab'),
+        HR_DEV_SYSFS: join(dir, 'sys'),
+        DIVALHR_HOST_LOCK: join(dir, 'lock'),
+      },
+    });
+  const changes = () => readFileSync(join(dir, 'log'), 'utf8');
+  return { dir, prepare, changes };
+}
+const EBS = 'Amazon Elastic Block Store';
+const root = {
+  type: 'disk',
+  model: EBS,
+  serial: 'vol0aaaaaaaaaaaaaaaa',
+  children: [{ name: 'nvme0n1p1', mount: '/' }],
+};
+const blank = {
+  type: 'disk',
+  model: EBS,
+  serial: 'vol0bbbbbbbbbbbbbbbb',
+  children: [],
+  mount: '',
+  probe: '',
+};
+const VOL = 'vol-0bbbbbbbbbbbbbbbb';
+
+test(
+  'R66-1: the root disk and partitioned disks are refused, even when named with --device',
+  { skip: !hasFlock },
+  () => {
+    const { prepare, changes } = blockWorld({ nvme0n1: root, nvme1n1: blank });
+    const r1 = prepare(
+      '--volume-id',
+      'vol-0aaaaaaaaaaaaaaaa',
+      '--device',
+      '/dev/nvme0n1',
+      '--format',
+    );
+    assert.notEqual(r1.status, 0);
+    assert.match(r1.stderr, /partitions|backs a mounted/);
+    const r2 = prepare('--volume-id', VOL, '--device', '/dev/nvme0n1', '--format');
+    assert.notEqual(r2.status, 0, 'a device that is not the given volume is refused');
+    const r3 = prepare('--volume-id', VOL, '--device', '/dev/nvme0n1p1', '--format');
+    assert.notEqual(r3.status, 0, 'a partition is refused');
+    assert.equal(changes(), '', 'nothing was formatted or mounted');
+  },
+);
+
+test('R66-1: a partitioned data disk without mounts is refused', { skip: !hasFlock }, () => {
+  const partitioned = {
+    ...blank,
+    children: [{ name: 'nvme1n1p1', mount: '' }],
+    probe: 'PTTYPE=gpt\n',
+  };
+  const { prepare, changes } = blockWorld({ nvme0n1: root, nvme1n1: partitioned });
+  const r = prepare('--volume-id', VOL, '--device', '/dev/nvme1n1', '--format');
+  assert.notEqual(r.status, 0);
+  assert.equal(changes(), '');
+});
+
+test('R66-1: any existing signature or partition table is refused', { skip: !hasFlock }, () => {
+  for (const disk of [
+    { ...blank, probe: 'TYPE=xfs\n' },
+    { ...blank, probe: 'PTTYPE=dos\n' },
+    { ...blank, probe: 'TYPE=ext4\nLABEL=other\n' },
+    { ...blank, probe: '', wipefs: ['0x438,,,LVM2_member'] },
+  ]) {
+    const { prepare, changes } = blockWorld({ nvme0n1: root, nvme1n1: disk });
+    const r = prepare('--volume-id', VOL, '--format');
+    assert.notEqual(r.status, 0, JSON.stringify(disk));
+    assert.match(r.stderr, /signature|refusing/);
+    assert.equal(changes(), '');
+  }
+});
+
+test('R66-1: a disk mounted elsewhere or backing swap is refused', { skip: !hasFlock }, () => {
+  const mounted = blockWorld({ nvme0n1: root, nvme1n1: { ...blank, mount: '/mnt/other' } });
+  assert.notEqual(mounted.prepare('--volume-id', VOL, '--format').status, 0);
+  assert.equal(mounted.changes(), '');
+  const swap = blockWorld({ nvme0n1: root, nvme1n1: blank }, { swap: ['/dev/nvme1n1'] });
+  assert.notEqual(swap.prepare('--volume-id', VOL, '--format').status, 0);
+  assert.equal(swap.changes(), '');
+});
+
+test(
+  'R66-1: a blank data disk is formatted only with --format; our own filesystem is reused',
+  { skip: !hasFlock },
+  () => {
+    const fresh = blockWorld({ nvme0n1: root, nvme1n1: blank });
+    const without = fresh.prepare('--volume-id', VOL);
+    assert.notEqual(without.status, 0);
+    assert.match(without.stderr, /--format/);
+    assert.equal(fresh.changes(), '');
+    const formatted = fresh.prepare('--volume-id', VOL, '--format');
+    assert.equal(formatted.status, 0, formatted.stderr);
+    assert.match(fresh.changes(), /^mkfs \/dev\/nvme1n1$/m);
+    assert.match(
+      readFileSync(join(fresh.dir, 'fstab'), 'utf8'),
+      /^UUID=\S+ \S+ ext4 defaults,nofail/m,
+    );
+
+    const ours = blockWorld({
+      nvme0n1: root,
+      nvme1n1: { ...blank, probe: 'TYPE=ext4\nLABEL=divalhr-test\n', uuid: 'u-1' },
+    });
+    const reused = ours.prepare('--volume-id', VOL, '--format');
+    assert.equal(reused.status, 0, reused.stderr);
+    assert.doesNotMatch(
+      ours.changes(),
+      /mkfs/,
+      'an existing divalhr-test filesystem is never reformatted',
+    );
+  },
+);
+
+// --- R66-4: timer installation is all or nothing ----------------------------------------------
+function unitWorld(failEnable) {
+  const dir = tmp();
+  const bin = join(dir, 'bin');
+  spawnSync('mkdir', ['-p', bin, join(dir, 'units')]);
+  spawnSync('ln', ['-s', join(FIXTURES, 'fake-block-tools.py'), join(bin, 'id')]);
+  writeFileSync(
+    join(bin, 'systemctl'),
+    `#!/usr/bin/env bash\necho "$*" >> "${join(dir, 'calls')}"\ncase "$1" in\n  enable) ${failEnable ? 'exit 1' : 'exit 0'} ;;\n  is-active) echo active ;;\n  is-enabled) exit 1 ;;\nesac\nexit 0\n`,
+  );
+  chmodSync(join(bin, 'systemctl'), 0o755);
+  writeFileSync(join(dir, 'world.json'), '{"disks": {}}');
+  writeFileSync(join(dir, 'lock'), '');
+  // A previous, different version of one unit is already installed.
+  writeFileSync(join(dir, 'units', 'divalhr-hrdev-backup.timer'), 'previous version\n');
+  const install = () =>
+    run('bash', [join(OPS, 'install-units.sh')], {
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        FAKE_WORLD: join(dir, 'world.json'),
+        FAKE_LOG: join(dir, 'log'),
+        HR_DEV_UNIT_DIR: join(dir, 'units'),
+        HR_DEV_SYSTEMCTL: join(bin, 'systemctl'),
+      },
+    });
+  return { dir, install };
+}
+
+test('R66-4: install-units installs and enables both timers', () => {
+  const { dir, install } = unitWorld(false);
+  const r = install();
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.deepEqual(readdirSync(join(dir, 'units')).sort(), [
+    'divalhr-hrdev-backup.service',
+    'divalhr-hrdev-backup.timer',
+    'divalhr-hrdev-watchdog.service',
+    'divalhr-hrdev-watchdog.timer',
+  ]);
+  assert.match(
+    readFileSync(join(dir, 'calls'), 'utf8'),
+    /^enable --now divalhr-hrdev-watchdog\.timer divalhr-hrdev-backup\.timer$/m,
+  );
+});
+
+test('R66-4: a failed enable restores the previous unit files and leaves the timers disabled', () => {
+  const { dir, install } = unitWorld(true);
+  const r = install();
+  assert.notEqual(r.status, 0);
+  assert.deepEqual(readdirSync(join(dir, 'units')), ['divalhr-hrdev-backup.timer']);
+  assert.equal(
+    readFileSync(join(dir, 'units', 'divalhr-hrdev-backup.timer'), 'utf8'),
+    'previous version\n',
+  );
+  assert.match(
+    readFileSync(join(dir, 'calls'), 'utf8'),
+    /^disable --now divalhr-hrdev-watchdog\.timer$/m,
+  );
+});
+
+test('R66-4: the release becomes current only after its timers are installed', () => {
+  const deploy = source('remote-deploy.sh');
+  const chain = deploy.slice(deploy.indexOf('hr_log "starting $SHA"'));
+  assert.ok(chain.indexOf('&& install_units; then') < chain.indexOf('hr_set_current "$SHA"'));
+  assert.doesNotMatch(deploy, /install-units\.sh" \|\| hr_die/);
+});
+
+// --- R66-2: rollback always restores both databases ------------------------------------------
+test('R66-2: every rollback restores both pre-deploy dumps before starting the previous images', () => {
+  const rollback = source('rollback.sh');
+  assert.doesNotMatch(rollback, /no-migration/);
+  const restore = rollback.indexOf('hr_restore_backup "$FROM" "$backup"');
+  const start = rollback.indexOf('hr_compose "$TO" up');
+  assert.ok(restore > 0 && restore < start, 'restore happens before the target starts');
+  assert.match(rollback, /\[ -n "\$backup" \] \|\| hr_die/);
+  assert.match(source('lib.sh'), /for pair in divalhr:divalhr_app keycloak:keycloak/);
+});
+
+// --- R66-3: ports 80/443 never land in a shared security group ------------------------------
+function awsWorld(environment) {
+  const dir = tmp();
+  const bin = join(dir, 'bin');
+  spawnSync('mkdir', ['-p', bin]);
+  spawnSync('ln', ['-s', join(FIXTURES, 'fake-aws.sh'), join(bin, 'aws')]);
+  spawnSync('ln', ['-s', join(FIXTURES, 'fake-aws.sh'), join(bin, 'dig')]);
+  writeFileSync(join(dir, 'log'), '');
+  const openWeb = () =>
+    run('bash', [join(ROOT, 'ops/aws/hr-dev-aws.sh'), 'open-web', '--yes'], {
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        FAKE_LOG: join(dir, 'log'),
+        ...environment,
+      },
+    });
+  return { openWeb, calls: () => readFileSync(join(dir, 'log'), 'utf8') };
+}
+
+test('R66-3: open-web refuses a web group shared with another instance and changes nothing', () => {
+  const { openWeb, calls } = awsWorld({ FAKE_WEB_SG: 'sg-0123456789abc0web', FAKE_SHARED: '1' });
+  const r = openWeb();
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /other resources; nothing was changed/);
+  assert.doesNotMatch(calls(), /authorize|modify|create-security-group/);
+});
+
+test('R66-3: open-web uses a dedicated group and never edits the existing one', () => {
+  const { openWeb, calls } = awsWorld({});
+  const r = openWeb();
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const log = calls();
+  assert.match(log, /^create-security-group$/m);
+  assert.match(log, /authorize .*--group-id sg-0123456789abc0web .*FromPort=80/);
+  assert.match(log, /authorize .*--group-id sg-0123456789abc0web .*FromPort=443/);
+  assert.doesNotMatch(log, /authorize .*sg-0123456789abc0ssh/);
+  assert.match(log, /modify .*--groups sg-0123456789abc0ssh sg-0123456789abc0web/);
+});

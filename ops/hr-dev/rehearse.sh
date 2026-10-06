@@ -16,9 +16,11 @@
 #   realm verification in final mode (privileged MFA, narrow provisioning)
 #   nightly backup; host-lock concurrency (A65-5); watchdog failure injection (A65-3)
 #   isolated restore drill with the browser suite on the restored stack (A65-6)
-#   no-migration rollback: a release whose checks fail is rolled back automatically
-#   migration rollback: a release with a new migration whose checks fail; the pre-deploy dumps
-#   are restored before the previous images start; timings are measured
+#   timer installation failures (R66-4): on a first deployment nothing is recorded as current;
+#   on an upgrade the previous release is restored
+#   rollbacks (R66-2): a release that changes only the identity database and one that adds a
+#   Core migration both fail their checks; both pre-deploy dumps are restored before the previous
+#   images start, and the changes are gone; timings are measured
 # Everything is removed at the end (HR_DEV_REHEARSAL_KEEP=1 keeps it for diagnosis).
 set -u
 export HR_DEV_REHEARSAL=1
@@ -50,7 +52,7 @@ cleanup() {
     docker ps -aq --filter "label=com.docker.compose.project=$project" | xargs -r docker rm -f >/dev/null 2>&1
     docker network ls -q --filter "label=com.docker.compose.project=$project" | xargs -r docker network rm >/dev/null 2>&1
   done
-  for sha in "$SHA_A" "${SHA_B:-}" "${SHA_C:-}"; do
+  for sha in "$SHA_A" "${SHA_B:-}" "${SHA_C:-}" "${SHA_E:-}"; do
     [ -n "$sha" ] || continue
     for svc in keycloak core-api ai-service web; do docker image rm "$HR_DEV_IMAGE_PREFIX/$svc:$sha" >/dev/null 2>&1; done
   done
@@ -61,7 +63,9 @@ trap cleanup EXIT
 docker ps -aq --filter "label=com.docker.compose.project=$HR_DEV_PROJECT" | grep -q . \
   && { echo "STOP: a previous rehearsal is still running"; exit 1; }
 
-# --- releases: A = the verified commit; C = A + failing checks; B = A + migration + failing checks
+# --- releases: A = the verified commit; E = A + a harmless change (its checks pass);
+#     C = A + a release that changes the identity database, then fails its checks (R66-2);
+#     B = A + a Core migration, then failing checks
 git clone -q --no-checkout "$REPO" "$W/repo" && git -C "$W/repo" checkout -q --detach "$SHA_A" || exit 1
 commit() {
   git -C "$W/repo" add -A && git -C "$W/repo" -c user.name=rehearsal -c user.email=rehearsal@hr-dev.example.test \
@@ -75,14 +79,41 @@ inject_check_failure() {
   [ -f "$W/repo/ops/hr-dev/http-checks.sh" ] || return 1
   printf '#!/usr/bin/env bash\necho "rehearsal: injected check failure"\nexit 1\n' > "$W/repo/ops/hr-dev/http-checks.sh"
 }
-bundle "$SHA_A" && inject_check_failure || { echo "STOP: cannot prepare the rehearsal releases"; exit 1; }
-SHA_C=$(commit "rehearsal: release whose checks fail (no migration)") && hr_require_sha "$SHA_C" && bundle "$SHA_C"
+# C's checks first change Keycloak's database, as a newer Keycloak image migrating its schema
+# would, and then fail: Core's Flyway history stays unchanged.
+inject_identity_change_and_failure() {
+  [ -f "$W/repo/ops/hr-dev/http-checks.sh" ] || return 1
+  cat > "$W/repo/ops/hr-dev/http-checks.sh" <<'EOF_CHECK'
+#!/usr/bin/env bash
+echo "rehearsal: the release changes the identity database, then fails its checks"
+docker exec "${HR_DEV_PROJECT}-postgres-1" psql -U postgres -d keycloak -q \
+  -c 'CREATE TABLE IF NOT EXISTS ops001_identity_marker (id integer)'
+exit 1
+EOF_CHECK
+}
+bundle "$SHA_A" || { echo "STOP: cannot prepare the rehearsal releases"; exit 1; }
+printf 'OPS-001 rehearsal: a harmless change.\n' > "$W/repo/docs/ops001-rehearsal-e.txt"
+SHA_E=$(commit "rehearsal: release whose timer installation fails") && hr_require_sha "$SHA_E" && bundle "$SHA_E"
+git -C "$W/repo" checkout -q --detach "$SHA_A" && inject_identity_change_and_failure || exit 1
+SHA_C=$(commit "rehearsal: release that changes the identity database, then fails") && hr_require_sha "$SHA_C" && bundle "$SHA_C"
 git -C "$W/repo" checkout -q --detach "$SHA_A" && inject_check_failure || exit 1
 printf -- '-- OPS-001 rehearsal only: a migration the previous release does not know.\nCREATE TABLE platform.ops001_rehearsal_marker (id integer PRIMARY KEY);\n' \
   > "$W/repo/apps/core-api/src/main/resources/db/migration/V9000__ops001_rehearsal_marker.sql"
 SHA_B=$(commit "rehearsal: release with a migration whose checks fail") && hr_require_sha "$SHA_B" && bundle "$SHA_B"
 
-# --- 1. first deployment ---------------------------------------------------------------------
+# --- 1. first deployment: a timer installation failure records nothing (R66-4) ----------------
+first_units_failure() {
+  local rc
+  HR_DEV_INSTALL_UNITS_CMD=false "$HR_DEV_OPS/remote-deploy.sh" --bundle "$W/$SHA_A.bundle" --sha "$SHA_A" --first-run
+  rc=$?
+  [ "$rc" != 0 ] || { echo "  the deployment succeeded although its timers failed"; return 1; }
+  [ -z "$(hr_current_release)" ] || { echo "  a release was recorded as current"; return 1; }
+  [ ! -e "$HR_DEV_DATA/current" ] || { echo "  the current symlink exists"; return 1; }
+  [ -z "$(hr_compose "$SHA_A" ps -q --status running)" ] || { echo "  containers are still running"; return 1; }
+  echo "  failed first deployment: nothing recorded as current, the stack is stopped"
+}
+step first-deploy-units-failure first_units_failure
+
 step deploy-first "$HR_DEV_OPS/remote-deploy.sh" --bundle "$W/$SHA_A.bundle" --sha "$SHA_A" --first-run \
   || { echo "STOP: the first deployment failed"; cat "$SUMMARY"; exit 1; }
 [ "$(hr_current_release)" = "$SHA_A" ] && pass "current release is the deployed SHA" || fail "current release"
@@ -193,21 +224,37 @@ export HR_DEV_DRILL_E2E="'$HR_DEV_OPS/rehearsal-browser.sh' 39443 39180 --grep-i
 step restore-drill "$HR_DEV_OPS/restore-drill.sh" && sed 's/^/  /' "$HR_DEV_DATA/state/last-restore-drill"
 unset HR_DEV_DRILL_E2E
 
-# --- 7. no-migration rollback ------------------------------------------------------------------
-rollback_test() { # <bundle sha> <expected path>
+# --- 7. rollbacks: both pre-deploy dumps are restored before the previous images start --------
+rollback_test() { # <bundle sha> <expected path> [environment assignments for remote-deploy]
   local sha="$1" path="$2" rc
-  "$HR_DEV_OPS/remote-deploy.sh" --bundle "$W/$sha.bundle" --sha "$sha"; rc=$?
+  shift 2
+  env "$@" "$HR_DEV_OPS/remote-deploy.sh" --bundle "$W/$sha.bundle" --sha "$sha"; rc=$?
   [ "$rc" != 0 ] || { echo "  the failing release was accepted"; return 1; }
   [ "$(hr_current_release)" = "$SHA_A" ] || { echo "  the running release is not the previous one"; return 1; }
   grep -qx "path=$path" "$HR_DEV_DATA/state/last-rollback" || { echo "  rollback path was not $path"; return 1; }
   sed 's/^/  /' "$HR_DEV_DATA/state/last-rollback"
   checks_ok "after the rollback" || return 1
 }
-step rollback-no-migration rollback_test "$SHA_C" no-migration
+upgrade_units_failure() {
+  rollback_test "$SHA_E" restore HR_DEV_INSTALL_UNITS_CMD=false || return 1
+  [ "$(cat "$HR_DEV_DATA/state/failed-release")" = "$SHA_E" ] || { echo "  the failed release was not recorded"; return 1; }
+  [ "$(readlink "$HR_DEV_DATA/current")" = "releases/$SHA_A" ] || { echo "  current does not point to the previous release"; return 1; }
+  echo "  upgrade whose timers failed: the previous release is current and serving"
+}
+step upgrade-units-failure upgrade_units_failure
+
+identity_test() {
+  rollback_test "$SHA_C" restore || return 1
+  [ "$(hr_compose "$SHA_A" exec -T postgres psql -U postgres -d keycloak -At \
+    -c "SELECT to_regclass('public.ops001_identity_marker') IS NULL")" = t ] \
+    || { echo "  the identity database change survived the rollback"; return 1; }
+  echo "  the pre-deploy Keycloak dump was restored before the previous Keycloak image started"
+}
+step rollback-identity-change identity_test
 
 # --- 8. migration rollback ---------------------------------------------------------------------
 migration_test() {
-  rollback_test "$SHA_B" migration || return 1
+  rollback_test "$SHA_B" restore || return 1
   hr_applied_migrations "$SHA_A" | grep -qx 9000 && { echo "  the rehearsal migration survived"; return 1; }
   [ "$(hr_compose "$SHA_A" exec -T postgres psql -U postgres -d divalhr -At \
     -c "SELECT to_regclass('platform.ops001_rehearsal_marker') IS NULL")" = t ] || { echo "  marker table survived"; return 1; }
