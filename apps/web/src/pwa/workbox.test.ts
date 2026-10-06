@@ -26,8 +26,20 @@ describe('service worker caching (MVP-010 guardrails 3 and 6)', () => {
     }
   });
 
+  it('never answers the same-origin identity provider or AI service with the cached shell (OPS-001)', () => {
+    for (const path of [
+      '/identity/realms/divalhr-test/protocol/openid-connect/auth',
+      '/identity/realms/divalhr-test/protocol/openid-connect/logout',
+      '/identity/realms/divalhr-test/login-actions/action-token',
+      '/ai/api/v1/system/status',
+    ]) {
+      expect(denied(path), path).toBe(true);
+    }
+  });
+
   it('serves the invitation page from the shell; its token stays in the fragment', () => {
     expect(denied('/invitation')).toBe(false);
     expect(denied('/admin/users')).toBe(false);
+    expect(denied('/identity-card')).toBe(false);
   });
 });
