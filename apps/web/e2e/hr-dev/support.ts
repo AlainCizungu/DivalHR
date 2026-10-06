@@ -214,7 +214,7 @@ export async function postForm(page: Page, path: string, form: Record<string, st
         body: new URLSearchParams(body).toString(),
       });
       const text = await response.text();
-      let json: Record<string, unknown> = {};
+      let json: Record<string, unknown>;
       try {
         json = JSON.parse(text) as Record<string, unknown>;
       } catch {
@@ -230,7 +230,7 @@ export async function postForm(page: Page, path: string, form: Record<string, st
 export async function getJson(page: Page, url: string) {
   return page.evaluate(async (target) => {
     const response = await fetch(target);
-    let json: Record<string, unknown> = {};
+    let json: Record<string, unknown>;
     try {
       json = (await response.json()) as Record<string, unknown>;
     } catch {
@@ -247,7 +247,7 @@ export async function getJsonWithToken(page: Page, path: string, token: string) 
       const response = await fetch(url, {
         headers: bearer ? { Authorization: `Bearer ${bearer}` } : {},
       });
-      let json: Record<string, unknown> = {};
+      let json: Record<string, unknown>;
       try {
         json = (await response.json()) as Record<string, unknown>;
       } catch {
