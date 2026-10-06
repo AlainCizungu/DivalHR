@@ -6,13 +6,21 @@
 #   spike   Core API compatibility spike (Gradle check, SpotBugs, tests) + image digests
 #   core    Core API format + full clean check + bootJar
 #   stack   Compose stack up, status/CORS probes, Playwright smoke, log secret scan, down
-#   all     core + stack
+#   hrdev   OPS-001: full test-environment rehearsal (ops/hr-dev/rehearse.sh, needs sudo -n):
+#           deploy, browser acceptance, backup, host lock, watchdog, restore drill, rollbacks
+#   all     core + stack + hrdev
+#
+# OPS-001 (A65-5): takes the host-wide lock (ops/host/host-lock.sh) unless the caller (aws-verify)
+# already holds it; on a machine without the lock file (a workstation) it runs without it.
 #
 # Compatible with macOS bash 3.2 and Linux bash.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 STAGE="${1:-spike}"
+# shellcheck source=../../ops/host/host-lock.sh
+. "$ROOT/ops/host/host-lock.sh"
+divalhr_lock "verify-on-host $STAGE" --optional || exit $?
 OUT="$ROOT/.git/divalhr-verify"
 mkdir -p "$OUT"
 LOG="$OUT/$STAGE.log"
@@ -184,11 +192,24 @@ stage_stack() {
   run compose-down $compose down -v
 }
 
+# OPS-001: the test-environment rehearsal runs as root through sudo -n (it creates files owned by
+# the container users); the browser suite inside it runs as this user again.
+stage_hrdev() {
+  env_report
+  run node24 use_node24
+  run pnpm-install pnpm_pinned install --frozen-lockfile
+  run playwright-browsers pnpm_pinned --filter @divalhr/web exec playwright install chromium
+  run hrdev-ops-test pnpm_pinned ops:test
+  run hrdev-rehearsal sudo -n env DIVALHR_HOST_LOCK_HELD="${DIVALHR_HOST_LOCK_HELD:-}" \
+    HR_DEV_USER_PATH="$PATH" "$ROOT/ops/hr-dev/rehearse.sh"
+}
+
 case "$STAGE" in
   spike) stage_spike ;;
   core) stage_core ;;
   stack) stage_stack ;;
-  all) stage_core; stage_stack ;;
+  hrdev) stage_hrdev ;;
+  all) stage_core; stage_stack; stage_hrdev ;;
   *) echo "unknown stage: $STAGE" >&2; exit 2 ;;
 esac
 

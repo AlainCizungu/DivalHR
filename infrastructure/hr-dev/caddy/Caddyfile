@@ -1,0 +1,158 @@
+# OPS-001 (Issue #65): the only entry point of the DivalHR test environment.
+#
+# - Public site {$HR_DEV_HOST} on 80/443: same-origin path routing (D1). TLS from Let's Encrypt
+#   (HR_DEV_TLS = the ACME contact address) or, for rehearsals only, Caddy's internal CA
+#   (HR_DEV_TLS = internal).
+# - Internal identity route on {$CADDY_IDP_INTERNAL_BIND}:8081 (A65-2): the only network path
+#   from the Core API to Keycloak, bound to the private app network. Like the public site it
+#   overwrites the X-Forwarded-* headers before forwarding.
+# - Operator site on {$CADDY_ADMIN_BIND}:18180 (Keycloak admin console, Mailpit UI), published
+#   by Compose on 127.0.0.1 only and used through an SSH tunnel.
+#
+# Caddy trusts no upstream proxy, so client-supplied X-Forwarded-* headers are never passed on.
+# Every response of every site carries X-Robots-Tag: noindex, nofollow, noarchive (section 8).
+{
+	admin 127.0.0.1:2019
+}
+
+(noindex) {
+	# Deferred (">"): applied after the upstream answers, so these values replace any the
+	# upstream sent (Keycloak sends its own HSTS) and also reach error responses.
+	header {
+		>X-Robots-Tag "noindex, nofollow, noarchive"
+		>X-Content-Type-Options nosniff
+		-Server
+		-Via
+	}
+}
+
+(accesslog) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				# OIDC callbacks carry code and state in the query string: never log a query.
+				request>uri regexp "\?.*$" ""
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+				resp_headers>Set-Cookie delete
+			}
+		}
+	}
+}
+
+(keycloak_public) {
+	reverse_proxy {$KEYCLOAK_UPSTREAM} {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {$HR_DEV_HOST}
+		header_up X-Forwarded-Port 443
+		header_up -Forwarded
+	}
+}
+
+# Public site.
+{$HR_DEV_HOST} {
+	tls {$HR_DEV_TLS}
+	import noindex
+	import accesslog
+	# One day, this host only: no includeSubDomains, no preload (D10).
+	header >Strict-Transport-Security "max-age=86400"
+	encode zstd gzip
+
+	handle /robots.txt {
+		respond <<TXT
+			User-agent: *
+			Disallow: /
+			TXT 200
+	}
+
+	# Never public: Keycloak admin UI and API, the master realm, the account console, the
+	# provisioning extension, Keycloak health and metrics, the Core actuator (A65-2).
+	@blocked path_regexp ^/(identity/(admin|realms/master|health|metrics)|identity/realms/[^/]+/(account|divalhr-provisioning)|actuator|api/actuator)(/.*)?$
+	handle @blocked {
+		respond 404
+	}
+
+	# Keycloak: only the test realm and the static assets its pages load.
+	@identity path /identity/realms/{$KEYCLOAK_REALM}/* /identity/resources/* /identity/js/*
+	handle @identity {
+		import keycloak_public
+	}
+	handle /identity* {
+		respond 404
+	}
+
+	handle /api/* {
+		reverse_proxy {$CORE_UPSTREAM}
+	}
+
+	# AI service: public status only, prefix removed.
+	handle /ai/api/v1/system/* {
+		uri strip_prefix /ai
+		reverse_proxy {$AI_UPSTREAM}
+	}
+	handle /ai* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy {$WEB_UPSTREAM}
+	}
+
+	handle_errors {
+		import noindex
+		header >Strict-Transport-Security "max-age=86400"
+		respond "{err.status_code}" {err.status_code}
+	}
+}
+
+# Plain HTTP to the public name: redirect. The ACME HTTP-01 challenge is answered before this.
+http://{$HR_DEV_HOST} {
+	import noindex
+	import accesslog
+	redir https://{host}{uri} 308
+}
+
+# Any other name, including the bare IP address: a guarded 404, never content.
+http:// {
+	import noindex
+	import accesslog
+	respond 404
+}
+
+# Internal identity route: Core API -> Keycloak (token endpoint, keys, provisioning extension).
+http://:8081 {
+	bind {$CADDY_IDP_INTERNAL_BIND}
+	import noindex
+	@allowed path /identity/realms/{$KEYCLOAK_REALM}/protocol/openid-connect/token /identity/realms/{$KEYCLOAK_REALM}/protocol/openid-connect/certs /identity/realms/{$KEYCLOAK_REALM}/divalhr-provisioning/*
+	handle @allowed {
+		import keycloak_public
+	}
+	handle {
+		respond 404
+	}
+}
+
+# Operator site, through an SSH tunnel to 127.0.0.1:18180 only: the Keycloak admin console
+# (KC_HOSTNAME_ADMIN, A65-2) and the Mailpit UI.
+http://:18180 {
+	bind {$CADDY_ADMIN_BIND}
+	import noindex
+	# Mailpit UI (all test e-mail stays inside the stack).
+	handle /mail/* {
+		reverse_proxy {$MAILPIT_UPSTREAM}
+	}
+	@admin path /identity/admin /identity/admin/* /identity/realms/master/* /identity/resources/* /identity/js/*
+	handle @admin {
+		reverse_proxy {$KEYCLOAK_UPSTREAM} {
+			header_up X-Forwarded-Proto http
+			header_up X-Forwarded-Host localhost:{$HR_DEV_ADMIN_PORT}
+			header_up X-Forwarded-Port {$HR_DEV_ADMIN_PORT}
+			header_up -Forwarded
+		}
+	}
+	handle {
+		respond 404
+	}
+}

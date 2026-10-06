@@ -1,0 +1,9 @@
+# OPS-001 (A65-7): GitHub check runs that must have concluded "success" on a commit of main before
+# ops/hr-dev/deploy.sh deploys it to the test environment. One name or shell-style pattern per
+# line; a pattern must match at least one run, and every run it matches must have succeeded.
+# Independently of this list, every check run present on the commit must be success, neutral or
+# skipped, and none may still be running.
+end-to-end smoke (login, health, fr/en, accessibility)
+container build validation*
+hr-dev ops validation
+secret scanning

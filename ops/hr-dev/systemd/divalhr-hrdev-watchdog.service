@@ -1,0 +1,11 @@
+# OPS-001 (A65-3): health recovery of the test environment (see ops/hr-dev/watchdog.sh).
+[Unit]
+Description=DivalHR test environment health watchdog
+RequiresMountsFor=/srv/divalhr-test
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/divalhr-test/current/ops/hr-dev/watchdog.sh
+TimeoutStartSec=120

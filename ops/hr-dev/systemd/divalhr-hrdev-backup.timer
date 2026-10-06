@@ -1,0 +1,12 @@
+# OPS-001 (section 9): 02:17 UTC every night; runs at the next boot when a night was missed.
+# A backup that finds the host lock busy (a deploy in progress) exits 75 and retries next night.
+[Unit]
+Description=DivalHR test environment nightly backup (02:17 UTC)
+
+[Timer]
+OnCalendar=*-*-* 02:17:00 UTC
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

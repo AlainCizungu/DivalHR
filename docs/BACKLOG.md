@@ -235,3 +235,13 @@ Anonymous visitors to `/` see the DivalHR landing page in English or French; exi
 **Issue #63. In review.** One typed catalogue drives the twelve approved vision modules (Employee Management, Leave Management, Payroll & Payments, Loans & Salary Advances, Benefits & Insurance, Performance, Documents, Analytics, Workflow Automation, Dival AI, Integrations, Mobile Apps), each labelled "Available now" or "Coming later" against the actual product, plus an "In DivalHR today" list (employee management, organization structure, contracts, access and security). The planned integration ecosystem shows twenty official names, with eight locally served marks and seven documented name-only exceptions (`docs/BRAND-ASSETS.md`); the payout story and finance flow are marked "Coming later" with the approved responsibility wording. Static illustrative product preview with a bilingual caption and no figures or data. Request a demo opens `mailto:contact@dival.ai`. Frontend only; no new dependency.
 
 Deployment handoff (UI2-6), for the hr-dev hosting story: `hr-dev.dival.ai` must send `X-Robots-Tag: noindex, nofollow, noarchive`, must not be submitted to search engines or included in production sitemaps; the landing page does not hard-code that host.
+
+## Epic 14 Operations
+
+### OPS-001 Deploy the DivalHR test environment to hr-dev.dival.ai
+
+A released commit of `main` runs at `https://hr-dev.dival.ai` with synthetic data only, so the product can be demonstrated and accepted outside a workstation.
+
+**Issue #65. In review (repository changes only; deployment is a separate controlled execution).** Same-origin routing through Caddy (`/`, `/api`, `/ai`, `/identity`), a production-mode Keycloak build under `/identity` with the `divalhr-test` realm, Core in the `test` environment with file-based secrets, Mailpit, PostgreSQL 17 on a dedicated encrypted EBS volume with nightly logical dumps and daily encrypted snapshots, a single health watchdog, a host-wide operation lock, fail-closed deployment provenance, automatic rollback (with dump restore when migrations changed), an isolated restore drill, and a full rehearsal in every complete AWS verification (`docs/OPS-HR-DEV.md`). Approved proposal D1–D13 with amendments A65-1 to A65-7 on Issue #65 apply.
+
+Out of scope for OPS-001: production or staging, a dedicated identity origin (a production requirement, D1), high availability, external monitoring, real e-mail delivery and any change to application behaviour.

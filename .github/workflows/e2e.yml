@@ -1,7 +1,10 @@
 name: e2e
-# Full stack validation on every pull request to main, regardless of changed paths.
+# Full stack validation on every pull request to main, regardless of changed paths, and on every
+# commit of main (OPS-001 A65-7: a test-environment deployment requires green checks on its SHA).
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_dispatch:
 permissions:
@@ -22,6 +25,11 @@ jobs:
           - { name: ai-service, context: apps/ai-service, file: apps/ai-service/Dockerfile }
           - { name: web, context: ., file: apps/web/Dockerfile }
           - { name: keycloak, context: ., file: infrastructure/docker/keycloak/Dockerfile }
+          # OPS-001: the production-mode Keycloak build of the test environment.
+          - name: keycloak-hr-dev
+            context: .
+            file: infrastructure/docker/keycloak/Dockerfile
+            build-args: KC_BUILD_OPTIONS=--db=postgres --cache=local --http-relative-path=/identity --health-enabled=true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -31,6 +39,35 @@ jobs:
           file: ${{ matrix.file }}
           push: false
           tags: divalhr/${{ matrix.name }}:ci
+          build-args: ${{ matrix.build-args }}
+
+  hr-dev:
+    name: hr-dev ops validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      HR_DEV_RELEASE: '0000000000000000000000000000000000000000'
+      HR_DEV_HOST: hr-dev.dival.ai
+      HR_DEV_ORIGIN: https://hr-dev.dival.ai
+      HR_DEV_DATA: /srv/divalhr-test
+      HR_DEV_TLS: internal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Shell scripts (shellcheck)
+        run: >-
+          shellcheck -x -S warning ops/host/*.sh ops/hr-dev/*.sh ops/aws/*.sh
+          infrastructure/hr-dev/postgres/*.sh scripts/dev/verify-on-host.sh
+      - name: Compose model of the test environment
+        run: docker compose -f infrastructure/hr-dev/compose.yaml config -q
+      - name: Caddyfile of the test environment
+        run: >-
+          docker run --rm -v "$PWD/infrastructure/hr-dev/caddy/Caddyfile:/etc/caddy/Caddyfile:ro"
+          -e HR_DEV_HOST=hr-dev.dival.ai -e HR_DEV_TLS=internal -e KEYCLOAK_REALM=divalhr-test
+          -e KEYCLOAK_UPSTREAM=keycloak:8080 -e CORE_UPSTREAM=core-api:8080 -e AI_UPSTREAM=ai-service:8090
+          -e WEB_UPSTREAM=web:8080 -e MAILPIT_UPSTREAM=mailpit:8025 -e HR_DEV_ADMIN_PORT=18180
+          -e CADDY_IDP_INTERNAL_BIND=127.0.0.1 -e CADDY_ADMIN_BIND=127.0.0.1
+          caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+          caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile
 
   smoke:
     name: end-to-end smoke (login, health, fr/en, accessibility)

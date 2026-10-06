@@ -1,0 +1,11 @@
+# OPS-001 (A65-3): runs the watchdog every 60 seconds.
+[Unit]
+Description=DivalHR test environment health watchdog (every minute)
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
