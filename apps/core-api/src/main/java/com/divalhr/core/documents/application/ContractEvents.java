@@ -332,6 +332,47 @@ public class ContractEvents {
             identifiers("integrity", contractId)));
   }
 
+  /**
+   * Records an expiration-queue disclosure (MVP-031A, Issue #73, A31A-6). The integrity hash covers
+   * exactly what the response disclosed: for a search, the business date, the counts and the page's
+   * contract IDs; for the summary, its own payload (business date, time zone and counts) only,
+   * never the eligible IDs behind a count. Metadata is the allow-list {@code schemaVersion}, {@code
+   * view}, {@code page}, {@code resultCount} and {@code filterKinds} (which filters were used,
+   * never their values).
+   *
+   * @param caller verified caller
+   * @param action audit action
+   * @param view {@code search} or {@code summary}
+   * @param page {@code first}, {@code next} or {@code single}
+   * @param filterKinds names of the filters present
+   * @param disclosed canonical text of the disclosed payload (hashed, never stored)
+   * @param resultCount items disclosed
+   * @param now audit time
+   */
+  void expirationsDisclosed(
+      DocumentsCaller caller,
+      String action,
+      String view,
+      String page,
+      List<String> filterKinds,
+      String disclosed,
+      int resultCount,
+      Instant now) {
+    Map<String, Object> values = new LinkedHashMap<>();
+    values.put("view", view);
+    values.put("page", page);
+    values.put("resultCount", resultCount);
+    values.put("filterKinds", List.copyOf(filterKinds));
+    record(
+        caller,
+        action,
+        "organization",
+        caller.tenant().value(),
+        metadata(values),
+        Fingerprints.sha256("DIVALHR-CONTRACT-EXPIRATION-DISCLOSURE\nversion=1\n" + disclosed),
+        now);
+  }
+
   private static Map<String, Object> metadata(Map<String, Object> values) {
     Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("schemaVersion", SCHEMA_VERSION);

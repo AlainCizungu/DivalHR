@@ -69,6 +69,7 @@ describe('signed-in frame', () => {
         en.nav.employeeImport,
         en.nav.hierarchy,
         en.nav.contractTemplates,
+        en.nav.contractExpirations,
         en.nav.users,
         en.nav.accessReview,
       ],
@@ -105,6 +106,7 @@ describe('signed-in frame', () => {
     ['/admin/people/3b0d2f4e-0000-4000-8000-000000000001', en.nav.employees],
     ['/admin/people/import', en.nav.employeeImport],
     ['/admin/contract-templates/3b0d2f4e-0000-4000-8000-000000000002', en.nav.contractTemplates],
+    ['/admin/contract-expirations', en.nav.contractExpirations],
   ])('marks the current page for %s', async (path, expected) => {
     await renderShell(sessionWithRoles(['tenant-admin']), { path });
     const current = within(primaryNav())

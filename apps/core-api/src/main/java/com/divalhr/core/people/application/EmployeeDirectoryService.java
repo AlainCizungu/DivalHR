@@ -86,7 +86,7 @@ public class EmployeeDirectoryService {
       Pattern.compile(
           "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
   private static final Pattern LIMIT = Pattern.compile("^[0-9]{1,3}$");
-  private static final Pattern EMPLOYEE_NUMBER = Pattern.compile("^[A-Z0-9][A-Z0-9._/-]{0,31}$");
+  static final Pattern EMPLOYEE_NUMBER = Pattern.compile("^[A-Z0-9][A-Z0-9._/-]{0,31}$");
   private static final Pattern TIMELINE_CODE = Pattern.compile("^([1-4])-([0-9]{8})$");
   private static final Pattern MICROS = Pattern.compile("^[0-9]{16}$");
   private static final DateTimeFormatter BASIC = DateTimeFormatter.BASIC_ISO_DATE;

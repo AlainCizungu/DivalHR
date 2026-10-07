@@ -376,7 +376,8 @@ class ContractMigrationIntegrationTest {
         db -> {
           migrate(db.url(), "15");
           String v15 = db.jdbc().queryForObject(SIGNATURE, String.class);
-          migrate(db.url(), "latest");
+          // V16 exactly: later migrations (V17 adds an index) have their own rollback tests.
+          migrate(db.url(), "16");
           String v16 = db.jdbc().queryForObject(SIGNATURE, String.class);
           assertThat(v16).isNotEqualTo(v15).contains("documents.contract_acknowledgement");
           int recorded = history(db);

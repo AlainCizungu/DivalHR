@@ -6,6 +6,7 @@ import type {
 } from '@divalhr/api-client';
 import { useCallback, useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router';
 import { useApi } from '../../app/ApiProvider';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatPeriod } from '../people/history';
@@ -33,7 +34,8 @@ type Loaded =
  * MVP-030: an employee's contracts on their profile. An administrator previews a contract from an
  * approved template version (the exact text the employee will see), confirms the issue with the
  * preview's employment version and digest, reads each contract with its acknowledgement
- * evidence, and voids a contract that has not been acknowledged.
+ * evidence, and voids a contract that has not been acknowledged. Arriving with the `#contracts`
+ * fragment (from the contract expiration queue, MVP-031A) moves focus to this section once.
  */
 export function EmployeeContractsSection({
   employeeId,
@@ -52,6 +54,9 @@ export function EmployeeContractsSection({
   const issueKey = useIdempotencyKey();
   const voidKey = useIdempotencyKey();
   const [loaded, setLoaded] = useState<Loaded>({ kind: 'loading' });
+  const { hash } = useLocation();
+  const arrival = useRef(hash === '#contracts');
+  const sectionHeading = useRef<HTMLHeadingElement>(null);
   const [local, setLocal] = useState(0);
   const [versionId, setVersionId] = useState('');
   const [start, setStart] = useState(businessDate);
@@ -132,6 +137,13 @@ export function EmployeeContractsSection({
       active = false;
     };
   }, [load, revision, local]);
+
+  useEffect(() => {
+    if (arrival.current && loaded.kind !== 'loading' && sectionHeading.current) {
+      arrival.current = false;
+      sectionHeading.current.focus();
+    }
+  }, [loaded.kind]);
 
   const fail = (next: ContractFailure) => {
     setFailure(next);
@@ -257,8 +269,15 @@ export function EmployeeContractsSection({
     loaded.kind === 'ready' ? loaded.options.find((o) => o.versionId === versionId) : undefined;
 
   return (
-    <section aria-labelledby={`${ids}-title`} className="card" data-testid="contracts">
-      <h2 id={`${ids}-title`}>{t('contracts.issue.title')}</h2>
+    <section
+      id="contracts"
+      aria-labelledby={`${ids}-title`}
+      className="card"
+      data-testid="contracts"
+    >
+      <h2 id={`${ids}-title`} tabIndex={-1} ref={sectionHeading}>
+        {t('contracts.issue.title')}
+      </h2>
       {failure && <ContractAlert failure={failure} ref={failureBox} data-testid="contract-error" />}
       {loaded.kind === 'loading' && <p role="status">{t('contracts.loading')}</p>}
       {loaded.kind === 'failed' && (

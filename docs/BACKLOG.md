@@ -130,6 +130,10 @@ Out of scope for MVP-030: PDF files, uploads and object storage, e-signature pro
 
 Authorized users receive alerts for expiring contracts, credentials, and identity records.
 
+**MVP-031A (Issue #73). In review.** Contract expirations: a tenant-administrator queue and a home card "Contracts needing attention" / « Contrats à traiter » over issued contracts. One row per employment, its coverage head (the last contract of the contiguous chain that includes the latest started contract, else the earliest future one; voided contracts ignored); open-ended heads never warn; a recorded separation whose last day is on or before the head's end suppresses it. Categories on the organization's business date: expired, next 30 days, 31–60, 61–90. Search by employee number or name, filter by department or cost center through the hierarchy, keyset pages whose HMAC cursor pins the business date and filters. Fail-closed disclosure audit, no new data. V17 adds an index. Approved proposal with amendments A31A-1 to A31A-6 on Issue #73 apply.
+
+**MVP-031B. Reserved.** Credential and identity-document expiration, once the underlying document model exists.
+
 ## Epic 5 Leave and Approvals
 
 ### MVP-040 Configure leave policy

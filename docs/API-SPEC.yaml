@@ -3096,6 +3096,90 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /contract-expirations/search:
+    post:
+      operationId: searchContractExpirations
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List contracts that have expired or end within 90 days
+      description: >-
+        MVP-031A (Issue #73). One row per employment: its coverage head, i.e. the last contract of
+        the contiguous chain that includes the latest contract started on or before the business
+        date (else the earliest future one); voided contracts are ignored. Open-ended heads, heads
+        ending more than 90 days after the business date, and employments whose recorded last day
+        is before the business date or on or before the head's end are excluded. Categories use
+        the organization's business date (asOf, in its IANA time zone): EXPIRED before it,
+        NEXT_30_DAYS from it to day 30, DAYS_31_TO_60, DAYS_61_TO_90. Most urgent first (end date,
+        then contract ID). counts apply the same rules, search and unit as the items, before the
+        category filter. The HMAC-protected cursor pins asOf and every filter; rows are never repeated,
+        but eligibility is re-evaluated on each request, so rows can appear or disappear after the
+        cursor. Filters travel in the body so the search text never reaches a URL. Recorded as a
+        disclosure (audit contract-expiration.read). Cache-Control private, no-store.
+      tags: [documents]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractExpirationSearch"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractExpirationPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /contract-expirations/summary:
+    get:
+      operationId: getContractExpirationSummary
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Count the contracts that have expired or end within 90 days
+      description: >-
+        MVP-031A (Issue #73). The unfiltered counts of searchContractExpirations, computed by the
+        same query on the same business date; they equal a search without filters. Recorded as a
+        disclosure whose integrity hash covers this payload only (audit contract-expiration.read).
+        Cache-Control private, no-store.
+      tags: [documents]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractExpirationSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /me/contracts:
     get:
       operationId: listMyContracts
@@ -6094,6 +6178,152 @@ components:
         version:
           type: integer
           minimum: 0
+    ContractExpirationCategory:
+      type: string
+      enum: [EXPIRED, NEXT_30_DAYS, DAYS_31_TO_60, DAYS_61_TO_90]
+      description: >-
+        d = end date - business date. EXPIRED d < 0; NEXT_30_DAYS 0 to 30 (a contract ending
+        today is not expired); DAYS_31_TO_60; DAYS_61_TO_90.
+    ContractExpirationSearch:
+      type: object
+      additionalProperties: false
+      description: Every field is optional.
+      properties:
+        query:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 100
+          description: >-
+            Employee-number prefix or name words, as the employee search (2-100 code points after
+            NFC normalization). Never logged, audited or echoed.
+        unitId:
+          type: [string, "null"]
+          format: uuid
+          description: >-
+            Department or cost center of the employee's current placement (on the business date,
+            or on the first day of an employment that has not started). Bound into the cursor;
+            the counts honor it.
+        categories:
+          type: [array, "null"]
+          minItems: 1
+          maxItems: 4
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ContractExpirationCategory"
+          description: Categories of the items (default all). The counts always cover all four.
+        cursor:
+          type: [string, "null"]
+          maxLength: 512
+        limit:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 50
+    ContractExpirationCounts:
+      type: object
+      required: [expired, next30Days, days31To60, days61To90, total]
+      properties:
+        expired:
+          type: integer
+          minimum: 0
+        next30Days:
+          type: integer
+          minimum: 0
+        days31To60:
+          type: integer
+          minimum: 0
+        days61To90:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+    ContractExpirationUnit:
+      type: object
+      description: Organizational data (not personal data).
+      required: [id, kind, code, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [DEPARTMENT, COST_CENTER]
+        code:
+          type: string
+        name:
+          type: string
+    ContractExpiration:
+      type: object
+      description: >-
+        Employee number and names are Confidential; the end date is Restricted HR. No contract
+        type, content, compensation or identity data.
+      required:
+        - contractId
+        - employeeId
+        - employeeNumber
+        - givenNames
+        - familyName
+        - unit
+        - endDate
+        - category
+        - daysUntilEnd
+      properties:
+        contractId:
+          type: string
+          format: uuid
+          description: Internal reference; not a user-facing contract number.
+        employeeId:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/ContractExpirationUnit"
+            - type: "null"
+        endDate:
+          type: string
+          format: date
+        category:
+          $ref: "#/components/schemas/ContractExpirationCategory"
+        daysUntilEnd:
+          type: integer
+          description: Days from asOf to the end date; negative when overdue.
+    ContractExpirationPage:
+      type: object
+      required: [asOf, timezone, counts, items, nextCursor]
+      properties:
+        asOf:
+          type: string
+          format: date
+          description: The business date the categories were computed for.
+        timezone:
+          type: string
+          description: The organization's IANA time zone.
+        counts:
+          $ref: "#/components/schemas/ContractExpirationCounts"
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/ContractExpiration"
+        nextCursor:
+          type: [string, "null"]
+    ContractExpirationSummary:
+      type: object
+      required: [asOf, timezone, counts]
+      properties:
+        asOf:
+          type: string
+          format: date
+        timezone:
+          type: string
+        counts:
+          $ref: "#/components/schemas/ContractExpirationCounts"
     ContractPage:
       type: object
       required: [items, nextCursor]

@@ -11,6 +11,7 @@ const TENANT = [
   '/admin/people/import',
   '/admin/hierarchy',
   '/admin/contract-templates',
+  '/admin/contract-expirations',
   '/admin/users',
   '/admin/access',
 ];
@@ -68,7 +69,7 @@ describe('navigation and route registry consistency', () => {
     for (const route of listPages) expect(navPaths, route.path).toContain(route.path);
   });
 
-  it('keeps every pre-UI-001 URL', () => {
+  it('keeps every pre-UI-001 URL, plus the MVP-031A queue', () => {
     expect(ROUTES.map((route) => route.path).sort()).toEqual(
       [
         '/',
@@ -83,6 +84,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/people/import',
         '/admin/contract-templates',
         '/admin/contract-templates/:templateId',
+        '/admin/contract-expirations',
         '/me/contracts',
         '/me/contracts/:contractId',
         '/invitation',

@@ -16,6 +16,7 @@
     "employees": "Employés",
     "employeeImport": "Importer des employés",
     "contractTemplates": "Modèles de contrat",
+    "contractExpirations": "Échéances des contrats",
     "myContracts": "Mes contrats",
     "groups": {
       "overview": "Vue d’ensemble",
@@ -131,6 +132,17 @@
         "accessReview": "Voyez qui a accès à quoi, et par quelle affectation.",
         "contractTemplates": "Rédigez, approuvez et retirez les modèles servant à émettre les contrats.",
         "employeeImport": "Reprenez vos employés existants depuis un tableur, avec un aperçu préalable."
+      },
+      "attention": {
+        "title": "Contrats à traiter",
+        "count_one": "{{count}} contrat est échu ou se termine dans les 90 jours.",
+        "count_other": "{{count}} contrats sont échus ou se terminent dans les 90 jours.",
+        "expired_one": "{{count}} est déjà échu.",
+        "expired_other": "{{count}} sont déjà échus.",
+        "none": "Aucun contrat n’est échu ni ne se termine dans les 90 prochains jours.",
+        "loading": "Chargement du nombre…",
+        "failed": "Impossible de charger le nombre.",
+        "open": "Voir les échéances des contrats"
       }
     },
     "employee": {
@@ -160,7 +172,7 @@
       },
       "documentExpiry": {
         "title": "Échéances des documents",
-        "description": "Suivi des documents et habilitations qui expirent."
+        "description": "Suivi des habilitations et pièces d’identité qui expirent."
       },
       "payrollInputs": {
         "title": "Éléments de paie",
@@ -1047,7 +1059,7 @@
     "employmentStatus": {
       "CURRENT": "En poste",
       "NOT_STARTED": "Pas encore entré",
-      "ENDED": "Contrat terminé"
+      "ENDED": "Emploi terminé"
     },
     "assignmentStatus": {
       "CURRENT": "En cours",
@@ -1612,6 +1624,65 @@
       "changed": "Le contrat ou la déclaration a changé. La page a été rechargée : relisez-la avant d’accuser réception.",
       "linkRequired": "Votre compte n’est pas encore relié à votre dossier d’employé. Contactez l’administrateur de votre organisation."
     }
+  },
+  "contractExpirations": {
+    "title": "Échéances des contrats",
+    "description": "Contrats échus ou se terminant dans les 90 jours, un par emploi : le dernier contrat de sa couverture en cours. Ouvrez le dossier de l’employé pour assurer le suivi.",
+    "asOf": "Calcul au {{date}} ({{timezone}})",
+    "categoriesLabel": "Contrats à afficher",
+    "category": {
+      "EXPIRED": "Échus",
+      "NEXT_30_DAYS": "Dans les 30 prochains jours",
+      "DAYS_31_TO_60": "De 31 à 60 jours",
+      "DAYS_61_TO_90": "De 61 à 90 jours"
+    },
+    "categoryToggle": "{{label}} : {{count}}",
+    "days": {
+      "today": "Se termine aujourd’hui",
+      "remaining_one": "Se termine dans {{count}} jour",
+      "remaining_other": "Se termine dans {{count}} jours",
+      "overdue_one": "Échu depuis {{count}} jour",
+      "overdue_other": "Échu depuis {{count}} jours"
+    },
+    "filters": {
+      "title": "Filtres",
+      "query": "Matricule ou nom",
+      "queryHelp": "Un début de matricule ou des mots du nom ; les accents et la casse sont ignorés. Laissez vide pour tout le monde.",
+      "queryLength": "Saisissez de 2 à 100 caractères, ou laissez le champ vide.",
+      "unit": "Unité",
+      "unitHelp": "Choisissez une entité juridique et un site, puis un département ou un centre de coût.",
+      "legalEntity": "Entité juridique",
+      "site": "Site",
+      "department": "Département ou centre de coût",
+      "anyLegalEntity": "Toutes les entités juridiques",
+      "anySite": "Tous les sites",
+      "anyUnit": "Toutes les unités",
+      "departments": "Départements",
+      "costCenters": "Centres de coût",
+      "unitsUnavailable": "Impossible de charger les unités. Vous pouvez toujours filtrer par nom ou matricule.",
+      "apply": "Appliquer les filtres",
+      "reset": "Réinitialiser les filtres"
+    },
+    "results": "Contrats",
+    "caption": "Contrats par date de fin, les plus urgents d’abord",
+    "columns": {
+      "employee": "Employé",
+      "employeeNumber": "Matricule",
+      "unit": "Unité",
+      "endDate": "Date de fin",
+      "status": "Statut"
+    },
+    "unitName": "{{name}} ({{code}})",
+    "noUnit": "Aucune affectation",
+    "empty": "Aucun contrat n’est échu ni ne se termine dans les 90 prochains jours.",
+    "emptyFiltered": "Aucun contrat ne correspond à ces filtres.",
+    "loading": "Chargement des contrats…",
+    "retry": "Réessayer",
+    "more": "Afficher plus",
+    "found_one": "{{count}} contrat affiché.",
+    "found_other": "{{count}} contrats affichés.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent consulter les échéances des contrats.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour consulter les échéances des contrats."
   },
   "landing": {
     "documentTitle": "DivalHR — La plateforme de gestion des effectifs pour l’Afrique",

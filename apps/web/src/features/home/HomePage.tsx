@@ -14,12 +14,14 @@ import {
   Skeleton,
   StatusBadge,
 } from '../../ui/primitives';
+import { ContractAttentionCard } from './ContractAttentionCard';
 import { EMPLOYEE_ROADMAP, TENANT_ADMIN_ROADMAP, type RoadmapItem } from './roadmap';
 
 /**
- * UI-001 role homes. Static entry points only: no counts, totals, alerts or activity (D10). Each
- * section appears for the role that can open its destinations; users with several roles see each
- * of their sections (D13).
+ * UI-001 role homes. Static entry points only: no counts, totals, alerts or activity (D10), with
+ * one approved exception (MVP-031A, C3b): the organization administrator's live "Contracts needing
+ * attention" card. Each section appears for the role that can open its destinations; users with
+ * several roles see each of their sections (D13).
  */
 
 function Roadmap({ items }: { items: RoadmapItem[] }) {
@@ -187,6 +189,7 @@ function TenantAdminSections() {
           ))}
         </ul>
       </section>
+      <ContractAttentionCard />
       <section className="home-section" aria-labelledby={modulesId}>
         <div className="home-section__header">
           <h2 id={modulesId}>{t('home.tenant.modulesTitle')}</h2>

@@ -284,6 +284,16 @@ Tenant administrators manage contract templates and issue contracts; employees a
 - **Statement wording (D16).** Version 1 of the acknowledgement statement is approved provisionally; the organization's counsel must review it before production use. A wording change is statement version 2 (code, migration and ADR), never an edit of version 1.
 - **Rolling back V16.** `db/rollback/V16__rollback.sql` refuses while any template, version, guard, contract or acknowledgement row exists; there is no override, because issued contracts and evidence are never erased. Then remove the `16` row from `flyway_schema_history` as a separate reviewed step, together with an application rollback.
 
+### Contract expiration queue (MVP-031A)
+
+Tenant administrators see which contracts end soon or have ended (Issue #73, approved proposal with amendments A31A-1 to A31A-6). Two read-only `@TenantAdminOperation` operations: `contract-expiration.search` (`POST /api/v1/contract-expirations/search`) and `contract-expiration.summary` (`GET /api/v1/contract-expirations/summary`), with the per-subject bucket `contract-expiration` (60/min, `DIVALHR_CONTRACT_EXPIRATION_REQUESTS_PER_MINUTE`) on both, and on the search also the tenant bucket `employee-search` (300 per 10 min). Authorization and limits run before any argument or body is read; denials leave MVP-013 evidence.
+
+- **Tenant only from the verified JWT.** The tenant is never a request field. Employments come from the people module through the platform port `EmploymentExpirationScope`, in the same `REPEATABLE READ` transaction; the documents module never names people tables (architecture test). A unit of another tenant matches nothing.
+- **Cursors (A31A-4).** HMAC-signed and bound to the operation, tenant, business date, a SHA-256 of the search text, the unit, the sorted categories and the page size. A cursor reused with any other filter, tenant or size gives `400 CURSOR_INVALID`. The business date is pinned in the cursor, so a traversal never changes date, never repeats a row and keeps its category boundaries; eligibility can still change between requests, and rows added after the cursor position can appear. It is not a frozen snapshot.
+- **Audit (A31A-6).** Both reads are fail-closed disclosures (`contract-expiration.search`, `contract-expiration.summary`): if the audit row cannot be written, nothing is returned. Metadata is `schemaVersion`, `view`, `page`, `resultCount` and the closed `filterKinds`; the search digest hashes the business date, counts and returned contract IDs, and the summary digest hashes only its own payload. No names, numbers, search text, unit or cursor are stored or logged.
+- **Data minimisation.** Items carry the contract UUID only as a link key; the web never displays it as a contract number. Employee numbers and names appear only in the response body (`private, no-store`) and in-memory page state; the search text is sent in a `POST` body, never in a URL.
+- **Index (V17).** `contract_coverage_order` serves the queue; `db/rollback/V17__rollback.sql` drops it and has no data effect.
+
 ## Privileged multifactor authentication (MVP-011)
 
 Every interactive holder of `platform-admin` or `tenant-admin` completes TOTP, and the Core API enforces it independently. SMS and email codes are never a privileged factor; passkeys are a future, stronger option.

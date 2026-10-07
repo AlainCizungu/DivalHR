@@ -278,6 +278,12 @@
 - **Classification.** Confidential: template codes, names and text, and digests. Restricted HR: snapshots, contract types, languages, periods, states and void reasons of issued contracts, and the acknowledgement statement, language and time. Personal-data references: contract, template, version, employee, employment and evidence IDs. Confidential: membership and link IDs in the evidence. Nothing is deleted by the application except never-approved drafts; no retention period is defined yet.
 - **Migration and rollback.** `V16__contracts.sql`. `db/rollback/V16__rollback.sql` restores V15 exactly and refuses while any template, version, guard, contract or acknowledgement row exists; it never edits `flyway_schema_history`.
 
+## Implemented (MVP-031A: contract expiration queue)
+
+- **No new table.** The queue is computed at read time from `documents.contract` and, through the platform port `EmploymentExpirationScope`, the people module's employments (last day from a recorded separation) and placements; the documents module never names people tables.
+- **Coverage head (A31A-1).** Per employment, over non-void contracts ordered by start date: the anchor is the latest contract started on or before the business date, else the earliest future one; successors are followed while contiguous (`start = previous end + 1`); the head is the last contract of that chain. At most one row per employment.
+- **Index (V17, A31A-5).** `contract_coverage_order` on `(tenant_id, employment_id, start_date) INCLUDE (end_date, employee_id, id) WHERE state <> 'VOID'`, read in order by one pass of window functions. `db/rollback/V17__rollback.sql` drops it; no data effect.
+
 ## Implemented (Issue #17 maintenance)
 
 - V4 restores the approved strict operation-name grammar on `idempotency_operation_format` and `audit_action_format`: `^[a-z]+(-[a-z]+)*(\.[a-z]+(-[a-z]+)*)+$`. A pre-flight counts non-conforming rows and aborts the (single-transaction) migration without rewriting or revealing data. V1-V3 are unchanged; `db/rollback/V4__rollback.sql` restores the V3 superset (non-destructive).

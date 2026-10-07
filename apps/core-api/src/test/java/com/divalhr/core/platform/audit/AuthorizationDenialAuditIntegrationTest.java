@@ -159,7 +159,10 @@ class AuthorizationDenialAuditIntegrationTest {
           "contract.preview",
           "contract.issue",
           "contract.read",
-          "contract.void");
+          "contract.void",
+          // MVP-031A (Issue #73): the contract expiration queue.
+          "contract-expiration.search",
+          "contract-expiration.summary");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -580,7 +583,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(66);
+    assertThat(handlers).hasSize(68);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

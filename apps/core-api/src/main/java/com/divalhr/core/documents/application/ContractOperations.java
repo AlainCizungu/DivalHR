@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -151,6 +152,60 @@ public class ContractOperations {
         .log("contract_disclosure");
     return disclosure.body();
   }
+
+  /**
+   * Runs a read whose parts must agree (MVP-031A, Issue #73, A31A-2 and A31A-4) in one bounded
+   * {@code REPEATABLE READ} transaction: every statement of the request (the people port, the
+   * counts and the page) reads the same snapshot, and the work records its own disclosure audit in
+   * the same transaction, so the body is returned only after both committed. The snapshot covers
+   * one HTTP request only, not a pagination session.
+   *
+   * @param operation operation name
+   * @param view view name
+   * @param page {@code first}, {@code next} or {@code single}
+   * @param work the read and its audit
+   * @param <T> body type
+   * @return the body
+   */
+  <T> T consistentRead(String operation, String view, String page, Supplier<Audited<T>> work) {
+    Audited<T> result;
+    try {
+      result =
+          bounded(
+              () -> {
+                TransactionTemplate template = transactions();
+                template.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
+                return template.execute(status -> work.get());
+              });
+    } catch (ApiException rejected) {
+      rejected(operation, rejected);
+      throw rejected;
+    } catch (RuntimeException failure) {
+      metrics.record(operation, Outcome.FAILURE);
+      throw failure;
+    }
+    if (result == null) {
+      throw new IllegalStateException("read transaction returned nothing");
+    }
+    metrics.record(operation, Outcome.LISTED);
+    LOG.atInfo()
+        .addKeyValue("operation", operation)
+        .addKeyValue("view", view)
+        .addKeyValue("page", page)
+        .addKeyValue("resultCount", result.resultCount())
+        .addKeyValue("outcome", "listed")
+        .log("contract_disclosure");
+    return result.body();
+  }
+
+  /**
+   * A body and the number of items it disclosed.
+   *
+   * @param body response body
+   * @param resultCount items disclosed
+   * @param <T> body type
+   */
+  record Audited<T>(T body, int resultCount) {}
 
   /**
    * Runs a non-idempotent write (draft edit or delete) in one bounded transaction.

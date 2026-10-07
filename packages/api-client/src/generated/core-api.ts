@@ -1231,6 +1231,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contract-expirations/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List contracts that have expired or end within 90 days
+         * @description MVP-031A (Issue #73). One row per employment: its coverage head, i.e. the last contract of the contiguous chain that includes the latest contract started on or before the business date (else the earliest future one); voided contracts are ignored. Open-ended heads, heads ending more than 90 days after the business date, and employments whose recorded last day is before the business date or on or before the head's end are excluded. Categories use the organization's business date (asOf, in its IANA time zone): EXPIRED before it, NEXT_30_DAYS from it to day 30, DAYS_31_TO_60, DAYS_61_TO_90. Most urgent first (end date, then contract ID). counts apply the same rules, search and unit as the items, before the category filter. The HMAC-protected cursor pins asOf and every filter; rows are never repeated, but eligibility is re-evaluated on each request, so rows can appear or disappear after the cursor. Filters travel in the body so the search text never reaches a URL. Recorded as a disclosure (audit contract-expiration.read). Cache-Control private, no-store.
+         */
+        post: operations["searchContractExpirations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contract-expirations/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the contracts that have expired or end within 90 days
+         * @description MVP-031A (Issue #73). The unfiltered counts of searchContractExpirations, computed by the same query on the same business date; they equal a search without filters. Recorded as a disclosure whose integrity hash covers this payload only (audit contract-expiration.read). Cache-Control private, no-store.
+         */
+        get: operations["getContractExpirationSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/contracts": {
         parameters: {
             query?: never;
@@ -2529,6 +2569,78 @@ export interface components {
             voidedAt: string | null;
             voidReason: components["schemas"]["ContractVoidReason"] | null;
             version: number;
+        };
+        /**
+         * @description d = end date - business date. EXPIRED d < 0; NEXT_30_DAYS 0 to 30 (a contract ending today is not expired); DAYS_31_TO_60; DAYS_61_TO_90.
+         * @enum {string}
+         */
+        ContractExpirationCategory: "EXPIRED" | "NEXT_30_DAYS" | "DAYS_31_TO_60" | "DAYS_61_TO_90";
+        /** @description Every field is optional. */
+        ContractExpirationSearch: {
+            /** @description Employee-number prefix or name words, as the employee search (2-100 code points after NFC normalization). Never logged, audited or echoed. */
+            query?: string | null;
+            /**
+             * Format: uuid
+             * @description Department or cost center of the employee's current placement (on the business date, or on the first day of an employment that has not started). Bound into the cursor; the counts honor it.
+             */
+            unitId?: string | null;
+            /** @description Categories of the items (default all). The counts always cover all four. */
+            categories?: components["schemas"]["ContractExpirationCategory"][] | null;
+            cursor?: string | null;
+            limit?: number | null;
+        };
+        ContractExpirationCounts: {
+            expired: number;
+            next30Days: number;
+            days31To60: number;
+            days61To90: number;
+            total: number;
+        };
+        /** @description Organizational data (not personal data). */
+        ContractExpirationUnit: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "DEPARTMENT" | "COST_CENTER";
+            code: string;
+            name: string;
+        };
+        /** @description Employee number and names are Confidential; the end date is Restricted HR. No contract type, content, compensation or identity data. */
+        ContractExpiration: {
+            /**
+             * Format: uuid
+             * @description Internal reference; not a user-facing contract number.
+             */
+            contractId: string;
+            /** Format: uuid */
+            employeeId: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+            unit: components["schemas"]["ContractExpirationUnit"] | null;
+            /** Format: date */
+            endDate: string;
+            category: components["schemas"]["ContractExpirationCategory"];
+            /** @description Days from asOf to the end date; negative when overdue. */
+            daysUntilEnd: number;
+        };
+        ContractExpirationPage: {
+            /**
+             * Format: date
+             * @description The business date the categories were computed for.
+             */
+            asOf: string;
+            /** @description The organization's IANA time zone. */
+            timezone: string;
+            counts: components["schemas"]["ContractExpirationCounts"];
+            items: components["schemas"]["ContractExpiration"][];
+            nextCursor: string | null;
+        };
+        ContractExpirationSummary: {
+            /** Format: date */
+            asOf: string;
+            timezone: string;
+            counts: components["schemas"]["ContractExpirationCounts"];
         };
         ContractPage: {
             items: components["schemas"]["ContractSummary"][];
@@ -5424,6 +5536,67 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    searchContractExpirations: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContractExpirationSearch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractExpirationPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getContractExpirationSummary: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractExpirationSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["ServiceUnavailable"];
         };
