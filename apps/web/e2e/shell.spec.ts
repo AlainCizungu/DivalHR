@@ -43,6 +43,7 @@ test.describe('desktop', () => {
       'Import employees',
       'Organizational structure',
       'Contract templates',
+      'Contract expirations',
       'Users and invitations',
       'Access review',
     ]);
@@ -166,7 +167,7 @@ test.describe('desktop', () => {
     await page.waitForURL((url) => url.pathname === '/admin/people');
     await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
     release();
-    await expect(nav(page).locator('.nav-link__label')).toHaveCount(7);
+    await expect(nav(page).locator('.nav-link__label')).toHaveCount(8);
     await expect(page.getByTestId('directory-table')).toBeVisible();
   });
 

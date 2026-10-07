@@ -303,6 +303,12 @@ button:disabled {
   max-width: 100%;
 }
 
+/* A fieldset defaults to min-inline-size: min-content, so a select with long unit names would
+   widen the page on phones (MVP-031A unit filter, and the placement fields). */
+fieldset.field {
+  min-inline-size: 0;
+}
+
 /* MVP-011 MFA-required page: primary and secondary actions side by side, wrapping on phones. */
 .button-row {
   display: flex;

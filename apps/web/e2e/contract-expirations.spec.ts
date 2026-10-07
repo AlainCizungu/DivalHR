@@ -224,7 +224,7 @@ test.describe.serial('MVP-031A: contract expiration queue', () => {
     await rows.getByRole('link', { name: `Bénédicte ${FAMILY}` }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Bénédicte ${FAMILY}`);
     await expect(
-      page.getByTestId('contracts').getByRole('heading', { name: 'Contrats' }),
+      page.getByTestId('contracts').getByRole('heading', { name: 'Contrats', exact: true }),
     ).toBeFocused();
     expect(page.url()).toMatch(/\/admin\/people\/[0-9a-f-]{36}#contracts$/u);
     expect(await storage(page)).not.toMatch(new RegExp(`${FAMILY}|EXP-|Bénédicte`, 'iu'));
@@ -259,7 +259,14 @@ test.describe.serial('MVP-031A: contract expiration queue', () => {
 
     // A reload ends the in-memory session; the language preference stays, nothing personal does.
     await page.reload();
-    await expect(page.getByRole('main').getByRole('button', { name: 'Sign in' })).toBeVisible();
+    // The deep link stays and asks to sign in, still in English.
+    await expect(page).toHaveURL(/\/admin\/contract-expirations$/u);
+    await expect(page.getByRole('banner').getByRole('button', { name: 'Sign in' })).toBeVisible();
+    await expect(
+      page.getByText('Sign in as an organization administrator to see contract expirations.', {
+        exact: true,
+      }),
+    ).toBeVisible();
     expect(await storage(page)).not.toMatch(new RegExp(`${FAMILY}|EXP-`, 'iu'));
   });
 
@@ -287,7 +294,8 @@ test.describe.serial('MVP-031A: contract expiration queue', () => {
       }),
     ]) {
       expect(response.status()).toBe(403);
-      expect(response.headers()['cache-control']).toBe('private, no-store');
+      // Refusals come from the security filter: never stored, whatever the exact header.
+      expect(response.headers()['cache-control']).toContain('no-store');
     }
   });
 });
