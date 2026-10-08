@@ -215,7 +215,9 @@ test('deploy provenance: main ancestry, green checks, verification evidence, ful
   assert.match(deploy, /provenance\.py/);
   assert.match(deploy, /\$\{#SHA\}" = 40/);
   const remote = source('remote-deploy.sh');
-  assert.match(remote, /PASS hrdev-rehearsal/);
+  // DEVX-001B: the gate is ops/hr-dev/evidence.py decide (scripts/ops/evidence.test.mjs).
+  assert.match(remote, /evidence\.py" decide --release "\$SHA"/);
+  assert.match(read('ops/hr-dev/evidence.py'), /"hrdev-rehearsal"/);
   assert.match(remote, /check_bundle_head/);
   assert.match(compose, /\$\{HR_DEV_RELEASE:\?\}/);
   const required = read('ops/hr-dev/required-checks.txt');

@@ -260,6 +260,6 @@ Out of scope for OPS-001: production or staging, a dedicated identity origin (a 
 
 Maintenance (Issue #75; approved proposal with amendments A75-1 to A75-8). Two increments.
 
-**DEVX-001A (in progress).** The review sequence in `CLAUDE.md`; the Playwright `auth-setup`, `features` (parallel, reusing one real MFA sign-in per privileged seed role) and `identity` (serial) projects, both required; credential hygiene of generated output; per-phase timings; and the `changed`, `pr` and `full` verification profiles. No deployment-gate or rehearsal change.
+**DEVX-001A (complete, PR #76).** The review sequence in `CLAUDE.md`; the Playwright `auth-setup`, `features` (parallel, reusing one real MFA sign-in per privileged seed role) and `identity` (serial) projects, both required; credential hygiene of generated output; per-phase timings; and the `changed`, `pr` and `full` verification profiles. No deployment-gate or rehearsal change.
 
-**DEVX-001B (next).** Rehearsal subsets by risk class, the evidence record and its reuse for hr-dev deployments, and the gate and runbook changes, under the complete rehearsal.
+**DEVX-001B (in progress; amendments A75B-1 to A75B-7).** Risk classes with fail-closed precedence, the canonical rehearsal step matrix, checksummed read-only evidence for every finished run, and a deployment gate that recomputes the release class and tree and reuses the newest qualifying `pr` or `full` evidence, with a class-aware fallback. Closes #75.
