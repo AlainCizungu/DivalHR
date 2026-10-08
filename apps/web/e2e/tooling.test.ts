@@ -240,6 +240,22 @@ void describe('hygiene check (A75-3)', () => {
     assert.deepEqual(scanText(report, `hash a${code}b`, codes), []);
   });
 
+  void it('reports a generated file above the size limit instead of skipping it (R76-2)', () => {
+    const root = mkdtempSync(join(tmpdir(), 'divalhr-hygiene-'));
+    const report = join(root, 'playwright-report');
+    mkdirSync(report);
+    writeFileSync(join(report, 'index.html'), 'x'.repeat(2048));
+    writeFileSync(join(report, 'small.txt'), 'clean');
+    try {
+      assert.deepEqual(check([report], now - 5, undefined, 1024), [
+        { file: join(report, 'index.html'), kind: 'oversized generated file was not scanned' },
+      ]);
+      assert.deepEqual(check([report], now - 5, undefined, 4096), []);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   void it('fails while the SSO directory exists and passes on clean output', () => {
     const root = mkdtempSync(join(tmpdir(), 'divalhr-hygiene-'));
     const results = join(root, 'test-results');
@@ -313,5 +329,30 @@ case "$*" in *--project=identity*) exit ${identityExit} ;; *) exit ${featuresExi
     assert.notEqual(run.status, 0);
     assert.match(run.out, /features exit=0 identity exit=1/u);
     assert.equal(existsSync(run.dir), false);
+  });
+});
+
+void describe('canonical entry points (R76-1)', () => {
+  void it('run the suite runner, and only e2e:raw runs plain Playwright', () => {
+    const { scripts } = JSON.parse(readFileSync(join(WEB, 'package.json'), 'utf8')) as {
+      scripts: Record<string, string>;
+    };
+    for (const name of ['e2e', 'e2e:suite', 'e2e:serial']) {
+      assert.match(scripts[name] ?? '', /^bash e2e\/run-suite\.sh\b/u, name);
+    }
+    const raw = Object.entries(scripts).filter(([, command]) => /playwright\s+test/u.test(command));
+    assert.deepEqual(
+      raw.map(([name]) => name),
+      ['e2e:raw'],
+    );
+  });
+
+  void it('make e2e and make e2e-host use the same suite runner', () => {
+    const makefile = readFileSync(join(WEB, '..', '..', 'Makefile'), 'utf8');
+    const recipe = (target: string) =>
+      new RegExp(`^${target}:[^\\n]*\\n((?:\\t[^\\n]*\\n?)*)`, 'mu').exec(makefile)?.[1] ?? '';
+    assert.match(makefile, /^e2e: (?:[^\n#]* )?e2e-host\b/mu);
+    assert.match(recipe('e2e-host'), /\$\(PNPM\) run e2e\b/u);
+    assert.doesNotMatch(makefile, /playwright\s+test/u);
   });
 });

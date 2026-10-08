@@ -6,12 +6,14 @@ These tests run against the running Compose stack (`infrastructure/docker/compos
 
 | Command                                                                  | What it runs                                                                                                                                                                     |
 | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter @divalhr/web run e2e:suite`                               | The whole suite as CI and `verify-on-host.sh` run it: `auth-setup` + `features` on 2 workers, then `identity` alone, then the credential-hygiene check. Fails if any part fails. |
+| `pnpm --filter @divalhr/web run e2e` (also `e2e:suite`, `make e2e-host`) | The whole suite as CI and `verify-on-host.sh` run it: `auth-setup` + `features` on 2 workers, then `identity` alone, then the credential-hygiene check. Fails if any part fails. |
 | `pnpm --filter @divalhr/web run e2e:serial`                              | The same, on one worker: the single-worker diagnostic run.                                                                                                                       |
 | `E2E_SPECS="e2e/teams.spec.ts" pnpm --filter @divalhr/web run e2e:suite` | Only these spec files, still split between `features` and `identity` (the `changed` profile uses this).                                                                          |
-| `pnpm --filter @divalhr/web exec playwright test`                        | Plain Playwright. `identity` then waits for `features` so it never runs next to feature workers.                                                                                 |
+| `pnpm --filter @divalhr/web run e2e:raw`                                 | Diagnostics only: plain Playwright. `identity` waits for `features` and is skipped when `features` fails, and no hygiene check runs, so a green result proves nothing.           |
 
 Options of `e2e/run-suite.sh`: `--workers N` (1 to 4, default 2 or `E2E_WORKERS`), `--timings FILE` (appends `TIME e2e-features|e2e-identity|e2e-hygiene|e2e-total <s>s exit=<n>` lines), `--log-dir DIR` (an extra directory for the hygiene check). Four workers only after three clean two-worker runs (A75-4).
+
+Every canonical entry point (`e2e`, `e2e:suite`, `e2e:serial`, `make e2e`, `make e2e-host`) runs `e2e/run-suite.sh`; `e2e/tooling.test.ts` fails if one drifts back to plain Playwright (R76-1).
 
 ## Projects (DEVX-001A)
 

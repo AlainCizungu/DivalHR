@@ -16,7 +16,8 @@ import { join, sep } from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 import { TOTP_SEEDS, USERS, totp } from './credentials.ts';
 
-const MAX_BYTES = 32 * 1024 * 1024;
+/** Larger generated files are not read; each one is a finding (R76-2: fail closed). */
+export const MAX_BYTES = 32 * 1024 * 1024;
 const JWT = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./u;
 const COOKIE =
   /\b(?:KEYCLOAK_IDENTITY|KEYCLOAK_SESSION|AUTH_SESSION_ID)(?:_LEGACY)?\s*["']?\s*[=:]\s*["']?[A-Za-z0-9]/u;
@@ -26,20 +27,28 @@ export interface Finding {
   kind: string;
 }
 
-/** Every regular file under the paths modified at or after `since` (epoch seconds). */
-export function filesSince(paths: string[], since: number): string[] {
-  const out: string[] = [];
+/**
+ * Every regular file under the paths modified at or after `since` (epoch seconds), split into the
+ * files to scan and those above `maxBytes`, which are never silently skipped.
+ */
+export function filesSince(
+  paths: string[],
+  since: number,
+  maxBytes: number = MAX_BYTES,
+): { files: string[]; oversized: string[] } {
+  const files: string[] = [];
+  const oversized: string[] = [];
   const walk = (path: string) => {
     if (!existsSync(path)) return;
     const stat = statSync(path);
     if (stat.isDirectory()) {
       for (const entry of readdirSync(path)) walk(join(path, entry));
-    } else if (stat.isFile() && stat.mtimeMs >= since * 1000 && stat.size <= MAX_BYTES) {
-      out.push(path);
+    } else if (stat.isFile() && stat.mtimeMs >= since * 1000) {
+      (stat.size <= maxBytes ? files : oversized).push(path);
     }
   };
   for (const path of paths) walk(path);
-  return out;
+  return { files, oversized };
 }
 
 /** The TOTP codes of every seed user for the periods around [since, until]. */
@@ -48,7 +57,7 @@ export function seedCodes(since: number, until: number): Set<string> {
   for (const secret of Object.values(TOTP_SEEDS)) {
     if (!secret) continue;
     for (
-      let counter = Math.floor(since / 30) - 1;
+      let counter = Math.max(0, Math.floor(since / 30) - 1);
       counter <= Math.floor(until / 30) + 1;
       counter++
     ) {
@@ -128,12 +137,21 @@ export function scanText(file: string, text: string, codes: Set<string>): Findin
   return findings;
 }
 
-export function check(paths: string[], since: number, ssoDir: string | undefined): Finding[] {
+export function check(
+  paths: string[],
+  since: number,
+  ssoDir: string | undefined,
+  maxBytes: number = MAX_BYTES,
+): Finding[] {
   const findings: Finding[] = [];
   if (ssoDir && existsSync(ssoDir))
     findings.push({ file: ssoDir, kind: 'SSO state directory left behind' });
   const codes = seedCodes(since, Math.floor(Date.now() / 1000));
-  for (const file of filesSince(paths, since)) {
+  const { files, oversized } = filesSince(paths, since, maxBytes);
+  for (const file of oversized) {
+    findings.push({ file, kind: 'oversized generated file was not scanned' });
+  }
+  for (const file of files) {
     for (const part of textsOf(file, readFileSync(file, 'utf8'))) {
       if (part.text === 'unreadable embedded report') {
         findings.push({ file: part.file, kind: 'unreadable embedded report' });
@@ -163,7 +181,7 @@ function main(argv: string[]): number {
   for (const finding of findings) console.log(`FAIL hygiene: ${finding.kind} in ${finding.file}`);
   if (findings.length === 0) {
     console.log(
-      `PASS hygiene: ${filesSince(paths, since).length} generated files scanned, SSO state removed`,
+      `PASS hygiene: ${filesSince(paths, since).files.length} generated files scanned, SSO state removed`,
     );
   }
   return findings.length === 0 ? 0 : 1;

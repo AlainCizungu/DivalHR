@@ -56,10 +56,10 @@ api-check: ## Lint contracts and verify the generated client is current
 	$(PNPM) api:lint
 	$(PNPM) api:check
 
-e2e: up e2e-host ## Start the stack and run the Playwright smoke tests
+e2e: up e2e-host ## Start the stack and run the browser suite (features, identity, hygiene)
 
-e2e-host: ## Run Playwright smoke tests against an already running stack
-	cd apps/web && $(PNPM) exec playwright install chromium && $(PNPM) exec playwright test
+e2e-host: ## Run the browser suite against an already running stack (apps/web/e2e/run-suite.sh)
+	cd apps/web && $(PNPM) exec playwright install chromium && $(PNPM) run e2e
 
 clean: ## Remove build output
 	rm -rf apps/web/dist apps/core-api/build

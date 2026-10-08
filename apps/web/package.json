@@ -10,9 +10,10 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run && node --test e2e/tooling.test.ts",
-    "e2e": "playwright test",
+    "e2e": "bash e2e/run-suite.sh",
     "e2e:suite": "bash e2e/run-suite.sh",
-    "e2e:serial": "bash e2e/run-suite.sh --workers 1"
+    "e2e:serial": "bash e2e/run-suite.sh --workers 1",
+    "e2e:raw": "playwright test"
   },
   "dependencies": {
     "@divalhr/api-client": "workspace:*",

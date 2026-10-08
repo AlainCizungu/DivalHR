@@ -115,6 +115,8 @@ services:
       # defaults; the limiters stay covered by the Core integration tests. Unchanged: the
       # access-review and denial-audit limits (browser tests exercise them), the contract-expiration
       # limit (60, per the MVP-031A deployment direction) and every per-tenant limit.
+      # scripts/dev/dev-rate-limits.test.mjs (pnpm ops:test) enforces this list and its absence
+      # from infrastructure/hr-dev/compose.yaml (R76-3).
       DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE: ${DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE:-50}
       DIVALHR_EMPLOYEE_READ_REQUESTS_PER_MINUTE: ${DIVALHR_EMPLOYEE_READ_REQUESTS_PER_MINUTE:-300}
       DIVALHR_EMPLOYMENT_CHANGE_REQUESTS_PER_MINUTE: ${DIVALHR_EMPLOYMENT_CHANGE_REQUESTS_PER_MINUTE:-100}
