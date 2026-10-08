@@ -16,6 +16,8 @@
 # A single-worker diagnostic run of everything: `pnpm --filter @divalhr/web run e2e:serial`.
 # E2E_SPECS (the `changed` profile): space-separated spec files to run instead of all of them,
 # still split between features and identity.
+# --results FILE (DEVX-001B): one `BROWSER passed= skipped= failed= flaky= notrun= retries=
+# hygiene=` line for the verification record.
 # Test hooks (e2e/tooling.test.ts only): E2E_PLAYWRIGHT replaces `npx playwright`;
 # E2E_SKIP_STACK_CHECK=1 skips the availability probe; E2E_OUT replaces the web app directory as
 # the parent of test-results/ and playwright-report/.
@@ -25,11 +27,13 @@ OUT="${E2E_OUT:-$WEB}"
 WORKERS="${E2E_WORKERS:-2}"
 TIMINGS=""
 LOG_DIR=""
+RESULTS=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --workers) WORKERS="$2"; shift 2 ;;
     --timings) TIMINGS="$2"; shift 2 ;;
     --log-dir) LOG_DIR="$2"; shift 2 ;;
+    --results) RESULTS="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -97,6 +101,15 @@ node "$WEB/e2e/hygiene.ts" --since "$START" --sso-dir "$SSO_DIR" \
 HYGIENE=$?
 timing e2e-hygiene $(( $(date +%s) - t )) "$HYGIENE"
 timing e2e-total $(( $(date +%s) - START )) $(( FEATURES || IDENTITY || HYGIENE ))
+
+# DEVX-001B (R79-2): browser totals for the verification record, summed over both invocations
+# from Playwright's list-reporter totals; retried tests are counted from their `(retry #n)` lines.
+total() { grep -E "^ +[0-9]+ $1( |\$)" "$OUTPUT" | awk '{n += $1} END {print n + 0}'; }
+if [ -n "$RESULTS" ]; then
+  printf 'BROWSER passed=%s skipped=%s failed=%s flaky=%s notrun=%s retries=%s hygiene=%s\n' \
+    "$(total passed)" "$(total skipped)" "$(total failed)" "$(total flaky)" "$(total 'did not run')" \
+    "$(grep -c '(retry #' "$OUTPUT")" "$([ "$HYGIENE" = 0 ] && echo PASS || echo FAIL)" > "$RESULTS"
+fi
 
 echo "features exit=$FEATURES identity exit=$IDENTITY hygiene exit=$HYGIENE"
 [ "$FEATURES" = 0 ] && [ "$IDENTITY" = 0 ] && [ "$HYGIENE" = 0 ]

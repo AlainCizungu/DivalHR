@@ -5,8 +5,9 @@
 #
 #   sudo ops/hr-dev/remote-deploy.sh --bundle <file> --sha <full sha> [--first-run]
 #
-# Fail closed (A65-7): the release must be the bundle's exact head and must have a successful
-# complete aws-verify run for the same SHA on this instance. Images are tagged with the full SHA.
+# Fail closed (A65-7): the release must be the bundle's exact head and must have qualifying
+# verification evidence on this instance (DEVX-001B: a run of the same tree whose rehearsal covers
+# the release class; see check_verification). Images are tagged with the full SHA.
 # The release is unpacked with `git archive`, never from the verification checkout ~/DivalHR.
 set -u
 . "$(dirname "$0")/lib.sh"
@@ -36,20 +37,19 @@ check_bundle_head() {
   [ "$heads" = "$SHA" ] || hr_die "the bundle's head is not exactly $SHA"
 }
 
+# DEVX-001B (A75-6, A75B-2..A75B-6): ops/hr-dev/evidence.py decides from the checksummed,
+# read-only verification records on this instance. A run qualifies only with an intact record,
+# exit 0, profile pr or full, its retained bundle unchanged with the record's commit as single
+# head, the same tree as this release (recomputed from both bundles), and every rehearsal step
+# the release class requires (recomputed from the deployed release..SHA diff) recorded as PASS.
+# The newest qualifying run wins; otherwise the deployment stops with the verification to run.
 check_verification() {
   [ "${HR_DEV_REHEARSAL:-}" = "1" ] && { hr_log "rehearsal: verification evidence not required"; return 0; }
-  local run ok=0
-  for run in "$VERIFY_RUNS"/*-"${SHA:0:12}"; do
-    [ -d "$run" ] || continue
-    [ "$(cat "$run/exit" 2>/dev/null)" = "0" ] || continue
-    [ "$(cat "$run/stage" 2>/dev/null)" = "all" ] || continue
-    [ "$(git bundle list-heads "$run/verify.bundle" 2>/dev/null | awk '{print $1}' | sort -u)" = "$SHA" ] || continue
-    grep -q '^PASS e2e$' "$run/logs/all.summary" 2>/dev/null || continue
-    grep -q '^PASS hrdev-rehearsal$' "$run/logs/all.summary" 2>/dev/null || continue
-    ok=1; hr_log "verification evidence: run $(basename "$run")"
-    break
-  done
-  [ "$ok" = 1 ] || hr_die "no successful complete aws-verify run for $SHA on this instance"
+  local decision rc
+  decision=$(python3 "$(dirname "$0")/evidence.py" decide --release "$SHA" --release-bundle "$BUNDLE" \
+    --runs "$VERIFY_RUNS" --deployed "$(hr_current_release_strict)" 2>&1); rc=$?
+  printf '%s\n' "$decision" | while IFS= read -r line; do hr_log "evidence: $line"; done
+  [ "$rc" = 0 ] || hr_die "no qualifying verification evidence for $SHA on this instance"
 }
 
 check_bundle_head

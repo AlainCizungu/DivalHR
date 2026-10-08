@@ -34,6 +34,8 @@ if [ "${1:-}" = "--attach" ]; then
 else
   REF="${1:-HEAD}"
   STAGE="${2:-all}"
+  # DEVX-001B (A75B-3): the requested profile is recorded separately from the stage it runs.
+  PROFILE="$STAGE"
   case "$STAGE" in
     all|core|stack|hrdev|changed|pr) ;;
     # `full` is recorded as `all`, the complete run the deployment gate recognises.
@@ -41,9 +43,11 @@ else
     *) echo "STOP: profile must be changed, pr or full (stages: all, core, stack, hrdev)" >&2; exit 2 ;;
   esac
   SHA=$(git rev-parse --verify "$REF^{commit}") || { echo "STOP: unknown ref $REF" >&2; exit 1; }
-  # The `changed` profile compares with the merge-base of origin/main (absent: it widens to `pr`).
+  # `changed` and `pr` compare with the merge-base of origin/main (absent: `changed` widens to `pr`,
+  # `pr` classifies as complete). The base can only widen the class: `pr` always also classifies
+  # against the release deployed on hr-dev (DEVX-001B).
   BASE=""
-  [ "$STAGE" = changed ] && BASE=$(git merge-base origin/main "$SHA" 2>/dev/null || true)
+  case "$STAGE" in changed|pr) BASE=$(git merge-base origin/main "$SHA" 2>/dev/null || true) ;; esac
   [ -n "$(git --no-pager status --porcelain --untracked-files=no)" ] && \
     echo "NOTE: uncommitted changes are NOT verified; only $SHA is."
   RUN="$(date -u +%Y%m%dT%H%M%SZ)-${SHA:0:12}"
@@ -62,10 +66,12 @@ else
   scp -q $SSHO "$TMP/verify.bundle" "$HOST:divalhr-runs/$RUN/verify.bundle" || { echo "STOP: upload failed" >&2; exit 1; }
 
   # Start the run detached on the instance.
-  rsh "bash -s -- '$RUN' '$SHA' '$STAGE' '$BASE'" <<'REMOTE' || { echo "STOP: could not start the run" >&2; exit 1; }
+  rsh "bash -s -- '$RUN' '$SHA' '$STAGE' '$BASE' '$PROFILE'" <<'REMOTE' || { echo "STOP: could not start the run" >&2; exit 1; }
 set -u
-RUN="$1"; SHA="$2"; STAGE="$3"; BASE="${4:-}"; D="$HOME/divalhr-runs/$RUN"
+RUN="$1"; SHA="$2"; STAGE="$3"; BASE="${4:-}"; PROFILE="${5:-$3}"; D="$HOME/divalhr-runs/$RUN"
 echo "$STAGE" > "$D/stage"
+echo "$PROFILE" > "$D/profile"
+echo "$BASE" > "$D/base"
 cat > "$D/run.sh" <<EOF
 set -u
 L=/run/lock/divalhr-host.lock
@@ -89,13 +95,21 @@ for p in 5173 8080 8090 8180 8025; do
   fi
 done
 rm -rf .git/divalhr-verify
-touch "$D/started"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$D/started"
 DIVALHR_VERIFY_BASE="$BASE" scripts/dev/verify-on-host.sh "$STAGE"
 rc=\$?
 docker image prune -f --filter label=com.docker.compose.project=divalhr >/dev/null 2>&1
 echo "disk after run: \$(df -h / | tail -1)"
 cp -R .git/divalhr-verify "$D/logs" 2>/dev/null
-echo \$rc > "$D/exit"
+# DEVX-001B (A75B-4, R79-1): finish-run.sh writes the checksummed, read-only record for every
+# finished run and then the exit file; a record that cannot be written FAILS the run. An
+# interrupted run has no record and never qualifies. (Older commits: exit status only.)
+if [ -x ops/hr-dev/finish-run.sh ]; then
+  ops/hr-dev/finish-run.sh "$D" "$STAGE" "\$rc"
+  [ -s "$D/exit" ] || echo 1 > "$D/exit"
+else
+  echo \$rc > "$D/exit"
+fi
 EOF
 setsid nohup bash "$D/run.sh" > "$D/run.log" 2>&1 < /dev/null &
 echo "started run $RUN on $(hostname) for ${SHA:0:12}, stage $STAGE"

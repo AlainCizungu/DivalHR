@@ -9,8 +9,9 @@
 #   2. it is reachable from origin/main (merged, reviewed code only);
 #   3. every GitHub check run on that SHA is green and every required check (required-checks.txt
 #      as of that SHA) succeeded (provenance.py; GitHub's public API, or `gh api` when present);
-#   4. the instance holds a successful, complete aws-verify run (stage all, including the
-#      hr-dev rehearsal) for exactly that SHA (checked again by remote-deploy.sh on the instance);
+#   4. the instance holds qualifying verification evidence (DEVX-001B: remote-deploy.sh runs
+#      ops/hr-dev/evidence.py decide: a pr or full record of the same tree whose rehearsal steps
+#      cover the release class; docs/OPS-HR-DEV.md section 6);
 #   5. exactly that SHA is shipped: a bundle whose only head is the SHA, unpacked with git archive,
 #      images tagged with the full SHA, and the running release read back afterwards.
 # Evidence (redacted) is kept in .git/divalhr-deploy/<run>/: inventory before and after and their

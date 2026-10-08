@@ -347,3 +347,16 @@ Test tooling only; no product code, realm or deployment change.
 | E29 | A feature test silently skips MFA or reuses a code, weakening what the suite proves | `features` still signs in through Authorization Code + PKCE against a session that passed password and TOTP; `freshCode` throws there instead of waiting; every interactive, MFA, replayed-code, membership and sign-out test stays in `identity`, which always runs | `mfa.spec.ts`, `membership-authority.spec.ts` (identity project), `run-suite.sh` exit aggregation tests |
 
 New data: none. New configuration: `DIVALHR_E2E_SSO_DIR` (set by the runner, never by hand), `E2E_WORKERS`. Residual risk: the saved session is a development-realm session of published seed users, valid for the realm's SSO idle time; it exists only for the duration of one run on the verifying machine.
+
+## DEVX-001B delta (verification evidence reuse, Issue #75)
+
+Verification tooling and the hr-dev deployment gate; no product code.
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| T57 | A release is deployed on evidence for different code (another tree, a replaced bundle, a run directory renamed or a record copied) | The gate recomputes the commit and tree from the retained run bundle and from the release bundle, checks the bundle hash, the single head, and the run ID against its directory and commit | `scripts/ops/evidence.test.mjs` (different tree, replaced or missing bundle, moved record) |
+| T58 | A record is altered, truncated or left writable, or a failed or interrupted run is taken for a pass | `evidence.json` and `evidence.sha256` written via temporary file, fsync and rename, mode 0444; regular files only; exit 0 required; runs without a record never qualify | `scripts/ops/evidence.test.mjs` (edited, writable, unchecksummed, linked, failed, unrecorded) |
+| E30 | A narrow rehearsal qualifies a riskier release (a misclassified path, a record claiming a broader class, a diagnostic profile or override) | Fail-closed classifier precedence (complete > identity > migration > app > docs; unknown = complete), NUL-delimited diffs on both rename sides; the release class is recomputed at deployment and every required step must be recorded PASS; only `pr`/`full` qualify; no environment override | `scripts/ops/evidence.test.mjs` (classifier precedence, SKIP or missing required steps, profiles) |
+
+Residual risk (documented in `docs/OPS-HR-DEV.md` section 6): the records are checksummed and read-only, not cryptographically immutable; the controlled host and its operator are trusted.
+

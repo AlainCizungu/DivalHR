@@ -8,7 +8,14 @@
 #   data in /var/tmp/divalhr-rehearsal (synthetic only), the same public name and issuer
 #   (https://hr-dev.dival.ai) reached through --connect-to and Chromium host-resolver rules.
 #
-#   sudo -n env HR_DEV_USER_PATH="$PATH" ops/hr-dev/rehearse.sh      (from the verified checkout)
+#   sudo -n env HR_DEV_USER_PATH="$PATH" ops/hr-dev/rehearse.sh [--class C] [--summary FILE]
+#                                                                    (from the verified checkout)
+#
+# DEVX-001B (A75-5, A75B-2): --class runs only the steps the risk class requires (the canonical
+# matrix in ops/hr-dev/evidence.py; `evidence.py steps --class C`); every other step is reported
+# `SKIP <step> (class C)`, never as a pass. Without --class the class is `complete` (every step).
+# There is no environment override (A75B-5). --summary copies the summary (with a `CLASS` line)
+# to FILE for the verification record.
 #
 # Steps (each prints PASS/FAIL; the summary decides the exit status):
 #   first deployment (remote-deploy --first-run) with HTTP and back-channel checks
@@ -23,6 +30,14 @@
 #   images start, and the changes are gone; timings are measured
 # Everything is removed at the end (HR_DEV_REHEARSAL_KEEP=1 keeps it for diagnosis).
 set -u
+CLASS=complete SUMMARY_COPY=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --class) CLASS="$2"; shift 2 ;;
+    --summary) SUMMARY_COPY="$2"; shift 2 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
 export HR_DEV_REHEARSAL=1
 export HR_DEV_DATA="${HR_DEV_REHEARSAL_DATA:-/var/tmp/divalhr-rehearsal}"
 export HR_DEV_PROJECT=divalhr-rehearsal HR_DEV_IMAGE_PREFIX=divalhr-rehearsal
@@ -37,16 +52,30 @@ HR_DEV_CA_FILE="$(hr_internal_ca)"; export HR_DEV_CA_FILE
 divalhr_lock "hr-dev rehearsal" || exit $?
 
 REPO="$(cd "$HR_DEV_OPS/../.." && pwd)"
+WANTED="$(python3 "$HR_DEV_OPS/evidence.py" steps --class "$CLASS")" || { echo "STOP: unknown class $CLASS"; exit 2; }
 SHA_A="$(git -C "$REPO" rev-parse HEAD)"
 RUN_USER="${SUDO_USER:-}"
 W="$(mktemp -d /var/tmp/divalhr-rehearsal-work.XXXXXX)"
 SUMMARY="$W/summary"
-: > "$SUMMARY"
+echo "CLASS $CLASS" > "$SUMMARY"
 pass() { echo "PASS $*" | tee -a "$SUMMARY"; }
 fail() { echo "FAIL $*" | tee -a "$SUMMARY"; }
-step() { local name="$1"; shift; echo ""; echo "=== [$name]"; if "$@"; then pass "$name"; else fail "$name"; return 1; fi; }
+want() { printf '%s\n' "$WANTED" | grep -qx "$1"; }
+# A step the class does not require is reported SKIP and returns 1, so nothing chained to it runs.
+step() {
+  local name="$1"; shift
+  if ! want "$name"; then echo "SKIP $name (class $CLASS)" | tee -a "$SUMMARY"; return 1; fi
+  echo ""; echo "=== [$name]"; if "$@"; then pass "$name"; else fail "$name"; return 1; fi
+}
 
+# The summary is copied on every exit (also a failed first deployment) for the record (A75B-4).
+copy_summary() {
+  [ -n "$SUMMARY_COPY" ] || return 0
+  cp "$SUMMARY" "$SUMMARY_COPY" && chown "${SUDO_UID:-0}:${SUDO_GID:-0}" "$SUMMARY_COPY" \
+    || echo "could not copy the rehearsal summary"
+}
 cleanup() {
+  copy_summary
   [ "${HR_DEV_REHEARSAL_KEEP:-}" = 1 ] && { echo "kept $HR_DEV_DATA and $W"; return; }
   for project in "$HR_DEV_PROJECT" "$HR_DEV_PROJECT-drill"; do
     docker ps -aq --filter "label=com.docker.compose.project=$project" | xargs -r docker rm -f >/dev/null 2>&1
@@ -141,10 +170,11 @@ realm_verify() {
 step realm-verify-final realm_verify
 
 # --- 3. backup ---------------------------------------------------------------------------------
-step backup "$HR_DEV_OPS/backup.sh" --reason nightly
-NIGHTLY="$(hr_latest_backup nightly)"
-[ -n "$NIGHTLY" ] && grep -q '^flyway_success=[1-9]' "$NIGHTLY/MANIFEST" && pass "backup manifest records the Flyway history" \
-  || fail "backup manifest"
+if step backup "$HR_DEV_OPS/backup.sh" --reason nightly; then
+  NIGHTLY="$(hr_latest_backup nightly)"
+  [ -n "$NIGHTLY" ] && grep -q '^flyway_success=[1-9]' "$NIGHTLY/MANIFEST" && pass "backup manifest records the Flyway history" \
+    || fail "backup manifest"
+fi
 
 # --- 4. host lock: a second operation exits before changing anything (A65-5) -------------------
 lock_test() {

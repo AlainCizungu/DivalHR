@@ -79,7 +79,36 @@ Run in this order, posting each redacted output on Issue #65:
 bash ops/hr-dev/deploy.sh <full 40-character SHA of a commit on main>
 ```
 
-It fails closed unless the SHA is reachable from `origin/main`; every GitHub check run on the SHA is green and every check in `ops/hr-dev/required-checks.txt` succeeded (`provenance.py`); and the instance holds a successful complete `aws-verify` run (stage `all`, including `PASS e2e` and `PASS hrdev-rehearsal`) whose bundle head is exactly that SHA. It ships a bundle whose only head is the SHA; the instance unpacks it with `git archive` into `releases/<sha>`, builds `divalhr-test/*:<sha>`, takes a **pre-deploy dump** of both databases, starts the release, runs the admin setup, `http-checks.sh` and `backchannel-check.sh`, and installs the timers. The release is recorded as current only after all of these succeed, timer installation included; `install-units.sh` restores the previous unit files and enablement when it fails (R66-4). A failure triggers the automatic rollback (section 9). The Mac keeps redacted evidence in `.git/divalhr-deploy/<run>/`: provenance decisions, inventory before and after with their diff, the remote log and the host evidence.
+It fails closed unless the SHA is reachable from `origin/main`; every GitHub check run on the SHA is green and every check in `ops/hr-dev/required-checks.txt` succeeded (`provenance.py`); and the instance holds **qualifying verification evidence** (DEVX-001B, below). It ships a bundle whose only head is the SHA; the instance unpacks it with `git archive` into `releases/<sha>`, builds `divalhr-test/*:<sha>`, takes a **pre-deploy dump** of both databases, starts the release, runs the admin setup, `http-checks.sh` and `backchannel-check.sh`, and installs the timers. The release is recorded as current only after all of these succeed, timer installation included; `install-units.sh` restores the previous unit files and enablement when it fails (R66-4). A failure triggers the automatic rollback (section 9). The Mac keeps redacted evidence in `.git/divalhr-deploy/<run>/`: provenance decisions, inventory before and after with their diff, the remote log and the host evidence.
+
+**Verification evidence and its reuse (DEVX-001B, Issue #75, A75-6 and A75B-2 to A75B-6).** `remote-deploy.sh` runs `ops/hr-dev/evidence.py decide` from the release being deployed. It considers every run directory in `~ubuntu/divalhr-runs`. A run qualifies only if **all** of these hold:
+
+1. Its record is intact:
+   - `evidence.json` and `evidence.sha256` are regular files, mode `0444`, and the checksum matches;
+   - the record's run ID is its directory, and the directory names the record's commit;
+   - `exit` is `0`;
+   - the profile is `pr` or `full` (`all` is recorded as `full`). `changed`, `core`, `stack`, `hrdev` and any diagnostic override never qualify.
+2. Its retained `verify.bundle` is unchanged: it hashes to the recorded value and has the record's full commit SHA as its single head.
+3. The tree of that commit, recomputed from that bundle, equals the tree of the release, recomputed from the release bundle.
+4. Its stages include `PASS core-check`, `PASS e2e` and `PASS hrdev-rehearsal`, and the record is complete (R79-2):
+   - valid `startedAt` and `finishedAt`;
+   - timings for `core-check`, `e2e` and `hrdev-rehearsal`;
+   - a classification with its reasons;
+   - more than zero Core tests, with no failures or errors;
+   - more than zero passed browser tests, with none failed, flaky, retried or not run;
+   - a passed credential-hygiene check.
+5. Every rehearsal step that the **release's own class** requires is recorded as `PASS`:
+   - the class is recomputed from the deployed release to the release SHA, never taken from the record;
+   - a docs-only release still requires the `app` steps, since there is no docs-only bypass;
+   - a first deployment is `complete`.
+
+The newest qualifying run is used. Otherwise the deployment stops and names the verification to run on the release itself (A75B-6):
+- `aws-verify.sh <sha> pr` for a release classified `app`, `migration`, `identity` or `migration+identity`;
+- `aws-verify.sh <sha> full` for everything else.
+
+The common case therefore needs no second run after merge: the merge commit of an approved PR has the same tree as the verified head, and that head's record qualifies.
+
+**What the records are.** They are checksummed and read-only, not cryptographically immutable. They detect accidental change, truncation, failed or incomplete runs and mismatched code. They **trust the controlled host and its operator**: anyone who can write to `~ubuntu/divalhr-runs` as `ubuntu` or root can forge one. They are not protection against a compromised host. Production, when it exists, requires its own fresh complete qualification.
 
 ## 7. Operator access
 
@@ -109,7 +138,38 @@ Manual recovery: stop the application (`docker stop divalhr-test-core-api-1 diva
 
 Every complete `aws-verify` (`bash ops/aws/aws-verify.sh <ref> all`) ends with the stage `hrdev`: `pnpm ops:test` and `ops/hr-dev/rehearse.sh`, which deploys the commit into the throw-away project `divalhr-rehearsal` (10.73, `127.0.0.1:28080/28443/28180`, internal CA, `/var/tmp`), then runs the browser acceptance suite (`apps/web/e2e/hr-dev`: landing EN/FR, discovery and keys, authorization code with PKCE, callback, refresh, logout, the web app round trip, the sign-in redirect with the web app's service worker installed (the rest of the suite blocks service workers), a privileged first sign-in with password and authenticator from the setup e-mail, the admin console through the admin URL, identity assets), `verify-realm.mjs` in final mode, a backup, the host-lock concurrency test, a watchdog failure injection (Core's process stopped with SIGSTOP), the isolated restore drill with the browser suite on the restored stack, a first deployment and an upgrade whose timer installation fails (nothing recorded as current; the upgrade returns to the previous release), and rollbacks of failing releases: one that changes only the identity database (the pre-deploy Keycloak dump must be restored) and one that adds a Core migration. It removes everything afterwards. The same browser suite runs against the live environment with `HR_DEV_BASE_URL=https://hr-dev.dival.ai`, the tunnel's admin URL and, for the employee smoke test, `HR_DEV_EMPLOYEE_USER` / `HR_DEV_EMPLOYEE_PASSWORD` of a synthetic employee.
 
-**Verification profiles (DEVX-001A, Issue #75).** `aws-verify.sh <ref> <profile>` accepts `changed` (only what the diff from the merge-base with `main` needs, widening to `pr` or `full` when a path requires it), `pr` (Core checks and the full stack with the whole browser suite) and `full` (the complete run above). `full` is recorded as stage `all`; the older stages `all`, `core`, `stack` and `hrdev` keep working. Nothing here changes the deployment gate: `deploy.sh` still requires a successful complete run (stage `all`, `PASS e2e`, `PASS hrdev-rehearsal`) on the exact SHA, so a `changed` or `pr` run never qualifies a release. The browser suite of the stack stage runs `apps/web/e2e/run-suite.sh`: `features` on two workers reusing one MFA sign-in per privileged seed role, then the `identity` tests alone, then a credential-hygiene check; both projects are required. Each run writes `<stage>.timings` (one `TIME <phase> <s>s` line per phase) next to its logs.
+**Risk classes and records (DEVX-001B, A75-5, A75B-1 to A75B-5).** `ops/hr-dev/evidence.py` is the single source of the classes and of the rehearsal step matrix.
+
+`classify` reads `git diff -z --name-only --no-renames` (NUL-delimited, both sides of renames and deletions, no shell). A path takes the first matching group, in this order:
+- `complete`: Dockerfiles, Compose files, `.github/`, `ops/`, `scripts/`, deployment infrastructure, build, dependency and toolchain files, web server and build configuration, the hr-dev suite;
+- `identity`: the realms, the provisioning extension, Core `identity/`, `platform/security/`, `platform/tenancy/`, `AuthenticatedCaller.java` and `application*.yaml`, and the web `auth/` and `pwa/` code;
+- `migration`: Core `db/`;
+- `app`: application code, tests and shared packages;
+- `docs-only`: documentation.
+
+Anything unmatched, empty, unreadable, or not descended from the deployed release is `complete`.
+
+The `pr` profile classifies both the PR's own diff and the deployed release to the candidate, and takes the broader class. The base can only widen the class. The deployed release is read through `sudo -n ops/hr-dev/current-release.sh`.
+
+What `pr` runs per class:
+
+| Class | Checks and rehearsal steps |
+| --- | --- |
+| `docs-only` | documentation checks only, no stack |
+| `app` | Core, stack, `deploy-first`, `browser-suite`, `realm-verify-final` |
+| `migration` | the `app` steps plus `backup`, `restore-drill`, `rollback-migration` |
+| `identity` | the `app` steps plus `rollback-identity-change` |
+| `complete` | every step |
+
+`full` always runs `complete`. Every step a class does not require appears as `SKIP <step> (class <c>)`. There is no environment override.
+
+Every finished run, failed or not, gets a record:
+- `evidence.json`: profile, stage, commit, tree, base, bundle hash, `startedAt` and `finishedAt`, stage timings (canonical names and seconds, never commands), the classification and its reasons, the recorded class, step and stage results, Core totals and browser totals (passed, skipped, failed, flaky, not run, retried, hygiene). It is written through a temporary file, `fsync` and `rename`, then made `0444`.
+- `evidence.sha256`: the record's checksum.
+
+`ops/hr-dev/finish-run.sh` writes the record and then the exit file. If the record cannot be written, the run **fails**: `FAIL evidence-record` goes to the summary and the log, and the exit file holds a nonzero status (R79-1). An interrupted run has no record and never qualifies. Paths that are not valid UTF-8 make the classification `complete` (R79-3). The current release counts only when the whole state file, trimmed, is exactly one SHA (R79-4).
+
+**Verification profiles (DEVX-001A, Issue #75).** `aws-verify.sh <ref> <profile>` accepts `changed` (only what the diff from the merge-base with `main` needs, widening to `pr` or `full` when a path requires it), `pr` (Core checks and the full stack with the whole browser suite) and `full` (the complete run above). `full` is recorded as stage `all`; the older stages `all`, `core`, `stack` and `hrdev` keep working. Which runs qualify a release is described in section 6 (DEVX-001B); a `changed` run never does. The browser suite of the stack stage runs `apps/web/e2e/run-suite.sh`: `features` on two workers reusing one MFA sign-in per privileged seed role, then the `identity` tests alone, then a credential-hygiene check; both projects are required. Each run writes `<stage>.timings` (one `TIME <phase> <s>s` line per phase) next to its logs.
 
 ## 11. Known limitations
 

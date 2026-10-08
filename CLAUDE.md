@@ -66,7 +66,7 @@ Run the narrowest verification that proves the current step; never repeat a comp
 | PR opened, review rounds | normal GitHub CI plus targeted or `changed` checks for each fix |
 | Concurrency or browser-tooling changes | browser-stage repetitions (`aws-verify.sh <sha> stack`), no Playwright retries, individual and median timings recorded |
 | Code approved | exactly **one** `aws-verify.sh <sha> full` on the approved head, then evidence; merge only after it passes |
-| After merge | the established release verification and deployment procedure (unchanged) |
+| After merge | deploy the merge commit: the gate reuses the approved head's evidence when the trees match (DEVX-001B); otherwise it names the run to do. Never re-verify an identical tree |
 
 The architect may ask for a `full` run at any point. Browser tests: `apps/web/e2e/README.md`.
 

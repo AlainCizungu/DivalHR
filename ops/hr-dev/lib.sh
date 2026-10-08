@@ -67,6 +67,20 @@ hr_require_sha() {
 hr_release_dir() { printf '%s/%s' "${HR_DEV_RELEASES:-$HR_DEV_DATA/releases}" "$1"; }
 hr_current_release() { cat "$HR_DEV_DATA/state/current-release" 2>/dev/null || true; }
 hr_previous_release() { cat "$HR_DEV_DATA/state/previous-release" 2>/dev/null || true; }
+# DEVX-001B (R79-4): the recorded current release only when the whole file, trimmed of leading
+# and trailing whitespace, is exactly one 40-character lowercase SHA; otherwise nothing, so the
+# classification widens to `complete`. Used by the verification classifier and the evidence gate.
+hr_read_release_file() {
+  local raw trimmed
+  [ -f "$1" ] || return 0
+  raw="$(cat "$1" 2>/dev/null)" || return 0
+  trimmed="${raw#"${raw%%[![:space:]]*}"}"
+  trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+  case "$trimmed" in *[!0-9a-f]* | '') return 0 ;; esac
+  [ "${#trimmed}" = 40 ] && printf '%s\n' "$trimmed"
+  return 0
+}
+hr_current_release_strict() { hr_read_release_file "$HR_DEV_DATA/state/current-release"; }
 
 # Records the running release: state/current-release and the $HR_DEV_DATA/current symlink the
 # systemd units run through.
