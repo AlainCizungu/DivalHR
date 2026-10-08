@@ -2,8 +2,10 @@
 # Runs scripts/dev/verify-on-host.sh on the AWS dev instance instead of the Mac.
 #
 # Run on the Mac, from the DivalHR repository root:
-#   bash ops/aws/aws-verify.sh [ref] [stage]   verify a committed ref (default HEAD); stage
-#                                              all (core + stack + hrdev), core, stack or hrdev
+#   bash ops/aws/aws-verify.sh [ref] [profile]  verify a committed ref (default HEAD) with a profile
+#                                              (DEVX-001A): changed, pr (core + stack) or full
+#                                              (core + stack + hrdev, recorded as `all`), or a
+#                                              stage: all, core, stack or hrdev
 #   bash ops/aws/aws-verify.sh --attach        follow the latest run again (after Ctrl-C or a dropped connection)
 #
 # Exit 0 only when every stage passed. Only committed code is verified: the ref is sent as a git
@@ -32,8 +34,16 @@ if [ "${1:-}" = "--attach" ]; then
 else
   REF="${1:-HEAD}"
   STAGE="${2:-all}"
-  case "$STAGE" in all|core|stack|hrdev) ;; *) echo "STOP: stage must be all, core, stack or hrdev" >&2; exit 2 ;; esac
+  case "$STAGE" in
+    all|core|stack|hrdev|changed|pr) ;;
+    # `full` is recorded as `all`, the complete run the deployment gate recognises.
+    full) STAGE=all ;;
+    *) echo "STOP: profile must be changed, pr or full (stages: all, core, stack, hrdev)" >&2; exit 2 ;;
+  esac
   SHA=$(git rev-parse --verify "$REF^{commit}") || { echo "STOP: unknown ref $REF" >&2; exit 1; }
+  # The `changed` profile compares with the merge-base of origin/main (absent: it widens to `pr`).
+  BASE=""
+  [ "$STAGE" = changed ] && BASE=$(git merge-base origin/main "$SHA" 2>/dev/null || true)
   [ -n "$(git --no-pager status --porcelain --untracked-files=no)" ] && \
     echo "NOTE: uncommitted changes are NOT verified; only $SHA is."
   RUN="$(date -u +%Y%m%dT%H%M%SZ)-${SHA:0:12}"
@@ -52,9 +62,9 @@ else
   scp -q $SSHO "$TMP/verify.bundle" "$HOST:divalhr-runs/$RUN/verify.bundle" || { echo "STOP: upload failed" >&2; exit 1; }
 
   # Start the run detached on the instance.
-  rsh "bash -s -- '$RUN' '$SHA' '$STAGE'" <<'REMOTE' || { echo "STOP: could not start the run" >&2; exit 1; }
+  rsh "bash -s -- '$RUN' '$SHA' '$STAGE' '$BASE'" <<'REMOTE' || { echo "STOP: could not start the run" >&2; exit 1; }
 set -u
-RUN="$1"; SHA="$2"; STAGE="$3"; D="$HOME/divalhr-runs/$RUN"
+RUN="$1"; SHA="$2"; STAGE="$3"; BASE="${4:-}"; D="$HOME/divalhr-runs/$RUN"
 echo "$STAGE" > "$D/stage"
 cat > "$D/run.sh" <<EOF
 set -u
@@ -80,7 +90,7 @@ for p in 5173 8080 8090 8180 8025; do
 done
 rm -rf .git/divalhr-verify
 touch "$D/started"
-scripts/dev/verify-on-host.sh "$STAGE"
+DIVALHR_VERIFY_BASE="$BASE" scripts/dev/verify-on-host.sh "$STAGE"
 rc=\$?
 docker image prune -f --filter label=com.docker.compose.project=divalhr >/dev/null 2>&1
 echo "disk after run: \$(df -h / | tail -1)"

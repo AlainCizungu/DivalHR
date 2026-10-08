@@ -109,6 +109,18 @@ services:
       # bootstrap limit is raised to its maximum so repeated end-to-end runs within an hour pass.
       # Every other environment keeps the default of 5 per hour.
       DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR: ${DIVALHR_BOOTSTRAP_PER_ACTOR_PER_HOUR:-50}
+      # DEVX-001A (Issue #75). DEVELOPMENT ONLY: the browser suite's parallel feature workers share
+      # the seed administrators and finish in about two minutes, so the per-subject request buckets
+      # (MVP-020, MVP-030) are five times their defaults. Every other environment keeps the
+      # defaults; the limiters stay covered by the Core integration tests. Unchanged: the
+      # access-review and denial-audit limits (browser tests exercise them), the contract-expiration
+      # limit (60, per the MVP-031A deployment direction) and every per-tenant limit.
+      DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE: ${DIVALHR_EMPLOYEE_IMPORT_REQUESTS_PER_MINUTE:-50}
+      DIVALHR_EMPLOYEE_READ_REQUESTS_PER_MINUTE: ${DIVALHR_EMPLOYEE_READ_REQUESTS_PER_MINUTE:-300}
+      DIVALHR_EMPLOYMENT_CHANGE_REQUESTS_PER_MINUTE: ${DIVALHR_EMPLOYMENT_CHANGE_REQUESTS_PER_MINUTE:-100}
+      DIVALHR_CONTRACT_READ_REQUESTS_PER_MINUTE: ${DIVALHR_CONTRACT_READ_REQUESTS_PER_MINUTE:-300}
+      DIVALHR_CONTRACT_WRITE_REQUESTS_PER_MINUTE: ${DIVALHR_CONTRACT_WRITE_REQUESTS_PER_MINUTE:-100}
+      DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE: ${DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE:-150}
     depends_on:
       postgres:
         condition: service_healthy

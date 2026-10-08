@@ -1,5 +1,14 @@
 import { expect, test, type Page, type Request } from '@playwright/test';
-import { CORE_API, USERS, expectAccessible, mailTo, signInFr, primaryNav } from './support';
+import {
+  CORE_API,
+  USERS,
+  expectAccessible,
+  mailTo,
+  signInFr,
+  primaryNav,
+  openSecretLink,
+  typeSecret,
+} from './support';
 
 const LINK = /https?:\/\/[^\s"<>]+\/invitation#token=[A-Za-z0-9_-]{43}/u;
 
@@ -92,7 +101,7 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
     page.on('request', (request) => {
       if (request.url().startsWith(CORE_API)) api.push(request);
     });
-    await page.goto(link);
+    await openSecretLink(page, link);
     await expect(page.getByTestId('invitation-preview')).toContainText('Employé');
     // The fragment is removed from the address bar and the current history entry.
     expect(new URL(page.url()).hash).toBe('');
@@ -116,7 +125,7 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
 
     // The same link is now unusable, with the generic message.
     const again = await context.newPage();
-    await again.goto(link);
+    await openSecretLink(again, link);
     await expect(again.getByTestId('invitation-result')).toContainText(
       'Ce lien d’invitation n’est pas valide.',
     );
@@ -134,14 +143,14 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
 
     const context = await browser.newContext({ locale: 'fr-FR' });
     const page = await context.newPage();
-    await page.goto(setup?.[0] ?? '');
+    await openSecretLink(page, setup?.[0] ?? '');
     // Keycloak may first show a "perform the following actions" confirmation.
     const proceed = page.locator('a[href*="login-actions"], #kc-info-message a').first();
     if ((await page.locator('#password-new').count()) === 0 && (await proceed.count()) > 0) {
       await proceed.click();
     }
-    await page.locator('#password-new').fill(password);
-    await page.locator('#password-confirm').fill(password);
+    await typeSecret(page, '#password-new', password);
+    await typeSecret(page, '#password-confirm', password);
     await page.locator('[type="submit"]').first().click();
     await context.close();
 
@@ -189,7 +198,7 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
 
     const context = await browser.newContext({ locale: 'fr-FR' });
     const invitee = await context.newPage();
-    await invitee.goto(link);
+    await openSecretLink(invitee, link);
     await expect(invitee.getByTestId('invitation-result')).toContainText(
       'Ce lien d’invitation n’est pas valide.',
     );

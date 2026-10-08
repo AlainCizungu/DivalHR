@@ -2,13 +2,23 @@
 # Runs build and verification stages on a developer workstation and writes logs to
 # .git/divalhr-verify/ (inside .git so they are never committed).
 #
-# Usage: scripts/dev/verify-on-host.sh <stage>
+# Usage: scripts/dev/verify-on-host.sh <profile or stage>
+# Profiles (DEVX-001A, D3 and A75-2; verification only: nothing here deploys or touches hr-dev):
+#   changed  checks for what changed since the base (DIVALHR_VERIFY_BASE, default the merge-base
+#            with origin/main), chosen by scripts/dev/classify-changed.mjs; widens to `pr` or
+#            `full` whenever a path needs it. Used during implementation and review fixes.
+#   pr       core + stack: complete application checks and the optimized browser suite
+#   full     core + stack + hrdev (the complete operational rehearsal); always runnable manually
+# Stages (and compatible aliases):
 #   spike   Core API compatibility spike (Gradle check, SpotBugs, tests) + image digests
 #   core    Core API format + full clean check + bootJar
-#   stack   Compose stack up, status/CORS probes, Playwright smoke, log secret scan, down
+#   stack   Compose stack up, status/CORS probes, browser suite (e2e/run-suite.sh: features in
+#           parallel, then identity), log secret scan, down
 #   hrdev   OPS-001: full test-environment rehearsal (ops/hr-dev/rehearse.sh, needs sudo -n):
 #           deploy, browser acceptance, backup, host lock, watchdog, restore drill, rollbacks
-#   all     core + stack + hrdev
+#   all     the same as `full`
+# Each stage's duration is written to .git/divalhr-verify/<profile>.timings (`TIME <name> <s>s`);
+# the summary format is unchanged.
 #
 # OPS-001 (A65-5): takes the host-wide lock (ops/host/host-lock.sh) unless the caller (aws-verify)
 # already holds it; on a machine without the lock file (a workstation) it runs without it.
@@ -25,8 +35,10 @@ OUT="$ROOT/.git/divalhr-verify"
 mkdir -p "$OUT"
 LOG="$OUT/$STAGE.log"
 SUMMARY="$OUT/$STAGE.summary"
+TIMINGS="$OUT/$STAGE.timings"
 : > "$LOG"
 : > "$SUMMARY"
+: > "$TIMINGS"
 
 log() { printf '%s\n' "$*" | tee -a "$LOG"; }
 result() { printf '%s\n' "$*" | tee -a "$SUMMARY" >> "$LOG"; }
@@ -34,7 +46,12 @@ run() {
   local name="$1"; shift
   log ""
   log "=== [$name] $*"
-  if "$@" >> "$LOG" 2>&1; then
+  local started rc
+  started=$(date +%s)
+  "$@" >> "$LOG" 2>&1
+  rc=$?
+  printf 'TIME %s %ss\n' "$name" "$(( $(date +%s) - started ))" | tee -a "$TIMINGS" >> "$LOG"
+  if [ "$rc" = 0 ]; then
     result "PASS $name"
     return 0
   fi
@@ -71,6 +88,30 @@ test_totals() {
   e=$(cat "$dir"/*.xml | grep -o 'errors="[0-9]*"' | awk -F'"' '{n+=$2} END {print n+0}')
   s=$(cat "$dir"/*.xml | grep -o 'skipped="[0-9]*"' | awk -F'"' '{n+=$2} END {print n+0}')
   result "TESTS core-api total=$t failures=$f errors=$e skipped=$s"
+}
+
+# DEVX-001A (A75-7): the backend-split investigation. Test time per group from the JUnit XML of
+# the clean check (one test JVM today): `spring` = Spring or Testcontainers classes, `keycloak` =
+# the Keycloak container tests, `unit` = the rest; plus the ten slowest classes. Class names only.
+test_groups() {
+  local dir="$ROOT/apps/core-api/build/test-results/test" src="$ROOT/apps/core-api/src/test/java"
+  [ -d "$dir" ] || return 0
+  local xml cls file group line
+  for xml in "$dir"/*.xml; do
+    line=$(grep -m1 -o '<testsuite name="[^"]*" tests="[0-9]*"[^>]* time="[0-9.]*"' "$xml") || continue
+    cls=$(printf '%s' "$line" | sed 's/^<testsuite name="\([^"]*\)".*/\1/')
+    file="$src/$(printf '%s' "${cls%%\$*}" | tr . /).java"
+    group=unit
+    if grep -qE 'KeycloakTestStack|KeycloakContainer' "$file" 2>/dev/null; then group=keycloak
+    elif grep -qE '@SpringBootTest|@WebMvcTest|@DataJpaTest|Testcontainers|IntegrationTest' "$file" 2>/dev/null; then group=spring
+    fi
+    printf '%s %s %s %s\n' "$group" "$(printf '%s' "$line" | sed 's/.* tests="\([0-9]*\)".*/\1/')" \
+      "$(printf '%s' "$line" | sed 's/.* time="\([0-9.]*\)"$/\1/')" "$cls"
+  done > "$OUT/core-test-classes.txt"
+  awk '{c[$1]++; t[$1]+=$2; s[$1]+=$3} END {for (g in c) printf "GROUP %s classes=%d tests=%d seconds=%d\n", g, c[g], t[g], s[g]}' \
+    "$OUT/core-test-classes.txt" | sort | tee -a "$TIMINGS" >> "$LOG"
+  { echo "slowest test classes (seconds):"; sort -k3 -rn "$OUT/core-test-classes.txt" | head -10 |
+    awk '{printf "  %s %.1f %s\n", $1, $3, $4}'; } >> "$LOG"
 }
 
 env_report() {
@@ -148,6 +189,58 @@ membership_preflight() {
 
 pnpm_pinned() { (cd "$ROOT" && npm exec --yes -- pnpm@10.34.6 "$@"); }
 
+# DEVX-001A (D2, A75-4): `features` in parallel, then `identity` alone; both always run, either
+# failing fails the stage; per-part timings go to the timings file. E2E_WORKERS overrides 2.
+e2e_suite() {
+  (cd "$ROOT" && PATH="$PATH" bash apps/web/e2e/run-suite.sh --workers "${E2E_WORKERS:-2}" \
+    --timings "$TIMINGS")
+}
+
+# DEVX-001A (D3): the `changed` profile. The classifier only widens; an unreadable diff or a missing
+# base selects `pr`.
+stage_changed() {
+  env_report
+  local base="${DIVALHR_VERIFY_BASE:-}" decision profile
+  [ -n "$base" ] || base=$(git -C "$ROOT" merge-base origin/main HEAD 2>/dev/null) || base=""
+  decision=$(cd "$ROOT" && node scripts/dev/classify-changed.mjs ${base:+"$base"} HEAD 2>/dev/null) \
+    || decision="profile=pr"
+  printf '%s\n' "$decision" | sed 's/^/  /' >> "$LOG"
+  profile=$(printf '%s\n' "$decision" | sed -n 's/^profile=//p')
+  result "INFO changed base=${base:-none} profile=${profile:-pr}"
+  case "$profile" in
+    full) stage_core; stage_stack; stage_hrdev; return ;;
+    changed) ;;
+    *) stage_core; stage_stack; return ;;
+  esac
+  local checks specs
+  checks=$(printf '%s\n' "$decision" | sed -n 's/^check=//p')
+  specs=$(printf '%s\n' "$decision" | sed -n 's/^spec=//p')
+  [ -n "$checks" ] || { result "INFO nothing to verify"; return; }
+  if printf '%s\n' "$checks" | grep -qx core; then
+    run spotless-apply gradle_core spotlessApply
+    run core-check-incremental gradle_core check
+    test_totals
+  fi
+  if printf '%s\n' "$checks" | grep -qxE 'web|docs|e2e'; then
+    run node24 use_node24
+    run pnpm-install pnpm_pinned install --frozen-lockfile
+    run format-check pnpm_pinned format:check
+  fi
+  if printf '%s\n' "$checks" | grep -qx web; then
+    run lint pnpm_pinned lint
+    run typecheck pnpm_pinned typecheck
+    run web-test pnpm_pinned test
+  fi
+  if printf '%s\n' "$checks" | grep -qx e2e; then
+    if [ "$specs" = "*" ]; then
+      stage_stack
+    else
+      # Only the changed spec files, still split into features and identity by run-suite.sh.
+      E2E_SPECS="$(printf '%s ' $specs)" stage_stack
+    fi
+  fi
+}
+
 stage_spike() {
   env_report
   run gradle-version gradle_core --version
@@ -167,6 +260,7 @@ stage_core() {
   run spotless-apply gradle_core spotlessApply
   run core-check gradle_core --no-build-cache clean check bootJar
   test_totals
+  test_groups
   gradle_sha
 }
 
@@ -185,7 +279,7 @@ stage_stack() {
   run ops-test pnpm_pinned ops:test
   run realm-verify realm_verify
   run playwright-browsers pnpm_pinned --filter @divalhr/web exec playwright install chromium
-  run e2e pnpm_pinned --filter @divalhr/web exec playwright test
+  run e2e e2e_suite
   run membership-preflight membership_preflight
   run compose-logs bash -c "$compose logs --no-color > '$OUT/compose.log' 2>&1"
   run no-secrets-in-logs bash -c "! grep -E 'eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.|Bearer [A-Za-z0-9._-]{20,}|dev-only-(Admin|Employee|Platform|totp)' '$OUT/compose.log'"
@@ -209,8 +303,10 @@ case "$STAGE" in
   core) stage_core ;;
   stack) stage_stack ;;
   hrdev) stage_hrdev ;;
-  all) stage_core; stage_stack; stage_hrdev ;;
-  *) echo "unknown stage: $STAGE" >&2; exit 2 ;;
+  changed) stage_changed ;;
+  pr) stage_core; stage_stack ;;
+  all|full) stage_core; stage_stack; stage_hrdev ;;
+  *) echo "unknown profile or stage: $STAGE" >&2; exit 2 ;;
 esac
 
 log ""

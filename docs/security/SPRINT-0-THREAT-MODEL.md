@@ -336,3 +336,14 @@ New data: contract templates (Confidential), issued contract snapshots and ackno
 | D13 | Large tenants make the queue scan or sort every contract | Covering index read in order, one pass of windows, bounded final top-N; subject and tenant limits | `ContractExpirationQueryPlanIntegrationTest` (5,000 employments, 12,000 contracts) |
 
 New data: none (read model over existing contracts). New configuration: `DIVALHR_CONTRACT_EXPIRATION_REQUESTS_PER_MINUTE`. Residual risks: in-process limits; a cursor traversal is not a frozen snapshot (documented guarantee, A31A-4).
+
+## DEVX-001A delta (browser-suite SSO reuse, Issue #75)
+
+Test tooling only; no product code, realm or deployment change.
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| I31 | The Keycloak SSO session saved by `auth-setup` (a session credential of a development seed user) reaches the repository, a report, an artifact, a log or evidence (A75-3) | Per-run `mktemp -d` directory outside the repository and every output path (0700, files 0600, write-once); only the identity host's `KEYCLOAK_IDENTITY`/`KEYCLOAK_SESSION` cookies kept, no browser storage, nothing token-shaped elsewhere; removed by the Playwright global teardown and by the runner's `trap`; a post-run hygiene check over generated output fails on a JWT, a session-cookie value, a seed password or TOTP seed, a TOTP code of the run, or a leftover directory | `apps/web/e2e/tooling.test.ts` (state validation, modes, cleanup after a passing and a failing run, hygiene findings) |
+| E29 | A feature test silently skips MFA or reuses a code, weakening what the suite proves | `features` still signs in through Authorization Code + PKCE against a session that passed password and TOTP; `freshCode` throws there instead of waiting; every interactive, MFA, replayed-code, membership and sign-out test stays in `identity`, which always runs | `mfa.spec.ts`, `membership-authority.spec.ts` (identity project), `run-suite.sh` exit aggregation tests |
+
+New data: none. New configuration: `DIVALHR_E2E_SSO_DIR` (set by the runner, never by hand), `E2E_WORKERS`. Residual risk: the saved session is a development-realm session of published seed users, valid for the realm's SSO idle time; it exists only for the duration of one run on the verifying machine.

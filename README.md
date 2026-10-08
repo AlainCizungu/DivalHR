@@ -72,15 +72,23 @@ pnpm api:lint && pnpm api:check     # contract lint + generated client is curren
 (cd apps/ai-service && uv sync --frozen && uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest)
 (cd apps/core-api && ./gradlew check bootJar)   # needs Docker for Testcontainers
 
-# End-to-end smoke tests against the running stack:
+# Browser tests against the running stack (apps/web/e2e/README.md):
 pnpm --filter @divalhr/web exec playwright install chromium
-pnpm --filter @divalhr/web exec playwright test
+pnpm --filter @divalhr/web run e2e:suite     # features on 2 workers, then identity, then hygiene
+pnpm --filter @divalhr/web run e2e:serial    # the same on one worker (diagnostics)
 ```
 
 `make lint`, `make test`, `make build` and `make e2e` wrap the same commands.
-`scripts/dev/verify-on-host.sh all` runs the Core API checks, the full-stack smoke test and (on
-the AWS instance, through `ops/aws/aws-verify.sh`) the test-environment rehearsal, and writes logs
-to `.git/divalhr-verify/`.
+`scripts/dev/verify-on-host.sh <profile>` writes logs and per-phase timings to
+`.git/divalhr-verify/` (DEVX-001A):
+
+- `changed`: only what the diff from `main` needs (`scripts/dev/classify-changed.mjs`); anything
+  it cannot classify widens to `pr`, and operational paths to `full`.
+- `pr`: the Core API checks and the full stack with the whole browser suite.
+- `full` (alias `all`): `pr` plus, on the AWS instance through `ops/aws/aws-verify.sh`, the
+  complete test-environment rehearsal. Only a `full` run counts for a deployment.
+
+The older stage names (`spike`, `core`, `stack`, `hrdev`) still work.
 
 ## Contracts
 
