@@ -310,6 +310,10 @@ describe.each([
     await expectNoAxeViolations(container);
     await user.keyboard('{Escape}');
     await user.click(screen.getByRole('button', { name: strings.shell.openNavigation }));
-    await expectNoAxeViolations(document.body);
+    // jsdom cannot model native showModal(): no top layer and no inert background, so axe-core
+    // (4.14+) sees the page behind the drawer as reachable. Scan the open dialog itself here; the
+    // full-page modal behaviour is covered in Chromium by e2e/shell.spec.ts.
+    const dialog = screen.getByRole('dialog', { name: strings.nav.primary });
+    await expectNoAxeViolations(dialog);
   });
 });
