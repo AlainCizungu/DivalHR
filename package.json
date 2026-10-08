@@ -24,7 +24,7 @@
     "ops:test": "node --test scripts/ops/membership-preflight.test.mjs scripts/ops/hr-dev.test.mjs scripts/dev/classify-changed.test.mjs scripts/dev/dev-rate-limits.test.mjs scripts/ops/evidence.test.mjs"
   },
   "devDependencies": {
-    "@redocly/cli": "2.55.0",
+    "@redocly/cli": "2.58.1",
     "prettier": "3.9.9"
   }
 }
