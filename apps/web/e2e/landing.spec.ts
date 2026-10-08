@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { enterCode, expectAccessible, USERS } from './support';
+import { enterCode, expectAccessible, typeSecret, USERS } from './support';
 
 /**
  * UI-002 (Issue #63): the public landing page in a real browser. Both languages and themes,
@@ -139,7 +139,7 @@ for (const [label, viewport] of [
   }
 }
 
-test.describe('sign-in from the landing page (unchanged flow)', () => {
+test.describe('sign-in from the landing page (unchanged flow)', { tag: '@identity' }, () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test('the header Sign in returns an employee to the role home; sign-out returns to the landing page', async ({
@@ -150,7 +150,7 @@ test.describe('sign-in from the landing page (unchanged flow)', () => {
     await page.waitForURL(/\/realms\/divalhr-dev\/protocol\/openid-connect\/auth/);
     expect(new URL(page.url()).searchParams.get('code_challenge_method')).toBe('S256');
     await page.locator('#username').fill(USERS.employeeA[0]);
-    await page.locator('#password').fill(USERS.employeeA[1]);
+    await typeSecret(page, '#password', USERS.employeeA[1]);
     await page.locator('#kc-login').click();
     await page.waitForURL((url) => url.pathname === '/');
     await expect(page.getByTestId('session-tenant')).toHaveText(/^[0-9a-f-]{36}$/);
@@ -173,7 +173,7 @@ test.describe('sign-in from the landing page (unchanged flow)', () => {
     await page.waitForURL(/\/realms\/divalhr-dev\/protocol\/openid-connect\/auth/);
     expect(new URL(page.url()).searchParams.get('ui_locales')).toBe('fr');
     await page.locator('#username').fill(USERS.adminA[0]);
-    await page.locator('#password').fill(USERS.adminA[1]);
+    await typeSecret(page, '#password', USERS.adminA[1]);
     await page.locator('#kc-login').click();
     await enterCode(page, USERS.adminA[0]);
     await page.waitForURL((url) => url.pathname === '/');

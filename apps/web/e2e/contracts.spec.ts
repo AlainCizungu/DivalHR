@@ -8,6 +8,8 @@ import {
   signIn,
   sql,
   primaryNav,
+  openSecretLink,
+  typeSecret,
 } from './support';
 
 // MVP-030 (Issue #51): create and acknowledge a contract with the real identity provider and
@@ -111,13 +113,13 @@ async function inviteAndLink(
   expect(setup, 'password setup link').not.toBeNull();
   const context = await browser.newContext({ locale: 'fr-FR' });
   const setupPage = await context.newPage();
-  await setupPage.goto(setup?.[0] ?? '');
+  await openSecretLink(setupPage, setup?.[0] ?? '');
   const proceed = setupPage.locator('a[href*="login-actions"], #kc-info-message a').first();
   if ((await setupPage.locator('#password-new').count()) === 0 && (await proceed.count()) > 0) {
     await proceed.click();
   }
-  await setupPage.locator('#password-new').fill(PASSWORD);
-  await setupPage.locator('#password-confirm').fill(PASSWORD);
+  await typeSecret(setupPage, '#password-new', PASSWORD);
+  await typeSecret(setupPage, '#password-confirm', PASSWORD);
   await setupPage.locator('[type="submit"]').first().click();
   await context.close();
 

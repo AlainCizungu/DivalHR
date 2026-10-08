@@ -90,8 +90,10 @@ jobs:
           KEYCLOAK_ADMIN_USER: dev-kc-admin
           KEYCLOAK_ADMIN_PASSWORD: dev-only-keycloak-admin
       - run: pnpm --filter @divalhr/web exec playwright install --with-deps chromium
-      - name: Playwright smoke tests
-        run: pnpm --filter @divalhr/web exec playwright test
+      # DEVX-001A: features in parallel (SSO sessions from one real MFA sign-in per role), then the
+      # identity tests alone; both always run and the step fails if either fails.
+      - name: Playwright browser suite (features, then identity)
+        run: pnpm --filter @divalhr/web run e2e:suite
         env:
           CI: 'true'
       - name: Membership preflight (read-only; MVP-012A, counts and IDs only)

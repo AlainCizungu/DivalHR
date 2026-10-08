@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, freshCode, signIn, TOTP_SEEDS, typeCode, USERS } from './support';
+import {
+  expectAccessible,
+  freshCode,
+  signIn,
+  TOTP_SEEDS,
+  typeCode,
+  typeSecret,
+  USERS,
+} from './support';
 
 /**
  * UI-001 (Issue #53): the product shell in a real browser. Role-aware navigation, deep links and
@@ -133,43 +141,45 @@ test.describe('desktop', () => {
     await context.close();
   });
 
-  test('a deep link opened before sign-in returns to the same page, never showing other roles', async ({
-    page,
-  }) => {
-    await page.goto('/admin/people');
-    await chooseLocale(page, 'English');
-    await expect(nav(page)).toHaveCount(0);
-    await expectAccessible(page);
+  test(
+    'a deep link opened before sign-in returns to the same page, never showing other roles',
+    { tag: '@identity' },
+    async ({ page }) => {
+      await page.goto('/admin/people');
+      await chooseLocale(page, 'English');
+      await expect(nav(page)).toHaveCount(0);
+      await expectAccessible(page);
 
-    // Hold the session response so the signed-in shell is seen while the session loads.
-    let release: () => void = () => undefined;
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route('**/api/v1/session', async (route) => {
-      await held;
-      await route.continue();
-    });
-    await page.getByRole('banner').getByRole('button', { name: 'Sign in' }).click();
-    await page.waitForURL(/\/realms\/divalhr-dev\/protocol\/openid-connect\/auth/);
-    await page.locator('#username').fill(USERS.adminA[0]);
-    await page.locator('#password').fill(USERS.adminA[1]);
-    await page.locator('#kc-login').click();
-    // The deep link, not Home, is where the sign-in returns (so the shared helper's wait for "/"
-    // does not apply here).
-    await page.locator('#otp').waitFor();
-    await typeCode(
-      page,
-      '#otp',
-      await freshCode(page, USERS.adminA[0], TOTP_SEEDS[USERS.adminA[0]] ?? ''),
-    );
-    await page.locator('#kc-login').click();
-    await page.waitForURL((url) => url.pathname === '/admin/people');
-    await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
-    release();
-    await expect(nav(page).locator('.nav-link__label')).toHaveCount(8);
-    await expect(page.getByTestId('directory-table')).toBeVisible();
-  });
+      // Hold the session response so the signed-in shell is seen while the session loads.
+      let release: () => void = () => undefined;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route('**/api/v1/session', async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.getByRole('banner').getByRole('button', { name: 'Sign in' }).click();
+      await page.waitForURL(/\/realms\/divalhr-dev\/protocol\/openid-connect\/auth/);
+      await page.locator('#username').fill(USERS.adminA[0]);
+      await typeSecret(page, '#password', USERS.adminA[1]);
+      await page.locator('#kc-login').click();
+      // The deep link, not Home, is where the sign-in returns (so the shared helper's wait for "/"
+      // does not apply here).
+      await page.locator('#otp').waitFor();
+      await typeCode(
+        page,
+        '#otp',
+        await freshCode(page, USERS.adminA[0], TOTP_SEEDS[USERS.adminA[0]] ?? ''),
+      );
+      await page.locator('#kc-login').click();
+      await page.waitForURL((url) => url.pathname === '/admin/people');
+      await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
+      release();
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(8);
+      await expect(page.getByTestId('directory-table')).toBeVisible();
+    },
+  );
 
   test('anonymous visitors get the landing page (UI-002), accessible in both languages', async ({
     page,

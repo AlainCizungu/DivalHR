@@ -7,7 +7,10 @@ import {
   mailTo,
   signIn,
   signInFr,
+  openSecretLink,
   typeCode,
+  typeSecret,
+  TOTP_SEEDS,
   totp,
   primaryNav,
 } from './support';
@@ -23,7 +26,7 @@ async function openUsers(page: Page) {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Utilisateurs et invitations');
 }
 
-test.describe.serial('MVP-011: privileged roles complete MFA', () => {
+test.describe.serial('MVP-011: privileged roles complete MFA', { tag: '@identity' }, () => {
   const stamp = Date.now().toString(36);
   const invited = `e2e.admin.mfa.${stamp}@example.test`;
   const password = `Dev-only-E2E-${stamp}-Mfa!`;
@@ -39,12 +42,12 @@ test.describe.serial('MVP-011: privileged roles complete MFA', () => {
   test('a platform administrator is asked for an authenticator code; a wrong code is refused', async ({
     page,
   }) => {
-    const [username, secret] = [USERS.platformAdmin[0], 'dev-only-totp-platform-2026'];
+    const [username, secret] = [USERS.platformAdmin[0], TOTP_SEEDS[USERS.platformAdmin[0]] ?? ''];
     await page.goto('/');
     await page.getByRole('button', { name: 'English', exact: true }).click();
     await page.getByRole('main').getByRole('button', { name: 'Sign in' }).click();
     await page.locator('#username').fill(username);
-    await page.locator('#password').fill(USERS.platformAdmin[1]);
+    await typeSecret(page, '#password', USERS.platformAdmin[1]);
     await page.locator('#kc-login').click();
 
     // A labelled code field, in the user's language.
@@ -88,7 +91,7 @@ test.describe.serial('MVP-011: privileged roles complete MFA', () => {
     expect(link, 'invitation link').not.toBeNull();
     const context = await browser.newContext({ locale: 'fr-FR' });
     const page = await context.newPage();
-    await page.goto(link?.[0] ?? '');
+    await openSecretLink(page, link?.[0] ?? '');
     await expect(page.getByTestId('invitation-preview')).toContainText(
       'Administrateur de l’organisation',
     );
@@ -99,7 +102,7 @@ test.describe.serial('MVP-011: privileged roles complete MFA', () => {
       await mailTo(invited, /mot de passe|password|actions|compte|account/iu),
     );
     expect(setup, 'setup link').not.toBeNull();
-    await page.goto(setup?.[0] ?? '');
+    await openSecretLink(page, setup?.[0] ?? '');
     const proceed = page.locator('a[href*="login-actions"]').first();
     if ((await page.locator('#password-new, #totp').count()) === 0 && (await proceed.count()) > 0) {
       await proceed.click();
@@ -108,8 +111,8 @@ test.describe.serial('MVP-011: privileged roles complete MFA', () => {
     for (let step = 0; step < 2; step++) {
       await expect(page.locator('#password-new').or(page.locator('#totp'))).toBeVisible();
       if ((await page.locator('#password-new').count()) > 0) {
-        await page.locator('#password-new').fill(password);
-        await page.locator('#password-confirm').fill(password);
+        await typeSecret(page, '#password-new', password);
+        await typeSecret(page, '#password-confirm', password);
         await page.locator('[type="submit"]').first().click();
       } else {
         invitedSecret = await page.locator('#totpSecret').inputValue();

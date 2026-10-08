@@ -56,6 +56,20 @@ Do not weaken authentication, authorization, consent, audit, encryption, or appr
 
 AI features retrieve only authorized data. AI tools independently authorize calls. Consequential actions require human approval and audit. Tests cover French, English, grounding, leakage, and prompt injection.
 
+## Verification sequence (DEVX-001, Issue #75)
+
+Run the narrowest verification that proves the current step; never repeat a complete run for evidence that has not changed.
+
+| Step | Verification |
+| --- | --- |
+| Implementation and review fixes | targeted checks, or `scripts/dev/verify-on-host.sh changed` (it widens to `pr` or `full` by itself) |
+| PR opened, review rounds | normal GitHub CI plus targeted or `changed` checks for each fix |
+| Concurrency or browser-tooling changes | browser-stage repetitions (`aws-verify.sh <sha> stack`), no Playwright retries, individual and median timings recorded |
+| Code approved | exactly **one** `aws-verify.sh <sha> full` on the approved head, then evidence; merge only after it passes |
+| After merge | the established release verification and deployment procedure (unchanged) |
+
+The architect may ask for a `full` run at any point. Browser tests: `apps/web/e2e/README.md`.
+
 ## Completion report
 
 For every completed story, provide:

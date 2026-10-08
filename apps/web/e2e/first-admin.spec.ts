@@ -8,6 +8,8 @@ import {
   signIn,
   typeCode,
   primaryNav,
+  openSecretLink,
+  typeSecret,
 } from './support';
 
 // MVP-014 (Issue #38). A platform administrator creates an organization and invites its first
@@ -77,7 +79,7 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
   test('the revoked link is refused', async ({ browser }) => {
     const context = await browser.newContext({ locale: 'fr-FR' });
     const page = await context.newPage();
-    await page.goto(revokedLink ?? '');
+    await openSecretLink(page, revokedLink ?? '');
     await expect(page.getByTestId('invitation-result')).toContainText(
       'Ce lien d’invitation n’est pas valide.',
     );
@@ -91,7 +93,7 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
     expect(link, 'invitation link').not.toBeNull();
     const context = await browser.newContext({ locale: 'fr-FR' });
     const page = await context.newPage();
-    await page.goto(link?.[0] ?? '');
+    await openSecretLink(page, link?.[0] ?? '');
     await expect(page.getByTestId('invitation-preview')).toContainText(
       'Administrateur de l’organisation',
     );
@@ -103,7 +105,7 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
       await mailTo(invited, /mot de passe|password|actions|compte|account/iu),
     );
     expect(setup, 'setup link').not.toBeNull();
-    await page.goto(setup?.[0] ?? '');
+    await openSecretLink(page, setup?.[0] ?? '');
     const proceed = page.locator('a[href*="login-actions"]').first();
     if ((await page.locator('#password-new, #totp').count()) === 0 && (await proceed.count()) > 0) {
       await proceed.click();
@@ -111,8 +113,8 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
     for (let step = 0; step < 2; step++) {
       await expect(page.locator('#password-new').or(page.locator('#totp'))).toBeVisible();
       if ((await page.locator('#password-new').count()) > 0) {
-        await page.locator('#password-new').fill(password);
-        await page.locator('#password-confirm').fill(password);
+        await typeSecret(page, '#password-new', password);
+        await typeSecret(page, '#password-confirm', password);
         await page.locator('[type="submit"]').first().click();
       } else {
         invitedSecret = await page.locator('#totpSecret').inputValue();

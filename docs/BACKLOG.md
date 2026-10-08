@@ -255,3 +255,11 @@ A released commit of `main` runs at `https://hr-dev.dival.ai` with synthetic dat
 Follow-ups found during deployment, both merged before the accepted release: PR #69 stops the web app's service worker from answering navigations to the same-origin server routes (`/auth`, `/api`, `/identity`, `/ai`), which had broken sign-in in real browsers, and adds a live test with the service worker in control; Issue #68 (PR #70) corrects the snapshot-policy description, reads the running release with `sudo -n` and makes the deployment log follower print every line once. Deployed state: `hr-dev.dival.ai` runs `194471e`, deployed on 2026-10-06 with the previous release and a pre-deploy dump kept for rollback; seven of seven containers healthy; the live acceptance suite (landing page in English and French, OIDC sign-in, refresh and logout, the web-app round trip, privileged MFA sign-in, the admin console, the employee flows in English and French and the service-worker-controlled sign-in) passed with nothing skipped; architect acceptance on 2026-10-07. Synthetic data only.
 
 Out of scope for OPS-001: production or staging, a dedicated identity origin (a production requirement, D1), high availability, external monitoring, real e-mail delivery and any change to application behaviour.
+
+### DEVX-001 Reduce verification cycle time without reducing coverage
+
+Maintenance (Issue #75; approved proposal with amendments A75-1 to A75-8). Two increments.
+
+**DEVX-001A (in progress).** The review sequence in `CLAUDE.md`; the Playwright `auth-setup`, `features` (parallel, reusing one real MFA sign-in per privileged seed role) and `identity` (serial) projects, both required; credential hygiene of generated output; per-phase timings; and the `changed`, `pr` and `full` verification profiles. No deployment-gate or rehearsal change.
+
+**DEVX-001B (next).** Rehearsal subsets by risk class, the evidence record and its reuse for hr-dev deployments, and the gate and runbook changes, under the complete rehearsal.

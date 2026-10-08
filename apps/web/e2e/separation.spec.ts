@@ -8,6 +8,8 @@ import {
   signIn,
   sql,
   primaryNav,
+  openSecretLink,
+  typeSecret,
 } from './support';
 
 // MVP-022 (Issue #49): separate an employee with the real identity provider, extension, database
@@ -199,13 +201,13 @@ test.describe.serial('MVP-022: separate an employee', () => {
     expect(setup, 'password setup link').not.toBeNull();
     const context = await browser.newContext({ locale: 'fr-FR' });
     const setupPage = await context.newPage();
-    await setupPage.goto(setup?.[0] ?? '');
+    await openSecretLink(setupPage, setup?.[0] ?? '');
     const proceed = setupPage.locator('a[href*="login-actions"], #kc-info-message a').first();
     if ((await setupPage.locator('#password-new').count()) === 0 && (await proceed.count()) > 0) {
       await proceed.click();
     }
-    await setupPage.locator('#password-new').fill(PASSWORD);
-    await setupPage.locator('#password-confirm').fill(PASSWORD);
+    await typeSecret(setupPage, '#password-new', PASSWORD);
+    await typeSecret(setupPage, '#password-confirm', PASSWORD);
     await setupPage.locator('[type="submit"]').first().click();
     await context.close();
 
@@ -292,7 +294,7 @@ test.describe.serial('MVP-022: separate an employee', () => {
     await probe.getByRole('button', { name: 'Français', exact: true }).click();
     await probe.getByRole('main').getByRole('button', { name: 'Se connecter' }).click();
     await probe.locator('#username').fill(EMAIL);
-    await probe.locator('#password').fill(PASSWORD);
+    await typeSecret(probe, '#password', PASSWORD);
     await probe.locator('#kc-login').click();
     await expect(
       probe.locator('#input-error, .kc-feedback-text, [role="alert"]').first(),

@@ -14,19 +14,19 @@ Product and architecture planning is maintained in the `docs/` directory.
 
 ## Repository layout
 
-| Path | Contents |
-|---|---|
-| `apps/web` | React + TypeScript PWA (French/English shell, PKCE login, status screen) |
-| `apps/core-api` | Java 21 + Spring Boot 4.1 modular Core API |
-| `apps/ai-service` | Python 3.12 + FastAPI AI Service shell (no model integration yet) |
-| `packages/localization` | French and English strings + parity checker |
-| `packages/design-system` | Light/dark design tokens |
-| `packages/api-client` | Typed client generated from the approved contracts |
-| `packages/shared-contracts` | Event envelope, error schema, AI Service public contract |
-| `infrastructure/docker` | Docker Compose stack, Keycloak development realm, PostgreSQL init |
+| Path                            | Contents                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| `apps/web`                      | React + TypeScript PWA (French/English shell, PKCE login, status screen)        |
+| `apps/core-api`                 | Java 21 + Spring Boot 4.1 modular Core API                                      |
+| `apps/ai-service`               | Python 3.12 + FastAPI AI Service shell (no model integration yet)               |
+| `packages/localization`         | French and English strings + parity checker                                     |
+| `packages/design-system`        | Light/dark design tokens                                                        |
+| `packages/api-client`           | Typed client generated from the approved contracts                              |
+| `packages/shared-contracts`     | Event envelope, error schema, AI Service public contract                        |
+| `infrastructure/docker`         | Docker Compose stack, Keycloak development realm, PostgreSQL init               |
 | `infrastructure/hr-dev`, `ops/` | Test environment at `hr-dev.dival.ai` and its operations (`docs/OPS-HR-DEV.md`) |
-| `infrastructure/terraform` | Placeholder only |
-| `docs/API-SPEC.yaml` | **Authoritative** design-first Core API contract |
+| `infrastructure/terraform`      | Placeholder only                                                                |
+| `docs/API-SPEC.yaml`            | **Authoritative** design-first Core API contract                                |
 
 ## Prerequisites
 
@@ -49,13 +49,13 @@ Then open <http://localhost:5173>. Sign in with a **development-only** seed user
 `dev-platform-admin`) also enter a code from an authenticator app set up with their published
 development-only key (full list and keys: `infrastructure/docker/keycloak/README.md`).
 
-| Service | URL |
-|---|---|
-| Web | http://localhost:5173 |
-| Core API status | http://localhost:8080/api/v1/system/status |
-| AI Service status | http://localhost:8090/api/v1/system/status |
-| Keycloak (127.0.0.1 only; plain HTTP is development-only) | http://localhost:8180 (admin from the command line: see `infrastructure/docker/keycloak/README.md`) |
-| Mailpit (development mail catcher: invitations and password emails) | http://127.0.0.1:8025 |
+| Service                                                             | URL                                                                                                 |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Web                                                                 | http://localhost:5173                                                                               |
+| Core API status                                                     | http://localhost:8080/api/v1/system/status                                                          |
+| AI Service status                                                   | http://localhost:8090/api/v1/system/status                                                          |
+| Keycloak (127.0.0.1 only; plain HTTP is development-only)           | http://localhost:8180 (admin from the command line: see `infrastructure/docker/keycloak/README.md`) |
+| Mailpit (development mail catcher: invitations and password emails) | http://127.0.0.1:8025                                                                               |
 
 The stack works the same on Linux and on Docker Desktop for macOS. It uses plain HTTP on localhost only; staging and production require HTTPS, and the Core API refuses to start there with an `http` issuer.
 
@@ -72,15 +72,23 @@ pnpm api:lint && pnpm api:check     # contract lint + generated client is curren
 (cd apps/ai-service && uv sync --frozen && uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest)
 (cd apps/core-api && ./gradlew check bootJar)   # needs Docker for Testcontainers
 
-# End-to-end smoke tests against the running stack:
+# Browser tests against the running stack (apps/web/e2e/README.md):
 pnpm --filter @divalhr/web exec playwright install chromium
-pnpm --filter @divalhr/web exec playwright test
+pnpm --filter @divalhr/web run e2e           # features on 2 workers, then identity, then hygiene
+pnpm --filter @divalhr/web run e2e:serial    # the same on one worker (diagnostics)
 ```
 
 `make lint`, `make test`, `make build` and `make e2e` wrap the same commands.
-`scripts/dev/verify-on-host.sh all` runs the Core API checks, the full-stack smoke test and (on
-the AWS instance, through `ops/aws/aws-verify.sh`) the test-environment rehearsal, and writes logs
-to `.git/divalhr-verify/`.
+`scripts/dev/verify-on-host.sh <profile>` writes logs and per-phase timings to
+`.git/divalhr-verify/` (DEVX-001A):
+
+- `changed`: only what the diff from `main` needs (`scripts/dev/classify-changed.mjs`); anything
+  it cannot classify widens to `pr`, and operational paths to `full`.
+- `pr`: the Core API checks and the full stack with the whole browser suite.
+- `full` (alias `all`): `pr` plus, on the AWS instance through `ops/aws/aws-verify.sh`, the
+  complete test-environment rehearsal. Only a `full` run counts for a deployment.
+
+The older stage names (`spike`, `core`, `stack`, `hrdev`) still work.
 
 ## Contracts
 

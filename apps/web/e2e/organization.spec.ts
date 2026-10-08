@@ -2,11 +2,11 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { enterCode, primaryNav } from './support';
+import { primaryNav, signIn, USERS } from './support';
 
 // DEVELOPMENT-ONLY seed credentials (infrastructure/docker/keycloak/README.md).
-const USERNAME = process.env.E2E_PLATFORM_ADMIN_USERNAME ?? 'dev-platform-admin';
-const PASSWORD = process.env.E2E_PLATFORM_ADMIN_PASSWORD ?? 'dev-only-Platform-2026';
+const USERNAME = process.env.E2E_PLATFORM_ADMIN_USERNAME ?? USERS.platformAdmin[0];
+const PASSWORD = process.env.E2E_PLATFORM_ADMIN_PASSWORD ?? USERS.platformAdmin[1];
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
 /** Reads from the Compose PostgreSQL (approved persistence assertion for MVP-001). */
@@ -39,15 +39,8 @@ test('platform administrator creates an organization in French and it is persist
 }) => {
   const name = `Hôpital Général E2E ${Date.now().toString()}`;
 
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Français', exact: true }).click();
-  await page.getByRole('main').getByRole('button', { name: 'Se connecter' }).click();
-  await page.waitForURL(/\/realms\/divalhr-dev\/protocol\/openid-connect\/auth/);
-  await page.locator('#username').fill(USERNAME);
-  await page.locator('#password').fill(PASSWORD);
-  await page.locator('#kc-login').click();
-  await enterCode(page, USERNAME);
-  await page.waitForURL((url) => url.pathname === '/');
+  // DEVX-001A: the shared sign-in (in `features`, the SSO session of auth-setup).
+  await signIn(page, [USERNAME, PASSWORD], 'fr');
 
   await primaryNav(page).getByRole('link', { name: 'Créer une organisation' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Créer une organisation');
@@ -95,16 +88,11 @@ test('platform administrator creates an organization in French and it is persist
 });
 
 test('non-platform administrators do not see or reach organization creation', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'English', exact: true }).click();
-  await page.getByRole('main').getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL(/\/realms\/divalhr-dev\/protocol\/openid-connect\/auth/);
-  const username = process.env.E2E_USERNAME ?? 'dev-admin-a';
-  await page.locator('#username').fill(username);
-  await page.locator('#password').fill(process.env.E2E_PASSWORD ?? 'dev-only-Admin-A-2026');
-  await page.locator('#kc-login').click();
-  await enterCode(page, username);
-  await page.waitForURL((url) => url.pathname === '/');
+  await signIn(
+    page,
+    [process.env.E2E_USERNAME ?? USERS.adminA[0], process.env.E2E_PASSWORD ?? USERS.adminA[1]],
+    'en',
+  );
   await expect(page.getByTestId('session-roles')).toHaveText('Organization administrator');
   await expect(page.getByRole('link', { name: 'Create organization' })).toHaveCount(0);
 });
