@@ -323,3 +323,16 @@ New personal data: separation details and follow-up reminders (Restricted HR) an
 | D12 | Repeated self-service denials flood durable denial evidence (A30-1) | Durable rows only for privileged operations; self-service denials on a bounded counter; per-subject `contract-self` limit | `employeeSelfServiceDenialsWriteNoRowAndAreCountedOnly` (50 calls, no row) |
 
 New data: contract templates (Confidential), issued contract snapshots and acknowledgement evidence (Restricted HR). New configuration: `DIVALHR_CONTRACT_READ_REQUESTS_PER_MINUTE`, `DIVALHR_CONTRACT_WRITE_REQUESTS_PER_MINUTE`, `DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE`, `DIVALHR_CONTRACT_TENANT_WRITES`, `DIVALHR_CONTRACT_JOBS_ENABLED`. Residual risks: contract text in PostgreSQL relies on the encryption-at-rest production gate (ADR 0009); in-process limits; the v1 statement needs counsel review before production.
+
+## MVP-031A delta (contract expiration queue, Issue #73)
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| S23 | A caller without the tenant-admin role, MFA or membership reads the expiration queue or summary | `@TenantAdminOperation` on both operations before any argument or body is read | `AuthorizationDenialAuditIntegrationTest`, `ContractExpirationIntegrationTest` |
+| T56 | A cursor is replayed with other filters, another tenant or another page size to skip rows or widen the result | HMAC cursor bound to operation, tenant, business date, search digest, unit, categories and size; the keyset end date is re-read in the verified tenant | `aCursorIsBoundToItsTenantAndEveryFilter` |
+| I29 | Another tenant's contracts, names or counts leak through the queue, a unit filter or the summary | Tenant only from the JWT; people data through the port in the same transaction; foreign units match nothing | `anotherTenantNeverSeesTheRecordsOrTheCounts`, `countsHonorTheSearchAndUnitAndEqualTheItemsPagedThrough` |
+| I30 | Names, employee numbers, search text, unit IDs or cursors reach logs, metrics or audit | Allow-listed log keys and audit metadata; digests only; search text only in a POST body | `readsAreFailClosedDisclosuresAndTheSummaryHashesOnlyItsPayload` |
+| R13 | A disclosure of the queue happens without evidence | Fail-closed audit inside the read transaction | `readsAreFailClosedDisclosuresAndTheSummaryHashesOnlyItsPayload` |
+| D13 | Large tenants make the queue scan or sort every contract | Covering index read in order, one pass of windows, bounded final top-N; subject and tenant limits | `ContractExpirationQueryPlanIntegrationTest` (5,000 employments, 12,000 contracts) |
+
+New data: none (read model over existing contracts). New configuration: `DIVALHR_CONTRACT_EXPIRATION_REQUESTS_PER_MINUTE`. Residual risks: in-process limits; a cursor traversal is not a frozen snapshot (documented guarantee, A31A-4).

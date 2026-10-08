@@ -4,6 +4,7 @@ import { CallbackPage } from '../auth/CallbackPage';
 import { AccessReviewPage } from '../features/access-review/AccessReviewPage';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
+import { ContractExpirationsPage } from '../features/contracts/ContractExpirationsPage';
 import { ContractTemplatePage } from '../features/contracts/ContractTemplatePage';
 import { ContractTemplatesPage } from '../features/contracts/ContractTemplatesPage';
 import { MyContractPage } from '../features/contracts/MyContractPage';
@@ -132,6 +133,12 @@ export const ROUTES: AppRoute[] = [
       { key: 'nav.contractTemplates', to: '/admin/contract-templates' },
       { key: 'shell.crumb.contractTemplate' },
     ],
+  },
+  {
+    path: '/admin/contract-expirations',
+    element: <ContractExpirationsPage />,
+    access: tenantAdmin('contractExpirations.unauthorized', 'contractExpirations.signInRequired'),
+    crumbs: [HOME, DOCUMENTS, { key: 'nav.contractExpirations' }],
   },
   {
     path: '/me/contracts',

@@ -121,6 +121,7 @@ divalhr:
       contract-read: ${DIVALHR_CONTRACT_READ_REQUESTS_PER_MINUTE:60}
       contract-write: ${DIVALHR_CONTRACT_WRITE_REQUESTS_PER_MINUTE:20}
       contract-self: ${DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE:30}
+      contract-expiration: ${DIVALHR_CONTRACT_EXPIRATION_REQUESTS_PER_MINUTE:60}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}

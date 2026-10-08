@@ -85,6 +85,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'contract',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/contract-expirations',
+        labelKey: 'nav.contractExpirations',
+        icon: 'expiry',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

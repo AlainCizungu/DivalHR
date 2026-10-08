@@ -55,6 +55,9 @@
       <Class name="com.divalhr.core.people.internal.JdbcEmployeeImportRepository"/>
       <Class name="com.divalhr.core.people.internal.JdbcEmployeeRepository"/>
       <Class name="com.divalhr.core.people.internal.JdbcEmploymentHistoryRepository"/>
+      <Class name="com.divalhr.core.people.internal.JdbcEmploymentScopeRepository"/>
+      <Class name="com.divalhr.core.documents.internal.JdbcContractExpirationRepository"/>
+      <Class name="com.divalhr.core.documents.application.ContractExpirationService"/>
       <Class name="com.divalhr.core.people.application.EmploymentHistoryEvents"/>
       <Class name="com.divalhr.core.people.application.EmploymentHistoryViews"/>
       <Class name="com.divalhr.core.people.application.EmploymentHistoryRules"/>

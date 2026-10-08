@@ -16,6 +16,7 @@
     "employees": "Employees",
     "employeeImport": "Import employees",
     "contractTemplates": "Contract templates",
+    "contractExpirations": "Contract expirations",
     "myContracts": "My contracts",
     "groups": {
       "overview": "Overview",
@@ -131,6 +132,17 @@
         "accessReview": "See who can access what, and from which assignment.",
         "contractTemplates": "Write, approve and retire the templates used to issue contracts.",
         "employeeImport": "Bring existing employees in from a spreadsheet, with a preview first."
+      },
+      "attention": {
+        "title": "Contracts needing attention",
+        "count_one": "{{count}} contract has ended or ends within 90 days.",
+        "count_other": "{{count}} contracts have ended or end within 90 days.",
+        "expired_one": "{{count}} has already ended.",
+        "expired_other": "{{count}} have already ended.",
+        "none": "No contract has expired or ends in the next 90 days.",
+        "loading": "Loading the count…",
+        "failed": "The count could not be loaded.",
+        "open": "View contract expirations"
       }
     },
     "employee": {
@@ -160,7 +172,7 @@
       },
       "documentExpiry": {
         "title": "Document expiration",
-        "description": "Follow expiring documents and credentials."
+        "description": "Follow expiring credentials and identity documents."
       },
       "payrollInputs": {
         "title": "Payroll inputs",
@@ -1612,6 +1624,65 @@
       "changed": "The contract or the statement changed. The page was reloaded: read it again before acknowledging.",
       "linkRequired": "Your account is not yet linked to your employee record. Contact your organization’s administrator."
     }
+  },
+  "contractExpirations": {
+    "title": "Contract expirations",
+    "description": "Contracts that have ended or end within 90 days, one per employment: the last contract of its current coverage. Open the employee record to follow up.",
+    "asOf": "Calculated for {{date}} ({{timezone}})",
+    "categoriesLabel": "Contracts to show",
+    "category": {
+      "EXPIRED": "Expired",
+      "NEXT_30_DAYS": "Next 30 days",
+      "DAYS_31_TO_60": "31–60 days",
+      "DAYS_61_TO_90": "61–90 days"
+    },
+    "categoryToggle": "{{label}}: {{count}}",
+    "days": {
+      "today": "Ends today",
+      "remaining_one": "Ends in {{count}} day",
+      "remaining_other": "Ends in {{count}} days",
+      "overdue_one": "Overdue by {{count}} day",
+      "overdue_other": "Overdue by {{count}} days"
+    },
+    "filters": {
+      "title": "Filters",
+      "query": "Employee number or name",
+      "queryHelp": "A number prefix or name words; accents and case are ignored. Leave empty for everyone.",
+      "queryLength": "Enter 2 to 100 characters, or leave the field empty.",
+      "unit": "Unit",
+      "unitHelp": "Choose a legal entity and a site, then a department or a cost center.",
+      "legalEntity": "Legal entity",
+      "site": "Site",
+      "department": "Department or cost center",
+      "anyLegalEntity": "All legal entities",
+      "anySite": "All sites",
+      "anyUnit": "All units",
+      "departments": "Departments",
+      "costCenters": "Cost centers",
+      "unitsUnavailable": "Units could not be loaded. You can still filter by name or number.",
+      "apply": "Apply filters",
+      "reset": "Reset filters"
+    },
+    "results": "Contracts",
+    "caption": "Contracts by end date, most urgent first",
+    "columns": {
+      "employee": "Employee",
+      "employeeNumber": "Employee number",
+      "unit": "Unit",
+      "endDate": "End date",
+      "status": "Status"
+    },
+    "unitName": "{{name}} ({{code}})",
+    "noUnit": "No placement",
+    "empty": "No contract has expired or ends in the next 90 days.",
+    "emptyFiltered": "No contract matches these filters.",
+    "loading": "Loading contracts…",
+    "retry": "Try again",
+    "more": "Show more",
+    "found_one": "{{count}} contract shown.",
+    "found_other": "{{count}} contracts shown.",
+    "unauthorized": "Only organization administrators can see contract expirations.",
+    "signInRequired": "Sign in as an organization administrator to see contract expirations."
   },
   "landing": {
     "documentTitle": "DivalHR — The workforce operating platform for Africa",

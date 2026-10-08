@@ -1,8 +1,8 @@
 import { resources } from '@divalhr/localization';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionState } from '../../app/SessionProvider';
 import { renderWithSession, sessionWithRoles } from '../../test/renderWithSession';
 import { HomePage } from './HomePage';
@@ -20,10 +20,51 @@ const cardLinks = () =>
     .filter((link): link is HTMLElement => link !== null)
     .map((link) => [link.textContent, link.getAttribute('href')]);
 
-/** The fabricated-data guard (D10): homes render no figures. */
+/**
+ * The fabricated-data guard (D10): homes render no figures, except inside the one approved live
+ * card, "Contracts needing attention" (MVP-031A, C3b), whose figures come from the server.
+ */
 function expectNoFigures(container: HTMLElement) {
-  expect(container.textContent).not.toMatch(/\d/);
+  const copy = container.cloneNode(true) as HTMLElement;
+  copy.querySelector('[data-testid="home-contract-attention"]')?.remove();
+  expect(copy.textContent).not.toMatch(/\d/);
 }
+
+const summaryCounts = { expired: 2, next30Days: 5, days31To60: 1, days61To90: 0, total: 8 };
+let summaryReply: { status: number; body: unknown } = {
+  status: 200,
+  body: { asOf: '2026-10-07', timezone: 'Africa/Kinshasa', counts: summaryCounts },
+};
+let summaryRequests = 0;
+
+beforeEach(() => {
+  summaryRequests = 0;
+  summaryReply = {
+    status: 200,
+    body: { asOf: '2026-10-07', timezone: 'Africa/Kinshasa', counts: summaryCounts },
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((request: Request) => {
+      const path = new URL(request.url).pathname.replace(/^.*\/api\/v1/u, '');
+      if (path === '/contract-expirations/summary') summaryRequests += 1;
+      const reply =
+        path === '/contract-expirations/summary'
+          ? summaryReply
+          : { status: 404, body: { code: 'NOT_FOUND' } };
+      return Promise.resolve(
+        new Response(JSON.stringify(reply.body), {
+          status: reply.status,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    }),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('role homes', () => {
   it('gives an organization administrator quick actions, modules and the roadmap', async () => {
@@ -52,6 +93,7 @@ describe('role homes', () => {
     }
     expect(within(screen.getByTestId('roadmap')).getAllByRole('listitem')).toHaveLength(6);
     expect(screen.queryByTestId('home-my-contracts')).toBeNull();
+    await screen.findByTestId('attention-count');
     expectNoFigures(container);
   });
 
@@ -69,6 +111,8 @@ describe('role homes', () => {
     for (const item of items) expect(item).toHaveTextContent(fr.roadmap.badge);
     expect(roadmap).toHaveTextContent(fr.roadmap.items.payslips.title);
     expect(screen.queryByTestId('quick-actions')).toBeNull();
+    expect(screen.queryByTestId('home-contract-attention')).toBeNull();
+    expect(summaryRequests).toBe(0);
     expectNoFigures(container);
   });
 
@@ -84,6 +128,8 @@ describe('role homes', () => {
       [en.nav.status, '/status'],
     ]);
     expect(screen.queryByTestId('roadmap')).toBeNull();
+    expect(screen.queryByTestId('home-contract-attention')).toBeNull();
+    expect(summaryRequests).toBe(0);
     expectNoFigures(container);
   });
 
@@ -107,6 +153,53 @@ describe('role homes', () => {
       ).toHaveLength(0);
       unmount();
     }
+  });
+});
+
+describe.each(['en', 'fr'] as const)('Contracts needing attention (%s)', (locale) => {
+  const a = resources[locale].common.home.tenant.attention;
+
+  it('shows the server count and the expired part, with a link to the queue', async () => {
+    await renderHome(sessionWithRoles(['tenant-admin']), locale);
+    const card = screen.getByTestId('home-contract-attention');
+    expect(within(card).getByRole('heading', { name: a.title })).toBeInTheDocument();
+    expect(await within(card).findByTestId('attention-count')).toHaveTextContent(
+      `${a.count_other.replace('{{count}}', '8')} ${a.expired_other.replace('{{count}}', '2')}`,
+    );
+    expect(within(card).getByRole('link', { name: a.open })).toHaveAttribute(
+      'href',
+      '/admin/contract-expirations',
+    );
+    expect(summaryRequests).toBe(1);
+  });
+
+  it('says when nothing needs attention', async () => {
+    summaryReply = {
+      status: 200,
+      body: {
+        asOf: '2026-10-07',
+        timezone: 'Africa/Kinshasa',
+        counts: { expired: 0, next30Days: 0, days31To60: 0, days61To90: 0, total: 0 },
+      },
+    };
+    await renderHome(sessionWithRoles(['tenant-admin']), locale);
+    expect(await screen.findByTestId('attention-count')).toHaveTextContent(a.none);
+  });
+
+  it('keeps the link when the count cannot be loaded', async () => {
+    summaryReply = { status: 429, body: { code: 'RATE_LIMITED' } };
+    const { container } = await renderHome(sessionWithRoles(['tenant-admin']), locale);
+    expect(await screen.findByTestId('attention-failed')).toHaveTextContent(a.failed);
+    expect(screen.getByRole('link', { name: a.open })).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/\d/);
+  });
+
+  it('announces loading before the count arrives', async () => {
+    await renderHome(sessionWithRoles(['tenant-admin']), locale);
+    expect(screen.getByTestId('home-contract-attention')).toHaveTextContent(a.loading);
+    await waitFor(() => {
+      expect(screen.getByTestId('attention-count')).toBeInTheDocument();
+    });
   });
 });
 

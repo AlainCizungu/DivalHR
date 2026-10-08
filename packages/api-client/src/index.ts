@@ -149,6 +149,13 @@ export type MyContract = CoreComponents['schemas']['MyContract'];
 export type AcknowledgeContract = CoreComponents['schemas']['AcknowledgeContract'];
 export type ContractAcknowledgementResult =
   CoreComponents['schemas']['ContractAcknowledgementResult'];
+export type ContractExpirationCategory = CoreComponents['schemas']['ContractExpirationCategory'];
+export type ContractExpirationSearch = CoreComponents['schemas']['ContractExpirationSearch'];
+export type ContractExpirationCounts = CoreComponents['schemas']['ContractExpirationCounts'];
+export type ContractExpirationUnit = CoreComponents['schemas']['ContractExpirationUnit'];
+export type ContractExpiration = CoreComponents['schemas']['ContractExpiration'];
+export type ContractExpirationPage = CoreComponents['schemas']['ContractExpirationPage'];
+export type ContractExpirationSummary = CoreComponents['schemas']['ContractExpirationSummary'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

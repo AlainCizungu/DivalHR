@@ -26,13 +26,10 @@ public class ContractCalendar {
    * Creates the calendar.
    *
    * @param organizations organization port
+   * @param clock the application clock (MVP-031A, D9: injectable for business-date tests)
    */
   @Autowired
-  public ContractCalendar(OrganizationDirectory organizations) {
-    this(organizations, Clock.systemUTC());
-  }
-
-  ContractCalendar(OrganizationDirectory organizations, Clock clock) {
+  public ContractCalendar(OrganizationDirectory organizations, Clock clock) {
     this.organizations = organizations;
     this.clock = clock;
   }
