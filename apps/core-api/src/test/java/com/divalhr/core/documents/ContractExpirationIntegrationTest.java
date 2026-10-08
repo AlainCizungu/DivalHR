@@ -27,7 +27,9 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -753,6 +755,63 @@ class ContractExpirationIntegrationTest {
   // ------------------------------------------------------------------------------------------
   // Filters and counts
   // ------------------------------------------------------------------------------------------
+
+  @Test
+  void aQueryWithNoSearchableTermMatchesNobodyWhileRealNamesAndNumbersStillMatch()
+      throws Exception {
+    World w = world();
+    LocalDate t = w.today();
+    UUID hyphen = hire(w, "Marie-Ève", "N'Dongala");
+    UUID period = hire(w, "Jean-Pierre", "Mbuyi-St.Clair");
+    UUID apostrophe = hire(w, "Zoé", "D’Almeida");
+    String hyphenContract = contract(w, hyphen, t.minusDays(100), t.plusDays(5)).toString();
+    String periodContract = contract(w, period, t.minusDays(100), t.plusDays(40)).toString();
+    String apostropheContract =
+        contract(w, apostrophe, t.minusDays(100), t.minusDays(3)).toString();
+    assertThat(summary(w).get("counts").get("total").asLong()).isEqualTo(3);
+
+    // R74-1: punctuation only is a supplied query with no searchable term, never "no query".
+    for (String query : List.of("--", "''", "..", "-.'", "’’")) {
+      JsonNode page = page(w, Map.of("query", query));
+      assertThat(page.get("items")).as(query).isEmpty();
+      assertThat(page.get("nextCursor").isNull()).as(query).isTrue();
+      JsonNode counts = page.get("counts");
+      for (String category : List.of("expired", "next30Days", "days31To60", "days61To90")) {
+        assertThat(counts.get(category).asLong()).as(query + " " + category).isZero();
+      }
+      assertThat(counts.get("total").asLong()).as(query).isZero();
+    }
+
+    // Valid searches keep their meaning: number prefixes, accents, apostrophes, periods, hyphens.
+    String number =
+        Objects.requireNonNull(
+            jdbc.queryForObject(
+                "SELECT employee_number FROM people.employee WHERE id = ?", String.class, hyphen),
+            "employee_number");
+    Map<String, String> expected = new LinkedHashMap<>();
+    expected.put(number, hyphenContract);
+    expected.put(number.substring(0, number.length() - 2).toLowerCase(Locale.ROOT), null);
+    expected.put("marie-ève", hyphenContract);
+    expected.put("Marie Eve", hyphenContract);
+    expected.put("N'Dongala", hyphenContract);
+    expected.put("n’dongala", hyphenContract);
+    expected.put("St.Clair", periodContract);
+    expected.put("mbuyi-st.clair", periodContract);
+    expected.put("zoé d'almeida", apostropheContract);
+    expected.put("D’Almeida", apostropheContract);
+    for (Map.Entry<String, String> search : expected.entrySet()) {
+      JsonNode page = page(w, Map.of("query", search.getKey()));
+      if (search.getValue() == null) {
+        // A shorter prefix of a random number may match others too; it must include this one.
+        assertThat(byContract(page).keySet()).as(search.getKey()).contains(hyphenContract);
+      } else {
+        assertThat(byContract(page).keySet())
+            .as(search.getKey())
+            .containsExactly(search.getValue());
+        assertThat(page.get("counts").get("total").asLong()).as(search.getKey()).isEqualTo(1);
+      }
+    }
+  }
 
   @Test
   void countsHonorTheSearchAndUnitAndEqualTheItemsPagedThrough() throws Exception {
