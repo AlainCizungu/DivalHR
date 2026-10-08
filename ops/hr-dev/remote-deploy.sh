@@ -47,7 +47,7 @@ check_verification() {
   [ "${HR_DEV_REHEARSAL:-}" = "1" ] && { hr_log "rehearsal: verification evidence not required"; return 0; }
   local decision rc
   decision=$(python3 "$(dirname "$0")/evidence.py" decide --release "$SHA" --release-bundle "$BUNDLE" \
-    --runs "$VERIFY_RUNS" --deployed "$(hr_current_release)" 2>&1); rc=$?
+    --runs "$VERIFY_RUNS" --deployed "$(hr_current_release_strict)" 2>&1); rc=$?
   printf '%s\n' "$decision" | while IFS= read -r line; do hr_log "evidence: $line"; done
   [ "$rc" = 0 ] || hr_die "no qualifying verification evidence for $SHA on this instance"
 }

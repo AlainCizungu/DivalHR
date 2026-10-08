@@ -95,18 +95,21 @@ for p in 5173 8080 8090 8180 8025; do
   fi
 done
 rm -rf .git/divalhr-verify
-touch "$D/started"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$D/started"
 DIVALHR_VERIFY_BASE="$BASE" scripts/dev/verify-on-host.sh "$STAGE"
 rc=\$?
 docker image prune -f --filter label=com.docker.compose.project=divalhr >/dev/null 2>&1
 echo "disk after run: \$(df -h / | tail -1)"
 cp -R .git/divalhr-verify "$D/logs" 2>/dev/null
-# DEVX-001B (A75B-4): a checksummed, read-only record for every finished run, failed or not,
-# written before the exit file; an interrupted run has none and never qualifies.
-if [ -f ops/hr-dev/evidence.py ]; then
-  python3 ops/hr-dev/evidence.py record --run-dir "$D" --exit "\$rc" || echo "evidence record failed"
+# DEVX-001B (A75B-4, R79-1): finish-run.sh writes the checksummed, read-only record for every
+# finished run and then the exit file; a record that cannot be written FAILS the run. An
+# interrupted run has no record and never qualifies. (Older commits: exit status only.)
+if [ -x ops/hr-dev/finish-run.sh ]; then
+  ops/hr-dev/finish-run.sh "$D" "$STAGE" "\$rc"
+  [ -s "$D/exit" ] || echo 1 > "$D/exit"
+else
+  echo \$rc > "$D/exit"
 fi
-echo \$rc > "$D/exit"
 EOF
 setsid nohup bash "$D/run.sh" > "$D/run.log" 2>&1 < /dev/null &
 echo "started run $RUN on $(hostname) for ${SHA:0:12}, stage $STAGE"

@@ -263,6 +263,11 @@ function makeRun(s, runs, opts = {}) {
     failed = [],
     stages = ['core-check', 'e2e', 'hrdev-rehearsal'],
     cls = 'complete',
+    core = 'total=901 failures=0 errors=0 skipped=0',
+    browser = 'passed=89 skipped=9 failed=0 flaky=0 notrun=0 retries=0 hygiene=PASS',
+    timings = ['core-check', 'e2e', 'hrdev-rehearsal'],
+    started = '2026-01-01T08:00:00Z',
+    classification = `class=${cls}\nreason=${cls}: fixture\n`,
   } = opts;
   runClock += 1;
   const id = `202610${String(10 + runClock).padStart(2, '0')}T120000Z-${commit.slice(0, 12)}`;
@@ -273,12 +278,16 @@ function makeRun(s, runs, opts = {}) {
   writeFileSync(join(d, 'profile'), `${profile}\n`);
   writeFileSync(
     join(d, 'logs', `${stage}.summary`),
-    [
-      'INFO java_major=21',
-      ...stages.map((x) => `PASS ${x}`),
-      'TESTS core-api total=901 failures=0 errors=0 skipped=0',
-    ].join('\n') + '\n',
+    ['INFO java_major=21', ...stages.map((x) => `PASS ${x}`), `TESTS core-api ${core}`].join('\n') +
+      '\n',
   );
+  if (started !== null) writeFileSync(join(d, 'started'), `${started}\n`);
+  writeFileSync(
+    join(d, 'logs', `${stage}.timings`),
+    timings.map((x, i) => `TIME ${x} ${100 + i}s`).join('\n') + '\nTIME e2e-total 150s exit=0\n',
+  );
+  if (browser !== null) writeFileSync(join(d, 'logs', 'browser.results'), `BROWSER ${browser}\n`);
+  if (classification !== null) writeFileSync(join(d, 'logs', 'classification'), classification);
   writeFileSync(
     join(d, 'logs', 'rehearsal.summary'),
     [
@@ -538,15 +547,13 @@ describe('deployment decision (A75-6, A75B-2..A75B-6)', () => {
 
 describe('wiring (A75B-3, A75B-4, A75B-5)', () => {
   const read = (p) => readFileSync(join(ROOT, p), 'utf8');
-  it('records the requested profile apart from the stage and writes the record before exit', () => {
+  it('records the requested profile apart from the stage and finishes runs through finish-run.sh', () => {
     const verify = read('ops/aws/aws-verify.sh');
     assert.match(verify, /PROFILE="\$STAGE"\n {2}case "\$STAGE" in/u);
     assert.match(verify, /echo "\$PROFILE" > "\$D\/profile"/u);
-    const record = verify.indexOf('evidence.py record --run-dir "$D" --exit');
-    assert.ok(
-      record > 0 && record < verify.indexOf('echo \\$rc > "$D/exit"'),
-      'record before exit',
-    );
+    assert.match(verify, /ops\/hr-dev\/finish-run\.sh "\$D" "\$STAGE" "\\\$rc"/u);
+    assert.match(verify, /date -u \+%Y-%m-%dT%H:%M:%SZ > "\$D\/started"/u);
+    assert.match(read('scripts/dev/verify-on-host.sh'), /--results "\$OUT\/browser\.results"/u);
   });
   it('the pr profile classifies from the diffs only; no class override exists anywhere', () => {
     const host = read('scripts/dev/verify-on-host.sh');
@@ -561,5 +568,210 @@ describe('wiring (A75B-3, A75B-4, A75B-5)', () => {
     ]) {
       assert.doesNotMatch(read(file), /REHEARSAL_CLASS|os\.environ/u, file);
     }
+  });
+});
+
+describe('finishing a run (R79-1)', () => {
+  const finish = (d, stage, rc) =>
+    sh('bash', [join(ROOT, 'ops/hr-dev/finish-run.sh'), d, stage, String(rc)]);
+
+  it('records a passing run and keeps its exit status', () => {
+    const s = scenario();
+    const runs = runsDir();
+    const run = makeRun(s, runs);
+    const fresh = join(runs, `20261001T000000Z-${s.head.slice(0, 12)}`);
+    sh('cp', ['-r', run.dir, fresh]);
+    rmSync(join(fresh, 'evidence.json'), { force: true });
+    rmSync(join(fresh, 'evidence.sha256'), { force: true });
+    const r = finish(fresh, 'all', 0);
+    assert.equal(r.code, 0, r.out);
+    assert.equal(readFileSync(join(fresh, 'exit'), 'utf8').trim(), '0');
+    assert.match(
+      readFileSync(join(fresh, 'evidence.sha256'), 'utf8'),
+      /^[0-9a-f]{64} {2}evidence\.json$/mu,
+    );
+  });
+
+  it('turns an otherwise successful run into a failure when the record cannot be written', () => {
+    const s = scenario();
+    const runs = runsDir();
+    const run = makeRun(s, runs); // evidence.json already exists: writing a record must fail
+    const r = finish(run.dir, 'all', 0);
+    assert.equal(r.code, 1, r.out);
+    assert.equal(readFileSync(join(run.dir, 'exit'), 'utf8').trim(), '1');
+    assert.match(
+      readFileSync(join(run.dir, 'logs', 'all.summary'), 'utf8'),
+      /^FAIL evidence-record$/mu,
+    );
+    assert.match(r.out, /FAIL evidence-record/u);
+  });
+
+  it('keeps a failing status failing and records it', () => {
+    const s = scenario();
+    const runs = runsDir();
+    const d = join(runs, `20261002T000000Z-${s.head.slice(0, 12)}`);
+    mkdirSync(join(d, 'logs'), { recursive: true });
+    s.r.bundle(s.head, join(d, 'verify.bundle'));
+    writeFileSync(join(d, 'stage'), 'all\n');
+    writeFileSync(join(d, 'profile'), 'full\n');
+    const r = finish(d, 'all', 3);
+    assert.equal(r.code, 3, r.out);
+    assert.equal(readFileSync(join(d, 'exit'), 'utf8').trim(), '3');
+    assert.equal(JSON.parse(readFileSync(join(d, 'evidence.json'), 'utf8')).exit, 3);
+  });
+});
+
+describe('incomplete records never qualify (R79-2)', () => {
+  it('records the audit data', () => {
+    const s = scenario();
+    const runs = runsDir();
+    const run = makeRun(s, runs);
+    const rec = JSON.parse(readFileSync(join(run.dir, 'evidence.json'), 'utf8'));
+    assert.equal(rec.startedAt, '2026-01-01T08:00:00Z');
+    assert.match(rec.finishedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u);
+    assert.deepEqual(rec.timings[0], { name: 'core-check', seconds: 100 });
+    assert.deepEqual(rec.classification, { class: 'complete', reasons: ['complete: fixture'] });
+    assert.deepEqual(rec.browserTests, {
+      passed: 89,
+      skipped: 9,
+      failed: 0,
+      flaky: 0,
+      notrun: 0,
+      retries: 0,
+      hygiene: 'PASS',
+    });
+    assert.doesNotMatch(
+      readFileSync(join(run.dir, 'evidence.json'), 'utf8'),
+      /verify-on-host|pnpm|gradlew|sudo/u,
+    );
+  });
+
+  for (const [name, opts, pattern] of [
+    ['no start time', { started: null }, /incomplete record: no valid startedAt/u],
+    ['a malformed start time', { started: 'yesterday' }, /incomplete record: no valid startedAt/u],
+    ['no rehearsal timing', { timings: ['core-check', 'e2e'] }, /no timing for hrdev-rehearsal/u],
+    ['no classification', { classification: null }, /incomplete record: no classification/u],
+    ['no Core tests', { core: 'total=0 failures=0 errors=0 skipped=0' }, /Core tests total=0/u],
+    ['Core failures', { core: 'total=901 failures=1 errors=0 skipped=0' }, /failures=1/u],
+    ['Core errors', { core: 'total=901 failures=0 errors=2 skipped=0' }, /errors=2/u],
+    ['no browser totals', { browser: null }, /no browser test totals/u],
+    [
+      'no browser test passed',
+      { browser: 'passed=0 skipped=9 failed=0 flaky=0 notrun=0 retries=0 hygiene=PASS' },
+      /no browser test passed/u,
+    ],
+    [
+      'a failed browser test',
+      { browser: 'passed=88 skipped=9 failed=1 flaky=0 notrun=0 retries=0 hygiene=PASS' },
+      /browser tests failed=1/u,
+    ],
+    [
+      'a flaky browser test',
+      { browser: 'passed=89 skipped=9 failed=0 flaky=1 notrun=0 retries=1 hygiene=PASS' },
+      /browser tests flaky=1/u,
+    ],
+    [
+      'a retried browser test',
+      { browser: 'passed=89 skipped=9 failed=0 flaky=0 notrun=0 retries=1 hygiene=PASS' },
+      /browser tests retries=1/u,
+    ],
+    [
+      'tests that did not run',
+      { browser: 'passed=80 skipped=9 failed=0 flaky=0 notrun=2 retries=0 hygiene=PASS' },
+      /browser tests notrun=2/u,
+    ],
+    [
+      'a failed hygiene check',
+      { browser: 'passed=89 skipped=9 failed=0 flaky=0 notrun=0 retries=0 hygiene=FAIL' },
+      /credential-hygiene check did not pass/u,
+    ],
+  ]) {
+    it(`refuses ${name}`, () => {
+      const s = scenario();
+      const runs = runsDir();
+      makeRun(s, runs, opts);
+      const r = decideFor(s, runs);
+      assert.equal(r.code, 1, r.out);
+      assert.match(r.out, pattern);
+    });
+  }
+
+  it('lets a failed or diagnostic run keep partial totals without qualifying', () => {
+    const s = scenario();
+    const runs = runsDir();
+    makeRun(s, runs, { exit: 1, browser: null, core: 'total=0 failures=0 errors=0 skipped=0' });
+    makeRun(s, runs, { profile: 'stack', stage: 'stack', browser: null });
+    const r = decideFor(s, runs);
+    assert.match(r.out, /the run failed \(exit 1\)/u);
+    assert.match(r.out, /profile stack never qualifies/u);
+  });
+});
+
+describe('strict path and release reading (R79-3, R79-4)', () => {
+  it('classifies a non-UTF-8 path as complete', () => {
+    const r = repo();
+    const base = r.commit({ 'docs/a.md': 'a' });
+    const name = Buffer.concat([
+      Buffer.from(join(r.dir, 'docs') + '/'),
+      Buffer.from([0xff, 0xfe]),
+      Buffer.from('.md'),
+    ]);
+    writeFileSync(name, 'x');
+    r.git('add', '-A');
+    r.git('commit', '-q', '-m', 'binary name');
+    const head = r.git('rev-parse', 'HEAD');
+    const out = py('classify', '--repo', r.dir, '--head', head, '--deployed', base).out;
+    assert.match(out, /^class=complete$/mu, out);
+    assert.match(out, /not valid UTF-8/u);
+  });
+
+  it('reads the current release only when the whole value is one SHA', () => {
+    const sha = 'a'.repeat(40);
+    const read = (content) => {
+      const f = join(WORK, `release-${++counter}`);
+      writeFileSync(f, content);
+      return sh('bash', [
+        '-c',
+        `. '${join(ROOT, 'ops/hr-dev/lib.sh')}'; hr_read_release_file '${f}'`,
+      ]).out;
+    };
+    assert.equal(read(sha), `${sha}\n`);
+    assert.equal(read(`${sha}\n`), `${sha}\n`);
+    assert.equal(read(`  \t${sha} \n\n`), `${sha}\n`, 'surrounding whitespace is trimmed');
+    for (const bad of [
+      `${sha}\n${sha}\n`,
+      `${sha}\nextra`,
+      `${sha} extra`,
+      `${sha}0`,
+      sha.slice(1),
+      sha.toUpperCase(),
+      `${sha.slice(0, 20)} ${sha.slice(20)}`,
+      '',
+      '\n',
+    ]) {
+      assert.equal(read(bad), '', JSON.stringify(bad));
+    }
+    assert.equal(
+      sh('bash', [
+        '-c',
+        `. '${join(ROOT, 'ops/hr-dev/lib.sh')}'; hr_read_release_file /nonexistent`,
+      ]).out,
+      '',
+    );
+    const helper = readFileSync(join(ROOT, 'ops/hr-dev/current-release.sh'), 'utf8');
+    assert.match(helper, /^hr_current_release_strict$/mu);
+    assert.doesNotMatch(helper, /head -1/u);
+    assert.match(
+      readFileSync(join(ROOT, 'ops/hr-dev/remote-deploy.sh'), 'utf8'),
+      /--deployed "\$\(hr_current_release_strict\)"/u,
+    );
+  });
+
+  it('a deployed release with trailing data widens the classification', () => {
+    const r = repo();
+    const a = r.commit({ 'apps/web/src/a.ts': '1' });
+    const b = r.commit({ 'apps/web/src/a.ts': '2' });
+    const out = py('classify', '--repo', r.dir, '--head', b, '--deployed', `${a}\nextra`).out;
+    assert.match(out, /^class=complete$/mu);
   });
 });

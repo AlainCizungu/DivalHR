@@ -288,20 +288,30 @@ void describe('suite runner (A75-3, A75-4)', () => {
       `#!/usr/bin/env bash
 echo "$* sso=$DIVALHR_E2E_SSO_DIR" >> "${log}"
 touch "$DIVALHR_E2E_SSO_DIR/dev-admin-a.json"
-case "$*" in *--project=identity*) exit ${identityExit} ;; *) exit ${featuresExit} ;; esac
+case "$*" in
+  *--project=identity*) echo "  ✓  1 [identity] › a (1s)"; echo "  3 passed (5s)"; exit ${identityExit} ;;
+  *) echo "  ✘  2 [features] › b (1s)"; echo "  ✓  3 [features] › b (retry #1) (1s)"
+     echo "  1 flaky"; echo "  2 skipped"; echo "  70 passed (2.0m)"; exit ${featuresExit} ;;
+esac
 `,
       { mode: 0o755 },
     );
-    const result = spawnSync('bash', [join(WEB, 'e2e', 'run-suite.sh'), '--workers', '2'], {
-      cwd: WEB,
-      encoding: 'utf8',
-      env: { ...process.env, E2E_PLAYWRIGHT: fake, E2E_SKIP_STACK_CHECK: '1', E2E_OUT: work },
-    });
+    const results = join(work, 'browser.results');
+    const result = spawnSync(
+      'bash',
+      [join(WEB, 'e2e', 'run-suite.sh'), '--workers', '2', '--results', results],
+      {
+        cwd: WEB,
+        encoding: 'utf8',
+        env: { ...process.env, E2E_PLAYWRIGHT: fake, E2E_SKIP_STACK_CHECK: '1', E2E_OUT: work },
+      },
+    );
     const calls = readFileSync(log, 'utf8').trim().split('\n');
     const wroteOutput = existsSync(join(work, 'test-results', 'run-suite.log'));
+    const totals = existsSync(results) ? readFileSync(results, 'utf8').trim() : '';
     rmSync(work, { recursive: true, force: true });
     const dir = /sso=(\S+)/u.exec(calls[0] ?? '')?.[1] ?? '';
-    return { status: result.status, calls, dir, out: result.stdout, wroteOutput };
+    return { status: result.status, calls, dir, out: result.stdout, wroteOutput, totals };
   }
 
   void it('runs features then identity, removes the SSO state and passes when both pass', () => {
@@ -314,6 +324,11 @@ case "$*" in *--project=identity*) exit ${identityExit} ;; *) exit ${featuresExi
     assert.equal(existsSync(run.dir), false);
     assert.match(run.out, /PASS hygiene/u);
     assert.ok(run.wroteOutput);
+    // DEVX-001B (R79-2): totals summed over both invocations, retries counted.
+    assert.equal(
+      run.totals,
+      'BROWSER passed=73 skipped=2 failed=0 flaky=1 notrun=0 retries=1 hygiene=PASS',
+    );
   });
 
   void it('still runs identity after a features failure, fails, and removes the SSO state', () => {

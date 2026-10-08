@@ -90,7 +90,13 @@ It fails closed unless the SHA is reachable from `origin/main`; every GitHub che
    - the profile is `pr` or `full` (`all` is recorded as `full`). `changed`, `core`, `stack`, `hrdev` and any diagnostic override never qualify.
 2. Its retained `verify.bundle` is unchanged: it hashes to the recorded value and has the record's full commit SHA as its single head.
 3. The tree of that commit, recomputed from that bundle, equals the tree of the release, recomputed from the release bundle.
-4. Its stages include `PASS core-check`, `PASS e2e` and `PASS hrdev-rehearsal`.
+4. Its stages include `PASS core-check`, `PASS e2e` and `PASS hrdev-rehearsal`, and the record is complete (R79-2):
+   - valid `startedAt` and `finishedAt`;
+   - timings for `core-check`, `e2e` and `hrdev-rehearsal`;
+   - a classification with its reasons;
+   - more than zero Core tests, with no failures or errors;
+   - more than zero passed browser tests, with none failed, flaky, retried or not run;
+   - a passed credential-hygiene check.
 5. Every rehearsal step that the **release's own class** requires is recorded as `PASS`:
    - the class is recomputed from the deployed release to the release SHA, never taken from the record;
    - a docs-only release still requires the `app` steps, since there is no docs-only bypass;
@@ -158,10 +164,10 @@ What `pr` runs per class:
 `full` always runs `complete`. Every step a class does not require appears as `SKIP <step> (class <c>)`. There is no environment override.
 
 Every finished run, failed or not, gets a record:
-- `evidence.json`: profile, stage, commit, tree, base, bundle hash, recorded class, step results, stage results and Core totals. It is written through a temporary file, `fsync` and `rename`, then made `0444`.
+- `evidence.json`: profile, stage, commit, tree, base, bundle hash, `startedAt` and `finishedAt`, stage timings (canonical names and seconds, never commands), the classification and its reasons, the recorded class, step and stage results, Core totals and browser totals (passed, skipped, failed, flaky, not run, retried, hygiene). It is written through a temporary file, `fsync` and `rename`, then made `0444`.
 - `evidence.sha256`: the record's checksum.
 
-An interrupted run has no record and never qualifies.
+`ops/hr-dev/finish-run.sh` writes the record and then the exit file. If the record cannot be written, the run **fails**: `FAIL evidence-record` goes to the summary and the log, and the exit file holds a nonzero status (R79-1). An interrupted run has no record and never qualifies. Paths that are not valid UTF-8 make the classification `complete` (R79-3). The current release counts only when the whole state file, trimmed, is exactly one SHA (R79-4).
 
 **Verification profiles (DEVX-001A, Issue #75).** `aws-verify.sh <ref> <profile>` accepts `changed` (only what the diff from the merge-base with `main` needs, widening to `pr` or `full` when a path requires it), `pr` (Core checks and the full stack with the whole browser suite) and `full` (the complete run above). `full` is recorded as stage `all`; the older stages `all`, `core`, `stack` and `hrdev` keep working. Which runs qualify a release is described in section 6 (DEVX-001B); a `changed` run never does. The browser suite of the stack stage runs `apps/web/e2e/run-suite.sh`: `features` on two workers reusing one MFA sign-in per privileged seed role, then the `identity` tests alone, then a credential-hygiene check; both projects are required. Each run writes `<stage>.timings` (one `TIME <phase> <s>s` line per phase) next to its logs.
 

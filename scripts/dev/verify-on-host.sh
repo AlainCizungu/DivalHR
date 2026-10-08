@@ -43,6 +43,7 @@ TIMINGS="$OUT/$STAGE.timings"
 : > "$LOG"
 : > "$SUMMARY"
 : > "$TIMINGS"
+rm -f "$OUT/classification" "$OUT/browser.results" "$OUT/rehearsal.summary"   # DEVX-001B: per-run record inputs
 
 log() { printf '%s\n' "$*" | tee -a "$LOG"; }
 result() { printf '%s\n' "$*" | tee -a "$SUMMARY" >> "$LOG"; }
@@ -197,7 +198,7 @@ pnpm_pinned() { (cd "$ROOT" && npm exec --yes -- pnpm@10.34.6 "$@"); }
 # failing fails the stage; per-part timings go to the timings file. E2E_WORKERS overrides 2.
 e2e_suite() {
   (cd "$ROOT" && PATH="$PATH" bash apps/web/e2e/run-suite.sh --workers "${E2E_WORKERS:-2}" \
-    --timings "$TIMINGS")
+    --timings "$TIMINGS" --results "$OUT/browser.results")
 }
 
 # DEVX-001A (D3): the `changed` profile. The classifier only widens; an unreadable diff or a missing
@@ -315,6 +316,7 @@ stage_pr() {
   decision=$(python3 "$ROOT/ops/hr-dev/evidence.py" classify --repo "$ROOT" --head "$head" \
     --base "$base" --deployed "$deployed" 2>/dev/null) || decision="class=complete"
   printf '%s\n' "$decision" | sed 's/^/  /' >> "$LOG"
+  printf '%s\n' "$decision" > "$OUT/classification"
   class=$(printf '%s\n' "$decision" | sed -n 's/^class=//p')
   [ -n "$class" ] || class=complete
   result "INFO pr class=$class base=${base:0:12} deployed=${deployed:0:12}"
@@ -336,7 +338,8 @@ case "$STAGE" in
   hrdev) stage_hrdev ;;
   changed) stage_changed ;;
   pr) stage_pr ;;
-  all|full) stage_core; stage_stack; stage_hrdev ;;
+  all|full) printf 'class=complete\nreason=complete: the full profile\n' > "$OUT/classification"
+    stage_core; stage_stack; stage_hrdev ;;
   *) echo "unknown profile or stage: $STAGE" >&2; exit 2 ;;
 esac
 

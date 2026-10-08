@@ -33,8 +33,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 SCHEMA = 1
-SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-RUN_ID_RE = re.compile(r"^[0-9]{8}T[0-9]{6}Z-([0-9a-f]{12})$")
+SHA_RE = re.compile(r"[0-9a-f]{40}")
+RUN_ID_RE = re.compile(r"[0-9]{8}T[0-9]{6}Z-([0-9a-f]{12})")
 
 # --- risk classes (A75-5, A75B-1) -----------------------------------------------------------------
 
@@ -141,9 +141,12 @@ def _git(repo: str, *args: str) -> bytes:
 
 def changed_paths(repo: str, old: str, new: str) -> list[str]:
     """Old and new paths of every change between two commits (renames reported as a deletion and
-    an addition, so both sides are classified), NUL-delimited, never shell-evaluated."""
-    out = _git(repo, "diff", "-z", "--name-only", "--no-renames", "--no-ext-diff", old, new)
-    return [p.decode("utf-8", "replace") for p in out.split(b"\x00") if p]
+    an addition, so both sides are classified), NUL-delimited, never shell-evaluated. Decoded
+    strictly: a name that is not valid UTF-8 raises UnicodeDecodeError (R79-3), which the caller
+    turns into `complete`."""
+    out = _git(repo, "-c", "core.quotepath=off", "diff", "-z", "--name-only", "--no-renames",
+               "--no-ext-diff", old, new)
+    return [p.decode("utf-8", "strict") for p in out.split(b"\x00") if p]
 
 
 def is_ancestor(repo: str, old: str, new: str) -> bool:
@@ -153,7 +156,7 @@ def is_ancestor(repo: str, old: str, new: str) -> bool:
 
 def classify_diffs(repo: str, head: str, base: str | None, deployed: str | None) -> tuple[str, list[str]]:
     """The broadest class of base...head and deployed..head; anything uncertain is complete."""
-    if not SHA_RE.match(head or ""):
+    if not SHA_RE.fullmatch(head or ""):
         return COMPLETE, ["complete: the candidate is not a full SHA"]
     kinds, reasons = set(), []
     pairs = []
@@ -163,7 +166,7 @@ def classify_diffs(repo: str, head: str, base: str | None, deployed: str | None)
     for label, old in pairs:
         if not old:
             return COMPLETE, [f"complete: no {label} (first deployment or unknown)"]
-        if not SHA_RE.match(old):
+        if not SHA_RE.fullmatch(old):
             return COMPLETE, [f"complete: the {label} is not a full SHA"]
         try:
             if not is_ancestor(repo, old, head):
@@ -171,6 +174,8 @@ def classify_diffs(repo: str, head: str, base: str | None, deployed: str | None)
             paths = changed_paths(repo, old, head)
         except (subprocess.CalledProcessError, OSError):
             return COMPLETE, [f"complete: the {label} diff is unreadable"]
+        except UnicodeDecodeError:
+            return COMPLETE, [f"complete: the {label} diff has a path that is not valid UTF-8"]
         kind, why = classify_paths(paths)
         kinds.add(kind)
         reasons += [f"{label}: {r}" for r in why]
@@ -263,7 +268,7 @@ def bundle_head(bundle: str) -> str | None:
     if len(heads) != 1:
         return None
     head = heads.pop()
-    return head if SHA_RE.match(head) else None
+    return head if SHA_RE.fullmatch(head) else None
 
 
 def bundle_tree(bundle: str, commit: str) -> str | None:
@@ -277,7 +282,48 @@ def bundle_tree(bundle: str, commit: str) -> str | None:
                                   check=True, capture_output=True, text=True).stdout.strip()
         except (subprocess.CalledProcessError, OSError):
             return None
-    return tree if SHA_RE.match(tree) else None
+    return tree if SHA_RE.fullmatch(tree) else None
+
+
+TIMESTAMP_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
+BROWSER_KEYS = ("passed", "skipped", "failed", "flaky", "notrun", "retries")
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _timings(text: str) -> list[dict]:
+    """`TIME <stage> <n>s` lines as canonical stage names and seconds (no commands, no arguments)."""
+    out = []
+    for line in text.splitlines():
+        m = re.fullmatch(r"TIME ([a-z0-9][a-z0-9-]*) ([0-9]+)s(?: exit=-?[0-9]+)?", line.strip())
+        if m:
+            out.append({"name": m.group(1), "seconds": int(m.group(2))})
+    return out
+
+
+def _browser(text: str) -> dict | None:
+    m = re.search(r"^BROWSER passed=(\d+) skipped=(\d+) failed=(\d+) flaky=(\d+) notrun=(\d+) "
+                  r"retries=(\d+) hygiene=(PASS|FAIL)$", text, re.M)
+    if not m:
+        return None
+    values: dict = dict(zip(BROWSER_KEYS, map(int, m.groups()[:6]), strict=True))
+    values["hygiene"] = m.group(7)
+    return values
+
+
+def _classification(text: str) -> dict | None:
+    cls = re.search(r"^class=(\S+)$", text, re.M)
+    if not cls:
+        return None
+    return {"class": cls.group(1), "reasons": re.findall(r"^reason=(.+)$", text, re.M)}
+
+
+def _started(run_dir: str) -> str | None:
+    """The start time aws-verify wrote into `started`; anything else is None (never guessed)."""
+    text = _read(os.path.join(run_dir, "started")).strip()
+    return text if TIMESTAMP_RE.fullmatch(text) else None
 
 
 def build_record(run_dir: str, exit_code: int) -> dict:
@@ -307,7 +353,12 @@ def build_record(run_dir: str, exit_code: int) -> dict:
         "stages": _results(summary),
         "coreTests": dict(zip(("total", "failures", "errors", "skipped"),
                               map(int, tests.groups()), strict=True)) if tests else None,
-        "recordedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "browserTests": _browser(_read(os.path.join(logs, "browser.results"))),
+        "classification": _classification(_read(os.path.join(logs, "classification"))),
+        "timings": _timings(_read(os.path.join(logs, f"{stage}.timings"))) if stage else [],
+        "startedAt": _started(run_dir),
+        "finishedAt": _now(),
+        "recordedAt": _now(),
     }
 
 
@@ -379,7 +430,7 @@ def evaluate_run(run_dir: str, release: Release) -> Verdict:
     """The first failed rule for one run directory, or ok."""
     name = os.path.basename(os.path.normpath(run_dir))
     v = lambda ok, why, **kw: Verdict(name, ok, why, **kw)  # noqa: E731
-    m = RUN_ID_RE.match(name)
+    m = RUN_ID_RE.fullmatch(name)
     if not m:
         return v(False, "the directory name is not a run ID")
     rec_path, side_path = os.path.join(run_dir, "evidence.json"), os.path.join(run_dir, "evidence.sha256")
@@ -409,7 +460,7 @@ def evaluate_run(run_dir: str, release: Release) -> Verdict:
     if record.get("diagnosticOverride"):
         return v(False, "the run used a diagnostic override", finished=finished, profile=profile)
     commit = record.get("commit")
-    if not isinstance(commit, str) or not SHA_RE.match(commit):
+    if not isinstance(commit, str) or not SHA_RE.fullmatch(commit):
         return v(False, "the record has no full commit SHA", finished=finished, profile=profile)
     if m.group(1) != commit[:12]:
         return v(False, "the run ID does not name the record's commit", finished=finished, profile=profile)
@@ -428,6 +479,9 @@ def evaluate_run(run_dir: str, release: Release) -> Verdict:
     for needed in ("core-check", "e2e", "hrdev-rehearsal"):
         if stages.get(needed) != "PASS":
             return v(False, f"stage {needed} did not pass", finished=finished, profile=profile)
+    problem = incomplete(record)
+    if problem:
+        return v(False, f"incomplete record: {problem}", finished=finished, profile=profile)
     steps = record.get("rehearsalSteps") or {}
     for needed in required_steps(deployment_class(release.cls)):
         if steps.get(needed) != "PASS":
@@ -437,6 +491,41 @@ def evaluate_run(run_dir: str, release: Release) -> Verdict:
                      finished=finished, profile=profile)
     return v(True, f"{profile} evidence, tree equal, every {deployment_class(release.cls)} "
                    f"rehearsal step passed", finished=finished, profile=profile)
+
+
+def incomplete(record: dict) -> str | None:
+    """What a qualifying (pr or full) record lacks (R79-2), or None. Failed and diagnostic runs may
+    record partial totals; they never get this far."""
+    for key in ("startedAt", "finishedAt"):
+        if not isinstance(record.get(key), str) or not TIMESTAMP_RE.fullmatch(record[key]):
+            return f"no valid {key}"
+    if record["startedAt"] > record["finishedAt"]:
+        return "startedAt is after finishedAt"
+    timings = record.get("timings")
+    names = {t.get("name") for t in timings if isinstance(t, dict)} if isinstance(timings, list) else set()
+    for needed in ("core-check", "e2e", "hrdev-rehearsal"):
+        if needed not in names:
+            return f"no timing for {needed}"
+    cls = record.get("classification")
+    if not isinstance(cls, dict) or not cls.get("class") or not isinstance(cls.get("reasons"), list):
+        return "no classification"
+    core = record.get("coreTests")
+    core_keys = ("total", "failures", "errors")
+    if not isinstance(core, dict) or not all(isinstance(core.get(k), int) for k in core_keys):
+        return "no Core test totals"
+    if core["total"] <= 0 or core["failures"] or core["errors"]:
+        return f"Core tests total={core['total']} failures={core['failures']} errors={core['errors']}"
+    browser = record.get("browserTests")
+    if not isinstance(browser, dict) or not all(isinstance(browser.get(k), int) for k in BROWSER_KEYS):
+        return "no browser test totals"
+    if browser["passed"] <= 0:
+        return "no browser test passed"
+    for key in ("failed", "flaky", "notrun", "retries"):
+        if browser[key]:
+            return f"browser tests {key}={browser[key]}"
+    if browser.get("hygiene") != "PASS":
+        return "the credential-hygiene check did not pass"
+    return None
 
 
 def fallback(release: Release) -> str:
@@ -467,7 +556,7 @@ def decide(release: Release, runs_dir: str) -> tuple[Verdict | None, list[Verdic
 
 
 def release_from_bundle(sha: str, bundle: str, deployed: str | None) -> Release:
-    if not SHA_RE.match(sha or ""):
+    if not SHA_RE.fullmatch(sha or ""):
         raise ValueError("the release must be a full 40-character SHA")
     if bundle_head(bundle) != sha:
         raise ValueError("the release bundle's single head is not the release SHA")

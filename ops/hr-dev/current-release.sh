@@ -7,9 +7,7 @@
 set -u
 . "$(dirname "$0")/lib.sh"
 hr_require_root
-sha="$(hr_current_release | head -1)"
-case "$sha" in
-  *[!0-9a-f]* | '') exit 0 ;;
-esac
-[ "${#sha}" = 40 ] && printf '%s\n' "$sha"
+# R79-4: the whole value must be exactly one SHA (hr_read_release_file); anything else prints
+# nothing and the classification widens to `complete`.
+hr_current_release_strict
 exit 0
