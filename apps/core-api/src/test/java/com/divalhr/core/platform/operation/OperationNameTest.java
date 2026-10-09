@@ -9,6 +9,7 @@ import com.divalhr.core.identity.application.InvitationQueryService;
 import com.divalhr.core.identity.application.PublicInvitationService;
 import com.divalhr.core.identity.application.ResendInvitationService;
 import com.divalhr.core.identity.application.RevokeInvitationService;
+import com.divalhr.core.people.leave.application.LeavePolicyService;
 import com.divalhr.core.tenant.api.CostCenterController;
 import com.divalhr.core.tenant.api.DepartmentController;
 import com.divalhr.core.tenant.application.AssignSiteRegionService;
@@ -52,7 +53,9 @@ class OperationNameTest {
           InvitationQueryService.LIST_INVITATIONS,
           PublicInvitationService.INSPECT,
           InvitationAcceptance.OPERATION,
-          "invitation.expire");
+          "invitation.expire",
+          LeavePolicyService.CREATE,
+          LeavePolicyService.LIST);
 
   /** Malformed names from Issue #17 plus the grammar's edges. */
   static final List<String> MALFORMED =
@@ -89,6 +92,9 @@ class OperationNameTest {
     assertThat(InvitationQueryService.LIST_INVITATIONS).isEqualTo("invitation.list");
     assertThat(PublicInvitationService.INSPECT).isEqualTo("invitation.inspect");
     assertThat(InvitationAcceptance.OPERATION).isEqualTo("invitation.accept");
+    assertThat(LeavePolicyService.CREATE).isEqualTo("leave-policy.create");
+    assertThat(LeavePolicyService.LIST).isEqualTo("leave-policy.list");
+    assertThat(LeavePolicyService.EVENT_TYPE).isEqualTo("people.leave-policy.created.v1");
   }
 
   @Test

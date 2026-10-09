@@ -9,6 +9,7 @@ const PLATFORM = ['/admin/organizations/new', '/admin/organizations/first-admin'
 const TENANT = [
   '/admin/people',
   '/admin/people/import',
+  '/admin/leave-policies',
   '/admin/hierarchy',
   '/admin/contract-templates',
   '/admin/contract-expirations',
@@ -69,7 +70,7 @@ describe('navigation and route registry consistency', () => {
     for (const route of listPages) expect(navPaths, route.path).toContain(route.path);
   });
 
-  it('keeps every pre-UI-001 URL, plus the MVP-031A queue', () => {
+  it('keeps every pre-UI-001 URL, plus the MVP-031A queue and MVP-040A leave policies', () => {
     expect(ROUTES.map((route) => route.path).sort()).toEqual(
       [
         '/',
@@ -85,6 +86,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/contract-templates',
         '/admin/contract-templates/:templateId',
         '/admin/contract-expirations',
+        '/admin/leave-policies',
         '/me/contracts',
         '/me/contracts/:contractId',
         '/invitation',

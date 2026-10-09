@@ -61,6 +61,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'import',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/leave-policies',
+        labelKey: 'nav.leavePolicies',
+        icon: 'calendar',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

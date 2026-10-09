@@ -15,6 +15,7 @@
     "accessReview": "Access review",
     "employees": "Employees",
     "employeeImport": "Import employees",
+    "leavePolicies": "Leave policies",
     "contractTemplates": "Contract templates",
     "contractExpirations": "Contract expirations",
     "myContracts": "My contracts",
@@ -340,7 +341,8 @@
     "CONTRACT_DATES_INVALID": "Check the contract dates.",
     "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED": "Confirm that you have verified the text before approving it.",
     "EMPLOYEE_LINK_REQUIRED": "Your account is not yet linked to your employee record. Contact your organization’s administrator.",
-    "CONTRACT_TIMEOUT": "The request took too long and nothing was saved. Please try again."
+    "CONTRACT_TIMEOUT": "The request took too long and nothing was saved. Please try again.",
+    "LEAVE_POLICY_CODE_EXISTS": "A leave policy with this code already exists in your organization."
   },
   "notFound": {
     "title": "Page not found",
@@ -1683,6 +1685,99 @@
     "found_other": "{{count}} contracts shown.",
     "unauthorized": "Only organization administrators can see contract expirations.",
     "signInRequired": "Sign in as an organization administrator to see contract expirations."
+  },
+  "leavePolicies": {
+    "title": "Leave policies",
+    "description": "Your organization’s leave types and their basic rules: eligibility, balance, approval and payroll description.",
+    "notEnabled": "This page sets up the policy catalogue only. Leave requests, balance calculation and approvals are not enabled yet.",
+    "legal": "Your organization defines these values and should check them against the rules that apply to it. DivalHR suggests no statutory default and gives no legal advice. Paid or unpaid only describes the leave; it calculates nothing.",
+    "catalogue": "Policy catalogue",
+    "list": "List of leave policies",
+    "asOf": "Statuses calculated for {{date}} ({{timezone}})",
+    "loading": "Loading leave policies…",
+    "retry": "Try again",
+    "empty": "No leave policy yet. Create the first one below.",
+    "more": "Show more policies",
+    "loadingMore": "Loading more policies…",
+    "created": "The leave policy {{name}} ({{code}}) was created.",
+    "untracked": "No balance tracked",
+    "entitlement": {
+      "DAYS": "{{amount}} days per year",
+      "HOURS": "{{amount}} hours per year"
+    },
+    "minimumServiceNone": "No minimum service",
+    "minimumService_one": "After {{count}} day of service",
+    "minimumService_other": "After {{count}} days of service",
+    "columns": {
+      "name": "Name",
+      "code": "Code",
+      "balance": "Balance",
+      "rules": "Rules",
+      "period": "Period",
+      "status": "Status"
+    },
+    "status": {
+      "PLANNED": "Planned",
+      "ACTIVE": "Active",
+      "ENDED": "Ended"
+    },
+    "values": {
+      "unit": {
+        "DAYS": "Days",
+        "HOURS": "Hours"
+      },
+      "balanceMode": {
+        "TRACKED": "Annual entitlement tracked",
+        "UNTRACKED": "No balance tracked"
+      },
+      "approvalRoute": {
+        "MANAGER": "Approved by the manager",
+        "TENANT_ADMIN": "Approved by an organization administrator"
+      },
+      "payrollEffect": {
+        "PAID": "Paid leave",
+        "UNPAID": "Unpaid leave"
+      }
+    },
+    "form": {
+      "title": "Create a leave policy",
+      "intro": "Every field is required unless marked optional. No value is filled in for you.",
+      "code": "Code",
+      "codeHelp": "2 to 20 characters: capital letters, digits, hyphens and underscores. The code never changes.",
+      "nameEn": "Name in English",
+      "nameFr": "Name in French",
+      "unit": "Unit",
+      "balanceMode": "Balance",
+      "balanceModeHelp": "A tracked policy has an annual entitlement. Balances themselves come later.",
+      "annualEntitlement": "Annual entitlement",
+      "annualEntitlementHelp": "More than 0 and at most 10,000, with up to two decimals.",
+      "minimumServiceDays": "Minimum service (days)",
+      "minimumServiceDaysHelp": "Days of service before an employee is eligible, from 0 to 3,650.",
+      "approvalRoute": "Approval",
+      "payrollEffect": "Payroll description",
+      "payrollEffectHelp": "Describes the leave for payroll. Nothing is calculated.",
+      "effectiveFrom": "Effective from",
+      "effectiveTo": "Effective until (optional)",
+      "effectiveToHelp": "Leave empty when the policy has no end date.",
+      "choose": "Choose…",
+      "submit": "Create the policy",
+      "submitting": "Creating…"
+    },
+    "problems": {
+      "code": "Enter a code of 2 to 20 characters in the format shown.",
+      "nameEn": "Enter an English name of 2 to 100 characters.",
+      "nameFr": "Enter a French name of 2 to 100 characters.",
+      "unit": "Choose a unit.",
+      "balanceMode": "Choose how the balance is handled.",
+      "annualEntitlement": "Enter an annual entitlement above 0 and up to 10,000, with at most two decimals.",
+      "minimumServiceDays": "Enter a whole number of days from 0 to 3,650.",
+      "approvalRoute": "Choose who approves.",
+      "payrollEffect": "Choose the payroll description.",
+      "effectiveFrom": "Enter a valid start date.",
+      "effectiveTo": "Enter a valid end date on or after the start date, or leave it empty."
+    },
+    "unauthorized": "Only organization administrators can manage leave policies.",
+    "signInRequired": "Sign in as an organization administrator to manage leave policies."
   },
   "landing": {
     "documentTitle": "DivalHR — The workforce operating platform for Africa",

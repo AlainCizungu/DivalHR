@@ -6,7 +6,6 @@ import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,13 +23,9 @@ public class BusinessCalendar {
    * Creates the calendar.
    *
    * @param organizations organization port
+   * @param clock the application clock (platform {@code ClockConfiguration}; MVP-040A, D40A-4)
    */
-  @Autowired
-  public BusinessCalendar(OrganizationDirectory organizations) {
-    this(organizations, Clock.systemUTC());
-  }
-
-  BusinessCalendar(OrganizationDirectory organizations, Clock clock) {
+  public BusinessCalendar(OrganizationDirectory organizations, Clock clock) {
     this.organizations = organizations;
     this.clock = clock;
   }
@@ -42,7 +37,18 @@ public class BusinessCalendar {
    * @return the business date
    */
   public LocalDate today(TenantId tenant) {
-    return LocalDate.now(clock.withZone(zone(tenant)));
+    return today(zone(tenant));
+  }
+
+  /**
+   * Today in a time zone already read with {@link #zone(TenantId)}, so that a response's business
+   * date and time zone come from one read.
+   *
+   * @param zone the organization's time zone
+   * @return the business date
+   */
+  public LocalDate today(ZoneId zone) {
+    return LocalDate.now(clock.withZone(zone));
   }
 
   /**
@@ -66,7 +72,13 @@ public class BusinessCalendar {
     return clock.instant();
   }
 
-  private ZoneId zone(TenantId tenant) {
+  /**
+   * The organization's IANA time zone.
+   *
+   * @param tenant verified tenant
+   * @return the zone
+   */
+  public ZoneId zone(TenantId tenant) {
     return organizations
         .find(tenant)
         .map(

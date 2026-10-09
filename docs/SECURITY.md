@@ -294,6 +294,17 @@ Tenant administrators see which contracts end soon or have ended (Issue #73, app
 - **Data minimisation.** Items carry the contract UUID only as a link key; the web never displays it as a contract number. Employee numbers and names appear only in the response body (`private, no-store`) and in-memory page state; the search text is sent in a `POST` body, never in a URL.
 - **Index (V17).** `contract_coverage_order` serves the queue; `db/rollback/V17__rollback.sql` drops it and has no data effect.
 
+### Leave policy configuration (MVP-040A)
+
+Tenant administrators configure the organization's leave policies. Two `@TenantAdminOperation` operations, both in the privileged-operation and denial-audit inventories: `leave-policy.create` (`POST /api/v1/leave-policies`) with the per-subject bucket `leave-policy-write` (20/min, `DIVALHR_LEAVE_POLICY_WRITE_REQUESTS_PER_MINUTE`) and the tenant bucket `leave-policy-write` (200 per 10 min, `DIVALHR_LEAVE_POLICY_TENANT_WRITES`), and `leave-policy.list` (`GET /api/v1/leave-policies`) with `leave-policy-read` (60/min, `DIVALHR_LEAVE_POLICY_READ_REQUESTS_PER_MINUTE`). The existing gate applies unchanged: verified tenant, exact privileged MFA, an active matching membership and method security, all before any argument or body is read. Employees and platform administrators are refused like any other tenant-admin operation, and denials leave MVP-013 evidence.
+
+- **Tenant only from the verified JWT.** No tenant field exists in the request. Every query names the tenant, and the policy and version rows carry it in their keys.
+- **Strict input.** Unknown JSON properties (top level and inside `names`), wrong types, out-of-range values and unsafe characters fail with `VALIDATION_FAILED` and `{field, constraint}` pairs only; a duplicate code is `409 LEAVE_POLICY_CODE_EXISTS` with no params. No error, log line, metric or trace tag carries a name, code or submitted value; the domain types' `toString` omits the names.
+- **One transaction (D40A-7).** The idempotency reservation, the policy, its version 1, the success audit (`leave-policy.create`) and the outbox event `people.leave-policy.created.v1` commit together or not at all. Audit metadata and event data are identifiers, the code, the version number and the enums only; `after_state_sha256` covers the whole created state. Concurrent duplicate codes give one policy and stable conflicts, never partial rows.
+- **Lists.** Not disclosure-audited (organization configuration without personal data). Keyset pages ordered by code then id, 25 by default and at most 50. The HMAC cursor is bound to the operation, tenant, page size and the pinned business date; any other use is `400 CURSOR_INVALID`. Responses are `private, no-store`.
+- **Legal boundary.** The values are the organization's own. DivalHR seeds no statutory default, validates nothing against labour law and calculates nothing from `PAID`/`UNPAID`; this is not legal advice.
+- **Rolling back V18.** `db/rollback/V18__rollback.sql` refuses while any leave policy or version exists; there is no override. Then remove the `18` row from `flyway_schema_history` as a separate reviewed step, together with an application rollback.
+
 ## Privileged multifactor authentication (MVP-011)
 
 Every interactive holder of `platform-admin` or `tenant-admin` completes TOTP, and the Core API enforces it independently. SMS and email codes are never a privileged factor; passkeys are a future, stronger option.
