@@ -259,6 +259,148 @@ test('each misconfiguration fails its rule', async () => {
   }
 });
 
+const flow = (realm, alias) => realm.authenticationFlows.find((f) => f.alias === alias);
+const fallback = (realm) => flow(realm, 'divalhr browser employee access');
+const fallbackStep = (realm, authenticator, configAlias) =>
+  fallback(realm).authenticationExecutions.find(
+    (e) =>
+      e.authenticator === authenticator &&
+      (configAlias === undefined || e.authenticatorConfig === configAlias),
+  );
+const dropStep = (realm, step) => {
+  const executions = fallback(realm).authenticationExecutions;
+  executions.splice(executions.indexOf(step), 1);
+};
+
+test('each employee-access fallback misconfiguration fails (Issue #77)', async () => {
+  const cases = [
+    [
+      'missing positive employee condition',
+      (r) => dropStep(r, fallbackStep(r, 'conditional-user-role', 'divalhr-employee-role')),
+    ],
+    [
+      'missing privileged condition',
+      (r) => dropStep(r, fallbackStep(r, 'conditional-user-role', 'divalhr-not-privileged-role')),
+    ],
+    [
+      'privileged condition not negated',
+      (r) => (config(r, 'divalhr-not-privileged-role').negate = 'false'),
+    ],
+    ['employee condition negated', (r) => (config(r, 'divalhr-employee-role').negate = 'true')],
+    [
+      'wrong employee role',
+      (r) => (config(r, 'divalhr-employee-role').condUserRole = 'tenant-admin'),
+    ],
+    [
+      'wrong privileged role',
+      (r) => (config(r, 'divalhr-not-privileged-role').condUserRole = 'tenant-admin'),
+    ],
+    [
+      'fallback moved ahead of the LoA flows',
+      (r) => {
+        const forms = flow(r, 'divalhr browser forms').authenticationExecutions;
+        forms.find((e) => e.flowAlias === 'divalhr browser employee access').priority = -1;
+      },
+    ],
+    [
+      'Allow Access disabled',
+      (r) => (fallbackStep(r, 'allow-access-authenticator').requirement = 'DISABLED'),
+    ],
+    ['Allow Access missing', (r) => dropStep(r, fallbackStep(r, 'allow-access-authenticator'))],
+    [
+      'Allow Access before the conditions',
+      (r) => (fallbackStep(r, 'allow-access-authenticator').priority = -1),
+    ],
+    [
+      'fallback alternative instead of conditional',
+      (r) =>
+        (flow(r, 'divalhr browser forms').authenticationExecutions.find(
+          (e) => e.flowAlias === 'divalhr browser employee access',
+        ).requirement = 'ALTERNATIVE'),
+    ],
+    [
+      'unexpected extra execution in the fallback',
+      (r) =>
+        fallback(r).authenticationExecutions.push({
+          authenticator: 'auth-username-password-form',
+          authenticatorFlow: false,
+          requirement: 'REQUIRED',
+          priority: 9,
+        }),
+    ],
+    [
+      'LoA condition inside the fallback',
+      (r) =>
+        fallback(r).authenticationExecutions.push({
+          authenticator: 'conditional-level-of-authentication',
+          authenticatorConfig: 'divalhr-loa-1',
+          authenticatorFlow: false,
+          requirement: 'REQUIRED',
+          priority: 9,
+        }),
+    ],
+    [
+      'Allow Access replaced by another authenticator',
+      (r) => (fallbackStep(r, 'allow-access-authenticator').authenticator = 'auth-cookie'),
+    ],
+    [
+      'unexpected extra execution before the fallback',
+      (r) =>
+        flow(r, 'divalhr browser forms').authenticationExecutions.push({
+          authenticator: 'auth-cookie',
+          authenticatorFlow: false,
+          requirement: 'CONDITIONAL',
+          priority: 1.5,
+        }),
+    ],
+    [
+      'unexpected extra execution after the fallback',
+      (r) =>
+        flow(r, 'divalhr browser forms').authenticationExecutions.push({
+          authenticator: 'allow-access-authenticator',
+          authenticatorFlow: false,
+          requirement: 'ALTERNATIVE',
+          priority: 9,
+        }),
+    ],
+  ];
+  for (const [name, mutate] of cases) {
+    const all = await results(mutate);
+    assert.equal(all['employee-access-fallback'], false, name);
+  }
+  // Structural changes are caught twice: by the fallback rule and by the exact flow structure.
+  for (const [name, mutate] of cases.filter(([n]) => !/role|negated/.test(n))) {
+    assert.equal((await results(mutate))['browser-flow-structure'], false, name);
+  }
+  // The level-2 role condition is found in its own flow, not as the first role condition anywhere.
+  assert.equal(
+    (await results((r) => (config(r, 'divalhr-privileged-role').condUserRole = 'employee')))[
+      'level2-only-for-marker-role'
+    ],
+    false,
+  );
+  assert.equal(
+    (
+      await results((r) =>
+        flow(r, 'divalhr browser level 2 otp').authenticationExecutions.push({
+          authenticator: 'conditional-user-role',
+          authenticatorConfig: 'divalhr-not-privileged-role',
+          authenticatorFlow: false,
+          requirement: 'REQUIRED',
+          priority: 1.5,
+        }),
+      )
+    )['level2-only-for-marker-role'],
+    false,
+  );
+  assert.equal(
+    (await results((r) => (config(r, 'divalhr-employee-role').condUserRole = MARKER_ROLE)))[
+      'level2-only-for-marker-role'
+    ],
+    true,
+  );
+});
+
 test('each provisioning misconfiguration fails its rule (Issue #31)', async () => {
   assert.equal((await results(() => {}, []))['provisioning-extension-deployed'], false);
   const cases = [

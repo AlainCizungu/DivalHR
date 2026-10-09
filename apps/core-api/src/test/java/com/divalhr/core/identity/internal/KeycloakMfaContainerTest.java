@@ -123,6 +123,31 @@ class KeycloakMfaContainerTest {
     Jwt token = coreToken(browser, outcome);
     assertThat(token.getClaimAsString("acr")).isEqualTo(PWD);
     assertThat(authorities(token)).containsExactly("ROLE_employee");
+
+    // Issue #77: the app lost its in-memory tokens (a reload) and signs in again. The SSO session
+    // is reused through the employee-access fallback: no credential prompt, still password level.
+    Outcome reentry =
+        browser.drive(
+            browser.authorize(Map.of()),
+            "dev-employee-a",
+            "dev-only-Employee-A-2026",
+            null,
+            s -> {});
+    assertThat(reentry.forms()).as("no credential prompt").isEmpty();
+    Jwt again = coreToken(browser, reentry);
+    assertThat(again.getClaimAsString("acr")).isEqualTo(PWD);
+    assertThat(authorities(again)).containsExactly("ROLE_employee");
+
+    // Asking for MFA does not raise an employee's level: the fallback never records a level.
+    Outcome asked =
+        browser.drive(
+            browser.authorize(Map.of("acr_values", MFA)),
+            "dev-employee-a",
+            "dev-only-Employee-A-2026",
+            null,
+            s -> {});
+    assertThat(asked.forms()).isEmpty();
+    assertThat(coreToken(browser, asked).getClaimAsString("acr")).isEqualTo(PWD);
   }
 
   @Test
@@ -176,6 +201,33 @@ class KeycloakMfaContainerTest {
             () -> currentCode("dev-only-totp-admin-b-2026"),
             s -> {});
     assertThat(coreToken(second, completed).getClaimAsString("acr")).isEqualTo(MFA);
+  }
+
+  @Test
+  void aPrivilegedUserWhoIsAlsoAnEmployeeStillNeedsTheirTotp() throws Exception {
+    Enrolled admin = enrolledTenantAdmin();
+    // Issue #77: the employee role must not open the password-level fallback to a privileged user.
+    admin("PUT", "/users/" + admin.subject() + "/groups/" + groupId("divalhr-role-employee"), "");
+    for (Map<String, String> request :
+        List.of(Map.<String, String>of(), Map.of("acr_values", PWD))) {
+      ScriptedBrowser withoutCode = browser();
+      Outcome stopped =
+          withoutCode.drive(withoutCode.authorize(request), admin.email(), PASSWORD, null, s -> {});
+      assertThat(stopped.forms()).containsExactly("kc-form-login", "kc-otp-login-form");
+      assertThat(stopped.last().isCallback()).isFalse();
+    }
+    ScriptedBrowser browser = browser();
+    Outcome outcome =
+        browser.drive(browser.authorize(Map.of()), admin.email(), PASSWORD, admin::code, s -> {});
+    Jwt token = coreToken(browser, outcome);
+    assertThat(token.getClaimAsString("acr")).isEqualTo(MFA);
+    assertThat(authorities(token))
+        .contains("ROLE_tenant-admin", "ROLE_employee", AssuranceEvidence.MFA_AUTHORITY);
+    // Reuse of a session that achieved MFA keeps the MFA level.
+    Outcome reuse =
+        browser.drive(browser.authorize(Map.of()), admin.email(), PASSWORD, null, s -> {});
+    assertThat(reuse.forms()).isEmpty();
+    assertThat(coreToken(browser, reuse).getClaimAsString("acr")).isEqualTo(MFA);
   }
 
   @Test
@@ -292,26 +344,148 @@ class KeycloakMfaContainerTest {
     Jwt employee = coreToken(browser, outcome);
     assertThat(employee.getClaimAsString("acr")).isEqualTo(PWD);
 
-    // A realm administrator moves the user to the tenant-admin role group.
+    // A realm administrator adds the tenant-admin role group; the user is still an employee.
     String employeeGroup = groupId("divalhr-role-employee");
     String adminGroup = groupId("divalhr-role-tenant-admin");
-    admin("DELETE", "/users/" + subject + "/groups/" + employeeGroup, null);
     admin("PUT", "/users/" + subject + "/groups/" + adminGroup, "");
 
-    // The refreshed token gains the role but keeps the password level: no MFA authority.
+    // The refreshed token gains the role but keeps the password level: no MFA authority, so the
+    // Core answers every privileged operation with 403 MFA_REQUIRED.
     Jwt refreshed =
         coreDecoder.decode(
             JSON.readTree(browser.refresh(lastRefreshToken)).path("access_token").asString());
     assertThat(refreshed.getClaimAsString("acr")).isEqualTo(PWD);
     assertThat(authorities(refreshed))
-        .contains("ROLE_tenant-admin")
+        .contains("ROLE_tenant-admin", "ROLE_employee")
         .doesNotContain(AssuranceEvidence.MFA_AUTHORITY);
+    assertThat(AssuranceEvidence.provesMfa(refreshed)).isFalse();
+
+    // Issue #77: holding the employee role too does not open the password-level fallback.
+    Outcome mixed = browser.drive(browser.authorize(Map.of()), email, PASSWORD, null, s -> {});
+    assertThat(mixed.reachedApplication()).isFalse();
+    assertThat(mixed.last().text().contains(FR_DENIAL)).as("denial in French").isTrue();
+
+    // Moved out of the employee group: the same.
+    admin("DELETE", "/users/" + subject + "/groups/" + employeeGroup, null);
 
     // A new authorization in the same browser session must step up; without an authenticator
     // the user is denied instead of being let through on the existing session.
     Outcome stepUp = browser.drive(browser.authorize(Map.of()), email, PASSWORD, null, s -> {});
     assertThat(stepUp.reachedApplication()).isFalse();
     assertThat(stepUp.last().text().contains(FR_DENIAL)).as("denial in French").isTrue();
+  }
+
+  // --- employee-access fallback (Issue #77)
+  // ---------------------------------------------------------------------------------------
+
+  @Test
+  void anAccountWithoutTheEmployeeRoleCannotReenterThroughTheFallback() throws Exception {
+    String email = unique("norole");
+    admin(
+        "POST",
+        "/users",
+        "{\"username\":\""
+            + email
+            + "\",\"email\":\""
+            + email
+            + "\",\"emailVerified\":true,\"enabled\":true,"
+            + "\"firstName\":\"No\",\"lastName\":\"Role\"}");
+    String subject =
+        admin("GET", "/users?exact=true&username=" + enc(email), null).get(0).path("id").asString();
+    withPasswordOnly(subject);
+    ScriptedBrowser browser = browser();
+    Outcome first = browser.drive(browser.authorize(Map.of()), email, PASSWORD, null, s -> {});
+    Jwt token = coreToken(browser, first);
+    assertThat(token.getClaimAsString("acr")).isEqualTo(PWD);
+    assertThat(authorities(token)).isEmpty();
+    // Level 1 is satisfied and neither the OTP branch nor the fallback applies: no code.
+    Outcome reentry = browser.drive(browser.authorize(Map.of()), email, PASSWORD, null, s -> {});
+    assertThat(reentry.forms()).isEmpty();
+    assertThat(reentry.reachedApplication()).isFalse();
+  }
+
+  @Test
+  void signingOutEndsTheSessionTheFallbackWouldReuse() throws Exception {
+    ScriptedBrowser browser = browser();
+    Outcome outcome =
+        browser.drive(
+            browser.authorize(Map.of()),
+            "dev-employee-b",
+            "dev-only-Employee-B-2026",
+            null,
+            s -> {});
+    coreToken(browser, outcome);
+    browser.open(
+        stack.baseUrl()
+            + "/realms/"
+            + REALM
+            + "/protocol/openid-connect/logout?client_id="
+            + ScriptedBrowser.CLIENT_ID
+            + "&id_token_hint="
+            + enc(lastIdToken));
+    assertThat(browser.authorize(Map.of()).formId()).isEqualTo("kc-form-login");
+    ScriptedBrowser.Page silent = browser.authorize(Map.of("prompt", "none"));
+    assertThat(silent.isCallback()).isTrue();
+    assertThat(silent.callbackParameter("code")).isNull();
+    assertThat(silent.callbackParameter("error")).isEqualTo("login_required");
+  }
+
+  /**
+   * An essential {@code acr} claim (OIDC {@code claims} parameter) may make Keycloak refuse the
+   * request or answer at password level (the open upstream issue for 26.0.0-26.7.4), but it never
+   * yields the MFA level without a TOTP, and the Core never accepts such a token as MFA.
+   */
+  @Test
+  void anEssentialMfaClaimNeverYieldsMfaWithoutATotp() throws Exception {
+    Map<String, String> essential =
+        Map.of(
+            "claims", "{\"id_token\":{\"acr\":{\"essential\":true,\"values\":[\"" + MFA + "\"]}}}");
+    ScriptedBrowser employee = browser();
+    assertNeverMfa(
+        employee,
+        employee.drive(
+            employee.authorize(essential),
+            "dev-employee-a",
+            "dev-only-Employee-A-2026",
+            null,
+            s -> {}));
+    coreToken(
+        employee,
+        employee.drive(
+            employee.authorize(Map.of()),
+            "dev-employee-a",
+            "dev-only-Employee-A-2026",
+            null,
+            s -> {}));
+    assertNeverMfa(
+        employee,
+        employee.drive(
+            employee.authorize(essential),
+            "dev-employee-a",
+            "dev-only-Employee-A-2026",
+            null,
+            s -> {}));
+
+    // A user promoted inside a password-level session.
+    String email = unique("essential");
+    String subject = provision(email, TenantRole.EMPLOYEE);
+    withPasswordOnly(subject);
+    ScriptedBrowser promoted = browser();
+    coreToken(
+        promoted, promoted.drive(promoted.authorize(Map.of()), email, PASSWORD, null, s -> {}));
+    admin("PUT", "/users/" + subject + "/groups/" + groupId("divalhr-role-tenant-admin"), "");
+    assertNeverMfa(
+        promoted, promoted.drive(promoted.authorize(essential), email, PASSWORD, null, s -> {}));
+  }
+
+  private static void assertNeverMfa(ScriptedBrowser browser, Outcome outcome) throws Exception {
+    if (!outcome.reachedApplication()) {
+      return; // refused safely
+    }
+    Jwt token = coreToken(browser, outcome);
+    assertThat(token.getClaimAsString("acr")).isNotEqualTo(MFA);
+    assertThat(AssuranceEvidence.provesMfa(token)).isFalse();
+    assertThat(authorities(token)).doesNotContain(AssuranceEvidence.MFA_AUTHORITY);
   }
 
   // --- other grants and clients
@@ -376,6 +550,9 @@ class KeycloakMfaContainerTest {
 
   /** The refresh token of the last code exchange, kept out of assertion messages. */
   private static String lastRefreshToken;
+
+  /** The ID token of the last code exchange (logout hint only), kept out of assertion messages. */
+  private static String lastIdToken;
 
   /** A tenant administrator who completed the setup link; the secret stays in memory. */
   private record Enrolled(String email, String subject, String secret, List<String> setupForms) {
@@ -476,6 +653,7 @@ class KeycloakMfaContainerTest {
     assertThat(outcome.reachedApplication()).as("reached the application with a code").isTrue();
     JsonNode tokens = JSON.readTree(browser.exchange(outcome.last()));
     lastRefreshToken = tokens.path("refresh_token").asString();
+    lastIdToken = tokens.path("id_token").asString();
     return coreDecoder.decode(tokens.path("access_token").asString());
   }
 

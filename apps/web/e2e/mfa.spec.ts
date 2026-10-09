@@ -39,6 +39,41 @@ test.describe.serial('MVP-011: privileged roles complete MFA', { tag: '@identity
     await expect(page.getByRole('link', { name: 'Structure organisationnelle' })).toHaveCount(0);
   });
 
+  test('Issue #77: an employee who reloads the app signs straight back in at password level', async ({
+    page,
+  }) => {
+    await signIn(page, USERS.employeeA, 'fr', undefined);
+    // A reload drops the in-memory tokens: the app is anonymous again, the Keycloak session lives.
+    await page.reload();
+    const keycloakPages: string[] = [];
+    page.on('framenavigated', (frame) => {
+      if (frame === page.mainFrame() && new URL(frame.url()).pathname.includes('/realms/')) {
+        keycloakPages.push(new URL(frame.url()).pathname);
+      }
+    });
+    const tokenResponse = page.waitForResponse(
+      (r) => r.url().endsWith('/protocol/openid-connect/token') && r.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: 'Français', exact: true }).click();
+    await page.getByRole('main').getByRole('button', { name: 'Se connecter' }).click();
+    await expect(page.getByTestId('session-tenant')).toHaveText(/^[0-9a-f-]{36}$/);
+    // Keycloak reused the SSO session: no login, code or error page was displayed.
+    expect(keycloakPages).toEqual([]);
+    // Still password level (decoded in memory; only the level is compared).
+    const idToken = String(
+      ((await (await tokenResponse).json()) as { id_token?: string }).id_token,
+    );
+    const acr = (
+      JSON.parse(Buffer.from(idToken.split('.')[1] ?? '', 'base64url').toString()) as {
+        acr?: string;
+      }
+    ).acr;
+    expect(acr === 'urn:divalhr:loa:pwd', 'password-level assurance').toBe(true);
+    await expect(
+      primaryNav(page).getByRole('link', { name: 'Structure organisationnelle' }),
+    ).toHaveCount(0);
+  });
+
   test('a platform administrator is asked for an authenticator code; a wrong code is refused', async ({
     page,
   }) => {
