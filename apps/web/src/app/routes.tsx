@@ -11,6 +11,7 @@ import { MyContractPage } from '../features/contracts/MyContractPage';
 import { MyContractsPage } from '../features/contracts/MyContractsPage';
 import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
 import { HomePage } from '../features/home/HomePage';
+import { LeaveApprovalsPage, MyLeaveApprovalsPage } from '../features/leave/LeaveApprovalInbox';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
@@ -126,6 +127,12 @@ export const ROUTES: AppRoute[] = [
     crumbs: [HOME, PEOPLE, { key: 'nav.leavePolicies' }],
   },
   {
+    path: '/admin/leave-approvals',
+    element: <LeaveApprovalsPage />,
+    access: tenantAdmin('leaveApprovals.admin.unauthorized', 'leaveApprovals.signInRequired'),
+    crumbs: [HOME, PEOPLE, { key: 'nav.leaveApprovals' }],
+  },
+  {
     path: '/admin/contract-templates',
     element: <ContractTemplatesPage />,
     access: tenantAdmin('contracts.unauthorized', 'contracts.signInRequired'),
@@ -182,6 +189,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'myLeave.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myLeave' }],
+  },
+  {
+    path: '/me/leave/approvals',
+    element: <MyLeaveApprovalsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'leaveApprovals.manager.unauthorized',
+      signInKey: 'leaveApprovals.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myLeaveApprovals' }],
   },
   { path: '/invitation', element: <AcceptInvitationPage />, frame: 'public' },
   { path: '/auth/callback', element: <CallbackPage />, frame: 'public' },

@@ -3427,7 +3427,9 @@ paths:
       x-divalhr-required-role: employee
       summary: List my leave requests
       description: >-
-        MVP-041A. The caller's own leave requests, newest first (submittedAt, then id). Only the
+        MVP-041A/MVP-041B. The caller's own leave requests, newest first (submittedAt, then id),
+        each with its current state and, once decided, its decision (outcome, reason in the
+        language it was written in, time; never who decided). Only the
         employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED
         otherwise). Recorded as a fail-closed disclosure (audit leave-request.self-list): if the
         audit record cannot be written, nothing is returned. The signed cursor is bound to the
@@ -3504,6 +3506,195 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /leave-approvals:
+    get:
+      operationId: listLeaveApprovals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List leave requests awaiting a tenant administrator
+      description: >-
+        MVP-041B. The organization's PENDING leave requests whose policy version routes approval to
+        tenant administrators (approvalRoute TENANT_ADMIN), newest first (submittedAt, then id).
+        MANAGER-routed requests are never listed here. Each item carries only what deciding needs:
+        the requesting employee's number and names, the policy, unit, amount and dates. Restricted
+        HR: recorded as a fail-closed disclosure (audit leave-approval.admin-list); if the audit
+        record cannot be written, nothing is returned. The signed cursor is bound to the operation,
+        tenant, caller and page size. No parameter selects a tenant, employee, manager or route.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveApprovalPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /leave-approvals/{requestId}/decision:
+    post:
+      operationId: decideLeaveRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Approve or reject a leave request routed to tenant administrators
+      description: >-
+        MVP-041B. Moves a PENDING request whose policy version routes approval to tenant
+        administrators to APPROVED or REJECTED, once, with its reason, in one transaction with the
+        decision record, the audit record (leave-request.approve or leave-request.reject) and the
+        outbox event (people.leave-request.approved.v1 or people.leave-request.rejected.v1).
+        Unknown, foreign-tenant and MANAGER-routed requests are the same 404
+        LEAVE_REQUEST_NOT_FOUND with no params. A request that already has its decision is 409
+        LEAVE_REQUEST_ALREADY_DECIDED (no params). Approving requires the request's employment to
+        still cover its whole interval (409 LEAVE_REQUEST_NOT_ELIGIBLE with params.reason
+        EMPLOYMENT_PERIOD); rejecting does not. A first or last day in the past never refuses a
+        decision. Only the body's shape is checked before the idempotency decision: an exact retry
+        returns the stored 200 with Idempotent-Replayed true, a changed body on the same key is
+        409 IDEMPOTENCY_KEY_REUSED. The receipt never contains the reason. Errors never echo the
+        reason. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/LeaveRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecideLeaveRequest"
+      responses:
+        "200":
+          description: Decided, or the original decision replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveDecisionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/leave-approvals:
+    get:
+      operationId: listMyLeaveApprovals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List leave requests awaiting my decision as a manager
+      description: >-
+        MVP-041B. The PENDING leave requests whose policy version routes approval to the manager
+        (approvalRoute MANAGER) and whose employment, on the request's first day, has an active
+        reporting line to the employee of the caller's current active employee-access link (403
+        EMPLOYEE_LINK_REQUIRED otherwise), newest first. The relationship is re-evaluated on every
+        call, so a later employment-history change reroutes a pending request; a request with no
+        qualifying manager is in no inbox. Restricted HR: recorded as a fail-closed disclosure
+        (audit leave-approval.manager-list). The signed cursor is bound to the operation, tenant,
+        caller, the caller's link and linked employee, and page size: a relink invalidates it.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveApprovalPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/leave-approvals/{requestId}/decision:
+    post:
+      operationId: decideManagedLeaveRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Approve or reject a leave request as its manager
+      description: >-
+        MVP-041B. Moves a PENDING MANAGER-routed request of one of the caller's reports (as listed
+        by listMyLeaveApprovals) to APPROVED or REJECTED, once, with its reason, in one transaction
+        with the decision record, the audit record and the outbox event. The relationship is
+        checked again on the first execution and on every replay: no active link is 403
+        EMPLOYEE_LINK_REQUIRED; unknown, foreign-tenant, TENANT_ADMIN-routed and non-report requests
+        are the same 404 LEAVE_REQUEST_NOT_FOUND with no params, and a denied replay returns no
+        stored response. Otherwise as decideLeaveRequest (409 LEAVE_REQUEST_ALREADY_DECIDED, 409
+        LEAVE_REQUEST_NOT_ELIGIBLE EMPLOYMENT_PERIOD on approval, Idempotent-Replayed, no reason in
+        the receipt). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/LeaveRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecideLeaveRequest"
+      responses:
+        "200":
+          description: Decided, or the original decision replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveDecisionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "429":
@@ -3646,6 +3837,8 @@ components:
         carries no params.
         LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params;
         LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE.
+        LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision) carries no
+        params.
       content:
         application/problem+json:
           schema:
@@ -3659,7 +3852,9 @@ components:
         resource does not exist in the caller's tenant. Missing and foreign-tenant resources are
         indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is
         malformed, unknown or not active; the cases are indistinguishable and the ID is never
-        echoed.
+        echoed. LEAVE_REQUEST_NOT_FOUND (MVP-041B) - no leave request the caller may see or
+        decide: unknown, foreign-tenant, other-route and non-report requests are
+        indistinguishable; no params.
       content:
         application/problem+json:
           schema:
@@ -3904,6 +4099,14 @@ components:
         Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND.
       schema:
         type: string
+    LeaveRequestId:
+      name: requestId
+      in: path
+      required: true
+      description: Leave request ID.
+      schema:
+        type: string
+        format: uuid
     LeavePolicyLimit:
       name: limit
       in: query
@@ -6898,6 +7101,8 @@ components:
         - LEAVE_POLICY_NOT_REQUESTABLE
         - LEAVE_REQUEST_NOT_ELIGIBLE
         - LEAVE_REQUEST_OVERLAP
+        - LEAVE_REQUEST_NOT_FOUND
+        - LEAVE_REQUEST_ALREADY_DECIDED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -6906,7 +7111,9 @@ components:
       enum: [TRACKED, UNTRACKED]
     LeaveApprovalRoute:
       type: string
-      description: Who will approve requests once requests exist (not enabled in MVP-040A).
+      description: >-
+        Who approves requests under the policy version: the requesting employee's manager on the
+        request's first day, or a tenant administrator (enforced from MVP-041B).
       enum: [MANAGER, TENANT_ADMIN]
     LeavePayrollEffect:
       type: string
@@ -7076,8 +7283,11 @@ components:
           description: The organization's IANA time zone.
     LeaveRequestState:
       type: string
-      description: MVP-041A creates PENDING requests only; decisions come in a later story.
-      enum: [PENDING]
+      description: >-
+        MVP-041A creates PENDING requests; MVP-041B moves one once to APPROVED or REJECTED with its
+        decision. APPROVED requests keep blocking overlapping requests; REJECTED ones release their
+        dates.
+      enum: [PENDING, APPROVED, REJECTED]
     MyLeavePolicy:
       type: object
       required:
@@ -7186,6 +7396,7 @@ components:
         - endDate
         - state
         - submittedAt
+        - decision
       properties:
         id:
           type: string
@@ -7216,6 +7427,11 @@ components:
         submittedAt:
           type: string
           format: date-time
+        decision:
+          description: The decision once taken (MVP-041B), otherwise null.
+          oneOf:
+            - $ref: "#/components/schemas/MyLeaveDecision"
+            - type: "null"
     MyLeaveRequestPage:
       type: object
       required: [items, nextCursor]
@@ -7226,6 +7442,142 @@ components:
             $ref: "#/components/schemas/MyLeaveRequest"
         nextCursor:
           type: [string, "null"]
+    MyLeaveDecision:
+      type: object
+      description: >-
+        MVP-041B. The decision on one of the caller's own requests: the outcome and the reason in
+        the language it was written in (never translated). The deciding person is never included.
+      required: [id, outcome, reasonLocale, reason, decidedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+          enum: [APPROVED, REJECTED]
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+          description: Plain text, never HTML or Markdown.
+        decidedAt:
+          type: string
+          format: date-time
+    LeaveApprovalEmployee:
+      type: object
+      description: The requesting employee, as plain text.
+      required: [id, employeeNumber, givenNames, familyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    LeaveApproval:
+      type: object
+      description: MVP-041B. A PENDING request awaiting the caller's decision.
+      required:
+        - id
+        - submittedAt
+        - employee
+        - policyId
+        - policyVersionId
+        - policyCode
+        - policyNames
+        - unit
+        - amount
+        - startDate
+        - endDate
+        - approvalRoute
+        - state
+      properties:
+        id:
+          type: string
+          format: uuid
+        submittedAt:
+          type: string
+          format: date-time
+        employee:
+          $ref: "#/components/schemas/LeaveApprovalEmployee"
+        policyId:
+          type: string
+          format: uuid
+        policyVersionId:
+          type: string
+          format: uuid
+        policyCode:
+          type: string
+        policyNames:
+          $ref: "#/components/schemas/LeavePolicyNames"
+        unit:
+          $ref: "#/components/schemas/LeaveUnit"
+        amount:
+          type: number
+          description: Two decimals, in the policy's unit.
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        approvalRoute:
+          $ref: "#/components/schemas/LeaveApprovalRoute"
+        state:
+          $ref: "#/components/schemas/LeaveRequestState"
+    LeaveApprovalPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaveApproval"
+        nextCursor:
+          type: [string, "null"]
+    DecideLeaveRequest:
+      type: object
+      description: >-
+        MVP-041B. A decision with its reason, required for either outcome. The request comes from
+        the path; tenant, route, manager and actor are never fields.
+      additionalProperties: false
+      required: [decision, reasonLocale, reason]
+      properties:
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: >-
+            Plain text. Trimmed and NFC-normalized by the server; 2 to 500 Unicode code points
+            after that; no control, format, line-separator, private-use or unassigned character.
+    LeaveDecisionReceipt:
+      type: object
+      description: MVP-041B. The minimal receipt of a decision; never the reason.
+      required: [requestId, decisionId, state, decidedAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        decisionId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [APPROVED, REJECTED]
+        decidedAt:
+          type: string
+          format: date-time
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.

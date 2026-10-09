@@ -127,7 +127,9 @@
         "LEAVE_POLICY_CODE_EXISTS",
         "LEAVE_POLICY_NOT_REQUESTABLE",
         "LEAVE_REQUEST_NOT_ELIGIBLE",
-        "LEAVE_REQUEST_OVERLAP"
+        "LEAVE_REQUEST_OVERLAP",
+        "LEAVE_REQUEST_NOT_FOUND",
+        "LEAVE_REQUEST_ALREADY_DECIDED"
       ]
     },
     "params": { "type": "object" },

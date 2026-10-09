@@ -6,8 +6,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * A leave request with the policy it was made under (MVP-041A). Restricted HR: dates and amount are
- * personal data and never appear in logs, errors or audit metadata.
+ * A leave request with the policy it was made under (MVP-041A) and, once decided, its decision
+ * (MVP-041B). Restricted HR: dates, amount and reason are personal data and never appear in logs,
+ * errors or audit metadata.
  *
  * @param id request
  * @param employeeId the requesting employee
@@ -23,6 +24,7 @@ import java.util.UUID;
  * @param amount requested amount, two decimals
  * @param state state
  * @param submittedAt submission time
+ * @param decision the decision, or {@code null} while pending
  */
 public record LeaveRequest(
     UUID id,
@@ -38,7 +40,8 @@ public record LeaveRequest(
     LocalDate endDate,
     BigDecimal amount,
     LeaveRequestState state,
-    Instant submittedAt) {
+    Instant submittedAt,
+    LeaveDecision decision) {
 
   /**
    * Identifiers only: no date, amount or name reaches a log line through {@code toString}.

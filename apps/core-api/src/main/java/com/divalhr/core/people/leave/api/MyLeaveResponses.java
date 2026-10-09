@@ -3,6 +3,7 @@ package com.divalhr.core.people.leave.api;
 import com.divalhr.core.people.leave.api.LeavePolicyResponses.Names;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
 import com.divalhr.core.people.leave.domain.BalanceMode;
+import com.divalhr.core.people.leave.domain.LeaveDecision;
 import com.divalhr.core.people.leave.domain.LeavePolicy;
 import com.divalhr.core.people.leave.domain.LeavePolicyStatus;
 import com.divalhr.core.people.leave.domain.LeaveRequest;
@@ -17,7 +18,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/** Employee self-service leave responses (MVP-041A). */
+/** Employee self-service leave responses (MVP-041A; decisions MVP-041B). */
 public final class MyLeaveResponses {
 
   private MyLeaveResponses() {}
@@ -124,8 +125,10 @@ public final class MyLeaveResponses {
    * @param amount requested amount (two decimals)
    * @param startDate first day (inclusive)
    * @param endDate last day (inclusive)
-   * @param state state
+   * @param state current state
    * @param submittedAt submission time
+   * @param decision the decision and its reason once decided, otherwise {@code null}; never the
+   *     deciding person
    */
   @Schema(name = "MyLeaveRequest")
   public record Request(
@@ -139,7 +142,8 @@ public final class MyLeaveResponses {
       LocalDate startDate,
       LocalDate endDate,
       LeaveRequestState state,
-      Instant submittedAt) {
+      Instant submittedAt,
+      Decision decision) {
 
     /**
      * The view of a request.
@@ -159,7 +163,8 @@ public final class MyLeaveResponses {
           request.startDate(),
           request.endDate(),
           request.state(),
-          request.submittedAt());
+          request.submittedAt(),
+          request.decision() == null ? null : Decision.of(request.decision()));
     }
 
     /**
@@ -170,6 +175,46 @@ public final class MyLeaveResponses {
     @Override
     public String toString() {
       return "MyLeaveRequest[id=" + id + "]";
+    }
+  }
+
+  /**
+   * The decision on one of the caller's own requests (MVP-041B): the outcome and the reason in the
+   * language it was written in. The deciding subject and manager are never included.
+   *
+   * @param id decision
+   * @param outcome {@code APPROVED} or {@code REJECTED}
+   * @param reasonLocale {@code en} or {@code fr}
+   * @param reason the reason, as written (plain text)
+   * @param decidedAt decision time
+   */
+  @Schema(name = "MyLeaveDecision")
+  public record Decision(
+      UUID id, LeaveRequestState outcome, String reasonLocale, String reason, Instant decidedAt) {
+
+    /**
+     * The employee-safe view of a decision.
+     *
+     * @param decision decision
+     * @return the view
+     */
+    public static Decision of(LeaveDecision decision) {
+      return new Decision(
+          decision.id(),
+          decision.outcome(),
+          decision.reasonLocale(),
+          decision.reason(),
+          decision.decidedAt());
+    }
+
+    /**
+     * Identifiers and outcome only.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "MyLeaveDecision[id=" + id + ", outcome=" + outcome + "]";
     }
   }
 

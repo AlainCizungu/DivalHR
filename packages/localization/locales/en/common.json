@@ -16,10 +16,12 @@
     "employees": "Employees",
     "employeeImport": "Import employees",
     "leavePolicies": "Leave policies",
+    "leaveApprovals": "Leave approvals",
     "contractTemplates": "Contract templates",
     "contractExpirations": "Contract expirations",
     "myContracts": "My contracts",
     "myLeave": "My leave",
+    "myLeaveApprovals": "Leave approvals",
     "groups": {
       "overview": "Overview",
       "platform": "Platform",
@@ -346,7 +348,9 @@
     "LEAVE_POLICY_CODE_EXISTS": "A leave policy with this code already exists in your organization.",
     "LEAVE_POLICY_NOT_REQUESTABLE": "This leave policy cannot be requested for these dates. Choose another policy or other dates.",
     "LEAVE_REQUEST_NOT_ELIGIBLE": "You are not eligible for this leave on these dates.",
-    "LEAVE_REQUEST_OVERLAP": "You already have a pending request for some of these dates."
+    "LEAVE_REQUEST_OVERLAP": "You already have a pending or approved request for some of these dates.",
+    "LEAVE_REQUEST_NOT_FOUND": "This leave request is no longer available to you. It may have been decided, rerouted to another approver or withdrawn from your inbox.",
+    "LEAVE_REQUEST_ALREADY_DECIDED": "This leave request has already been decided."
   },
   "notFound": {
     "title": "Page not found",
@@ -1693,7 +1697,7 @@
   "leavePolicies": {
     "title": "Leave policies",
     "description": "Your organization’s leave types and their basic rules: eligibility, balance, approval and payroll description.",
-    "notEnabled": "This page sets up the policy catalogue only. Employees submit requests in My leave; balance calculation and approvals are not enabled yet.",
+    "notEnabled": "This page sets up the policy catalogue only. Employees submit requests in My leave and approvers decide them in Leave approvals; balance calculation is not enabled yet.",
     "legal": "Your organization defines these values and should check them against the rules that apply to it. DivalHR suggests no statutory default and gives no legal advice. Paid or unpaid only describes the leave; it calculates nothing.",
     "catalogue": "Policy catalogue",
     "list": "List of leave policies",
@@ -1787,7 +1791,7 @@
     "title": "My leave",
     "description": "See the leave policies you can request, submit a leave request and follow your requests.",
     "notCalculated": "Working days, public holidays and leave balances are not calculated yet.",
-    "reviewed": "You enter the amount yourself; it is reviewed when your request is approved. Approval is not available yet: your requests stay pending.",
+    "reviewed": "You enter the amount yourself. Your request stays pending until the approver named by the policy approves or rejects it; their reason is shown here.",
     "submitted": "Your {{name}} request for {{period}} was submitted. It is pending.",
     "unauthorized": "This page is for employees of an organization.",
     "signInRequired": "Sign in to see your leave.",
@@ -1832,7 +1836,9 @@
       "HOURS": "{{amount}} hours"
     },
     "state": {
-      "PENDING": "Pending"
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
     },
     "history": {
       "title": "My requests",
@@ -1844,10 +1850,94 @@
         "period": "Dates",
         "amount": "Amount",
         "submitted": "Submitted",
-        "state": "Status"
+        "state": "Status",
+        "decision": "Decision"
       },
+      "decidedOn": "Decided on {{date}}",
+      "awaiting": "Awaiting a decision",
       "more": "Show more requests",
       "loadingMore": "Loading more requests…"
+    }
+  },
+  "leaveApprovals": {
+    "signInRequired": "Sign in to see the leave requests awaiting your decision.",
+    "scope": "Each request is decided once, with a reason the employee will read. Working days, public holidays and balances are not calculated: check the dates and the amount yourself.",
+    "manager": {
+      "title": "Leave approvals",
+      "description": "Approve or reject the leave requests of the employees who report to you.",
+      "routing": "You see a request when its policy routes approval to the manager and you are the employee’s manager on the request’s first day. A request without a manager on that day waits for a later routing story.",
+      "empty": "No leave request is awaiting your decision.",
+      "unauthorized": "This page is for employees of an organization."
+    },
+    "admin": {
+      "title": "Leave approvals",
+      "description": "Approve or reject the leave requests whose policy routes approval to tenant administrators.",
+      "empty": "No leave request is awaiting a tenant administrator’s decision.",
+      "unauthorized": "Only tenant administrators who signed in with their authenticator app can decide these requests."
+    },
+    "inbox": {
+      "title": "Requests awaiting a decision",
+      "loading": "Loading leave requests…",
+      "more": "Show more requests",
+      "loadingMore": "Loading more requests…"
+    },
+    "employeeNumber": "Employee number {{number}}",
+    "submitted": "Submitted on {{date}}",
+    "columns": {
+      "employee": "Employee",
+      "policy": "Policy",
+      "period": "Dates",
+      "amount": "Amount"
+    },
+    "actions": {
+      "approve": "Approve…",
+      "reject": "Reject…",
+      "approveFor": "Approve the request of {{name}}…",
+      "rejectFor": "Reject the request of {{name}}…"
+    },
+    "form": {
+      "reason": "Reason",
+      "reasonHelp": "Required. The employee will read it as you write it. 2 to {{max}} characters, without line breaks.",
+      "count": "{{count}} of {{max}} characters",
+      "reasonLocale": "Language of the reason",
+      "reasonLocaleHelp": "The reason is shown in this language; it is never translated.",
+      "locales": {
+        "fr": "Français",
+        "en": "English"
+      },
+      "review": "Review the decision",
+      "cancel": "Cancel"
+    },
+    "dialog": {
+      "title": {
+        "APPROVED": "Approve this leave request",
+        "REJECTED": "Reject this leave request"
+      },
+      "confirmTitle": {
+        "APPROVED": "Confirm the approval",
+        "REJECTED": "Confirm the rejection"
+      },
+      "confirm": {
+        "APPROVED": "Approve the request of {{name}}? This decision is final.",
+        "REJECTED": "Reject the request of {{name}}? This decision is final."
+      },
+      "confirmButton": {
+        "APPROVED": "Confirm the approval",
+        "REJECTED": "Confirm the rejection"
+      },
+      "sending": "Sending the decision…",
+      "back": "Edit the reason"
+    },
+    "problems": {
+      "reason": "Enter a reason of 2 to 500 characters, without line breaks or control characters.",
+      "reasonLocale": "Choose the language of the reason."
+    },
+    "notEligible": {
+      "EMPLOYMENT_PERIOD": "The employee’s employment no longer covers these dates, so the request cannot be approved. You can still reject it."
+    },
+    "decided": {
+      "APPROVED": "The request of {{name}} for {{period}} was approved.",
+      "REJECTED": "The request of {{name}} for {{period}} was rejected."
     }
   },
   "landing": {

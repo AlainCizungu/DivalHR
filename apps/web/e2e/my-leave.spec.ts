@@ -256,7 +256,7 @@ test.describe.serial('MVP-041A: submit and view my leave requests', () => {
     await form.getByLabel('Jours demandés').fill('1');
     await form.getByRole('button', { name: 'Soumettre la demande' }).click();
     await expect(page.getByTestId('request-error')).toContainText(
-      'Vous avez déjà une demande en attente pour une partie de ces dates.',
+      'Vous avez déjà une demande en attente ou approuvée pour une partie de ces dates.',
     );
     await expect(page.getByTestId('request-error')).toBeFocused();
 

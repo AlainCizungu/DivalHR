@@ -202,6 +202,23 @@ public record LeavePolicyCommand(
    * unpaired surrogate characters.
    */
   static String name(FieldErrors errors, String field, Object raw) {
+    return text(errors, field, raw, NAME_MIN, NAME_MAX);
+  }
+
+  /**
+   * Plain text in the leave grammar shared with the database (V18 names, V20 decision reasons):
+   * trimmed, NFC-normalized, {@code min} to {@code max} code points, no control, format,
+   * separator-line, private-use, unassigned or unpaired surrogate characters. Problems are {@code
+   * {field, constraint}} pairs only; the text is never echoed.
+   *
+   * @param errors problems
+   * @param field field name
+   * @param raw raw value
+   * @param min fewest code points
+   * @param max most code points
+   * @return the normalized text, or {@code null} after adding a problem
+   */
+  static String text(FieldErrors errors, String field, Object raw, int min, int max) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -245,7 +262,7 @@ public record LeavePolicyCommand(
       return null;
     }
     int length = name.codePointCount(0, name.length());
-    if (length < NAME_MIN || length > NAME_MAX) {
+    if (length < min || length > max) {
       errors.add(field, Constraint.LENGTH);
       return null;
     }

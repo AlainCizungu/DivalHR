@@ -304,7 +304,8 @@ public class MyLeaveService {
             command.endDate(),
             command.amount(),
             LeaveRequestState.PENDING,
-            now);
+            now,
+            null);
     try {
       requests.insert(tenant, request, caller.subject());
     } catch (DataIntegrityViolationException violated) {
