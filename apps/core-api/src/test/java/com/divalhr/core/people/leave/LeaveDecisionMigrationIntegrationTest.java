@@ -226,11 +226,6 @@ class LeaveDecisionMigrationIntegrationTest {
     return h;
   }
 
-  /** A policy and its version 1 routed to managers; returns the version id. */
-  private static UUID policyVersion(Connection c, UUID tenant, String code) throws SQLException {
-    return policyVersion(c, tenant, code, "MANAGER");
-  }
-
   /** A policy and its version 1 with the route; returns the version id. */
   private static UUID policyVersion(Connection c, UUID tenant, String code, String route)
       throws SQLException {
