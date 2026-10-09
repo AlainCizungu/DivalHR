@@ -436,8 +436,11 @@ public class JdbcLeaveRequestRepository {
    * Runs the deferred V20 checks now ({@code leave_request_decided}, {@code
    * leave_request_decision_consistent}), so that a violation surfaces inside the business work,
    * where it is mapped by constraint name, before the audit and outbox records are written.
+   *
+   * @param tenant verified tenant whose transaction it is
    */
-  public void checkDecisionConsistency() {
+  public void checkDecisionConsistency(TenantId tenant) {
+    java.util.Objects.requireNonNull(tenant, "tenant");
     jdbc.getJdbcOperations()
         .execute(
             "SET CONSTRAINTS people.leave_request_decided,"

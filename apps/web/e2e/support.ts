@@ -71,6 +71,26 @@ interface MailSummary {
   Subject: string;
 }
 
+/**
+ * Accepts an invitation through the public endpoint. The anonymous endpoints allow 10 requests per
+ * client per minute (application.yaml) and every spec of a run shares one client address, so a 429
+ * is honoured: wait Retry-After (at most 61 s) and try again, at most three times. The limit is
+ * exercised, never raised.
+ */
+export async function acceptInvitation(page: Page, token: string): Promise<number> {
+  let status = 0;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const accepted = await page.request.post(`${CORE_API}/public/invitations/accept`, {
+      data: { token },
+    });
+    status = accepted.status();
+    if (status !== 429) return status;
+    const wait = Math.min(Number(accepted.headers()['retry-after'] ?? '60') || 60, 61);
+    await page.waitForTimeout(wait * 1000);
+  }
+  return status;
+}
+
 /** Waits for a message to the address whose subject matches, and returns its text body. */
 export async function mailTo(address: string, subject: RegExp): Promise<string> {
   let found: MailSummary | undefined;
