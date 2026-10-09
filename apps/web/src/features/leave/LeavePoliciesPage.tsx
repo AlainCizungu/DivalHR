@@ -143,14 +143,25 @@ export function LeavePoliciesPage() {
     if (failure) failureBox.current?.focus();
   }, [failure]);
 
-  const more = (cursor: string) => {
-    void fetchPage(cursor).then((next) => {
+  // R86-1: one page request at a time; a second activation never re-requests the same cursor.
+  const paging = useRef<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const more = async (cursor: string) => {
+    if (paging.current !== null) return;
+    paging.current = cursor;
+    setLoadingMore(true);
+    try {
+      const next = await fetchPage(cursor);
       setListing((previous) =>
         next.kind === 'ready' && previous.kind === 'ready'
           ? { ...next, items: [...previous.items, ...next.items] }
           : next,
       );
-    });
+    } finally {
+      paging.current = null;
+      setLoadingMore(false);
+    }
   };
 
   const set = <K extends keyof LeavePolicyForm>(key: K, value: LeavePolicyForm[K]) => {
@@ -349,11 +360,13 @@ export function LeavePoliciesPage() {
             <button
               type="button"
               className="button button--secondary"
+              disabled={loadingMore}
+              aria-busy={loadingMore ? true : undefined}
               onClick={() => {
-                if (listing.nextCursor) more(listing.nextCursor);
+                if (listing.nextCursor) void more(listing.nextCursor);
               }}
             >
-              {t('leavePolicies.more')}
+              {loadingMore ? t('leavePolicies.loadingMore') : t('leavePolicies.more')}
             </button>
           </p>
         )}

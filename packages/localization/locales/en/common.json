@@ -1698,6 +1698,7 @@
     "retry": "Try again",
     "empty": "No leave policy yet. Create the first one below.",
     "more": "Show more policies",
+    "loadingMore": "Loading more policies…",
     "created": "The leave policy {{name}} ({{code}}) was created.",
     "untracked": "No balance tracked",
     "entitlement": {

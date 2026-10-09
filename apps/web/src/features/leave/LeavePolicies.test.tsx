@@ -225,6 +225,77 @@ describe.each(['fr', 'en'] as const)('MVP-040A leave policies (%s)', (locale) =>
     ]);
   });
 
+  it('requests a page once while it loads, however often Show more is activated (R86-1)', async () => {
+    const user = userEvent.setup();
+    let releaseNext: () => void = () => undefined;
+    const nextHeld = new Promise<void>((resolve) => {
+      releaseNext = resolve;
+    });
+    const paths: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (request: Request) => {
+        const url = new URL(request.url);
+        const path = url.pathname.replace(/^.*\/api\/v1/u, '') + url.search;
+        paths.push(path);
+        if (path.includes('cursor=next-1')) await nextHeld;
+        const body = path.includes('cursor=next-1')
+          ? page([SICK])
+          : page([ANNUAL], { nextCursor: 'next-1' });
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    );
+    await show();
+    await screen.findByTestId('policies');
+    const button = screen.getByRole('button', { name: k.more });
+    await user.click(button);
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent(k.loadingMore);
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    await user.click(button);
+    button.click();
+    expect(paths.filter((p) => p.includes('cursor=next-1'))).toHaveLength(1);
+
+    releaseNext();
+    await waitFor(() => {
+      expect(screen.getAllByTestId('policy-row')).toHaveLength(2);
+    });
+    const codes = screen.getAllByTestId('policy-row').map((row) => row.textContent);
+    expect(codes.filter((text) => text.includes(SICK.names[locale]))).toHaveLength(1);
+    expect(codes.filter((text) => text.includes(ANNUAL.names[locale]))).toHaveLength(1);
+    expect(paths.filter((p) => p.includes('cursor=next-1'))).toHaveLength(1);
+    // The last page has no cursor, so the button is gone.
+    expect(screen.queryByRole('button', { name: k.more })).toBeNull();
+  });
+
+  it('frees Show more again after a failed page request (R86-1)', async () => {
+    const user = userEvent.setup();
+    let nextCalls = 0;
+    stubApi(({ path }) => {
+      if (!path.includes('cursor=next-1')) {
+        return { status: 200, body: page([ANNUAL], { nextCursor: 'next-1' }) };
+      }
+      nextCalls += 1;
+      return nextCalls === 1 ? { status: 0 } : { status: 200, body: page([SICK]) };
+    });
+    await show();
+    await screen.findByTestId('policies');
+    await user.click(screen.getByRole('button', { name: k.more }));
+    // The failure replaces the list with the error and a retry; the guard is released.
+    expect(await screen.findByTestId('list-error')).toHaveTextContent(c.errors.network);
+    await user.click(screen.getByRole('button', { name: k.retry }));
+    const more = await screen.findByRole('button', { name: k.more });
+    expect(more).toBeEnabled();
+    await user.click(more);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('policy-row')).toHaveLength(2);
+    });
+    expect(nextCalls).toBe(2);
+  });
+
   it('creates a policy with one key per command, then clears the form and refreshes the list', async () => {
     const user = userEvent.setup();
     let created = false;

@@ -1698,6 +1698,7 @@
     "retry": "Réessayer",
     "empty": "Aucune politique de congé pour l’instant. Créez la première ci-dessous.",
     "more": "Afficher plus de politiques",
+    "loadingMore": "Chargement d’autres politiques…",
     "created": "La politique de congé {{name}} ({{code}}) a été créée.",
     "untracked": "Aucun solde suivi",
     "entitlement": {
