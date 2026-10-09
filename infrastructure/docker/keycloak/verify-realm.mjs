@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Read-only verification of a DivalHR realm: privileged MFA (MVP-011, A4) and narrow provisioning
-// (Issue #31, A3).
+// Read-only verification of a DivalHR realm: privileged MFA (MVP-011, A4), narrow provisioning
+// (Issue #31, A3) and password-level SSO re-entry for employees only (Issue #77).
 //
 // It reads the realm through the Keycloak admin API (GET only) and prints one line per rule:
 // "PASS <rule>", "FAIL <rule>" or, in pre-cutover mode only, "PENDING <rule>". It never prints
@@ -52,7 +52,10 @@ export const FLOWS = {
   level2: 'divalhr browser level 2 otp',
   enrolled: 'divalhr browser level 2 enrolled',
   notEnrolled: 'divalhr browser level 2 not enrolled',
+  employeeAccess: 'divalhr browser employee access',
 };
+/** Issue #77: the only role that may re-enter at password level through the fallback. */
+export const EMPLOYEE_ROLE = 'employee';
 
 /** Expected flattened executions of the bound browser flow: [level, requirement, what]. */
 const EXPECTED_FLOW = [
@@ -70,6 +73,11 @@ const EXPECTED_FLOW = [
   [2, 'CONDITIONAL', `flow:${FLOWS.notEnrolled}`],
   [3, 'REQUIRED', 'conditional-sub-flow-executed'],
   [3, 'REQUIRED', 'deny-access-authenticator'],
+  // Issue #77: last, after both LoA flows, and behind two explicit role conditions.
+  [1, 'CONDITIONAL', `flow:${FLOWS.employeeAccess}`],
+  [2, 'REQUIRED', 'conditional-user-role'],
+  [2, 'REQUIRED', 'conditional-user-role'],
+  [2, 'REQUIRED', 'allow-access-authenticator'],
 ];
 
 /**
@@ -202,6 +210,26 @@ function configOf(snapshot, providerId, level) {
   return (execution && snapshot.configs[execution.authenticationConfig]?.config) ?? {};
 }
 
+/**
+ * The direct children of the named subflow in the flattened executions (Issue #77: several flows
+ * now hold a conditional-user-role, so lookups are scoped to their flow). An absent flow has none.
+ */
+function childrenOf(snapshot, flowName) {
+  const all = snapshot.executions;
+  const start = all.findIndex((e) => e.authenticationFlow && e.displayName === flowName);
+  if (start < 0) return [];
+  const children = [];
+  for (const e of all.slice(start + 1)) {
+    if (e.level <= all[start].level) break;
+    if (e.level === all[start].level + 1) children.push(e);
+  }
+  return children;
+}
+
+function configIn(snapshot, execution) {
+  return (execution && snapshot.configs[execution.authenticationConfig]?.config) ?? {};
+}
+
 function loaConfigs(snapshot) {
   return snapshot.executions
     .filter((e) => e.providerId === 'conditional-level-of-authentication')
@@ -248,8 +276,39 @@ export const RULES = [
   [
     'level2-only-for-marker-role',
     (s) => {
-      const c = configOf(s, 'conditional-user-role');
-      return c.condUserRole === MARKER_ROLE && c.negate !== 'true';
+      const roles = childrenOf(s, FLOWS.level2).filter(
+        (e) => e.providerId === 'conditional-user-role',
+      );
+      const c = configIn(s, roles[0]);
+      return roles.length === 1 && c.condUserRole === MARKER_ROLE && c.negate !== 'true';
+    },
+  ],
+  [
+    // Issue #77: password-level SSO re-entry only for an employee without the marker role. Allow
+    // Access always succeeds, so it must sit last, behind both conditions, with no LoA condition.
+    'employee-access-fallback',
+    (s) => {
+      const forms = childrenOf(s, FLOWS.forms);
+      const last = forms[forms.length - 1];
+      const steps = childrenOf(s, FLOWS.employeeAccess);
+      const [employee, notPrivileged, allow] = steps;
+      const e = configIn(s, employee);
+      const p = configIn(s, notPrivileged);
+      return (
+        forms.length === 3 &&
+        last.authenticationFlow === true &&
+        last.displayName === FLOWS.employeeAccess &&
+        last.requirement === 'CONDITIONAL' &&
+        steps.length === 3 &&
+        steps.every((step) => step.requirement === 'REQUIRED' && !step.authenticationFlow) &&
+        employee.providerId === 'conditional-user-role' &&
+        e.condUserRole === EMPLOYEE_ROLE &&
+        e.negate !== 'true' &&
+        notPrivileged.providerId === 'conditional-user-role' &&
+        p.condUserRole === MARKER_ROLE &&
+        p.negate === 'true' &&
+        allow.providerId === 'allow-access-authenticator'
+      );
     },
   ],
   [

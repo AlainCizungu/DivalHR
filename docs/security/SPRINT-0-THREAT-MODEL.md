@@ -360,3 +360,16 @@ Verification tooling and the hr-dev deployment gate; no product code.
 
 Residual risk (documented in `docs/OPS-HR-DEV.md` section 6): the records are checksummed and read-only, not cryptographically immutable; the controlled host and its operator are trusted.
 
+## Issue #77 delta (employee SSO re-entry)
+
+Realm change only: a final `employee access` execution in the browser forms flow. No Core, web or deployment code.
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| E31 | The password-level fallback lets a privileged user, or a user who is both an employee and privileged, in without TOTP | The fallback is disabled for holders of the marker role (negated role condition); level 2 still runs for them before it, and every enabled conditional execution must succeed; the Core requires `acr` `urn:divalhr:loa:mfa` for privileged work regardless | `KeycloakMfaContainerTest.aPrivilegedUserWhoIsAlsoAnEmployeeStillNeedsTheirTotp`, `aPromotionInsideAPasswordSessionIsRefusedByTheCoreUntilStepUp`, `aPasswordLevelRequestCannotSkipTheTotpOfAPrivilegedUser`, `verify-realm` rule `employee-access-fallback` |
+| E32 | An identity with no role, an unknown role or a misconfigured role re-enters through Allow Access | A positive `employee` condition before the negated marker condition; with no user, both role conditions evaluate false | `anAccountWithoutTheEmployeeRoleCannotReenterThroughTheFallback`, `DevelopmentRealmBoundaryTest.theEmployeeAccessFallbackIsLastAndGuardedInBothRealms` |
+| E33 | Possession of the Keycloak session cookie is treated as MFA, or raises the recorded level | The fallback has no level condition and records no level: the token stays `urn:divalhr:loa:pwd`; an explicit `mfa` request or an essential `acr` claim never yields `mfa` without a TOTP | `anEmployeeSignsInWithAPasswordOnlyAndGetsPasswordAssurance`, `anEssentialMfaClaimNeverYieldsMfaWithoutATotp` |
+| E34 | Allow Access is moved, enabled without its conditions, or joined by another execution | Exact flow structure and configuration checked statically and against a live realm, with mutation tests | `verify-realm.test.mjs` (Issue #77 cases), `DevelopmentRealmBoundaryTest` |
+| S24 | A signed-out session is reused through the fallback | Logout ends the Keycloak session; a new sign-in shows the password form and `prompt=none` returns `login_required` | `signingOutEndsTheSessionTheFallbackWouldReuse` |
+
+New data: none. New configuration: two authenticator configurations and one subflow in both repository realms. Residual risks: an essential `acr` claim may be answered at password level by Keycloak 26.0.0 to 26.7.4 (upstream issue); the Core's exact `acr` check is the control. The negated marker condition is defence in depth: with the current flows a mixed user is already stopped by level 2, so its absence is caught by the static checks, not by a sign-in. Existing realms are not re-imported and need the change applied once (Keycloak README).

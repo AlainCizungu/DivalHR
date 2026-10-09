@@ -204,7 +204,22 @@ everyone locally: `kcadm.sh delete attack-detection/brute-force/users -r divalhr
       level 2 not enrolled                                           CONDITIONAL
         Condition - sub-flow executed ("enrolled", not executed)     REQUIRED
         Deny access (divalhrMfaEnrollmentRequired)                   REQUIRED
+    employee access                                                  CONDITIONAL
+      Condition - user role (employee)                               REQUIRED
+      Condition - user role (divalhr-privileged-mfa, negated)        REQUIRED
+      Allow access                                                   REQUIRED
   ```
+
+- **Employee SSO re-entry (Issue #77):** the web app keeps its tokens in memory, so a reload
+  signs in again. The client always requests level 2, so the Cookie step hands an existing
+  level-1 session to the forms; there, level 1 is already satisfied and level 2 does not apply to
+  an employee. Without `employee access` no execution of the forms succeeds and Keycloak shows
+  an error. `employee access` is the last execution: it applies only to a user who has the
+  `employee` role and not the marker role, and Allow Access (which always succeeds) sits behind
+  both conditions. It has no level condition, so it records no level: the token stays
+  `urn:divalhr:loa:pwd`. With no user, an unknown role or the marker role, both conditions keep
+  it disabled. A user who is both an employee and privileged still meets level 2 (TOTP, or the
+  denial without an authenticator).
 
 - **Marker role `divalhr-privileged-mfa`:** a composite child of `platform-admin` and
   `tenant-admin`, so the level-2 condition covers both, also through the role groups. It is an
@@ -329,6 +344,11 @@ Employees are unaffected.
 6. Enroll every privileged user through setup links before enabling the Core check.
 7. Run `pnpm realm:verify` (final mode) against the realm: every rule must pass, including the
    Issue #31 provisioning rules.
+
+**Existing realms.** Keycloak imports a realm file only when the realm does not exist yet, so an
+existing realm (for example the live hr-dev `divalhr-test`) needs `employee access` added through
+the admin console or API, then `pnpm realm:verify` (final mode); its fallback rule fails until
+then.
 
 **Rollback.** Development: revert and recreate the Keycloak container. Shared environments: bind
 the previous browser flow and remove the web client's `acr` minimum, *together with* reverting

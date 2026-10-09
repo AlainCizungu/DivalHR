@@ -224,7 +224,8 @@ class DevelopmentRealmBoundaryTest {
     assertThat(steps(realm, "divalhr browser forms"))
         .containsExactly(
             "CONDITIONAL flow:divalhr browser level 1 password",
-            "CONDITIONAL flow:divalhr browser level 2 otp");
+            "CONDITIONAL flow:divalhr browser level 2 otp",
+            "CONDITIONAL flow:divalhr browser employee access");
     assertThat(steps(realm, "divalhr browser level 1 password"))
         .containsExactly(
             "REQUIRED conditional-level-of-authentication", "REQUIRED auth-username-password-form");
@@ -260,6 +261,47 @@ class DevelopmentRealmBoundaryTest {
       if ("CONFIGURE_TOTP".equals(action.path("alias").asText())) {
         assertThat(action.path("defaultAction").asBoolean(true)).isFalse();
       }
+    }
+  }
+
+  /**
+   * Issue #77: an employee's password-level SSO session is reused through a final fallback that
+   * Allow Access ends. It is the last execution of the forms flow, guarded by a positive {@code
+   * employee} condition and a negated marker-role condition, and carries no LoA condition, so it
+   * never raises the level. Both repository realms (development and hr-dev test) carry it.
+   */
+  @Test
+  void theEmployeeAccessFallbackIsLastAndGuardedInBothRealms() {
+    for (String name : List.of(DEV_REALM, "divalhr-test")) {
+      JsonNode realm =
+          REALMS.stream()
+              .filter(candidate -> name.equals(candidate.name()))
+              .findFirst()
+              .orElseThrow(() -> new AssertionError("missing realm " + name))
+              .json();
+      List<String> forms = steps(realm, "divalhr browser forms");
+      assertThat(forms)
+          .as("%s forms flow", name)
+          .endsWith("CONDITIONAL flow:divalhr browser employee access")
+          .startsWith(
+              "CONDITIONAL flow:divalhr browser level 1 password",
+              "CONDITIONAL flow:divalhr browser level 2 otp")
+          .hasSize(3);
+      assertThat(steps(realm, "divalhr browser employee access"))
+          .as("%s employee access", name)
+          .containsExactly(
+              "REQUIRED conditional-user-role",
+              "REQUIRED conditional-user-role",
+              "REQUIRED allow-access-authenticator")
+          .doesNotContain("REQUIRED conditional-level-of-authentication");
+      assertThat(stepConfigs(realm, "divalhr browser employee access"))
+          .as("%s employee access conditions", name)
+          .containsExactly("divalhr-employee-role", "divalhr-not-privileged-role", "");
+      assertThat(config(realm, "divalhr-employee-role"))
+          .containsExactly(Map.entry("condUserRole", "employee"), Map.entry("negate", "false"));
+      assertThat(config(realm, "divalhr-not-privileged-role"))
+          .containsExactly(
+              Map.entry("condUserRole", "divalhr-privileged-mfa"), Map.entry("negate", "true"));
     }
   }
 
@@ -400,6 +442,21 @@ class DevelopmentRealmBoundaryTest {
           steps.add(execution.path("requirement").asText() + " " + what);
         }
         return steps;
+      }
+    }
+    throw new AssertionError("missing flow " + alias);
+  }
+
+  /** The authenticator config alias of each execution of a flow, in order ("" when none). */
+  private static List<String> stepConfigs(JsonNode realm, String alias) {
+    for (JsonNode flow : realm.path("authenticationFlows")) {
+      if (alias.equals(flow.path("alias").asText())) {
+        List<JsonNode> executions = new ArrayList<>();
+        flow.path("authenticationExecutions").forEach(executions::add);
+        executions.sort(java.util.Comparator.comparingInt(e -> e.path("priority").asInt()));
+        List<String> configs = new ArrayList<>();
+        executions.forEach(e -> configs.add(e.path("authenticatorConfig").asText("")));
+        return configs;
       }
     }
     throw new AssertionError("missing flow " + alias);

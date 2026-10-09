@@ -721,7 +721,7 @@
     },
     {
       "alias": "divalhr browser forms",
-      "description": "Password, then TOTP for privileged roles",
+      "description": "Password, then TOTP for privileged roles; password-level SSO re-entry for employees",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": false,
@@ -740,6 +740,14 @@
           "priority": 1,
           "autheticatorFlow": true,
           "flowAlias": "divalhr browser level 2 otp",
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 2,
+          "autheticatorFlow": true,
+          "flowAlias": "divalhr browser employee access",
           "userSetupAllowed": false
         }
       ]
@@ -1057,6 +1065,41 @@
           "userSetupAllowed": false
         }
       ]
+    },
+    {
+      "alias": "divalhr browser employee access",
+      "description": "Issue #77: SSO re-entry at password level for employees without a privileged role",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorConfig": "divalhr-employee-role",
+          "authenticator": "conditional-user-role",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorConfig": "divalhr-not-privileged-role",
+          "authenticator": "conditional-user-role",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 1,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "allow-access-authenticator",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 2,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
     }
   ],
   "authenticatorConfig": [
@@ -1116,6 +1159,20 @@
       "alias": "review profile config",
       "config": {
         "update.profile.on.first.login": "missing"
+      }
+    },
+    {
+      "alias": "divalhr-employee-role",
+      "config": {
+        "condUserRole": "employee",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "divalhr-not-privileged-role",
+      "config": {
+        "condUserRole": "divalhr-privileged-mfa",
+        "negate": "true"
       }
     }
   ],
