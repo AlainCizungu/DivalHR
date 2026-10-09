@@ -56,7 +56,7 @@ jobs:
       - name: Shell scripts (shellcheck)
         run: >-
           shellcheck -x -S warning ops/host/*.sh ops/hr-dev/*.sh ops/aws/*.sh
-          infrastructure/hr-dev/postgres/*.sh scripts/dev/verify-on-host.sh
+          infrastructure/hr-dev/postgres/*.sh scripts/dev/verify-on-host.sh scripts/ops/access-log-canary.sh
       - name: Compose model of the test environment
         run: docker compose -f infrastructure/hr-dev/compose.yaml config -q
       - name: Caddyfile of the test environment
@@ -68,6 +68,11 @@ jobs:
           -e CADDY_IDP_INTERNAL_BIND=127.0.0.1 -e CADDY_ADMIN_BIND=127.0.0.1
           caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
           caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile
+      # SEC-001: unique canaries in a callback query, Referer, redirect Location, Cookie,
+      # Authorization and Set-Cookie never reach the logs of the pinned Caddy (committed filter)
+      # and web nginx (committed template, nginx -t) images; every redaction removed in turn leaks.
+      - name: Access logs keep OIDC authorization data out (runtime canaries)
+        run: bash scripts/ops/access-log-canary.sh
 
   smoke:
     name: end-to-end smoke (login, health, fr/en, accessibility)

@@ -27,7 +27,7 @@ Owner ── SSH tunnel ── 127.0.0.1:18180 ──► Caddy (operator site) �
 | Mail | Mailpit catches every message (nothing leaves the instance); UI at `http://localhost:18180/mail/` through the tunnel |
 | Environment | Core `DIVALHR_ENVIRONMENT=test`, web badge "Test environment" / « Environnement de test » |
 
-Keycloak trusts `X-Forwarded-*` only from Caddy's address on the `idp` network (`KC_PROXY_TRUSTED_ADDRESSES`), and only Caddy can reach Keycloak (A65-2). Caddy overwrites `X-Forwarded-Proto`, `Host` and `X-Forwarded-Port` on the public and private routes and strips `Forwarded`. Access logs drop query strings and the `Authorization`, `Cookie` and `Set-Cookie` headers.
+Keycloak trusts `X-Forwarded-*` only from Caddy's address on the `idp` network (`KC_PROXY_TRUSTED_ADDRESSES`), and only Caddy can reach Keycloak (A65-2). Caddy overwrites `X-Forwarded-Proto`, `Host` and `X-Forwarded-Port` on the public and private routes and strips `Forwarded`. Access logs drop query strings and delete the `Authorization`, `Cookie`, `Referer`, response `Location` and `Set-Cookie` fields (SEC-001).
 
 ## 2. Storage (A65-1)
 
@@ -124,7 +124,8 @@ Then `http://localhost:18180/identity/admin/master/console/` (Keycloak, as `diva
 * `divalhr-hrdev-watchdog.timer` (every 60 s) runs `watchdog.sh`, the only manager of **running but unhealthy** containers: restart after 3 consecutive unhealthy observations, at least 10 minutes between restarts of a service, at most 3 per service per hour, then "operator attention required" and no further action. It never touches exited or restarting containers.
 * `divalhr-hrdev-backup.timer` runs the nightly dump at 02:17 UTC.
 * Local monitoring: `journalctl -u divalhr-hrdev-watchdog -u divalhr-hrdev-backup`, `systemctl list-timers 'divalhr-hrdev-*'`, `docker ps`, `sudo /srv/divalhr-test/current/ops/hr-dev/http-checks.sh`.
-* Logs are Docker `json-file`, 10 MB × 5 per container. Applications log no tokens, credentials or personal data; Caddy drops query strings and credential headers.
+* Logs are Docker `json-file`, 10 MB × 5 per container. Applications log no tokens, credentials or personal data; Caddy drops query strings and deletes the credential, referrer and redirect-target fields; the web container's nginx logs method, path without query, protocol, status, size and time only (SEC-001).
+* Log hygiene (SEC-001): `sudo /srv/divalhr-test/current/ops/hr-dev/log-hygiene.sh --since <UTC time>` checks every service's log since that time for the secret values under `secrets/` and for token, cookie, code and credential shapes, printing counts only. The rehearsal and the drill run it after their browser suites; run it after the live acceptance of a deployment. Never truncate an active Docker log file: recreating a container removes its old log files.
 
 ## 9. Backup, restore and rollback (A65-6)
 

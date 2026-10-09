@@ -367,7 +367,7 @@ The local Compose stack serves Keycloak over plain HTTP on loopback. Its only re
 - **Data at rest:** a dedicated encrypted EBS volume holds the databases, secrets, certificates, mail and backups; scripts refuse to run on any other volume. Nightly logical dumps are authoritative; encrypted daily EBS snapshots are additional.
 - **Search engines:** `X-Robots-Tag: noindex, nofollow, noarchive` on every response, `robots.txt` disallows everything, one-day HSTS without subdomains or preload (D10).
 - **Mail:** caught by Mailpit on the instance; nothing is delivered outside.
-- **Logs:** Caddy's access log drops query strings and the `Authorization`, `Cookie` and `Set-Cookie` headers.
+- **Logs (SEC-001):** OIDC authorization data (code, state, session_state) and credentials never reach a log. Caddy's access log drops query strings and deletes the `Authorization`, `Cookie`, `Referer`, response `Location` and `Set-Cookie` fields outright. The web image's nginx logs only the method, the path without its query, the protocol, the status, the size and the time (`divalhr_safe`). CI proves both with unique canaries and mutations (`scripts/ops/access-log-canary.sh`), and every rehearsal and drill checks all service logs after real employee and privileged sign-ins (`ops/hr-dev/log-hygiene.sh`, counts only).
 - **Changes:** deployments only of commits on `main` with green checks and a complete verification of the same SHA; one host-wide lock serialises every operation.
 
 ## Idempotency
