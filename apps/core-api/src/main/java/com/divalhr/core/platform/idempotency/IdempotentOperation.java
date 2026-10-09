@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,9 @@ public class IdempotentOperation {
   /** Outcomes a successful, non-replayed execution may report. */
   private static final Set<Outcome> COMPLETED_OUTCOMES =
       EnumSet.of(Outcome.CREATED, Outcome.UPDATED, Outcome.UNCHANGED);
+
+  /** Existing callers: a replay returns the stored response as it is. */
+  private static final Consumer<UUID> NO_CHECK = resourceId -> {};
 
   private final IdempotencyService idempotency;
   private final OperationMetrics metrics;
@@ -174,7 +178,7 @@ public class IdempotentOperation {
       Map<String, Object> canonical,
       Class<R> responseType,
       Supplier<Completed<R>> work) {
-    return execute(spec, principal, key, canonical, responseType, transactions, work);
+    return execute(spec, principal, key, canonical, responseType, transactions, NO_CHECK, work);
   }
 
   /**
@@ -199,9 +203,41 @@ public class IdempotentOperation {
       Class<R> responseType,
       Duration timeout,
       Supplier<Completed<R>> work) {
+    return execute(spec, principal, key, canonical, responseType, timeout, NO_CHECK, work);
+  }
+
+  /**
+   * Executes the idempotent command in a bounded transaction, re-checking a replay before it is
+   * returned (MVP-041A, R88-2). The key is still reserved first; on a replay, {@code replayCheck}
+   * then runs in the same transaction with the stored response's resource id, before the stored
+   * body is read. Throwing (an {@link ApiException}) refuses the replay: the transaction rolls back
+   * and nothing of the stored response is returned. A first execution never calls it: {@code work}
+   * enforces the same rules itself.
+   *
+   * @param spec operation
+   * @param principal verified JWT subject
+   * @param key idempotency key (already validated)
+   * @param canonical key-sorted normalized command, including any scope it depends on
+   * @param responseType body type for replay
+   * @param timeout transaction timeout (whole seconds, at least one)
+   * @param replayCheck checks that the caller may still receive the stored response
+   * @param work business writes, run inside the transaction after the key is reserved
+   * @param <R> body type
+   * @return completed or replayed result
+   */
+  public <R> Result<R> execute(
+      Spec spec,
+      String principal,
+      String key,
+      Map<String, Object> canonical,
+      Class<R> responseType,
+      Duration timeout,
+      Consumer<UUID> replayCheck,
+      Supplier<Completed<R>> work) {
+    Objects.requireNonNull(replayCheck, "replayCheck");
     TransactionTemplate bounded = new TransactionTemplate(transactions.getTransactionManager());
     bounded.setTimeout((int) Math.max(1, timeout.toSeconds()));
-    return execute(spec, principal, key, canonical, responseType, bounded, work);
+    return execute(spec, principal, key, canonical, responseType, bounded, replayCheck, work);
   }
 
   private <R> Result<R> execute(
@@ -211,6 +247,7 @@ public class IdempotentOperation {
       Map<String, Object> canonical,
       Class<R> responseType,
       TransactionTemplate transactions,
+      Consumer<UUID> replayCheck,
       Supplier<Completed<R>> work) {
     IdempotencyScope scope = new IdempotencyScope(spec.operation(), principal, key);
     String fingerprint = Fingerprints.sha256(json.writeValueAsString(canonical));
@@ -220,6 +257,7 @@ public class IdempotentOperation {
               status -> {
                 IdempotencyDecision decision = idempotency.reserve(scope, fingerprint);
                 if (decision instanceof IdempotencyDecision.Replay replay) {
+                  replayCheck.accept(replay.response().resourceId());
                   return new Execution<>(
                       json.readValue(replay.response().body(), responseType), Outcome.REPLAYED);
                 }

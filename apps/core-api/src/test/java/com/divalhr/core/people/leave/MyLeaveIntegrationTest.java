@@ -80,7 +80,7 @@ class MyLeaveIntegrationTest {
         Employees.today(jdbc, org.tenant()));
   }
 
-  private record Person(UUID employee, String bearer, String subject) {}
+  private record Person(UUID employee, String bearer, String subject, UUID membership) {}
 
   private UUID member(World w, String subject, String role) {
     UUID id = UUID.randomUUID();
@@ -108,6 +108,12 @@ class MyLeaveIntegrationTest {
             mvc, jdbc, w.org(), w.admin(), Employees.number(), "Bénédicte", "Mbuyi", hired);
     String subject = UUID.randomUUID().toString();
     UUID membership = member(w, subject, "employee");
+    linkTo(w, employee, membership);
+    return new Person(employee, employeeBearer(w.org().tenant(), subject), subject, membership);
+  }
+
+  /** Links the employee to the membership (administrator). */
+  private void linkTo(World w, UUID employee, UUID membership) throws Exception {
     expect(
         Employees.postJson(
                 w.admin(),
@@ -115,7 +121,43 @@ class MyLeaveIntegrationTest {
                 "{\"membershipId\":\"" + membership + "\"}")
             .header("Idempotency-Key", Organizations.newKey()),
         201);
-    return new Person(employee, employeeBearer(w.org().tenant(), subject), subject);
+  }
+
+  /** Removes the employee's active link (administrator). */
+  private void unlink(World w, UUID employee) throws Exception {
+    JsonNode link =
+        expect(
+                get("/api/v1/employees/" + employee + "/access-link")
+                    .header("Authorization", w.admin()),
+                200)
+            .get("link");
+    expect(
+        Employees.postJson(
+                w.admin(),
+                "/api/v1/employees/" + employee + "/access-link/remove",
+                JSON.writeValueAsString(
+                    Map.of(
+                        "linkId",
+                        link.get("id").asText(),
+                        "expectedVersion",
+                        link.get("version").asLong())))
+            .header("Idempotency-Key", Organizations.newKey()),
+        200);
+  }
+
+  /** Rows a creation writes: requests of the tenant, create audits and created events. */
+  private List<Integer> written(World w) {
+    return List.of(
+        count("SELECT count(*) FROM people.leave_request WHERE tenant_id = ?", w.org().tenant()),
+        count(
+            "SELECT count(*) FROM platform.audit_event WHERE action = 'leave-request.create'"
+                + " AND tenant_id = ?",
+            w.org().tenant()),
+        count(
+            "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'eventType' ="
+                + " 'people.leave-request.created.v1' AND envelope ->> 'subject' IN"
+                + " (SELECT id::text FROM people.leave_request WHERE tenant_id = ?)",
+            w.org().tenant()));
   }
 
   /** A policy created by the administrator; returns its id. */
@@ -371,6 +413,96 @@ class MyLeaveIntegrationTest {
     assertThat(
             LocalDate.ofInstant(day.minusDays(1).atTime(23, 0).toInstant(ZoneOffset.UTC), KINSHASA))
         .isEqualTo(day);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Replay (R88-1, R88-2)
+  // ------------------------------------------------------------------------------------------
+
+  @Test
+  void anExactRetryIsReplayedAfterTheBusinessDatePassedItsStart() throws Exception {
+    World w = world();
+    String open = policy(w, "OPEN", 0, "2026-01-01", null);
+    Person p = person(w, HIRED);
+    LocalDate day = w.today().plusDays(5);
+    clock.set(day.atTime(9, 0).toInstant(ZoneOffset.UTC));
+    String key = Organizations.newKey();
+    Map<String, Object> body = leave(open, day, day.plusDays(1));
+    JsonNode created = expect(submit(p.bearer(), key, body), 201);
+    assertThat(written(w)).containsExactly(1, 1, 1);
+
+    // Two days later the first day has passed; the identical retry is still the stored 201.
+    clock.set(day.plusDays(2).atTime(9, 0).toInstant(ZoneOffset.UTC));
+    MockHttpServletResponse replay = call(submit(p.bearer(), key, body));
+    assertThat(replay.getStatus()).as(replay.getContentAsString()).isEqualTo(201);
+    assertThat(replay.getHeader("Idempotent-Replayed")).isEqualTo("true");
+    assertThat(JSON.readTree(replay.getContentAsString())).isEqualTo(created);
+    // A changed body on that key is the key-reuse conflict, not a date validation.
+    Map<String, Object> changed = new LinkedHashMap<>(body);
+    changed.put("amount", 3);
+    JsonNode reused = problem(submit(p.bearer(), key, changed), 409, "IDEMPOTENCY_KEY_REUSED");
+    assertThat(reused.path("params").size()).isZero();
+    // The same body under a new key is a new request, and the date rule applies to it.
+    JsonNode late =
+        problem(submit(p.bearer(), Organizations.newKey(), body), 400, "VALIDATION_FAILED");
+    assertThat(fields(late)).containsExactly("startDate:RANGE");
+    assertThat(written(w)).containsExactly(1, 1, 1);
+  }
+
+  @Test
+  void aReplayNeedsTheCurrentLinkToTheSameEmployee() throws Exception {
+    World w = world();
+    String open = policy(w, "OPEN", 0, "2026-01-01", null);
+    Person p = person(w, HIRED);
+    UUID other =
+        Employees.hire(mvc, jdbc, w.org(), w.admin(), Employees.number(), "Josué", "Kabila", HIRED);
+    String key = Organizations.newKey();
+    Map<String, Object> body = leave(open, w.today().plusDays(3), w.today().plusDays(4));
+    JsonNode created = expect(submit(p.bearer(), key, body), 201);
+    String requestId = created.get("id").asText();
+    assertThat(written(w)).containsExactly(1, 1, 1);
+
+    // (a) Unlinked: the established link denial, and nothing of the stored response.
+    unlink(w, p.employee());
+    MockHttpServletResponse unlinked = call(submit(p.bearer(), key, body));
+    assertThat(unlinked.getStatus()).isEqualTo(403);
+    assertThat(JSON.readTree(unlinked.getContentAsString()).get("code").asText())
+        .isEqualTo("EMPLOYEE_LINK_REQUIRED");
+    assertThat(unlinked.getHeader("Idempotent-Replayed")).isNull();
+    assertThat(unlinked.getContentAsString()).doesNotContain(requestId).doesNotContain(open);
+
+    // (b) The same subject now linked to another employee: no replay of the former employee's
+    // request, no identifiers, no new rows.
+    linkTo(w, other, p.membership());
+    MockHttpServletResponse relinked = call(submit(p.bearer(), key, body));
+    assertThat(relinked.getStatus()).isEqualTo(409);
+    JsonNode refused = JSON.readTree(relinked.getContentAsString());
+    assertThat(refused.get("code").asText()).isEqualTo("IDEMPOTENCY_KEY_REUSED");
+    assertThat(refused.path("params").size()).isZero();
+    assertThat(relinked.getHeader("Idempotent-Replayed")).isNull();
+    assertThat(relinked.getContentAsString())
+        .doesNotContain(requestId)
+        .doesNotContain(open)
+        .doesNotContain(p.employee().toString());
+    assertThat(written(w)).containsExactly(1, 1, 1);
+    assertThat(
+            count(
+                "SELECT count(*) FROM people.leave_request WHERE tenant_id = ? AND employee_id = ?",
+                w.org().tenant(),
+                other))
+        .isZero();
+    // The other employee's own history stays empty.
+    assertThat(expect(get(REQUESTS).header("Authorization", p.bearer()), 200).get("items"))
+        .isEmpty();
+
+    // Linked back to the original employee, the stored response is theirs again.
+    unlink(w, other);
+    linkTo(w, p.employee(), p.membership());
+    MockHttpServletResponse back = call(submit(p.bearer(), key, body));
+    assertThat(back.getStatus()).as(back.getContentAsString()).isEqualTo(201);
+    assertThat(back.getHeader("Idempotent-Replayed")).isEqualTo("true");
+    assertThat(JSON.readTree(back.getContentAsString())).isEqualTo(created);
+    assertThat(written(w)).containsExactly(1, 1, 1);
   }
 
   // ------------------------------------------------------------------------------------------

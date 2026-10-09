@@ -15,8 +15,9 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
 /**
- * MVP-041A (D41A-3): validation of a leave request against the business date. Problems are {@code
- * {field, constraint}} pairs only; no date, amount or other submitted value is echoed.
+ * MVP-041A (D41A-3): validation of a leave request. Problems are {@code {field, constraint}} pairs
+ * only; no date, amount or other submitted value is echoed. Parsing depends on the request alone
+ * (R88-1); the business-date rule is a separate step applied to new executions only.
  */
 class LeaveRequestCommandTest {
 
@@ -36,7 +37,7 @@ class LeaveRequestCommandTest {
 
   private static List<String> problems(CreateMyLeaveRequest request) {
     try {
-      LeaveRequestCommand.from(KEY, request, TODAY);
+      LeaveRequestCommand.from(KEY, request).requireStartFrom(TODAY);
     } catch (ApiException rejected) {
       assertThat(rejected.code().name()).isEqualTo("VALIDATION_FAILED");
       List<String> fields = new ArrayList<>();
@@ -52,7 +53,7 @@ class LeaveRequestCommandTest {
   @Test
   void aRequestStartingOnTheBusinessDateIsNormalized() {
     LeaveRequestCommand command =
-        LeaveRequestCommand.from(KEY, valid(r -> r.setPolicyId(POLICY.toUpperCase())), TODAY);
+        LeaveRequestCommand.from(KEY, valid(r -> r.setPolicyId(POLICY.toUpperCase())));
     assertThat(command.policyId()).isEqualTo(UUID.fromString(POLICY));
     assertThat(command.amount()).isEqualTo(new BigDecimal("2.50"));
     assertThat(command.toString()).doesNotContain("2026").doesNotContain("2.5");
@@ -81,6 +82,17 @@ class LeaveRequestCommandTest {
   }
 
   @Test
+  void parsingDoesNotDependOnTheBusinessDate() {
+    // A request whose first day has passed still parses (an exact retry must reach the replay);
+    // only the separate new-execution rule refuses it.
+    CreateMyLeaveRequest past = valid(r -> r.setStartDate("2026-10-11"));
+    LeaveRequestCommand command = LeaveRequestCommand.from(KEY, past);
+    assertThat(command.startDate()).isEqualTo(LocalDate.of(2026, 10, 11));
+    command.requireStartFrom(TODAY.minusDays(1));
+    assertThat(problems(past)).containsExactly("startDate:RANGE");
+  }
+
+  @Test
   void theAmountIsAPositiveNumberWithAtMostTwoDecimals() {
     for (Object amount : List.of(1, 7L, 0.5, 0.01, new BigDecimal("10000.00"), 1e2)) {
       assertThat(problems(valid(r -> r.setAmount(amount)))).as("%s", amount).isEmpty();
@@ -104,7 +116,7 @@ class LeaveRequestCommandTest {
         .containsExactly("policyId:FORMAT");
     assertThat(problems(valid(r -> r.setPolicyId(null)))).containsExactly("policyId:REQUIRED");
     try {
-      LeaveRequestCommand.from("bad key!", valid(r -> {}), TODAY);
+      LeaveRequestCommand.from("bad key!", valid(r -> {}));
     } catch (ApiException rejected) {
       assertThat(rejected.params().toString()).contains("Idempotency-Key").contains("FORMAT");
       return;

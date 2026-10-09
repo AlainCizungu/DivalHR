@@ -3471,7 +3471,11 @@ paths:
         params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE); no overlapping pending request (409
         LEAVE_REQUEST_OVERLAP). The amount is the employee's own, in the policy's unit; no balance,
         working day, holiday or payroll amount is calculated. Errors never echo a submitted value.
-        Cache-Control private, no-store.
+        The business-date and eligibility checks apply to a new request only: an exact retry (same
+        Idempotency-Key and body) returns the stored 201 with Idempotent-Replayed true, even after
+        its first day has passed, while the caller is still linked to the same employee; with no
+        active link it is 403 EMPLOYEE_LINK_REQUIRED, and linked to another employee it is 409
+        IDEMPOTENCY_KEY_REUSED without params. Cache-Control private, no-store.
       tags: [people]
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"

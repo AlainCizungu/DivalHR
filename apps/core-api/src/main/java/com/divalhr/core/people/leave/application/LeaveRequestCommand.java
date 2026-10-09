@@ -22,8 +22,13 @@ import java.util.regex.Pattern;
  * A validated leave request (MVP-041A, D41A-3). Validation reports {@code {field, constraint}}
  * pairs only: no submitted value, date or amount is ever echoed.
  *
+ * <p>{@link #from} is deterministic: it depends on the request alone, so it runs before the
+ * idempotency decision and an exact retry is always recognized (R88-1). The only time-varying rule,
+ * the first day against the business date, is {@link #requireStartFrom}, applied to a new execution
+ * only, after the key is reserved.
+ *
  * @param policyId requested policy
- * @param startDate first day (inclusive), not before the business date
+ * @param startDate first day (inclusive)
  * @param endDate last day (inclusive), not before the first day, at most 366 days in all
  * @param amount requested amount with scale 2, entered in the policy's unit
  */
@@ -56,17 +61,15 @@ public record LeaveRequestCommand(
   }
 
   /**
-   * Validates a request against the organization's business date.
+   * Validates the request's shape and its time-independent rules.
    *
    * @param idempotencyKey {@code Idempotency-Key} header
    * @param request body
-   * @param businessDate today in the organization's time zone
    * @return the command
    * @throws com.divalhr.core.platform.error.ApiException {@code VALIDATION_FAILED} listing every
    *     problem
    */
-  static LeaveRequestCommand from(
-      String idempotencyKey, CreateMyLeaveRequest request, LocalDate businessDate) {
+  static LeaveRequestCommand from(String idempotencyKey, CreateMyLeaveRequest request) {
     FieldErrors errors = new FieldErrors();
     if (idempotencyKey == null || idempotencyKey.isBlank()) {
       errors.add(IdempotencyKeys.HEADER, Constraint.REQUIRED);
@@ -84,9 +87,6 @@ public record LeaveRequestCommand(
     UUID policyId = uuid(errors, "policyId", request.getPolicyId());
     LocalDate start = date(errors, "startDate", request.getStartDate());
     LocalDate end = date(errors, "endDate", request.getEndDate());
-    if (start != null && start.isBefore(businessDate)) {
-      errors.add("startDate", Constraint.RANGE);
-    }
     if (start != null && end != null) {
       if (end.isBefore(start)) {
         errors.add("endDate", Constraint.RANGE);
@@ -97,6 +97,22 @@ public record LeaveRequestCommand(
     BigDecimal amount = amount(errors, request.getAmount());
     errors.throwIfAny();
     return new LeaveRequestCommand(policyId, start, end, amount);
+  }
+
+  /**
+   * The time-varying rule of a new request (D41A-3 rule 1): the first day is the organization's
+   * business date or later. Never applied to a replay.
+   *
+   * @param businessDate today in the organization's time zone
+   * @throws com.divalhr.core.platform.error.ApiException {@code VALIDATION_FAILED} with {@code
+   *     startDate: RANGE}
+   */
+  void requireStartFrom(LocalDate businessDate) {
+    if (startDate.isBefore(businessDate)) {
+      FieldErrors errors = new FieldErrors();
+      errors.add("startDate", Constraint.RANGE);
+      errors.throwIfAny();
+    }
   }
 
   /**

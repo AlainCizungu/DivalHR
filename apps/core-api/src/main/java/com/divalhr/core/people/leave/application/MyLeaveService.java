@@ -61,12 +61,15 @@ import tools.jackson.databind.json.JsonMapper;
  * EMPLOYEE_LINK_REQUIRED}, counted on the bounded self-service counter, never durable
  * privileged-denial evidence. No request names an employee: it is always the caller's own.
  *
- * <p>A creation is one bounded transaction: idempotency reservation (step 0), the link (step 4),
- * plain reads of the immutable policy version and of the last committed employment periods, the
- * insert (PostgreSQL's exclusion constraint serializes overlapping pending requests), then the
- * audit record and the {@value #EVENT_TYPE} outbox event (step 6). No manager-graph lock: this
- * slice routes no approval. No balance, working day, holiday or payroll amount is calculated; the
- * amount is the employee's own, in the policy's unit.
+ * <p>A creation is one bounded transaction: idempotency reservation (step 0); for a new execution,
+ * the business date, the link (step 4), plain reads of the immutable policy version and of the last
+ * committed employment periods, the insert (PostgreSQL's exclusion constraint serializes
+ * overlapping pending requests), then the audit record and the {@value #EVENT_TYPE} outbox event
+ * (step 6). No manager-graph lock: this slice routes no approval. A replay is returned only after
+ * the same transaction re-reads the caller's current active link (step 4) and finds the stored
+ * request under that employee (R88-2); otherwise no stored response or identifier is returned. No
+ * balance, working day, holiday or payroll amount is calculated; the amount is the employee's own,
+ * in the policy's unit.
  */
 @Service
 public class MyLeaveService {
@@ -232,11 +235,9 @@ public class MyLeaveService {
   public IdempotentOperation.Result<Request> create(
       PeopleCaller caller, String idempotencyKey, CreateMyLeaveRequest body) {
     TenantId tenant = caller.tenant();
-    // One read of the time zone, one business date for the whole command (D41A-3 rule 1).
-    LocalDate businessDate = calendar.today(calendar.zone(tenant));
+    // Deterministic validation only: the business date is checked for a new execution (R88-1).
     LeaveRequestCommand command =
-        operations.validated(
-            SPEC, () -> LeaveRequestCommand.from(idempotencyKey, body, businessDate));
+        operations.validated(SPEC, () -> LeaveRequestCommand.from(idempotencyKey, body));
     return counted(
         CREATE,
         () ->
@@ -247,12 +248,29 @@ public class MyLeaveService {
                 command.canonical(tenant),
                 Request.class,
                 TRANSACTION_TIMEOUT,
+                requestId -> replayable(caller, requestId),
                 () -> created(caller, command)));
+  }
+
+  /**
+   * A stored response is returned only to the employee it was created for, through the caller's
+   * current active link (R88-2). No link is {@code 403 EMPLOYEE_LINK_REQUIRED}; a link to another
+   * employee is {@code 409 IDEMPOTENCY_KEY_REUSED} without params, so neither the old response nor
+   * its identifiers are returned.
+   */
+  private void replayable(PeopleCaller caller, UUID requestId) {
+    SelfLink link = link(caller);
+    if (requestId == null
+        || requests.find(caller.tenant(), link.employeeId(), requestId).isEmpty()) {
+      throw new ApiException(ErrorCode.IDEMPOTENCY_KEY_REUSED, Map.of());
+    }
   }
 
   private IdempotentOperation.Completed<Request> created(
       PeopleCaller caller, LeaveRequestCommand command) {
     TenantId tenant = caller.tenant();
+    // One read of the time zone, one business date for the whole new command (D41A-3 rule 1).
+    command.requireStartFrom(calendar.today(calendar.zone(tenant)));
     SelfLink link = link(caller);
     LeavePolicy policy =
         policies
