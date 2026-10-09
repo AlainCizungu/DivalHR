@@ -68,6 +68,7 @@ describe('signed-in frame', () => {
         en.nav.employees,
         en.nav.employeeImport,
         en.nav.leavePolicies,
+        en.nav.leaveApprovals,
         en.nav.hierarchy,
         en.nav.contractTemplates,
         en.nav.contractExpirations,
@@ -75,7 +76,11 @@ describe('signed-in frame', () => {
         en.nav.accessReview,
       ],
     ],
-    ['employee', ['employee'] as const, [en.nav.home, en.nav.myContracts, en.nav.myLeave]],
+    [
+      'employee',
+      ['employee'] as const,
+      [en.nav.home, en.nav.myContracts, en.nav.myLeave, en.nav.myLeaveApprovals],
+    ],
     [
       'platform-admin',
       ['platform-admin'] as const,

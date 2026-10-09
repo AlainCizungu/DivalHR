@@ -241,7 +241,14 @@ public enum ErrorCode {
    */
   LEAVE_REQUEST_NOT_ELIGIBLE(HttpStatus.CONFLICT),
   /** Another pending request of the employee overlaps these dates (MVP-041A; no params). */
-  LEAVE_REQUEST_OVERLAP(HttpStatus.CONFLICT);
+  LEAVE_REQUEST_OVERLAP(HttpStatus.CONFLICT),
+  /**
+   * No leave request the caller may see or decide: unknown, another tenant's, another route's or
+   * not a report's on its first day are indistinguishable (MVP-041B; no params).
+   */
+  LEAVE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The leave request already has its decision (MVP-041B; no params). */
+  LEAVE_REQUEST_ALREADY_DECIDED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

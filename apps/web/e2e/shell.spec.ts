@@ -50,6 +50,7 @@ test.describe('desktop', () => {
       'Employees',
       'Import employees',
       'Leave policies',
+      'Leave approvals',
       'Organizational structure',
       'Contract templates',
       'Contract expirations',
@@ -127,6 +128,7 @@ test.describe('desktop', () => {
       'Accueil',
       'Mes contrats',
       'Mes congés',
+      'Approbations de congé',
     ]);
     await expect(page.getByTestId('roadmap')).toContainText('À venir');
     await expect(page.getByTestId('roadmap').locator('a, button')).toHaveCount(0);
@@ -182,7 +184,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(9);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(10);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

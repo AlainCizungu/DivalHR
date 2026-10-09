@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApi } from '../../app/ApiProvider';
-import { PageHeader, StatusBadge } from '../../ui/primitives';
+import { PageHeader, StatusBadge, type StatusTone } from '../../ui/primitives';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate, formatPeriod } from '../people/history';
 import { ScrollRegion } from '../people/ScrollRegion';
@@ -38,6 +38,13 @@ type Policies =
       asOf: string;
       timezone: string;
     };
+
+/** MVP-041B: the tone of each state (the text always carries the meaning). */
+const STATE_TONES: Record<MyLeaveRequest['state'], StatusTone> = {
+  PENDING: 'info',
+  APPROVED: 'success',
+  REJECTED: 'danger',
+};
 
 type History =
   | { kind: 'loading' }
@@ -84,8 +91,10 @@ function MyLeaveAlert({
 
 /**
  * MVP-041A: « Mes congés » / "My leave". The employee reviews the policies they can request,
- * submits a pending request and sees their own requests. No working day, holiday or balance is
- * calculated; nothing is kept in browser storage or put in a URL.
+ * submits a pending request and sees their own requests; from MVP-041B, each decided request shows
+ * its outcome and the approver's reason in the language it was written in (never who decided). No
+ * working day, holiday or balance is calculated; nothing is kept in browser storage or put in a
+ * URL.
  */
 export function MyLeavePage() {
   const { t, i18n } = useTranslation();
@@ -477,6 +486,7 @@ export function MyLeavePage() {
                   <th scope="col">{t('myLeave.history.columns.amount')}</th>
                   <th scope="col">{t('myLeave.history.columns.submitted')}</th>
                   <th scope="col">{t('myLeave.history.columns.state')}</th>
+                  <th scope="col">{t('myLeave.history.columns.decision')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -497,9 +507,28 @@ export function MyLeavePage() {
                       )}
                     </td>
                     <td>
-                      <StatusBadge tone="info" testId="request-state">
+                      <StatusBadge tone={STATE_TONES[request.state]} testId="request-state">
                         {t(`myLeave.state.${request.state}`)}
                       </StatusBadge>
+                    </td>
+                    <td data-testid="request-decision">
+                      {request.decision ? (
+                        <>
+                          {/* The reason as written, in its own language: plain text, never markup. */}
+                          <p className="request-reason" lang={request.decision.reasonLocale}>
+                            {request.decision.reason}
+                          </p>
+                          <p className="muted">
+                            {t('myLeave.history.decidedOn', {
+                              date: new Intl.DateTimeFormat(language, {
+                                dateStyle: 'medium',
+                              }).format(new Date(request.decision.decidedAt)),
+                            })}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="muted">{t('myLeave.history.awaiting')}</span>
+                      )}
                     </td>
                   </tr>
                 ))}

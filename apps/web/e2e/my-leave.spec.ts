@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import {
   CORE_API,
+  acceptInvitation,
   TENANT_A,
   USERS,
   expectAccessible,
@@ -113,10 +114,7 @@ async function inviteAndLink(
     await mailTo(email, /Invitation à rejoindre/u),
   );
   expect(link, 'invitation link').not.toBeNull();
-  const accepted = await page.request.post(`${CORE_API}/public/invitations/accept`, {
-    data: { token: link?.[1] ?? '' },
-  });
-  expect(accepted.status()).toBe(200);
+  expect(await acceptInvitation(page, link?.[1] ?? '')).toBe(200);
   const setup = /https?:\/\/[^\s"<>]+\/login-actions\/action-token\?[^\s"<>]+/u.exec(
     await mailTo(email, /mot de passe|password|actions|compte|account/iu),
   );
@@ -256,7 +254,7 @@ test.describe.serial('MVP-041A: submit and view my leave requests', () => {
     await form.getByLabel('Jours demandés').fill('1');
     await form.getByRole('button', { name: 'Soumettre la demande' }).click();
     await expect(page.getByTestId('request-error')).toContainText(
-      'Vous avez déjà une demande en attente pour une partie de ces dates.',
+      'Vous avez déjà une demande en attente ou approuvée pour une partie de ces dates.',
     );
     await expect(page.getByTestId('request-error')).toBeFocused();
 

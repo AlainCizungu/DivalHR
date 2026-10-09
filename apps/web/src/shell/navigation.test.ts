@@ -10,13 +10,14 @@ const TENANT = [
   '/admin/people',
   '/admin/people/import',
   '/admin/leave-policies',
+  '/admin/leave-approvals',
   '/admin/hierarchy',
   '/admin/contract-templates',
   '/admin/contract-expirations',
   '/admin/users',
   '/admin/access',
 ];
-const EMPLOYEE = ['/me/contracts', '/me/leave'];
+const EMPLOYEE = ['/me/contracts', '/me/leave', '/me/leave/approvals'];
 
 describe('role-to-navigation matrix (UI-001 proposal §5)', () => {
   it.each<[string, Role[], string[]]>([
@@ -70,7 +71,7 @@ describe('navigation and route registry consistency', () => {
     for (const route of listPages) expect(navPaths, route.path).toContain(route.path);
   });
 
-  it('keeps every pre-UI-001 URL, plus the MVP-031A queue and MVP-040A/041A leave pages', () => {
+  it('keeps every pre-UI-001 URL, plus the MVP-031A queue and MVP-040A/041A/041B leave pages', () => {
     expect(ROUTES.map((route) => route.path).sort()).toEqual(
       [
         '/',
@@ -87,8 +88,10 @@ describe('navigation and route registry consistency', () => {
         '/admin/contract-templates/:templateId',
         '/admin/contract-expirations',
         '/admin/leave-policies',
+        '/admin/leave-approvals',
         '/me/contracts',
         '/me/leave',
+        '/me/leave/approvals',
         '/me/contracts/:contractId',
         '/invitation',
         '/auth/callback',

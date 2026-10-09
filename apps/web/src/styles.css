@@ -410,3 +410,72 @@ fieldset.field {
     padding: 0;
   }
 }
+
+/* MVP-041B: leave approval inboxes and the decision dialog (native modal dialog). */
+.approval-actions,
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dv-space-2);
+}
+
+.decision-dialog {
+  width: min(36rem, calc(100vw - 2 * var(--dv-space-4)));
+  max-height: calc(100dvh - 2 * var(--dv-space-4));
+  padding: 0;
+  border: 1px solid var(--dv-color-border);
+  border-radius: var(--dv-radius);
+  background: var(--dv-color-surface-raised);
+  color: var(--dv-color-text);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+.decision-dialog::backdrop {
+  background: rgb(7 20 38 / 55%);
+}
+
+.decision-dialog__panel {
+  padding: var(--dv-space-4);
+}
+
+.decision-dialog .field {
+  max-width: none;
+}
+
+.decision-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.decision-summary {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--dv-space-1) var(--dv-space-3);
+  margin: 0 0 var(--dv-space-4);
+}
+
+.decision-summary dt {
+  font-weight: 600;
+}
+
+.decision-summary dd {
+  margin: 0;
+}
+
+.decision-reason {
+  margin: 0 0 var(--dv-space-4);
+}
+
+.decision-reason blockquote,
+.request-reason {
+  margin: var(--dv-space-1) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 30rem) {
+  .decision-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

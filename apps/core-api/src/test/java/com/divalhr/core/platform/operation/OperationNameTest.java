@@ -9,6 +9,7 @@ import com.divalhr.core.identity.application.InvitationQueryService;
 import com.divalhr.core.identity.application.PublicInvitationService;
 import com.divalhr.core.identity.application.ResendInvitationService;
 import com.divalhr.core.identity.application.RevokeInvitationService;
+import com.divalhr.core.people.leave.application.LeaveApprovalService;
 import com.divalhr.core.people.leave.application.LeavePolicyService;
 import com.divalhr.core.people.leave.application.MyLeaveService;
 import com.divalhr.core.tenant.api.CostCenterController;
@@ -103,6 +104,14 @@ class OperationNameTest {
     assertThat(MyLeaveService.CREATE).isEqualTo("leave-request.create");
     assertThat(MyLeaveService.REQUESTS).isEqualTo("leave-request.self-list");
     assertThat(MyLeaveService.EVENT_TYPE).isEqualTo("people.leave-request.created.v1");
+    assertThat(LeaveApprovalService.MANAGER_LIST).isEqualTo("leave-approval.manager-list");
+    assertThat(LeaveApprovalService.ADMIN_LIST).isEqualTo("leave-approval.admin-list");
+    assertThat(LeaveApprovalService.MANAGER_DECIDE).isEqualTo("leave-request.manager-decide");
+    assertThat(LeaveApprovalService.ADMIN_DECIDE).isEqualTo("leave-request.admin-decide");
+    assertThat(LeaveApprovalService.APPROVE).isEqualTo("leave-request.approve");
+    assertThat(LeaveApprovalService.REJECT).isEqualTo("leave-request.reject");
+    assertThat(LeaveApprovalService.APPROVED_EVENT).isEqualTo("people.leave-request.approved.v1");
+    assertThat(LeaveApprovalService.REJECTED_EVENT).isEqualTo("people.leave-request.rejected.v1");
   }
 
   @Test

@@ -81,6 +81,8 @@
       <Class name="com.divalhr.core.people.leave.application.LeavePolicyService"/>
       <Class name="com.divalhr.core.people.leave.internal.JdbcLeavePolicyRepository"/>
       <Class name="com.divalhr.core.people.leave.application.MyLeaveService"/>
+      <Class name="com.divalhr.core.people.leave.application.LeaveApprovalService"/>
+      <Class name="com.divalhr.core.people.application.ManagerGraphLock"/>
       <Class name="com.divalhr.core.people.leave.internal.JdbcLeaveRequestRepository"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>

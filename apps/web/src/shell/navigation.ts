@@ -67,6 +67,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'calendar',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/leave-approvals',
+        labelKey: 'nav.leaveApprovals',
+        icon: 'check',
+        role: 'tenant-admin',
+      },
     ],
   },
   {
@@ -113,6 +119,12 @@ export const NAVIGATION: NavGroupDef[] = [
     items: [
       { to: '/me/contracts', labelKey: 'nav.myContracts', icon: 'contract', role: 'employee' },
       { to: '/me/leave', labelKey: 'nav.myLeave', icon: 'calendar', role: 'employee' },
+      {
+        to: '/me/leave/approvals',
+        labelKey: 'nav.myLeaveApprovals',
+        icon: 'check',
+        role: 'employee',
+      },
     ],
   },
 ];

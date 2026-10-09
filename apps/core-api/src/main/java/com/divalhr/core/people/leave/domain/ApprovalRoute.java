@@ -1,6 +1,6 @@
 package com.divalhr.core.people.leave.domain;
 
-/** Who will approve requests under a leave policy once requests exist (MVP-040A). */
+/** Who approves requests under a leave policy (MVP-040A; enforced from MVP-041B). */
 public enum ApprovalRoute {
   /** The employee's manager. */
   MANAGER,

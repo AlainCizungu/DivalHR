@@ -52,7 +52,7 @@ test.describe.serial('MVP-040A: leave policies', () => {
     await primaryNav(page).getByRole('link', { name: 'Politiques de congé', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Politiques de congé');
     await expect(page.getByTestId('leave-scope')).toContainText(
-      'Les employés soumettent leurs demandes dans Mes congés ; le calcul des soldes et les approbations ne sont pas encore activés.',
+      'les approbateurs les traitent dans Approbations de congé ; le calcul des soldes n’est pas encore activé.',
     );
     await expect(page.getByTestId('as-of')).toContainText('(Africa/Kinshasa)');
 
