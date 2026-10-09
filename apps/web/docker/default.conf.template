@@ -1,10 +1,28 @@
 # Rendered by the nginx entrypoint (envsubst). ${DIVALHR_CSP_CONNECT_SRC} lists the exact origins
 # the browser may call: Core API, AI Service status and the identity provider.
+
+# SEC-001: the access log records the method, the path without its query, the protocol, the
+# status, the response size and the time taken; nothing else. The OIDC callback carries code,
+# state and session_state in its query, so the request line, the raw URI, the query, the referrer,
+# cookies, credentials and redirect targets are never logged.
+log_format divalhr_safe '[$time_iso8601] "$request_method $divalhr_path $server_protocol" '
+                        '$status $body_bytes_sent $request_time';
+
 server {
     listen 8080;
     server_name _;
     root /usr/share/nginx/html;
     server_tokens off;
+
+    # The path as requested (normalized, without the query). Set once: an internal redirect
+    # (try_files to /index.html) runs this phase again and must not replace it. The first test
+    # reads the variable before it is set; that is expected, and nginx's warning about it would
+    # copy the whole request line, query included, into the error log.
+    uninitialized_variable_warn off;
+    if ($divalhr_path = "") {
+        set $divalhr_path $uri;
+    }
+    access_log /dev/stdout divalhr_safe;
 
     set $csp "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' ${DIVALHR_CSP_CONNECT_SRC}; form-action 'self' ${DIVALHR_OIDC_ORIGIN}; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'";
 

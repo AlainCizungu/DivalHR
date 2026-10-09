@@ -32,10 +32,15 @@
 		format filter {
 			wrap json
 			fields {
-				# OIDC callbacks carry code and state in the query string: never log a query.
+				# SEC-001: OIDC authorization data (code, state, session_state) must never be logged.
+				# Callbacks carry it in the query string: never log a query.
 				request>uri regexp "\?.*$" ""
 				request>headers>Authorization delete
 				request>headers>Cookie delete
+				# A referring page's URL and a redirect target (Keycloak's redirect to the callback)
+				# carry the same data: delete both fields rather than rewrite them.
+				request>headers>Referer delete
+				resp_headers>Location delete
 				resp_headers>Set-Cookie delete
 			}
 		}

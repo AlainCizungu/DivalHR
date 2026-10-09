@@ -373,3 +373,15 @@ Realm change only: a final `employee access` execution in the browser forms flow
 | S24 | A signed-out session is reused through the fallback | Logout ends the Keycloak session; a new sign-in shows the password form and `prompt=none` returns `login_required` | `signingOutEndsTheSessionTheFallbackWouldReuse` |
 
 New data: none. New configuration: two authenticator configurations and one subflow in both repository realms. Residual risks: an essential `acr` claim may be answered at password level by Keycloak 26.0.0 to 26.7.4 (upstream issue); the Core's exact `acr` check is the control. The negated marker condition is defence in depth: with the current flows a mixed user is already stopped by level 2, so its absence is caught by the static checks, not by a sign-in. Existing realms are not re-imported and need the change applied once (Keycloak README).
+
+## SEC-001 delta (OIDC authorization data in access logs)
+
+Logging configuration of the test environment's Caddy and of the web image's nginx; no product code.
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| I32 | An authorization code, state or session_state reaches a log through a callback query, a referring URL or a redirect target (found live after the Issue #77 deployment: nginx's default request line and Caddy's response `Location`) | Caddy keeps removing the query from the logged URI and deletes `Referer` and response `Location` outright, besides `Authorization`, `Cookie` and `Set-Cookie`; nginx logs an explicit `divalhr_safe` format (method, path without query from `$uri` taken before `try_files`, protocol, status, size, time) and never `$request`, `$request_uri`, `$args`, `$query_string`, `$http_referer`, cookies, credentials or `Location`; the uninitialized-variable warning, which would copy the request line into the error log, is off for that one variable | `scripts/ops/access-log.test.mjs` (static policy, mutations), `scripts/ops/access-log-canary.sh` in CI (unique canaries through the pinned images, `nginx -t`, one mutation per redaction) |
+| I33 | A secret value or authorization data appears in any service log of a deployed stack | `ops/hr-dev/log-hygiene.sh` checks every container's log for the secret values under `secrets/` and for token, cookie, code and credential shapes, counts only, after the rehearsal's and the drill's real sign-ins and after a live acceptance | `access-log.test.mjs` (fake Docker: clean logs pass; each leak fails without being printed); the rehearsal's `browser-suite` step |
+
+New data: none. New configuration: none. Residual risks: nginx error-level messages still quote the request line by design; the template avoids the conditions that produce them on normal traffic. Logs written before the fix keep expired, single-use, PKCE-bound codes until their containers are recreated and their log files removed; checksummed evidence is kept unaltered and inventoried by counts and paths only.
+
