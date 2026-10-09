@@ -231,7 +231,9 @@ public enum ErrorCode {
   /** The caller's employee membership has no active employee link (MVP-030, A30-1). */
   EMPLOYEE_LINK_REQUIRED(HttpStatus.FORBIDDEN),
   /** The contract operation took too long and nothing was written (MVP-030). */
-  CONTRACT_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE);
+  CONTRACT_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE),
+  /** A leave policy with this code already exists in the organization (MVP-040A). */
+  LEAVE_POLICY_CODE_EXISTS(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

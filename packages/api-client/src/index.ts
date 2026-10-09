@@ -156,6 +156,15 @@ export type ContractExpirationUnit = CoreComponents['schemas']['ContractExpirati
 export type ContractExpiration = CoreComponents['schemas']['ContractExpiration'];
 export type ContractExpirationPage = CoreComponents['schemas']['ContractExpirationPage'];
 export type ContractExpirationSummary = CoreComponents['schemas']['ContractExpirationSummary'];
+export type LeaveUnit = CoreComponents['schemas']['LeaveUnit'];
+export type LeaveBalanceMode = CoreComponents['schemas']['LeaveBalanceMode'];
+export type LeaveApprovalRoute = CoreComponents['schemas']['LeaveApprovalRoute'];
+export type LeavePayrollEffect = CoreComponents['schemas']['LeavePayrollEffect'];
+export type LeavePolicyStatus = CoreComponents['schemas']['LeavePolicyStatus'];
+export type LeavePolicy = CoreComponents['schemas']['LeavePolicy'];
+export type LeavePolicyPage = CoreComponents['schemas']['LeavePolicyPage'];
+export type LeavePolicyResult = CoreComponents['schemas']['LeavePolicyResult'];
+export type CreateLeavePolicy = CoreComponents['schemas']['CreateLeavePolicy'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

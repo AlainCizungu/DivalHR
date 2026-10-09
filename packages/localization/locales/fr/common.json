@@ -15,6 +15,7 @@
     "accessReview": "Revue des accès",
     "employees": "Employés",
     "employeeImport": "Importer des employés",
+    "leavePolicies": "Politiques de congé",
     "contractTemplates": "Modèles de contrat",
     "contractExpirations": "Échéances des contrats",
     "myContracts": "Mes contrats",
@@ -340,7 +341,8 @@
     "CONTRACT_DATES_INVALID": "Vérifiez les dates du contrat.",
     "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED": "Confirmez avoir vérifié le texte avant de l’approuver.",
     "EMPLOYEE_LINK_REQUIRED": "Votre compte n’est pas encore relié à votre dossier d’employé. Contactez l’administrateur de votre organisation.",
-    "CONTRACT_TIMEOUT": "La demande a pris trop de temps et rien n’a été enregistré. Veuillez réessayer."
+    "CONTRACT_TIMEOUT": "La demande a pris trop de temps et rien n’a été enregistré. Veuillez réessayer.",
+    "LEAVE_POLICY_CODE_EXISTS": "Une politique de congé avec ce code existe déjà dans votre organisation."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -1683,6 +1685,98 @@
     "found_other": "{{count}} contrats affichés.",
     "unauthorized": "Seuls les administrateurs de l’organisation peuvent consulter les échéances des contrats.",
     "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour consulter les échéances des contrats."
+  },
+  "leavePolicies": {
+    "title": "Politiques de congé",
+    "description": "Les types de congé de votre organisation et leurs règles de base : admissibilité, solde, approbation et description pour la paie.",
+    "notEnabled": "Cette page sert uniquement à constituer le catalogue des politiques. Les demandes de congé, le calcul des soldes et les approbations ne sont pas encore activés.",
+    "legal": "Votre organisation définit ces valeurs et doit les vérifier au regard des règles qui s’appliquent à elle. DivalHR ne propose aucune valeur légale par défaut et ne donne pas de conseil juridique. « Payé » ou « non payé » décrit seulement le congé ; rien n’est calculé.",
+    "catalogue": "Catalogue des politiques",
+    "list": "Liste des politiques de congé",
+    "asOf": "Statuts calculés pour le {{date}} ({{timezone}})",
+    "loading": "Chargement des politiques de congé…",
+    "retry": "Réessayer",
+    "empty": "Aucune politique de congé pour l’instant. Créez la première ci-dessous.",
+    "more": "Afficher plus de politiques",
+    "created": "La politique de congé {{name}} ({{code}}) a été créée.",
+    "untracked": "Aucun solde suivi",
+    "entitlement": {
+      "DAYS": "{{amount}} jours par an",
+      "HOURS": "{{amount}} heures par an"
+    },
+    "minimumServiceNone": "Aucune ancienneté minimale",
+    "minimumService_one": "Après {{count}} jour d’ancienneté",
+    "minimumService_other": "Après {{count}} jours d’ancienneté",
+    "columns": {
+      "name": "Nom",
+      "code": "Code",
+      "balance": "Solde",
+      "rules": "Règles",
+      "period": "Période",
+      "status": "Statut"
+    },
+    "status": {
+      "PLANNED": "Prévue",
+      "ACTIVE": "En vigueur",
+      "ENDED": "Terminée"
+    },
+    "values": {
+      "unit": {
+        "DAYS": "Jours",
+        "HOURS": "Heures"
+      },
+      "balanceMode": {
+        "TRACKED": "Droit annuel suivi",
+        "UNTRACKED": "Aucun solde suivi"
+      },
+      "approvalRoute": {
+        "MANAGER": "Approuvée par le responsable",
+        "TENANT_ADMIN": "Approuvée par un administrateur de l’organisation"
+      },
+      "payrollEffect": {
+        "PAID": "Congé payé",
+        "UNPAID": "Congé non payé"
+      }
+    },
+    "form": {
+      "title": "Créer une politique de congé",
+      "intro": "Tous les champs sont obligatoires, sauf mention « facultatif ». Aucune valeur n’est remplie à votre place.",
+      "code": "Code",
+      "codeHelp": "De 2 à 20 caractères : lettres majuscules, chiffres, traits d’union et tirets bas. Le code ne change jamais.",
+      "nameEn": "Nom en anglais",
+      "nameFr": "Nom en français",
+      "unit": "Unité",
+      "balanceMode": "Solde",
+      "balanceModeHelp": "Une politique suivie a un droit annuel. Les soldes eux-mêmes viendront plus tard.",
+      "annualEntitlement": "Droit annuel",
+      "annualEntitlementHelp": "Supérieur à 0 et au plus 10 000, avec au plus deux décimales.",
+      "minimumServiceDays": "Ancienneté minimale (jours)",
+      "minimumServiceDaysHelp": "Jours d’ancienneté avant qu’un employé soit admissible, de 0 à 3 650.",
+      "approvalRoute": "Approbation",
+      "payrollEffect": "Description pour la paie",
+      "payrollEffectHelp": "Décrit le congé pour la paie. Rien n’est calculé.",
+      "effectiveFrom": "En vigueur à partir du",
+      "effectiveTo": "En vigueur jusqu’au (facultatif)",
+      "effectiveToHelp": "Laissez vide si la politique n’a pas de date de fin.",
+      "choose": "Choisir…",
+      "submit": "Créer la politique",
+      "submitting": "Création…"
+    },
+    "problems": {
+      "code": "Saisissez un code de 2 à 20 caractères au format indiqué.",
+      "nameEn": "Saisissez un nom anglais de 2 à 100 caractères.",
+      "nameFr": "Saisissez un nom français de 2 à 100 caractères.",
+      "unit": "Choisissez une unité.",
+      "balanceMode": "Choisissez le traitement du solde.",
+      "annualEntitlement": "Saisissez un droit annuel supérieur à 0 et au plus 10 000, avec au plus deux décimales.",
+      "minimumServiceDays": "Saisissez un nombre entier de jours de 0 à 3 650.",
+      "approvalRoute": "Choisissez qui approuve.",
+      "payrollEffect": "Choisissez la description pour la paie.",
+      "effectiveFrom": "Saisissez une date de début valide.",
+      "effectiveTo": "Saisissez une date de fin valide, égale ou postérieure à la date de début, ou laissez le champ vide."
+    },
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les politiques de congé.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les politiques de congé."
   },
   "landing": {
     "documentTitle": "DivalHR — La plateforme de gestion des effectifs pour l’Afrique",

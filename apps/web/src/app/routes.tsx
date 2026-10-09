@@ -11,6 +11,7 @@ import { MyContractPage } from '../features/contracts/MyContractPage';
 import { MyContractsPage } from '../features/contracts/MyContractsPage';
 import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
 import { HomePage } from '../features/home/HomePage';
+import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { EmployeeDirectoryPage } from '../features/people/EmployeeDirectoryPage';
 import { EmployeeImportPage } from '../features/people/EmployeeImportPage';
@@ -116,6 +117,12 @@ export const ROUTES: AppRoute[] = [
     element: <EmployeeImportPage />,
     access: tenantAdmin('employeeImport.unauthorized', 'employeeImport.signInRequired'),
     crumbs: [HOME, PEOPLE, { key: 'nav.employeeImport' }],
+  },
+  {
+    path: '/admin/leave-policies',
+    element: <LeavePoliciesPage />,
+    access: tenantAdmin('leavePolicies.unauthorized', 'leavePolicies.signInRequired'),
+    crumbs: [HOME, PEOPLE, { key: 'nav.leavePolicies' }],
   },
   {
     path: '/admin/contract-templates',

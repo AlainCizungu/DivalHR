@@ -3180,6 +3180,91 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /leave-policies:
+    get:
+      operationId: listLeavePolicies
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List leave policies
+      description: >-
+        MVP-040A. The organization's leave policies ordered by code, then id, each with its current
+        version and its status (PLANNED, ACTIVE or ENDED) on the organization's business date asOf,
+        in its time zone. The first page reads the business date; the signed cursor pins it, so
+        every page reports the same asOf. The cursor is bound to the operation, tenant, page size
+        and asOf. Configuration data with no personal data: not disclosure-audited.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeavePolicyPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: createLeavePolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a leave policy
+      description: >-
+        MVP-040A. Creates a leave policy and its version 1 in one transaction with its audit record
+        (leave-policy.create) and the outbox event people.leave-policy.created.v1. Configuration
+        only: requests, balances and approvals are not enabled. The values are the organization's
+        own; DivalHR seeds no statutory default and does not validate them against any law.
+        payrollEffect is descriptive only. The code is normalized to upper case and unique in the
+        tenant (409 LEAVE_POLICY_CODE_EXISTS). Errors and logs never echo names or submitted values.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeavePolicy"
+      responses:
+        "201":
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeavePolicyResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /me/contracts:
     get:
       operationId: listMyContracts
@@ -3431,6 +3516,8 @@ components:
         SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED,
         ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or
         ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params.
+        LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant)
+        carries no params.
       content:
         application/problem+json:
           schema:
@@ -3689,6 +3776,15 @@ components:
         Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND.
       schema:
         type: string
+    LeavePolicyLimit:
+      name: limit
+      in: query
+      description: Items per page (1-50, default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 25
     ContractLimit:
       name: limit
       in: query
@@ -6670,6 +6766,183 @@ components:
         - CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED
         - EMPLOYEE_LINK_REQUIRED
         - CONTRACT_TIMEOUT
+        - LEAVE_POLICY_CODE_EXISTS
+    LeaveUnit:
+      type: string
+      enum: [DAYS, HOURS]
+    LeaveBalanceMode:
+      type: string
+      enum: [TRACKED, UNTRACKED]
+    LeaveApprovalRoute:
+      type: string
+      description: Who will approve requests once requests exist (not enabled in MVP-040A).
+      enum: [MANAGER, TENANT_ADMIN]
+    LeavePayrollEffect:
+      type: string
+      description: Descriptive only; no payroll calculation.
+      enum: [PAID, UNPAID]
+    LeavePolicyStatus:
+      type: string
+      description: >-
+        Computed by the server on the organization's business date asOf: PLANNED (starts after
+        asOf), ACTIVE (asOf inside the period, both ends inclusive) or ENDED (ended before asOf).
+      enum: [PLANNED, ACTIVE, ENDED]
+    LeavePolicyNamesInput:
+      type: object
+      additionalProperties: false
+      required: [en, fr]
+      properties:
+        en:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: >-
+            English name. Trimmed and NFC-normalized; 2 to 100 characters; no control, format or
+            line-separator characters.
+        fr:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: French name, same rules.
+    CreateLeavePolicy:
+      type: object
+      additionalProperties: false
+      description: >-
+        VALIDATION_FAILED fields: code, names, names.en, names.fr, unit, balanceMode,
+        annualEntitlement, minimumServiceDays, approvalRoute, payrollEffect, effectiveFrom,
+        effectiveTo, body (UNKNOWN_PROPERTY) and Idempotency-Key. annualEntitlement is REQUIRED for
+        TRACKED and RANGE when sent for UNTRACKED; effectiveTo before effectiveFrom is RANGE.
+      required:
+        - code
+        - names
+        - unit
+        - balanceMode
+        - minimumServiceDays
+        - approvalRoute
+        - payrollEffect
+        - effectiveFrom
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{1,19}$"
+          description: 2 to 20 characters; trimmed and normalized to upper case; unique in the tenant.
+        names:
+          $ref: "#/components/schemas/LeavePolicyNamesInput"
+        unit:
+          $ref: "#/components/schemas/LeaveUnit"
+        balanceMode:
+          $ref: "#/components/schemas/LeaveBalanceMode"
+        annualEntitlement:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          maximum: 10000
+          multipleOf: 0.01
+          description: Required for TRACKED (at most two decimals); absent or null for UNTRACKED.
+        minimumServiceDays:
+          type: integer
+          minimum: 0
+          maximum: 3650
+        approvalRoute:
+          $ref: "#/components/schemas/LeaveApprovalRoute"
+        payrollEffect:
+          $ref: "#/components/schemas/LeavePayrollEffect"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Optional last day, on or after effectiveFrom.
+    LeavePolicyNames:
+      type: object
+      required: [en, fr]
+      properties:
+        en:
+          type: string
+        fr:
+          type: string
+    LeavePolicy:
+      type: object
+      required:
+        - id
+        - code
+        - versionNumber
+        - names
+        - unit
+        - balanceMode
+        - annualEntitlement
+        - minimumServiceDays
+        - approvalRoute
+        - payrollEffect
+        - effectiveFrom
+        - effectiveTo
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        versionNumber:
+          type: integer
+          minimum: 1
+        names:
+          $ref: "#/components/schemas/LeavePolicyNames"
+        unit:
+          $ref: "#/components/schemas/LeaveUnit"
+        balanceMode:
+          $ref: "#/components/schemas/LeaveBalanceMode"
+        annualEntitlement:
+          type: [number, "null"]
+          description: Two decimals for TRACKED; null for UNTRACKED.
+        minimumServiceDays:
+          type: integer
+        approvalRoute:
+          $ref: "#/components/schemas/LeaveApprovalRoute"
+        payrollEffect:
+          $ref: "#/components/schemas/LeavePayrollEffect"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        status:
+          $ref: "#/components/schemas/LeavePolicyStatus"
+        createdAt:
+          type: string
+          format: date-time
+    LeavePolicyResult:
+      type: object
+      required: [policy, asOf, timezone]
+      properties:
+        policy:
+          $ref: "#/components/schemas/LeavePolicy"
+        asOf:
+          type: string
+          format: date
+          description: The organization's business date the status was computed for.
+        timezone:
+          type: string
+          description: The organization's IANA time zone.
+    LeavePolicyPage:
+      type: object
+      required: [items, nextCursor, asOf, timezone]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeavePolicy"
+        nextCursor:
+          type: [string, "null"]
+        asOf:
+          type: string
+          format: date
+          description: The organization's business date of every status, pinned across pages.
+        timezone:
+          type: string
+          description: The organization's IANA time zone.
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.

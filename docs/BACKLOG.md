@@ -144,6 +144,8 @@ Authorized users receive alerts for expiring contracts, credentials, and identit
 
 HR can configure eligibility, balance behavior, approval routing, and payroll effect.
 
+**MVP-040A. In review.** Basic leave policies, configuration only. Page « Politiques de congé » / "Leave policies" under People: a tenant administrator creates a policy (normalized code unique in the organization, French and English names, unit `DAYS`/`HOURS`, `TRACKED` with an annual entitlement of up to 10,000.00 or `UNTRACKED` without one, minimum service of 0 to 3,650 days, approval route `MANAGER`/`TENANT_ADMIN`, payroll description `PAID`/`UNPAID`, effective period) and sees the catalogue with each policy's status (planned, active, ended) computed by the server on the organization's business date. V18 adds the insert-only `people.leave_policy` and `people.leave_policy_version` (version 1 only). One transaction holds the policy, its version, the audit record, the `people.leave-policy.created.v1` event and the idempotency response. The organization defines every value; DivalHR seeds no statutory default and gives no legal advice. Requests, balances, accrual, approvals, editing, holidays and payroll calculation are later stories (MVP-041 onward).
+
 ### MVP-041 Request and approve leave
 
 Employees can submit leave; managers can approve or reject with an auditable reason.

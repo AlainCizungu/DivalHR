@@ -95,6 +95,20 @@ class TenantPredicateArchitectureTest {
           .areNotAnnotatedWith(CrossTenantAccess.class)
           .should(TAKE_TENANT_ID);
 
+  /** MVP-040A: the leave package's repositories follow the same rule, with no exception. */
+  @ArchTest
+  static final ArchRule leaveRepositoriesRequireTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.people.leave.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleNameEndingWith("Repository")
+          .and()
+          .arePublic()
+          .should(TAKE_TENANT_ID);
+
   /**
    * MVP-030: documents repositories follow the same rule; the read-only contract integrity job is
    * marked {@link CrossTenantAccess}.

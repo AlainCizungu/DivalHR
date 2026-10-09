@@ -123,7 +123,8 @@
         "CONTRACT_DATES_INVALID",
         "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED",
         "EMPLOYEE_LINK_REQUIRED",
-        "CONTRACT_TIMEOUT"
+        "CONTRACT_TIMEOUT",
+        "LEAVE_POLICY_CODE_EXISTS"
       ]
     },
     "params": { "type": "object" },
