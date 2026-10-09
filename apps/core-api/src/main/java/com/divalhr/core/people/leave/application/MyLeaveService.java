@@ -2,15 +2,19 @@ package com.divalhr.core.people.leave.application;
 
 import com.divalhr.core.people.application.BusinessCalendar;
 import com.divalhr.core.people.application.PeopleCaller;
+import com.divalhr.core.people.leave.api.CancelLeaveRequest;
 import com.divalhr.core.people.leave.api.CreateMyLeaveRequest;
+import com.divalhr.core.people.leave.api.MyLeaveResponses.CancellationReceipt;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.Policy;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.PolicyPage;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.Request;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.RequestPage;
 import com.divalhr.core.people.leave.domain.Employment;
+import com.divalhr.core.people.leave.domain.LeaveCancellation;
 import com.divalhr.core.people.leave.domain.LeavePolicy;
 import com.divalhr.core.people.leave.domain.LeaveRequest;
 import com.divalhr.core.people.leave.domain.LeaveRequestState;
+import com.divalhr.core.people.leave.domain.LeaveRouting;
 import com.divalhr.core.people.leave.internal.JdbcLeavePolicyRepository;
 import com.divalhr.core.people.leave.internal.JdbcLeaveRequestRepository;
 import com.divalhr.core.people.leave.internal.LeaveConstraintViolations;
@@ -40,6 +44,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -53,7 +58,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Employee self-service leave (MVP-041A, Issue #87): the requestable policy catalogue, submitting a
- * pending request and the caller's own request history.
+ * pending request and the caller's own request history; cancelling a pending request of their own
+ * (MVP-041C, Issue #91).
  *
  * <p>Authorization (role {@code employee}, verified tenant, active membership) has run before any
  * of this. Every operation then resolves the caller's own employee through the identity port's
@@ -86,6 +92,15 @@ public class MyLeaveService {
   /** Outbox event type (existing envelope). */
   public static final String EVENT_TYPE = "people.leave-request.created.v1";
 
+  /** Cancellation operation (idempotency operation; MVP-041C). */
+  public static final String CANCEL = "leave-request.self-cancel";
+
+  /** Audit action of a cancellation (MVP-041C). */
+  public static final String CANCEL_AUDIT = "leave-request.cancel";
+
+  /** Outbox event of a cancellation (MVP-041C). */
+  public static final String CANCELLED_EVENT = "people.leave-request.cancelled.v1";
+
   /** Per-subject self-service read bucket (60 per minute). */
   public static final String SUBJECT_READ_BUCKET = "leave-self-read";
 
@@ -101,6 +116,8 @@ public class MyLeaveService {
   private static final Duration TRANSACTION_TIMEOUT = Duration.ofSeconds(15);
   private static final IdempotentOperation.Spec SPEC =
       new IdempotentOperation.Spec(CREATE, "leave_request", "create", "created", 201);
+  private static final IdempotentOperation.Spec CANCEL_SPEC =
+      new IdempotentOperation.Spec(CANCEL, "leave_request", "cancel", "cancelled", 200);
 
   private final IdempotentOperation operations;
   private final JdbcLeavePolicyRepository policies;
@@ -305,6 +322,7 @@ public class MyLeaveService {
             command.amount(),
             LeaveRequestState.PENDING,
             now,
+            null,
             null);
     try {
       requests.insert(tenant, request, caller.subject());
@@ -357,6 +375,175 @@ public class MyLeaveService {
             null,
             data));
     return new IdempotentOperation.Completed<>(Request.of(request), request.id(), Outcome.CREATED);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Cancel (MVP-041C)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * Cancels the caller's own pending request, or replays an earlier identical cancellation while
+   * the request is still the caller's linked employee's (D41C-1, D41C-4).
+   *
+   * <p>One bounded transaction in the ADR 0008 order: idempotency (step 0), the caller's own link
+   * and membership {@code FOR SHARE} (step 4), the request {@code FOR UPDATE}, bound to the tenant
+   * and the linked employee (step 5), then the cancellation evidence, the transition, the deferred
+   * V21 checks, the audit record and the outbox event (step 6). No manager-graph or employment
+   * lock: it requests nothing after the request row, so it cannot invert a decision's
+   * employment/link/request order. A decision and a cancellation of one request serialize on its
+   * row; the second observes the terminal state.
+   *
+   * @param caller verified employee
+   * @param requestId path value
+   * @param idempotencyKey {@code Idempotency-Key} header
+   * @param body reason and its language
+   * @return the receipt
+   */
+  public IdempotentOperation.Result<CancellationReceipt> cancel(
+      PeopleCaller caller, String requestId, String idempotencyKey, CancelLeaveRequest body) {
+    LeaveCancellationCommand command =
+        operations.validated(
+            CANCEL_SPEC, () -> LeaveCancellationCommand.from(idempotencyKey, requestId, body));
+    return counted(
+        CANCEL,
+        () ->
+            operations.execute(
+                CANCEL_SPEC,
+                caller.subject(),
+                idempotencyKey,
+                command.canonical(caller.tenant()),
+                CancellationReceipt.class,
+                TRANSACTION_TIMEOUT,
+                stored -> cancellationReplayable(caller, stored),
+                () -> cancelled(caller, command)));
+  }
+
+  /**
+   * A stored cancellation receipt is returned only while the caller's current active link still
+   * resolves to the employee whose request it cancelled (R88): no link is {@code 403
+   * EMPLOYEE_LINK_REQUIRED}; otherwise {@code 404 LEAVE_REQUEST_NOT_FOUND}, with no stored response
+   * or identifier.
+   */
+  private void cancellationReplayable(PeopleCaller caller, UUID requestId) {
+    SelfLink link = link(caller);
+    if (requestId == null
+        || requests
+            .find(caller.tenant(), link.employeeId(), requestId)
+            .filter(request -> request.cancellation() != null)
+            .isEmpty()) {
+      throw LeaveDecisionCommand.notFound();
+    }
+  }
+
+  private IdempotentOperation.Completed<CancellationReceipt> cancelled(
+      PeopleCaller caller, LeaveCancellationCommand command) {
+    TenantId tenant = caller.tenant();
+    // The link is checked before anything about the request is answered.
+    SelfLink link = link(caller);
+    LeaveRouting routing =
+        requests
+            .lockOwn(tenant, link.employeeId(), command.requestId())
+            .orElseThrow(LeaveDecisionCommand::notFound);
+    if (routing.state() == LeaveRequestState.CANCELLED) {
+      throw alreadyCancelled();
+    }
+    if (routing.state().terminal()) {
+      throw new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_DECIDED, Map.of());
+    }
+    Instant now = calendar.now().truncatedTo(ChronoUnit.MICROS);
+    LeaveCancellation cancellation =
+        new LeaveCancellation(
+            UUID.randomUUID(), routing.id(), command.reasonLocale(), command.reason(), now);
+    try {
+      requests.cancel(tenant, cancellation, caller.subject());
+      requests.checkTerminalConsistency(tenant);
+    } catch (DataIntegrityViolationException violated) {
+      Optional<String> constraint = LeaveConstraintViolations.constraint(violated);
+      if (constraint.filter(LeaveConstraintViolations.CANCELLATION_UNIQUE::equals).isPresent()) {
+        throw alreadyCancelled();
+      }
+      if (constraint
+          .filter(LeaveConstraintViolations.CANCELLATION_CONSISTENCY::contains)
+          .isPresent()) {
+        // Never expected: the checks above hold the row lock. No database text is exposed.
+        throw new IllegalStateException("leave cancellation inconsistent with its request");
+      }
+      throw violated;
+    }
+
+    Map<String, Object> ids = new LinkedHashMap<>();
+    ids.put("schemaVersion", LeavePolicyService.SCHEMA_VERSION);
+    ids.put("requestId", routing.id().toString());
+    ids.put("cancellationId", cancellation.id().toString());
+    ids.put("employeeId", routing.employeeId().toString());
+    ids.put("employmentId", routing.employmentId().toString());
+    ids.put("policyId", routing.policyId().toString());
+    ids.put("policyVersionId", routing.policyVersionId().toString());
+    Map<String, Object> metadata = new LinkedHashMap<>(ids);
+    metadata.put("priorState", LeaveRequestState.PENDING.name());
+    metadata.put("resultingState", LeaveRequestState.CANCELLED.name());
+    audit.record(
+        new AuditEvent(
+            UUID.randomUUID(),
+            now,
+            caller.subject(),
+            CANCEL_AUDIT,
+            "leave-request",
+            routing.id(),
+            tenant.value(),
+            "SUCCESS",
+            caller.correlationId(),
+            metadata,
+            Fingerprints.sha256(
+                json.writeValueAsString(cancelledState(tenant, routing, cancellation, caller)))));
+    Map<String, Object> data = new LinkedHashMap<>(ids);
+    data.remove("schemaVersion");
+    data.put("state", LeaveRequestState.CANCELLED.name());
+    outbox.append(
+        new EventEnvelope(
+            UUID.randomUUID().toString(),
+            CANCELLED_EVENT,
+            LeavePolicyService.SCHEMA_VERSION,
+            tenant.toString(),
+            SOURCE,
+            routing.id().toString(),
+            now.toString(),
+            caller.correlationId(),
+            null,
+            data));
+    LOG.atInfo()
+        .addKeyValue("operation", CANCEL)
+        .addKeyValue("approvalRoute", routing.route().name())
+        .addKeyValue("outcome", "cancelled")
+        .log("leave_request_self_cancelled");
+    return new IdempotentOperation.Completed<>(
+        new CancellationReceipt(routing.id(), cancellation.id(), LeaveRequestState.CANCELLED, now),
+        routing.id(),
+        Outcome.UPDATED);
+  }
+
+  /** The whole cancelled state, including the reason and the actor; only its digest is stored. */
+  private static Map<String, Object> cancelledState(
+      TenantId tenant, LeaveRouting routing, LeaveCancellation cancellation, PeopleCaller caller) {
+    Map<String, Object> state = new TreeMap<>();
+    state.put("tenantId", tenant.toString());
+    state.put("requestId", routing.id().toString());
+    state.put("employeeId", routing.employeeId().toString());
+    state.put("employmentId", routing.employmentId().toString());
+    state.put("policyVersionId", routing.policyVersionId().toString());
+    state.put("startDate", routing.startDate().toString());
+    state.put("endDate", routing.endDate().toString());
+    state.put("state", LeaveRequestState.CANCELLED.name());
+    state.put("cancellationId", cancellation.id().toString());
+    state.put("reasonLocale", cancellation.reasonLocale());
+    state.put("reason", cancellation.reason());
+    state.put("cancelledAt", cancellation.cancelledAt().toString());
+    state.put("cancelledBy", caller.subject());
+    return state;
+  }
+
+  private static ApiException alreadyCancelled() {
+    return new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_CANCELLED, Map.of());
   }
 
   // ------------------------------------------------------------------------------------------
@@ -512,13 +699,18 @@ public class MyLeaveService {
     }
   }
 
-  /** Counts the self-service link denial (A30-1) on the bounded counter only. */
+  /**
+   * Counts the self-service denials (A30-1) on the bounded counter only: no link, and (MVP-041C) no
+   * such request of the caller's own.
+   */
   private <T> T counted(String operation, Supplier<T> work) {
     try {
       return work.get();
     } catch (ApiException denied) {
       if (denied.code() == ErrorCode.EMPLOYEE_LINK_REQUIRED) {
         ScopeAuthorizationInterceptor.selfServiceDenied(meters, operation, "link_required");
+      } else if (denied.code() == ErrorCode.LEAVE_REQUEST_NOT_FOUND) {
+        ScopeAuthorizationInterceptor.selfServiceDenied(meters, operation, "not_found");
       }
       throw denied;
     }

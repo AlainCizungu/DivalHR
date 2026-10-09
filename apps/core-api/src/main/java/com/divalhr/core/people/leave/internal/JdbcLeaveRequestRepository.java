@@ -3,6 +3,7 @@ package com.divalhr.core.people.leave.internal;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
 import com.divalhr.core.people.leave.domain.Employment;
 import com.divalhr.core.people.leave.domain.LeaveApprovalItem;
+import com.divalhr.core.people.leave.domain.LeaveCancellation;
 import com.divalhr.core.people.leave.domain.LeaveDecision;
 import com.divalhr.core.people.leave.domain.LeaveRequest;
 import com.divalhr.core.people.leave.domain.LeaveRequestState;
@@ -22,10 +23,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Leave request storage (MVP-041A, V19), decisions (MVP-041B, V20) and the employment periods and
- * reporting lines requests are checked against. Every query names the verified tenant; employee
- * reads are bound to the employee resolved from the caller's own link, approval reads to the route
- * and, for managers, to the caller's own reporting lines. Runs in the caller's transaction.
+ * Leave request storage (MVP-041A, V19), decisions (MVP-041B, V20), cancellations (MVP-041C, V21)
+ * and the employment periods and reporting lines requests are checked against. Every query names
+ * the verified tenant; employee reads are bound to the employee resolved from the caller's own
+ * link, approval reads to the route and, for managers, to the caller's own reporting lines. Runs in
+ * the caller's transaction.
  */
 @Repository
 public class JdbcLeaveRequestRepository {
@@ -34,13 +36,17 @@ public class JdbcLeaveRequestRepository {
       "SELECT r.id, r.employee_id, r.employment_id, r.policy_version_id, r.start_date,"
           + " r.end_date, r.requested_amount, r.state, r.submitted_at, v.policy_id, p.code,"
           + " v.name_en, v.name_fr, v.unit, d.id AS decision_id, d.outcome, d.approval_route,"
-          + " d.manager_employee_id, d.reason_locale, d.reason_text, d.decided_at"
+          + " d.manager_employee_id, d.reason_locale, d.reason_text, d.decided_at,"
+          + " x.id AS cancellation_id, x.reason_locale AS cancellation_locale,"
+          + " x.reason_text AS cancellation_reason, x.cancelled_at"
           + " FROM people.leave_request r"
           + " JOIN people.leave_policy_version v"
           + " ON v.tenant_id = r.tenant_id AND v.id = r.policy_version_id"
           + " JOIN people.leave_policy p ON p.tenant_id = v.tenant_id AND p.id = v.policy_id"
           + " LEFT JOIN people.leave_request_decision d"
-          + " ON d.tenant_id = r.tenant_id AND d.request_id = r.id";
+          + " ON d.tenant_id = r.tenant_id AND d.request_id = r.id"
+          + " LEFT JOIN people.leave_request_cancellation x"
+          + " ON x.tenant_id = r.tenant_id AND x.request_id = r.id";
 
   private static final String ITEM =
       "SELECT r.id, r.submitted_at, r.employee_id, e.employee_number, e.given_names,"
@@ -433,18 +439,82 @@ public class JdbcLeaveRequestRepository {
   }
 
   /**
-   * Runs the deferred V20 checks now ({@code leave_request_decided}, {@code
-   * leave_request_decision_consistent}), so that a violation surfaces inside the business work,
-   * where it is mapped by constraint name, before the audit and outbox records are written.
+   * Runs the deferred terminal-evidence checks now ({@code leave_request_decided}: exactly one
+   * matching kind of evidence per request, V20 extended by V21; {@code
+   * leave_request_decision_consistent}, V20; {@code leave_request_cancellation_consistent}, V21),
+   * so that a violation surfaces inside the business work, where it is mapped by constraint name,
+   * before the audit and outbox records are written.
    *
    * @param tenant verified tenant whose transaction it is
    */
-  public void checkDecisionConsistency(TenantId tenant) {
+  public void checkTerminalConsistency(TenantId tenant) {
     java.util.Objects.requireNonNull(tenant, "tenant");
     jdbc.getJdbcOperations()
         .execute(
             "SET CONSTRAINTS people.leave_request_decided,"
-                + " people.leave_request_decision_consistent IMMEDIATE");
+                + " people.leave_request_decision_consistent,"
+                + " people.leave_request_cancellation_consistent IMMEDIATE");
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Cancellations (MVP-041C)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * Locks one of the employee's own requests {@code FOR UPDATE} (lock order step 5) and reads its
+   * routing facts. Another employee's or another tenant's request is not found.
+   *
+   * @param tenant verified tenant
+   * @param employeeId the employee resolved from the caller's own active link
+   * @param id request
+   * @return the routing facts, if the request is the employee's
+   */
+  public Optional<LeaveRouting> lockOwn(TenantId tenant, UUID employeeId, UUID id) {
+    return jdbc
+        .query(
+            ROUTING + " AND r.employee_id = :employee FOR UPDATE OF r",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", id)
+                .addValue("employee", employeeId),
+            (rs, n) -> routing(rs))
+        .stream()
+        .findFirst();
+  }
+
+  /**
+   * Records a cancellation and moves its pending request to {@code CANCELLED}, which releases its
+   * dates in the same transaction (the overlap exclusion covers PENDING and APPROVED only).
+   *
+   * @param tenant verified tenant
+   * @param cancellation the cancellation
+   * @param cancelledBy verified subject
+   * @throws IllegalStateException when the request was no longer pending (the caller holds its row
+   *     lock, so this never happens)
+   */
+  public void cancel(TenantId tenant, LeaveCancellation cancellation, String cancelledBy) {
+    jdbc.update(
+        "INSERT INTO people.leave_request_cancellation (id, tenant_id, request_id, reason_locale,"
+            + " reason_text, cancelled_at, cancelled_by) VALUES (:id, :tenant, :request, :locale,"
+            + " :reason, :cancelledAt, :cancelledBy)",
+        new MapSqlParameterSource()
+            .addValue("id", cancellation.id())
+            .addValue("tenant", tenant.value())
+            .addValue("request", cancellation.requestId())
+            .addValue("locale", cancellation.reasonLocale())
+            .addValue("reason", cancellation.reason())
+            .addValue("cancelledAt", Timestamp.from(cancellation.cancelledAt()))
+            .addValue("cancelledBy", cancelledBy));
+    int moved =
+        jdbc.update(
+            "UPDATE people.leave_request SET state = 'CANCELLED'"
+                + " WHERE tenant_id = :tenant AND id = :id AND state = 'PENDING'",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", cancellation.requestId()));
+    if (moved != 1) {
+      throw new IllegalStateException("leave request was not pending under its row lock");
+    }
   }
 
   private static LeaveRouting routing(ResultSet rs) throws SQLException {
@@ -497,7 +567,21 @@ public class JdbcLeaveRequestRepository {
         rs.getBigDecimal("requested_amount"),
         LeaveRequestState.valueOf(rs.getString("state")),
         rs.getTimestamp("submitted_at").toInstant(),
-        decision(rs));
+        decision(rs),
+        cancellation(rs));
+  }
+
+  private static LeaveCancellation cancellation(ResultSet rs) throws SQLException {
+    UUID id = rs.getObject("cancellation_id", UUID.class);
+    if (id == null) {
+      return null;
+    }
+    return new LeaveCancellation(
+        id,
+        rs.getObject("id", UUID.class),
+        rs.getString("cancellation_locale"),
+        rs.getString("cancellation_reason"),
+        rs.getTimestamp("cancelled_at").toInstant());
   }
 
   private static LeaveDecision decision(ResultSet rs) throws SQLException {

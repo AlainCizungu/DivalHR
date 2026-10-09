@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 /**
  * MVP-041B test fixtures over the public API: an organization with a tenant administrator,
  * employees linked to their own employee memberships, policies by route, manager lines, requests,
- * decisions, unlinks and separations.
+ * decisions, unlinks and separations; MVP-041C cancellations.
  */
 final class LeaveWorld {
 
@@ -255,6 +255,24 @@ final class LeaveWorld {
     return key == null ? request : request.header("Idempotency-Key", key);
   }
 
+  static Map<String, Object> cancellation(String locale, String reason) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("reasonLocale", locale);
+    body.put("reason", reason);
+    return body;
+  }
+
+  /** The caller's own cancellation of a request (MVP-041C). */
+  static MockHttpServletRequestBuilder cancel(
+      String bearer, String requestId, String key, Object body) throws Exception {
+    MockHttpServletRequestBuilder request =
+        post(MY_REQUESTS + "/" + requestId + "/cancellation")
+            .header("Authorization", bearer)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body instanceof String text ? text : JSON.writeValueAsString(body));
+    return key == null ? request : request.header("Idempotency-Key", key);
+  }
+
   // ------------------------------------------------------------------------------------------
   // HTTP and rows
   // ------------------------------------------------------------------------------------------
@@ -295,6 +313,21 @@ final class LeaveWorld {
             "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
                 + " envelope ->> 'eventType' IN ('people.leave-request.approved.v1',"
                 + " 'people.leave-request.rejected.v1')",
+            tenant().toString()));
+  }
+
+  /** Cancellations, cancellation audits and cancellation events of the tenant (MVP-041C). */
+  List<Integer> cancellations() {
+    return List.of(
+        count(
+            "SELECT count(*) FROM people.leave_request_cancellation WHERE tenant_id = ?", tenant()),
+        count(
+            "SELECT count(*) FROM platform.audit_event WHERE tenant_id = ? AND action ="
+                + " 'leave-request.cancel'",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
+                + " envelope ->> 'eventType' = 'people.leave-request.cancelled.v1'",
             tenant().toString()));
   }
 

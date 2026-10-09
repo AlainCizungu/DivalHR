@@ -248,7 +248,9 @@ public enum ErrorCode {
    */
   LEAVE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND),
   /** The leave request already has its decision (MVP-041B; no params). */
-  LEAVE_REQUEST_ALREADY_DECIDED(HttpStatus.CONFLICT);
+  LEAVE_REQUEST_ALREADY_DECIDED(HttpStatus.CONFLICT),
+  /** The leave request was already cancelled by its employee (MVP-041C; no params). */
+  LEAVE_REQUEST_ALREADY_CANCELLED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

@@ -478,7 +478,7 @@ public class LeaveApprovalService {
             now);
     try {
       requests.decide(tenant, decision, caller.subject());
-      requests.checkDecisionConsistency(tenant);
+      requests.checkTerminalConsistency(tenant);
     } catch (DataIntegrityViolationException violated) {
       Optional<String> constraint = LeaveConstraintViolations.constraint(violated);
       if (constraint.filter(LeaveConstraintViolations.DECISION_UNIQUE::equals).isPresent()

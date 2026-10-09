@@ -15,6 +15,7 @@ import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate, formatPeriod } from '../people/history';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { toneOf } from './leavePolicies';
+import { MyLeaveCancelDialog } from './MyLeaveCancelDialog';
 import {
   EMPTY_REQUEST,
   MY_LEAVE_NETWORK_FAILURE,
@@ -39,11 +40,12 @@ type Policies =
       timezone: string;
     };
 
-/** MVP-041B: the tone of each state (the text always carries the meaning). */
+/** MVP-041B/C: the tone of each state (the text always carries the meaning). */
 const STATE_TONES: Record<MyLeaveRequest['state'], StatusTone> = {
   PENDING: 'info',
   APPROVED: 'success',
   REJECTED: 'danger',
+  CANCELLED: 'neutral',
 };
 
 type History =
@@ -92,15 +94,17 @@ function MyLeaveAlert({
 /**
  * MVP-041A: « Mes congés » / "My leave". The employee reviews the policies they can request,
  * submits a pending request and sees their own requests; from MVP-041B, each decided request shows
- * its outcome and the approver's reason in the language it was written in (never who decided). No
- * working day, holiday or balance is calculated; nothing is kept in browser storage or put in a
- * URL.
+ * its outcome and the approver's reason in the language it was written in (never who decided);
+ * from MVP-041C, the employee cancels a pending request with a reason (MyLeaveCancelDialog) and
+ * sees it as cancelled with that reason. No working day, holiday or balance is calculated; nothing
+ * is kept in browser storage or put in a URL.
  */
 export function MyLeavePage() {
   const { t, i18n } = useTranslation();
   const { core } = useApi();
   const ids = useId();
   const createKey = useIdempotencyKey();
+  const cancelKey = useIdempotencyKey();
   const [policies, setPolicies] = useState<Policies>({ kind: 'loading' });
   const [history, setHistory] = useState<History>({ kind: 'loading' });
   const [form, setForm] = useState<LeaveRequestForm>(EMPTY_REQUEST);
@@ -109,6 +113,11 @@ export function MyLeavePage() {
   const [busy, setBusy] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const failureBox = useRef<HTMLDivElement>(null);
+  // MVP-041C: the request being cancelled (one at a time), the button that opened it, and the
+  // history heading that takes focus when that button is gone.
+  const [cancelTarget, setCancelTarget] = useState<MyLeaveRequest | null>(null);
+  const cancelOpener = useRef<HTMLButtonElement | null>(null);
+  const historyHeading = useRef<HTMLHeadingElement>(null);
   const problemsBox = useRef<HTMLDivElement>(null);
   // R86-1: one page request at a time per list; a second activation requests nothing.
   const pagingPolicies = useRef(false);
@@ -270,6 +279,30 @@ export function MyLeavePage() {
         {t(`myLeave.problems.${field}`)}
       </p>
     ) : null;
+
+  const refreshHistory = () => {
+    void fetchHistory(null).then(setHistory);
+  };
+
+  const onCancelled = (request: MyLeaveRequest) => {
+    cancelKey.reset();
+    setAnnouncement(
+      t('myLeave.cancel.done', {
+        name: request.policyNames[language],
+        period: formatPeriod(t, language, request.startDate, request.endDate),
+      }),
+    );
+    refreshHistory();
+  };
+
+  /** Closing returns focus to the opening button, or to the history heading when it is gone. */
+  const onCancelClosed = (gone: boolean) => {
+    setCancelTarget(null);
+    requestAnimationFrame(() => {
+      if (!gone && cancelOpener.current?.isConnected) cancelOpener.current.focus();
+      else historyHeading.current?.focus();
+    });
+  };
 
   const amountText = (amount: number, unit: MyLeavePolicy['unit']) =>
     t(`myLeave.amount.${unit}`, { amount: formatAmount(language, amount) });
@@ -467,7 +500,9 @@ export function MyLeavePage() {
       </section>
 
       <section aria-labelledby={`${ids}-history`} className="card">
-        <h2 id={`${ids}-history`}>{t('myLeave.history.title')}</h2>
+        <h2 id={`${ids}-history`} ref={historyHeading} tabIndex={-1}>
+          {t('myLeave.history.title')}
+        </h2>
         {history.kind === 'loading' && <p role="status">{t('myLeave.history.loading')}</p>}
         {history.kind === 'failed' && (
           <MyLeaveAlert failure={history.failure} testId="history-error" />
@@ -526,8 +561,48 @@ export function MyLeavePage() {
                             })}
                           </p>
                         </>
+                      ) : request.cancellation ? (
+                        <>
+                          {/* The employee's own reason as written: plain text, never markup. */}
+                          <p className="request-reason" lang={request.cancellation.reasonLocale}>
+                            {request.cancellation.reason}
+                          </p>
+                          <p className="muted">
+                            {t('myLeave.history.cancelledOn', {
+                              date: new Intl.DateTimeFormat(language, {
+                                dateStyle: 'medium',
+                              }).format(new Date(request.cancellation.cancelledAt)),
+                            })}
+                          </p>
+                        </>
                       ) : (
-                        <span className="muted">{t('myLeave.history.awaiting')}</span>
+                        <>
+                          <p className="muted">{t('myLeave.history.awaiting')}</p>
+                          {request.state === 'PENDING' && (
+                            <button
+                              type="button"
+                              className="button button--secondary"
+                              data-testid="cancel-request"
+                              disabled={cancelTarget !== null}
+                              aria-label={t('myLeave.cancel.actionFor', {
+                                name: request.policyNames[language],
+                                period: formatPeriod(
+                                  t,
+                                  language,
+                                  request.startDate,
+                                  request.endDate,
+                                ),
+                              })}
+                              onClick={(event) => {
+                                cancelOpener.current = event.currentTarget;
+                                setAnnouncement('');
+                                setCancelTarget(request);
+                              }}
+                            >
+                              {t('myLeave.cancel.action')}
+                            </button>
+                          )}
+                        </>
                       )}
                     </td>
                   </tr>
@@ -552,6 +627,17 @@ export function MyLeavePage() {
           </p>
         )}
       </section>
+
+      <MyLeaveCancelDialog
+        key={cancelTarget?.id ?? 'closed'}
+        request={cancelTarget}
+        keyFor={cancelKey.keyFor}
+        onCancelled={(_receipt, request) => {
+          onCancelled(request);
+        }}
+        onSettled={refreshHistory}
+        onClosed={onCancelClosed}
+      />
     </section>
   );
 }

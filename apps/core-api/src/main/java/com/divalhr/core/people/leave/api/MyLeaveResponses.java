@@ -3,6 +3,7 @@ package com.divalhr.core.people.leave.api;
 import com.divalhr.core.people.leave.api.LeavePolicyResponses.Names;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
 import com.divalhr.core.people.leave.domain.BalanceMode;
+import com.divalhr.core.people.leave.domain.LeaveCancellation;
 import com.divalhr.core.people.leave.domain.LeaveDecision;
 import com.divalhr.core.people.leave.domain.LeavePolicy;
 import com.divalhr.core.people.leave.domain.LeavePolicyStatus;
@@ -18,7 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/** Employee self-service leave responses (MVP-041A; decisions MVP-041B). */
+/** Employee self-service leave responses (MVP-041A; decisions MVP-041B; cancellations MVP-041C). */
 public final class MyLeaveResponses {
 
   private MyLeaveResponses() {}
@@ -129,6 +130,8 @@ public final class MyLeaveResponses {
    * @param submittedAt submission time
    * @param decision the decision and its reason once decided, otherwise {@code null}; never the
    *     deciding person
+   * @param cancellation the cancellation and its reason once cancelled, otherwise {@code null};
+   *     never the cancelling subject
    */
   @Schema(name = "MyLeaveRequest")
   public record Request(
@@ -143,7 +146,8 @@ public final class MyLeaveResponses {
       LocalDate endDate,
       LeaveRequestState state,
       Instant submittedAt,
-      Decision decision) {
+      Decision decision,
+      Cancellation cancellation) {
 
     /**
      * The view of a request.
@@ -164,7 +168,8 @@ public final class MyLeaveResponses {
           request.endDate(),
           request.state(),
           request.submittedAt(),
-          request.decision() == null ? null : Decision.of(request.decision()));
+          request.decision() == null ? null : Decision.of(request.decision()),
+          request.cancellation() == null ? null : Cancellation.of(request.cancellation()));
     }
 
     /**
@@ -217,6 +222,56 @@ public final class MyLeaveResponses {
       return "MyLeaveDecision[id=" + id + ", outcome=" + outcome + "]";
     }
   }
+
+  /**
+   * The cancellation of one of the caller's own requests (MVP-041C): the reason in the language it
+   * was written in. The cancelling subject is never included.
+   *
+   * @param id cancellation
+   * @param reasonLocale {@code en} or {@code fr}
+   * @param reason the reason, as written (plain text)
+   * @param cancelledAt cancellation time
+   */
+  @Schema(name = "MyLeaveCancellation")
+  public record Cancellation(UUID id, String reasonLocale, String reason, Instant cancelledAt) {
+
+    /**
+     * The employee-safe view of a cancellation.
+     *
+     * @param cancellation cancellation
+     * @return the view
+     */
+    public static Cancellation of(LeaveCancellation cancellation) {
+      return new Cancellation(
+          cancellation.id(),
+          cancellation.reasonLocale(),
+          cancellation.reason(),
+          cancellation.cancelledAt());
+    }
+
+    /**
+     * Identifiers only.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "MyLeaveCancellation[id=" + id + "]";
+    }
+  }
+
+  /**
+   * The minimal receipt of a cancellation (MVP-041C): identifiers, the resulting state and the
+   * time. Never the reason (it is not stored in the idempotency response either).
+   *
+   * @param requestId the cancelled request
+   * @param cancellationId its cancellation
+   * @param state {@code CANCELLED}
+   * @param cancelledAt cancellation time
+   */
+  @Schema(name = "LeaveCancellationReceipt")
+  public record CancellationReceipt(
+      UUID requestId, UUID cancellationId, LeaveRequestState state, Instant cancelledAt) {}
 
   /**
    * One page of the caller's own requests, newest first.
