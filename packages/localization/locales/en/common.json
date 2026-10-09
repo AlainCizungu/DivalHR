@@ -19,6 +19,7 @@
     "contractTemplates": "Contract templates",
     "contractExpirations": "Contract expirations",
     "myContracts": "My contracts",
+    "myLeave": "My leave",
     "groups": {
       "overview": "Overview",
       "platform": "Platform",
@@ -342,7 +343,10 @@
     "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED": "Confirm that you have verified the text before approving it.",
     "EMPLOYEE_LINK_REQUIRED": "Your account is not yet linked to your employee record. Contact your organization’s administrator.",
     "CONTRACT_TIMEOUT": "The request took too long and nothing was saved. Please try again.",
-    "LEAVE_POLICY_CODE_EXISTS": "A leave policy with this code already exists in your organization."
+    "LEAVE_POLICY_CODE_EXISTS": "A leave policy with this code already exists in your organization.",
+    "LEAVE_POLICY_NOT_REQUESTABLE": "This leave policy cannot be requested for these dates. Choose another policy or other dates.",
+    "LEAVE_REQUEST_NOT_ELIGIBLE": "You are not eligible for this leave on these dates.",
+    "LEAVE_REQUEST_OVERLAP": "You already have a pending request for some of these dates."
   },
   "notFound": {
     "title": "Page not found",
@@ -1689,7 +1693,7 @@
   "leavePolicies": {
     "title": "Leave policies",
     "description": "Your organization’s leave types and their basic rules: eligibility, balance, approval and payroll description.",
-    "notEnabled": "This page sets up the policy catalogue only. Leave requests, balance calculation and approvals are not enabled yet.",
+    "notEnabled": "This page sets up the policy catalogue only. Employees submit requests in My leave; balance calculation and approvals are not enabled yet.",
     "legal": "Your organization defines these values and should check them against the rules that apply to it. DivalHR suggests no statutory default and gives no legal advice. Paid or unpaid only describes the leave; it calculates nothing.",
     "catalogue": "Policy catalogue",
     "list": "List of leave policies",
@@ -1778,6 +1782,73 @@
     },
     "unauthorized": "Only organization administrators can manage leave policies.",
     "signInRequired": "Sign in as an organization administrator to manage leave policies."
+  },
+  "myLeave": {
+    "title": "My leave",
+    "description": "See the leave policies you can request, submit a leave request and follow your requests.",
+    "notCalculated": "Working days, public holidays and leave balances are not calculated yet.",
+    "reviewed": "You enter the amount yourself; it is reviewed when your request is approved. Approval is not available yet: your requests stay pending.",
+    "submitted": "Your {{name}} request for {{period}} was submitted. It is pending.",
+    "unauthorized": "This page is for employees of an organization.",
+    "signInRequired": "Sign in to see your leave.",
+    "policies": {
+      "title": "Leave policies you can request",
+      "loading": "Loading leave policies…",
+      "empty": "Your organization has no leave policy you can request yet.",
+      "asOf": "Statuses calculated for {{date}} ({{timezone}})",
+      "more": "Show more policies",
+      "loadingMore": "Loading more policies…"
+    },
+    "form": {
+      "title": "Request leave",
+      "intro": "Every field is required. Nothing is filled in for you.",
+      "policy": "Leave policy",
+      "choose": "Choose…",
+      "policyOption": "{{name}} ({{code}})",
+      "startDate": "First day",
+      "endDate": "Last day",
+      "endDateHelp": "The last day is included; a request covers at most 366 days.",
+      "amount": {
+        "DAYS": "Days requested",
+        "HOURS": "Hours requested",
+        "UNKNOWN": "Amount requested"
+      },
+      "amountHelp": "In the policy's unit, more than 0 and up to 10,000, with at most two decimals. It is not calculated from the dates.",
+      "submit": "Submit the request",
+      "submitting": "Submitting…"
+    },
+    "problems": {
+      "policy": "Choose a leave policy.",
+      "startDate": "Enter a valid first day, today or later.",
+      "endDate": "Enter a valid last day, on or after the first day and within 366 days.",
+      "amount": "Enter an amount above 0 and up to 10,000, with at most two decimals."
+    },
+    "notEligible": {
+      "EMPLOYMENT_PERIOD": "Your employment does not cover these dates.",
+      "MINIMUM_SERVICE": "You have not yet completed the minimum service this policy requires on the first day."
+    },
+    "amount": {
+      "DAYS": "{{amount}} days",
+      "HOURS": "{{amount}} hours"
+    },
+    "state": {
+      "PENDING": "Pending"
+    },
+    "history": {
+      "title": "My requests",
+      "loading": "Loading your requests…",
+      "empty": "You have not submitted any leave request yet.",
+      "list": "List of my leave requests",
+      "columns": {
+        "policy": "Policy",
+        "period": "Dates",
+        "amount": "Amount",
+        "submitted": "Submitted",
+        "state": "Status"
+      },
+      "more": "Show more requests",
+      "loadingMore": "Loading more requests…"
+    }
   },
   "landing": {
     "documentTitle": "DivalHR — The workforce operating platform for Africa",

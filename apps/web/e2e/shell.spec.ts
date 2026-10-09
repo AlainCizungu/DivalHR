@@ -123,7 +123,11 @@ test.describe('desktop', () => {
     browser,
   }) => {
     await signIn(page, USERS.employeeA, 'fr');
-    expect(await navLabels(page, 'Navigation principale')).toEqual(['Accueil', 'Mes contrats']);
+    expect(await navLabels(page, 'Navigation principale')).toEqual([
+      'Accueil',
+      'Mes contrats',
+      'Mes congés',
+    ]);
     await expect(page.getByTestId('roadmap')).toContainText('À venir');
     await expect(page.getByTestId('roadmap').locator('a, button')).toHaveCount(0);
     await expectAccessible(page);

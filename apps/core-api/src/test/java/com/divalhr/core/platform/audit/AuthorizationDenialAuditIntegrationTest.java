@@ -169,7 +169,14 @@ class AuthorizationDenialAuditIntegrationTest {
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
-      Set.of("contract.self-list", "contract.self-read", "contract.acknowledge");
+      Set.of(
+          "contract.self-list",
+          "contract.self-read",
+          "contract.acknowledge",
+          // MVP-041A: employee self-service leave.
+          "leave-policy.self-list",
+          "leave-request.create",
+          "leave-request.self-list");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

@@ -3382,6 +3382,128 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /me/leave-policies:
+    get:
+      operationId: listMyLeavePolicies
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List the leave policies I can request
+      description: >-
+        MVP-041A. The organization's planned and active leave policies (not ended on the business
+        date asOf), ordered by code, then id, with the employee-safe policy view. Requires the
+        employee role, an active membership and the active employee-access link (403
+        EMPLOYEE_LINK_REQUIRED otherwise). The first page reads the business date; the signed cursor
+        pins it and is bound to the operation, tenant, caller and page size. The catalogue holds no
+        personal data and is not disclosure-audited. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyLeavePolicyPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/leave-requests:
+    get:
+      operationId: listMyLeaveRequests
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my leave requests
+      description: >-
+        MVP-041A. The caller's own leave requests, newest first (submittedAt, then id). Only the
+        employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED
+        otherwise). Recorded as a fail-closed disclosure (audit leave-request.self-list): if the
+        audit record cannot be written, nothing is returned. The signed cursor is bound to the
+        operation, tenant, caller and page size. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyLeaveRequestPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: createMyLeaveRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Submit a leave request
+      description: >-
+        MVP-041A. Submits a PENDING leave request for the caller's own employee (never a request
+        field). The server checks, on the organization's business date: startDate not before it,
+        endDate not before startDate, at most 366 calendar days; one version of the policy covering
+        the whole interval (409 LEAVE_POLICY_NOT_REQUESTABLE otherwise, with no params, for unknown,
+        foreign, ended or non-covering policies alike); one employment covering the whole interval
+        and the policy's minimum service in calendar days (409 LEAVE_REQUEST_NOT_ELIGIBLE with
+        params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE); no overlapping pending request (409
+        LEAVE_REQUEST_OVERLAP). The amount is the employee's own, in the policy's unit; no balance,
+        working day, holiday or payroll amount is calculated. Errors never echo a submitted value.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMyLeaveRequest"
+      responses:
+        "201":
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyLeaveRequest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     oauth2:
@@ -3518,6 +3640,8 @@ components:
         ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params.
         LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant)
         carries no params.
+        LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params;
+        LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE.
       content:
         application/problem+json:
           schema:
@@ -6767,6 +6891,9 @@ components:
         - EMPLOYEE_LINK_REQUIRED
         - CONTRACT_TIMEOUT
         - LEAVE_POLICY_CODE_EXISTS
+        - LEAVE_POLICY_NOT_REQUESTABLE
+        - LEAVE_REQUEST_NOT_ELIGIBLE
+        - LEAVE_REQUEST_OVERLAP
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -6943,6 +7070,158 @@ components:
         timezone:
           type: string
           description: The organization's IANA time zone.
+    LeaveRequestState:
+      type: string
+      description: MVP-041A creates PENDING requests only; decisions come in a later story.
+      enum: [PENDING]
+    MyLeavePolicy:
+      type: object
+      required:
+        - id
+        - versionId
+        - code
+        - versionNumber
+        - names
+        - unit
+        - balanceMode
+        - annualEntitlement
+        - minimumServiceDays
+        - approvalRoute
+        - payrollEffect
+        - effectiveFrom
+        - effectiveTo
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        versionId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        versionNumber:
+          type: integer
+          minimum: 1
+        names:
+          $ref: "#/components/schemas/LeavePolicyNames"
+        unit:
+          $ref: "#/components/schemas/LeaveUnit"
+        balanceMode:
+          $ref: "#/components/schemas/LeaveBalanceMode"
+        annualEntitlement:
+          type: [number, "null"]
+          description: Two decimals for TRACKED; null for UNTRACKED. No balance is calculated yet.
+        minimumServiceDays:
+          type: integer
+          description: Calendar days of employment before a request may start.
+        approvalRoute:
+          $ref: "#/components/schemas/LeaveApprovalRoute"
+        payrollEffect:
+          $ref: "#/components/schemas/LeavePayrollEffect"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        status:
+          $ref: "#/components/schemas/LeavePolicyStatus"
+    MyLeavePolicyPage:
+      type: object
+      required: [items, nextCursor, asOf, timezone]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyLeavePolicy"
+        nextCursor:
+          type: [string, "null"]
+        asOf:
+          type: string
+          format: date
+          description: The organization's business date of every status, pinned across pages.
+        timezone:
+          type: string
+          description: The organization's IANA time zone.
+    CreateMyLeaveRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        VALIDATION_FAILED fields: policyId, startDate (RANGE when before the business date),
+        endDate (RANGE when before startDate or beyond 366 days in all), amount, body
+        (UNKNOWN_PROPERTY) and Idempotency-Key.
+      required: [policyId, startDate, endDate, amount]
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 10000
+          multipleOf: 0.01
+          description: The requested amount in the policy's unit (days or hours), entered by the employee.
+    MyLeaveRequest:
+      type: object
+      required:
+        - id
+        - policyId
+        - policyVersionId
+        - policyCode
+        - policyNames
+        - unit
+        - amount
+        - startDate
+        - endDate
+        - state
+        - submittedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        policyId:
+          type: string
+          format: uuid
+        policyVersionId:
+          type: string
+          format: uuid
+        policyCode:
+          type: string
+        policyNames:
+          $ref: "#/components/schemas/LeavePolicyNames"
+        unit:
+          $ref: "#/components/schemas/LeaveUnit"
+        amount:
+          type: number
+          description: Two decimals, in the policy's unit.
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        state:
+          $ref: "#/components/schemas/LeaveRequestState"
+        submittedAt:
+          type: string
+          format: date-time
+    MyLeaveRequestPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyLeaveRequest"
+        nextCursor:
+          type: [string, "null"]
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.

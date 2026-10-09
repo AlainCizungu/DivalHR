@@ -75,7 +75,7 @@ describe('signed-in frame', () => {
         en.nav.accessReview,
       ],
     ],
-    ['employee', ['employee'] as const, [en.nav.home, en.nav.myContracts]],
+    ['employee', ['employee'] as const, [en.nav.home, en.nav.myContracts, en.nav.myLeave]],
     [
       'platform-admin',
       ['platform-admin'] as const,

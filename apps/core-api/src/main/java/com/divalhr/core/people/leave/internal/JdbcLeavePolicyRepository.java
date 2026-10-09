@@ -113,6 +113,69 @@ public class JdbcLeavePolicyRepository {
   }
 
   /**
+   * One keyset page of the policies still open on a business date (planned or active: no end, or an
+   * end on or after the date), ordered by code, then id (MVP-041A self-service catalogue).
+   *
+   * @param tenant verified tenant
+   * @param asOf business date
+   * @param afterCode code of the last row of the previous page, or {@code null}
+   * @param afterId id of that row, or {@code null}
+   * @param limit rows to read
+   * @return rows
+   */
+  public List<LeavePolicy> openPage(
+      TenantId tenant, LocalDate asOf, String afterCode, UUID afterId, int limit) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("tenant", tenant.value())
+            .addValue("asOf", asOf)
+            .addValue("limit", limit);
+    StringBuilder sql =
+        new StringBuilder(SELECT)
+            .append(" WHERE p.tenant_id = :tenant")
+            .append(" AND (v.effective_to IS NULL OR v.effective_to >= :asOf)");
+    if (afterCode != null) {
+      sql.append(" AND (p.code, p.id) > (:afterCode, :afterId)");
+      params.addValue("afterCode", afterCode).addValue("afterId", afterId);
+    }
+    sql.append(" ORDER BY p.code, p.id LIMIT :limit");
+    return jdbc.query(sql.toString(), params, (rs, n) -> policy(rs));
+  }
+
+  /**
+   * The one version of a policy of the tenant whose period covers a whole interval (MVP-041A,
+   * D41A-3 rule 5). Versions never overlap, so there is at most one.
+   *
+   * @param tenant verified tenant
+   * @param policyId policy
+   * @param start first day
+   * @param end last day
+   * @return the policy with that version, if any
+   */
+  public Optional<LeavePolicy> covering(
+      TenantId tenant, UUID policyId, LocalDate start, LocalDate end) {
+    return jdbc
+        .query(
+            "SELECT p.id, p.code, p.created_at, v.id AS version_id, v.version_number, v.name_en,"
+                + " v.name_fr, v.unit, v.balance_mode, v.annual_entitlement,"
+                + " v.minimum_service_days, v.approval_route, v.payroll_effect, v.effective_from,"
+                + " v.effective_to FROM people.leave_policy p"
+                + " JOIN people.leave_policy_version v"
+                + " ON v.tenant_id = p.tenant_id AND v.policy_id = p.id"
+                + " WHERE p.tenant_id = :tenant AND p.id = :policy"
+                + " AND v.effective_from <= :start"
+                + " AND (v.effective_to IS NULL OR v.effective_to >= :end)",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("policy", policyId)
+                .addValue("start", start)
+                .addValue("end", end),
+            (rs, n) -> policy(rs))
+        .stream()
+        .findFirst();
+  }
+
+  /**
    * The immutable code of a policy of the tenant (cursor continuation).
    *
    * @param tenant verified tenant

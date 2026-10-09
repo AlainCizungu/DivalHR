@@ -16,7 +16,7 @@ const TENANT = [
   '/admin/users',
   '/admin/access',
 ];
-const EMPLOYEE = ['/me/contracts'];
+const EMPLOYEE = ['/me/contracts', '/me/leave'];
 
 describe('role-to-navigation matrix (UI-001 proposal §5)', () => {
   it.each<[string, Role[], string[]]>([
@@ -70,7 +70,7 @@ describe('navigation and route registry consistency', () => {
     for (const route of listPages) expect(navPaths, route.path).toContain(route.path);
   });
 
-  it('keeps every pre-UI-001 URL, plus the MVP-031A queue and MVP-040A leave policies', () => {
+  it('keeps every pre-UI-001 URL, plus the MVP-031A queue and MVP-040A/041A leave pages', () => {
     expect(ROUTES.map((route) => route.path).sort()).toEqual(
       [
         '/',
@@ -88,6 +88,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/contract-expirations',
         '/admin/leave-policies',
         '/me/contracts',
+        '/me/leave',
         '/me/contracts/:contractId',
         '/invitation',
         '/auth/callback',
