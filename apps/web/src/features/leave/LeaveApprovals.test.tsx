@@ -12,6 +12,7 @@ import {
   decisionBodyOf,
   decisionProblemsOf,
   normalizeReason,
+  forbiddenCodePoint,
 } from './leaveApprovals';
 
 const item = (id: string, overrides: Record<string, unknown> = {}) => ({
@@ -129,6 +130,37 @@ describe('MVP-041B reason grammar and failures', () => {
       ]);
     }
     expect(decisionProblemsOf({ ...ok, reason: '😀'.repeat(500) }).size).toBe(0);
+  });
+
+  it('applies grammar version 1 like LeaveReasonGrammar and people.leave_reason_valid', () => {
+    const ok = { decision: 'REJECTED' as const, reasonLocale: 'en' as const, reason: '' };
+    // Zero-width, joiner, bidi override, soft hyphen, tag, private use (BMP and plane 15),
+    // noncharacters, an unpaired surrogate and C1 control.
+    for (const reason of [
+      'a\u200Bb',
+      'a\u200Db',
+      'a\u202Eb',
+      'a\u00ADb',
+      'a\u{E0041}b',
+      'a\uE000b',
+      'a\u{F0000}b',
+      'a\uFFFEb',
+      'a\u{10FFFF}b',
+      'a\uD800b',
+      'a\u0085b',
+    ]) {
+      expect([...decisionProblemsOf({ ...ok, reason })], JSON.stringify(reason)).toEqual([
+        'reason',
+      ]);
+    }
+    // Supplementary characters count once and are accepted; unassigned U+0378 is accepted.
+    for (const reason of ['😀😀', '\u{20BB7}x', 'a\u0378b']) {
+      expect(decisionProblemsOf({ ...ok, reason }).size, JSON.stringify(reason)).toBe(0);
+    }
+    expect(normalizeReason('\u3000\u2028 ok \u00A0\u0009')).toBe('ok');
+    expect(normalizeReason('\u200B ok')).toBe('\u200B ok');
+    expect(forbiddenCodePoint(0xfffe)).toBe(true);
+    expect(forbiddenCodePoint(0xfffd)).toBe(false);
   });
 
   it('keeps only allow-listed details of a problem', () => {

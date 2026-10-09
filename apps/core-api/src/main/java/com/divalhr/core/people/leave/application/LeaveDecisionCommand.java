@@ -24,16 +24,10 @@ import java.util.regex.Pattern;
  * @param requestId the request (from the path)
  * @param outcome {@code APPROVED} or {@code REJECTED}
  * @param reasonLocale {@code en} or {@code fr}
- * @param reason trimmed, NFC-normalized reason, 2 to 500 code points
+ * @param reason the reason in its stored form ({@link LeaveReasonGrammar}, version 1)
  */
 public record LeaveDecisionCommand(
     UUID requestId, LeaveRequestState outcome, String reasonLocale, String reason) {
-
-  /** Fewest code points of a reason. */
-  static final int REASON_MIN = 2;
-
-  /** Most code points of a reason. */
-  static final int REASON_MAX = 500;
 
   private static final Set<String> LOCALES = Set.of("en", "fr");
   private static final Pattern UUID_SHAPE =
@@ -99,10 +93,39 @@ public record LeaveDecisionCommand(
     } else {
       locale = text;
     }
-    String reason =
-        LeavePolicyCommand.text(errors, "reason", request.getReason(), REASON_MIN, REASON_MAX);
+    String reason = reason(errors, request.getReason());
     errors.throwIfAny();
     return new LeaveDecisionCommand(id, outcome, locale, reason);
+  }
+
+  /**
+   * The reason in its stored form, or {@code null} after a problem: required, a string, no
+   * forbidden code point ({@code FORMAT}), then 2 to 500 code points ({@code LENGTH}), exactly as
+   * {@link LeaveReasonGrammar} and the database decide.
+   */
+  private static String reason(FieldErrors errors, Object raw) {
+    if (raw == null) {
+      errors.add("reason", Constraint.REQUIRED);
+      return null;
+    }
+    if (!(raw instanceof String text)) {
+      errors.add("reason", Constraint.FORMAT);
+      return null;
+    }
+    String stored = LeaveReasonGrammar.normalize(text);
+    if (stored.isEmpty()) {
+      errors.add("reason", Constraint.REQUIRED);
+      return null;
+    }
+    if (!LeaveReasonGrammar.allowedCodePoints(stored)) {
+      errors.add("reason", Constraint.FORMAT);
+      return null;
+    }
+    if (!LeaveReasonGrammar.isValid(stored)) {
+      errors.add("reason", Constraint.LENGTH);
+      return null;
+    }
+    return stored;
   }
 
   /**

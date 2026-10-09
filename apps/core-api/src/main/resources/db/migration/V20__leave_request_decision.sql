@@ -74,15 +74,20 @@ CREATE INDEX leave_request_employment_pending
 -- Decisions: one per request, append-only
 -- ---------------------------------------------------------------------------------------------
 
--- The reason grammar (the application enforces the same): NFC, trimmed, 2 to 500 code points,
--- no control character.
+-- The decision-reason grammar, version 1, identical to LeaveReasonGrammar in the application (an
+-- explicit code point list, independent of the Unicode version of either side): NFC; no trim-set
+-- code point first or last (U+0009-000D, U+0020, U+0085, U+00A0, U+1680, U+2000-200A, U+2028,
+-- U+2029, U+202F, U+205F, U+3000); 2 to 500 code points; no C0/C1 control, Unicode 15.0 format
+-- character (Cf), line/paragraph separator, private-use code point or noncharacter. NUL and
+-- surrogates cannot occur in PostgreSQL text.
 CREATE FUNCTION people.leave_reason_valid(reason text) RETURNS boolean
     LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
 AS $fn$
 SELECT reason IS NFC NORMALIZED
-    AND reason = btrim(reason)
     AND char_length(reason) BETWEEN 2 AND 500
-    AND reason !~ '[[:cntrl:]]'
+    AND reason !~ '^[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028-\u2029\u202F\u205F\u3000]'
+    AND reason !~ '[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028-\u2029\u202F\u205F\u3000]$'
+    AND reason !~ '[\u0001-\u001F\u007F-\u009F\u00AD\u0600-\u0605\u061C\u06DD\u070F\u0890-\u0891\u08E2\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF\uFFF9-\uFFFB\U000110BD\U000110CD\U00013430-\U0001343F\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0001\U000E0020-\U000E007F\u2028-\u2029\uE000-\uF8FF\U000F0000-\U000FFFFD\U00100000-\U0010FFFD\uFDD0-\uFDEF\uFFFE-\uFFFF\U0001FFFE-\U0001FFFF\U0002FFFE-\U0002FFFF\U0003FFFE-\U0003FFFF\U0004FFFE-\U0004FFFF\U0005FFFE-\U0005FFFF\U0006FFFE-\U0006FFFF\U0007FFFE-\U0007FFFF\U0008FFFE-\U0008FFFF\U0009FFFE-\U0009FFFF\U000AFFFE-\U000AFFFF\U000BFFFE-\U000BFFFF\U000CFFFE-\U000CFFFF\U000DFFFE-\U000DFFFF\U000EFFFE-\U000EFFFF\U000FFFFE-\U000FFFFF\U0010FFFE-\U0010FFFF]'
 $fn$;
 
 CREATE FUNCTION people.leave_request_decision_immutable() RETURNS trigger
@@ -146,7 +151,8 @@ CREATE TRIGGER leave_request_decision_no_truncate
 -- Deferred consistency (the application runs both IMMEDIATE before its audit and outbox writes)
 -- ---------------------------------------------------------------------------------------------
 
--- A terminal request commits only with its one decision of the same outcome.
+-- A terminal request commits only with its one decision of the same outcome, whether it was
+-- inserted terminal or moved there (R90-1).
 CREATE FUNCTION people.leave_request_decided() RETURNS trigger
     LANGUAGE plpgsql
 AS $fn$
@@ -165,7 +171,7 @@ END
 $fn$;
 
 CREATE CONSTRAINT TRIGGER leave_request_decided
-    AFTER UPDATE ON people.leave_request
+    AFTER INSERT OR UPDATE ON people.leave_request
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION people.leave_request_decided();
 

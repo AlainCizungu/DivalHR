@@ -3,6 +3,7 @@ package com.divalhr.core.people.leave;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.divalhr.core.people.leave.application.LeaveReasonGrammar;
 import com.divalhr.core.support.IntegrationTest;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -506,8 +507,138 @@ class LeaveDecisionMigrationIntegrationTest {
                 db, c -> decide(c, decisionRow(tenant, cid, "REJECTED", "TENANT_ADMIN", null)));
             committed(
                 db, c -> exec(c, REQUEST, row(a, versions[1], d.plusDays(10), d.plusDays(10))));
+
+            // R90-1: a request inserted already terminal commits only with its matching decision.
+            Object[] insertedApproved =
+                change(row(a, versions[0], d.plusDays(200), d.plusDays(200)), 8, "APPROVED");
+            refused(db, "leave_request_decided", c -> exec(c, REQUEST, insertedApproved));
+            Object[] insertedRejected =
+                change(row(a, versions[1], d.plusDays(210), d.plusDays(210)), 8, "REJECTED");
+            refused(
+                db,
+                "leave_request_decided",
+                c -> {
+                  exec(c, REQUEST, insertedRejected);
+                  // A decision of the other outcome does not satisfy it either.
+                  exec(
+                      c,
+                      DECISION,
+                      decisionRow(tenant, insertedRejected[0], "APPROVED", "TENANT_ADMIN", null));
+                });
+            committed(
+                db,
+                c -> {
+                  exec(c, REQUEST, insertedApproved);
+                  exec(
+                      c,
+                      DECISION,
+                      decisionRow(tenant, insertedApproved[0], "APPROVED", "MANAGER", manager));
+                });
+            assertThat(
+                    db.jdbc()
+                        .queryForObject(
+                            "SELECT count(*) FROM people.leave_request_decision"
+                                + " WHERE request_id = ?",
+                            Integer.class,
+                            insertedApproved[0]))
+                .isEqualTo(1);
           } catch (SQLException e) {
             throw new IllegalStateException(e);
+          }
+        });
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // The decision-reason grammar, application and database (R90-2)
+  // ------------------------------------------------------------------------------------------
+
+  private static final String[] REASONS = {
+    "Accordé.",
+    "ok",
+    "Bon congé \uD83D\uDE00",
+    "a\u00A0b",
+    "\uD83D\uDE00".repeat(500),
+    "ab\u0378",
+    "x",
+    "\uD83D\uDE00".repeat(501),
+    " ab",
+    "ab\u00A0",
+    "e\u0301x",
+    "Ac\u200Bcord",
+    "a\u200Db",
+    "\u202Eabc",
+    "ab\u00AD",
+    "ab\uDB40\uDC20",
+    "ab\u0007",
+    "a\nb",
+    "a\u2028b",
+    "ab\uE000",
+    "ab\uDB80\uDC00",
+    "ab\uFDD0",
+    "ab\uFFFF",
+  };
+
+  @Test
+  void theReasonGrammarIsTheSameInTheApplicationAndTheDatabase() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "20");
+          // Representative values: the same verdict on both sides, including a zero-width format
+          // character and supplementary characters.
+          for (String reason : REASONS) {
+            Boolean database =
+                db.jdbc()
+                    .queryForObject("SELECT people.leave_reason_valid(?)", Boolean.class, reason);
+            assertThat(database)
+                .as("%s", reason.codePoints().mapToObj(Integer::toHexString).toList())
+                .isEqualTo(LeaveReasonGrammar.isValid(reason));
+          }
+          assertThat(LeaveReasonGrammar.isValid("Ac\u200Bcord")).isFalse();
+          assertThat(LeaveReasonGrammar.isValid("Bon congé \uD83D\uDE00")).isTrue();
+
+          // Every code point (NUL and surrogates cannot occur in PostgreSQL text) at the start,
+          // inside and at the end of a reason: one verdict string per position, compared whole.
+          for (String[] position :
+              List.of(
+                  new String[] {"start", "chr(cp) || 'ab'"},
+                  new String[] {"inside", "'a' || chr(cp) || 'b'"},
+                  new String[] {"end", "'ab' || chr(cp)"})) {
+            String database =
+                db.jdbc()
+                    .queryForObject(
+                        "SELECT string_agg(CASE WHEN people.leave_reason_valid("
+                            + position[1]
+                            + ") THEN '1' ELSE '0' END, '' ORDER BY cp)"
+                            + " FROM generate_series(1, 1114111) AS cp"
+                            + " WHERE cp NOT BETWEEN 55296 AND 57343",
+                        String.class);
+            StringBuilder application = new StringBuilder();
+            for (int cp = 1; cp <= 0x10FFFF; cp++) {
+              if (cp >= 0xD800 && cp <= 0xDFFF) {
+                continue;
+              }
+              String c = new String(Character.toChars(cp));
+              String reason =
+                  switch (position[0]) {
+                    case "start" -> c + "ab";
+                    case "inside" -> "a" + c + "b";
+                    default -> "ab" + c;
+                  };
+              application.append(LeaveReasonGrammar.isValid(reason) ? '1' : '0');
+            }
+            assertThat(database).as(position[0]).isNotNull().hasSize(application.length());
+            List<String> differences = new java.util.ArrayList<>();
+            int index = 0;
+            for (int cp = 1; cp <= 0x10FFFF && differences.size() < 10; cp++) {
+              if (cp >= 0xD800 && cp <= 0xDFFF) {
+                continue;
+              }
+              if (database.charAt(index) != application.charAt(index)) {
+                differences.add(Integer.toHexString(cp));
+              }
+              index++;
+            }
+            assertThat(differences).as("code points judged differently, %s", position[0]).isEmpty();
           }
         });
   }

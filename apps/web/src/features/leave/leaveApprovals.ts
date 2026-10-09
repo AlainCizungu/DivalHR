@@ -21,14 +21,85 @@ export const REASON_MIN = 2;
 export const REASON_MAX = 500;
 
 /**
- * Characters the server refuses in a reason (control, format, line and paragraph separators,
- * private-use and unassigned code points), as in the V20 grammar.
+ * The decision-reason grammar, version 1 (R90-2): the same explicit code point lists as the Core
+ * (`LeaveReasonGrammar`) and PostgreSQL (`people.leave_reason_valid`). FORBIDDEN: C0/C1 controls,
+ * Unicode 15.0 format characters, line/paragraph separators, private use, noncharacters and
+ * surrogates. TRIM: removed from both ends before the checks.
  */
-const UNSAFE = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cn}]/u;
+type Range = readonly [number, number];
 
-/** The reason as the server will store it: NFC-normalized and trimmed. */
+const TRIM: readonly Range[] = [
+  [0x0009, 0x000d],
+  [0x0020, 0x0020],
+  [0x0085, 0x0085],
+  [0x00a0, 0x00a0],
+  [0x1680, 0x1680],
+  [0x2000, 0x200a],
+  [0x2028, 0x2029],
+  [0x202f, 0x202f],
+  [0x205f, 0x205f],
+  [0x3000, 0x3000],
+];
+
+const FORBIDDEN: readonly Range[] = [
+  // C0 and C1 controls.
+  [0x0000, 0x001f],
+  [0x007f, 0x009f],
+  // Format characters (Cf) of Unicode 15.0.
+  [0x00ad, 0x00ad],
+  [0x0600, 0x0605],
+  [0x061c, 0x061c],
+  [0x06dd, 0x06dd],
+  [0x070f, 0x070f],
+  [0x0890, 0x0891],
+  [0x08e2, 0x08e2],
+  [0x180e, 0x180e],
+  [0x200b, 0x200f],
+  [0x202a, 0x202e],
+  [0x2060, 0x2064],
+  [0x2066, 0x206f],
+  [0xfeff, 0xfeff],
+  [0xfff9, 0xfffb],
+  [0x110bd, 0x110bd],
+  [0x110cd, 0x110cd],
+  [0x13430, 0x1343f],
+  [0x1bca0, 0x1bca3],
+  [0x1d173, 0x1d17a],
+  [0xe0001, 0xe0001],
+  [0xe0020, 0xe007f],
+  // Line and paragraph separators.
+  [0x2028, 0x2029],
+  // Surrogates (an unpaired one in a JavaScript string).
+  [0xd800, 0xdfff],
+  // Private use.
+  [0xe000, 0xf8ff],
+  [0xf0000, 0xffffd],
+  [0x100000, 0x10fffd],
+  // Noncharacters: U+FDD0–U+FDEF and the last two code points of every plane.
+  [0xfdd0, 0xfdef],
+  ...Array.from({ length: 17 }, (_, plane): Range => [
+    plane * 0x10000 + 0xfffe,
+    plane * 0x10000 + 0xffff,
+  ]),
+];
+
+function inRanges(ranges: readonly Range[], codePoint: number): boolean {
+  return ranges.some(([low, high]) => codePoint >= low && codePoint <= high);
+}
+
+/** Whether a code point is forbidden anywhere in a reason (grammar version 1). */
+export function forbiddenCodePoint(codePoint: number): boolean {
+  return inRanges(FORBIDDEN, codePoint);
+}
+
+/** The reason as the server will store it: NFC-normalized, the trim set removed from both ends. */
 export function normalizeReason(text: string): string {
-  return text.normalize('NFC').trim();
+  const chars = Array.from(text.normalize('NFC'));
+  let start = 0;
+  let end = chars.length;
+  while (start < end && inRanges(TRIM, chars[start]!.codePointAt(0)!)) start += 1;
+  while (end > start && inRanges(TRIM, chars[end - 1]!.codePointAt(0)!)) end -= 1;
+  return chars.slice(start, end).join('');
 }
 
 /** Unicode code points of a text (a supplementary character counts once, as on the server). */
@@ -49,7 +120,12 @@ export function decisionProblemsOf(form: DecisionForm): Set<DecisionField> {
     problems.add('reasonLocale');
   const reason = normalizeReason(form.reason);
   const length = codePoints(reason);
-  if (length < REASON_MIN || length > REASON_MAX || UNSAFE.test(reason)) problems.add('reason');
+  if (
+    length < REASON_MIN ||
+    length > REASON_MAX ||
+    Array.from(reason).some((c) => forbiddenCodePoint(c.codePointAt(0)!))
+  )
+    problems.add('reason');
   return problems;
 }
 

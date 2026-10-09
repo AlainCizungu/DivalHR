@@ -46,10 +46,12 @@ approve or reject it once, with a reason the employee reads. The design had to g
   with every other column unchanged; deletes and truncation stay forbidden.
 - `people.leave_request_decision` is append-only, one row per request
   (`leave_request_decision_request_unique`): outcome, route, the deciding manager's employee
-  (required for `MANAGER`, absent for `TENANT_ADMIN`), the reason's locale and text (NFC, trimmed,
-  2–500 code points, no control character), the decision time and the verified subject.
+  (required for `MANAGER`, absent for `TENANT_ADMIN`), the reason's locale and text (the
+  decision-reason grammar version 1: an explicit code point list enforced identically by
+  `LeaveReasonGrammar` and `people.leave_reason_valid`; see `DATA-MODEL.md`), the decision time and the verified subject.
 - Two deferred constraint triggers bind the pair: a terminal request commits only with its
-  matching decision (`leave_request_decided`), and a decision only with its request in that state
+  matching decision, whether it was inserted terminal or moved there
+  (`leave_request_decided`, after insert or update), and a decision only with its request in that state
   under its policy version's route with the exact route/manager shape
   (`leave_request_decision_consistent`). The application runs both `IMMEDIATE` before writing the
   audit record and the outbox event, so a named violation maps safely inside the transaction.

@@ -3117,7 +3117,7 @@ export interface components {
              * @enum {string}
              */
             reasonLocale: "en" | "fr";
-            /** @description Plain text. Trimmed and NFC-normalized by the server; 2 to 500 Unicode code points after that; no control, format, line-separator, private-use or unassigned character. */
+            /** @description Plain text, decision-reason grammar version 1 (identical in the Core and the database): NFC-normalized and trimmed by the server; 2 to 500 Unicode code points after that; no C0/C1 control, Unicode 15.0 format character (zero-width, joiner, bidirectional control, tag...), line or paragraph separator, private-use code point or noncharacter. */
             reason: string;
         };
         /** @description MVP-041B. The minimal receipt of a decision; never the reason. */
