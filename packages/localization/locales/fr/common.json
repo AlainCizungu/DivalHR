@@ -19,6 +19,7 @@
     "contractTemplates": "Modèles de contrat",
     "contractExpirations": "Échéances des contrats",
     "myContracts": "Mes contrats",
+    "myLeave": "Mes congés",
     "groups": {
       "overview": "Vue d’ensemble",
       "platform": "Plateforme",
@@ -342,7 +343,10 @@
     "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED": "Confirmez avoir vérifié le texte avant de l’approuver.",
     "EMPLOYEE_LINK_REQUIRED": "Votre compte n’est pas encore relié à votre dossier d’employé. Contactez l’administrateur de votre organisation.",
     "CONTRACT_TIMEOUT": "La demande a pris trop de temps et rien n’a été enregistré. Veuillez réessayer.",
-    "LEAVE_POLICY_CODE_EXISTS": "Une politique de congé avec ce code existe déjà dans votre organisation."
+    "LEAVE_POLICY_CODE_EXISTS": "Une politique de congé avec ce code existe déjà dans votre organisation.",
+    "LEAVE_POLICY_NOT_REQUESTABLE": "Cette politique de congé ne peut pas être demandée pour ces dates. Choisissez une autre politique ou d’autres dates.",
+    "LEAVE_REQUEST_NOT_ELIGIBLE": "Vous n’êtes pas admissible à ce congé pour ces dates.",
+    "LEAVE_REQUEST_OVERLAP": "Vous avez déjà une demande en attente pour une partie de ces dates."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -1689,7 +1693,7 @@
   "leavePolicies": {
     "title": "Politiques de congé",
     "description": "Les types de congé de votre organisation et leurs règles de base : admissibilité, solde, approbation et description pour la paie.",
-    "notEnabled": "Cette page sert uniquement à constituer le catalogue des politiques. Les demandes de congé, le calcul des soldes et les approbations ne sont pas encore activés.",
+    "notEnabled": "Cette page sert uniquement à constituer le catalogue des politiques. Les employés soumettent leurs demandes dans Mes congés ; le calcul des soldes et les approbations ne sont pas encore activés.",
     "legal": "Votre organisation définit ces valeurs et doit les vérifier au regard des règles qui s’appliquent à elle. DivalHR ne propose aucune valeur légale par défaut et ne donne pas de conseil juridique. « Payé » ou « non payé » décrit seulement le congé ; rien n’est calculé.",
     "catalogue": "Catalogue des politiques",
     "list": "Liste des politiques de congé",
@@ -1778,6 +1782,73 @@
     },
     "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les politiques de congé.",
     "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les politiques de congé."
+  },
+  "myLeave": {
+    "title": "Mes congés",
+    "description": "Consultez les politiques de congé que vous pouvez demander, soumettez une demande de congé et suivez vos demandes.",
+    "notCalculated": "Les jours ouvrables, les jours fériés et les soldes de congé ne sont pas encore calculés.",
+    "reviewed": "Vous saisissez vous-même la quantité ; elle est vérifiée lors de l’approbation de votre demande. L’approbation n’est pas encore disponible : vos demandes restent en attente.",
+    "submitted": "Votre demande « {{name}} » pour {{period}} a été soumise. Elle est en attente.",
+    "unauthorized": "Cette page est destinée aux employés d’une organisation.",
+    "signInRequired": "Connectez-vous pour voir vos congés.",
+    "policies": {
+      "title": "Politiques de congé que vous pouvez demander",
+      "loading": "Chargement des politiques de congé…",
+      "empty": "Votre organisation n’a pas encore de politique de congé que vous pouvez demander.",
+      "asOf": "Statuts calculés pour le {{date}} ({{timezone}})",
+      "more": "Afficher plus de politiques",
+      "loadingMore": "Chargement d’autres politiques…"
+    },
+    "form": {
+      "title": "Demander un congé",
+      "intro": "Tous les champs sont obligatoires. Rien n’est rempli à votre place.",
+      "policy": "Politique de congé",
+      "choose": "Choisir…",
+      "policyOption": "{{name}} ({{code}})",
+      "startDate": "Premier jour",
+      "endDate": "Dernier jour",
+      "endDateHelp": "Le dernier jour est inclus ; une demande couvre au plus 366 jours.",
+      "amount": {
+        "DAYS": "Jours demandés",
+        "HOURS": "Heures demandées",
+        "UNKNOWN": "Quantité demandée"
+      },
+      "amountHelp": "Dans l’unité de la politique, supérieure à 0 et au plus 10 000, avec au plus deux décimales. Elle n’est pas calculée à partir des dates.",
+      "submit": "Soumettre la demande",
+      "submitting": "Envoi…"
+    },
+    "problems": {
+      "policy": "Choisissez une politique de congé.",
+      "startDate": "Saisissez un premier jour valide, aujourd’hui ou plus tard.",
+      "endDate": "Saisissez un dernier jour valide, égal ou postérieur au premier jour et dans la limite de 366 jours.",
+      "amount": "Saisissez une quantité supérieure à 0 et au plus 10 000, avec au plus deux décimales."
+    },
+    "notEligible": {
+      "EMPLOYMENT_PERIOD": "Votre emploi ne couvre pas ces dates.",
+      "MINIMUM_SERVICE": "Au premier jour, vous n’avez pas encore l’ancienneté minimale exigée par cette politique."
+    },
+    "amount": {
+      "DAYS": "{{amount}} jours",
+      "HOURS": "{{amount}} heures"
+    },
+    "state": {
+      "PENDING": "En attente"
+    },
+    "history": {
+      "title": "Mes demandes",
+      "loading": "Chargement de vos demandes…",
+      "empty": "Vous n’avez encore soumis aucune demande de congé.",
+      "list": "Liste de mes demandes de congé",
+      "columns": {
+        "policy": "Politique",
+        "period": "Dates",
+        "amount": "Quantité",
+        "submitted": "Soumise le",
+        "state": "Statut"
+      },
+      "more": "Afficher plus de demandes",
+      "loadingMore": "Chargement d’autres demandes…"
+    }
   },
   "landing": {
     "documentTitle": "DivalHR — La plateforme de gestion des effectifs pour l’Afrique",

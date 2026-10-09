@@ -125,6 +125,9 @@ divalhr:
       # MVP-040A: leave policy configuration.
       leave-policy-read: ${DIVALHR_LEAVE_POLICY_READ_REQUESTS_PER_MINUTE:60}
       leave-policy-write: ${DIVALHR_LEAVE_POLICY_WRITE_REQUESTS_PER_MINUTE:20}
+      # MVP-041A: employee self-service leave.
+      leave-self-read: ${DIVALHR_LEAVE_SELF_READ_REQUESTS_PER_MINUTE:60}
+      leave-request-write: ${DIVALHR_LEAVE_REQUEST_WRITE_REQUESTS_PER_MINUTE:10}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -143,6 +146,9 @@ divalhr:
         window: 10m
       leave-policy-write:
         requests: ${DIVALHR_LEAVE_POLICY_TENANT_WRITES:200}
+        window: 10m
+      leave-request-write:
+        requests: ${DIVALHR_LEAVE_REQUEST_TENANT_WRITES:200}
         window: 10m
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).

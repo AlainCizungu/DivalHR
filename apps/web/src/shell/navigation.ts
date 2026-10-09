@@ -112,6 +112,7 @@ export const NAVIGATION: NavGroupDef[] = [
     labelKey: 'nav.groups.mySpace',
     items: [
       { to: '/me/contracts', labelKey: 'nav.myContracts', icon: 'contract', role: 'employee' },
+      { to: '/me/leave', labelKey: 'nav.myLeave', icon: 'calendar', role: 'employee' },
     ],
   },
 ];

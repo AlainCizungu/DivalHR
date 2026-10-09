@@ -96,7 +96,7 @@ public class LeavePolicyService {
   /** The cursor's position code pins the business date: {@code A} + {@code yyyyMMdd}. */
   private static final Pattern CURSOR_CODE = Pattern.compile("^A([0-9]{8})$");
 
-  private static final DateTimeFormatter BASIC = DateTimeFormatter.BASIC_ISO_DATE;
+  static final DateTimeFormatter BASIC = DateTimeFormatter.BASIC_ISO_DATE;
   private static final Pattern LIMIT = Pattern.compile("^[0-9]{1,3}$");
 
   private final IdempotentOperation operations;
@@ -290,7 +290,7 @@ public class LeavePolicyService {
     }
   }
 
-  private static int limit(String raw) {
+  static int limit(String raw) {
     if (raw == null || raw.isEmpty()) {
       return DEFAULT_LIMIT;
     }
@@ -306,7 +306,7 @@ public class LeavePolicyService {
     throw new IllegalStateException("unreachable");
   }
 
-  private static LocalDate pinned(KeysetPosition position) {
+  static LocalDate pinned(KeysetPosition position) {
     Matcher matcher = CURSOR_CODE.matcher(position.code());
     if (!matcher.matches()) {
       throw invalidCursor();
@@ -318,7 +318,7 @@ public class LeavePolicyService {
     }
   }
 
-  private static ApiException invalidCursor() {
+  static ApiException invalidCursor() {
     return new ApiException(ErrorCode.CURSOR_INVALID, Map.of());
   }
 

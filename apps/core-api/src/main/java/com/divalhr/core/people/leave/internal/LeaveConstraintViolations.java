@@ -14,6 +14,9 @@ public final class LeaveConstraintViolations {
   /** The constraint that decides duplicate codes in one tenant. */
   public static final String CODE_UNIQUE = "leave_policy_code_unique";
 
+  /** The exclusion that keeps an employee's pending requests from overlapping (MVP-041A). */
+  public static final String REQUEST_OVERLAP = "leave_request_no_overlap";
+
   private LeaveConstraintViolations() {}
 
   /**

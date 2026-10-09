@@ -233,7 +233,15 @@ public enum ErrorCode {
   /** The contract operation took too long and nothing was written (MVP-030). */
   CONTRACT_TIMEOUT(HttpStatus.SERVICE_UNAVAILABLE),
   /** A leave policy with this code already exists in the organization (MVP-040A). */
-  LEAVE_POLICY_CODE_EXISTS(HttpStatus.CONFLICT);
+  LEAVE_POLICY_CODE_EXISTS(HttpStatus.CONFLICT),
+  /** The policy is unknown, ended or does not cover the whole interval (MVP-041A; no params). */
+  LEAVE_POLICY_NOT_REQUESTABLE(HttpStatus.CONFLICT),
+  /**
+   * The employee is not eligible (params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE; MVP-041A).
+   */
+  LEAVE_REQUEST_NOT_ELIGIBLE(HttpStatus.CONFLICT),
+  /** Another pending request of the employee overlaps these dates (MVP-041A; no params). */
+  LEAVE_REQUEST_OVERLAP(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

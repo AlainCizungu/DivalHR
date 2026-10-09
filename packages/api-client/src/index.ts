@@ -165,6 +165,12 @@ export type LeavePolicy = CoreComponents['schemas']['LeavePolicy'];
 export type LeavePolicyPage = CoreComponents['schemas']['LeavePolicyPage'];
 export type LeavePolicyResult = CoreComponents['schemas']['LeavePolicyResult'];
 export type CreateLeavePolicy = CoreComponents['schemas']['CreateLeavePolicy'];
+export type LeaveRequestState = CoreComponents['schemas']['LeaveRequestState'];
+export type MyLeavePolicy = CoreComponents['schemas']['MyLeavePolicy'];
+export type MyLeavePolicyPage = CoreComponents['schemas']['MyLeavePolicyPage'];
+export type MyLeaveRequest = CoreComponents['schemas']['MyLeaveRequest'];
+export type MyLeaveRequestPage = CoreComponents['schemas']['MyLeaveRequestPage'];
+export type CreateMyLeaveRequest = CoreComponents['schemas']['CreateMyLeaveRequest'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

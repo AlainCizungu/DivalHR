@@ -12,6 +12,7 @@ import { MyContractsPage } from '../features/contracts/MyContractsPage';
 import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
 import { HomePage } from '../features/home/HomePage';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
+import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { EmployeeDirectoryPage } from '../features/people/EmployeeDirectoryPage';
 import { EmployeeImportPage } from '../features/people/EmployeeImportPage';
@@ -171,6 +172,16 @@ export const ROUTES: AppRoute[] = [
       { key: 'nav.myContracts', to: '/me/contracts' },
       { key: 'shell.crumb.contract' },
     ],
+  },
+  {
+    path: '/me/leave',
+    element: <MyLeavePage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'myLeave.unauthorized',
+      signInKey: 'myLeave.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myLeave' }],
   },
   { path: '/invitation', element: <AcceptInvitationPage />, frame: 'public' },
   { path: '/auth/callback', element: <CallbackPage />, frame: 'public' },
