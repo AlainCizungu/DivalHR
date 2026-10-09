@@ -92,13 +92,19 @@ export function forbiddenCodePoint(codePoint: number): boolean {
   return inRanges(FORBIDDEN, codePoint);
 }
 
+/** The code point of one character from `Array.from` (never empty). */
+function codePointOf(c: string): number {
+  return c.codePointAt(0) ?? 0;
+}
+
 /** The reason as the server will store it: NFC-normalized, the trim set removed from both ends. */
 export function normalizeReason(text: string): string {
   const chars = Array.from(text.normalize('NFC'));
+  const trimmed = (c: string | undefined) => c !== undefined && inRanges(TRIM, codePointOf(c));
   let start = 0;
   let end = chars.length;
-  while (start < end && inRanges(TRIM, chars[start]!.codePointAt(0)!)) start += 1;
-  while (end > start && inRanges(TRIM, chars[end - 1]!.codePointAt(0)!)) end -= 1;
+  while (start < end && trimmed(chars[start])) start += 1;
+  while (end > start && trimmed(chars[end - 1])) end -= 1;
   return chars.slice(start, end).join('');
 }
 
@@ -123,7 +129,7 @@ export function decisionProblemsOf(form: DecisionForm): Set<DecisionField> {
   if (
     length < REASON_MIN ||
     length > REASON_MAX ||
-    Array.from(reason).some((c) => forbiddenCodePoint(c.codePointAt(0)!))
+    Array.from(reason).some((c) => forbiddenCodePoint(codePointOf(c)))
   )
     problems.add('reason');
   return problems;
