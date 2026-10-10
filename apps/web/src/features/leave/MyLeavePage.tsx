@@ -15,6 +15,7 @@ import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate, formatPeriod } from '../people/history';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { toneOf } from './leavePolicies';
+import { MyLeaveAmendDialog } from './MyLeaveAmendDialog';
 import { MyLeaveCancelDialog } from './MyLeaveCancelDialog';
 import {
   EMPTY_REQUEST,
@@ -40,12 +41,13 @@ type Policies =
       timezone: string;
     };
 
-/** MVP-041B/C: the tone of each state (the text always carries the meaning). */
+/** MVP-041B/C/D: the tone of each state (the text always carries the meaning). */
 const STATE_TONES: Record<MyLeaveRequest['state'], StatusTone> = {
   PENDING: 'info',
   APPROVED: 'success',
   REJECTED: 'danger',
   CANCELLED: 'neutral',
+  AMENDED: 'neutral',
 };
 
 type History =
@@ -96,8 +98,11 @@ function MyLeaveAlert({
  * submits a pending request and sees their own requests; from MVP-041B, each decided request shows
  * its outcome and the approver's reason in the language it was written in (never who decided);
  * from MVP-041C, the employee cancels a pending request with a reason (MyLeaveCancelDialog) and
- * sees it as cancelled with that reason. No working day, holiday or balance is calculated; nothing
- * is kept in browser storage or put in a URL.
+ * sees it as cancelled with that reason; from MVP-041D, the employee replaces a pending request
+ * (MyLeaveAmendDialog) and sees both linked entries, the original as amended with the reason. One
+ * consequential action at a time: while a cancellation or an amendment dialog is open, every other
+ * action is disabled. No working day, holiday or balance is calculated; nothing is kept in browser
+ * storage or put in a URL.
  */
 export function MyLeavePage() {
   const { t, i18n } = useTranslation();
@@ -105,6 +110,7 @@ export function MyLeavePage() {
   const ids = useId();
   const createKey = useIdempotencyKey();
   const cancelKey = useIdempotencyKey();
+  const amendKey = useIdempotencyKey();
   const [policies, setPolicies] = useState<Policies>({ kind: 'loading' });
   const [history, setHistory] = useState<History>({ kind: 'loading' });
   const [form, setForm] = useState<LeaveRequestForm>(EMPTY_REQUEST);
@@ -116,6 +122,9 @@ export function MyLeavePage() {
   // MVP-041C: the request being cancelled (one at a time), the button that opened it, and the
   // history heading that takes focus when that button is gone.
   const [cancelTarget, setCancelTarget] = useState<MyLeaveRequest | null>(null);
+  // MVP-041D: the request being amended; one consequential action at a time across both dialogs.
+  const [amendTarget, setAmendTarget] = useState<MyLeaveRequest | null>(null);
+  const acting = cancelTarget !== null || amendTarget !== null;
   const cancelOpener = useRef<HTMLButtonElement | null>(null);
   const historyHeading = useRef<HTMLHeadingElement>(null);
   const problemsBox = useRef<HTMLDivElement>(null);
@@ -295,13 +304,35 @@ export function MyLeavePage() {
     refreshHistory();
   };
 
+  const onAmended = (request: MyLeaveRequest) => {
+    amendKey.reset();
+    setAnnouncement(
+      t('myLeave.amend.done', {
+        name: request.policyNames[language],
+        period: formatPeriod(t, language, request.startDate, request.endDate),
+      }),
+    );
+    refreshHistory();
+  };
+
   /** Closing returns focus to the opening button, or to the history heading when it is gone. */
   const onCancelClosed = (gone: boolean) => {
     setCancelTarget(null);
+    setAmendTarget(null);
     requestAnimationFrame(() => {
       if (!gone && cancelOpener.current?.isConnected) cancelOpener.current.focus();
       else historyHeading.current?.focus();
     });
+  };
+
+  /** The other end of an amendment chain, by its period when it is on the loaded pages. */
+  const linked = (id: string, relation: 'replaces' | 'replacedBy') => {
+    const found = history.kind === 'ready' ? history.items.find((item) => item.id === id) : null;
+    return found
+      ? t(`myLeave.history.${relation}`, {
+          period: formatPeriod(t, language, found.startDate, found.endDate),
+        })
+      : t(`myLeave.history.${relation}Earlier`);
   };
 
   const amountText = (amount: number, unit: MyLeavePolicy['unit']) =>
@@ -547,6 +578,11 @@ export function MyLeavePage() {
                       </StatusBadge>
                     </td>
                     <td data-testid="request-decision">
+                      {request.amendedFromRequestId && (
+                        <p className="muted" data-testid="request-replaces">
+                          {linked(request.amendedFromRequestId, 'replaces')}
+                        </p>
+                      )}
                       {request.decision ? (
                         <>
                           {/* The reason as written, in its own language: plain text, never markup. */}
@@ -559,6 +595,23 @@ export function MyLeavePage() {
                                 dateStyle: 'medium',
                               }).format(new Date(request.decision.decidedAt)),
                             })}
+                          </p>
+                        </>
+                      ) : request.amendment ? (
+                        <>
+                          {/* The employee's own reason as written: plain text, never markup. */}
+                          <p className="request-reason" lang={request.amendment.reasonLocale}>
+                            {request.amendment.reason}
+                          </p>
+                          <p className="muted">
+                            {t('myLeave.history.amendedOn', {
+                              date: new Intl.DateTimeFormat(language, {
+                                dateStyle: 'medium',
+                              }).format(new Date(request.amendment.amendedAt)),
+                            })}
+                          </p>
+                          <p className="muted" data-testid="request-replaced-by">
+                            {linked(request.amendment.replacementRequestId, 'replacedBy')}
                           </p>
                         </>
                       ) : request.cancellation ? (
@@ -582,8 +635,32 @@ export function MyLeavePage() {
                             <button
                               type="button"
                               className="button button--secondary"
+                              data-testid="amend-request"
+                              disabled={acting}
+                              aria-label={t('myLeave.amend.actionFor', {
+                                name: request.policyNames[language],
+                                period: formatPeriod(
+                                  t,
+                                  language,
+                                  request.startDate,
+                                  request.endDate,
+                                ),
+                              })}
+                              onClick={(event) => {
+                                cancelOpener.current = event.currentTarget;
+                                setAnnouncement('');
+                                setAmendTarget(request);
+                              }}
+                            >
+                              {t('myLeave.amend.action')}
+                            </button>
+                          )}{' '}
+                          {request.state === 'PENDING' && (
+                            <button
+                              type="button"
+                              className="button button--secondary"
                               data-testid="cancel-request"
-                              disabled={cancelTarget !== null}
+                              disabled={acting}
                               aria-label={t('myLeave.cancel.actionFor', {
                                 name: request.policyNames[language],
                                 period: formatPeriod(
@@ -628,6 +705,18 @@ export function MyLeavePage() {
         )}
       </section>
 
+      <MyLeaveAmendDialog
+        key={`amend-${amendTarget?.id ?? 'closed'}`}
+        request={amendTarget}
+        policies={available}
+        asOf={policies.kind === 'ready' ? policies.asOf : null}
+        keyFor={amendKey.keyFor}
+        onAmended={(_receipt, request) => {
+          onAmended(request);
+        }}
+        onSettled={refreshHistory}
+        onClosed={onCancelClosed}
+      />
       <MyLeaveCancelDialog
         key={cancelTarget?.id ?? 'closed'}
         request={cancelTarget}

@@ -69,6 +69,7 @@ describe('signed-in frame', () => {
         en.nav.employeeImport,
         en.nav.leavePolicies,
         en.nav.leaveApprovals,
+        en.nav.leaveRoutingExceptions,
         en.nav.hierarchy,
         en.nav.contractTemplates,
         en.nav.contractExpirations,

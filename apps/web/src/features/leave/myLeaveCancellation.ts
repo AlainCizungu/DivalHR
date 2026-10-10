@@ -43,6 +43,7 @@ export interface CancellationFailure {
     | 'validation'
     | 'unavailable'
     | 'alreadyCancelled'
+    | 'alreadyAmended'
     | 'alreadyDecided'
     | 'conflict'
     | 'general';
@@ -64,6 +65,7 @@ export const CANCELLATION_NETWORK_FAILURE: CancellationFailure = {
 export const SETTLED_KINDS: ReadonlySet<CancellationFailure['kind']> = new Set([
   'unavailable',
   'alreadyCancelled',
+  'alreadyAmended',
   'alreadyDecided',
 ]);
 
@@ -91,6 +93,9 @@ export function cancellationFailureOf(response: Response, error: unknown): Cance
   }
   if (code === 'LEAVE_REQUEST_ALREADY_CANCELLED') {
     return { ...base, kind: 'alreadyCancelled', messageKey: 'myLeave.cancel.alreadyCancelled' };
+  }
+  if (code === 'LEAVE_REQUEST_ALREADY_AMENDED') {
+    return { ...base, kind: 'alreadyAmended', messageKey: 'myLeave.cancel.alreadyAmended' };
   }
   if (code === 'LEAVE_REQUEST_ALREADY_DECIDED') {
     return { ...base, kind: 'alreadyDecided', messageKey: 'myLeave.cancel.alreadyDecided' };

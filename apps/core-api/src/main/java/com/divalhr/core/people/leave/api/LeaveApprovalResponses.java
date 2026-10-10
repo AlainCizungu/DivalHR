@@ -108,6 +108,102 @@ public final class LeaveApprovalResponses {
     }
   }
 
+  /** Why a request is a routing exception (MVP-041E): a fixed, safe code. */
+  @Schema(name = "LeaveRoutingExceptionReason")
+  public enum ExceptionReason {
+    /**
+     * The request is {@code MANAGER}-routed and no active, non-superseded MANAGER line covers its
+     * employment on its first day.
+     */
+    NO_QUALIFYING_MANAGER
+  }
+
+  /**
+   * A routing exception (MVP-041E): the same safe fields as an approval-inbox item and the fixed
+   * reason code. The route stays {@code MANAGER}.
+   *
+   * @param id request
+   * @param submittedAt submission time
+   * @param employee requesting employee
+   * @param policyId policy
+   * @param policyVersionId policy version the request was made under
+   * @param policyCode policy code
+   * @param policyNames policy names
+   * @param unit unit of the amount
+   * @param amount requested amount (two decimals)
+   * @param startDate first day (inclusive)
+   * @param endDate last day (inclusive)
+   * @param approvalRoute {@code MANAGER} (the policy route; never rewritten)
+   * @param state {@code PENDING}
+   * @param exceptionReason {@code NO_QUALIFYING_MANAGER}
+   */
+  @Schema(name = "LeaveRoutingException")
+  public record ExceptionItem(
+      UUID id,
+      Instant submittedAt,
+      Employee employee,
+      UUID policyId,
+      UUID policyVersionId,
+      String policyCode,
+      Names policyNames,
+      LeaveUnit unit,
+      BigDecimal amount,
+      LocalDate startDate,
+      LocalDate endDate,
+      ApprovalRoute approvalRoute,
+      LeaveRequestState state,
+      ExceptionReason exceptionReason) {
+
+    /**
+     * The routing-exception view of a queue item.
+     *
+     * @param item the item
+     * @return the view
+     */
+    public static ExceptionItem of(Item item) {
+      return new ExceptionItem(
+          item.id(),
+          item.submittedAt(),
+          item.employee(),
+          item.policyId(),
+          item.policyVersionId(),
+          item.policyCode(),
+          item.policyNames(),
+          item.unit(),
+          item.amount(),
+          item.startDate(),
+          item.endDate(),
+          item.approvalRoute(),
+          item.state(),
+          ExceptionReason.NO_QUALIFYING_MANAGER);
+    }
+
+    /**
+     * Identifiers only.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "LeaveRoutingException[id=" + id + "]";
+    }
+  }
+
+  /**
+   * One page of routing exceptions, newest first (MVP-041E).
+   *
+   * @param items exceptions
+   * @param nextCursor continuation or {@code null}
+   */
+  @Schema(name = "LeaveRoutingExceptionPage")
+  public record ExceptionPage(List<ExceptionItem> items, String nextCursor) {
+
+    /** Keeps an unmodifiable copy of the items. */
+    public ExceptionPage {
+      items = List.copyOf(items);
+    }
+  }
+
   /**
    * One page of pending requests awaiting the caller's decision, newest first.
    *

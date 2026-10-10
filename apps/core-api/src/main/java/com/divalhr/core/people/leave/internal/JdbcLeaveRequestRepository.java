@@ -1,7 +1,9 @@
 package com.divalhr.core.people.leave.internal;
 
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
+import com.divalhr.core.people.leave.domain.DecisionAuthority;
 import com.divalhr.core.people.leave.domain.Employment;
+import com.divalhr.core.people.leave.domain.LeaveAmendment;
 import com.divalhr.core.people.leave.domain.LeaveApprovalItem;
 import com.divalhr.core.people.leave.domain.LeaveCancellation;
 import com.divalhr.core.people.leave.domain.LeaveDecision;
@@ -23,11 +25,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Leave request storage (MVP-041A, V19), decisions (MVP-041B, V20), cancellations (MVP-041C, V21)
- * and the employment periods and reporting lines requests are checked against. Every query names
- * the verified tenant; employee reads are bound to the employee resolved from the caller's own
- * link, approval reads to the route and, for managers, to the caller's own reporting lines. Runs in
- * the caller's transaction.
+ * Leave request storage (MVP-041A, V19), decisions (MVP-041B, V20), cancellations (MVP-041C, V21),
+ * amendments and decision authorities (MVP-041D/E, V22) and the employment periods and reporting
+ * lines requests are checked against. Every query names the verified tenant; employee reads are
+ * bound to the employee resolved from the caller's own link, approval reads to the route and, for
+ * managers, to the caller's own reporting lines. Runs in the caller's transaction.
  */
 @Repository
 public class JdbcLeaveRequestRepository {
@@ -36,9 +38,12 @@ public class JdbcLeaveRequestRepository {
       "SELECT r.id, r.employee_id, r.employment_id, r.policy_version_id, r.start_date,"
           + " r.end_date, r.requested_amount, r.state, r.submitted_at, v.policy_id, p.code,"
           + " v.name_en, v.name_fr, v.unit, d.id AS decision_id, d.outcome, d.approval_route,"
-          + " d.manager_employee_id, d.reason_locale, d.reason_text, d.decided_at,"
-          + " x.id AS cancellation_id, x.reason_locale AS cancellation_locale,"
-          + " x.reason_text AS cancellation_reason, x.cancelled_at"
+          + " d.decision_authority, d.manager_employee_id, d.reason_locale, d.reason_text,"
+          + " d.decided_at, x.id AS cancellation_id, x.reason_locale AS cancellation_locale,"
+          + " x.reason_text AS cancellation_reason, x.cancelled_at, am.id AS amendment_id,"
+          + " am.replacement_request_id, am.reason_locale AS amendment_locale,"
+          + " am.reason_text AS amendment_reason, am.amended_at,"
+          + " ar.original_request_id AS amended_from"
           + " FROM people.leave_request r"
           + " JOIN people.leave_policy_version v"
           + " ON v.tenant_id = r.tenant_id AND v.id = r.policy_version_id"
@@ -46,7 +51,11 @@ public class JdbcLeaveRequestRepository {
           + " LEFT JOIN people.leave_request_decision d"
           + " ON d.tenant_id = r.tenant_id AND d.request_id = r.id"
           + " LEFT JOIN people.leave_request_cancellation x"
-          + " ON x.tenant_id = r.tenant_id AND x.request_id = r.id";
+          + " ON x.tenant_id = r.tenant_id AND x.request_id = r.id"
+          + " LEFT JOIN people.leave_request_amendment am"
+          + " ON am.tenant_id = r.tenant_id AND am.original_request_id = r.id"
+          + " LEFT JOIN people.leave_request_amendment ar"
+          + " ON ar.tenant_id = r.tenant_id AND ar.replacement_request_id = r.id";
 
   private static final String ITEM =
       "SELECT r.id, r.submitted_at, r.employee_id, e.employee_number, e.given_names,"
@@ -75,6 +84,18 @@ public class JdbcLeaveRequestRepository {
           + " WHERE a.tenant_id = r.tenant_id AND a.employment_id = r.employment_id"
           + " AND a.kind = 'MANAGER' AND a.superseded_by_change_id IS NULL"
           + " AND a.manager_employee_id = :manager"
+          + " AND a.effective_from <= r.start_date"
+          + " AND (a.effective_to IS NULL OR a.effective_to >= r.start_date))";
+
+  /**
+   * No active (non-superseded) MANAGER line covers the request's employment on its first day: a
+   * routing exception (MVP-041E; alias {@code r} for the request). The same effective-dated rule as
+   * {@link #REPORTS_TO}, for any manager.
+   */
+  private static final String NO_MANAGER =
+      "NOT EXISTS (SELECT 1 FROM people.employment_assignment a"
+          + " WHERE a.tenant_id = r.tenant_id AND a.employment_id = r.employment_id"
+          + " AND a.kind = 'MANAGER' AND a.superseded_by_change_id IS NULL"
           + " AND a.effective_from <= r.start_date"
           + " AND (a.effective_to IS NULL OR a.effective_to >= r.start_date))";
 
@@ -380,26 +401,6 @@ public class JdbcLeaveRequestRepository {
   }
 
   /**
-   * The route a request's decision was taken under.
-   *
-   * @param tenant verified tenant
-   * @param requestId request
-   * @return the route, if the request has a decision in the tenant
-   */
-  public Optional<ApprovalRoute> decisionRoute(TenantId tenant, UUID requestId) {
-    return jdbc
-        .query(
-            "SELECT approval_route FROM people.leave_request_decision"
-                + " WHERE tenant_id = :tenant AND request_id = :id",
-            new MapSqlParameterSource()
-                .addValue("tenant", tenant.value())
-                .addValue("id", requestId),
-            (rs, n) -> ApprovalRoute.valueOf(rs.getString("approval_route")))
-        .stream()
-        .findFirst();
-  }
-
-  /**
    * Records a decision and moves its pending request to the decision's outcome.
    *
    * @param tenant verified tenant
@@ -411,15 +412,16 @@ public class JdbcLeaveRequestRepository {
   public void decide(TenantId tenant, LeaveDecision decision, String decidedBy) {
     jdbc.update(
         "INSERT INTO people.leave_request_decision (id, tenant_id, request_id, outcome,"
-            + " approval_route, manager_employee_id, reason_locale, reason_text, decided_at,"
-            + " decided_by) VALUES (:id, :tenant, :request, :outcome, :route, :manager, :locale,"
-            + " :reason, :decidedAt, :decidedBy)",
+            + " approval_route, decision_authority, manager_employee_id, reason_locale,"
+            + " reason_text, decided_at, decided_by) VALUES (:id, :tenant, :request, :outcome,"
+            + " :route, :authority, :manager, :locale, :reason, :decidedAt, :decidedBy)",
         new MapSqlParameterSource()
             .addValue("id", decision.id())
             .addValue("tenant", tenant.value())
             .addValue("request", decision.requestId())
             .addValue("outcome", decision.outcome().name())
             .addValue("route", decision.route().name())
+            .addValue("authority", decision.authority().name())
             .addValue("manager", decision.managerEmployeeId())
             .addValue("locale", decision.reasonLocale())
             .addValue("reason", decision.reason())
@@ -440,10 +442,11 @@ public class JdbcLeaveRequestRepository {
 
   /**
    * Runs the deferred terminal-evidence checks now ({@code leave_request_decided}: exactly one
-   * matching kind of evidence per request, V20 extended by V21; {@code
-   * leave_request_decision_consistent}, V20; {@code leave_request_cancellation_consistent}, V21),
-   * so that a violation surfaces inside the business work, where it is mapped by constraint name,
-   * before the audit and outbox records are written.
+   * matching kind of evidence per request, V20 extended by V21 and V22; {@code
+   * leave_request_decision_consistent}, V20/V22; {@code leave_request_cancellation_consistent},
+   * V21; {@code leave_request_amendment_consistent}, V22), so that a violation surfaces inside the
+   * business work, where it is mapped by constraint name, before the audit and outbox records are
+   * written.
    *
    * @param tenant verified tenant whose transaction it is
    */
@@ -453,7 +456,8 @@ public class JdbcLeaveRequestRepository {
         .execute(
             "SET CONSTRAINTS people.leave_request_decided,"
                 + " people.leave_request_decision_consistent,"
-                + " people.leave_request_cancellation_consistent IMMEDIATE");
+                + " people.leave_request_cancellation_consistent,"
+                + " people.leave_request_amendment_consistent IMMEDIATE");
   }
 
   // ------------------------------------------------------------------------------------------
@@ -517,6 +521,122 @@ public class JdbcLeaveRequestRepository {
     }
   }
 
+  // ------------------------------------------------------------------------------------------
+  // Amendments (MVP-041D)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * Replaces a pending request: moves the original to {@code AMENDED} first (which releases its
+   * dates: the overlap exclusion covers PENDING and APPROVED only), then inserts the pending
+   * replacement and the amendment evidence, all in the caller's transaction.
+   *
+   * @param tenant verified tenant
+   * @param amendment the amendment
+   * @param replacement the pending replacement
+   * @param amendedBy verified subject
+   * @throws IllegalStateException when the original was no longer pending (the caller holds its row
+   *     lock, so this never happens)
+   * @throws org.springframework.dao.DataIntegrityViolationException when a constraint rejects the
+   *     replacement (see {@link LeaveConstraintViolations})
+   */
+  public void amend(
+      TenantId tenant, LeaveAmendment amendment, LeaveRequest replacement, String amendedBy) {
+    int moved =
+        jdbc.update(
+            "UPDATE people.leave_request SET state = 'AMENDED'"
+                + " WHERE tenant_id = :tenant AND id = :id AND state = 'PENDING'",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", amendment.originalRequestId()));
+    if (moved != 1) {
+      throw new IllegalStateException("leave request was not pending under its row lock");
+    }
+    insert(tenant, replacement, amendedBy);
+    jdbc.update(
+        "INSERT INTO people.leave_request_amendment (id, tenant_id, original_request_id,"
+            + " replacement_request_id, reason_locale, reason_text, amended_at, amended_by)"
+            + " VALUES (:id, :tenant, :original, :replacement, :locale, :reason, :amendedAt,"
+            + " :amendedBy)",
+        new MapSqlParameterSource()
+            .addValue("id", amendment.id())
+            .addValue("tenant", tenant.value())
+            .addValue("original", amendment.originalRequestId())
+            .addValue("replacement", amendment.replacementRequestId())
+            .addValue("locale", amendment.reasonLocale())
+            .addValue("reason", amendment.reason())
+            .addValue("amendedAt", Timestamp.from(amendment.amendedAt()))
+            .addValue("amendedBy", amendedBy));
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Routing exceptions (MVP-041E)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * One keyset page of the routing exceptions, newest first: the pending {@code MANAGER} requests
+   * that no active, non-superseded MANAGER line covers on their first day. Derived on every read;
+   * never stored.
+   *
+   * @param tenant verified tenant
+   * @param afterSubmittedAt submission time of the previous page's last row, or {@code null}
+   * @param afterId that row's id, or {@code null}
+   * @param limit rows to read
+   * @return rows
+   */
+  public List<LeaveApprovalItem> exceptionQueue(
+      TenantId tenant, Instant afterSubmittedAt, UUID afterId, int limit) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("tenant", tenant.value()).addValue("limit", limit);
+    StringBuilder sql =
+        new StringBuilder(ITEM)
+            .append(" WHERE r.tenant_id = :tenant AND r.state = 'PENDING'")
+            .append(" AND v.approval_route = 'MANAGER' AND ")
+            .append(NO_MANAGER);
+    return page(sql, params, afterSubmittedAt, afterId);
+  }
+
+  /**
+   * Whether no active, non-superseded MANAGER line covers the request's employment on its first day
+   * (read under the tenant's manager-graph lock by a routing-exception decision).
+   *
+   * @param tenant verified tenant
+   * @param requestId request
+   * @return whether the request has no qualifying manager
+   */
+  public boolean noQualifyingManager(TenantId tenant, UUID requestId) {
+    Boolean found =
+        jdbc.queryForObject(
+            "SELECT EXISTS (SELECT 1 FROM people.leave_request r WHERE r.tenant_id = :tenant"
+                + " AND r.id = :id AND "
+                + NO_MANAGER
+                + ")",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", requestId),
+            Boolean.class);
+    return Boolean.TRUE.equals(found);
+  }
+
+  /**
+   * The authority a request's decision was taken under (an override's replay).
+   *
+   * @param tenant verified tenant
+   * @param requestId request
+   * @return the authority, if the request has a decision in the tenant
+   */
+  public Optional<DecisionAuthority> decisionAuthority(TenantId tenant, UUID requestId) {
+    return jdbc
+        .query(
+            "SELECT decision_authority FROM people.leave_request_decision"
+                + " WHERE tenant_id = :tenant AND request_id = :id",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", requestId),
+            (rs, n) -> DecisionAuthority.valueOf(rs.getString("decision_authority")))
+        .stream()
+        .findFirst();
+  }
+
   private static LeaveRouting routing(ResultSet rs) throws SQLException {
     return new LeaveRouting(
         rs.getObject("id", UUID.class),
@@ -568,7 +688,23 @@ public class JdbcLeaveRequestRepository {
         LeaveRequestState.valueOf(rs.getString("state")),
         rs.getTimestamp("submitted_at").toInstant(),
         decision(rs),
-        cancellation(rs));
+        cancellation(rs),
+        amendment(rs),
+        rs.getObject("amended_from", UUID.class));
+  }
+
+  private static LeaveAmendment amendment(ResultSet rs) throws SQLException {
+    UUID id = rs.getObject("amendment_id", UUID.class);
+    if (id == null) {
+      return null;
+    }
+    return new LeaveAmendment(
+        id,
+        rs.getObject("id", UUID.class),
+        rs.getObject("replacement_request_id", UUID.class),
+        rs.getString("amendment_locale"),
+        rs.getString("amendment_reason"),
+        rs.getTimestamp("amended_at").toInstant());
   }
 
   private static LeaveCancellation cancellation(ResultSet rs) throws SQLException {
@@ -594,6 +730,7 @@ public class JdbcLeaveRequestRepository {
         rs.getObject("id", UUID.class),
         LeaveRequestState.valueOf(rs.getString("outcome")),
         ApprovalRoute.valueOf(rs.getString("approval_route")),
+        DecisionAuthority.valueOf(rs.getString("decision_authority")),
         rs.getObject("manager_employee_id", UUID.class),
         rs.getString("reason_locale"),
         rs.getString("reason_text"),

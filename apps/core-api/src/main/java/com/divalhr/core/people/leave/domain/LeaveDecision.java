@@ -11,8 +11,10 @@ import java.util.UUID;
  * @param id decision
  * @param requestId the decided request
  * @param outcome {@code APPROVED} or {@code REJECTED}
- * @param route the route it was decided under
- * @param managerEmployeeId the deciding manager's employee ({@code MANAGER} route only)
+ * @param route the policy route of the request (immutable)
+ * @param authority who decided under it (MVP-041E): the route's own decider or a tenant
+ *     administrator's routing-exception override of a {@code MANAGER} route
+ * @param managerEmployeeId the deciding manager's employee ({@code MANAGER} authority only)
  * @param reasonLocale {@code en} or {@code fr}, the language the reason was written in
  * @param reason the reason, as written
  * @param decidedAt decision time
@@ -22,6 +24,7 @@ public record LeaveDecision(
     UUID requestId,
     LeaveRequestState outcome,
     ApprovalRoute route,
+    DecisionAuthority authority,
     UUID managerEmployeeId,
     String reasonLocale,
     String reason,

@@ -37,7 +37,8 @@ approve or reject it once, with a reason the employee reads. The design had to g
   LEAVE_REQUEST_NOT_FOUND` with empty params.
 - No fallback: a `MANAGER` request whose employment has no manager on its first day is in no
   inbox and stays pending. Routing exceptions, delegation and administrator override are later
-  stories (MVP-041E onward).
+  stories (MVP-041E onward). Superseded by ADR 0011 (MVP-041E): such a request is a routing
+  exception that a tenant administrator decides as an explicit override.
 
 ### Terminal decision evidence (D41B-2, V20)
 
@@ -136,6 +137,13 @@ membership and MFA. A denied replay returns no stored response or identifier.
   re-resolved and the stored cancellation's request must belong to that employee.
 - Rollback: `db/rollback/V21__rollback.sql` restores V20 exactly only while no cancellation exists
   and no request is `CANCELLED`.
+
+### Amendment and routing exceptions (MVP-041D/E, Issue #92, V22)
+
+See ADR 0011: amendment by replacement (`AMENDED`, append-only amendment chains), routing
+exceptions and the `decision_authority` of every decision (`MANAGER`, `TENANT_ADMIN`,
+`TENANT_ADMIN_OVERRIDE`). The lock orders, replay rules and evidence above are unchanged for
+manager and tenant-administrator decisions and cancellations.
 
 ## Consequences
 

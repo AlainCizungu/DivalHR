@@ -88,7 +88,8 @@ function employeeName(item: LeaveApproval): string {
 
 /**
  * MVP-041B: one approval inbox, for an employee's manager (`/me/leave/approvals`) or for tenant
- * administrators (`/admin/leave-approvals`). The server decides what each inbox contains; the
+ * administrators (`/admin/leave-approvals`); MVP-041E: the tenant administrators' routing
+ * exceptions (`/admin/leave-routing-exceptions`), decided as an explicit override. The server decides what each inbox contains; the
  * page lists it, opens a decision form in a modal dialog, asks for an explicit confirmation, then
  * sends one decision with a stable idempotency key. Names and reasons are plain text; nothing is
  * kept in browser storage or put in a URL.
@@ -115,7 +116,13 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
   const decided = useRef(false);
   const language = i18n.language.startsWith('fr') ? 'fr' : 'en';
   const other = language === 'fr' ? 'en' : 'fr';
-  const path = scope === 'manager' ? '/me/leave-approvals' : '/leave-approvals';
+  const path =
+    scope === 'manager'
+      ? '/me/leave-approvals'
+      : scope === 'admin'
+        ? '/leave-approvals'
+        : '/leave-routing-exceptions';
+  const override = scope === 'exception';
   const prefix = `leaveApprovals.${scope}`;
 
   const fetchPage = useCallback(
@@ -257,7 +264,9 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
       const { data, error, response } =
         scope === 'manager'
           ? await core.POST('/me/leave-approvals/{requestId}/decision', options)
-          : await core.POST('/leave-approvals/{requestId}/decision', options);
+          : scope === 'admin'
+            ? await core.POST('/leave-approvals/{requestId}/decision', options)
+            : await core.POST('/leave-routing-exceptions/{requestId}/decision', options);
       if (data) {
         decisionKey.reset();
         decided.current = true;
@@ -271,6 +280,8 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
         return;
       }
       const refused = approvalFailureOf(response, error, scope);
+      // MVP-041E: an exception that left the queue is announced, then removed on close.
+      if (override && refused.kind === 'unavailable') setAnnouncement(t(refused.messageKey));
       setDialog((previous) =>
         previous
           ? {
@@ -341,6 +352,11 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
       <div className="card" data-testid="approvals-scope">
         <p>{t('leaveApprovals.scope')}</p>
         {scope === 'manager' && <p className="muted">{t('leaveApprovals.manager.routing')}</p>}
+        {override && (
+          <p className="override-notice" data-testid="override-notice">
+            <strong>{t('leaveApprovals.exception.override')}</strong>
+          </p>
+        )}
       </div>
       <p role="status" className="visually-hidden" data-testid="announcer">
         {announcement}
@@ -364,6 +380,11 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
                 data-testid="approval-item"
               >
                 <h3>{employeeName(item)}</h3>
+                {override && (
+                  <p className="badge" data-testid="exception-reason">
+                    {t('leaveApprovals.exception.reason')}
+                  </p>
+                )}
                 <p className="muted">
                   {t('leaveApprovals.employeeNumber', { number: item.employee.employeeNumber })}
                 </p>
@@ -455,6 +476,11 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
                   : `leaveApprovals.dialog.confirmTitle.${dialog.form.decision}`,
               )}
             </h2>
+            {override && (
+              <p className="override-notice" data-testid="dialog-override-notice">
+                <strong>{t('leaveApprovals.exception.override')}</strong>
+              </p>
+            )}
             {summary(dialog.item)}
             {dialog.failure && (
               <ApprovalAlert
@@ -551,9 +577,12 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
             {dialog.step === 'confirm' && (
               <div data-testid="decision-confirm">
                 <p>
-                  {t(`leaveApprovals.dialog.confirm.${dialog.form.decision}`, {
-                    name: employeeName(dialog.item),
-                  })}
+                  {t(
+                    override
+                      ? `leaveApprovals.exception.confirm.${dialog.form.decision}`
+                      : `leaveApprovals.dialog.confirm.${dialog.form.decision}`,
+                    { name: employeeName(dialog.item) },
+                  )}
                 </p>
                 <figure className="decision-reason">
                   <figcaption>{t('leaveApprovals.form.reason')}</figcaption>
@@ -574,7 +603,11 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
                   >
                     {busy
                       ? t('leaveApprovals.dialog.sending')
-                      : t(`leaveApprovals.dialog.confirmButton.${dialog.form.decision}`)}
+                      : t(
+                          override
+                            ? `leaveApprovals.exception.confirmButton.${dialog.form.decision}`
+                            : `leaveApprovals.dialog.confirmButton.${dialog.form.decision}`,
+                        )}
                   </button>
                   <button
                     type="button"
@@ -612,4 +645,12 @@ export function MyLeaveApprovalsPage() {
 /** The tenant administrators' inbox (« Approbations de congé » under People). */
 export function LeaveApprovalsPage() {
   return <LeaveApprovalInbox scope="admin" />;
+}
+
+/**
+ * MVP-041E: the routing exceptions (« Exceptions d’acheminement des congés » under People),
+ * decided by a tenant administrator as an override because no manager is eligible.
+ */
+export function LeaveRoutingExceptionsPage() {
+  return <LeaveApprovalInbox scope="exception" />;
 }

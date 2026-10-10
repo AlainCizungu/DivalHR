@@ -30,7 +30,8 @@
       "documents": "Documents",
       "access": "Access and security",
       "mySpace": "My space"
-    }
+    },
+    "leaveRoutingExceptions": "Leave routing exceptions"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -351,7 +352,8 @@
     "LEAVE_REQUEST_OVERLAP": "You already have a pending or approved request for some of these dates.",
     "LEAVE_REQUEST_NOT_FOUND": "This leave request is no longer available to you. It may have been decided, rerouted to another approver or withdrawn from your inbox.",
     "LEAVE_REQUEST_ALREADY_DECIDED": "This leave request has already been decided.",
-    "LEAVE_REQUEST_ALREADY_CANCELLED": "This leave request has already been cancelled."
+    "LEAVE_REQUEST_ALREADY_CANCELLED": "This leave request has already been cancelled.",
+    "LEAVE_REQUEST_ALREADY_AMENDED": "This leave request has already been amended."
   },
   "notFound": {
     "title": "Page not found",
@@ -1840,7 +1842,8 @@
       "PENDING": "Pending",
       "APPROVED": "Approved",
       "REJECTED": "Rejected",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "AMENDED": "Amended"
     },
     "history": {
       "title": "My requests",
@@ -1859,7 +1862,12 @@
       "awaiting": "Awaiting a decision",
       "more": "Show more requests",
       "loadingMore": "Loading more requests…",
-      "cancelledOn": "Cancelled on {{date}}"
+      "cancelledOn": "Cancelled on {{date}}",
+      "amendedOn": "Amended on {{date}}",
+      "replaces": "Replaces the request for {{period}}",
+      "replacedBy": "Replaced by the request for {{period}}",
+      "replacesEarlier": "Replaces an earlier request",
+      "replacedByEarlier": "Replaced by a later request"
     },
     "cancel": {
       "action": "Cancel request",
@@ -1889,7 +1897,47 @@
         "reasonLocale": "Choose the language of the reason."
       },
       "alreadyCancelled": "This request was already cancelled. Your list has been updated.",
-      "alreadyDecided": "This request has already been decided and can no longer be cancelled. Your list has been updated."
+      "alreadyDecided": "This request has already been decided and can no longer be cancelled. Your list has been updated.",
+      "alreadyAmended": "This request has already been amended and can no longer be cancelled. Your list has been updated."
+    },
+    "amend": {
+      "action": "Amend request",
+      "actionFor": "Amend the request {{name}}, {{period}}…",
+      "title": "Amend this leave request",
+      "confirmTitle": "Confirm the amendment",
+      "intro": "The request is replaced: it is kept as amended in your history, with your reason, and a new pending request takes its place. Its dates are released only when the replacement is accepted.",
+      "reason": "Reason for the amendment",
+      "reasonHelp": "Required. It is kept with your requests and shown in your history as you write it. 2 to {{max}} characters, without line breaks.",
+      "count": "{{count}} of {{max}} characters",
+      "reasonLocale": "Language of the reason",
+      "reasonLocaleHelp": "The reason is shown in this language; it is never translated.",
+      "review": "Review the amendment",
+      "keep": "Keep the request",
+      "confirm": "Replace your request with these values? The current request is kept as amended; this cannot be undone.",
+      "comparison": "Current and new values of the request",
+      "before": "Current",
+      "after": "New",
+      "summary": {
+        "policy": "Policy",
+        "period": "Dates",
+        "amount": "Amount"
+      },
+      "confirmButton": "Confirm the amendment",
+      "sending": "Amending the request…",
+      "back": "Edit the amendment",
+      "done": "Your request {{name}} for {{period}} was amended. The new request is pending.",
+      "problems": {
+        "policy": "Choose a leave policy.",
+        "startDate": "Enter a valid first day, today or later.",
+        "endDate": "Enter a valid last day, on or after the first day and within 366 days.",
+        "amount": "Enter an amount above 0 and at most 10,000, with at most two decimals.",
+        "reasonLocale": "Choose the language of the reason.",
+        "reason": "Enter a reason of 2 to 500 characters, without line breaks or invisible characters."
+      },
+      "alreadyAmended": "This request has already been amended. Your list has been updated.",
+      "alreadyCancelled": "This request has already been cancelled and can no longer be amended. Your list has been updated.",
+      "alreadyDecided": "This request has already been decided and can no longer be amended. Your list has been updated.",
+      "overlap": "Another of your requests already covers some of these dates. Your current request is unchanged."
     }
   },
   "leaveApprovals": {
@@ -1898,7 +1946,7 @@
     "manager": {
       "title": "Leave approvals",
       "description": "Approve or reject the leave requests of the employees who report to you.",
-      "routing": "You see a request when its policy routes approval to the manager and you are the employee’s manager on the request’s first day. A request without a manager on that day waits for a later routing story.",
+      "routing": "You see a request when its policy routes approval to the manager and you are the employee’s manager on the request’s first day. A request without a manager on that day goes to the tenant administrators’ routing exceptions.",
       "empty": "No leave request is awaiting your decision.",
       "unauthorized": "This page is for employees of an organization."
     },
@@ -1971,6 +2019,23 @@
     "decided": {
       "APPROVED": "The request of {{name}} for {{period}} was approved.",
       "REJECTED": "The request of {{name}} for {{period}} was rejected."
+    },
+    "exception": {
+      "title": "Leave routing exceptions",
+      "description": "Decide the leave requests routed to the manager when no manager is eligible on their first day.",
+      "empty": "No leave request is waiting without an eligible manager.",
+      "unauthorized": "Only tenant administrators who signed in with their authenticator app can resolve these requests.",
+      "override": "Administrator override: no manager is eligible for these requests on their first day. As soon as an eligible manager is assigned, a request leaves this list and goes to that manager.",
+      "reason": "No eligible manager",
+      "gone": "This request now has an eligible manager or is no longer pending, so it left the exceptions. It has been removed from the list.",
+      "confirm": {
+        "APPROVED": "Approve the request of {{name}} as an administrator override, because no manager is eligible? This decision is final.",
+        "REJECTED": "Reject the request of {{name}} as an administrator override, because no manager is eligible? This decision is final."
+      },
+      "confirmButton": {
+        "APPROVED": "Confirm the override approval",
+        "REJECTED": "Confirm the override rejection"
+      }
     }
   },
   "landing": {

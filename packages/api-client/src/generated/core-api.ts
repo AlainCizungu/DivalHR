@@ -1384,7 +1384,7 @@ export interface paths {
         };
         /**
          * List my leave requests
-         * @description MVP-041A/MVP-041B/MVP-041C. The caller's own leave requests, newest first (submittedAt, then id), each with its current state and, once decided, its decision (outcome, reason in the language it was written in, time; never who decided), or, once cancelled, its cancellation (reason in the language it was written in, time; never the cancelling subject). Only the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise). Recorded as a fail-closed disclosure (audit leave-request.self-list): if the audit record cannot be written, nothing is returned. The signed cursor is bound to the operation, tenant, caller and page size. Cache-Control private, no-store.
+         * @description MVP-041A to MVP-041E. The caller's own leave requests, newest first (submittedAt, then id), each with its current state and, once decided, its decision (outcome, reason in the language it was written in, time; never who decided or under which authority, an administrator's routing-exception override included), or, once cancelled, its cancellation (reason in the language it was written in, time; never the cancelling subject), or, once amended, its amendment (the replacement's ID, the reason in the language it was written in, time; never the amending subject). A replacement carries the ID of the request it replaced (amendedFromRequestId), so a chain can be followed both ways. Only the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise). Recorded as a fail-closed disclosure (audit leave-request.self-list): if the audit record cannot be written, nothing is returned. The signed cursor is bound to the operation, tenant, caller and page size. Cache-Control private, no-store.
          */
         get: operations["listMyLeaveRequests"];
         put?: never;
@@ -1413,6 +1413,26 @@ export interface paths {
          * @description MVP-041C. Moves a PENDING request of the caller's own employee (resolved from the caller's current active employee-access link; 403 EMPLOYEE_LINK_REQUIRED otherwise) to CANCELLED, once, with its reason, in one transaction with the immutable cancellation record, the audit record (leave-request.cancel) and the outbox event (people.leave-request.cancelled.v1). The request leaves every approval inbox and releases its dates in the same commit. A pending request may be cancelled before, on or after its first day. Unknown, foreign-tenant and another employee's requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params; an approved or rejected request is 409 LEAVE_REQUEST_ALREADY_DECIDED and an already cancelled one 409 LEAVE_REQUEST_ALREADY_CANCELLED, both without params. An exact retry (same Idempotency-Key and body) returns the stored 200 with Idempotent-Replayed true while the caller is still linked to the same employee; with no active link it is 403 EMPLOYEE_LINK_REQUIRED and linked to another employee 404 LEAVE_REQUEST_NOT_FOUND, with no stored response. A changed body on the key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never carries the reason; errors never echo a submitted value. Shares the leave-request-write limits with createMyLeaveRequest. Cache-Control private, no-store.
          */
         post: operations["cancelMyLeaveRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/leave-requests/{requestId}/amendment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Amend one of my pending leave requests by replacing it
+         * @description MVP-041D. Replaces a PENDING request of the caller's own employee (resolved from the caller's current active employee-access link; 403 EMPLOYEE_LINK_REQUIRED otherwise): in one transaction the original becomes AMENDED and a new PENDING replacement is created with the immutable amendment record (the reason and both request IDs), the audit record (leave-request.amend) and the outbox event (people.leave-request.amended.v1). The replacement passes every current rule of createMyLeaveRequest on the organization's business date (policy coverage, dates, maximum interval, employment coverage, minimum service, amount and overlap); only the original is excluded from the overlap, so the replacement may keep, move or extend its dates and its policy may change (and with it the approval route). Changing nothing but the reason is allowed: the chain still records the explicit replacement. A replacement may itself be amended, cancelled or decided later. Unknown, foreign-tenant and another employee's requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params; an approved or rejected request is 409 LEAVE_REQUEST_ALREADY_DECIDED, a cancelled one 409 LEAVE_REQUEST_ALREADY_CANCELLED and an already amended one 409 LEAVE_REQUEST_ALREADY_AMENDED, all without params. Only the body's shape is checked before the idempotency decision: an exact retry (same Idempotency-Key and body) returns the stored 201 with Idempotent-Replayed true while the caller is still linked to the same employee; with no active link it is 403 EMPLOYEE_LINK_REQUIRED and linked to another employee 404 LEAVE_REQUEST_NOT_FOUND, with no stored response. A changed body on the key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never carries the reason; errors never echo a submitted value. Shares the leave-request-write limits with createMyLeaveRequest. Cache-Control private, no-store.
+         */
+        post: operations["amendMyLeaveRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1453,6 +1473,46 @@ export interface paths {
          * @description MVP-041B. Moves a PENDING request whose policy version routes approval to tenant administrators to APPROVED or REJECTED, once, with its reason, in one transaction with the decision record, the audit record (leave-request.approve or leave-request.reject) and the outbox event (people.leave-request.approved.v1 or people.leave-request.rejected.v1). Unknown, foreign-tenant and MANAGER-routed requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params. A request that already has its decision is 409 LEAVE_REQUEST_ALREADY_DECIDED (no params). Approving requires the request's employment to still cover its whole interval (409 LEAVE_REQUEST_NOT_ELIGIBLE with params.reason EMPLOYMENT_PERIOD); rejecting does not. A first or last day in the past never refuses a decision. Only the body's shape is checked before the idempotency decision: an exact retry returns the stored 200 with Idempotent-Replayed true, a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never contains the reason. Errors never echo the reason. Cache-Control private, no-store.
          */
         post: operations["decideLeaveRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/leave-routing-exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List leave requests that no qualifying manager covers
+         * @description MVP-041E. The organization's routing exceptions, newest first (submittedAt, then id): the PENDING requests whose policy version routes approval to the manager (approvalRoute MANAGER) and whose employment no active, non-superseded MANAGER line covers on the request's first day. Derived on every read, never stored: once a qualifying manager is assigned, corrected or restored, the request leaves this list and returns to that manager's inbox. Each item carries the same fields as a LeaveApproval and the fixed exceptionReason NO_QUALIFYING_MANAGER. Restricted HR: recorded as a fail-closed disclosure (audit leave-routing-exception.list); if the audit record cannot be written, nothing is returned. The signed cursor is bound to the operation, tenant, caller and page size. No parameter selects a tenant, employee, manager or route. Shares the leave-approval-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listLeaveRoutingExceptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/leave-routing-exceptions/{requestId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or reject a leave request that no qualifying manager covers
+         * @description MVP-041E. An administrator override of a routing exception: under the tenant's manager-graph lock, the request's policy route must be MANAGER, the request PENDING and no active, non-superseded MANAGER line may cover its employment on its first day; then it moves to APPROVED or REJECTED, once, with its reason, in one transaction with the decision record (approvalRoute stays MANAGER, decisionAuthority TENANT_ADMIN_OVERRIDE, no manager), the audit record (leave-request.routing-exception.approve or .reject) and the outbox event (people.leave-request.routing-exception-approved.v1 or -rejected.v1). The policy version and the request's route are never rewritten. Unknown, foreign-tenant, TENANT_ADMIN-routed and currently managed requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params; a terminal MANAGER-routed request is 409 LEAVE_REQUEST_ALREADY_DECIDED, LEAVE_REQUEST_ALREADY_CANCELLED or LEAVE_REQUEST_ALREADY_AMENDED (no params). Approving requires the request's employment to still cover its whole interval (409 LEAVE_REQUEST_NOT_ELIGIBLE with params.reason EMPLOYMENT_PERIOD); rejecting does not. Only the body's shape is checked before the idempotency decision: an exact retry returns the stored 200 with Idempotent-Replayed true while the stored decision is this tenant's override (a manager assigned after it does not invalidate it), a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never contains the reason; errors never echo it. Shares the leave-approval-write limits. Cache-Control private, no-store.
+         */
+        post: operations["decideLeaveRoutingException"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2913,7 +2973,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -3006,10 +3066,10 @@ export interface components {
             timezone: string;
         };
         /**
-         * @description MVP-041A creates PENDING requests; MVP-041B moves one once to APPROVED or REJECTED with its decision; MVP-041C lets its employee move it once to CANCELLED with a cancellation. APPROVED requests keep blocking overlapping requests; REJECTED and CANCELLED ones release their dates.
+         * @description MVP-041A creates PENDING requests; MVP-041B moves one once to APPROVED or REJECTED with its decision; MVP-041C lets its employee move it once to CANCELLED with a cancellation; MVP-041D lets its employee move it once to AMENDED with an amendment that names its PENDING replacement. APPROVED requests keep blocking overlapping requests; REJECTED, CANCELLED and AMENDED ones release their dates.
          * @enum {string}
          */
-        LeaveRequestState: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+        LeaveRequestState: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "AMENDED";
         MyLeavePolicy: {
             /** Format: uuid */
             id: string;
@@ -3077,6 +3137,13 @@ export interface components {
             decision: components["schemas"]["MyLeaveDecision"] | null;
             /** @description The cancellation once cancelled (MVP-041C), otherwise null. */
             cancellation: components["schemas"]["MyLeaveCancellation"] | null;
+            /** @description The amendment that replaced this request once amended (MVP-041D), otherwise null. */
+            amendment: components["schemas"]["MyLeaveAmendment"] | null;
+            /**
+             * Format: uuid
+             * @description The request this one replaced (MVP-041D), otherwise null.
+             */
+            amendedFromRequestId: string | null;
         };
         MyLeaveRequestPage: {
             items: components["schemas"]["MyLeaveRequest"][];
@@ -3105,6 +3172,19 @@ export interface components {
             reason: string;
             /** Format: date-time */
             cancelledAt: string;
+        };
+        /** @description MVP-041D. The amendment of one of the caller's own requests: the pending replacement's ID and the reason in the language it was written in (never translated). The amending subject is never included. */
+        MyLeaveAmendment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            replacementRequestId: string;
+            /** @enum {string} */
+            reasonLocale: "en" | "fr";
+            /** @description Plain text, never HTML or Markdown. */
+            reason: string;
+            /** Format: date-time */
+            amendedAt: string;
         };
         /** @description The requesting employee, as plain text. */
         LeaveApprovalEmployee: {
@@ -3141,6 +3221,39 @@ export interface components {
             items: components["schemas"]["LeaveApproval"][];
             nextCursor: string | null;
         };
+        /** @description MVP-041E. A PENDING MANAGER-routed request that no qualifying manager covers on its first day: the same fields as a LeaveApproval and the fixed reason code. */
+        LeaveRoutingException: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            submittedAt: string;
+            employee: components["schemas"]["LeaveApprovalEmployee"];
+            /** Format: uuid */
+            policyId: string;
+            /** Format: uuid */
+            policyVersionId: string;
+            policyCode: string;
+            policyNames: components["schemas"]["LeavePolicyNames"];
+            unit: components["schemas"]["LeaveUnit"];
+            /** @description Two decimals, in the policy's unit. */
+            amount: number;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            approvalRoute: components["schemas"]["LeaveApprovalRoute"];
+            state: components["schemas"]["LeaveRequestState"];
+            exceptionReason: components["schemas"]["LeaveRoutingExceptionReason"];
+        };
+        /**
+         * @description MVP-041E. NO_QUALIFYING_MANAGER: no active, non-superseded MANAGER line covers the request's employment on its first day.
+         * @enum {string}
+         */
+        LeaveRoutingExceptionReason: "NO_QUALIFYING_MANAGER";
+        LeaveRoutingExceptionPage: {
+            items: components["schemas"]["LeaveRoutingException"][];
+            nextCursor: string | null;
+        };
         /** @description MVP-041B. A decision with its reason, required for either outcome. The request comes from the path; tenant, route, manager and actor are never fields. */
         DecideLeaveRequest: {
             /** @enum {string} */
@@ -3173,6 +3286,39 @@ export interface components {
             reasonLocale: "en" | "fr";
             /** @description Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason (identical in the Core, the database and the web form). */
             reason: string;
+        };
+        /** @description MVP-041D. The replacement's fields, exactly those of CreateMyLeaveRequest, and the amendment reason. The original request comes from the path; tenant, employee and actor are never fields. VALIDATION_FAILED fields: policyId, startDate (RANGE when before the business date), endDate (RANGE when before startDate or beyond 366 days in all), amount, reasonLocale, reason, body (UNKNOWN_PROPERTY) and Idempotency-Key. */
+        AmendMyLeaveRequest: {
+            /** Format: uuid */
+            policyId: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** @description The requested amount in the policy's unit (days or hours), entered by the employee. */
+            amount: number;
+            /**
+             * @description The language the reason is written in.
+             * @enum {string}
+             */
+            reasonLocale: "en" | "fr";
+            /** @description Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason (identical in the Core, the database and the web form). */
+            reason: string;
+        };
+        /** @description MVP-041D. The minimal receipt of an amendment; never the reason. */
+        LeaveAmendmentReceipt: {
+            /** Format: uuid */
+            amendmentId: string;
+            /** Format: uuid */
+            originalRequestId: string;
+            /** Format: uuid */
+            replacementRequestId: string;
+            /** @enum {string} */
+            originalState: "AMENDED";
+            /** @enum {string} */
+            replacementState: "PENDING";
+            /** Format: date-time */
+            amendedAt: string;
         };
         /** @description MVP-041C. The minimal receipt of a cancellation; never the reason. */
         LeaveCancellationReceipt: {
@@ -3239,7 +3385,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS), SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT, SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params. LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant) carries no params. LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params; LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE. LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a decision on a cancelled request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) carries no params. */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS), SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT, SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params. LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant) carries no params. LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params; LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE. LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a decision on a cancelled or amended request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) and LEAVE_REQUEST_ALREADY_AMENDED (MVP-041D: the employee already replaced the request) carry no params. */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -6360,6 +6506,46 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    amendMyLeaveRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Leave request ID. */
+                requestId: components["parameters"]["LeaveRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AmendMyLeaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Amended, or the original amendment replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveAmendmentReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
     listLeaveApprovals: {
         parameters: {
             query?: {
@@ -6415,6 +6601,79 @@ export interface operations {
         };
         responses: {
             /** @description Decided, or the original decision replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveDecisionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listLeaveRoutingExceptions: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["LeavePolicyLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRoutingExceptionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    decideLeaveRoutingException: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Leave request ID. */
+                requestId: components["parameters"]["LeaveRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideLeaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Decided, or the original override replayed */
             200: {
                 headers: {
                     "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];

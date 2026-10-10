@@ -26,6 +26,18 @@ public final class LeaveConstraintViolations {
   /** One cancellation per request (MVP-041C, V21). */
   public static final String CANCELLATION_UNIQUE = "leave_request_cancellation_request_unique";
 
+  /** One amendment per original request (MVP-041D, V22). */
+  public static final String AMENDMENT_ORIGINAL_UNIQUE = "leave_request_amendment_original_unique";
+
+  /** The deferred V22 amendment checks and the transition guard (MVP-041D). */
+  public static final java.util.Set<String> AMENDMENT_CONSISTENCY =
+      java.util.Set.of(
+          "leave_request_decided",
+          "leave_request_amendment_consistent",
+          "leave_request_amendment_replacement_unique",
+          "leave_request_amendment_distinct",
+          "leave_request_transition");
+
   /** The deferred V21 cancellation checks and the transition guard (MVP-041C). */
   public static final java.util.Set<String> CANCELLATION_CONSISTENCY =
       java.util.Set.of(

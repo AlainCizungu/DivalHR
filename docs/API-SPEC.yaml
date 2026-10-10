@@ -3427,10 +3427,14 @@ paths:
       x-divalhr-required-role: employee
       summary: List my leave requests
       description: >-
-        MVP-041A/MVP-041B/MVP-041C. The caller's own leave requests, newest first (submittedAt, then
-        id), each with its current state and, once decided, its decision (outcome, reason in the
-        language it was written in, time; never who decided), or, once cancelled, its cancellation
-        (reason in the language it was written in, time; never the cancelling subject). Only the
+        MVP-041A to MVP-041E. The caller's own leave requests, newest first (submittedAt, then id),
+        each with its current state and, once decided, its decision (outcome, reason in the
+        language it was written in, time; never who decided or under which authority, an
+        administrator's routing-exception override included), or, once cancelled, its cancellation
+        (reason in the language it was written in, time; never the cancelling subject), or, once
+        amended, its amendment (the replacement's ID, the reason in the language it was written in,
+        time; never the amending subject). A replacement carries the ID of the request it replaced
+        (amendedFromRequestId), so a chain can be followed both ways. Only the
         employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED
         otherwise). Recorded as a fail-closed disclosure (audit leave-request.self-list): if the
         audit record cannot be written, nothing is returned. The signed cursor is bound to the
@@ -3569,6 +3573,71 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /me/leave-requests/{requestId}/amendment:
+    post:
+      operationId: amendMyLeaveRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Amend one of my pending leave requests by replacing it
+      description: >-
+        MVP-041D. Replaces a PENDING request of the caller's own employee (resolved from the
+        caller's current active employee-access link; 403 EMPLOYEE_LINK_REQUIRED otherwise): in one
+        transaction the original becomes AMENDED and a new PENDING replacement is created with the
+        immutable amendment record (the reason and both request IDs), the audit record
+        (leave-request.amend) and the outbox event (people.leave-request.amended.v1). The
+        replacement passes every current rule of createMyLeaveRequest on the organization's business
+        date (policy coverage, dates, maximum interval, employment coverage, minimum service, amount
+        and overlap); only the original is excluded from the overlap, so the replacement may keep,
+        move or extend its dates and its policy may change (and with it the approval route).
+        Changing nothing but the reason is allowed: the chain still records the explicit
+        replacement. A replacement may itself be amended, cancelled or decided later. Unknown,
+        foreign-tenant and another employee's requests are the same 404 LEAVE_REQUEST_NOT_FOUND with
+        no params; an approved or rejected request is 409 LEAVE_REQUEST_ALREADY_DECIDED, a cancelled
+        one 409 LEAVE_REQUEST_ALREADY_CANCELLED and an already amended one 409
+        LEAVE_REQUEST_ALREADY_AMENDED, all without params. Only the body's shape is checked before
+        the idempotency decision: an exact retry (same Idempotency-Key and body) returns the stored
+        201 with Idempotent-Replayed true while the caller is still linked to the same employee;
+        with no active link it is 403 EMPLOYEE_LINK_REQUIRED and linked to another employee 404
+        LEAVE_REQUEST_NOT_FOUND, with no stored response. A changed body on the key is 409
+        IDEMPOTENCY_KEY_REUSED. The receipt never carries the reason; errors never echo a submitted
+        value. Shares the leave-request-write limits with createMyLeaveRequest. Cache-Control
+        private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/LeaveRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AmendMyLeaveRequest"
+      responses:
+        "201":
+          description: Amended, or the original amendment replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveAmendmentReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /leave-approvals:
     get:
       operationId: listLeaveApprovals
@@ -3645,6 +3714,111 @@ paths:
       responses:
         "200":
           description: Decided, or the original decision replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveDecisionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /leave-routing-exceptions:
+    get:
+      operationId: listLeaveRoutingExceptions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List leave requests that no qualifying manager covers
+      description: >-
+        MVP-041E. The organization's routing exceptions, newest first (submittedAt, then id): the
+        PENDING requests whose policy version routes approval to the manager (approvalRoute
+        MANAGER) and whose employment no active, non-superseded MANAGER line covers on the
+        request's first day. Derived on every read, never stored: once a qualifying manager is
+        assigned, corrected or restored, the request leaves this list and returns to that manager's
+        inbox. Each item carries the same fields as a LeaveApproval and the fixed exceptionReason
+        NO_QUALIFYING_MANAGER. Restricted HR: recorded as a fail-closed disclosure (audit
+        leave-routing-exception.list); if the audit record cannot be written, nothing is returned.
+        The signed cursor is bound to the operation, tenant, caller and page size. No parameter
+        selects a tenant, employee, manager or route. Shares the leave-approval-read limit.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveRoutingExceptionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /leave-routing-exceptions/{requestId}/decision:
+    post:
+      operationId: decideLeaveRoutingException
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Approve or reject a leave request that no qualifying manager covers
+      description: >-
+        MVP-041E. An administrator override of a routing exception: under the tenant's manager-graph
+        lock, the request's policy route must be MANAGER, the request PENDING and no active,
+        non-superseded MANAGER line may cover its employment on its first day; then it moves to
+        APPROVED or REJECTED, once, with its reason, in one transaction with the decision record
+        (approvalRoute stays MANAGER, decisionAuthority TENANT_ADMIN_OVERRIDE, no manager), the
+        audit record (leave-request.routing-exception.approve or .reject) and the outbox event
+        (people.leave-request.routing-exception-approved.v1 or -rejected.v1). The policy version and
+        the request's route are never rewritten. Unknown, foreign-tenant, TENANT_ADMIN-routed and
+        currently managed requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params; a
+        terminal MANAGER-routed request is 409 LEAVE_REQUEST_ALREADY_DECIDED,
+        LEAVE_REQUEST_ALREADY_CANCELLED or LEAVE_REQUEST_ALREADY_AMENDED (no params). Approving
+        requires the request's employment to still cover its whole interval (409
+        LEAVE_REQUEST_NOT_ELIGIBLE with params.reason EMPLOYMENT_PERIOD); rejecting does not. Only
+        the body's shape is checked before the idempotency decision: an exact retry returns the
+        stored 200 with Idempotent-Replayed true while the stored decision is this tenant's
+        override (a manager assigned after it does not invalidate it), a changed body on the same
+        key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never contains the reason; errors never echo
+        it. Shares the leave-approval-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/LeaveRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecideLeaveRequest"
+      responses:
+        "200":
+          description: Decided, or the original override replayed
           headers:
             Idempotent-Replayed:
               $ref: "#/components/headers/IdempotentReplayed"
@@ -3897,8 +4071,10 @@ components:
         LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params;
         LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE.
         LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a
-        decision on a cancelled request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED
-        (MVP-041C: the employee already cancelled the request) carries no params.
+        decision on a cancelled or amended request) carries no params.
+        LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) and
+        LEAVE_REQUEST_ALREADY_AMENDED (MVP-041D: the employee already replaced the request) carry no
+        params.
       content:
         application/problem+json:
           schema:
@@ -7164,6 +7340,7 @@ components:
         - LEAVE_REQUEST_NOT_FOUND
         - LEAVE_REQUEST_ALREADY_DECIDED
         - LEAVE_REQUEST_ALREADY_CANCELLED
+        - LEAVE_REQUEST_ALREADY_AMENDED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -7346,10 +7523,11 @@ components:
       type: string
       description: >-
         MVP-041A creates PENDING requests; MVP-041B moves one once to APPROVED or REJECTED with its
-        decision; MVP-041C lets its employee move it once to CANCELLED with a cancellation.
-        APPROVED requests keep blocking overlapping requests; REJECTED and CANCELLED ones release
-        their dates.
-      enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+        decision; MVP-041C lets its employee move it once to CANCELLED with a cancellation; MVP-041D
+        lets its employee move it once to AMENDED with an amendment that names its PENDING
+        replacement. APPROVED requests keep blocking overlapping requests; REJECTED, CANCELLED and
+        AMENDED ones release their dates.
+      enum: [PENDING, APPROVED, REJECTED, CANCELLED, AMENDED]
     MyLeavePolicy:
       type: object
       required:
@@ -7460,6 +7638,8 @@ components:
         - submittedAt
         - decision
         - cancellation
+        - amendment
+        - amendedFromRequestId
       properties:
         id:
           type: string
@@ -7500,6 +7680,15 @@ components:
           oneOf:
             - $ref: "#/components/schemas/MyLeaveCancellation"
             - type: "null"
+        amendment:
+          description: The amendment that replaced this request once amended (MVP-041D), otherwise null.
+          oneOf:
+            - $ref: "#/components/schemas/MyLeaveAmendment"
+            - type: "null"
+        amendedFromRequestId:
+          description: The request this one replaced (MVP-041D), otherwise null.
+          type: [string, "null"]
+          format: uuid
     MyLeaveRequestPage:
       type: object
       required: [items, nextCursor]
@@ -7549,6 +7738,29 @@ components:
           type: string
           description: Plain text, never HTML or Markdown.
         cancelledAt:
+          type: string
+          format: date-time
+    MyLeaveAmendment:
+      type: object
+      description: >-
+        MVP-041D. The amendment of one of the caller's own requests: the pending replacement's ID and
+        the reason in the language it was written in (never translated). The amending subject is
+        never included.
+      required: [id, replacementRequestId, reasonLocale, reason, amendedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        replacementRequestId:
+          type: string
+          format: uuid
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+          description: Plain text, never HTML or Markdown.
+        amendedAt:
           type: string
           format: date-time
     LeaveApprovalEmployee:
@@ -7626,6 +7838,78 @@ components:
             $ref: "#/components/schemas/LeaveApproval"
         nextCursor:
           type: [string, "null"]
+    LeaveRoutingException:
+      type: object
+      description: >-
+        MVP-041E. A PENDING MANAGER-routed request that no qualifying manager covers on its first
+        day: the same fields as a LeaveApproval and the fixed reason code.
+      required:
+        - id
+        - submittedAt
+        - employee
+        - policyId
+        - policyVersionId
+        - policyCode
+        - policyNames
+        - unit
+        - amount
+        - startDate
+        - endDate
+        - approvalRoute
+        - state
+        - exceptionReason
+      properties:
+        id:
+          type: string
+          format: uuid
+        submittedAt:
+          type: string
+          format: date-time
+        employee:
+          $ref: "#/components/schemas/LeaveApprovalEmployee"
+        policyId:
+          type: string
+          format: uuid
+        policyVersionId:
+          type: string
+          format: uuid
+        policyCode:
+          type: string
+        policyNames:
+          $ref: "#/components/schemas/LeavePolicyNames"
+        unit:
+          $ref: "#/components/schemas/LeaveUnit"
+        amount:
+          type: number
+          description: Two decimals, in the policy's unit.
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        approvalRoute:
+          $ref: "#/components/schemas/LeaveApprovalRoute"
+        state:
+          $ref: "#/components/schemas/LeaveRequestState"
+        exceptionReason:
+          $ref: "#/components/schemas/LeaveRoutingExceptionReason"
+    LeaveRoutingExceptionReason:
+      type: string
+      description: >-
+        MVP-041E. NO_QUALIFYING_MANAGER: no active, non-superseded MANAGER line covers the
+        request's employment on its first day.
+      enum: [NO_QUALIFYING_MANAGER]
+    LeaveRoutingExceptionPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaveRoutingException"
+        nextCursor:
+          type: [string, "null"]
     DecideLeaveRequest:
       type: object
       description: >-
@@ -7687,6 +7971,72 @@ components:
           description: >-
             Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason
             (identical in the Core, the database and the web form).
+    AmendMyLeaveRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-041D. The replacement's fields, exactly those of CreateMyLeaveRequest, and the amendment
+        reason. The original request comes from the path; tenant, employee and actor are never
+        fields. VALIDATION_FAILED fields: policyId, startDate (RANGE when before the business date),
+        endDate (RANGE when before startDate or beyond 366 days in all), amount, reasonLocale,
+        reason, body (UNKNOWN_PROPERTY) and Idempotency-Key.
+      required: [policyId, startDate, endDate, amount, reasonLocale, reason]
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 10000
+          multipleOf: 0.01
+          description: The requested amount in the policy's unit (days or hours), entered by the employee.
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: >-
+            Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason
+            (identical in the Core, the database and the web form).
+    LeaveAmendmentReceipt:
+      type: object
+      description: MVP-041D. The minimal receipt of an amendment; never the reason.
+      required:
+        - amendmentId
+        - originalRequestId
+        - replacementRequestId
+        - originalState
+        - replacementState
+        - amendedAt
+      properties:
+        amendmentId:
+          type: string
+          format: uuid
+        originalRequestId:
+          type: string
+          format: uuid
+        replacementRequestId:
+          type: string
+          format: uuid
+        originalState:
+          type: string
+          enum: [AMENDED]
+        replacementState:
+          type: string
+          enum: [PENDING]
+        amendedAt:
+          type: string
+          format: date-time
     LeaveCancellationReceipt:
       type: object
       description: MVP-041C. The minimal receipt of a cancellation; never the reason.

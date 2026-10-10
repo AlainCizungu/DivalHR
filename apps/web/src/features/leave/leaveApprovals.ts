@@ -1,7 +1,7 @@
 import type { DecideLeaveRequest, Problem } from '@divalhr/api-client';
 
-/** MVP-041B: which inbox a page shows. */
-export type ApprovalScope = 'manager' | 'admin';
+/** MVP-041B: which inbox a page shows; MVP-041E adds the routing exceptions. */
+export type ApprovalScope = 'manager' | 'admin' | 'exception';
 
 export type DecisionOutcome = DecideLeaveRequest['decision'];
 export type ReasonLocale = DecideLeaveRequest['reasonLocale'];
@@ -166,6 +166,8 @@ export interface ApprovalFailure {
     | 'validation'
     | 'unavailable'
     | 'alreadyDecided'
+    | 'alreadyCancelled'
+    | 'alreadyAmended'
     | 'notEligible'
     | 'conflict'
     | 'general';
@@ -186,6 +188,8 @@ export const APPROVAL_NETWORK_FAILURE: ApprovalFailure = {
 export const GONE_KINDS: ReadonlySet<ApprovalFailure['kind']> = new Set([
   'unavailable',
   'alreadyDecided',
+  'alreadyCancelled',
+  'alreadyAmended',
 ]);
 
 /** Maps a Problem response; params outside the allow-lists are dropped, never shown. */
@@ -215,10 +219,26 @@ export function approvalFailureOf(
     return { ...base, kind: 'rateLimited', messageKey: 'errors.RATE_LIMITED' };
   }
   if (code === 'LEAVE_REQUEST_NOT_FOUND') {
-    return { ...base, kind: 'unavailable', messageKey: 'errors.LEAVE_REQUEST_NOT_FOUND' };
+    // MVP-041E: an exception that is gone most often has a qualifying manager again.
+    return {
+      ...base,
+      kind: 'unavailable',
+      messageKey:
+        scope === 'exception' ? 'leaveApprovals.exception.gone' : 'errors.LEAVE_REQUEST_NOT_FOUND',
+    };
   }
   if (code === 'LEAVE_REQUEST_ALREADY_DECIDED') {
     return { ...base, kind: 'alreadyDecided', messageKey: 'errors.LEAVE_REQUEST_ALREADY_DECIDED' };
+  }
+  if (code === 'LEAVE_REQUEST_ALREADY_CANCELLED') {
+    return {
+      ...base,
+      kind: 'alreadyCancelled',
+      messageKey: 'errors.LEAVE_REQUEST_ALREADY_CANCELLED',
+    };
+  }
+  if (code === 'LEAVE_REQUEST_ALREADY_AMENDED') {
+    return { ...base, kind: 'alreadyAmended', messageKey: 'errors.LEAVE_REQUEST_ALREADY_AMENDED' };
   }
   if (code === 'LEAVE_REQUEST_NOT_ELIGIBLE') {
     return {

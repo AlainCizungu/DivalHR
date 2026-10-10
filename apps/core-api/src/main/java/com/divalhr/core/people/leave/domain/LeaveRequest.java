@@ -7,8 +7,8 @@ import java.util.UUID;
 
 /**
  * A leave request with the policy it was made under (MVP-041A) and, once decided, its decision
- * (MVP-041B) or its cancellation (MVP-041C). Restricted HR: dates, amount and reason are personal
- * data and never appear in logs, errors or audit metadata.
+ * (MVP-041B), its cancellation (MVP-041C) or its amendment (MVP-041D). Restricted HR: dates, amount
+ * and reason are personal data and never appear in logs, errors or audit metadata.
  *
  * @param id request
  * @param employeeId the requesting employee
@@ -26,6 +26,8 @@ import java.util.UUID;
  * @param submittedAt submission time
  * @param decision the decision, or {@code null} unless decided
  * @param cancellation the cancellation, or {@code null} unless cancelled
+ * @param amendment the amendment that replaced it, or {@code null} unless amended
+ * @param amendedFrom the request it replaced, or {@code null} unless it is a replacement
  */
 public record LeaveRequest(
     UUID id,
@@ -43,7 +45,9 @@ public record LeaveRequest(
     LeaveRequestState state,
     Instant submittedAt,
     LeaveDecision decision,
-    LeaveCancellation cancellation) {
+    LeaveCancellation cancellation,
+    LeaveAmendment amendment,
+    UUID amendedFrom) {
 
   /**
    * Identifiers only: no date, amount or name reaches a log line through {@code toString}.

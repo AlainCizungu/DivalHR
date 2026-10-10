@@ -30,7 +30,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 /**
  * MVP-041B test fixtures over the public API: an organization with a tenant administrator,
  * employees linked to their own employee memberships, policies by route, manager lines, requests,
- * decisions, unlinks and separations; MVP-041C cancellations.
+ * decisions, unlinks and separations; MVP-041C cancellations; MVP-041D amendments and MVP-041E
+ * routing exceptions.
  */
 final class LeaveWorld {
 
@@ -38,6 +39,7 @@ final class LeaveWorld {
   static final String MY_REQUESTS = "/api/v1/me/leave-requests";
   static final String MY_APPROVALS = "/api/v1/me/leave-approvals";
   static final String ADMIN_APPROVALS = "/api/v1/leave-approvals";
+  static final String EXCEPTIONS = "/api/v1/leave-routing-exceptions";
   static final LocalDate HIRED = LocalDate.of(2026, 3, 1);
   static final String EMPLOYEES = "/api/v1/employees";
 
@@ -149,6 +151,50 @@ final class LeaveWorld {
     expect(managerChange(report, command, previewed), 201);
   }
 
+  /** Clears the report's MANAGER line from {@code from} on (a CHANGE with no manager). */
+  void unmanage(UUID report, LocalDate from) throws Exception {
+    Map<String, Object> command = new LinkedHashMap<>();
+    command.put("type", "CHANGE");
+    command.put("effectiveFrom", from.toString());
+    Map<String, Object> none = new LinkedHashMap<>();
+    none.put("employeeId", null);
+    command.put("manager", none);
+    if (from.isBefore(today)) {
+      command.put("reasonCode", "LATE_NOTIFICATION");
+    }
+    changeManager(report, command);
+  }
+
+  /** Corrects the report's active MANAGER row naming {@code from} to name {@code to} instead. */
+  void correctManager(UUID report, UUID from, UUID to) throws Exception {
+    Map<String, Object> row =
+        jdbc.queryForMap(
+            "SELECT id::text AS id, effective_from FROM people.employment_assignment"
+                + " WHERE employee_id = ? AND kind = 'MANAGER' AND superseded_by_change_id IS NULL"
+                + " AND manager_employee_id = ?",
+            report,
+            from);
+    Map<String, Object> command = new LinkedHashMap<>();
+    command.put("type", "CORRECTION");
+    command.put("effectiveFrom", row.get("effective_from").toString());
+    command.put("manager", Map.of("employeeId", to.toString()));
+    command.put("reasonCode", "DATA_ENTRY_ERROR");
+    command.put("correctsAssignmentId", row.get("id"));
+    changeManager(report, command);
+  }
+
+  /** Previews and commits an employment change of the report's manager. */
+  void changeManager(UUID report, Map<String, Object> command) throws Exception {
+    JsonNode previewed =
+        expect(
+            Employees.postJson(
+                admin,
+                EMPLOYEES + "/" + report + "/employment-changes/preview",
+                JSON.writeValueAsString(command)),
+            200);
+    expect(managerChange(report, command, previewed), 201);
+  }
+
   /** The commit of a previewed manager change (for races). */
   MockHttpServletRequestBuilder managerChange(
       UUID report, Map<String, Object> command, JsonNode preview) throws Exception {
@@ -197,12 +243,17 @@ final class LeaveWorld {
 
   /** A policy with the route; returns its id. */
   String policy(String code, String route) throws Exception {
+    return policy(code, route, 0);
+  }
+
+  /** A policy with the route and a minimum service; returns its id. */
+  String policy(String code, String route, int minimumServiceDays) throws Exception {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("code", code);
     body.put("names", Map.of("en", "Annual leave " + code, "fr", "Congé annuel " + code));
     body.put("unit", "DAYS");
     body.put("balanceMode", "UNTRACKED");
-    body.put("minimumServiceDays", 0);
+    body.put("minimumServiceDays", minimumServiceDays);
     body.put("approvalRoute", route);
     body.put("payrollEffect", "PAID");
     body.put("effectiveFrom", "2026-01-01");
@@ -273,6 +324,35 @@ final class LeaveWorld {
     return key == null ? request : request.header("Idempotency-Key", key);
   }
 
+  /** An amendment body: the replacement's fields and the reason (MVP-041D). */
+  static Map<String, Object> amendment(
+      String policyId,
+      LocalDate start,
+      LocalDate end,
+      Object amount,
+      String locale,
+      String reason) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("policyId", policyId);
+    body.put("startDate", start == null ? null : start.toString());
+    body.put("endDate", end == null ? null : end.toString());
+    body.put("amount", amount);
+    body.put("reasonLocale", locale);
+    body.put("reason", reason);
+    return body;
+  }
+
+  /** The caller's own amendment of a request (MVP-041D). */
+  static MockHttpServletRequestBuilder amend(
+      String bearer, String requestId, String key, Object body) throws Exception {
+    MockHttpServletRequestBuilder request =
+        post(MY_REQUESTS + "/" + requestId + "/amendment")
+            .header("Authorization", bearer)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body instanceof String text ? text : JSON.writeValueAsString(body));
+    return key == null ? request : request.header("Idempotency-Key", key);
+  }
+
   // ------------------------------------------------------------------------------------------
   // HTTP and rows
   // ------------------------------------------------------------------------------------------
@@ -328,6 +408,40 @@ final class LeaveWorld {
         count(
             "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
                 + " envelope ->> 'eventType' = 'people.leave-request.cancelled.v1'",
+            tenant().toString()));
+  }
+
+  /** Amendments, amendment audits and amendment events of the tenant (MVP-041D). */
+  List<Integer> amendments() {
+    return List.of(
+        count("SELECT count(*) FROM people.leave_request_amendment WHERE tenant_id = ?", tenant()),
+        count(
+            "SELECT count(*) FROM platform.audit_event WHERE tenant_id = ? AND action ="
+                + " 'leave-request.amend'",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
+                + " envelope ->> 'eventType' = 'people.leave-request.amended.v1'",
+            tenant().toString()));
+  }
+
+  /** Override decisions, override audits and override events of the tenant (MVP-041E). */
+  List<Integer> overrides() {
+    return List.of(
+        count(
+            "SELECT count(*) FROM people.leave_request_decision WHERE tenant_id = ?"
+                + " AND decision_authority = 'TENANT_ADMIN_OVERRIDE'",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.audit_event WHERE tenant_id = ? AND action IN"
+                + " ('leave-request.routing-exception.approve',"
+                + " 'leave-request.routing-exception.reject')",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
+                + " envelope ->> 'eventType' IN"
+                + " ('people.leave-request.routing-exception-approved.v1',"
+                + " 'people.leave-request.routing-exception-rejected.v1')",
             tenant().toString()));
   }
 
