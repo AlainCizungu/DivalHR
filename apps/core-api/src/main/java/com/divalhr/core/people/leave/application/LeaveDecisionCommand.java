@@ -56,10 +56,7 @@ public record LeaveDecisionCommand(
    */
   static LeaveDecisionCommand from(
       String idempotencyKey, String requestId, DecideLeaveRequest request) {
-    if (requestId == null || !UUID_SHAPE.matcher(requestId).matches()) {
-      throw notFound();
-    }
-    UUID id = UUID.fromString(requestId.toLowerCase(Locale.ROOT));
+    UUID id = requestId(requestId);
     FieldErrors errors = new FieldErrors();
     if (idempotencyKey == null || idempotencyKey.isBlank()) {
       errors.add(IdempotencyKeys.HEADER, Constraint.REQUIRED);
@@ -84,15 +81,7 @@ public record LeaveDecisionCommand(
     } else {
       outcome = LeaveRequestState.valueOf(text);
     }
-    String locale = null;
-    Object rawLocale = request.getReasonLocale();
-    if (rawLocale == null) {
-      errors.add("reasonLocale", Constraint.REQUIRED);
-    } else if (!(rawLocale instanceof String text) || !LOCALES.contains(text)) {
-      errors.add("reasonLocale", Constraint.FORMAT);
-    } else {
-      locale = text;
-    }
+    String locale = reasonLocale(errors, request.getReasonLocale());
     String reason = reason(errors, request.getReason());
     errors.throwIfAny();
     return new LeaveDecisionCommand(id, outcome, locale, reason);
@@ -101,9 +90,14 @@ public record LeaveDecisionCommand(
   /**
    * The reason in its stored form, or {@code null} after a problem: required, a string, no
    * forbidden code point ({@code FORMAT}), then 2 to 500 code points ({@code LENGTH}), exactly as
-   * {@link LeaveReasonGrammar} and the database decide.
+   * {@link LeaveReasonGrammar} and the database decide. Shared by decisions and cancellations
+   * (MVP-041C): one grammar, one validation.
+   *
+   * @param errors collected problems
+   * @param raw submitted value
+   * @return the stored form, or {@code null}
    */
-  private static String reason(FieldErrors errors, Object raw) {
+  static String reason(FieldErrors errors, Object raw) {
     if (raw == null) {
       errors.add("reason", Constraint.REQUIRED);
       return null;
@@ -142,6 +136,39 @@ public record LeaveDecisionCommand(
     canonical.put("reasonLocale", reasonLocale);
     canonical.put("reason", reason);
     return canonical;
+  }
+
+  /**
+   * The reason language, or {@code null} after a problem: required, exactly {@code en} or {@code
+   * fr}. Shared by decisions and cancellations (MVP-041C).
+   *
+   * @param errors collected problems
+   * @param raw submitted value
+   * @return the locale, or {@code null}
+   */
+  static String reasonLocale(FieldErrors errors, Object raw) {
+    if (raw == null) {
+      errors.add("reasonLocale", Constraint.REQUIRED);
+      return null;
+    }
+    if (!(raw instanceof String text) || !LOCALES.contains(text)) {
+      errors.add("reasonLocale", Constraint.FORMAT);
+      return null;
+    }
+    return text;
+  }
+
+  /**
+   * The request id of a path, or {@code 404 LEAVE_REQUEST_NOT_FOUND} for anything else.
+   *
+   * @param requestId path value
+   * @return the request id
+   */
+  static UUID requestId(String requestId) {
+    if (requestId == null || !UUID_SHAPE.matcher(requestId).matches()) {
+      throw notFound();
+    }
+    return UUID.fromString(requestId.toLowerCase(Locale.ROOT));
   }
 
   /**

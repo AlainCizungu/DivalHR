@@ -2,7 +2,7 @@ package com.divalhr.core.people.leave.domain;
 
 /**
  * The state of a leave request (MVP-041A submits {@code PENDING}; MVP-041B moves it once to a
- * terminal state with its decision).
+ * terminal state with its decision; MVP-041C lets its employee cancel it while pending).
  */
 public enum LeaveRequestState {
   /** Submitted, awaiting a decision. */
@@ -10,10 +10,12 @@ public enum LeaveRequestState {
   /** Approved: keeps blocking overlapping requests. */
   APPROVED,
   /** Rejected: releases its dates. */
-  REJECTED;
+  REJECTED,
+  /** Cancelled by its employee while pending: releases its dates (MVP-041C). */
+  CANCELLED;
 
   /**
-   * Whether a decision has been taken.
+   * Whether the request has left {@code PENDING} (decided or cancelled).
    *
    * @return whether the state is terminal
    */

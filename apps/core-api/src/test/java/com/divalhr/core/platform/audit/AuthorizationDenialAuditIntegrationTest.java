@@ -182,7 +182,9 @@ class AuthorizationDenialAuditIntegrationTest {
           "leave-request.self-list",
           // MVP-041B: the employee manager's approval inbox and decision.
           "leave-approval.manager-list",
-          "leave-request.manager-decide");
+          "leave-request.manager-decide",
+          // MVP-041C: the employee's cancellation of their own pending request.
+          "leave-request.self-cancel");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

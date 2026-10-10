@@ -350,7 +350,8 @@
     "LEAVE_REQUEST_NOT_ELIGIBLE": "You are not eligible for this leave on these dates.",
     "LEAVE_REQUEST_OVERLAP": "You already have a pending or approved request for some of these dates.",
     "LEAVE_REQUEST_NOT_FOUND": "This leave request is no longer available to you. It may have been decided, rerouted to another approver or withdrawn from your inbox.",
-    "LEAVE_REQUEST_ALREADY_DECIDED": "This leave request has already been decided."
+    "LEAVE_REQUEST_ALREADY_DECIDED": "This leave request has already been decided.",
+    "LEAVE_REQUEST_ALREADY_CANCELLED": "This leave request has already been cancelled."
   },
   "notFound": {
     "title": "Page not found",
@@ -1791,7 +1792,7 @@
     "title": "My leave",
     "description": "See the leave policies you can request, submit a leave request and follow your requests.",
     "notCalculated": "Working days, public holidays and leave balances are not calculated yet.",
-    "reviewed": "You enter the amount yourself. Your request stays pending until the approver named by the policy approves or rejects it; their reason is shown here.",
+    "reviewed": "You enter the amount yourself. Your request stays pending until the approver named by the policy approves or rejects it; their reason is shown here. You can cancel a request while it is pending.",
     "submitted": "Your {{name}} request for {{period}} was submitted. It is pending.",
     "unauthorized": "This page is for employees of an organization.",
     "signInRequired": "Sign in to see your leave.",
@@ -1838,7 +1839,8 @@
     "state": {
       "PENDING": "Pending",
       "APPROVED": "Approved",
-      "REJECTED": "Rejected"
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
     },
     "history": {
       "title": "My requests",
@@ -1856,7 +1858,38 @@
       "decidedOn": "Decided on {{date}}",
       "awaiting": "Awaiting a decision",
       "more": "Show more requests",
-      "loadingMore": "Loading more requests…"
+      "loadingMore": "Loading more requests…",
+      "cancelledOn": "Cancelled on {{date}}"
+    },
+    "cancel": {
+      "action": "Cancel request",
+      "actionFor": "Cancel the request {{name}}, {{period}}…",
+      "title": "Cancel this leave request",
+      "confirmTitle": "Confirm the cancellation",
+      "intro": "The request leaves the approval inbox and its dates become free again. A cancellation is final.",
+      "reason": "Reason for cancelling",
+      "reasonHelp": "Required. It is kept with your request and shown in your history as you write it. 2 to {{max}} characters, without line breaks.",
+      "count": "{{count}} of {{max}} characters",
+      "reasonLocale": "Language of the reason",
+      "reasonLocaleHelp": "The reason is shown in this language; it is never translated.",
+      "review": "Review the cancellation",
+      "keep": "Keep the request",
+      "confirm": "Cancel your {{name}} request for {{period}}? This cannot be undone.",
+      "confirmButton": "Confirm the cancellation",
+      "sending": "Cancelling the request…",
+      "back": "Edit the reason",
+      "done": "Your {{name}} request for {{period}} was cancelled.",
+      "summary": {
+        "policy": "Policy",
+        "period": "Dates",
+        "amount": "Amount"
+      },
+      "problems": {
+        "reason": "Enter a reason of 2 to 500 characters, without line breaks or invisible characters.",
+        "reasonLocale": "Choose the language of the reason."
+      },
+      "alreadyCancelled": "This request was already cancelled. Your list has been updated.",
+      "alreadyDecided": "This request has already been decided and can no longer be cancelled. Your list has been updated."
     }
   },
   "leaveApprovals": {

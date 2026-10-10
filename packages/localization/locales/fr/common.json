@@ -350,7 +350,8 @@
     "LEAVE_REQUEST_NOT_ELIGIBLE": "Vous n’êtes pas admissible à ce congé pour ces dates.",
     "LEAVE_REQUEST_OVERLAP": "Vous avez déjà une demande en attente ou approuvée pour une partie de ces dates.",
     "LEAVE_REQUEST_NOT_FOUND": "Cette demande de congé ne vous est plus accessible. Elle a peut-être été traitée, confiée à un autre approbateur ou retirée de votre liste.",
-    "LEAVE_REQUEST_ALREADY_DECIDED": "Cette demande de congé a déjà été traitée."
+    "LEAVE_REQUEST_ALREADY_DECIDED": "Cette demande de congé a déjà été traitée.",
+    "LEAVE_REQUEST_ALREADY_CANCELLED": "Cette demande de congé a déjà été annulée."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -1791,7 +1792,7 @@
     "title": "Mes congés",
     "description": "Consultez les politiques de congé que vous pouvez demander, soumettez une demande de congé et suivez vos demandes.",
     "notCalculated": "Les jours ouvrables, les jours fériés et les soldes de congé ne sont pas encore calculés.",
-    "reviewed": "Vous saisissez vous-même la quantité. Votre demande reste en attente jusqu’à ce que l’approbateur désigné par la politique l’approuve ou la rejette ; son motif s’affiche ici.",
+    "reviewed": "Vous saisissez vous-même la quantité. Votre demande reste en attente jusqu’à ce que l’approbateur désigné par la politique l’approuve ou la rejette ; son motif s’affiche ici. Vous pouvez annuler une demande tant qu’elle est en attente.",
     "submitted": "Votre demande « {{name}} » pour {{period}} a été soumise. Elle est en attente.",
     "unauthorized": "Cette page est destinée aux employés d’une organisation.",
     "signInRequired": "Connectez-vous pour voir vos congés.",
@@ -1838,7 +1839,8 @@
     "state": {
       "PENDING": "En attente",
       "APPROVED": "Approuvée",
-      "REJECTED": "Rejetée"
+      "REJECTED": "Rejetée",
+      "CANCELLED": "Annulée"
     },
     "history": {
       "title": "Mes demandes",
@@ -1856,7 +1858,38 @@
       "decidedOn": "Décidée le {{date}}",
       "awaiting": "En attente de décision",
       "more": "Afficher plus de demandes",
-      "loadingMore": "Chargement d’autres demandes…"
+      "loadingMore": "Chargement d’autres demandes…",
+      "cancelledOn": "Annulée le {{date}}"
+    },
+    "cancel": {
+      "action": "Annuler la demande",
+      "actionFor": "Annuler la demande {{name}}, {{period}}…",
+      "title": "Annuler cette demande de congé",
+      "confirmTitle": "Confirmer l’annulation",
+      "intro": "La demande quitte la file d’approbation et ses dates redeviennent libres. Une annulation est définitive.",
+      "reason": "Motif de l’annulation",
+      "reasonHelp": "Obligatoire. Il est conservé avec votre demande et affiché dans votre historique tel que vous l’écrivez. De 2 à {{max}} caractères, sans retour à la ligne.",
+      "count": "{{count}} caractères sur {{max}}",
+      "reasonLocale": "Langue du motif",
+      "reasonLocaleHelp": "Le motif est affiché dans cette langue ; il n’est jamais traduit.",
+      "review": "Vérifier l’annulation",
+      "keep": "Garder la demande",
+      "confirm": "Annuler votre demande {{name}} pour {{period}} ? Cette action est définitive.",
+      "confirmButton": "Confirmer l’annulation",
+      "sending": "Annulation de la demande…",
+      "back": "Modifier le motif",
+      "done": "Votre demande {{name}} pour {{period}} a été annulée.",
+      "summary": {
+        "policy": "Politique",
+        "period": "Dates",
+        "amount": "Quantité"
+      },
+      "problems": {
+        "reason": "Saisissez un motif de 2 à 500 caractères, sans retour à la ligne ni caractère invisible.",
+        "reasonLocale": "Choisissez la langue du motif."
+      },
+      "alreadyCancelled": "Cette demande a déjà été annulée. Votre liste a été mise à jour.",
+      "alreadyDecided": "Cette demande a déjà été traitée et ne peut plus être annulée. Votre liste a été mise à jour."
     }
   },
   "leaveApprovals": {

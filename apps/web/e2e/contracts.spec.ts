@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import {
+  acceptInvitation,
   CORE_API,
   TENANT_A,
   USERS,
@@ -103,10 +104,7 @@ async function inviteAndLink(
     await mailTo(email, /Invitation à rejoindre/u),
   );
   expect(link, 'invitation link').not.toBeNull();
-  const accepted = await page.request.post(`${CORE_API}/public/invitations/accept`, {
-    data: { token: link?.[1] ?? '' },
-  });
-  expect(accepted.status()).toBe(200);
+  expect(await acceptInvitation(page, link?.[1] ?? '')).toBe(200);
   const setup = /https?:\/\/[^\s"<>]+\/login-actions\/action-token\?[^\s"<>]+/u.exec(
     await mailTo(email, /mot de passe|password|actions|compte|account/iu),
   );

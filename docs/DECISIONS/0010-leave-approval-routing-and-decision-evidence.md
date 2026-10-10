@@ -37,7 +37,7 @@ approve or reject it once, with a reason the employee reads. The design had to g
   LEAVE_REQUEST_NOT_FOUND` with empty params.
 - No fallback: a `MANAGER` request whose employment has no manager on its first day is in no
   inbox and stays pending. Routing exceptions, delegation and administrator override are later
-  stories (MVP-041C onward).
+  stories (MVP-041E onward).
 
 ### Terminal decision evidence (D41B-2, V20)
 
@@ -110,11 +110,38 @@ membership and MFA. A denied replay returns no stored response or identifier.
   response, logs, metrics, traces, audit metadata, events, URLs or browser storage. The employee
   never sees who decided. No retention or deletion period is introduced.
 
+### Employee cancellation (MVP-041C, Issue #91, V21)
+
+- The employee of the caller's current active link may cancel their own `PENDING` request, once,
+  with a reason (the decision-reason grammar version 1), before, on or after its first day. No
+  administrator or manager cancellation; amendment is MVP-041D and routing exceptions MVP-041E.
+- `CANCELLED` is a fourth state and a third terminal transition (`PENDING` to `CANCELLED`). The
+  append-only `people.leave_request_cancellation` is its evidence (reason, locale, time, the
+  verified subject, never returned).
+- Terminal evidence is exactly one matching kind per request (`leave_request_decided`, its V20
+  function extended): `PENDING` none; `APPROVED`/`REJECTED` their decision and no cancellation;
+  `CANCELLED` its cancellation and no decision. `leave_request_cancellation_consistent` binds a
+  cancellation to its cancelled request. The application runs every deferred check `IMMEDIATE`
+  before the audit record and the outbox event.
+- Lock order: idempotency (0), the caller's link and membership `FOR SHARE` (4), the request `FOR
+  UPDATE`, bound to the tenant and the linked employee (5), then the evidence, the transition, the
+  checks, audit and outbox (6). No manager-graph or employment lock, and nothing after the request
+  row, so it cannot invert a decision's order. Decisions and cancellations of one request serialize
+  on its row; the second observes the terminal state (`409 LEAVE_REQUEST_ALREADY_DECIDED` for a
+  decision on a cancelled request or a cancellation of a decided one, `409
+  LEAVE_REQUEST_ALREADY_CANCELLED` for a second cancellation).
+- A cancellation removes the request from both inboxes (they read `PENDING` only) and releases its
+  dates in the same commit (the overlap exclusion covers `PENDING` and `APPROVED`).
+- Replay: after the reservation and before any stored body is read, the current link is
+  re-resolved and the stored cancellation's request must belong to that employee.
+- Rollback: `db/rollback/V21__rollback.sql` restores V20 exactly only while no cancellation exists
+  and no request is `CANCELLED`.
+
 ## Consequences
 
 - One manager decision at a time per tenant, as for every manager-history write. Decisions are
   short transactions, so this is acceptable for the expected volumes.
-- A later separation or manager change never decides a pending request automatically; an
-  approved request whose employment later ends is not reconciled. Both belong to later stories.
+- A later separation or manager change never decides or cancels a pending request automatically;
+  an approved request whose employment later ends is not reconciled. Both belong to later stories.
 - No balance, accrual, working-day, holiday, schedule, payroll or legal-entitlement calculation
   is introduced.

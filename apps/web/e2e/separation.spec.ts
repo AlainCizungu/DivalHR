@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
+  acceptInvitation,
   CORE_API,
   TENANT_A,
   USERS,
@@ -191,10 +192,7 @@ test.describe.serial('MVP-022: separate an employee', () => {
       await mailTo(EMAIL, /Invitation à rejoindre/u),
     );
     expect(link, 'invitation link').not.toBeNull();
-    const accepted = await page.request.post(`${CORE_API}/public/invitations/accept`, {
-      data: { token: link?.[1] ?? '' },
-    });
-    expect(accepted.status()).toBe(200);
+    expect(await acceptInvitation(page, link?.[1] ?? '')).toBe(200);
     const setup = /https?:\/\/[^\s"<>]+\/login-actions\/action-token\?[^\s"<>]+/u.exec(
       await mailTo(EMAIL, /mot de passe|password|actions|compte|account/iu),
     );

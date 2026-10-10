@@ -124,15 +124,22 @@ export function decisionProblemsOf(form: DecisionForm): Set<DecisionField> {
   // The locale comes from a closed select, but the server checks it again.
   if (!(['en', 'fr'] as readonly string[]).includes(form.reasonLocale))
     problems.add('reasonLocale');
-  const reason = normalizeReason(form.reason);
-  const length = codePoints(reason);
-  if (
-    length < REASON_MIN ||
-    length > REASON_MAX ||
-    Array.from(reason).some((c) => forbiddenCodePoint(codePointOf(c)))
-  )
-    problems.add('reason');
+  if (!reasonAcceptable(form.reason)) problems.add('reason');
   return problems;
+}
+
+/**
+ * Whether typed text, once normalized as the server will store it, is a valid reason under the
+ * decision-reason grammar version 1 (shared by decisions and, from MVP-041C, cancellations).
+ */
+export function reasonAcceptable(text: string): boolean {
+  const reason = normalizeReason(text);
+  const length = codePoints(reason);
+  return (
+    length >= REASON_MIN &&
+    length <= REASON_MAX &&
+    !Array.from(reason).some((c) => forbiddenCodePoint(codePointOf(c)))
+  );
 }
 
 /** The request body of a valid form: the normalized reason, the locale sent explicitly. */

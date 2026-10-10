@@ -3427,9 +3427,10 @@ paths:
       x-divalhr-required-role: employee
       summary: List my leave requests
       description: >-
-        MVP-041A/MVP-041B. The caller's own leave requests, newest first (submittedAt, then id),
-        each with its current state and, once decided, its decision (outcome, reason in the
-        language it was written in, time; never who decided). Only the
+        MVP-041A/MVP-041B/MVP-041C. The caller's own leave requests, newest first (submittedAt, then
+        id), each with its current state and, once decided, its decision (outcome, reason in the
+        language it was written in, time; never who decided), or, once cancelled, its cancellation
+        (reason in the language it was written in, time; never the cancelling subject). Only the
         employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED
         otherwise). Recorded as a fail-closed disclosure (audit leave-request.self-list): if the
         audit record cannot be written, nothing is returned. The signed cursor is bound to the
@@ -3506,6 +3507,64 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/leave-requests/{requestId}/cancellation:
+    post:
+      operationId: cancelMyLeaveRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Cancel one of my pending leave requests
+      description: >-
+        MVP-041C. Moves a PENDING request of the caller's own employee (resolved from the caller's
+        current active employee-access link; 403 EMPLOYEE_LINK_REQUIRED otherwise) to CANCELLED,
+        once, with its reason, in one transaction with the immutable cancellation record, the audit
+        record (leave-request.cancel) and the outbox event (people.leave-request.cancelled.v1). The
+        request leaves every approval inbox and releases its dates in the same commit. A pending
+        request may be cancelled before, on or after its first day. Unknown, foreign-tenant and
+        another employee's requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params; an
+        approved or rejected request is 409 LEAVE_REQUEST_ALREADY_DECIDED and an already cancelled
+        one 409 LEAVE_REQUEST_ALREADY_CANCELLED, both without params. An exact retry (same
+        Idempotency-Key and body) returns the stored 200 with Idempotent-Replayed true while the
+        caller is still linked to the same employee; with no active link it is 403
+        EMPLOYEE_LINK_REQUIRED and linked to another employee 404 LEAVE_REQUEST_NOT_FOUND, with no
+        stored response. A changed body on the key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never
+        carries the reason; errors never echo a submitted value. Shares the leave-request-write
+        limits with createMyLeaveRequest. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/LeaveRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelMyLeaveRequest"
+      responses:
+        "200":
+          description: Cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveCancellationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "429":
@@ -3837,8 +3896,9 @@ components:
         carries no params.
         LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params;
         LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE.
-        LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision) carries no
-        params.
+        LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a
+        decision on a cancelled request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED
+        (MVP-041C: the employee already cancelled the request) carries no params.
       content:
         application/problem+json:
           schema:
@@ -7103,6 +7163,7 @@ components:
         - LEAVE_REQUEST_OVERLAP
         - LEAVE_REQUEST_NOT_FOUND
         - LEAVE_REQUEST_ALREADY_DECIDED
+        - LEAVE_REQUEST_ALREADY_CANCELLED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -7285,9 +7346,10 @@ components:
       type: string
       description: >-
         MVP-041A creates PENDING requests; MVP-041B moves one once to APPROVED or REJECTED with its
-        decision. APPROVED requests keep blocking overlapping requests; REJECTED ones release their
-        dates.
-      enum: [PENDING, APPROVED, REJECTED]
+        decision; MVP-041C lets its employee move it once to CANCELLED with a cancellation.
+        APPROVED requests keep blocking overlapping requests; REJECTED and CANCELLED ones release
+        their dates.
+      enum: [PENDING, APPROVED, REJECTED, CANCELLED]
     MyLeavePolicy:
       type: object
       required:
@@ -7397,6 +7459,7 @@ components:
         - state
         - submittedAt
         - decision
+        - cancellation
       properties:
         id:
           type: string
@@ -7432,6 +7495,11 @@ components:
           oneOf:
             - $ref: "#/components/schemas/MyLeaveDecision"
             - type: "null"
+        cancellation:
+          description: The cancellation once cancelled (MVP-041C), otherwise null.
+          oneOf:
+            - $ref: "#/components/schemas/MyLeaveCancellation"
+            - type: "null"
     MyLeaveRequestPage:
       type: object
       required: [items, nextCursor]
@@ -7462,6 +7530,25 @@ components:
           type: string
           description: Plain text, never HTML or Markdown.
         decidedAt:
+          type: string
+          format: date-time
+    MyLeaveCancellation:
+      type: object
+      description: >-
+        MVP-041C. The cancellation of one of the caller's own requests: the reason in the language
+        it was written in (never translated). The cancelling subject is never included.
+      required: [id, reasonLocale, reason, cancelledAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+          description: Plain text, never HTML or Markdown.
+        cancelledAt:
           type: string
           format: date-time
     LeaveApprovalEmployee:
@@ -7579,6 +7666,42 @@ components:
           type: string
           enum: [APPROVED, REJECTED]
         decidedAt:
+          type: string
+          format: date-time
+    CancelMyLeaveRequest:
+      type: object
+      description: >-
+        MVP-041C. The employee's cancellation of their own pending request, with its reason. The
+        request comes from the path; tenant, employee and actor are never fields.
+      additionalProperties: false
+      required: [reasonLocale, reason]
+      properties:
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: >-
+            Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason
+            (identical in the Core, the database and the web form).
+    LeaveCancellationReceipt:
+      type: object
+      description: MVP-041C. The minimal receipt of a cancellation; never the reason.
+      required: [requestId, cancellationId, state, cancelledAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        cancellationId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [CANCELLED]
+        cancelledAt:
           type: string
           format: date-time
     Problem:

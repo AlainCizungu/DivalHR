@@ -112,6 +112,9 @@ class OperationNameTest {
     assertThat(LeaveApprovalService.REJECT).isEqualTo("leave-request.reject");
     assertThat(LeaveApprovalService.APPROVED_EVENT).isEqualTo("people.leave-request.approved.v1");
     assertThat(LeaveApprovalService.REJECTED_EVENT).isEqualTo("people.leave-request.rejected.v1");
+    assertThat(MyLeaveService.CANCEL).isEqualTo("leave-request.self-cancel");
+    assertThat(MyLeaveService.CANCEL_AUDIT).isEqualTo("leave-request.cancel");
+    assertThat(MyLeaveService.CANCELLED_EVENT).isEqualTo("people.leave-request.cancelled.v1");
   }
 
   @Test
