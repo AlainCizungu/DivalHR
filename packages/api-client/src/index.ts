@@ -182,6 +182,9 @@ export type LeaveCancellationReceipt = CoreComponents['schemas']['LeaveCancellat
 export type MyLeaveAmendment = CoreComponents['schemas']['MyLeaveAmendment'];
 export type AmendMyLeaveRequest = CoreComponents['schemas']['AmendMyLeaveRequest'];
 export type LeaveAmendmentReceipt = CoreComponents['schemas']['LeaveAmendmentReceipt'];
+export type MyLeaveWithdrawal = CoreComponents['schemas']['MyLeaveWithdrawal'];
+export type WithdrawMyApprovedLeave = CoreComponents['schemas']['WithdrawMyApprovedLeave'];
+export type LeaveWithdrawalReceipt = CoreComponents['schemas']['LeaveWithdrawalReceipt'];
 export type LeaveRoutingException = CoreComponents['schemas']['LeaveRoutingException'];
 export type LeaveRoutingExceptionPage = CoreComponents['schemas']['LeaveRoutingExceptionPage'];
 /**

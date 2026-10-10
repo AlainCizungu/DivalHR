@@ -71,6 +71,17 @@ class LeaveAmendmentMigrationIntegrationTest {
                               WHERE pronamespace = 'people'::regnamespace), '')
       """;
 
+  /**
+   * The people schema signature of a database (shared with the V23 test, which keeps the query in
+   * one class file).
+   *
+   * @param db the database
+   * @return its signature
+   */
+  static String signature(JdbcTemplate db) {
+    return db.queryForObject(SIGNATURE, String.class);
+  }
+
   private static final LocalDate START = LocalDate.of(2026, 3, 1);
 
   private static final String REQUEST =

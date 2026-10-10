@@ -118,6 +118,9 @@ class OperationNameTest {
     assertThat(MyLeaveService.AMEND).isEqualTo("leave-request.self-amend");
     assertThat(MyLeaveService.AMEND_AUDIT).isEqualTo("leave-request.amend");
     assertThat(MyLeaveService.AMENDED_EVENT).isEqualTo("people.leave-request.amended.v1");
+    assertThat(MyLeaveService.WITHDRAW).isEqualTo("leave-request.self-withdraw");
+    assertThat(MyLeaveService.WITHDRAW_AUDIT).isEqualTo("leave-request.withdraw");
+    assertThat(MyLeaveService.WITHDRAWN_EVENT).isEqualTo("people.leave-request.withdrawn.v1");
     assertThat(LeaveApprovalService.EXCEPTION_LIST).isEqualTo("leave-routing-exception.list");
     assertThat(LeaveApprovalService.EXCEPTION_DECIDE)
         .isEqualTo("leave-request.routing-exception-decide");

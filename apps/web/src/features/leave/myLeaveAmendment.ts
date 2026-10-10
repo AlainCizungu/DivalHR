@@ -84,6 +84,7 @@ export interface AmendmentFailure {
     | 'alreadyAmended'
     | 'alreadyCancelled'
     | 'alreadyDecided'
+    | 'alreadyWithdrawn'
     | 'conflict'
     | 'general';
   messageKey: string;
@@ -106,6 +107,7 @@ export const AMENDMENT_SETTLED_KINDS: ReadonlySet<AmendmentFailure['kind']> = ne
   'alreadyAmended',
   'alreadyCancelled',
   'alreadyDecided',
+  'alreadyWithdrawn',
 ]);
 
 /** Maps a Problem response; params outside the allow-lists are dropped, never shown. */
@@ -135,6 +137,9 @@ export function amendmentFailureOf(response: Response, error: unknown): Amendmen
   }
   if (code === 'LEAVE_REQUEST_ALREADY_CANCELLED') {
     return { ...base, kind: 'alreadyCancelled', messageKey: 'myLeave.amend.alreadyCancelled' };
+  }
+  if (code === 'LEAVE_REQUEST_ALREADY_WITHDRAWN') {
+    return { ...base, kind: 'alreadyWithdrawn', messageKey: 'myLeave.amend.alreadyWithdrawn' };
   }
   if (code === 'LEAVE_REQUEST_ALREADY_DECIDED') {
     return { ...base, kind: 'alreadyDecided', messageKey: 'myLeave.amend.alreadyDecided' };

@@ -105,4 +105,5 @@ every decision and cancellation, has no override and never edits `flyway_schema_
 - Overrides take the tenant's manager-graph lock like every manager decision and manager-history
   write: one at a time per tenant, short transactions.
 - Withdrawal of approved leave (MVP-041F) and delegation or substitute approvers (MVP-041G) remain
-  later stories; there is no escalation timer, automatic decision or notification.
+  later stories; there is no escalation timer, automatic decision or notification. MVP-041F is
+  ADR 0012.

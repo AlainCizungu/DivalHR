@@ -353,7 +353,10 @@
     "LEAVE_REQUEST_NOT_FOUND": "Cette demande de congé ne vous est plus accessible. Elle a peut-être été traitée, confiée à un autre approbateur ou retirée de votre liste.",
     "LEAVE_REQUEST_ALREADY_DECIDED": "Cette demande de congé a déjà été traitée.",
     "LEAVE_REQUEST_ALREADY_CANCELLED": "Cette demande de congé a déjà été annulée.",
-    "LEAVE_REQUEST_ALREADY_AMENDED": "Cette demande de congé a déjà été modifiée."
+    "LEAVE_REQUEST_ALREADY_AMENDED": "Cette demande de congé a déjà été modifiée.",
+    "LEAVE_REQUEST_ALREADY_WITHDRAWN": "Ce congé approuvé a déjà été retiré.",
+    "LEAVE_REQUEST_NOT_APPROVED": "Seul un congé approuvé peut être retiré ; cette demande est encore en attente de décision.",
+    "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED": "Ce congé a déjà commencé ; il ne peut plus être retiré."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -1843,7 +1846,8 @@
       "APPROVED": "Approuvée",
       "REJECTED": "Rejetée",
       "CANCELLED": "Annulée",
-      "AMENDED": "Modifiée"
+      "AMENDED": "Modifiée",
+      "WITHDRAWN": "Retirée"
     },
     "history": {
       "title": "Mes demandes",
@@ -1867,7 +1871,10 @@
       "replaces": "Remplace la demande du {{period}}",
       "replacedBy": "Remplacée par la demande du {{period}}",
       "replacesEarlier": "Remplace une demande antérieure",
-      "replacedByEarlier": "Remplacée par une demande ultérieure"
+      "replacedByEarlier": "Remplacée par une demande ultérieure",
+      "withdrawnOn": "Retirée le {{date}}",
+      "approval": "Approbation",
+      "withdrawal": "Retrait"
     },
     "cancel": {
       "action": "Annuler la demande",
@@ -1898,7 +1905,8 @@
       },
       "alreadyCancelled": "Cette demande a déjà été annulée. Votre liste a été mise à jour.",
       "alreadyDecided": "Cette demande a déjà été traitée et ne peut plus être annulée. Votre liste a été mise à jour.",
-      "alreadyAmended": "Cette demande a déjà été modifiée et ne peut plus être annulée. Votre liste a été mise à jour."
+      "alreadyAmended": "Cette demande a déjà été modifiée et ne peut plus être annulée. Votre liste a été mise à jour.",
+      "alreadyWithdrawn": "Cette demande a déjà été retirée et ne peut plus être annulée. Votre liste a été mise à jour."
     },
     "amend": {
       "action": "Modifier la demande",
@@ -1937,7 +1945,44 @@
       "alreadyAmended": "Cette demande a déjà été modifiée. Votre liste a été mise à jour.",
       "alreadyCancelled": "Cette demande a déjà été annulée et ne peut plus être modifiée. Votre liste a été mise à jour.",
       "alreadyDecided": "Cette demande a déjà été traitée et ne peut plus être modifiée. Votre liste a été mise à jour.",
-      "overlap": "Une autre de vos demandes couvre déjà une partie de ces dates. Votre demande actuelle est inchangée."
+      "overlap": "Une autre de vos demandes couvre déjà une partie de ces dates. Votre demande actuelle est inchangée.",
+      "alreadyWithdrawn": "Cette demande a déjà été retirée et ne peut plus être modifiée. Votre liste a été mise à jour."
+    },
+    "withdraw": {
+      "action": "Retirer le congé approuvé",
+      "actionFor": "Retirer le congé approuvé {{name}}, {{period}}…",
+      "title": "Retirer ce congé approuvé",
+      "confirmTitle": "Confirmer le retrait",
+      "intro": "Votre congé approuvé est annulé et ses dates redeviennent libres. L’approbation reste dans votre historique avec votre motif. Un retrait est définitif et n’est possible qu’avant le début du congé.",
+      "reason": "Motif du retrait",
+      "reasonHelp": "Obligatoire. Il est conservé avec votre demande et affiché dans votre historique tel que vous l’écrivez. De 2 à {{max}} caractères, sans retour à la ligne.",
+      "count": "{{count}} caractères sur {{max}}",
+      "reasonLocale": "Langue du motif",
+      "reasonLocaleHelp": "Le motif est affiché dans cette langue ; il n’est jamais traduit.",
+      "review": "Vérifier le retrait",
+      "keep": "Garder le congé approuvé",
+      "confirm": "Retirer votre congé approuvé {{name}} pour {{period}} ? Cette action est définitive.",
+      "confirmButton": "Confirmer le retrait",
+      "sending": "Retrait du congé…",
+      "back": "Modifier le motif",
+      "done": "Votre congé approuvé {{name}} pour {{period}} a été retiré.",
+      "summary": {
+        "policy": "Politique",
+        "period": "Dates",
+        "amount": "Quantité",
+        "approval": "Statut actuel",
+        "approvedOn": "Approuvée le {{date}}"
+      },
+      "problems": {
+        "reason": "Saisissez un motif de 2 à 500 caractères, sans retour à la ligne ni caractère invisible.",
+        "reasonLocale": "Choisissez la langue du motif."
+      },
+      "alreadyWithdrawn": "Ce congé a déjà été retiré. Votre liste a été mise à jour.",
+      "notApproved": "Cette demande n’est pas approuvée ; elle ne peut pas être retirée. Votre liste a été mise à jour.",
+      "windowClosed": "Ce congé a déjà commencé et ne peut plus être retiré. Votre liste a été mise à jour.",
+      "alreadyCancelled": "Cette demande a été annulée et ne peut plus être retirée. Votre liste a été mise à jour.",
+      "alreadyAmended": "Cette demande a été modifiée et ne peut plus être retirée. Votre liste a été mise à jour.",
+      "alreadyDecided": "Cette demande a été rejetée et ne peut pas être retirée. Votre liste a été mise à jour."
     }
   },
   "leaveApprovals": {

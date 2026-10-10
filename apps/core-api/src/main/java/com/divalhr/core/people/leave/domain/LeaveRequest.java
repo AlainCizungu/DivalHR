@@ -24,10 +24,11 @@ import java.util.UUID;
  * @param amount requested amount, two decimals
  * @param state state
  * @param submittedAt submission time
- * @param decision the decision, or {@code null} unless decided
+ * @param decision the decision, or {@code null} unless decided (kept when withdrawn)
  * @param cancellation the cancellation, or {@code null} unless cancelled
  * @param amendment the amendment that replaced it, or {@code null} unless amended
  * @param amendedFrom the request it replaced, or {@code null} unless it is a replacement
+ * @param withdrawal the withdrawal of its approval, or {@code null} unless withdrawn (MVP-041F)
  */
 public record LeaveRequest(
     UUID id,
@@ -47,7 +48,8 @@ public record LeaveRequest(
     LeaveDecision decision,
     LeaveCancellation cancellation,
     LeaveAmendment amendment,
-    UUID amendedFrom) {
+    UUID amendedFrom,
+    LeaveWithdrawal withdrawal) {
 
   /**
    * Identifiers only: no date, amount or name reaches a log line through {@code toString}.
