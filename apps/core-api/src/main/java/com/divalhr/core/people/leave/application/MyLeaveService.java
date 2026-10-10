@@ -2,14 +2,17 @@ package com.divalhr.core.people.leave.application;
 
 import com.divalhr.core.people.application.BusinessCalendar;
 import com.divalhr.core.people.application.PeopleCaller;
+import com.divalhr.core.people.leave.api.AmendLeaveRequest;
 import com.divalhr.core.people.leave.api.CancelLeaveRequest;
 import com.divalhr.core.people.leave.api.CreateMyLeaveRequest;
+import com.divalhr.core.people.leave.api.MyLeaveResponses.AmendmentReceipt;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.CancellationReceipt;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.Policy;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.PolicyPage;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.Request;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.RequestPage;
 import com.divalhr.core.people.leave.domain.Employment;
+import com.divalhr.core.people.leave.domain.LeaveAmendment;
 import com.divalhr.core.people.leave.domain.LeaveCancellation;
 import com.divalhr.core.people.leave.domain.LeavePolicy;
 import com.divalhr.core.people.leave.domain.LeaveRequest;
@@ -45,7 +48,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -59,7 +64,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Employee self-service leave (MVP-041A, Issue #87): the requestable policy catalogue, submitting a
  * pending request and the caller's own request history; cancelling a pending request of their own
- * (MVP-041C, Issue #91).
+ * (MVP-041C, Issue #91); amending one by replacement (MVP-041D, Issue #92).
  *
  * <p>Authorization (role {@code employee}, verified tenant, active membership) has run before any
  * of this. Every operation then resolves the caller's own employee through the identity port's
@@ -101,6 +106,15 @@ public class MyLeaveService {
   /** Outbox event of a cancellation (MVP-041C). */
   public static final String CANCELLED_EVENT = "people.leave-request.cancelled.v1";
 
+  /** Amendment operation (idempotency operation; MVP-041D). */
+  public static final String AMEND = "leave-request.self-amend";
+
+  /** Audit action of an amendment (MVP-041D). */
+  public static final String AMEND_AUDIT = "leave-request.amend";
+
+  /** Outbox event of an amendment (MVP-041D). */
+  public static final String AMENDED_EVENT = "people.leave-request.amended.v1";
+
   /** Per-subject self-service read bucket (60 per minute). */
   public static final String SUBJECT_READ_BUCKET = "leave-self-read";
 
@@ -118,6 +132,8 @@ public class MyLeaveService {
       new IdempotentOperation.Spec(CREATE, "leave_request", "create", "created", 201);
   private static final IdempotentOperation.Spec CANCEL_SPEC =
       new IdempotentOperation.Spec(CANCEL, "leave_request", "cancel", "cancelled", 200);
+  private static final IdempotentOperation.Spec AMEND_SPEC =
+      new IdempotentOperation.Spec(AMEND, "leave_request", "amend", "amended", 201);
 
   private final IdempotentOperation operations;
   private final JdbcLeavePolicyRepository policies;
@@ -323,6 +339,8 @@ public class MyLeaveService {
             LeaveRequestState.PENDING,
             now,
             null,
+            null,
+            null,
             null);
     try {
       requests.insert(tenant, request, caller.subject());
@@ -444,11 +462,8 @@ public class MyLeaveService {
         requests
             .lockOwn(tenant, link.employeeId(), command.requestId())
             .orElseThrow(LeaveDecisionCommand::notFound);
-    if (routing.state() == LeaveRequestState.CANCELLED) {
-      throw alreadyCancelled();
-    }
     if (routing.state().terminal()) {
-      throw new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_DECIDED, Map.of());
+      throw terminal(routing.state());
     }
     Instant now = calendar.now().truncatedTo(ChronoUnit.MICROS);
     LeaveCancellation cancellation =
@@ -544,6 +559,263 @@ public class MyLeaveService {
 
   private static ApiException alreadyCancelled() {
     return new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_CANCELLED, Map.of());
+  }
+
+  /** The conflict of a terminal request, by its state. */
+  private static ApiException terminal(LeaveRequestState state) {
+    return switch (state) {
+      case CANCELLED -> alreadyCancelled();
+      case AMENDED -> new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_AMENDED, Map.of());
+      default -> new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_DECIDED, Map.of());
+    };
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Amend (MVP-041D)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * Replaces the caller's own pending request: the original becomes {@code AMENDED} and a new
+   * {@code PENDING} replacement, which passes every current submission rule, takes its place, with
+   * immutable amendment evidence. Or replays an earlier identical amendment while the original is
+   * still the caller's linked employee's (D41DE-1, D41DE-3).
+   *
+   * <p>One bounded transaction in the ADR 0008 order: idempotency (step 0); a plain read of the
+   * original to discover its employee, then that employee's employments that the original or the
+   * replacement interval touch, locked {@code FOR SHARE} in UUID order (step 2); the caller's own
+   * link and membership {@code FOR SHARE} (step 4); the original {@code FOR UPDATE}, bound to the
+   * tenant and the linked employee (step 5); then the state and every submission rule on the
+   * organization's business date, the transition, the replacement, the evidence, the deferred V22
+   * checks, the audit record and the outbox event (step 6). No employment is locked after the
+   * request. The original is moved to {@code AMENDED} before the replacement is inserted, so the
+   * overlap exclusion excludes exactly the original; any failure rolls both back.
+   *
+   * @param caller verified employee
+   * @param requestId path value
+   * @param idempotencyKey {@code Idempotency-Key} header
+   * @param body the replacement's fields, the reason and its language
+   * @return the receipt
+   */
+  public IdempotentOperation.Result<AmendmentReceipt> amend(
+      PeopleCaller caller, String requestId, String idempotencyKey, AmendLeaveRequest body) {
+    LeaveAmendmentCommand command =
+        operations.validated(
+            AMEND_SPEC, () -> LeaveAmendmentCommand.from(idempotencyKey, requestId, body));
+    return counted(
+        AMEND,
+        () ->
+            operations.execute(
+                AMEND_SPEC,
+                caller.subject(),
+                idempotencyKey,
+                command.canonical(caller.tenant()),
+                AmendmentReceipt.class,
+                TRANSACTION_TIMEOUT,
+                stored -> amendmentReplayable(caller, stored),
+                () -> amended(caller, command)));
+  }
+
+  /**
+   * A stored amendment receipt is returned only while the caller's current active link still
+   * resolves to the employee whose request it amended (R88): no link is {@code 403
+   * EMPLOYEE_LINK_REQUIRED}; otherwise {@code 404 LEAVE_REQUEST_NOT_FOUND}, with no stored response
+   * or identifier.
+   */
+  private void amendmentReplayable(PeopleCaller caller, UUID requestId) {
+    SelfLink link = link(caller);
+    if (requestId == null
+        || requests
+            .find(caller.tenant(), link.employeeId(), requestId)
+            .filter(request -> request.amendment() != null)
+            .isEmpty()) {
+      throw LeaveDecisionCommand.notFound();
+    }
+  }
+
+  private IdempotentOperation.Completed<AmendmentReceipt> amended(
+      PeopleCaller caller, LeaveAmendmentCommand command) {
+    TenantId tenant = caller.tenant();
+    LeaveRequestCommand replacement = command.replacement();
+    // One read of the time zone, one business date for the whole command (D41A-3 rule 1).
+    LocalDate today = calendar.today(calendar.zone(tenant));
+    // Step 2: the employments the original and the replacement interval touch, in UUID order.
+    Set<UUID> locked = new TreeSet<>();
+    requests
+        .routing(tenant, command.requestId())
+        .ifPresent(
+            seen -> {
+              Set<UUID> wanted = new TreeSet<>();
+              wanted.add(seen.employmentId());
+              requests
+                  .employments(
+                      tenant, seen.employeeId(), replacement.startDate(), replacement.endDate())
+                  .forEach(found -> wanted.add(found.id()));
+              wanted.forEach(
+                  id -> requests.shareEmployment(tenant, id).ifPresent(found -> locked.add(id)));
+            });
+    // Step 4: the link is checked before anything about the request is answered.
+    SelfLink link = link(caller);
+    // Step 5: the original, bound to the linked employee.
+    LeaveRouting original =
+        requests
+            .lockOwn(tenant, link.employeeId(), command.requestId())
+            .orElseThrow(LeaveDecisionCommand::notFound);
+    if (original.state().terminal()) {
+      throw terminal(original.state());
+    }
+    // Every current submission rule, against the replacement (D41A-3).
+    replacement.requireStartFrom(today);
+    LeavePolicy policy =
+        policies
+            .covering(
+                tenant, replacement.policyId(), replacement.startDate(), replacement.endDate())
+            .orElseThrow(() -> new ApiException(ErrorCode.LEAVE_POLICY_NOT_REQUESTABLE, Map.of()));
+    Employment employment =
+        requests
+            .employments(tenant, link.employeeId(), replacement.startDate(), replacement.endDate())
+            .stream()
+            .filter(candidate -> locked.contains(candidate.id()))
+            .filter(candidate -> candidate.covers(replacement.startDate(), replacement.endDate()))
+            .findFirst()
+            .orElseThrow(() -> notEligible("EMPLOYMENT_PERIOD"));
+    if (replacement
+        .startDate()
+        .isBefore(employment.effectiveFrom().plusDays(policy.minimumServiceDays()))) {
+      throw notEligible("MINIMUM_SERVICE");
+    }
+    Instant now = calendar.now().truncatedTo(ChronoUnit.MICROS);
+    LeaveRequest created =
+        new LeaveRequest(
+            UUID.randomUUID(),
+            link.employeeId(),
+            employment.id(),
+            policy.id(),
+            policy.versionId(),
+            policy.code(),
+            policy.nameEn(),
+            policy.nameFr(),
+            policy.unit(),
+            replacement.startDate(),
+            replacement.endDate(),
+            replacement.amount(),
+            LeaveRequestState.PENDING,
+            now,
+            null,
+            null,
+            null,
+            original.id());
+    LeaveAmendment amendment =
+        new LeaveAmendment(
+            UUID.randomUUID(),
+            original.id(),
+            created.id(),
+            command.reasonLocale(),
+            command.reason(),
+            now);
+    try {
+      requests.amend(tenant, amendment, created, caller.subject());
+      requests.checkTerminalConsistency(tenant);
+    } catch (DataIntegrityViolationException violated) {
+      Optional<String> constraint = LeaveConstraintViolations.constraint(violated);
+      if (constraint.filter(LeaveConstraintViolations.REQUEST_OVERLAP::equals).isPresent()) {
+        throw new ApiException(ErrorCode.LEAVE_REQUEST_OVERLAP, Map.of());
+      }
+      if (constraint
+          .filter(LeaveConstraintViolations.AMENDMENT_ORIGINAL_UNIQUE::equals)
+          .isPresent()) {
+        throw new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_AMENDED, Map.of());
+      }
+      if (constraint
+          .filter(LeaveConstraintViolations.AMENDMENT_CONSISTENCY::contains)
+          .isPresent()) {
+        // Never expected: the checks above hold the row lock. No database text is exposed.
+        throw new IllegalStateException("leave amendment inconsistent with its requests");
+      }
+      throw violated;
+    }
+
+    Map<String, Object> ids = new LinkedHashMap<>();
+    ids.put("schemaVersion", LeavePolicyService.SCHEMA_VERSION);
+    ids.put("amendmentId", amendment.id().toString());
+    ids.put("originalRequestId", original.id().toString());
+    ids.put("replacementRequestId", created.id().toString());
+    ids.put("employeeId", link.employeeId().toString());
+    ids.put("originalEmploymentId", original.employmentId().toString());
+    ids.put("replacementEmploymentId", created.employmentId().toString());
+    ids.put("originalPolicyId", original.policyId().toString());
+    ids.put("originalPolicyVersionId", original.policyVersionId().toString());
+    ids.put("replacementPolicyId", created.policyId().toString());
+    ids.put("replacementPolicyVersionId", created.policyVersionId().toString());
+    ids.put("priorState", LeaveRequestState.PENDING.name());
+    ids.put("originalState", LeaveRequestState.AMENDED.name());
+    ids.put("replacementState", LeaveRequestState.PENDING.name());
+    audit.record(
+        new AuditEvent(
+            UUID.randomUUID(),
+            now,
+            caller.subject(),
+            AMEND_AUDIT,
+            "leave-request",
+            original.id(),
+            tenant.value(),
+            "SUCCESS",
+            caller.correlationId(),
+            ids,
+            Fingerprints.sha256(
+                json.writeValueAsString(
+                    amendedState(tenant, original, created, amendment, caller)))));
+    Map<String, Object> data = new LinkedHashMap<>(ids);
+    data.remove("schemaVersion");
+    outbox.append(
+        new EventEnvelope(
+            UUID.randomUUID().toString(),
+            AMENDED_EVENT,
+            LeavePolicyService.SCHEMA_VERSION,
+            tenant.toString(),
+            SOURCE,
+            original.id().toString(),
+            now.toString(),
+            caller.correlationId(),
+            null,
+            data));
+    LOG.atInfo()
+        .addKeyValue("operation", AMEND)
+        .addKeyValue("approvalRoute", policy.approvalRoute().name())
+        .addKeyValue("outcome", "amended")
+        .log("leave_request_self_amended");
+    return new IdempotentOperation.Completed<>(
+        new AmendmentReceipt(
+            amendment.id(),
+            original.id(),
+            created.id(),
+            LeaveRequestState.AMENDED,
+            LeaveRequestState.PENDING,
+            now),
+        original.id(),
+        Outcome.CREATED);
+  }
+
+  /**
+   * The whole amended state (both requests and the evidence), including the reason and the actor;
+   * only its digest is stored.
+   */
+  private static Map<String, Object> amendedState(
+      TenantId tenant,
+      LeaveRouting original,
+      LeaveRequest replacement,
+      LeaveAmendment amendment,
+      PeopleCaller caller) {
+    Map<String, Object> state = new TreeMap<>();
+    state.put("tenantId", tenant.toString());
+    state.put("originalRequestId", original.id().toString());
+    state.put("originalState", LeaveRequestState.AMENDED.name());
+    state.put("replacement", afterState(tenant, replacement, caller));
+    state.put("amendmentId", amendment.id().toString());
+    state.put("reasonLocale", amendment.reasonLocale());
+    state.put("reason", amendment.reason());
+    state.put("amendedAt", amendment.amendedAt().toString());
+    state.put("amendedBy", caller.subject());
+    return state;
   }
 
   // ------------------------------------------------------------------------------------------

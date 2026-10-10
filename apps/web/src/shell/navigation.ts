@@ -73,6 +73,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'check',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/leave-routing-exceptions',
+        labelKey: 'nav.leaveRoutingExceptions',
+        icon: 'check',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

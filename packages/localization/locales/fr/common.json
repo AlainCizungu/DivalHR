@@ -30,7 +30,8 @@
       "documents": "Documents",
       "access": "Accès et sécurité",
       "mySpace": "Mon espace"
-    }
+    },
+    "leaveRoutingExceptions": "Exceptions d’acheminement des congés"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -351,7 +352,8 @@
     "LEAVE_REQUEST_OVERLAP": "Vous avez déjà une demande en attente ou approuvée pour une partie de ces dates.",
     "LEAVE_REQUEST_NOT_FOUND": "Cette demande de congé ne vous est plus accessible. Elle a peut-être été traitée, confiée à un autre approbateur ou retirée de votre liste.",
     "LEAVE_REQUEST_ALREADY_DECIDED": "Cette demande de congé a déjà été traitée.",
-    "LEAVE_REQUEST_ALREADY_CANCELLED": "Cette demande de congé a déjà été annulée."
+    "LEAVE_REQUEST_ALREADY_CANCELLED": "Cette demande de congé a déjà été annulée.",
+    "LEAVE_REQUEST_ALREADY_AMENDED": "Cette demande de congé a déjà été modifiée."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -1840,7 +1842,8 @@
       "PENDING": "En attente",
       "APPROVED": "Approuvée",
       "REJECTED": "Rejetée",
-      "CANCELLED": "Annulée"
+      "CANCELLED": "Annulée",
+      "AMENDED": "Modifiée"
     },
     "history": {
       "title": "Mes demandes",
@@ -1859,7 +1862,12 @@
       "awaiting": "En attente de décision",
       "more": "Afficher plus de demandes",
       "loadingMore": "Chargement d’autres demandes…",
-      "cancelledOn": "Annulée le {{date}}"
+      "cancelledOn": "Annulée le {{date}}",
+      "amendedOn": "Modifiée le {{date}}",
+      "replaces": "Remplace la demande du {{period}}",
+      "replacedBy": "Remplacée par la demande du {{period}}",
+      "replacesEarlier": "Remplace une demande antérieure",
+      "replacedByEarlier": "Remplacée par une demande ultérieure"
     },
     "cancel": {
       "action": "Annuler la demande",
@@ -1889,7 +1897,47 @@
         "reasonLocale": "Choisissez la langue du motif."
       },
       "alreadyCancelled": "Cette demande a déjà été annulée. Votre liste a été mise à jour.",
-      "alreadyDecided": "Cette demande a déjà été traitée et ne peut plus être annulée. Votre liste a été mise à jour."
+      "alreadyDecided": "Cette demande a déjà été traitée et ne peut plus être annulée. Votre liste a été mise à jour.",
+      "alreadyAmended": "Cette demande a déjà été modifiée et ne peut plus être annulée. Votre liste a été mise à jour."
+    },
+    "amend": {
+      "action": "Modifier la demande",
+      "actionFor": "Modifier la demande {{name}}, {{period}}…",
+      "title": "Modifier cette demande de congé",
+      "confirmTitle": "Confirmer la modification",
+      "intro": "La demande est remplacée : elle reste dans votre historique comme modifiée, avec votre motif, et une nouvelle demande en attente prend sa place. Ses dates ne sont libérées que si la nouvelle demande est acceptée.",
+      "reason": "Motif de la modification",
+      "reasonHelp": "Obligatoire. Il est conservé avec vos demandes et affiché dans votre historique tel que vous l’écrivez. De 2 à {{max}} caractères, sans retour à la ligne.",
+      "count": "{{count}} caractères sur {{max}}",
+      "reasonLocale": "Langue du motif",
+      "reasonLocaleHelp": "Le motif est affiché dans cette langue ; il n’est jamais traduit.",
+      "review": "Vérifier la modification",
+      "keep": "Garder la demande",
+      "confirm": "Remplacer votre demande par ces valeurs ? La demande actuelle est conservée comme modifiée ; cette action est définitive.",
+      "comparison": "Valeurs actuelles et nouvelles de la demande",
+      "before": "Actuelle",
+      "after": "Nouvelle",
+      "summary": {
+        "policy": "Politique",
+        "period": "Dates",
+        "amount": "Quantité"
+      },
+      "confirmButton": "Confirmer la modification",
+      "sending": "Modification de la demande…",
+      "back": "Revenir à la modification",
+      "done": "Votre demande {{name}} pour {{period}} a été modifiée. La nouvelle demande est en attente.",
+      "problems": {
+        "policy": "Choisissez une politique de congé.",
+        "startDate": "Saisissez un premier jour valide, aujourd’hui ou plus tard.",
+        "endDate": "Saisissez un dernier jour valide, égal ou postérieur au premier jour et dans la limite de 366 jours.",
+        "amount": "Saisissez une quantité supérieure à 0 et au plus 10 000, avec au plus deux décimales.",
+        "reasonLocale": "Choisissez la langue du motif.",
+        "reason": "Saisissez un motif de 2 à 500 caractères, sans retour à la ligne ni caractère invisible."
+      },
+      "alreadyAmended": "Cette demande a déjà été modifiée. Votre liste a été mise à jour.",
+      "alreadyCancelled": "Cette demande a déjà été annulée et ne peut plus être modifiée. Votre liste a été mise à jour.",
+      "alreadyDecided": "Cette demande a déjà été traitée et ne peut plus être modifiée. Votre liste a été mise à jour.",
+      "overlap": "Une autre de vos demandes couvre déjà une partie de ces dates. Votre demande actuelle est inchangée."
     }
   },
   "leaveApprovals": {
@@ -1898,7 +1946,7 @@
     "manager": {
       "title": "Approbations de congé",
       "description": "Approuvez ou rejetez les demandes de congé des employés qui relèvent de vous.",
-      "routing": "Une demande s’affiche lorsque sa politique confie l’approbation au responsable et que vous êtes le responsable de l’employé le premier jour de la demande. Une demande sans responsable ce jour-là attend un traitement ultérieur.",
+      "routing": "Une demande s’affiche lorsque sa politique confie l’approbation au responsable et que vous êtes le responsable de l’employé le premier jour de la demande. Une demande sans responsable ce jour-là rejoint les exceptions d’acheminement des administrateurs de l’organisation.",
       "empty": "Aucune demande de congé n’attend votre décision.",
       "unauthorized": "Cette page est réservée aux employés d’une organisation."
     },
@@ -1971,6 +2019,23 @@
     "decided": {
       "APPROVED": "La demande de {{name}} pour {{period}} a été approuvée.",
       "REJECTED": "La demande de {{name}} pour {{period}} a été rejetée."
+    },
+    "exception": {
+      "title": "Exceptions d’acheminement des congés",
+      "description": "Décidez des demandes de congé confiées au responsable lorsqu’aucun responsable n’est admissible le premier jour.",
+      "empty": "Aucune demande de congé n’attend sans responsable admissible.",
+      "unauthorized": "Seuls les administrateurs de l’organisation connectés avec leur application d’authentification peuvent traiter ces demandes.",
+      "override": "Décision administrative exceptionnelle : aucun responsable n’est admissible pour ces demandes à leur premier jour. Dès qu’un responsable admissible est désigné, la demande quitte cette liste et lui revient.",
+      "reason": "Aucun responsable admissible",
+      "gone": "Cette demande a désormais un responsable admissible ou n’est plus en attente : elle a quitté les exceptions et a été retirée de la liste.",
+      "confirm": {
+        "APPROVED": "Approuver la demande de {{name}} par décision administrative exceptionnelle, faute de responsable admissible ? Cette décision est définitive.",
+        "REJECTED": "Rejeter la demande de {{name}} par décision administrative exceptionnelle, faute de responsable admissible ? Cette décision est définitive."
+      },
+      "confirmButton": {
+        "APPROVED": "Confirmer l’approbation exceptionnelle",
+        "REJECTED": "Confirmer le rejet exceptionnel"
+      }
     }
   },
   "landing": {

@@ -4,10 +4,13 @@ import com.divalhr.core.people.application.BusinessCalendar;
 import com.divalhr.core.people.application.ManagerGraphLock;
 import com.divalhr.core.people.application.PeopleCaller;
 import com.divalhr.core.people.leave.api.DecideLeaveRequest;
+import com.divalhr.core.people.leave.api.LeaveApprovalResponses.ExceptionItem;
+import com.divalhr.core.people.leave.api.LeaveApprovalResponses.ExceptionPage;
 import com.divalhr.core.people.leave.api.LeaveApprovalResponses.Item;
 import com.divalhr.core.people.leave.api.LeaveApprovalResponses.Page;
 import com.divalhr.core.people.leave.api.LeaveApprovalResponses.Receipt;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
+import com.divalhr.core.people.leave.domain.DecisionAuthority;
 import com.divalhr.core.people.leave.domain.Employment;
 import com.divalhr.core.people.leave.domain.LeaveApprovalItem;
 import com.divalhr.core.people.leave.domain.LeaveDecision;
@@ -44,6 +47,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,7 +58,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Leave approval (MVP-041B, Issue #89; ADR 0010): the manager and tenant-administrator inboxes and
- * the one terminal decision on a pending request.
+ * the one terminal decision on a pending request; the routing exceptions (MVP-041E, Issue #92).
  *
  * <p>The route is the immutable {@code approval_route} of the request's policy version. A {@code
  * MANAGER} request belongs to the employee whose active, non-superseded MANAGER line covers the
@@ -68,6 +72,16 @@ import tools.jackson.databind.json.JsonMapper;
  * 5), then the decision, the transition, the deferred V20 checks, the audit record and the outbox
  * event (step 6). Tenant administrator: the same without steps 1 and 4. A replay re-runs the route
  * checks (manager: steps 1 and 4 and the reporting line) before any stored body is read.
+ *
+ * <p>A routing exception is a pending {@code MANAGER} request that no active, non-superseded
+ * MANAGER line covers on its first day; it is derived on every list and decision, never stored.
+ * Tenant administrators list and decide them; a decision is one bounded transaction: idempotency
+ * (step 0), the tenant's manager-graph lock (step 1, so no manager can be added or restored
+ * meanwhile), the request's employment {@code FOR SHARE} (step 2), the request {@code FOR UPDATE}
+ * (step 5), the route, state and manager-absence checks, then the decision with the {@code
+ * TENANT_ADMIN_OVERRIDE} authority under the unchanged {@code MANAGER} route (step 6). Its replay
+ * checks only that the stored decision is this tenant's override: a manager assigned after it does
+ * not invalidate it.
  *
  * <p>The reason is Restricted HR: it is stored only in the decision row, returned only to the
  * requesting employee's own history, and never enters logs, metrics, audit metadata, events or the
@@ -100,6 +114,26 @@ public class LeaveApprovalService {
   /** Outbox event of a rejection. */
   public static final String REJECTED_EVENT = "people.leave-request.rejected.v1";
 
+  /** Routing-exception queue (and its disclosure audit action; MVP-041E). */
+  public static final String EXCEPTION_LIST = "leave-routing-exception.list";
+
+  /** Routing-exception decision (idempotency operation; MVP-041E). */
+  public static final String EXCEPTION_DECIDE = "leave-request.routing-exception-decide";
+
+  /** Audit action of a routing-exception approval (MVP-041E). */
+  public static final String EXCEPTION_APPROVE = "leave-request.routing-exception.approve";
+
+  /** Audit action of a routing-exception rejection (MVP-041E). */
+  public static final String EXCEPTION_REJECT = "leave-request.routing-exception.reject";
+
+  /** Outbox event of a routing-exception approval (MVP-041E). */
+  public static final String EXCEPTION_APPROVED_EVENT =
+      "people.leave-request.routing-exception-approved.v1";
+
+  /** Outbox event of a routing-exception rejection (MVP-041E). */
+  public static final String EXCEPTION_REJECTED_EVENT =
+      "people.leave-request.routing-exception-rejected.v1";
+
   /** Per-subject inbox bucket (60 per minute). */
   public static final String SUBJECT_READ_BUCKET = "leave-approval-read";
 
@@ -117,6 +151,8 @@ public class LeaveApprovalService {
       new IdempotentOperation.Spec(MANAGER_DECIDE, "leave_request", "decide", "decided", 200);
   private static final IdempotentOperation.Spec ADMIN_SPEC =
       new IdempotentOperation.Spec(ADMIN_DECIDE, "leave_request", "decide", "decided", 200);
+  private static final IdempotentOperation.Spec EXCEPTION_SPEC =
+      new IdempotentOperation.Spec(EXCEPTION_DECIDE, "leave_request", "decide", "decided", 200);
 
   private final IdempotentOperation operations;
   private final JdbcLeaveRequestRepository requests;
@@ -207,7 +243,8 @@ public class LeaveApprovalService {
                 disclosed(caller, MANAGER_LIST, "employee", link.employeeId(), cursor, page);
                 return page;
               });
-        });
+        },
+        listedPage -> listedPage.items().size());
   }
 
   /**
@@ -226,7 +263,7 @@ public class LeaveApprovalService {
         cursor,
         () -> {
           int size = LeavePolicyService.limit(limit);
-          CursorScope scope = adminScope(caller, size);
+          CursorScope scope = adminScope(ADMIN_LIST, caller, size);
           return read(
               () -> {
                 Keyset after = after(caller.tenant(), cursor, scope);
@@ -237,7 +274,41 @@ public class LeaveApprovalService {
                     caller, ADMIN_LIST, "organization", caller.tenant().value(), cursor, page);
                 return page;
               });
-        });
+        },
+        listedPage -> listedPage.items().size());
+  }
+
+  /**
+   * One page of the tenant's routing exceptions, newest first: pending {@code MANAGER} requests
+   * that no qualifying manager covers on their first day, re-derived on every read. A fail-closed
+   * disclosure.
+   *
+   * @param caller verified tenant administrator
+   * @param cursor opaque cursor or {@code null}
+   * @param limit page size (1 to 50, default 25)
+   * @return the page
+   */
+  public ExceptionPage exceptionList(PeopleCaller caller, String cursor, String limit) {
+    return listed(
+        EXCEPTION_LIST,
+        false,
+        cursor,
+        () -> {
+          int size = LeavePolicyService.limit(limit);
+          CursorScope scope = adminScope(EXCEPTION_LIST, caller, size);
+          return read(
+              () -> {
+                Keyset after = after(caller.tenant(), cursor, scope);
+                List<LeaveApprovalItem> rows =
+                    requests.exceptionQueue(caller.tenant(), after.at(), after.id(), size + 1);
+                Page page = page(rows, size, scope);
+                disclosed(
+                    caller, EXCEPTION_LIST, "organization", caller.tenant().value(), cursor, page);
+                return new ExceptionPage(
+                    page.items().stream().map(ExceptionItem::of).toList(), page.nextCursor());
+              });
+        },
+        listedPage -> listedPage.items().size());
   }
 
   private record Keyset(Instant at, UUID id) {}
@@ -281,9 +352,9 @@ public class LeaveApprovalService {
   }
 
   /** Bound to the operation, tenant, subject (a digest) and page size. */
-  private static CursorScope adminScope(PeopleCaller caller, int size) {
+  private static CursorScope adminScope(String operation, PeopleCaller caller, int size) {
     return new CursorScope(
-        ADMIN_LIST,
+        operation,
         caller.tenant(),
         Map.of("subject", subjectDigest(caller), "limit", Integer.toString(size)));
   }
@@ -302,7 +373,7 @@ public class LeaveApprovalService {
       Page page) {
     Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("schemaVersion", LeavePolicyService.SCHEMA_VERSION);
-    metadata.put("view", MANAGER_LIST.equals(action) ? "manager-inbox" : "admin-inbox");
+    metadata.put("view", view(action));
     metadata.put("page", cursor == null ? "first" : "next");
     metadata.put("resultCount", page.items().size());
     StringBuilder text =
@@ -323,6 +394,13 @@ public class LeaveApprovalService {
             caller.correlationId(),
             metadata,
             Fingerprints.sha256(text.toString())));
+  }
+
+  private static String view(String action) {
+    if (MANAGER_LIST.equals(action)) {
+      return "manager-inbox";
+    }
+    return EXCEPTION_LIST.equals(action) ? "routing-exceptions" : "admin-inbox";
   }
 
   // ------------------------------------------------------------------------------------------
@@ -388,6 +466,37 @@ public class LeaveApprovalService {
                 () -> adminDecided(caller, command)));
   }
 
+  /**
+   * Decides a routing exception (MVP-041E): a pending {@code MANAGER} request that no qualifying
+   * manager covers on its first day, re-evaluated under the tenant's manager-graph lock; or replays
+   * an earlier identical override.
+   *
+   * @param caller verified tenant administrator
+   * @param requestId path value
+   * @param idempotencyKey {@code Idempotency-Key} header
+   * @param body decision
+   * @return the receipt
+   */
+  public IdempotentOperation.Result<Receipt> exceptionDecide(
+      PeopleCaller caller, String requestId, String idempotencyKey, DecideLeaveRequest body) {
+    LeaveDecisionCommand command =
+        operations.validated(
+            EXCEPTION_SPEC, () -> LeaveDecisionCommand.from(idempotencyKey, requestId, body));
+    return counted(
+        EXCEPTION_DECIDE,
+        false,
+        () ->
+            operations.execute(
+                EXCEPTION_SPEC,
+                caller.subject(),
+                idempotencyKey,
+                command.canonical(caller.tenant()),
+                Receipt.class,
+                TRANSACTION_TIMEOUT,
+                stored -> exceptionReplayable(caller, stored),
+                () -> exceptionDecided(caller, command)));
+  }
+
   private IdempotentOperation.Completed<Receipt> managerDecided(
       PeopleCaller caller, LeaveDecisionCommand command) {
     TenantId tenant = caller.tenant();
@@ -404,7 +513,8 @@ public class LeaveApprovalService {
         || !requests.reportsTo(tenant, routing.id(), link.employeeId())) {
       throw LeaveDecisionCommand.notFound();
     }
-    return decided(caller, command, routing, employment, link.employeeId());
+    return decided(
+        caller, command, routing, employment, DecisionAuthority.MANAGER, link.employeeId());
   }
 
   private IdempotentOperation.Completed<Receipt> adminDecided(
@@ -421,7 +531,52 @@ public class LeaveApprovalService {
             .lockRouting(tenant, command.requestId())
             .filter(found -> found.route() == ApprovalRoute.TENANT_ADMIN)
             .orElseThrow(LeaveDecisionCommand::notFound);
-    return decided(caller, command, routing, employment, null);
+    return decided(caller, command, routing, employment, DecisionAuthority.TENANT_ADMIN, null);
+  }
+
+  /**
+   * The override: route {@code MANAGER} first, then {@code PENDING} (a terminal request is its own
+   * already-decided, -cancelled or -amended conflict), then no qualifying manager under the lock.
+   * Anything else, a request with a qualifying manager included, is {@code 404}.
+   */
+  private IdempotentOperation.Completed<Receipt> exceptionDecided(
+      PeopleCaller caller, LeaveDecisionCommand command) {
+    TenantId tenant = caller.tenant();
+    graph.lock(tenant);
+    LeaveRouting seen =
+        requests
+            .routing(tenant, command.requestId())
+            .filter(found -> found.route() == ApprovalRoute.MANAGER)
+            .orElseThrow(LeaveDecisionCommand::notFound);
+    Employment employment = requests.shareEmployment(tenant, seen.employmentId()).orElse(null);
+    LeaveRouting routing =
+        requests
+            .lockRouting(tenant, command.requestId())
+            .filter(found -> found.route() == ApprovalRoute.MANAGER)
+            .orElseThrow(LeaveDecisionCommand::notFound);
+    if (routing.state().terminal()) {
+      throw terminal(routing.state());
+    }
+    if (!requests.noQualifyingManager(tenant, routing.id())) {
+      throw LeaveDecisionCommand.notFound();
+    }
+    return decided(
+        caller, command, routing, employment, DecisionAuthority.TENANT_ADMIN_OVERRIDE, null);
+  }
+
+  /**
+   * An override's replay: the stored decision is this tenant's routing-exception override. The
+   * current manager graph is not re-evaluated: a manager assigned after the historical decision
+   * does not invalidate it.
+   */
+  private void exceptionReplayable(PeopleCaller caller, UUID requestId) {
+    if (requestId == null
+        || requests
+            .decisionAuthority(caller.tenant(), requestId)
+            .filter(authority -> authority == DecisionAuthority.TENANT_ADMIN_OVERRIDE)
+            .isEmpty()) {
+      throw LeaveDecisionCommand.notFound();
+    }
   }
 
   /** A manager's replay: the lock, the current link and the current reporting line again. */
@@ -438,12 +593,15 @@ public class LeaveApprovalService {
     }
   }
 
-  /** An administrator's replay: the stored decision is this tenant's, under the admin route. */
+  /**
+   * An administrator's replay: the stored decision is this tenant's, taken under the {@code
+   * TENANT_ADMIN} route by its own authority (never a routing-exception override).
+   */
   private void adminReplayable(PeopleCaller caller, UUID requestId) {
     if (requestId == null
         || requests
-            .decisionRoute(caller.tenant(), requestId)
-            .filter(route -> route == ApprovalRoute.TENANT_ADMIN)
+            .decisionAuthority(caller.tenant(), requestId)
+            .filter(authority -> authority == DecisionAuthority.TENANT_ADMIN)
             .isEmpty()) {
       throw LeaveDecisionCommand.notFound();
     }
@@ -454,11 +612,13 @@ public class LeaveApprovalService {
       LeaveDecisionCommand command,
       LeaveRouting routing,
       Employment employment,
+      DecisionAuthority authority,
       UUID managerEmployeeId) {
     TenantId tenant = caller.tenant();
     if (routing.state().terminal()) {
       throw alreadyDecided();
     }
+    boolean override = authority == DecisionAuthority.TENANT_ADMIN_OVERRIDE;
     // Approving needs the employment to cover the whole interval still; rejecting does not.
     if (command.outcome() == LeaveRequestState.APPROVED
         && (employment == null || !employment.covers(routing.startDate(), routing.endDate()))) {
@@ -472,6 +632,7 @@ public class LeaveApprovalService {
             routing.id(),
             command.outcome(),
             routing.route(),
+            authority,
             managerEmployeeId,
             command.reasonLocale(),
             command.reason(),
@@ -502,6 +663,9 @@ public class LeaveApprovalService {
     ids.put("policyId", routing.policyId().toString());
     ids.put("policyVersionId", routing.policyVersionId().toString());
     ids.put("approvalRoute", routing.route().name());
+    if (override) {
+      ids.put("decisionAuthority", authority.name());
+    }
     Map<String, Object> metadata = new LinkedHashMap<>(ids);
     metadata.put("priorState", LeaveRequestState.PENDING.name());
     metadata.put("resultingState", decision.outcome().name());
@@ -510,7 +674,7 @@ public class LeaveApprovalService {
             UUID.randomUUID(),
             now,
             caller.subject(),
-            approved ? APPROVE : REJECT,
+            action(override, approved),
             "leave-request",
             routing.id(),
             tenant.value(),
@@ -525,7 +689,9 @@ public class LeaveApprovalService {
     outbox.append(
         new EventEnvelope(
             UUID.randomUUID().toString(),
-            approved ? APPROVED_EVENT : REJECTED_EVENT,
+            override
+                ? approved ? EXCEPTION_APPROVED_EVENT : EXCEPTION_REJECTED_EVENT
+                : approved ? APPROVED_EVENT : REJECTED_EVENT,
             LeavePolicyService.SCHEMA_VERSION,
             tenant.toString(),
             SOURCE,
@@ -535,10 +701,16 @@ public class LeaveApprovalService {
             null,
             data));
     LOG.atInfo()
-        .addKeyValue("operation", approved ? APPROVE : REJECT)
+        .addKeyValue("operation", action(override, approved))
         .addKeyValue("approvalRoute", routing.route().name())
+        .addKeyValue("decisionAuthority", authority.name())
         .addKeyValue("outcome", approved ? "approved" : "rejected")
-        .log(approved ? "leave_request_approved" : "leave_request_rejected");
+        .log(
+            override
+                ? approved
+                    ? "leave_request_routing_exception_approved"
+                    : "leave_request_routing_exception_rejected"
+                : approved ? "leave_request_approved" : "leave_request_rejected");
     return new IdempotentOperation.Completed<>(
         new Receipt(routing.id(), decision.id(), decision.outcome(), now),
         routing.id(),
@@ -559,6 +731,7 @@ public class LeaveApprovalService {
     state.put("state", decision.outcome().name());
     state.put("decisionId", decision.id().toString());
     state.put("approvalRoute", decision.route().name());
+    state.put("decisionAuthority", decision.authority().name());
     state.put(
         "managerEmployeeId",
         decision.managerEmployeeId() == null ? "" : decision.managerEmployeeId().toString());
@@ -569,8 +742,24 @@ public class LeaveApprovalService {
     return state;
   }
 
+  private static String action(boolean override, boolean approved) {
+    if (override) {
+      return approved ? EXCEPTION_APPROVE : EXCEPTION_REJECT;
+    }
+    return approved ? APPROVE : REJECT;
+  }
+
   private static ApiException alreadyDecided() {
     return new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_DECIDED, Map.of());
+  }
+
+  /** The conflict of a terminal request, by its state (MVP-041E). */
+  private static ApiException terminal(LeaveRequestState state) {
+    return switch (state) {
+      case CANCELLED -> new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_CANCELLED, Map.of());
+      case AMENDED -> new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_AMENDED, Map.of());
+      default -> alreadyDecided();
+    };
   }
 
   // ------------------------------------------------------------------------------------------
@@ -596,14 +785,19 @@ public class LeaveApprovalService {
   }
 
   /** Records an inbox read's outcome and logs it without any value. */
-  private Page listed(String operation, boolean selfService, String cursor, Supplier<Page> work) {
+  private <T> T listed(
+      String operation,
+      boolean selfService,
+      String cursor,
+      Supplier<T> work,
+      ToIntFunction<T> count) {
     try {
-      Page page = counted(operation, selfService, work);
+      T page = counted(operation, selfService, work);
       metrics.record(operation, Outcome.LISTED);
       LOG.atInfo()
           .addKeyValue("operation", operation)
           .addKeyValue("page", cursor == null ? "first" : "next")
-          .addKeyValue("resultCount", page.items().size())
+          .addKeyValue("resultCount", count.applyAsInt(page))
           .addKeyValue("outcome", "listed")
           .log("leave_approval_listed");
       return page;

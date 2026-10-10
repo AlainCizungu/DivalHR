@@ -232,6 +232,20 @@ fieldset[aria-invalid='true'] {
   margin-bottom: var(--dv-space-4);
 }
 
+/* MVP-041E: an administrator override is conspicuous (border and weight, not colour alone). */
+.override-notice {
+  padding: var(--dv-space-3) var(--dv-space-4);
+  border-inline-start: 4px solid var(--dv-color-warning);
+  overflow-wrap: anywhere;
+}
+
+/* MVP-041D: the old and new values of an amendment stay readable at 320 px and 200% zoom. */
+.amend-comparison {
+  width: 100%;
+  table-layout: fixed;
+  overflow-wrap: anywhere;
+}
+
 .error-summary a {
   color: var(--dv-color-danger);
 }

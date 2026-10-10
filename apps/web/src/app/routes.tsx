@@ -11,7 +11,11 @@ import { MyContractPage } from '../features/contracts/MyContractPage';
 import { MyContractsPage } from '../features/contracts/MyContractsPage';
 import { HierarchyPage } from '../features/hierarchy/HierarchyPage';
 import { HomePage } from '../features/home/HomePage';
-import { LeaveApprovalsPage, MyLeaveApprovalsPage } from '../features/leave/LeaveApprovalInbox';
+import {
+  LeaveApprovalsPage,
+  LeaveRoutingExceptionsPage,
+  MyLeaveApprovalsPage,
+} from '../features/leave/LeaveApprovalInbox';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
@@ -131,6 +135,12 @@ export const ROUTES: AppRoute[] = [
     element: <LeaveApprovalsPage />,
     access: tenantAdmin('leaveApprovals.admin.unauthorized', 'leaveApprovals.signInRequired'),
     crumbs: [HOME, PEOPLE, { key: 'nav.leaveApprovals' }],
+  },
+  {
+    path: '/admin/leave-routing-exceptions',
+    element: <LeaveRoutingExceptionsPage />,
+    access: tenantAdmin('leaveApprovals.exception.unauthorized', 'leaveApprovals.signInRequired'),
+    crumbs: [HOME, PEOPLE, { key: 'nav.leaveRoutingExceptions' }],
   },
   {
     path: '/admin/contract-templates',

@@ -267,6 +267,11 @@ class TeamConstraintsIntegrationTest {
           transactions.execute(
               status -> {
                 jdbc.execute("SET LOCAL enable_seqscan = off");
+                // As in SiteUnitConstraintsIntegrationTest: once the shared test database holds
+                // enough teams to be analyzed, a one-row estimate makes "another index plus a sort"
+                // as cheap; the question here is only whether the partial keyset index can serve
+                // the order by itself.
+                jdbc.execute("SET LOCAL enable_sort = off");
                 return jdbc.queryForList(
                     "EXPLAIN SELECT id FROM tenant.team WHERE tenant_id = ? AND "
                         + resource.column

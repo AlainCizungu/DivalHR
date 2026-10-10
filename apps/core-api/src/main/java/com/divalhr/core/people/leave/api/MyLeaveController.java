@@ -1,6 +1,7 @@
 package com.divalhr.core.people.leave.api;
 
 import com.divalhr.core.people.application.PeopleCaller;
+import com.divalhr.core.people.leave.api.MyLeaveResponses.AmendmentReceipt;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.CancellationReceipt;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.PolicyPage;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.Request;
@@ -35,11 +36,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Employee self-service leave endpoints (MVP-041A, Issue #87; cancellation MVP-041C, Issue #91).
- * Every handler is an employee self-service operation ({@code EmployeeSelfOperation}): subject,
- * role {@code employee}, tenant and an active membership are checked, then the request limits,
- * before any argument or body is read; the service binds every query to the caller's own active
- * employee-access link. Responses are {@code private, no-store}.
+ * Employee self-service leave endpoints (MVP-041A, Issue #87; cancellation MVP-041C, Issue #91;
+ * amendment MVP-041D, Issue #92). Every handler is an employee self-service operation ({@code
+ * EmployeeSelfOperation}): subject, role {@code employee}, tenant and an active membership are
+ * checked, then the request limits, before any argument or body is read; the service binds every
+ * query to the caller's own active employee-access link. Responses are {@code private, no-store}.
  */
 @RestController
 @RequestMapping(MyLeaveController.PATH)
@@ -145,6 +146,40 @@ public class MyLeaveController {
         leave.cancel(caller(authentication, request), requestId, idempotencyKey, body);
     ResponseEntity.BodyBuilder response =
         ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
+    if (result.replayed()) {
+      response.header(IdempotencyKeys.REPLAYED_HEADER, "true");
+    }
+    return response.body(result.body());
+  }
+
+  /**
+   * Amends one of the caller's own pending leave requests by replacing it (MVP-041D).
+   *
+   * @param requestId the original request
+   * @param idempotencyKey required idempotency key
+   * @param body the replacement's policy, dates and amount, the reason and its language
+   * @param authentication verified employee
+   * @param request current request
+   * @return 201 with the minimal receipt; replays carry {@code Idempotent-Replayed: true}
+   */
+  @Operation(operationId = "amendMyLeaveRequest")
+  @PostMapping(
+      path = "/leave-requests/{requestId}/amendment",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
+  @EmployeeSelfOperation(operation = MyLeaveService.AMEND)
+  @SubjectRateLimited(bucket = MyLeaveService.SUBJECT_WRITE_BUCKET)
+  @TenantRateLimited(bucket = MyLeaveService.TENANT_WRITE_BUCKET)
+  public ResponseEntity<AmendmentReceipt> amend(
+      @PathVariable("requestId") String requestId,
+      @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
+      @RequestBody AmendLeaveRequest body,
+      @Parameter(hidden = true) JwtAuthenticationToken authentication,
+      @Parameter(hidden = true) HttpServletRequest request) {
+    IdempotentOperation.Result<AmendmentReceipt> result =
+        leave.amend(caller(authentication, request), requestId, idempotencyKey, body);
+    ResponseEntity.BodyBuilder response =
+        ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
     if (result.replayed()) {
       response.header(IdempotencyKeys.REPLAYED_HEADER, "true");
     }

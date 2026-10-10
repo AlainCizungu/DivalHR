@@ -130,7 +130,8 @@
         "LEAVE_REQUEST_OVERLAP",
         "LEAVE_REQUEST_NOT_FOUND",
         "LEAVE_REQUEST_ALREADY_DECIDED",
-        "LEAVE_REQUEST_ALREADY_CANCELLED"
+        "LEAVE_REQUEST_ALREADY_CANCELLED",
+        "LEAVE_REQUEST_ALREADY_AMENDED"
       ]
     },
     "params": { "type": "object" },

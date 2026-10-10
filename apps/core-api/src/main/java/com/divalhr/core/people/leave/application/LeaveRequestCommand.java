@@ -84,19 +84,42 @@ public record LeaveRequestCommand(
     if (!request.unknownProperties().isEmpty()) {
       errors.add("body", Constraint.UNKNOWN_PROPERTY);
     }
-    UUID policyId = uuid(errors, "policyId", request.getPolicyId());
-    LocalDate start = date(errors, "startDate", request.getStartDate());
-    LocalDate end = date(errors, "endDate", request.getEndDate());
-    if (start != null && end != null) {
-      if (end.isBefore(start)) {
-        errors.add("endDate", Constraint.RANGE);
-      } else if (ChronoUnit.DAYS.between(start, end) + 1 > MAX_DAYS) {
-        errors.add("endDate", Constraint.RANGE);
-      }
-    }
-    BigDecimal amount = amount(errors, request.getAmount());
+    LeaveRequestCommand command =
+        fields(
+            errors,
+            request.getPolicyId(),
+            request.getStartDate(),
+            request.getEndDate(),
+            request.getAmount());
     errors.throwIfAny();
-    return new LeaveRequestCommand(policyId, start, end, amount);
+    return command;
+  }
+
+  /**
+   * The submission fields' shape and time-independent rules, shared with an amendment's replacement
+   * (MVP-041D): every problem is added to {@code errors}.
+   *
+   * @param errors collected problems
+   * @param rawPolicyId policy ID
+   * @param rawStart first day
+   * @param rawEnd last day
+   * @param rawAmount amount
+   * @return the command, or {@code null} when a problem was added
+   */
+  static LeaveRequestCommand fields(
+      FieldErrors errors, Object rawPolicyId, Object rawStart, Object rawEnd, Object rawAmount) {
+    UUID policyId = uuid(errors, "policyId", rawPolicyId);
+    LocalDate start = date(errors, "startDate", rawStart);
+    LocalDate end = date(errors, "endDate", rawEnd);
+    boolean interval = start != null && end != null;
+    if (interval && (end.isBefore(start) || ChronoUnit.DAYS.between(start, end) + 1 > MAX_DAYS)) {
+      errors.add("endDate", Constraint.RANGE);
+      interval = false;
+    }
+    BigDecimal amount = amount(errors, rawAmount);
+    return policyId != null && interval && amount != null
+        ? new LeaveRequestCommand(policyId, start, end, amount)
+        : null;
   }
 
   /**

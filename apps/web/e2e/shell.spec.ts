@@ -51,6 +51,7 @@ test.describe('desktop', () => {
       'Import employees',
       'Leave policies',
       'Leave approvals',
+      'Leave routing exceptions',
       'Organizational structure',
       'Contract templates',
       'Contract expirations',
@@ -184,7 +185,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(10);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(11);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );
@@ -193,6 +194,9 @@ test.describe('desktop', () => {
     page,
   }) => {
     await page.goto('/');
+    // R94-1: the landing frame renders after the load event; wait for the skip link before the
+    // first Tab, so the real keyboard focus is asserted on the rendered page (no focus() call).
+    await expect(page.locator('.skip-link')).toBeAttached();
     await page.keyboard.press('Tab');
     await expect(page.locator('.skip-link')).toBeFocused();
     await page.keyboard.press('Enter');

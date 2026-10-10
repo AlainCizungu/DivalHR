@@ -115,6 +115,20 @@ class OperationNameTest {
     assertThat(MyLeaveService.CANCEL).isEqualTo("leave-request.self-cancel");
     assertThat(MyLeaveService.CANCEL_AUDIT).isEqualTo("leave-request.cancel");
     assertThat(MyLeaveService.CANCELLED_EVENT).isEqualTo("people.leave-request.cancelled.v1");
+    assertThat(MyLeaveService.AMEND).isEqualTo("leave-request.self-amend");
+    assertThat(MyLeaveService.AMEND_AUDIT).isEqualTo("leave-request.amend");
+    assertThat(MyLeaveService.AMENDED_EVENT).isEqualTo("people.leave-request.amended.v1");
+    assertThat(LeaveApprovalService.EXCEPTION_LIST).isEqualTo("leave-routing-exception.list");
+    assertThat(LeaveApprovalService.EXCEPTION_DECIDE)
+        .isEqualTo("leave-request.routing-exception-decide");
+    assertThat(LeaveApprovalService.EXCEPTION_APPROVE)
+        .isEqualTo("leave-request.routing-exception.approve");
+    assertThat(LeaveApprovalService.EXCEPTION_REJECT)
+        .isEqualTo("leave-request.routing-exception.reject");
+    assertThat(LeaveApprovalService.EXCEPTION_APPROVED_EVENT)
+        .isEqualTo("people.leave-request.routing-exception-approved.v1");
+    assertThat(LeaveApprovalService.EXCEPTION_REJECTED_EVENT)
+        .isEqualTo("people.leave-request.routing-exception-rejected.v1");
   }
 
   @Test

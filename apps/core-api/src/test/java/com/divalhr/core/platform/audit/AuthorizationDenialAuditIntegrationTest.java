@@ -168,7 +168,10 @@ class AuthorizationDenialAuditIntegrationTest {
           "leave-policy.create",
           // MVP-041B: the tenant-administrator approval inbox and decision.
           "leave-approval.admin-list",
-          "leave-request.admin-decide");
+          "leave-request.admin-decide",
+          // MVP-041E: the routing-exception queue and override decision.
+          "leave-routing-exception.list",
+          "leave-request.routing-exception-decide");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -184,7 +187,9 @@ class AuthorizationDenialAuditIntegrationTest {
           "leave-approval.manager-list",
           "leave-request.manager-decide",
           // MVP-041C: the employee's cancellation of their own pending request.
-          "leave-request.self-cancel");
+          "leave-request.self-cancel",
+          // MVP-041D: the employee's amendment of their own pending request.
+          "leave-request.self-amend");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -601,7 +606,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(72);
+    assertThat(handlers).hasSize(74);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

@@ -3,6 +3,7 @@ package com.divalhr.core.people.leave.api;
 import com.divalhr.core.people.leave.api.LeavePolicyResponses.Names;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
 import com.divalhr.core.people.leave.domain.BalanceMode;
+import com.divalhr.core.people.leave.domain.LeaveAmendment;
 import com.divalhr.core.people.leave.domain.LeaveCancellation;
 import com.divalhr.core.people.leave.domain.LeaveDecision;
 import com.divalhr.core.people.leave.domain.LeavePolicy;
@@ -19,7 +20,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/** Employee self-service leave responses (MVP-041A; decisions MVP-041B; cancellations MVP-041C). */
+/**
+ * Employee self-service leave responses (MVP-041A; decisions MVP-041B; cancellations MVP-041C;
+ * amendments MVP-041D).
+ */
 public final class MyLeaveResponses {
 
   private MyLeaveResponses() {}
@@ -132,6 +136,9 @@ public final class MyLeaveResponses {
    *     deciding person
    * @param cancellation the cancellation and its reason once cancelled, otherwise {@code null};
    *     never the cancelling subject
+   * @param amendment the amendment and its reason once replaced, with the replacement's ID,
+   *     otherwise {@code null}; never the amending subject (MVP-041D)
+   * @param amendedFromRequestId the request this one replaced, or {@code null} (MVP-041D)
    */
   @Schema(name = "MyLeaveRequest")
   public record Request(
@@ -147,7 +154,9 @@ public final class MyLeaveResponses {
       LeaveRequestState state,
       Instant submittedAt,
       Decision decision,
-      Cancellation cancellation) {
+      Cancellation cancellation,
+      Amendment amendment,
+      UUID amendedFromRequestId) {
 
     /**
      * The view of a request.
@@ -169,7 +178,9 @@ public final class MyLeaveResponses {
           request.state(),
           request.submittedAt(),
           request.decision() == null ? null : Decision.of(request.decision()),
-          request.cancellation() == null ? null : Cancellation.of(request.cancellation()));
+          request.cancellation() == null ? null : Cancellation.of(request.cancellation()),
+          request.amendment() == null ? null : Amendment.of(request.amendment()),
+          request.amendedFrom());
     }
 
     /**
@@ -259,6 +270,66 @@ public final class MyLeaveResponses {
       return "MyLeaveCancellation[id=" + id + "]";
     }
   }
+
+  /**
+   * The amendment of one of the caller's own requests (MVP-041D): the replacement's ID and the
+   * reason in the language it was written in. The amending subject is never included.
+   *
+   * @param id amendment
+   * @param replacementRequestId the pending request that replaced this one
+   * @param reasonLocale {@code en} or {@code fr}
+   * @param reason the reason, as written (plain text)
+   * @param amendedAt amendment time
+   */
+  @Schema(name = "MyLeaveAmendment")
+  public record Amendment(
+      UUID id, UUID replacementRequestId, String reasonLocale, String reason, Instant amendedAt) {
+
+    /**
+     * The employee-safe view of an amendment.
+     *
+     * @param amendment amendment
+     * @return the view
+     */
+    public static Amendment of(LeaveAmendment amendment) {
+      return new Amendment(
+          amendment.id(),
+          amendment.replacementRequestId(),
+          amendment.reasonLocale(),
+          amendment.reason(),
+          amendment.amendedAt());
+    }
+
+    /**
+     * Identifiers only.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "MyLeaveAmendment[id=" + id + "]";
+    }
+  }
+
+  /**
+   * The minimal receipt of an amendment (MVP-041D): identifiers, the resulting states and the time.
+   * Never the reason (it is not stored in the idempotency response either).
+   *
+   * @param amendmentId the amendment
+   * @param originalRequestId the amended request
+   * @param replacementRequestId its pending replacement
+   * @param originalState {@code AMENDED}
+   * @param replacementState {@code PENDING}
+   * @param amendedAt amendment time
+   */
+  @Schema(name = "LeaveAmendmentReceipt")
+  public record AmendmentReceipt(
+      UUID amendmentId,
+      UUID originalRequestId,
+      UUID replacementRequestId,
+      LeaveRequestState originalState,
+      LeaveRequestState replacementState,
+      Instant amendedAt) {}
 
   /**
    * The minimal receipt of a cancellation (MVP-041C): identifiers, the resulting state and the
