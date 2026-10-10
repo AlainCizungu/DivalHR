@@ -194,6 +194,9 @@ test.describe('desktop', () => {
     page,
   }) => {
     await page.goto('/');
+    // R94-1: the landing frame renders after the load event; wait for the skip link before the
+    // first Tab, so the real keyboard focus is asserted on the rendered page (no focus() call).
+    await expect(page.locator('.skip-link')).toBeAttached();
     await page.keyboard.press('Tab');
     await expect(page.locator('.skip-link')).toBeFocused();
     await page.keyboard.press('Enter');
