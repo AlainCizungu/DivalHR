@@ -14,7 +14,10 @@ import java.util.UUID;
  * @param route the policy route of the request (immutable)
  * @param authority who decided under it (MVP-041E): the route's own decider or a tenant
  *     administrator's routing-exception override of a {@code MANAGER} route
- * @param managerEmployeeId the deciding manager's employee ({@code MANAGER} authority only)
+ * @param managerEmployeeId the deciding manager's employee ({@code MANAGER} and {@code
+ *     MANAGER_SUBSTITUTE} authorities only: the primary manager, or the substitute)
+ * @param delegatedFromManagerEmployeeId the primary manager a substitute decided for ({@code
+ *     MANAGER_SUBSTITUTE} only; MVP-041G)
  * @param reasonLocale {@code en} or {@code fr}, the language the reason was written in
  * @param reason the reason, as written
  * @param decidedAt decision time
@@ -26,6 +29,7 @@ public record LeaveDecision(
     ApprovalRoute route,
     DecisionAuthority authority,
     UUID managerEmployeeId,
+    UUID delegatedFromManagerEmployeeId,
     String reasonLocale,
     String reason,
     Instant decidedAt) {

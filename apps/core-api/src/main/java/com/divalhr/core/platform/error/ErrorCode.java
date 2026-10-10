@@ -261,7 +261,30 @@ public enum ErrorCode {
    * The approved leave has started (the organization's business date reached its first day), so it
    * can no longer be withdrawn (MVP-041F; no params).
    */
-  LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED(HttpStatus.CONFLICT);
+  LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED(HttpStatus.CONFLICT),
+  /**
+   * No leave approval substitute appointment of the organization has this ID: unknown and another
+   * tenant's are indistinguishable (MVP-041G; no params).
+   */
+  LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** The manager and the substitute are the same employee (MVP-041G; no params). */
+  LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /**
+   * The manager or the substitute is not employed on every day of the appointment (MVP-041G; no
+   * params).
+   */
+  LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD(HttpStatus.UNPROCESSABLE_CONTENT),
+  /**
+   * The manager has no active reporting line as manager during the appointment (MVP-041G; no
+   * params).
+   */
+  LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /**
+   * Another appointment of the manager, revoked or not, overlaps these dates (MVP-041G; no params).
+   */
+  LEAVE_APPROVAL_SUBSTITUTION_OVERLAP(HttpStatus.CONFLICT),
+  /** The appointment was already revoked (MVP-041G; no params). */
+  LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

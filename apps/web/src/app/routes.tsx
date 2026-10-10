@@ -16,6 +16,7 @@ import {
   LeaveRoutingExceptionsPage,
   MyLeaveApprovalsPage,
 } from '../features/leave/LeaveApprovalInbox';
+import { LeaveApprovalSubstitutesPage } from '../features/leave/LeaveApprovalSubstitutesPage';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
@@ -141,6 +142,12 @@ export const ROUTES: AppRoute[] = [
     element: <LeaveRoutingExceptionsPage />,
     access: tenantAdmin('leaveApprovals.exception.unauthorized', 'leaveApprovals.signInRequired'),
     crumbs: [HOME, PEOPLE, { key: 'nav.leaveRoutingExceptions' }],
+  },
+  {
+    path: '/admin/leave-approval-substitutes',
+    element: <LeaveApprovalSubstitutesPage />,
+    access: tenantAdmin('leaveSubstitutes.unauthorized', 'leaveSubstitutes.signInRequired'),
+    crumbs: [HOME, PEOPLE, { key: 'nav.leaveApprovalSubstitutes' }],
   },
   {
     path: '/admin/contract-templates',

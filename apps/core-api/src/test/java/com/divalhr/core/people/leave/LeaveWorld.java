@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * MVP-041B test fixtures over the public API: an organization with a tenant administrator,
  * employees linked to their own employee memberships, policies by route, manager lines, requests,
  * decisions, unlinks and separations; MVP-041C cancellations; MVP-041D amendments, MVP-041E routing
- * exceptions and MVP-041F withdrawals of approved leave.
+ * exceptions, MVP-041F withdrawals of approved leave and MVP-041G substitute appointments.
  */
 final class LeaveWorld {
 
@@ -40,6 +40,7 @@ final class LeaveWorld {
   static final String MY_APPROVALS = "/api/v1/me/leave-approvals";
   static final String ADMIN_APPROVALS = "/api/v1/leave-approvals";
   static final String EXCEPTIONS = "/api/v1/leave-routing-exceptions";
+  static final String SUBSTITUTIONS = "/api/v1/leave-approval-substitutions";
   static final LocalDate HIRED = LocalDate.of(2026, 3, 1);
   static final String EMPLOYEES = "/api/v1/employees";
 
@@ -50,6 +51,8 @@ final class LeaveWorld {
   final String adminSubject;
   final String admin;
   final LocalDate today;
+  private int hires;
+  private String hiringAdmin;
 
   /** An employee linked to their own membership. */
   record Person(UUID employee, String bearer, String subject, UUID membership, String number) {}
@@ -91,7 +94,25 @@ final class LeaveWorld {
   }
 
   UUID hire(String given, String family) throws Exception {
-    return Employees.hire(mvc, jdbc, org, admin, Employees.number(), given, family, HIRED);
+    return Employees.hire(mvc, jdbc, org, hiring(), Employees.number(), given, family, HIRED);
+  }
+
+  /**
+   * The administrator who imports the next hire: the world's own for the first four, then another
+   * administrator of the tenant every four hires, so that larger fixtures stay within the
+   * per-subject import limit (an upload and a commit per hire).
+   */
+  String hiring() {
+    if (hires < 4) {
+      hires++;
+      return admin;
+    }
+    if (hires % 4 == 0) {
+      hiringAdmin =
+          Hierarchy.bearer(org.tenant(), "sub-leave-hr-" + UUID.randomUUID(), "tenant-admin");
+    }
+    hires++;
+    return hiringAdmin;
   }
 
   Person person(String given, String family) throws Exception {
@@ -386,6 +407,114 @@ final class LeaveWorld {
             Organizations.newKey(),
             decision("APPROVED", "en", "Approved, enjoy.")),
         200);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Substitutes (MVP-041G)
+  // ------------------------------------------------------------------------------------------
+
+  /** An appointment body. */
+  static Map<String, Object> appointment(
+      Object manager, Object substitute, Object from, Object to, String locale, String reason) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("managerEmployeeId", manager == null ? null : manager.toString());
+    body.put("substituteEmployeeId", substitute == null ? null : substitute.toString());
+    body.put("effectiveFrom", from == null ? null : from.toString());
+    body.put("effectiveTo", to == null ? null : to.toString());
+    body.put("reasonLocale", locale);
+    body.put("reason", reason);
+    return body;
+  }
+
+  /** An appointment as the given caller. */
+  static MockHttpServletRequestBuilder appoint(String bearer, String key, Object body)
+      throws Exception {
+    MockHttpServletRequestBuilder request =
+        post(SUBSTITUTIONS)
+            .header("Authorization", bearer)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body instanceof String text ? text : JSON.writeValueAsString(body));
+    return key == null ? request : request.header("Idempotency-Key", key);
+  }
+
+  /** A revocation as the given caller. */
+  static MockHttpServletRequestBuilder revoke(
+      String bearer, String substitutionId, String key, Object body) throws Exception {
+    MockHttpServletRequestBuilder request =
+        post(SUBSTITUTIONS + "/" + substitutionId + "/revocation")
+            .header("Authorization", bearer)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body instanceof String text ? text : JSON.writeValueAsString(body));
+    return key == null ? request : request.header("Idempotency-Key", key);
+  }
+
+  /** Appoints the substitute for the manager over the period as the administrator; its id. */
+  String appoint(Person manager, Person substitute, LocalDate from, LocalDate to) throws Exception {
+    return expect(
+            appoint(
+                admin,
+                Organizations.newKey(),
+                appointment(
+                    manager.employee(),
+                    substitute.employee(),
+                    from,
+                    to,
+                    "fr",
+                    "Remplacement pendant les congés.")),
+            201)
+        .get("substitutionId")
+        .asText();
+  }
+
+  /** Revokes the appointment as the administrator. */
+  void revoke(String substitutionId) throws Exception {
+    expect(
+        revoke(
+            admin,
+            substitutionId,
+            Organizations.newKey(),
+            cancellation("en", "Manager back early.")),
+        201);
+  }
+
+  /** Appointments, revocations, their audits and their events of the tenant. */
+  List<Integer> substitutions() {
+    return List.of(
+        count(
+            "SELECT count(*) FROM people.leave_approval_substitution WHERE tenant_id = ?",
+            tenant()),
+        count(
+            "SELECT count(*) FROM people.leave_approval_substitution_revocation"
+                + " WHERE tenant_id = ?",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.audit_event WHERE tenant_id = ? AND action IN"
+                + " ('leave-approval-substitution.create', 'leave-approval-substitution.revoke')",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
+                + " envelope ->> 'eventType' IN ('people.leave-approval-substitution.created.v1',"
+                + " 'people.leave-approval-substitution.revoked.v1')",
+            tenant().toString()));
+  }
+
+  /** Substitute decisions, their audits and their events of the tenant. */
+  List<Integer> substituteDecisions() {
+    return List.of(
+        count(
+            "SELECT count(*) FROM people.leave_request_decision WHERE tenant_id = ?"
+                + " AND decision_authority = 'MANAGER_SUBSTITUTE'",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.audit_event WHERE tenant_id = ? AND action IN"
+                + " ('leave-request.approve', 'leave-request.reject')"
+                + " AND metadata ->> 'decisionAuthority' = 'MANAGER_SUBSTITUTE'",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
+                + " envelope ->> 'eventType' IN ('people.leave-request.substitute-approved.v1',"
+                + " 'people.leave-request.substitute-rejected.v1')",
+            tenant().toString()));
   }
 
   // ------------------------------------------------------------------------------------------

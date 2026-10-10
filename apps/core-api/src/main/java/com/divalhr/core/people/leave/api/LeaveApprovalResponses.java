@@ -1,10 +1,12 @@
 package com.divalhr.core.people.leave.api;
 
 import com.divalhr.core.people.leave.api.LeavePolicyResponses.Names;
+import com.divalhr.core.people.leave.domain.ApprovalCapacity;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
 import com.divalhr.core.people.leave.domain.LeaveApprovalItem;
 import com.divalhr.core.people.leave.domain.LeaveRequestState;
 import com.divalhr.core.people.leave.domain.LeaveUnit;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -56,6 +58,9 @@ public final class LeaveApprovalResponses {
    * @param endDate last day (inclusive)
    * @param approvalRoute the route it is decided under
    * @param state {@code PENDING}
+   * @param approvalCapacity manager inbox only (MVP-041G): {@code PRIMARY} for the caller's own
+   *     reports, {@code SUBSTITUTE} for the reports of a manager the caller is the effective
+   *     substitute of; absent from the tenant-administrator inbox
    */
   @Schema(name = "LeaveApproval")
   public record Item(
@@ -71,7 +76,8 @@ public final class LeaveApprovalResponses {
       LocalDate startDate,
       LocalDate endDate,
       ApprovalRoute approvalRoute,
-      LeaveRequestState state) {
+      LeaveRequestState state,
+      @JsonInclude(JsonInclude.Include.NON_NULL) ApprovalCapacity approvalCapacity) {
 
     /**
      * The view of a pending request.
@@ -94,7 +100,8 @@ public final class LeaveApprovalResponses {
           item.startDate(),
           item.endDate(),
           item.route(),
-          item.state());
+          item.state(),
+          item.capacity());
     }
 
     /**

@@ -79,6 +79,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'check',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/leave-approval-substitutes',
+        labelKey: 'nav.leaveApprovalSubstitutes',
+        icon: 'people',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

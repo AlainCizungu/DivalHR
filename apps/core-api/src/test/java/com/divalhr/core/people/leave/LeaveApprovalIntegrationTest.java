@@ -129,7 +129,9 @@ class LeaveApprovalIntegrationTest {
             "startDate",
             "endDate",
             "approvalRoute",
-            "state");
+            "state",
+            "approvalCapacity");
+    assertThat(item.get("approvalCapacity").asText()).isEqualTo("PRIMARY");
     assertThat(item.get("employee").get("employeeNumber").asText()).isEqualTo(report.number());
     assertThat(item.get("employee").get("familyName").asText()).isEqualTo("Mbuyi-Ngalula");
     assertThat(item.get("policyNames").get("fr").asText()).isEqualTo("Congé annuel MGR");
@@ -316,8 +318,14 @@ class LeaveApprovalIntegrationTest {
               view[0],
               view[1]);
       assertThat(metadataRows).isNotEmpty();
+      List<String> expected =
+          new ArrayList<>(List.of("schemaVersion", "view", "page", "resultCount"));
+      if (view[0].equals("leave-approval.manager-list")) {
+        // MVP-041G: the manager inbox also counts its substitute items.
+        expected.add("substituteCount");
+      }
       assertThat(fieldNames(JSON.readTree(metadataRows.get(0))))
-          .containsExactlyInAnyOrder("schemaVersion", "view", "page", "resultCount");
+          .containsExactlyInAnyOrderElementsOf(expected);
     }
 
     assertThat(logs(output))

@@ -150,6 +150,13 @@ manager and tenant-administrator decisions and cancellations.
 See ADR 0012: an `APPROVED` request may move once more, to `WITHDRAWN`, before its first day, by
 its own employee; the approval decision above is kept unchanged beside the withdrawal evidence.
 
+### Substitute approvers (MVP-041G, Issue #97, V24)
+
+See ADR 0013: while a tenant administrator's appointment is effective, a manager's substitute may
+also list and decide that manager's reports' `MANAGER`-routed requests, recorded with the
+`MANAGER_SUBSTITUTE` authority; the manager's own rights, lock order and evidence above are
+unchanged.
+
 ## Consequences
 
 - One manager decision at a time per tenant, as for every manager-history write. Decisions are

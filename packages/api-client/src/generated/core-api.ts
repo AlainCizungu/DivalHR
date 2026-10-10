@@ -1539,6 +1539,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/leave-approval-substitutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List leave approval substitute appointments
+         * @description MVP-041G. The organization's substitute appointments, newest first (createdAt, then id), revoked and expired ones included: both employees' directory fields, the inclusive dates, the reason as written, the creation time and, once revoked, the revocation's time and reason. The state is derived on the organization's business date (asOf): REVOKED once a revocation exists, otherwise SCHEDULED before the first day, ACTIVE within the period and EXPIRED after the last day. Never a subject or actor. Restricted HR: recorded as a fail-closed disclosure (audit leave-approval-substitution.read); if the audit record cannot be written, nothing is returned. The signed cursor is bound to the operation, tenant, caller and page size. Shares the leave-approval-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listLeaveApprovalSubstitutions"];
+        put?: never;
+        /**
+         * Appoint a leave approval substitute for a manager
+         * @description MVP-041G. Appoints one substitute for a manager over inclusive business dates, with a reason. While the appointment is effective (the organization's business date within its period and no revocation), the substitute lists and decides the MANAGER-routed requests whose employment reports to the manager on the request's first day, beside the manager, who keeps every right: the first valid decision wins. No chain, sub-delegation, notification or automatic activation. Under the tenant's manager-graph lock: manager and substitute differ (422 LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE); both are employees of the organization (404 EMPLOYEE_NOT_FOUND) employed on every day of the period (422 LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD); the manager has an active MANAGER reporting line, as the manager, overlapping the period (422 LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE); no other appointment of the manager, revoked or not, overlaps the period (409 LEAVE_APPROVAL_SUBSTITUTION_OVERLAP); all without params. One transaction with the append-only appointment, the audit record (leave-approval-substitution.create) and the outbox event (people.leave-approval-substitution.created.v1). Only the body's shape is checked before the idempotency decision: an exact retry returns the stored 201 with Idempotent-Replayed true, a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never contains the reason; errors never echo a value. Shares the leave-approval-write limits. Cache-Control private, no-store.
+         */
+        post: operations["createLeaveApprovalSubstitution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/leave-approval-substitutions/{substitutionId}/revocation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a leave approval substitute appointment
+         * @description MVP-041G. Revokes a scheduled, active or expired appointment with a reason, effective immediately: the substitute no longer lists or decides the manager's undecided requests, which stay with the manager. The appointment and every decision already taken are kept unchanged; a revoked appointment keeps its dates for the overlap rule. Under the tenant's manager-graph lock, in one transaction with the append-only revocation, the audit record (leave-approval-substitution.revoke) and the outbox event (people.leave-approval-substitution.revoked.v1). Unknown and foreign-tenant appointments are the same 404 LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND; an already revoked one is 409 LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED (no params), except the exact retry, which returns the stored 201 with Idempotent-Replayed true. The receipt never contains the reason. Shares the leave-approval-write limits. Cache-Control private, no-store.
+         */
+        post: operations["revokeLeaveApprovalSubstitution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/leave-approvals": {
         parameters: {
             query?: never;
@@ -1548,7 +1592,7 @@ export interface paths {
         };
         /**
          * List leave requests awaiting my decision as a manager
-         * @description MVP-041B. The PENDING leave requests whose policy version routes approval to the manager (approvalRoute MANAGER) and whose employment, on the request's first day, has an active reporting line to the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest first. The relationship is re-evaluated on every call, so a later employment-history change reroutes a pending request; a request with no qualifying manager is in no inbox. Restricted HR: recorded as a fail-closed disclosure (audit leave-approval.manager-list). The signed cursor is bound to the operation, tenant, caller, the caller's link and linked employee, and page size: a relink invalidates it. Cache-Control private, no-store.
+         * @description MVP-041B. The PENDING leave requests whose policy version routes approval to the manager (approvalRoute MANAGER) and whose employment, on the request's first day, has an active reporting line to the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest first. The relationship is re-evaluated on every call, so a later employment-history change reroutes a pending request; a request with no qualifying manager is in no inbox. MVP-041G: the same list also holds the requests that report on their first day to a manager whose unrevoked appointment names the caller's linked employee as substitute on the organization's business date, never the caller's own requests; each item's approvalCapacity is PRIMARY or SUBSTITUTE, and no item names the primary manager, the appointment or its reason. Authorization is recomputed on every page. Restricted HR: recorded as a fail-closed disclosure (audit leave-approval.manager-list, whose metadata also counts the substitute items). The signed cursor is bound to the operation, tenant, caller, the caller's link and linked employee, and page size: a relink invalidates it. Cache-Control private, no-store.
          */
         get: operations["listMyLeaveApprovals"];
         put?: never;
@@ -1570,7 +1614,7 @@ export interface paths {
         put?: never;
         /**
          * Approve or reject a leave request as its manager
-         * @description MVP-041B. Moves a PENDING MANAGER-routed request of one of the caller's reports (as listed by listMyLeaveApprovals) to APPROVED or REJECTED, once, with its reason, in one transaction with the decision record, the audit record and the outbox event. The relationship is checked again on the first execution and on every replay: no active link is 403 EMPLOYEE_LINK_REQUIRED; unknown, foreign-tenant, TENANT_ADMIN-routed and non-report requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params, and a denied replay returns no stored response. Otherwise as decideLeaveRequest (409 LEAVE_REQUEST_ALREADY_DECIDED, 409 LEAVE_REQUEST_NOT_ELIGIBLE EMPLOYMENT_PERIOD on approval, Idempotent-Replayed, no reason in the receipt). Cache-Control private, no-store.
+         * @description MVP-041B. Moves a PENDING MANAGER-routed request of one of the caller's reports (as listed by listMyLeaveApprovals) to APPROVED or REJECTED, once, with its reason, in one transaction with the decision record, the audit record and the outbox event. The relationship is checked again on the first execution and on every replay: no active link is 403 EMPLOYEE_LINK_REQUIRED; unknown, foreign-tenant, TENANT_ADMIN-routed and non-report requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params, and a denied replay returns no stored response. Otherwise as decideLeaveRequest (409 LEAVE_REQUEST_ALREADY_DECIDED, 409 LEAVE_REQUEST_NOT_ELIGIBLE EMPLOYMENT_PERIOD on approval, Idempotent-Replayed, no reason in the receipt). MVP-041G: the caller may also be the effective substitute of the request's primary manager (as listed with approvalCapacity SUBSTITUTE); the server chooses the authority under the manager-graph lock, never the body: the caller's own reporting line first (decisionAuthority MANAGER), otherwise the effective appointment (MANAGER_SUBSTITUTE, recording the substitute and the primary manager; audit leave-request.approve or .reject with the safe authority; event people.leave-request.substitute-approved.v1 or -rejected.v1). The primary manager keeps every right and the first valid decision wins (409 LEAVE_REQUEST_ALREADY_DECIDED for the other). A substitute's exact retry replays while the stored decision was taken by the caller's currently linked employee, even after the appointment expired or was revoked. Cache-Control private, no-store.
          */
         post: operations["decideManagedLeaveRequest"];
         delete?: never;
@@ -2993,7 +3037,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -3254,7 +3298,13 @@ export interface components {
             endDate: string;
             approvalRoute: components["schemas"]["LeaveApprovalRoute"];
             state: components["schemas"]["LeaveRequestState"];
+            approvalCapacity?: components["schemas"]["LeaveApprovalCapacity"];
         };
+        /**
+         * @description MVP-041G, manager inbox only (absent from the tenant administrators' inbox): PRIMARY for the caller's own reports, SUBSTITUTE for the reports of a manager the caller is the effective substitute of. Never names the primary manager or the appointment.
+         * @enum {string}
+         */
+        LeaveApprovalCapacity: "PRIMARY" | "SUBSTITUTE";
         LeaveApprovalPage: {
             items: components["schemas"]["LeaveApproval"][];
             nextCursor: string | null;
@@ -3389,6 +3439,110 @@ export interface components {
             state: "CANCELLED";
             /** Format: date-time */
             cancelledAt: string;
+        };
+        /** @description MVP-041G. A tenant administrator's appointment of one substitute for a manager. Tenant and actor are never fields. */
+        CreateLeaveApprovalSubstitution: {
+            /** Format: uuid */
+            managerEmployeeId: string;
+            /**
+             * Format: uuid
+             * @description Another employee of the organization.
+             */
+            substituteEmployeeId: string;
+            /**
+             * Format: date
+             * @description First day (inclusive), 1900-01-01 to 2999-12-31.
+             */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Last day (inclusive), not before the first, at most 2999-12-31.
+             */
+            effectiveTo: string;
+            /**
+             * @description The language the reason is written in.
+             * @enum {string}
+             */
+            reasonLocale: "en" | "fr";
+            /** @description Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason. */
+            reason: string;
+        };
+        /** @description MVP-041G. The revocation of an appointment, with its reason. The appointment comes from the path; tenant and actor are never fields. */
+        RevokeLeaveApprovalSubstitution: {
+            /**
+             * @description The language the reason is written in.
+             * @enum {string}
+             */
+            reasonLocale: "en" | "fr";
+            /** @description Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason. */
+            reason: string;
+        };
+        /**
+         * @description MVP-041G. Derived on the organization's business date, never stored: REVOKED once revoked, otherwise SCHEDULED before the first day, ACTIVE within the period, EXPIRED after it.
+         * @enum {string}
+         */
+        LeaveApprovalSubstitutionState: "SCHEDULED" | "ACTIVE" | "EXPIRED" | "REVOKED";
+        /** @description An employee's directory fields, as plain text. */
+        LeaveApprovalSubstitutionEmployee: {
+            /** Format: uuid */
+            id: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+        };
+        LeaveApprovalSubstitutionRevocation: {
+            /** Format: date-time */
+            revokedAt: string;
+            /** @enum {string} */
+            reasonLocale: "en" | "fr";
+            /** @description Plain text, never HTML or Markdown. */
+            reason: string;
+        };
+        /** @description MVP-041G. An appointment as tenant administrators list it. Restricted HR; never a subject or actor. */
+        LeaveApprovalSubstitution: {
+            /** Format: uuid */
+            id: string;
+            manager: components["schemas"]["LeaveApprovalSubstitutionEmployee"];
+            substitute: components["schemas"]["LeaveApprovalSubstitutionEmployee"];
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string;
+            state: components["schemas"]["LeaveApprovalSubstitutionState"];
+            /** @enum {string} */
+            reasonLocale: "en" | "fr";
+            /** @description Plain text, never HTML or Markdown. */
+            reason: string;
+            /** Format: date-time */
+            createdAt: string;
+            revocation: components["schemas"]["LeaveApprovalSubstitutionRevocation"] | null;
+        };
+        LeaveApprovalSubstitutionPage: {
+            items: components["schemas"]["LeaveApprovalSubstitution"][];
+            nextCursor: string | null;
+            /**
+             * Format: date
+             * @description The organization's business date the states were derived on.
+             */
+            asOf: string;
+        };
+        /** @description MVP-041G. The minimal receipt of an appointment; never the reason. */
+        LeaveApprovalSubstitutionReceipt: {
+            /** Format: uuid */
+            substitutionId: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description MVP-041G. The minimal receipt of a revocation; never the reason. */
+        LeaveApprovalSubstitutionRevocationReceipt: {
+            /** Format: uuid */
+            substitutionId: string;
+            /** Format: uuid */
+            revocationId: string;
+            /** @enum {string} */
+            state: "REVOKED";
+            /** Format: date-time */
+            revokedAt: string;
         };
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
@@ -3566,6 +3720,8 @@ export interface components {
         ContractId: string;
         /** @description Leave request ID. */
         LeaveRequestId: string;
+        /** @description A leave approval substitute appointment of the caller's organization. */
+        LeaveApprovalSubstitutionId: string;
         /** @description Items per page (1-50, default 25). */
         LeavePolicyLimit: number;
         /** @description Items per page (1-50, default 25). */
@@ -6781,6 +6937,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeaveDecisionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listLeaveApprovalSubstitutions: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["LeavePolicyLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveApprovalSubstitutionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createLeaveApprovalSubstitution: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLeaveApprovalSubstitution"];
+            };
+        };
+        responses: {
+            /** @description Appointed, or the original appointment replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveApprovalSubstitutionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    revokeLeaveApprovalSubstitution: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description A leave approval substitute appointment of the caller's organization. */
+                substitutionId: components["parameters"]["LeaveApprovalSubstitutionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeLeaveApprovalSubstitution"];
+            };
+        };
+        responses: {
+            /** @description Revoked, or the original revocation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveApprovalSubstitutionRevocationReceipt"];
                 };
             };
             400: components["responses"]["BadRequest"];

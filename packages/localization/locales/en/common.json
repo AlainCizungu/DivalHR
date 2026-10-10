@@ -31,7 +31,8 @@
       "access": "Access and security",
       "mySpace": "My space"
     },
-    "leaveRoutingExceptions": "Leave routing exceptions"
+    "leaveRoutingExceptions": "Leave routing exceptions",
+    "leaveApprovalSubstitutes": "Leave approval substitutes"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -356,7 +357,13 @@
     "LEAVE_REQUEST_ALREADY_AMENDED": "This leave request has already been amended.",
     "LEAVE_REQUEST_ALREADY_WITHDRAWN": "This approved leave has already been withdrawn.",
     "LEAVE_REQUEST_NOT_APPROVED": "Only approved leave can be withdrawn; this request is still awaiting a decision.",
-    "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED": "This leave has already started, so it can no longer be withdrawn."
+    "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED": "This leave has already started, so it can no longer be withdrawn.",
+    "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND": "This substitute appointment is not available. It may belong to another organization.",
+    "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE": "The manager and the substitute must be two different employees.",
+    "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD": "The manager or the substitute is not employed on every day of these dates.",
+    "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE": "This employee manages no one during these dates, so a substitute has nothing to decide.",
+    "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "This manager already has a substitute appointment, current, revoked or planned, on some of these dates.",
+    "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "This substitute appointment has already been revoked."
   },
   "notFound": {
     "title": "Page not found",
@@ -1991,7 +1998,7 @@
     "manager": {
       "title": "Leave approvals",
       "description": "Approve or reject the leave requests of the employees who report to you.",
-      "routing": "You see a request when its policy routes approval to the manager and you are the employee’s manager on the request’s first day. A request without a manager on that day goes to the tenant administrators’ routing exceptions.",
+      "routing": "You see a request when its policy routes approval to the manager and you are the employee’s manager on the request’s first day. A request without a manager on that day goes to the tenant administrators’ routing exceptions. If a tenant administrator appointed you as a manager’s substitute, that manager’s requests are listed too, marked “Substitute assignment”; the manager can still decide them.",
       "empty": "No leave request is awaiting your decision.",
       "unauthorized": "This page is for employees of an organization."
     },
@@ -2080,6 +2087,18 @@
       "confirmButton": {
         "APPROVED": "Confirm the override approval",
         "REJECTED": "Confirm the override rejection"
+      }
+    },
+    "substitute": {
+      "badge": "Substitute assignment",
+      "notice": "You are deciding as the manager’s substitute. The manager can also decide this request; the first decision is final.",
+      "confirm": {
+        "APPROVED": "Approve the request of {{name}} as the manager’s substitute? This decision is final.",
+        "REJECTED": "Reject the request of {{name}} as the manager’s substitute? This decision is final."
+      },
+      "confirmButton": {
+        "APPROVED": "Confirm the approval as substitute",
+        "REJECTED": "Confirm the rejection as substitute"
       }
     }
   },
@@ -2375,6 +2394,105 @@
     "footer": {
       "tagline": "Workforce technology for Africa.",
       "copyright": "© 2026 DivalHR · A Dival AI company"
+    }
+  },
+  "leaveSubstitutes": {
+    "title": "Leave approval substitutes",
+    "description": "Appoint one substitute for a manager over a period: the substitute can then decide that manager’s leave requests.",
+    "signInRequired": "Sign in to manage leave approval substitutes.",
+    "unauthorized": "Only tenant administrators who signed in with their authenticator app can manage leave approval substitutes.",
+    "rules": {
+      "primary": "The manager keeps every right: during the appointment, both the manager and the substitute can decide, and the first decision is final.",
+      "one": "A manager has at most one substitute on any date. A revoked appointment keeps its dates.",
+      "scope": "No notification, chain of substitutes or automatic start: the appointment applies from its first day to its last day, in your organization’s time zone, until it is revoked."
+    },
+    "list": {
+      "title": "Appointments",
+      "label": "Leave approval substitute appointments",
+      "loading": "Loading appointments…",
+      "empty": "No substitute has been appointed.",
+      "more": "Show more appointments",
+      "loadingMore": "Loading more appointments…",
+      "retry": "Try again",
+      "asOf": "States as of {{date}}."
+    },
+    "columns": {
+      "manager": "Manager",
+      "substitute": "Substitute",
+      "period": "Dates",
+      "state": "State",
+      "reason": "Reason",
+      "actions": "Actions"
+    },
+    "states": {
+      "SCHEDULED": "Scheduled",
+      "ACTIVE": "Active",
+      "EXPIRED": "Expired",
+      "REVOKED": "Revoked"
+    },
+    "employee": "{{given}} {{family}} ({{number}})",
+    "createdOn": "Appointed on {{date}}",
+    "revokedOn": "Revoked on {{date}}",
+    "revocationReason": "Revocation reason",
+    "actions": {
+      "revoke": "Revoke…",
+      "revokeFor": "Revoke the appointment of {{substitute}} for {{manager}}…"
+    },
+    "picker": {
+      "find": "Find by employee number or name",
+      "search": "Search",
+      "searching": "Searching…",
+      "results": "Matching employees",
+      "noMatch": "No employee matches.",
+      "short": "Enter at least 2 characters.",
+      "failed": "The search failed. Try again.",
+      "selected": "Selected: {{name}}",
+      "change": "Choose another employee"
+    },
+    "form": {
+      "title": "Appoint a substitute",
+      "intro": "All fields are required. Check the dates: the appointment cannot be edited, only revoked.",
+      "manager": "Manager",
+      "substitute": "Substitute",
+      "effectiveFrom": "First day",
+      "effectiveTo": "Last day",
+      "datesHelp": "Both days are included.",
+      "reason": "Reason",
+      "reasonHelp": "Required. Only tenant administrators read it; the substitute and the employees never see it. 2 to {{max}} characters, without line breaks.",
+      "count": "{{count}} of {{max}} characters",
+      "reasonLocale": "Language of the reason",
+      "reasonLocaleHelp": "The reason is shown in this language; it is never translated.",
+      "locales": {
+        "fr": "Français",
+        "en": "English"
+      },
+      "review": "Review the appointment",
+      "confirmTitle": "Confirm the appointment",
+      "confirm": "Appoint {{substitute}} as substitute for {{manager}} for {{period}}? Both can decide the manager’s leave requests during these dates; the first decision is final.",
+      "confirmButton": "Confirm the appointment",
+      "sending": "Saving the appointment…",
+      "back": "Edit the appointment"
+    },
+    "problems": {
+      "manager": "Choose the manager.",
+      "substitute": "Choose a substitute other than the manager.",
+      "effectiveFrom": "Enter the first day.",
+      "effectiveTo": "Enter a last day on or after the first day.",
+      "reason": "Enter a reason of 2 to 500 characters, without line breaks or control characters.",
+      "reasonLocale": "Choose the language of the reason."
+    },
+    "created": "{{substitute}} was appointed as substitute for {{manager}} for {{period}}.",
+    "revoke": {
+      "title": "Revoke this appointment",
+      "intro": "The substitute immediately stops seeing the manager’s undecided requests; they stay with the manager. Decisions already taken are kept. The appointment itself is kept, revoked.",
+      "confirmTitle": "Confirm the revocation",
+      "confirm": "Revoke the appointment of {{substitute}} for {{manager}}? This takes effect immediately and cannot be undone.",
+      "confirmButton": "Confirm the revocation",
+      "sending": "Revoking…",
+      "back": "Edit the reason",
+      "cancel": "Cancel",
+      "revoked": "The appointment of {{substitute}} for {{manager}} was revoked.",
+      "gone": "This appointment was already revoked or is no longer available. The list has been refreshed."
     }
   }
 }

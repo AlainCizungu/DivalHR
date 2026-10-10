@@ -89,7 +89,9 @@ function employeeName(item: LeaveApproval): string {
 /**
  * MVP-041B: one approval inbox, for an employee's manager (`/me/leave/approvals`) or for tenant
  * administrators (`/admin/leave-approvals`); MVP-041E: the tenant administrators' routing
- * exceptions (`/admin/leave-routing-exceptions`), decided as an explicit override. The server decides what each inbox contains; the
+ * exceptions (`/admin/leave-routing-exceptions`), decided as an explicit override; MVP-041G: in the
+ * manager inbox, a substitute's delegated items carry a « Remplacement » / "Substitute assignment"
+ * badge and are confirmed as such. The server decides what each inbox contains; the
  * page lists it, opens a decision form in a modal dialog, asks for an explicit confirmation, then
  * sends one decision with a stable idempotency key. Names and reasons are plain text; nothing is
  * kept in browser storage or put in a URL.
@@ -341,6 +343,9 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
   );
 
   const reasonLength = dialog ? codePoints(normalizeReason(dialog.form.reason)) : 0;
+  // MVP-041G: a substitute decides with the same endpoint; the server chooses the authority.
+  const substitute = dialog?.item.approvalCapacity === 'SUBSTITUTE';
+  const confirmGroup = override ? 'exception' : substitute ? 'substitute' : 'dialog';
 
   return (
     <section aria-labelledby={`${ids}-title`} data-testid="leave-approvals" data-scope={scope}>
@@ -380,6 +385,11 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
                 data-testid="approval-item"
               >
                 <h3>{employeeName(item)}</h3>
+                {item.approvalCapacity === 'SUBSTITUTE' && (
+                  <p className="badge" data-testid="substitute-capacity">
+                    {t('leaveApprovals.substitute.badge')}
+                  </p>
+                )}
                 {override && (
                   <p className="badge" data-testid="exception-reason">
                     {t('leaveApprovals.exception.reason')}
@@ -481,6 +491,11 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
                 <strong>{t('leaveApprovals.exception.override')}</strong>
               </p>
             )}
+            {substitute && (
+              <p className="override-notice" data-testid="dialog-substitute-notice">
+                <strong>{t('leaveApprovals.substitute.notice')}</strong>
+              </p>
+            )}
             {summary(dialog.item)}
             {dialog.failure && (
               <ApprovalAlert
@@ -577,12 +592,9 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
             {dialog.step === 'confirm' && (
               <div data-testid="decision-confirm">
                 <p>
-                  {t(
-                    override
-                      ? `leaveApprovals.exception.confirm.${dialog.form.decision}`
-                      : `leaveApprovals.dialog.confirm.${dialog.form.decision}`,
-                    { name: employeeName(dialog.item) },
-                  )}
+                  {t(`leaveApprovals.${confirmGroup}.confirm.${dialog.form.decision}`, {
+                    name: employeeName(dialog.item),
+                  })}
                 </p>
                 <figure className="decision-reason">
                   <figcaption>{t('leaveApprovals.form.reason')}</figcaption>
@@ -603,11 +615,7 @@ export function LeaveApprovalInbox({ scope }: { scope: ApprovalScope }) {
                   >
                     {busy
                       ? t('leaveApprovals.dialog.sending')
-                      : t(
-                          override
-                            ? `leaveApprovals.exception.confirmButton.${dialog.form.decision}`
-                            : `leaveApprovals.dialog.confirmButton.${dialog.form.decision}`,
-                        )}
+                      : t(`leaveApprovals.${confirmGroup}.confirmButton.${dialog.form.decision}`)}
                   </button>
                   <button
                     type="button"
