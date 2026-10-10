@@ -30,8 +30,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 /**
  * MVP-041B test fixtures over the public API: an organization with a tenant administrator,
  * employees linked to their own employee memberships, policies by route, manager lines, requests,
- * decisions, unlinks and separations; MVP-041C cancellations; MVP-041D amendments and MVP-041E
- * routing exceptions.
+ * decisions, unlinks and separations; MVP-041C cancellations; MVP-041D amendments, MVP-041E routing
+ * exceptions and MVP-041F withdrawals of approved leave.
  */
 final class LeaveWorld {
 
@@ -353,6 +353,41 @@ final class LeaveWorld {
     return key == null ? request : request.header("Idempotency-Key", key);
   }
 
+  /** The caller's own withdrawal of approved leave (MVP-041F); the body is a reason and locale. */
+  static MockHttpServletRequestBuilder withdraw(
+      String bearer, String requestId, String key, Object body) throws Exception {
+    MockHttpServletRequestBuilder request =
+        post(MY_REQUESTS + "/" + requestId + "/withdrawal")
+            .header("Authorization", bearer)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body instanceof String text ? text : JSON.writeValueAsString(body));
+    return key == null ? request : request.header("Idempotency-Key", key);
+  }
+
+  /** Approves a TENANT_ADMIN-routed request as the tenant administrator. */
+  void approveAsAdmin(String requestId) throws Exception {
+    expect(
+        decide(
+            ADMIN_APPROVALS,
+            admin,
+            requestId,
+            Organizations.newKey(),
+            decision("APPROVED", "fr", "Accordé, bon repos.")),
+        200);
+  }
+
+  /** Approves a MANAGER-routed request as its manager. */
+  void approveAsManager(Person manager, String requestId) throws Exception {
+    expect(
+        decide(
+            MY_APPROVALS,
+            manager.bearer(),
+            requestId,
+            Organizations.newKey(),
+            decision("APPROVED", "en", "Approved, enjoy.")),
+        200);
+  }
+
   // ------------------------------------------------------------------------------------------
   // HTTP and rows
   // ------------------------------------------------------------------------------------------
@@ -422,6 +457,20 @@ final class LeaveWorld {
         count(
             "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
                 + " envelope ->> 'eventType' = 'people.leave-request.amended.v1'",
+            tenant().toString()));
+  }
+
+  /** Withdrawals, withdrawal audits and withdrawal events of the tenant (MVP-041F). */
+  List<Integer> withdrawals() {
+    return List.of(
+        count("SELECT count(*) FROM people.leave_request_withdrawal WHERE tenant_id = ?", tenant()),
+        count(
+            "SELECT count(*) FROM platform.audit_event WHERE tenant_id = ? AND action ="
+                + " 'leave-request.withdraw'",
+            tenant()),
+        count(
+            "SELECT count(*) FROM platform.outbox_event WHERE envelope ->> 'tenantId' = ? AND"
+                + " envelope ->> 'eventType' = 'people.leave-request.withdrawn.v1'",
             tenant().toString()));
   }
 

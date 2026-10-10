@@ -189,7 +189,9 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-041C: the employee's cancellation of their own pending request.
           "leave-request.self-cancel",
           // MVP-041D: the employee's amendment of their own pending request.
-          "leave-request.self-amend");
+          "leave-request.self-amend",
+          // MVP-041F: the employee's withdrawal of their own approved leave.
+          "leave-request.self-withdraw");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

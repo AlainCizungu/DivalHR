@@ -3638,6 +3638,69 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /me/leave-requests/{requestId}/withdrawal:
+    post:
+      operationId: withdrawMyApprovedLeave
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Withdraw my approved leave before it starts
+      description: >-
+        MVP-041F. Moves an APPROVED request of the caller's own employee (resolved from the caller's
+        current active employee-access link; 403 EMPLOYEE_LINK_REQUIRED otherwise) to WITHDRAWN,
+        once, with its reason, while the organization's business date (server-owned, from its time
+        zone) is still before the request's first day. In one transaction with the immutable
+        withdrawal record, the audit record (leave-request.withdraw) and the outbox event
+        (people.leave-request.withdrawn.v1); the original approval decision is kept unchanged and
+        the dates are released in the same commit. Unknown, foreign-tenant and another employee's
+        requests are the same 404 LEAVE_REQUEST_NOT_FOUND with no params. A pending request is 409
+        LEAVE_REQUEST_NOT_APPROVED, a rejected one 409 LEAVE_REQUEST_ALREADY_DECIDED, a cancelled one
+        409 LEAVE_REQUEST_ALREADY_CANCELLED, an amended one 409 LEAVE_REQUEST_ALREADY_AMENDED, an
+        already withdrawn one 409 LEAVE_REQUEST_ALREADY_WITHDRAWN and approved leave whose first day
+        has been reached 409 LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED, all without params. Only the
+        body's shape is checked before the idempotency decision: an exact retry (same
+        Idempotency-Key and body) returns the stored 201 with Idempotent-Replayed true while the
+        caller is still linked to the same employee; with no active link it is 403
+        EMPLOYEE_LINK_REQUIRED and linked to another employee 404 LEAVE_REQUEST_NOT_FOUND, with no
+        stored response. A changed body on the key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never
+        carries the reason, the actor, the policy, the dates, the amount or the approval; errors
+        never echo a submitted value. Shares the leave-request-write limits with
+        createMyLeaveRequest. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/LeaveRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawMyApprovedLeave"
+      responses:
+        "201":
+          description: Withdrawn, or the original withdrawal replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveWithdrawalReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /leave-approvals:
     get:
       operationId: listLeaveApprovals
@@ -7341,6 +7404,9 @@ components:
         - LEAVE_REQUEST_ALREADY_DECIDED
         - LEAVE_REQUEST_ALREADY_CANCELLED
         - LEAVE_REQUEST_ALREADY_AMENDED
+        - LEAVE_REQUEST_ALREADY_WITHDRAWN
+        - LEAVE_REQUEST_NOT_APPROVED
+        - LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -7525,9 +7591,11 @@ components:
         MVP-041A creates PENDING requests; MVP-041B moves one once to APPROVED or REJECTED with its
         decision; MVP-041C lets its employee move it once to CANCELLED with a cancellation; MVP-041D
         lets its employee move it once to AMENDED with an amendment that names its PENDING
-        replacement. APPROVED requests keep blocking overlapping requests; REJECTED, CANCELLED and
-        AMENDED ones release their dates.
-      enum: [PENDING, APPROVED, REJECTED, CANCELLED, AMENDED]
+        replacement. MVP-041F lets its employee move an APPROVED request once more, before its first
+        day, to WITHDRAWN with a withdrawal, keeping its approval decision. APPROVED requests keep
+        blocking overlapping requests; REJECTED, CANCELLED, AMENDED and WITHDRAWN ones release their
+        dates.
+      enum: [PENDING, APPROVED, REJECTED, CANCELLED, AMENDED, WITHDRAWN]
     MyLeavePolicy:
       type: object
       required:
@@ -7640,6 +7708,7 @@ components:
         - cancellation
         - amendment
         - amendedFromRequestId
+        - withdrawal
       properties:
         id:
           type: string
@@ -7689,9 +7758,16 @@ components:
           description: The request this one replaced (MVP-041D), otherwise null.
           type: [string, "null"]
           format: uuid
+        withdrawal:
+          description: >-
+            The withdrawal of this approved request once withdrawn (MVP-041F), otherwise null. The
+            approval decision stays in decision, unchanged.
+          oneOf:
+            - $ref: "#/components/schemas/MyLeaveWithdrawal"
+            - type: "null"
     MyLeaveRequestPage:
       type: object
-      required: [items, nextCursor]
+      required: [items, nextCursor, asOf]
       properties:
         items:
           type: array
@@ -7699,6 +7775,31 @@ components:
             $ref: "#/components/schemas/MyLeaveRequest"
         nextCursor:
           type: [string, "null"]
+        asOf:
+          type: string
+          format: date
+          description: >-
+            MVP-041F. The organization's business date when the page was read (server-owned, from
+            its time zone): approved leave whose startDate is after it may be withdrawn.
+    MyLeaveWithdrawal:
+      type: object
+      description: >-
+        MVP-041F. The withdrawal of one of the caller's own approved requests: the reason in the
+        language it was written in (never translated). The withdrawing subject is never included.
+      required: [id, reasonLocale, reason, withdrawnAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+          description: Plain text, never HTML or Markdown.
+        withdrawnAt:
+          type: string
+          format: date-time
     MyLeaveDecision:
       type: object
       description: >-
@@ -8035,6 +8136,44 @@ components:
           type: string
           enum: [PENDING]
         amendedAt:
+          type: string
+          format: date-time
+    WithdrawMyApprovedLeave:
+      type: object
+      description: >-
+        MVP-041F. The employee's withdrawal of their own approved future leave, with its reason. The
+        request comes from the path; tenant, employee, actor, decision and state are never fields.
+      additionalProperties: false
+      required: [reasonLocale, reason]
+      properties:
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: >-
+            Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason
+            (identical in the Core, the database and the web form).
+    LeaveWithdrawalReceipt:
+      type: object
+      description: >-
+        MVP-041F. The minimal receipt of a withdrawal; never the reason, the actor, the policy, the
+        dates, the amount or the approval.
+      required: [withdrawalId, requestId, state, withdrawnAt]
+      properties:
+        withdrawalId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [WITHDRAWN]
+        withdrawnAt:
           type: string
           format: date-time
     LeaveCancellationReceipt:

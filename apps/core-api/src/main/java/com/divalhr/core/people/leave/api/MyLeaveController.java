@@ -6,6 +6,7 @@ import com.divalhr.core.people.leave.api.MyLeaveResponses.CancellationReceipt;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.PolicyPage;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.Request;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.RequestPage;
+import com.divalhr.core.people.leave.api.MyLeaveResponses.WithdrawalReceipt;
 import com.divalhr.core.people.leave.application.MyLeaveService;
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
@@ -178,6 +179,40 @@ public class MyLeaveController {
       @Parameter(hidden = true) HttpServletRequest request) {
     IdempotentOperation.Result<AmendmentReceipt> result =
         leave.amend(caller(authentication, request), requestId, idempotencyKey, body);
+    ResponseEntity.BodyBuilder response =
+        ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
+    if (result.replayed()) {
+      response.header(IdempotencyKeys.REPLAYED_HEADER, "true");
+    }
+    return response.body(result.body());
+  }
+
+  /**
+   * Withdraws one of the caller's own approved leave requests before it starts (MVP-041F).
+   *
+   * @param requestId the approved request
+   * @param idempotencyKey required idempotency key
+   * @param body reason and its language
+   * @param authentication verified employee
+   * @param request current request
+   * @return 201 with the minimal receipt; replays carry {@code Idempotent-Replayed: true}
+   */
+  @Operation(operationId = "withdrawMyApprovedLeave")
+  @PostMapping(
+      path = "/leave-requests/{requestId}/withdrawal",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
+  @EmployeeSelfOperation(operation = MyLeaveService.WITHDRAW)
+  @SubjectRateLimited(bucket = MyLeaveService.SUBJECT_WRITE_BUCKET)
+  @TenantRateLimited(bucket = MyLeaveService.TENANT_WRITE_BUCKET)
+  public ResponseEntity<WithdrawalReceipt> withdraw(
+      @PathVariable("requestId") String requestId,
+      @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
+      @RequestBody WithdrawLeaveRequest body,
+      @Parameter(hidden = true) JwtAuthenticationToken authentication,
+      @Parameter(hidden = true) HttpServletRequest request) {
+    IdempotentOperation.Result<WithdrawalReceipt> result =
+        leave.withdraw(caller(authentication, request), requestId, idempotencyKey, body);
     ResponseEntity.BodyBuilder response =
         ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
     if (result.replayed()) {

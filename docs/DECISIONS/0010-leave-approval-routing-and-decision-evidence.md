@@ -145,6 +145,11 @@ exceptions and the `decision_authority` of every decision (`MANAGER`, `TENANT_AD
 `TENANT_ADMIN_OVERRIDE`). The lock orders, replay rules and evidence above are unchanged for
 manager and tenant-administrator decisions and cancellations.
 
+### Withdrawal of approved leave (MVP-041F, Issue #95, V23)
+
+See ADR 0012: an `APPROVED` request may move once more, to `WITHDRAWN`, before its first day, by
+its own employee; the approval decision above is kept unchanged beside the withdrawal evidence.
+
 ## Consequences
 
 - One manager decision at a time per tenant, as for every manager-history write. Decisions are

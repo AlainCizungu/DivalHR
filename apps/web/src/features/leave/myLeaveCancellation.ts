@@ -45,6 +45,7 @@ export interface CancellationFailure {
     | 'alreadyCancelled'
     | 'alreadyAmended'
     | 'alreadyDecided'
+    | 'alreadyWithdrawn'
     | 'conflict'
     | 'general';
   messageKey: string;
@@ -67,6 +68,7 @@ export const SETTLED_KINDS: ReadonlySet<CancellationFailure['kind']> = new Set([
   'alreadyCancelled',
   'alreadyAmended',
   'alreadyDecided',
+  'alreadyWithdrawn',
 ]);
 
 /** Maps a Problem response; params outside the allow-lists are dropped, never shown. */
@@ -96,6 +98,9 @@ export function cancellationFailureOf(response: Response, error: unknown): Cance
   }
   if (code === 'LEAVE_REQUEST_ALREADY_AMENDED') {
     return { ...base, kind: 'alreadyAmended', messageKey: 'myLeave.cancel.alreadyAmended' };
+  }
+  if (code === 'LEAVE_REQUEST_ALREADY_WITHDRAWN') {
+    return { ...base, kind: 'alreadyWithdrawn', messageKey: 'myLeave.cancel.alreadyWithdrawn' };
   }
   if (code === 'LEAVE_REQUEST_ALREADY_DECIDED') {
     return { ...base, kind: 'alreadyDecided', messageKey: 'myLeave.cancel.alreadyDecided' };

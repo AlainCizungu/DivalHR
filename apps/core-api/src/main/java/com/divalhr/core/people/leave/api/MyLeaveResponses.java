@@ -11,6 +11,7 @@ import com.divalhr.core.people.leave.domain.LeavePolicyStatus;
 import com.divalhr.core.people.leave.domain.LeaveRequest;
 import com.divalhr.core.people.leave.domain.LeaveRequestState;
 import com.divalhr.core.people.leave.domain.LeaveUnit;
+import com.divalhr.core.people.leave.domain.LeaveWithdrawal;
 import com.divalhr.core.people.leave.domain.PayrollEffect;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
@@ -139,6 +140,9 @@ public final class MyLeaveResponses {
    * @param amendment the amendment and its reason once replaced, with the replacement's ID,
    *     otherwise {@code null}; never the amending subject (MVP-041D)
    * @param amendedFromRequestId the request this one replaced, or {@code null} (MVP-041D)
+   * @param withdrawal the withdrawal of its approval and its reason once withdrawn, otherwise
+   *     {@code null}; the approval {@code decision} stays beside it; never the withdrawing subject
+   *     (MVP-041F)
    */
   @Schema(name = "MyLeaveRequest")
   public record Request(
@@ -156,7 +160,8 @@ public final class MyLeaveResponses {
       Decision decision,
       Cancellation cancellation,
       Amendment amendment,
-      UUID amendedFromRequestId) {
+      UUID amendedFromRequestId,
+      Withdrawal withdrawal) {
 
     /**
      * The view of a request.
@@ -180,7 +185,8 @@ public final class MyLeaveResponses {
           request.decision() == null ? null : Decision.of(request.decision()),
           request.cancellation() == null ? null : Cancellation.of(request.cancellation()),
           request.amendment() == null ? null : Amendment.of(request.amendment()),
-          request.amendedFrom());
+          request.amendedFrom(),
+          request.withdrawal() == null ? null : Withdrawal.of(request.withdrawal()));
     }
 
     /**
@@ -332,6 +338,57 @@ public final class MyLeaveResponses {
       Instant amendedAt) {}
 
   /**
+   * The withdrawal of one of the caller's own approved requests (MVP-041F): the reason in the
+   * language it was written in. The withdrawing subject is never included.
+   *
+   * @param id withdrawal
+   * @param reasonLocale {@code en} or {@code fr}
+   * @param reason the reason, as written (plain text)
+   * @param withdrawnAt withdrawal time
+   */
+  @Schema(name = "MyLeaveWithdrawal")
+  public record Withdrawal(UUID id, String reasonLocale, String reason, Instant withdrawnAt) {
+
+    /**
+     * The employee-safe view of a withdrawal.
+     *
+     * @param withdrawal withdrawal
+     * @return the view
+     */
+    public static Withdrawal of(LeaveWithdrawal withdrawal) {
+      return new Withdrawal(
+          withdrawal.id(),
+          withdrawal.reasonLocale(),
+          withdrawal.reason(),
+          withdrawal.withdrawnAt());
+    }
+
+    /**
+     * Identifiers only: the reason never reaches a log line through {@code toString}.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "MyLeaveWithdrawal[id=" + id + "]";
+    }
+  }
+
+  /**
+   * The minimal receipt of a withdrawal (MVP-041F): identifiers, the resulting state and the time.
+   * Never the reason, the actor, the policy, the dates, the amount or the approval (none is stored
+   * in the idempotency response either).
+   *
+   * @param withdrawalId the withdrawal
+   * @param requestId the withdrawn request
+   * @param state {@code WITHDRAWN}
+   * @param withdrawnAt withdrawal time
+   */
+  @Schema(name = "LeaveWithdrawalReceipt")
+  public record WithdrawalReceipt(
+      UUID withdrawalId, UUID requestId, LeaveRequestState state, Instant withdrawnAt) {}
+
+  /**
    * The minimal receipt of a cancellation (MVP-041C): identifiers, the resulting state and the
    * time. Never the reason (it is not stored in the idempotency response either).
    *
@@ -349,9 +406,11 @@ public final class MyLeaveResponses {
    *
    * @param items requests
    * @param nextCursor continuation or {@code null}
+   * @param asOf the organization's business date when the page was read (MVP-041F: approved leave
+   *     starting after it may be withdrawn)
    */
   @Schema(name = "MyLeaveRequestPage")
-  public record RequestPage(List<Request> items, String nextCursor) {
+  public record RequestPage(List<Request> items, String nextCursor, LocalDate asOf) {
 
     /** Keeps an unmodifiable copy of the items. */
     public RequestPage {

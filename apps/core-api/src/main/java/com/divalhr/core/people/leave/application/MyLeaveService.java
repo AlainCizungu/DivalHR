@@ -11,13 +11,17 @@ import com.divalhr.core.people.leave.api.MyLeaveResponses.Policy;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.PolicyPage;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.Request;
 import com.divalhr.core.people.leave.api.MyLeaveResponses.RequestPage;
+import com.divalhr.core.people.leave.api.MyLeaveResponses.WithdrawalReceipt;
+import com.divalhr.core.people.leave.api.WithdrawLeaveRequest;
 import com.divalhr.core.people.leave.domain.Employment;
 import com.divalhr.core.people.leave.domain.LeaveAmendment;
 import com.divalhr.core.people.leave.domain.LeaveCancellation;
+import com.divalhr.core.people.leave.domain.LeaveDecision;
 import com.divalhr.core.people.leave.domain.LeavePolicy;
 import com.divalhr.core.people.leave.domain.LeaveRequest;
 import com.divalhr.core.people.leave.domain.LeaveRequestState;
 import com.divalhr.core.people.leave.domain.LeaveRouting;
+import com.divalhr.core.people.leave.domain.LeaveWithdrawal;
 import com.divalhr.core.people.leave.internal.JdbcLeavePolicyRepository;
 import com.divalhr.core.people.leave.internal.JdbcLeaveRequestRepository;
 import com.divalhr.core.people.leave.internal.LeaveConstraintViolations;
@@ -64,7 +68,8 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Employee self-service leave (MVP-041A, Issue #87): the requestable policy catalogue, submitting a
  * pending request and the caller's own request history; cancelling a pending request of their own
- * (MVP-041C, Issue #91); amending one by replacement (MVP-041D, Issue #92).
+ * (MVP-041C, Issue #91); amending one by replacement (MVP-041D, Issue #92); withdrawing their own
+ * approved leave before it starts (MVP-041F, Issue #95).
  *
  * <p>Authorization (role {@code employee}, verified tenant, active membership) has run before any
  * of this. Every operation then resolves the caller's own employee through the identity port's
@@ -115,6 +120,15 @@ public class MyLeaveService {
   /** Outbox event of an amendment (MVP-041D). */
   public static final String AMENDED_EVENT = "people.leave-request.amended.v1";
 
+  /** Withdrawal operation (idempotency operation; MVP-041F). */
+  public static final String WITHDRAW = "leave-request.self-withdraw";
+
+  /** Audit action of a withdrawal (MVP-041F). */
+  public static final String WITHDRAW_AUDIT = "leave-request.withdraw";
+
+  /** Outbox event of a withdrawal (MVP-041F). */
+  public static final String WITHDRAWN_EVENT = "people.leave-request.withdrawn.v1";
+
   /** Per-subject self-service read bucket (60 per minute). */
   public static final String SUBJECT_READ_BUCKET = "leave-self-read";
 
@@ -134,6 +148,8 @@ public class MyLeaveService {
       new IdempotentOperation.Spec(CANCEL, "leave_request", "cancel", "cancelled", 200);
   private static final IdempotentOperation.Spec AMEND_SPEC =
       new IdempotentOperation.Spec(AMEND, "leave_request", "amend", "amended", 201);
+  private static final IdempotentOperation.Spec WITHDRAW_SPEC =
+      new IdempotentOperation.Spec(WITHDRAW, "leave_request", "withdraw", "withdrawn", 201);
 
   private final IdempotentOperation operations;
   private final JdbcLeavePolicyRepository policies;
@@ -338,6 +354,7 @@ public class MyLeaveService {
             command.amount(),
             LeaveRequestState.PENDING,
             now,
+            null,
             null,
             null,
             null,
@@ -566,8 +583,13 @@ public class MyLeaveService {
     return switch (state) {
       case CANCELLED -> alreadyCancelled();
       case AMENDED -> new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_AMENDED, Map.of());
+      case WITHDRAWN -> alreadyWithdrawn();
       default -> new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_DECIDED, Map.of());
     };
+  }
+
+  private static ApiException alreadyWithdrawn() {
+    return new ApiException(ErrorCode.LEAVE_REQUEST_ALREADY_WITHDRAWN, Map.of());
   }
 
   // ------------------------------------------------------------------------------------------
@@ -703,7 +725,8 @@ public class MyLeaveService {
             null,
             null,
             null,
-            original.id());
+            original.id(),
+            null);
     LeaveAmendment amendment =
         new LeaveAmendment(
             UUID.randomUUID(),
@@ -819,6 +842,208 @@ public class MyLeaveService {
   }
 
   // ------------------------------------------------------------------------------------------
+  // Withdraw approved leave (MVP-041F)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * Withdraws the caller's own approved leave before it starts: the request moves from {@code
+   * APPROVED} to {@code WITHDRAWN}, its approval decision is kept unchanged and immutable
+   * withdrawal evidence is added; its dates are released in the same commit. Or replays an earlier
+   * identical withdrawal while the request is still the caller's linked employee's (D41F-1,
+   * D41F-3).
+   *
+   * <p>One bounded transaction in the ADR 0008 order (D41F-4): idempotency (step 0); a plain read
+   * of the request to discover its employment, locked {@code FOR SHARE} (step 2); the caller's own
+   * link and membership {@code FOR SHARE} (step 4); the request {@code FOR UPDATE}, bound to the
+   * tenant and the linked employee (step 5); then its state, its internally consistent approval and
+   * the organization's business date (strictly before the first day), the transition, the evidence,
+   * the deferred V23 checks, the audit record and the outbox event (step 6). No employment is
+   * locked after the request. A decision, cancellation or amendment cannot race it: they all need
+   * the request {@code PENDING} under the same row lock.
+   *
+   * @param caller verified employee
+   * @param requestId path value
+   * @param idempotencyKey {@code Idempotency-Key} header
+   * @param body reason and its language
+   * @return the receipt
+   */
+  public IdempotentOperation.Result<WithdrawalReceipt> withdraw(
+      PeopleCaller caller, String requestId, String idempotencyKey, WithdrawLeaveRequest body) {
+    LeaveWithdrawalCommand command =
+        operations.validated(
+            WITHDRAW_SPEC, () -> LeaveWithdrawalCommand.from(idempotencyKey, requestId, body));
+    return counted(
+        WITHDRAW,
+        () ->
+            operations.execute(
+                WITHDRAW_SPEC,
+                caller.subject(),
+                idempotencyKey,
+                command.canonical(caller.tenant()),
+                WithdrawalReceipt.class,
+                TRANSACTION_TIMEOUT,
+                stored -> withdrawalReplayable(caller, stored),
+                () -> withdrawn(caller, command)));
+  }
+
+  /**
+   * A stored withdrawal receipt is returned only while the caller's current active link still
+   * resolves to the employee whose request it withdrew, and that request carries its withdrawal
+   * (R88): no link is {@code 403 EMPLOYEE_LINK_REQUIRED}; otherwise {@code 404
+   * LEAVE_REQUEST_NOT_FOUND}, with no stored response or identifier.
+   */
+  private void withdrawalReplayable(PeopleCaller caller, UUID requestId) {
+    SelfLink link = link(caller);
+    if (requestId == null
+        || requests
+            .find(caller.tenant(), link.employeeId(), requestId)
+            .filter(request -> request.withdrawal() != null)
+            .isEmpty()) {
+      throw LeaveDecisionCommand.notFound();
+    }
+  }
+
+  private IdempotentOperation.Completed<WithdrawalReceipt> withdrawn(
+      PeopleCaller caller, LeaveWithdrawalCommand command) {
+    TenantId tenant = caller.tenant();
+    // Step 2: the request's employment, discovered by a plain read and locked FOR SHARE.
+    requests
+        .routing(tenant, command.requestId())
+        .ifPresent(seen -> requests.shareEmployment(tenant, seen.employmentId()));
+    // Step 4: the link is checked before anything about the request is answered.
+    SelfLink link = link(caller);
+    // Step 5: the request, bound to the linked employee.
+    LeaveRouting routing =
+        requests
+            .lockOwn(tenant, link.employeeId(), command.requestId())
+            .orElseThrow(LeaveDecisionCommand::notFound);
+    switch (routing.state()) {
+      case APPROVED -> {}
+      case PENDING -> throw new ApiException(ErrorCode.LEAVE_REQUEST_NOT_APPROVED, Map.of());
+      default -> throw terminal(routing.state());
+    }
+    LeaveDecision approval =
+        requests
+            .find(tenant, link.employeeId(), routing.id())
+            .map(LeaveRequest::decision)
+            .filter(decision -> decision.outcome() == LeaveRequestState.APPROVED)
+            .filter(decision -> decision.route() == routing.route())
+            // Never expected: V20 to V23 keep an approved request's decision consistent.
+            .orElseThrow(() -> new IllegalStateException("approved leave without its approval"));
+    // One read of the time zone, one business date; strictly before the first day (D41F-1).
+    LocalDate today = calendar.today(calendar.zone(tenant));
+    if (!today.isBefore(routing.startDate())) {
+      throw new ApiException(ErrorCode.LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED, Map.of());
+    }
+    Instant now = calendar.now().truncatedTo(ChronoUnit.MICROS);
+    LeaveWithdrawal withdrawal =
+        new LeaveWithdrawal(
+            UUID.randomUUID(), routing.id(), command.reasonLocale(), command.reason(), now);
+    try {
+      requests.withdraw(tenant, withdrawal, caller.subject());
+      requests.checkTerminalConsistency(tenant);
+    } catch (DataIntegrityViolationException violated) {
+      Optional<String> constraint = LeaveConstraintViolations.constraint(violated);
+      if (constraint.filter(LeaveConstraintViolations.WITHDRAWAL_UNIQUE::equals).isPresent()) {
+        throw alreadyWithdrawn();
+      }
+      if (constraint
+          .filter(LeaveConstraintViolations.WITHDRAWAL_CONSISTENCY::contains)
+          .isPresent()) {
+        // Never expected: the checks above hold the row lock. No database text is exposed.
+        throw new IllegalStateException("leave withdrawal inconsistent with its request");
+      }
+      throw violated;
+    }
+
+    Map<String, Object> ids = new LinkedHashMap<>();
+    ids.put("schemaVersion", LeavePolicyService.SCHEMA_VERSION);
+    ids.put("withdrawalId", withdrawal.id().toString());
+    ids.put("requestId", routing.id().toString());
+    ids.put("employeeId", routing.employeeId().toString());
+    ids.put("employmentId", routing.employmentId().toString());
+    ids.put("policyId", routing.policyId().toString());
+    ids.put("policyVersionId", routing.policyVersionId().toString());
+    ids.put("decisionId", approval.id().toString());
+    ids.put("priorState", LeaveRequestState.APPROVED.name());
+    ids.put("resultingState", LeaveRequestState.WITHDRAWN.name());
+    audit.record(
+        new AuditEvent(
+            UUID.randomUUID(),
+            now,
+            caller.subject(),
+            WITHDRAW_AUDIT,
+            "leave-request",
+            routing.id(),
+            tenant.value(),
+            "SUCCESS",
+            caller.correlationId(),
+            ids,
+            Fingerprints.sha256(
+                json.writeValueAsString(
+                    withdrawnState(tenant, routing, approval, withdrawal, caller)))));
+    Map<String, Object> data = new LinkedHashMap<>(ids);
+    data.remove("schemaVersion");
+    outbox.append(
+        new EventEnvelope(
+            UUID.randomUUID().toString(),
+            WITHDRAWN_EVENT,
+            LeavePolicyService.SCHEMA_VERSION,
+            tenant.toString(),
+            SOURCE,
+            routing.id().toString(),
+            now.toString(),
+            caller.correlationId(),
+            null,
+            data));
+    LOG.atInfo()
+        .addKeyValue("operation", WITHDRAW)
+        .addKeyValue("approvalRoute", routing.route().name())
+        .addKeyValue("outcome", "withdrawn")
+        .log("leave_request_self_withdrawn");
+    return new IdempotentOperation.Completed<>(
+        new WithdrawalReceipt(withdrawal.id(), routing.id(), LeaveRequestState.WITHDRAWN, now),
+        routing.id(),
+        Outcome.CREATED);
+  }
+
+  /**
+   * The whole withdrawn state: the request, its kept approval evidence and the withdrawal,
+   * including both reasons and the withdrawing actor; only its digest is stored.
+   */
+  private static Map<String, Object> withdrawnState(
+      TenantId tenant,
+      LeaveRouting routing,
+      LeaveDecision approval,
+      LeaveWithdrawal withdrawal,
+      PeopleCaller caller) {
+    Map<String, Object> state = new TreeMap<>();
+    state.put("tenantId", tenant.toString());
+    state.put("requestId", routing.id().toString());
+    state.put("employeeId", routing.employeeId().toString());
+    state.put("employmentId", routing.employmentId().toString());
+    state.put("policyVersionId", routing.policyVersionId().toString());
+    state.put("startDate", routing.startDate().toString());
+    state.put("endDate", routing.endDate().toString());
+    state.put("state", LeaveRequestState.WITHDRAWN.name());
+    Map<String, Object> decision = new TreeMap<>();
+    decision.put("decisionId", approval.id().toString());
+    decision.put("outcome", approval.outcome().name());
+    decision.put("approvalRoute", approval.route().name());
+    decision.put("decisionAuthority", approval.authority().name());
+    decision.put("reasonLocale", approval.reasonLocale());
+    decision.put("reason", approval.reason());
+    decision.put("decidedAt", approval.decidedAt().toString());
+    state.put("approval", decision);
+    state.put("withdrawalId", withdrawal.id().toString());
+    state.put("reasonLocale", withdrawal.reasonLocale());
+    state.put("reason", withdrawal.reason());
+    state.put("withdrawnAt", withdrawal.withdrawnAt().toString());
+    state.put("withdrawnBy", caller.subject());
+    return state;
+  }
+
+  // ------------------------------------------------------------------------------------------
   // History
   // ------------------------------------------------------------------------------------------
 
@@ -869,7 +1094,10 @@ public class MyLeaveService {
                                 new KeysetPosition(REQUEST_CODE, shown.get(shown.size() - 1).id()))
                             : null;
                     disclosed(caller, link.employeeId(), page, shown);
-                    return new RequestPage(shown.stream().map(Request::of).toList(), next);
+                    // The server-owned business date: approved leave starting after it may be
+                    // withdrawn (MVP-041F); the withdrawal re-checks it under the row lock.
+                    LocalDate asOf = calendar.today(calendar.zone(tenant));
+                    return new RequestPage(shown.stream().map(Request::of).toList(), next, asOf);
                   });
           LOG.atInfo()
               .addKeyValue("operation", REQUESTS)

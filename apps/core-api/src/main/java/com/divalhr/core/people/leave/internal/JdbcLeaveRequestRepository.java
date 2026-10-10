@@ -11,6 +11,7 @@ import com.divalhr.core.people.leave.domain.LeaveRequest;
 import com.divalhr.core.people.leave.domain.LeaveRequestState;
 import com.divalhr.core.people.leave.domain.LeaveRouting;
 import com.divalhr.core.people.leave.domain.LeaveUnit;
+import com.divalhr.core.people.leave.domain.LeaveWithdrawal;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,10 +27,11 @@ import org.springframework.stereotype.Repository;
 
 /**
  * Leave request storage (MVP-041A, V19), decisions (MVP-041B, V20), cancellations (MVP-041C, V21),
- * amendments and decision authorities (MVP-041D/E, V22) and the employment periods and reporting
- * lines requests are checked against. Every query names the verified tenant; employee reads are
- * bound to the employee resolved from the caller's own link, approval reads to the route and, for
- * managers, to the caller's own reporting lines. Runs in the caller's transaction.
+ * amendments and decision authorities (MVP-041D/E, V22), withdrawals of approved leave (MVP-041F,
+ * V23) and the employment periods and reporting lines requests are checked against. Every query
+ * names the verified tenant; employee reads are bound to the employee resolved from the caller's
+ * own link, approval reads to the route and, for managers, to the caller's own reporting lines.
+ * Runs in the caller's transaction.
  */
 @Repository
 public class JdbcLeaveRequestRepository {
@@ -43,7 +45,9 @@ public class JdbcLeaveRequestRepository {
           + " x.reason_text AS cancellation_reason, x.cancelled_at, am.id AS amendment_id,"
           + " am.replacement_request_id, am.reason_locale AS amendment_locale,"
           + " am.reason_text AS amendment_reason, am.amended_at,"
-          + " ar.original_request_id AS amended_from"
+          + " ar.original_request_id AS amended_from, w.id AS withdrawal_id,"
+          + " w.reason_locale AS withdrawal_locale, w.reason_text AS withdrawal_reason,"
+          + " w.withdrawn_at"
           + " FROM people.leave_request r"
           + " JOIN people.leave_policy_version v"
           + " ON v.tenant_id = r.tenant_id AND v.id = r.policy_version_id"
@@ -55,7 +59,9 @@ public class JdbcLeaveRequestRepository {
           + " LEFT JOIN people.leave_request_amendment am"
           + " ON am.tenant_id = r.tenant_id AND am.original_request_id = r.id"
           + " LEFT JOIN people.leave_request_amendment ar"
-          + " ON ar.tenant_id = r.tenant_id AND ar.replacement_request_id = r.id";
+          + " ON ar.tenant_id = r.tenant_id AND ar.replacement_request_id = r.id"
+          + " LEFT JOIN people.leave_request_withdrawal w"
+          + " ON w.tenant_id = r.tenant_id AND w.request_id = r.id";
 
   private static final String ITEM =
       "SELECT r.id, r.submitted_at, r.employee_id, e.employee_number, e.given_names,"
@@ -444,9 +450,9 @@ public class JdbcLeaveRequestRepository {
    * Runs the deferred terminal-evidence checks now ({@code leave_request_decided}: exactly one
    * matching kind of evidence per request, V20 extended by V21 and V22; {@code
    * leave_request_decision_consistent}, V20/V22; {@code leave_request_cancellation_consistent},
-   * V21; {@code leave_request_amendment_consistent}, V22), so that a violation surfaces inside the
-   * business work, where it is mapped by constraint name, before the audit and outbox records are
-   * written.
+   * V21; {@code leave_request_amendment_consistent}, V22; {@code
+   * leave_request_withdrawal_consistent}, V23), so that a violation surfaces inside the business
+   * work, where it is mapped by constraint name, before the audit and outbox records are written.
    *
    * @param tenant verified tenant whose transaction it is
    */
@@ -457,7 +463,8 @@ public class JdbcLeaveRequestRepository {
             "SET CONSTRAINTS people.leave_request_decided,"
                 + " people.leave_request_decision_consistent,"
                 + " people.leave_request_cancellation_consistent,"
-                + " people.leave_request_amendment_consistent IMMEDIATE");
+                + " people.leave_request_amendment_consistent,"
+                + " people.leave_request_withdrawal_consistent IMMEDIATE");
   }
 
   // ------------------------------------------------------------------------------------------
@@ -566,6 +573,46 @@ public class JdbcLeaveRequestRepository {
             .addValue("reason", amendment.reason())
             .addValue("amendedAt", Timestamp.from(amendment.amendedAt()))
             .addValue("amendedBy", amendedBy));
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Withdrawals (MVP-041F)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * Records a withdrawal and moves its approved request to {@code WITHDRAWN}, which releases its
+   * dates in the same transaction (the overlap exclusion covers PENDING and APPROVED only). The
+   * approval decision is not touched.
+   *
+   * @param tenant verified tenant
+   * @param withdrawal the withdrawal
+   * @param withdrawnBy verified subject
+   * @throws IllegalStateException when the request was no longer approved (the caller holds its row
+   *     lock, so this never happens)
+   */
+  public void withdraw(TenantId tenant, LeaveWithdrawal withdrawal, String withdrawnBy) {
+    jdbc.update(
+        "INSERT INTO people.leave_request_withdrawal (id, tenant_id, request_id, reason_locale,"
+            + " reason_text, withdrawn_at, withdrawn_by) VALUES (:id, :tenant, :request, :locale,"
+            + " :reason, :withdrawnAt, :withdrawnBy)",
+        new MapSqlParameterSource()
+            .addValue("id", withdrawal.id())
+            .addValue("tenant", tenant.value())
+            .addValue("request", withdrawal.requestId())
+            .addValue("locale", withdrawal.reasonLocale())
+            .addValue("reason", withdrawal.reason())
+            .addValue("withdrawnAt", Timestamp.from(withdrawal.withdrawnAt()))
+            .addValue("withdrawnBy", withdrawnBy));
+    int moved =
+        jdbc.update(
+            "UPDATE people.leave_request SET state = 'WITHDRAWN'"
+                + " WHERE tenant_id = :tenant AND id = :id AND state = 'APPROVED'",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", withdrawal.requestId()));
+    if (moved != 1) {
+      throw new IllegalStateException("leave request was not approved under its row lock");
+    }
   }
 
   // ------------------------------------------------------------------------------------------
@@ -690,7 +737,8 @@ public class JdbcLeaveRequestRepository {
         decision(rs),
         cancellation(rs),
         amendment(rs),
-        rs.getObject("amended_from", UUID.class));
+        rs.getObject("amended_from", UUID.class),
+        withdrawal(rs));
   }
 
   private static LeaveAmendment amendment(ResultSet rs) throws SQLException {
@@ -705,6 +753,19 @@ public class JdbcLeaveRequestRepository {
         rs.getString("amendment_locale"),
         rs.getString("amendment_reason"),
         rs.getTimestamp("amended_at").toInstant());
+  }
+
+  private static LeaveWithdrawal withdrawal(ResultSet rs) throws SQLException {
+    UUID id = rs.getObject("withdrawal_id", UUID.class);
+    if (id == null) {
+      return null;
+    }
+    return new LeaveWithdrawal(
+        id,
+        rs.getObject("id", UUID.class),
+        rs.getString("withdrawal_locale"),
+        rs.getString("withdrawal_reason"),
+        rs.getTimestamp("withdrawn_at").toInstant());
   }
 
   private static LeaveCancellation cancellation(ResultSet rs) throws SQLException {

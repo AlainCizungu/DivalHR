@@ -252,7 +252,16 @@ public enum ErrorCode {
   /** The leave request was already cancelled by its employee (MVP-041C; no params). */
   LEAVE_REQUEST_ALREADY_CANCELLED(HttpStatus.CONFLICT),
   /** The leave request was already replaced by its employee's amendment (MVP-041D; no params). */
-  LEAVE_REQUEST_ALREADY_AMENDED(HttpStatus.CONFLICT);
+  LEAVE_REQUEST_ALREADY_AMENDED(HttpStatus.CONFLICT),
+  /** The approved leave was already withdrawn by its employee (MVP-041F; no params). */
+  LEAVE_REQUEST_ALREADY_WITHDRAWN(HttpStatus.CONFLICT),
+  /** Only approved leave can be withdrawn; this request is still pending (MVP-041F; no params). */
+  LEAVE_REQUEST_NOT_APPROVED(HttpStatus.CONFLICT),
+  /**
+   * The approved leave has started (the organization's business date reached its first day), so it
+   * can no longer be withdrawn (MVP-041F; no params).
+   */
+  LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

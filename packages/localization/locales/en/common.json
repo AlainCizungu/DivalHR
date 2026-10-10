@@ -353,7 +353,10 @@
     "LEAVE_REQUEST_NOT_FOUND": "This leave request is no longer available to you. It may have been decided, rerouted to another approver or withdrawn from your inbox.",
     "LEAVE_REQUEST_ALREADY_DECIDED": "This leave request has already been decided.",
     "LEAVE_REQUEST_ALREADY_CANCELLED": "This leave request has already been cancelled.",
-    "LEAVE_REQUEST_ALREADY_AMENDED": "This leave request has already been amended."
+    "LEAVE_REQUEST_ALREADY_AMENDED": "This leave request has already been amended.",
+    "LEAVE_REQUEST_ALREADY_WITHDRAWN": "This approved leave has already been withdrawn.",
+    "LEAVE_REQUEST_NOT_APPROVED": "Only approved leave can be withdrawn; this request is still awaiting a decision.",
+    "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED": "This leave has already started, so it can no longer be withdrawn."
   },
   "notFound": {
     "title": "Page not found",
@@ -1843,7 +1846,8 @@
       "APPROVED": "Approved",
       "REJECTED": "Rejected",
       "CANCELLED": "Cancelled",
-      "AMENDED": "Amended"
+      "AMENDED": "Amended",
+      "WITHDRAWN": "Withdrawn"
     },
     "history": {
       "title": "My requests",
@@ -1867,7 +1871,10 @@
       "replaces": "Replaces the request for {{period}}",
       "replacedBy": "Replaced by the request for {{period}}",
       "replacesEarlier": "Replaces an earlier request",
-      "replacedByEarlier": "Replaced by a later request"
+      "replacedByEarlier": "Replaced by a later request",
+      "withdrawnOn": "Withdrawn on {{date}}",
+      "approval": "Approval",
+      "withdrawal": "Withdrawal"
     },
     "cancel": {
       "action": "Cancel request",
@@ -1898,7 +1905,8 @@
       },
       "alreadyCancelled": "This request was already cancelled. Your list has been updated.",
       "alreadyDecided": "This request has already been decided and can no longer be cancelled. Your list has been updated.",
-      "alreadyAmended": "This request has already been amended and can no longer be cancelled. Your list has been updated."
+      "alreadyAmended": "This request has already been amended and can no longer be cancelled. Your list has been updated.",
+      "alreadyWithdrawn": "This request has already been withdrawn and can no longer be cancelled. Your list has been updated."
     },
     "amend": {
       "action": "Amend request",
@@ -1937,7 +1945,44 @@
       "alreadyAmended": "This request has already been amended. Your list has been updated.",
       "alreadyCancelled": "This request has already been cancelled and can no longer be amended. Your list has been updated.",
       "alreadyDecided": "This request has already been decided and can no longer be amended. Your list has been updated.",
-      "overlap": "Another of your requests already covers some of these dates. Your current request is unchanged."
+      "overlap": "Another of your requests already covers some of these dates. Your current request is unchanged.",
+      "alreadyWithdrawn": "This request has already been withdrawn and can no longer be amended. Your list has been updated."
+    },
+    "withdraw": {
+      "action": "Withdraw approved leave",
+      "actionFor": "Withdraw the approved leave {{name}}, {{period}}…",
+      "title": "Withdraw this approved leave",
+      "confirmTitle": "Confirm the withdrawal",
+      "intro": "Your approved leave is cancelled and its dates become free again. The approval stays in your history with your reason. A withdrawal is final and is only possible before the leave starts.",
+      "reason": "Reason for withdrawing",
+      "reasonHelp": "Required. It is kept with your request and shown in your history as you write it. 2 to {{max}} characters, without line breaks.",
+      "count": "{{count}} of {{max}} characters",
+      "reasonLocale": "Language of the reason",
+      "reasonLocaleHelp": "The reason is shown in this language; it is never translated.",
+      "review": "Review the withdrawal",
+      "keep": "Keep the approved leave",
+      "confirm": "Withdraw your approved {{name}} leave for {{period}}? This cannot be undone.",
+      "confirmButton": "Confirm the withdrawal",
+      "sending": "Withdrawing the leave…",
+      "back": "Edit the reason",
+      "done": "Your approved {{name}} leave for {{period}} was withdrawn.",
+      "summary": {
+        "policy": "Policy",
+        "period": "Dates",
+        "amount": "Amount",
+        "approval": "Current status",
+        "approvedOn": "Approved on {{date}}"
+      },
+      "problems": {
+        "reason": "Enter a reason of 2 to 500 characters, without line breaks or invisible characters.",
+        "reasonLocale": "Choose the language of the reason."
+      },
+      "alreadyWithdrawn": "This leave was already withdrawn. Your list has been updated.",
+      "notApproved": "This request is not approved, so it cannot be withdrawn. Your list has been updated.",
+      "windowClosed": "This leave has already started and can no longer be withdrawn. Your list has been updated.",
+      "alreadyCancelled": "This request was cancelled and can no longer be withdrawn. Your list has been updated.",
+      "alreadyAmended": "This request was amended and can no longer be withdrawn. Your list has been updated.",
+      "alreadyDecided": "This request was rejected and cannot be withdrawn. Your list has been updated."
     }
   },
   "leaveApprovals": {

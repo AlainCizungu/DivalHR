@@ -17,6 +17,7 @@ import { ScrollRegion } from '../people/ScrollRegion';
 import { toneOf } from './leavePolicies';
 import { MyLeaveAmendDialog } from './MyLeaveAmendDialog';
 import { MyLeaveCancelDialog } from './MyLeaveCancelDialog';
+import { MyLeaveWithdrawDialog } from './MyLeaveWithdrawDialog';
 import {
   EMPTY_REQUEST,
   MY_LEAVE_NETWORK_FAILURE,
@@ -29,6 +30,7 @@ import {
   type MyLeaveFailure,
   type RequestField,
 } from './myLeave';
+import { withdrawable } from './myLeaveWithdrawal';
 
 type Policies =
   | { kind: 'loading' }
@@ -41,19 +43,20 @@ type Policies =
       timezone: string;
     };
 
-/** MVP-041B/C/D: the tone of each state (the text always carries the meaning). */
+/** MVP-041B/C/D/F: the tone of each state (the text always carries the meaning). */
 const STATE_TONES: Record<MyLeaveRequest['state'], StatusTone> = {
   PENDING: 'info',
   APPROVED: 'success',
   REJECTED: 'danger',
   CANCELLED: 'neutral',
   AMENDED: 'neutral',
+  WITHDRAWN: 'neutral',
 };
 
 type History =
   | { kind: 'loading' }
   | { kind: 'failed'; failure: MyLeaveFailure }
-  | { kind: 'ready'; items: MyLeaveRequest[]; nextCursor: string | null };
+  | { kind: 'ready'; items: MyLeaveRequest[]; nextCursor: string | null; asOf: string };
 
 /** A refused request: the stable message, the named fields, retry delay and reference. */
 function MyLeaveAlert({
@@ -99,8 +102,10 @@ function MyLeaveAlert({
  * its outcome and the approver's reason in the language it was written in (never who decided);
  * from MVP-041C, the employee cancels a pending request with a reason (MyLeaveCancelDialog) and
  * sees it as cancelled with that reason; from MVP-041D, the employee replaces a pending request
- * (MyLeaveAmendDialog) and sees both linked entries, the original as amended with the reason. One
- * consequential action at a time: while a cancellation or an amendment dialog is open, every other
+ * (MyLeaveAmendDialog) and sees both linked entries, the original as amended with the reason; from
+ * MVP-041F, the employee withdraws approved leave whose first day is after the server's business
+ * date (MyLeaveWithdrawDialog) and sees the approval and the withdrawal together. One consequential
+ * action at a time: while a cancellation, amendment or withdrawal dialog is open, every other
  * action is disabled. No working day, holiday or balance is calculated; nothing is kept in browser
  * storage or put in a URL.
  */
@@ -111,6 +116,7 @@ export function MyLeavePage() {
   const createKey = useIdempotencyKey();
   const cancelKey = useIdempotencyKey();
   const amendKey = useIdempotencyKey();
+  const withdrawKey = useIdempotencyKey();
   const [policies, setPolicies] = useState<Policies>({ kind: 'loading' });
   const [history, setHistory] = useState<History>({ kind: 'loading' });
   const [form, setForm] = useState<LeaveRequestForm>(EMPTY_REQUEST);
@@ -124,7 +130,9 @@ export function MyLeavePage() {
   const [cancelTarget, setCancelTarget] = useState<MyLeaveRequest | null>(null);
   // MVP-041D: the request being amended; one consequential action at a time across both dialogs.
   const [amendTarget, setAmendTarget] = useState<MyLeaveRequest | null>(null);
-  const acting = cancelTarget !== null || amendTarget !== null;
+  // MVP-041F: the approved leave being withdrawn; the same one-action-at-a-time guard.
+  const [withdrawTarget, setWithdrawTarget] = useState<MyLeaveRequest | null>(null);
+  const acting = cancelTarget !== null || amendTarget !== null || withdrawTarget !== null;
   const cancelOpener = useRef<HTMLButtonElement | null>(null);
   const historyHeading = useRef<HTMLHeadingElement>(null);
   const problemsBox = useRef<HTMLDivElement>(null);
@@ -167,7 +175,7 @@ export function MyLeavePage() {
           cache: 'no-store',
         });
         return data
-          ? { kind: 'ready', items: data.items, nextCursor: data.nextCursor }
+          ? { kind: 'ready', items: data.items, nextCursor: data.nextCursor, asOf: data.asOf }
           : { kind: 'failed', failure: myLeaveFailureOf(response, error) };
       } catch {
         return { kind: 'failed', failure: MY_LEAVE_NETWORK_FAILURE };
@@ -315,10 +323,22 @@ export function MyLeavePage() {
     refreshHistory();
   };
 
+  const onWithdrawn = (request: MyLeaveRequest) => {
+    withdrawKey.reset();
+    setAnnouncement(
+      t('myLeave.withdraw.done', {
+        name: request.policyNames[language],
+        period: formatPeriod(t, language, request.startDate, request.endDate),
+      }),
+    );
+    refreshHistory();
+  };
+
   /** Closing returns focus to the opening button, or to the history heading when it is gone. */
   const onCancelClosed = (gone: boolean) => {
     setCancelTarget(null);
     setAmendTarget(null);
+    setWithdrawTarget(null);
     requestAnimationFrame(() => {
       if (!gone && cancelOpener.current?.isConnected) cancelOpener.current.focus();
       else historyHeading.current?.focus();
@@ -334,6 +354,10 @@ export function MyLeavePage() {
         })
       : t(`myLeave.history.${relation}Earlier`);
   };
+
+  const historyAsOf = history.kind === 'ready' ? history.asOf : null;
+  const onDay = (instant: string) =>
+    new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(new Date(instant));
 
   const amountText = (amount: number, unit: MyLeavePolicy['unit']) =>
     t(`myLeave.amount.${unit}`, { amount: formatAmount(language, amount) });
@@ -591,11 +615,46 @@ export function MyLeavePage() {
                           </p>
                           <p className="muted">
                             {t('myLeave.history.decidedOn', {
-                              date: new Intl.DateTimeFormat(language, {
-                                dateStyle: 'medium',
-                              }).format(new Date(request.decision.decidedAt)),
+                              date: onDay(request.decision.decidedAt),
                             })}
                           </p>
+                          {request.withdrawal && (
+                            <div data-testid="request-withdrawal">
+                              {/* The employee's own reason as written: plain text, never markup. */}
+                              <p className="request-reason" lang={request.withdrawal.reasonLocale}>
+                                {request.withdrawal.reason}
+                              </p>
+                              <p className="muted">
+                                {t('myLeave.history.withdrawnOn', {
+                                  date: onDay(request.withdrawal.withdrawnAt),
+                                })}
+                              </p>
+                            </div>
+                          )}
+                          {withdrawable(request, historyAsOf) && (
+                            <button
+                              type="button"
+                              className="button button--secondary"
+                              data-testid="withdraw-request"
+                              disabled={acting}
+                              aria-label={t('myLeave.withdraw.actionFor', {
+                                name: request.policyNames[language],
+                                period: formatPeriod(
+                                  t,
+                                  language,
+                                  request.startDate,
+                                  request.endDate,
+                                ),
+                              })}
+                              onClick={(event) => {
+                                cancelOpener.current = event.currentTarget;
+                                setAnnouncement('');
+                                setWithdrawTarget(request);
+                              }}
+                            >
+                              {t('myLeave.withdraw.action')}
+                            </button>
+                          )}
                         </>
                       ) : request.amendment ? (
                         <>
@@ -713,6 +772,16 @@ export function MyLeavePage() {
         keyFor={amendKey.keyFor}
         onAmended={(_receipt, request) => {
           onAmended(request);
+        }}
+        onSettled={refreshHistory}
+        onClosed={onCancelClosed}
+      />
+      <MyLeaveWithdrawDialog
+        key={`withdraw-${withdrawTarget?.id ?? 'closed'}`}
+        request={withdrawTarget}
+        keyFor={withdrawKey.keyFor}
+        onWithdrawn={(_receipt, request) => {
+          onWithdrawn(request);
         }}
         onSettled={refreshHistory}
         onClosed={onCancelClosed}

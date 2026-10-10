@@ -15,10 +15,15 @@ public enum LeaveRequestState {
   /** Cancelled by its employee while pending: releases its dates (MVP-041C). */
   CANCELLED,
   /** Replaced by its employee while pending: releases its dates to its replacement (MVP-041D). */
-  AMENDED;
+  AMENDED,
+  /**
+   * Approved, then withdrawn by its employee before it started: keeps its approval decision and
+   * releases its dates (MVP-041F). Never changes again.
+   */
+  WITHDRAWN;
 
   /**
-   * Whether the request has left {@code PENDING} (decided, cancelled or amended).
+   * Whether the request has left {@code PENDING} (decided, cancelled, amended or withdrawn).
    *
    * @return whether the state is terminal
    */
