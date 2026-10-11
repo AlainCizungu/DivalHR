@@ -1,10 +1,12 @@
 package com.divalhr.core.people.schedule.api;
 
 import com.divalhr.core.people.application.PeopleCaller;
+import com.divalhr.core.people.schedule.api.WorkScheduleResponses.ChangeReceipt;
 import com.divalhr.core.people.schedule.api.WorkScheduleResponses.Detail;
 import com.divalhr.core.people.schedule.api.WorkScheduleResponses.Page;
 import com.divalhr.core.people.schedule.api.WorkScheduleResponses.Preview;
 import com.divalhr.core.people.schedule.api.WorkScheduleResponses.Receipt;
+import com.divalhr.core.people.schedule.application.WorkScheduleChangeService;
 import com.divalhr.core.people.schedule.application.WorkScheduleService;
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
@@ -36,8 +38,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Site work schedules for tenant administrators (MVP-050A, Issue #99): preview, publish, list and
- * read. Every operation requires the exact tenant-administrator role and privileged MFA; every
- * response is {@code private, no-store}.
+ * read; cancel, preview a replacement and replace (MVP-050B, Issue #101). Every operation requires
+ * the exact tenant-administrator role and privileged MFA; every response is {@code private,
+ * no-store}.
  */
 @RestController
 @RequestMapping(WorkScheduleController.PATH)
@@ -50,16 +53,22 @@ public class WorkScheduleController {
   static final String CACHE_CONTROL = "private, no-store";
 
   private final WorkScheduleService schedules;
+  private final WorkScheduleChangeService changes;
   private final TenantContextResolver tenants;
 
   /**
    * Creates the controller.
    *
    * @param schedules work schedule service
+   * @param changes cancellation and replacement (MVP-050B)
    * @param tenants verified tenant resolver
    */
-  public WorkScheduleController(WorkScheduleService schedules, TenantContextResolver tenants) {
+  public WorkScheduleController(
+      WorkScheduleService schedules,
+      WorkScheduleChangeService changes,
+      TenantContextResolver tenants) {
     this.schedules = schedules;
+    this.changes = changes;
     this.tenants = tenants;
   }
 
@@ -119,6 +128,7 @@ public class WorkScheduleController {
    * The tenant's published schedules, latest period first.
    *
    * @param siteId optional site filter
+   * @param status optional derived state filter (MVP-050B)
    * @param from optional: schedules ending on or after this date
    * @param to optional: schedules starting on or before this date
    * @param cursor opaque cursor
@@ -133,6 +143,7 @@ public class WorkScheduleController {
   @SubjectRateLimited(bucket = WorkScheduleService.SUBJECT_READ_BUCKET)
   public ResponseEntity<Page> list(
       @RequestParam(name = "siteId", required = false) String siteId,
+      @RequestParam(name = "status", required = false) String status,
       @RequestParam(name = "from", required = false) String from,
       @RequestParam(name = "to", required = false) String to,
       @RequestParam(name = "cursor", required = false) String cursor,
@@ -141,7 +152,9 @@ public class WorkScheduleController {
       @Parameter(hidden = true) HttpServletRequest request) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
-        .body(schedules.list(caller(authentication, request), siteId, from, to, cursor, limit));
+        .body(
+            schedules.list(
+                caller(authentication, request), siteId, status, from, to, cursor, limit));
   }
 
   /**
@@ -163,6 +176,95 @@ public class WorkScheduleController {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
         .body(schedules.get(caller(authentication, request), scheduleId));
+  }
+
+  /**
+   * Cancels an entirely future published schedule (MVP-050B).
+   *
+   * @param scheduleId the schedule
+   * @param idempotencyKey required idempotency key
+   * @param body the reason and the confirmation
+   * @param authentication verified tenant administrator
+   * @param request current request
+   * @return 200 with the receipt; replays carry {@code Idempotent-Replayed: true}
+   */
+  @Operation(operationId = "cancelWorkSchedule")
+  @PostMapping(path = "/{scheduleId}/cancellation", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @TenantAdminOperation(operation = WorkScheduleChangeService.CANCEL)
+  @SubjectRateLimited(bucket = WorkScheduleService.SUBJECT_WRITE_BUCKET)
+  @TenantRateLimited(bucket = WorkScheduleService.TENANT_WRITE_BUCKET)
+  public ResponseEntity<ChangeReceipt> cancel(
+      @PathVariable("scheduleId") String scheduleId,
+      @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
+      @RequestBody CancelWorkScheduleRequest body,
+      @Parameter(hidden = true) JwtAuthenticationToken authentication,
+      @Parameter(hidden = true) HttpServletRequest request) {
+    return respond(
+        HttpStatus.OK,
+        changes.cancel(caller(authentication, request), scheduleId, idempotencyKey, body));
+  }
+
+  /**
+   * Evaluates a full replacement of an entirely future published schedule; writes nothing but its
+   * disclosure audit record (MVP-050B).
+   *
+   * @param scheduleId the schedule to replace
+   * @param body the proposed slots and the reason
+   * @param authentication verified tenant administrator
+   * @param request current request
+   * @return the preview
+   */
+  @Operation(operationId = "previewWorkScheduleReplacement")
+  @PostMapping(
+      path = "/{scheduleId}/replacement-preview",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  @TenantAdminOperation(operation = WorkScheduleChangeService.REPLACEMENT_PREVIEW)
+  @SubjectRateLimited(bucket = WorkScheduleService.SUBJECT_WRITE_BUCKET)
+  public ResponseEntity<Preview> previewReplacement(
+      @PathVariable("scheduleId") String scheduleId,
+      @RequestBody WorkScheduleReplacementRequest body,
+      @Parameter(hidden = true) JwtAuthenticationToken authentication,
+      @Parameter(hidden = true) HttpServletRequest request) {
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
+        .body(changes.previewReplacement(caller(authentication, request), scheduleId, body));
+  }
+
+  /**
+   * Replaces an entirely future published schedule with the reviewed proposal (MVP-050B).
+   *
+   * @param scheduleId the schedule to replace
+   * @param idempotencyKey required idempotency key
+   * @param body the proposal, the reason, the preview digest and the confirmation
+   * @param authentication verified tenant administrator
+   * @param request current request
+   * @return 201 with the receipt; replays carry {@code Idempotent-Replayed: true}
+   */
+  @Operation(operationId = "replaceWorkSchedule")
+  @PostMapping(path = "/{scheduleId}/replacement", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
+  @TenantAdminOperation(operation = WorkScheduleChangeService.REPLACE)
+  @SubjectRateLimited(bucket = WorkScheduleService.SUBJECT_WRITE_BUCKET)
+  @TenantRateLimited(bucket = WorkScheduleService.TENANT_WRITE_BUCKET)
+  public ResponseEntity<ChangeReceipt> replace(
+      @PathVariable("scheduleId") String scheduleId,
+      @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
+      @RequestBody ReplaceWorkScheduleRequest body,
+      @Parameter(hidden = true) JwtAuthenticationToken authentication,
+      @Parameter(hidden = true) HttpServletRequest request) {
+    return respond(
+        HttpStatus.CREATED,
+        changes.replace(caller(authentication, request), scheduleId, idempotencyKey, body));
+  }
+
+  private static ResponseEntity<ChangeReceipt> respond(
+      HttpStatus status, IdempotentOperation.Result<ChangeReceipt> result) {
+    ResponseEntity.BodyBuilder response =
+        ResponseEntity.status(status).header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
+    if (result.replayed()) {
+      response.header(IdempotencyKeys.REPLAYED_HEADER, "true");
+    }
+    return response.body(result.body());
   }
 
   private PeopleCaller caller(JwtAuthenticationToken authentication, HttpServletRequest request) {

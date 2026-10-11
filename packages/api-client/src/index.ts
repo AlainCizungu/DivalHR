@@ -221,6 +221,12 @@ export type WorkScheduleSummary = CoreComponents['schemas']['WorkScheduleSummary
 export type WorkSchedulePage = CoreComponents['schemas']['WorkSchedulePage'];
 export type WorkScheduleSlot = CoreComponents['schemas']['WorkScheduleSlot'];
 export type WorkScheduleDetail = CoreComponents['schemas']['WorkScheduleDetail'];
+export type WorkScheduleStatus = CoreComponents['schemas']['WorkScheduleStatus'];
+export type CancelWorkScheduleRequest = CoreComponents['schemas']['CancelWorkScheduleRequest'];
+export type WorkScheduleReplacementRequest =
+  CoreComponents['schemas']['WorkScheduleReplacementRequest'];
+export type ReplaceWorkScheduleRequest = CoreComponents['schemas']['ReplaceWorkScheduleRequest'];
+export type WorkScheduleChangeReceipt = CoreComponents['schemas']['WorkScheduleChangeReceipt'];
 export type MyWorkShift = CoreComponents['schemas']['MyWorkShift'];
 export type MyWorkSchedulePage = CoreComponents['schemas']['MyWorkSchedulePage'];
 /**

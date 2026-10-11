@@ -11,8 +11,10 @@ import com.divalhr.core.people.schedule.api.WorkScheduleResponses.Receipt;
 import com.divalhr.core.people.schedule.api.WorkScheduleResponses.Summary;
 import com.divalhr.core.people.schedule.api.WorkScheduleResponses.Totals;
 import com.divalhr.core.people.schedule.application.WorkSchedulePlanner.Plan;
+import com.divalhr.core.people.schedule.domain.Lifecycle;
 import com.divalhr.core.people.schedule.domain.PlannedSlot;
 import com.divalhr.core.people.schedule.domain.PublishedSlot;
+import com.divalhr.core.people.schedule.domain.ScheduleView;
 import com.divalhr.core.people.schedule.domain.SlotDraft;
 import com.divalhr.core.people.schedule.domain.WorkSchedule;
 import com.divalhr.core.people.schedule.internal.JdbcWorkScheduleRepository;
@@ -418,11 +420,13 @@ public class WorkScheduleService {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * One page of the tenant's published schedules, latest period first, optionally of one site and
+   * One page of the tenant's published schedules, latest period first, optionally of one site, of
+   * one derived state ({@code PUBLISHED}, {@code CANCELLED} or {@code REPLACED}, MVP-050B) and
    * overlapping the dates. A fail-closed disclosure.
    *
    * @param caller verified tenant administrator
    * @param siteId site filter or {@code null}
+   * @param status state filter or {@code null}
    * @param from date filter or {@code null}
    * @param to date filter or {@code null}
    * @param cursor opaque cursor or {@code null}
@@ -430,13 +434,20 @@ public class WorkScheduleService {
    * @return the page
    */
   public Page list(
-      PeopleCaller caller, String siteId, String from, String to, String cursor, String limit) {
+      PeopleCaller caller,
+      String siteId,
+      String status,
+      String from,
+      String to,
+      String cursor,
+      String limit) {
     return observed(
         LIST,
         "work_schedule_list_rejected",
         () -> {
           FieldErrors errors = new FieldErrors();
           UUID site = WorkScheduleCommand.optionalUuid(errors, "siteId", siteId);
+          Lifecycle.Status state = status(errors, status);
           LocalDate fromDate = WorkScheduleCommand.optionalDate(errors, "from", from);
           LocalDate toDate = WorkScheduleCommand.optionalDate(errors, "to", to);
           if (fromDate != null && toDate != null && toDate.isBefore(fromDate)) {
@@ -444,7 +455,7 @@ public class WorkScheduleService {
           }
           int size = limit(limit, errors);
           errors.throwIfAny();
-          CursorScope scope = scope(caller, site, fromDate, toDate, size);
+          CursorScope scope = scope(caller, site, state, fromDate, toDate, size);
           Page page =
               read(
                   () -> {
@@ -459,29 +470,32 @@ public class WorkScheduleService {
                       afterDate =
                           schedules
                               .find(tenant, position.id())
-                              .map(WorkSchedule::firstDate)
+                              .map(view -> view.schedule().firstDate())
                               .orElseThrow(WorkScheduleService::invalidCursor);
                       afterId = position.id();
                     }
-                    List<WorkSchedule> rows =
+                    List<ScheduleView> rows =
                         schedules.page(
-                            tenant, site, fromDate, toDate, afterDate, afterId, size + 1);
-                    List<WorkSchedule> shown = rows.subList(0, Math.min(rows.size(), size));
+                            tenant, site, state, fromDate, toDate, afterDate, afterId, size + 1);
+                    List<ScheduleView> shown = rows.subList(0, Math.min(rows.size(), size));
                     String next =
                         rows.size() > size
                             ? cursors.encode(
                                 scope,
-                                new KeysetPosition(POSITION, shown.get(shown.size() - 1).id()))
+                                new KeysetPosition(
+                                    POSITION, shown.get(shown.size() - 1).schedule().id()))
                             : null;
                     Map<UUID, UnitView> sites = sites(tenant, shown);
                     Page listed =
                         new Page(
-                            shown.stream().map(s -> Summary.of(s, sites.get(s.siteId()))).toList(),
+                            shown.stream()
+                                .map(s -> Summary.of(s, sites.get(s.schedule().siteId())))
+                                .toList(),
                             next,
                             calendar.today(tenant));
                     StringBuilder text =
                         new StringBuilder("DIVALHR-WORK-SCHEDULE-LIST-DISCLOSURE\nversion=1\n");
-                    shown.forEach(s -> text.append("id=").append(s.id()).append('\n'));
+                    shown.forEach(s -> text.append("id=").append(s.schedule().id()).append('\n'));
                     disclosed(
                         caller,
                         READ,
@@ -503,11 +517,17 @@ public class WorkScheduleService {
 
   /** Bound to the operation, tenant, subject (a digest), filters and page size. */
   private static CursorScope scope(
-      PeopleCaller caller, UUID site, LocalDate from, LocalDate to, int size) {
+      PeopleCaller caller,
+      UUID site,
+      Lifecycle.Status status,
+      LocalDate from,
+      LocalDate to,
+      int size) {
     Map<String, String> filters = new HashMap<>();
     filters.put(
         "subject", Fingerprints.sha256("DIVALHR-WORK-SCHEDULE\nsubject=" + caller.subject()));
     filters.put("siteId", site == null ? "-" : site.toString());
+    filters.put("status", status == null ? "-" : status.name());
     filters.put("from", from == null ? "-" : from.toString());
     filters.put("to", to == null ? "-" : to.toString());
     filters.put("limit", Integer.toString(size));
@@ -536,14 +556,12 @@ public class WorkScheduleService {
               read(
                   () -> {
                     TenantId tenant = caller.tenant();
-                    WorkSchedule schedule =
+                    ScheduleView view =
                         schedules.find(tenant, id).orElseThrow(WorkScheduleService::notFound);
+                    WorkSchedule schedule = view.schedule();
                     List<PublishedSlot> slots = schedules.slots(tenant, id);
                     Detail found =
-                        Detail.of(
-                            schedule,
-                            sites(tenant, List.of(schedule)).get(schedule.siteId()),
-                            slots);
+                        Detail.of(view, sites(tenant, List.of(view)).get(schedule.siteId()), slots);
                     StringBuilder text =
                         new StringBuilder("DIVALHR-WORK-SCHEDULE-DISCLOSURE\nversion=1\nid=")
                             .append(schedule.id())
@@ -579,9 +597,9 @@ public class WorkScheduleService {
   // Shared
   // ------------------------------------------------------------------------------------------
 
-  private Map<UUID, UnitView> sites(TenantId tenant, List<WorkSchedule> rows) {
+  private Map<UUID, UnitView> sites(TenantId tenant, List<ScheduleView> rows) {
     Set<UUID> ids = new LinkedHashSet<>();
-    rows.forEach(row -> ids.add(row.siteId()));
+    rows.forEach(row -> ids.add(row.schedule().siteId()));
     return ids.isEmpty() ? Map.of() : directory.resolveIds(tenant, ids);
   }
 
@@ -630,6 +648,20 @@ public class WorkScheduleService {
       metrics.record(operation, Outcome.FAILURE);
       throw failure;
     }
+  }
+
+  private static final Pattern STATUS = Pattern.compile("^(PUBLISHED|CANCELLED|REPLACED)$");
+
+  /** The optional state filter (MVP-050B). */
+  private static Lifecycle.Status status(FieldErrors errors, String raw) {
+    if (raw == null || raw.isEmpty()) {
+      return null;
+    }
+    if (!STATUS.matcher(raw).matches()) {
+      errors.add("status", Constraint.FORMAT);
+      return null;
+    }
+    return Lifecycle.Status.valueOf(raw);
   }
 
   static int limit(String raw, FieldErrors errors) {

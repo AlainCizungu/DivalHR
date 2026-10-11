@@ -180,7 +180,10 @@ class AuthorizationDenialAuditIntegrationTest {
           "work-schedule.preview",
           "work-schedule.publish",
           "work-schedule.list",
-          "work-schedule.get");
+          "work-schedule.get",
+          "work-schedule.cancel",
+          "work-schedule.replacement-preview",
+          "work-schedule.replace");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -619,7 +622,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(81);
+    assertThat(handlers).hasSize(84);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

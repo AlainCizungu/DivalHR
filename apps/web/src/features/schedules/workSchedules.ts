@@ -1,10 +1,12 @@
 import type {
   EmployeeSummary,
   Problem,
+  WorkScheduleDetail,
+  WorkScheduleReplacementRequest,
   WorkScheduleRequest,
   WorkScheduleSlotIssue,
 } from '@divalhr/api-client';
-import { codePoints } from '../leave/leaveApprovals';
+import { codePoints, normalizeReason, reasonAcceptable } from '../leave/leaveApprovals';
 import { validDate } from '../leave/leaveSubstitutes';
 
 /** MVP-050A bounds (the server checks every one again). */
@@ -12,6 +14,12 @@ export const MAX_DAYS = 31;
 export const MAX_SLOTS = 500;
 export const LABEL_MIN = 2;
 export const LABEL_MAX = 60;
+
+/** The employee of a slot: identity and names only. */
+export type ScheduleEmployee = Pick<
+  EmployeeSummary,
+  'id' | 'employeeNumber' | 'givenNames' | 'familyName'
+>;
 
 /** One slot being edited: one required worker. The key is the client reference, never stored. */
 export interface SlotDraft {
@@ -21,7 +29,7 @@ export interface SlotDraft {
   end: string;
   labelEn: string;
   labelFr: string;
-  employee: EmployeeSummary | null;
+  employee: ScheduleEmployee | null;
 }
 
 /** The schedule being edited. Kept in memory only: no draft is stored anywhere. */
@@ -195,6 +203,56 @@ export function scheduleBodyOf(form: ScheduleForm): WorkScheduleRequest {
   };
 }
 
+/**
+ * MVP-050B: a replacement starts from the published schedule: its site and period (read-only) and
+ * every slot, each with a new client reference.
+ */
+export function formFromDetail(detail: WorkScheduleDetail): ScheduleForm {
+  return {
+    legalEntityId: '',
+    siteId: detail.site.id,
+    firstDate: detail.firstDate,
+    lastDate: detail.lastDate,
+    slots: detail.slots.map((slot) => ({
+      key: newKey(),
+      date: splitLocal(slot.start).date,
+      start: splitLocal(slot.start).time,
+      end: splitLocal(slot.end).time,
+      labelEn: slot.labels.en,
+      labelFr: slot.labels.fr,
+      employee: slot.employee
+        ? {
+            id: slot.employee.id,
+            employeeNumber: slot.employee.employeeNumber,
+            givenNames: slot.employee.givenNames,
+            familyName: slot.employee.familyName,
+          }
+        : null,
+    })),
+  };
+}
+
+/**
+ * Whether a typed change reason is acceptable: the decision-reason grammar version 1 (the server
+ * checks it again).
+ */
+export function changeReasonValid(text: string): boolean {
+  return reasonAcceptable(text);
+}
+
+/** The reason as the server will store it. */
+export function changeReasonOf(text: string): string {
+  return normalizeReason(text);
+}
+
+/** The request body of a valid replacement: every slot and the normalized reason. */
+export function replacementBodyOf(
+  form: ScheduleForm,
+  reason: string,
+): WorkScheduleReplacementRequest {
+  return { slots: scheduleBodyOf(form).slots, reason: normalizeReason(reason) };
+}
+
 /** The stable whole-schedule refusals, each with its own message. */
 const REFUSALS = new Set([
   'WORK_SCHEDULE_PERIOD_INVALID',
@@ -204,6 +262,9 @@ const REFUSALS = new Set([
   'WORK_SCHEDULE_SLOT_INVALID',
   'WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE',
   'WORK_SCHEDULE_EMPLOYEE_CONFLICT',
+  'WORK_SCHEDULE_ALREADY_CANCELLED',
+  'WORK_SCHEDULE_ALREADY_REPLACED',
+  'WORK_SCHEDULE_CHANGE_WINDOW_CLOSED',
   'IDEMPOTENCY_KEY_REUSED',
 ]);
 
@@ -220,6 +281,7 @@ const REASONS = new Set([
   'NOT_AT_SITE',
   'PUBLISHED',
   'IN_SCHEDULE',
+  'NOT_FUTURE',
 ]);
 
 /** A refused or failed request, reduced to stable codes and allow-listed details. */

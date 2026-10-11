@@ -165,7 +165,14 @@ public record WorkScheduleCommand(
     return new WorkScheduleCommand(site, first, last, slots);
   }
 
-  private static List<SlotDraft> slots(FieldErrors errors, Object raw) {
+  /**
+   * Validates the slots of a proposal (also of a replacement, MVP-050B).
+   *
+   * @param errors collector
+   * @param raw the raw slots
+   * @return the normalized slots, positions 1 to n
+   */
+  static List<SlotDraft> slots(FieldErrors errors, Object raw) {
     if (raw == null) {
       errors.add("slots", Constraint.REQUIRED);
       return List.of();

@@ -6,6 +6,8 @@ Accepted (Issue #99, architect-approved plan D50A-1 to D50A-12, amended by archi
 R100-1 and R100-2 on PR #100: the site, not the organization, is the clock, and the employee's
 default view is instant-based). First scheduling increment
 (MVP-050A); extends ADR 0007 (employment history) and ADR 0008 (separations and lock order).
+Extended by MVP-050B (Issue #101, architect-approved plan D50B-1 to D50B-12): cancellation and full
+replacement of an entirely future published schedule, below.
 
 ## Context
 
@@ -124,7 +126,7 @@ for the pilot.
   evidence itself: in MVP-050A no published row is ever superseded, so no historical row can block a
   later valid publication. **A story that adds cancellation or replacement (MVP-050B) must first move
   these exclusions to guarded operational projections** (the R98-1 lesson of ADR 0013), so a
-  cancelled schedule frees its dates and instants.
+  cancelled schedule frees its dates and instants. MVP-050B (V26) does exactly that; see below.
 - A schedule commits only with exactly its stated slot and assigned counts, 1 to 500 slots, checked
   on both tables by deferred constraint triggers (`work_schedule_complete`); publication runs them
   immediately before its audit record and event.
@@ -148,3 +150,83 @@ for the pilot.
 - The scheduling package is a bounded part of the people module (architecture test); extracting it
   to the Operations module later needs an employment-facts port in place of its direct reads of
   people's own tables.
+
+## MVP-050B: cancel or replace a future published schedule (Issue #101)
+
+### Evidence, not edits (D50B-1, D50B-2, D50B-3)
+
+- A published schedule and its slots stay immutable. A change adds evidence: one row in the
+  append-only `people.work_schedule_cancellation` (reason, instant, subject) or
+  `people.work_schedule_replacement` (the successor schedule, reason, instant, subject). The status
+  is derived, never stored: `PUBLISHED` (no terminal action), `CANCELLED` or `REPLACED`.
+- One terminal action per schedule: both tables key on `(tenant_id, schedule_id)` and a
+  `BEFORE INSERT` guard (`work_schedule_terminal_guard`) locks the schedule row and refuses a second
+  action of either kind (`work_schedule_single_terminal`). A successor replaces at most one schedule
+  (`work_schedule_replacement_successor`), was published at the replacement's instant, after the
+  original, with the original's site and period, and has no terminal action of its own
+  (`work_schedule_replacement_shape`). Chains A → B → C are allowed; branches and cycles are not.
+- A replacement is a whole new schedule of the same site and period, with every slot given again
+  (labels, times, employees), built by the same browser builder prefilled from the original. No
+  partial amendment, no change of site or dates.
+
+### Operational coverage projections (D50B-7)
+
+- V26 moves both V25 exclusions from the evidence to guarded projections:
+  `people.work_schedule_site_coverage` (`work_schedule_site_no_overlap`: one operational schedule per
+  site and date) and `people.work_schedule_slot_coverage` (`work_schedule_slot_employee_no_overlap`:
+  no overlapping operational assigned instants per employee). Every V25 schedule and assigned slot
+  is backfilled first; a backfill that would violate an exclusion fails the migration.
+- Each projection row is bound by a composite key to its evidence's exact tenant, ID, site, dates or
+  instants and employee. Rows are only inserted (with a schedule that has no terminal action) and
+  deleted (once one exists), never updated or truncated (`_guard`, `_no_truncate`). Deferred
+  constraint triggers (`work_schedule_coverage_exact`) require an operational schedule to have
+  exactly one site row and one slot row per assigned slot, and a cancelled or replaced one to have
+  none. Projections are never the source of truth for status.
+
+### The change window (D50B-4)
+
+- A schedule can be cancelled or replaced only while every one of its slots starts strictly after
+  the server's instant (`calendar.now()`), checked by the application and again by the database
+  against the evidence's recorded instant (`work_schedule_change_window`). No client time is read.
+  Otherwise `409 WORK_SCHEDULE_CHANGE_WINDOW_CLOSED`. Every slot of a replacement must also start
+  after that instant (slot issue `WORK_SCHEDULE_SLOT_INVALID`, reason `NOT_FUTURE`).
+
+### Lock order (D50B-9)
+
+Cancellation and replacement: idempotency (step 0); the tenant's scheduling advisory lock (step 1,
+the same as publication); the original schedule row `FOR UPDATE` (step 2); for a replacement, every
+employment of the proposed employees overlapping the dates `FOR SHARE` in UUID order (step 3); then
+the evaluation, evidence, coverage release and insert, the deferred checks run immediately, the
+audit record and the outbox event. A replacement's evaluation leaves the original's own coverage
+aside, so moving a shift within the same schedule is not a conflict with itself.
+
+### Reason grammar inside the scheduling package
+
+- The cancellation and replacement reasons follow the decision-reason grammar version 1 of the leave
+  decisions (2 to 500 code points after NFC and trimming; checked in the database by
+  `people.leave_reason_valid`). The architecture tests forbid the scheduling package from depending
+  on the leave package, and the leave package from gaining dependents, so the package carries its
+  own copy, `WorkScheduleReasonGrammar`; a unit test proves it accepts and normalizes exactly as
+  `LeaveReasonGrammar` over every code point. A future shared-kernel grammar may replace both.
+
+### Evidence, events and privacy (D50B-10)
+
+- One transaction each: evidence, coverage, the `work-schedule.cancel` or `work-schedule.replace`
+  audit record (metadata: schedule, successor and site IDs, dates and counts; the reason, subject
+  and full state only inside `after_state_sha256`), the `people.work-schedule.cancelled.v1` or
+  `people.work-schedule.replaced.v1` event (the same IDs, dates and counts), and the idempotency
+  completion. The replacement preview is a fail-closed disclosure
+  (`work-schedule.replacement-preview`).
+- The reason is returned only in the administrators' list and detail; it never enters logs,
+  metrics, events, audit metadata, errors, URLs or browser storage. Employees read only operational
+  schedules: a cancelled or replaced schedule disappears from « Mon horaire » / "My schedule".
+
+### Consequences (MVP-050B)
+
+- Cancelling frees the site's dates and the employees' instants immediately for a new schedule.
+- The original stays readable with its status, reason and a link to its successor; the successor
+  links back.
+- Rolling back V26 is refused once any cancellation or replacement exists, or when the projections
+  no longer match every schedule exactly (`db/rollback/V26__rollback.sql`).
+- Still out of scope: partial amendment, a change after the first slot started, recurrence, notice
+  to employees, a manager view, attendance and payroll effects.

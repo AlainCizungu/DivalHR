@@ -3,9 +3,11 @@ package com.divalhr.core.people.schedule.api;
 import com.divalhr.core.people.schedule.application.WorkScheduleCommand;
 import com.divalhr.core.people.schedule.application.WorkSchedulePlanner.Plan;
 import com.divalhr.core.people.schedule.domain.EmployeeFacts;
+import com.divalhr.core.people.schedule.domain.Lifecycle;
 import com.divalhr.core.people.schedule.domain.OwnShift;
 import com.divalhr.core.people.schedule.domain.PlannedSlot;
 import com.divalhr.core.people.schedule.domain.PublishedSlot;
+import com.divalhr.core.people.schedule.domain.ScheduleView;
 import com.divalhr.core.people.schedule.domain.WorkSchedule;
 import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory.UnitView;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -144,6 +146,18 @@ public final class WorkScheduleResponses {
      * @return the preview
      */
     public static Preview of(Plan plan) {
+      return of(plan, plan.digest());
+    }
+
+    /**
+     * The preview of a plan under another digest (a replacement preview, MVP-050B, whose digest
+     * also binds the original schedule and the reason).
+     *
+     * @param plan the evaluated proposal
+     * @param digest the digest to publish with
+     * @return the preview
+     */
+    public static Preview of(Plan plan, String digest) {
       List<PreviewSlot> slots = plan.slots().stream().map(slot -> slot(slot, plan)).toList();
       int assigned = plan.assigned();
       int uncovered = slots.size() - assigned;
@@ -157,7 +171,7 @@ public final class WorkScheduleResponses {
           new Totals(slots.size(), assigned, uncovered),
           uncovered > 0 ? List.of("UNCOVERED_SLOTS") : List.of(),
           plan.publishable(),
-          plan.digest());
+          digest);
     }
 
     private static PreviewSlot slot(PlannedSlot slot, Plan plan) {
@@ -190,7 +204,25 @@ public final class WorkScheduleResponses {
   public record Receipt(UUID scheduleId, Instant publishedAt, Totals totals) {}
 
   /**
-   * A published schedule, without its slots.
+   * The receipt of a cancellation or replacement (MVP-050B). Never the reason or the actor.
+   *
+   * @param scheduleId the cancelled or replaced schedule
+   * @param status its derived state now ({@code CANCELLED} or {@code REPLACED})
+   * @param changedAt the action's instant
+   * @param replacementScheduleId the successor of a replacement, or {@code null}
+   * @param totals the successor's totals, or {@code null} for a cancellation
+   */
+  @Schema(name = "WorkScheduleChangeReceipt")
+  public record ChangeReceipt(
+      UUID scheduleId,
+      Lifecycle.Status status,
+      Instant changedAt,
+      @Schema(nullable = true) UUID replacementScheduleId,
+      @Schema(nullable = true) Totals totals) {}
+
+  /**
+   * A published schedule, without its slots, with its derived state (MVP-050B). The change reason
+   * is Restricted HR, returned to tenant administrators only; the actor is never returned.
    *
    * @param id schedule
    * @param site the site
@@ -199,6 +231,11 @@ public final class WorkScheduleResponses {
    * @param siteTimezone the stored site time zone snapshot: the clock of every slot
    * @param totals totals
    * @param publishedAt publication instant
+   * @param status derived state
+   * @param changedAt the cancellation or replacement instant, or {@code null}
+   * @param changeReason the cancellation or replacement reason, or {@code null}
+   * @param replacesScheduleId the schedule this one replaced, or {@code null}
+   * @param replacedByScheduleId the schedule that replaced this one, or {@code null}
    */
   @Schema(name = "WorkScheduleSummary")
   public record Summary(
@@ -208,16 +245,23 @@ public final class WorkScheduleResponses {
       LocalDate lastDate,
       String siteTimezone,
       Totals totals,
-      Instant publishedAt) {
+      Instant publishedAt,
+      Lifecycle.Status status,
+      @Schema(nullable = true) Instant changedAt,
+      @Schema(nullable = true) String changeReason,
+      @Schema(nullable = true) UUID replacesScheduleId,
+      @Schema(nullable = true) UUID replacedByScheduleId) {
 
     /**
      * The summary of a schedule.
      *
-     * @param schedule schedule
+     * @param view schedule and lifecycle
      * @param site its site, or {@code null} when the port no longer resolves it
      * @return the summary
      */
-    public static Summary of(WorkSchedule schedule, UnitView site) {
+    public static Summary of(ScheduleView view, UnitView site) {
+      WorkSchedule schedule = view.schedule();
+      Lifecycle lifecycle = view.lifecycle();
       return new Summary(
           schedule.id(),
           Site.of(site, schedule.siteId()),
@@ -225,7 +269,22 @@ public final class WorkScheduleResponses {
           schedule.lastDate(),
           schedule.siteTimezone(),
           new Totals(schedule.slotCount(), schedule.assignedCount(), schedule.uncoveredCount()),
-          schedule.publishedAt());
+          schedule.publishedAt(),
+          lifecycle.status(),
+          lifecycle.changedAt(),
+          lifecycle.reason(),
+          lifecycle.predecessorId(),
+          lifecycle.successorId());
+    }
+
+    /**
+     * Identifiers and state only: the reason never reaches a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "Summary[id=" + id + ", status=" + status + "]";
     }
   }
 
@@ -290,7 +349,7 @@ public final class WorkScheduleResponses {
   }
 
   /**
-   * A published schedule with all its slots.
+   * A published schedule with all its slots and its derived state (MVP-050B).
    *
    * @param id schedule
    * @param site the site
@@ -299,6 +358,11 @@ public final class WorkScheduleResponses {
    * @param siteTimezone the stored site time zone snapshot: the clock of every slot
    * @param totals totals
    * @param publishedAt publication instant
+   * @param status derived state
+   * @param changedAt the cancellation or replacement instant, or {@code null}
+   * @param changeReason the cancellation or replacement reason, or {@code null}
+   * @param replacesScheduleId the schedule this one replaced, or {@code null}
+   * @param replacedByScheduleId the schedule that replaced this one, or {@code null}
    * @param slots slots in publication order
    */
   @Schema(name = "WorkScheduleDetail")
@@ -310,6 +374,11 @@ public final class WorkScheduleResponses {
       String siteTimezone,
       Totals totals,
       Instant publishedAt,
+      Lifecycle.Status status,
+      @Schema(nullable = true) Instant changedAt,
+      @Schema(nullable = true) String changeReason,
+      @Schema(nullable = true) UUID replacesScheduleId,
+      @Schema(nullable = true) UUID replacedByScheduleId,
       List<Slot> slots) {
 
     /** Defensively copies the lists. */
@@ -320,12 +389,12 @@ public final class WorkScheduleResponses {
     /**
      * The detail of a schedule.
      *
-     * @param schedule schedule
+     * @param schedule schedule and lifecycle
      * @param site its site, or {@code null}
      * @param slots its slots
      * @return the detail
      */
-    public static Detail of(WorkSchedule schedule, UnitView site, List<PublishedSlot> slots) {
+    public static Detail of(ScheduleView schedule, UnitView site, List<PublishedSlot> slots) {
       Summary summary = Summary.of(schedule, site);
       return new Detail(
           summary.id(),
@@ -335,7 +404,22 @@ public final class WorkScheduleResponses {
           summary.siteTimezone(),
           summary.totals(),
           summary.publishedAt(),
+          summary.status(),
+          summary.changedAt(),
+          summary.changeReason(),
+          summary.replacesScheduleId(),
+          summary.replacedByScheduleId(),
           slots.stream().map(Slot::of).toList());
+    }
+
+    /**
+     * Identifiers and state only: the reason and the slots never reach a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "Detail[id=" + id + ", status=" + status + "]";
     }
   }
 

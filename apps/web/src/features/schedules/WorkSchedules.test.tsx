@@ -7,7 +7,11 @@ import { renderWithSession, sessionWithRoles } from '../../test/renderWithSessio
 import { MySchedulePage } from './MySchedulePage';
 import { WorkSchedulesPage } from './WorkSchedulesPage';
 import {
+  changeReasonOf,
+  changeReasonValid,
   emptyScheduleForm,
+  formFromDetail,
+  replacementBodyOf,
   emptySlot,
   labelValid,
   normalizeLabel,
@@ -76,11 +80,16 @@ const summary = (overrides: Record<string, unknown> = {}) => ({
   siteTimezone: 'Africa/Kinshasa',
   totals: { slots: 3, assigned: 1, uncovered: 2 },
   publishedAt: '2026-10-11T10:00:00Z',
+  status: 'PUBLISHED',
+  changedAt: null,
+  changeReason: null,
+  replacesScheduleId: null,
+  replacedByScheduleId: null,
   ...overrides,
 });
 
-const detail = () => ({
-  ...summary(),
+const detail = (overrides: Record<string, unknown> = {}) => ({
+  ...summary(overrides),
   slots: [
     {
       id: 'c1',
@@ -147,10 +156,11 @@ const previewOf = (body: { slots: { clientRef: string; start: string; end: strin
 function adminApi(
   items: () => unknown[],
   write: (request: Recorded) => Reply | Promise<Reply> = () => ({ status: 500 }),
+  details: (id: string) => unknown = () => detail(),
 ) {
   return stubApi((request) => {
     if (request.method === 'GET' && request.path.startsWith('/work-schedules/')) {
-      return { status: 200, body: detail() };
+      return { status: 200, body: details(request.path.slice('/work-schedules/'.length)) };
     }
     if (request.method === 'GET' && request.path.startsWith('/work-schedules')) {
       return { status: 200, body: { items: items(), nextCursor: null, asOf: '2026-10-11' } };
@@ -490,6 +500,319 @@ describe.each(['fr', 'en'] as const)('MVP-050A schedules (%s)', (locale) => {
     expect(
       requests.filter((r) => r.path === '/work-schedules' && r.method === 'POST'),
     ).toHaveLength(0);
+  });
+});
+
+const REPLACEMENT = '66666666-0000-4000-8000-000000000006';
+
+describe('MVP-050B change rules in the browser', () => {
+  it('prefills a replacement with every slot, label and employee of the published schedule', () => {
+    const form = formFromDetail(detail() as never);
+    expect(form.siteId).toBe(SITE);
+    expect([form.firstDate, form.lastDate]).toEqual(['2026-11-02', '2026-11-04']);
+    expect(form.slots).toHaveLength(3);
+    expect(form.slots[0]).toMatchObject({
+      date: '2026-11-02',
+      start: '22:00',
+      end: '06:00',
+      labelEn: 'Night watch',
+      labelFr: 'Veille de nuit',
+      employee: { id: ANA.id },
+    });
+    expect(form.slots[1]!.employee).toBeNull();
+    // Each slot gets a new client reference.
+    expect(new Set(form.slots.map((slot) => slot.key)).size).toBe(3);
+    const body = replacementBodyOf(form, '  Store  closed early ');
+    expect(Object.keys(body).sort()).toEqual(['reason', 'slots']);
+    expect(body.reason).toBe(changeReasonOf('  Store  closed early '));
+    expect(body.slots[0]).toMatchObject({
+      start: '2026-11-02T22:00',
+      end: '2026-11-03T06:00',
+      employeeId: ANA.id,
+    });
+    expect(body.slots[1]).not.toHaveProperty('employeeId');
+    expect(JSON.stringify(body)).not.toContain('siteId');
+  });
+
+  it('accepts a change reason only within the decision-reason grammar', () => {
+    expect(changeReasonValid('Store closed')).toBe(true);
+    expect(changeReasonValid('   ')).toBe(false);
+    expect(changeReasonValid('x')).toBe(false);
+    expect(changeReasonValid('a'.repeat(501))).toBe(false);
+    expect(changeReasonValid('bad\u0007bell')).toBe(false);
+  });
+});
+
+describe.each(['fr', 'en'] as const)('MVP-050B schedule lifecycle (%s)', (locale) => {
+  const c = resources[locale].common;
+  const k = c.workSchedules;
+  const show = () =>
+    renderWithSession(
+      <WorkSchedulesPage />,
+      sessionWithRoles(['tenant-admin']),
+      locale,
+      '/admin/work-schedules',
+    );
+  const open = async (user: ReturnType<typeof userEvent.setup>) => {
+    const rows = await screen.findAllByTestId('schedule-row');
+    await user.click(
+      within(rows[0]!).getByRole('button', { name: new RegExp(k.actions.view, 'u') }),
+    );
+    const section = await screen.findByTestId('schedule-detail');
+    await within(section).findAllByTestId('detail-slot');
+    return section;
+  };
+
+  it('shows each status, filters by it and links a replaced schedule to its successor', async () => {
+    const requests = adminApi(
+      () => [
+        summary({
+          status: 'REPLACED',
+          changedAt: '2026-10-12T09:30:00Z',
+          changeReason: 'Store <b>closed</b>',
+          replacedByScheduleId: REPLACEMENT,
+        }),
+        summary({ id: 'cancelled', status: 'CANCELLED', changedAt: '2026-10-12T09:30:00Z' }),
+        summary({ id: REPLACEMENT, replacesScheduleId: SCHEDULE }),
+      ],
+      undefined,
+      (id) =>
+        id === REPLACEMENT
+          ? detail({ id: REPLACEMENT, replacesScheduleId: SCHEDULE })
+          : detail({
+              status: 'REPLACED',
+              changedAt: '2026-10-12T09:30:00Z',
+              changeReason: 'Store <b>closed</b>',
+              replacedByScheduleId: REPLACEMENT,
+            }),
+    );
+    const user = userEvent.setup();
+    const { container } = await show();
+    const badges = await screen.findAllByTestId('schedule-status');
+    expect(badges.map((badge) => badge.textContent)).toEqual([
+      k.status.REPLACED,
+      k.status.CANCELLED,
+      k.status.PUBLISHED,
+    ]);
+    await expectAccessible(container);
+
+    await user.selectOptions(screen.getByTestId('status-filter'), 'CANCELLED');
+    await waitFor(() => {
+      expect(requests.some((r) => r.path.includes('status=CANCELLED'))).toBe(true);
+    });
+
+    const section = await open(user);
+    expect(within(section).getByTestId('detail-status-badge')).toHaveTextContent(k.status.REPLACED);
+    expect(within(section).getByTestId('detail-changed')).toHaveTextContent(
+      k.detail.replacedAt.split('{{')[0]!.trim(),
+    );
+    // The reason is plain text, and a changed schedule offers no further change.
+    expect(within(section).getByTestId('detail-reason')).toHaveTextContent('Store <b>closed</b>');
+    expect(section.querySelector('b')).toBeNull();
+    expect(within(section).queryByTestId('detail-actions')).toBeNull();
+    await expectAccessible(container);
+
+    await user.click(within(section).getByTestId('view-successor'));
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId('schedule-detail')).getByTestId('view-predecessor'),
+      ).toBeInTheDocument();
+    });
+    expect(
+      within(screen.getByTestId('schedule-detail')).getByTestId('detail-status-badge'),
+    ).toHaveTextContent(k.status.PUBLISHED);
+    expect(requests.some((r) => r.path === `/work-schedules/${REPLACEMENT}`)).toBe(true);
+  });
+
+  it('reviews and confirms a cancellation with a reason and one stable key', async () => {
+    let calls = 0;
+    let cancelled = false;
+    const requests = adminApi(
+      () => [summary(cancelled ? { status: 'CANCELLED' } : {})],
+      (request) => {
+        if (request.path === `/work-schedules/${SCHEDULE}/cancellation`) {
+          calls += 1;
+          if (calls === 1) return { status: 503, body: problem('INTERNAL_ERROR', 503) };
+          cancelled = true;
+          return {
+            status: 200,
+            body: {
+              scheduleId: SCHEDULE,
+              status: 'CANCELLED',
+              changedAt: '2026-10-12T09:30:00Z',
+              replacementScheduleId: null,
+              totals: { slots: 3, assigned: 1, uncovered: 2 },
+            },
+          };
+        }
+        return { status: 500 };
+      },
+      () =>
+        cancelled
+          ? detail({
+              status: 'CANCELLED',
+              changedAt: '2026-10-12T09:30:00Z',
+              changeReason: 'Store closed',
+            })
+          : detail(),
+    );
+    const user = userEvent.setup();
+    const { container } = await show();
+    const section = await open(user);
+    expect(within(section).getByTestId('detail-actions')).toHaveTextContent(k.actions.futureOnly);
+    await user.click(within(section).getByRole('button', { name: k.actions.cancel }));
+    const panel = await screen.findByTestId('cancel-schedule');
+    await expectAccessible(container);
+    // An empty reason is named and focused; nothing is sent.
+    await user.click(within(panel).getByRole('button', { name: k.cancel.review }));
+    const field = within(panel).getByLabelText(k.cancel.reason);
+    await waitFor(() => {
+      expect(field).toHaveFocus();
+    });
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(panel).toHaveTextContent(k.problems.reason);
+    await user.type(field, '  Store closed ');
+    await user.click(within(panel).getByRole('button', { name: k.cancel.review }));
+    expect(await within(panel).findByTestId('cancel-summary')).toHaveTextContent('3');
+    expect(within(panel).getByTestId('cancel-reason')).toHaveTextContent('Store closed');
+    await expectAccessible(container);
+
+    await user.click(within(panel).getByRole('button', { name: k.cancel.confirm }));
+    expect(await within(panel).findByTestId('cancel-error')).toBeInTheDocument();
+    await user.click(within(panel).getByRole('button', { name: k.cancel.confirm }));
+    await waitFor(() => {
+      expect(screen.getByTestId('announcer')).toHaveTextContent(k.cancelled);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-status-badge')).toHaveTextContent(k.status.CANCELLED);
+    });
+    expect(screen.queryByTestId('detail-actions')).toBeNull();
+    const writes = requests.filter((r) => r.method === 'POST');
+    expect(writes).toHaveLength(2);
+    expect(writes[0]!.key).toMatch(/^web-/u);
+    expect(writes[1]!.key).toBe(writes[0]!.key);
+    expect(JSON.parse(writes[0]!.body)).toEqual({ reason: 'Store closed', confirm: true });
+    expect(window.localStorage.length + window.sessionStorage.length).toBe(0);
+  });
+
+  it('explains a closed change window and an already cancelled schedule', async () => {
+    let answer = 'WORK_SCHEDULE_CHANGE_WINDOW_CLOSED';
+    adminApi(
+      () => [summary()],
+      () => ({ status: 409, body: problem(answer, 409) }),
+    );
+    const user = userEvent.setup();
+    await show();
+    const section = await open(user);
+    await user.click(within(section).getByRole('button', { name: k.actions.cancel }));
+    const panel = await screen.findByTestId('cancel-schedule');
+    await user.type(within(panel).getByLabelText(k.cancel.reason), 'Store closed');
+    await user.click(within(panel).getByRole('button', { name: k.cancel.review }));
+    await user.click(within(panel).getByRole('button', { name: k.cancel.confirm }));
+    expect(await within(panel).findByTestId('cancel-error')).toHaveTextContent(
+      c.errors.WORK_SCHEDULE_CHANGE_WINDOW_CLOSED,
+    );
+    answer = 'WORK_SCHEDULE_ALREADY_CANCELLED';
+    await user.click(within(panel).getByRole('button', { name: k.cancel.confirm }));
+    await waitFor(() => {
+      expect(within(panel).getByTestId('cancel-error')).toHaveTextContent(
+        c.errors.WORK_SCHEDULE_ALREADY_CANCELLED,
+      );
+    });
+  });
+
+  it('replaces with the site and dates fixed, the current and proposed slots side by side', async () => {
+    let replaced = false;
+    const requests = adminApi(
+      () => [summary(replaced ? { status: 'REPLACED', replacedByScheduleId: REPLACEMENT } : {})],
+      (request) => {
+        const body = JSON.parse(request.body) as {
+          slots: { clientRef: string; start: string; end: string }[];
+        };
+        if (request.path === `/work-schedules/${SCHEDULE}/replacement-preview`) {
+          return { status: 200, body: { ...previewOf(body), previewDigest: 'b'.repeat(64) } };
+        }
+        if (request.path === `/work-schedules/${SCHEDULE}/replacement`) {
+          replaced = true;
+          return {
+            status: 201,
+            body: {
+              scheduleId: SCHEDULE,
+              status: 'REPLACED',
+              changedAt: '2026-10-12T09:30:00Z',
+              replacementScheduleId: REPLACEMENT,
+              totals: { slots: body.slots.length, assigned: 1, uncovered: 1 },
+            },
+          };
+        }
+        return { status: 500 };
+      },
+      (id) =>
+        id === REPLACEMENT ? detail({ id: REPLACEMENT, replacesScheduleId: SCHEDULE }) : detail(),
+    );
+    const user = userEvent.setup();
+    const { container } = await show();
+    const section = await open(user);
+    await user.click(within(section).getByRole('button', { name: k.actions.replace }));
+    const builder = screen.getByTestId('create-schedule');
+    expect(within(builder).getByRole('heading', { name: k.replace.title })).toBeInTheDocument();
+    expect(within(builder).getByTestId('replace-site')).toHaveTextContent('Kinshasa <b>Gombe</b>');
+    expect(within(builder).queryByTestId('site-choice')).toBeNull();
+    expect(within(builder).getAllByTestId('slot')).toHaveLength(3);
+    await expectAccessible(container);
+
+    // The reason is required before any preview.
+    await user.click(within(builder).getByRole('button', { name: k.form.preview }));
+    expect(await screen.findByTestId('create-problems')).toHaveTextContent(k.problems.reason);
+    expect(requests.filter((r) => r.method === 'POST')).toHaveLength(0);
+
+    // Drop the last slot, give a reason and preview.
+    const slots = within(builder).getAllByTestId('slot');
+    await user.click(
+      within(slots[2]!).getByRole('button', {
+        name: k.slot.removeFor.replace('{{position}}', '3'),
+      }),
+    );
+    await user.type(within(builder).getByLabelText(k.replace.reason), 'Inventory day');
+    await user.click(within(builder).getByRole('button', { name: k.form.preview }));
+    const review = await screen.findByTestId('schedule-review');
+    expect(within(review).getAllByTestId('current-slot')).toHaveLength(3);
+    expect(within(review).getAllByTestId('review-slot')).toHaveLength(2);
+    expect(within(review).getByTestId('review-reason')).toHaveTextContent('Inventory day');
+    expect(review).toHaveTextContent(k.replace.confirmText);
+    await expectAccessible(container);
+
+    await user.click(within(review).getByRole('button', { name: k.replace.confirm }));
+    await waitFor(() => {
+      expect(screen.getByTestId('announcer')).not.toHaveTextContent(/^$/u);
+    });
+    const preview = requests.find((r) => r.path.endsWith('/replacement-preview'))!;
+    expect(preview.key).toBeNull();
+    const write = requests.find((r) => r.path.endsWith('/replacement'))!;
+    expect(write.key).toMatch(/^web-/u);
+    const sent = JSON.parse(write.body) as Record<string, unknown>;
+    expect(Object.keys(sent).sort()).toEqual(['confirm', 'previewDigest', 'reason', 'slots']);
+    expect(sent.previewDigest).toBe('b'.repeat(64));
+    expect(sent.reason).toBe('Inventory day');
+    expect((sent.slots as unknown[]).length).toBe(2);
+    // The new schedule opens, linked back to the one it replaced.
+    await waitFor(() => {
+      expect(screen.getByTestId('view-predecessor')).toBeInTheDocument();
+    });
+    expect(within(screen.getByTestId('create-schedule')).queryByTestId('replace-fixed')).toBeNull();
+  });
+
+  it('abandons a replacement for a new empty schedule', async () => {
+    adminApi(() => [summary()]);
+    const user = userEvent.setup();
+    await show();
+    const section = await open(user);
+    await user.click(within(section).getByRole('button', { name: k.actions.replace }));
+    const builder = screen.getByTestId('create-schedule');
+    await user.click(within(builder).getByRole('button', { name: k.replace.abandon }));
+    expect(within(builder).queryByTestId('replace-fixed')).toBeNull();
+    expect(within(builder).getByTestId('site-choice')).toBeInTheDocument();
+    expect(within(builder).getAllByTestId('slot')).toHaveLength(1);
   });
 });
 

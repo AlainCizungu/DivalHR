@@ -375,7 +375,10 @@
     "WORK_SCHEDULE_SLOT_INVALID": "Un créneau ne peut pas être planifié tel qu’il a été saisi.",
     "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE": "Un employé affecté ne peut pas travailler sur ce créneau.",
     "WORK_SCHEDULE_EMPLOYEE_CONFLICT": "Un employé affecté travaille déjà à ce moment-là.",
-    "WORK_SCHEDULE_LIMIT_EXCEEDED": "Un horaire comporte au plus 500 créneaux."
+    "WORK_SCHEDULE_LIMIT_EXCEEDED": "Un horaire comporte au plus 500 créneaux.",
+    "WORK_SCHEDULE_ALREADY_CANCELLED": "Cet horaire est déjà annulé.",
+    "WORK_SCHEDULE_ALREADY_REPLACED": "Cet horaire a déjà été remplacé. Modifiez plutôt son remplacement.",
+    "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED": "Un créneau de cet horaire a déjà commencé : il ne peut plus être annulé ni remplacé."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2513,13 +2516,15 @@
     "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les horaires.",
     "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les horaires.",
     "list": {
-      "title": "Horaires publiés",
+      "title": "Liste des horaires",
       "loading": "Chargement des horaires…",
       "retry": "Réessayer",
       "empty": "Aucun horaire n’est encore publié.",
-      "label": "Liste des horaires publiés",
+      "label": "Liste des horaires",
       "more": "Afficher plus d’horaires",
-      "loadingMore": "Chargement d’autres horaires…"
+      "loadingMore": "Chargement d’autres horaires…",
+      "filter": "Statut",
+      "filterAll": "Tous les statuts"
     },
     "columns": {
       "site": "Site",
@@ -2532,7 +2537,8 @@
       "work": "Travail",
       "employee": "Employé",
       "position": "N°",
-      "check": "Vérification"
+      "check": "Vérification",
+      "status": "Statut"
     },
     "siteName": "{{name}} ({{code}})",
     "siteUnknown": "Site indisponible",
@@ -2543,7 +2549,10 @@
     "warning": "Attention",
     "actions": {
       "view": "Voir",
-      "viewFor": "Voir l’horaire de {{site}} pour {{period}}"
+      "viewFor": "Voir l’horaire de {{site}} pour {{period}}",
+      "cancel": "Annuler l’horaire",
+      "replace": "Remplacer l’horaire",
+      "futureOnly": "Un horaire ne peut être annulé ou remplacé qu’avant le début de son premier créneau. L’original est conservé comme trace."
     },
     "detail": {
       "title": "{{site}}, {{period}}",
@@ -2554,7 +2563,13 @@
       "uncoveredOnly": "Créneaux non couverts seulement",
       "count_one": "{{count}} créneau affiché",
       "count_other": "{{count}} créneaux affichés",
-      "label": "Créneaux de l’horaire"
+      "label": "Créneaux de l’horaire",
+      "status": "Statut : {{status}}",
+      "cancelledAt": "Annulé le {{date}}.",
+      "replacedAt": "Remplacé le {{date}}.",
+      "reason": "Motif : {{reason}}",
+      "viewSuccessor": "Voir l’horaire de remplacement",
+      "viewPredecessor": "Voir l’horaire qu’il remplace"
     },
     "totals": "{{slots}} créneaux : {{assigned}} couverts, {{uncovered}} non couverts",
     "timezone": "Heures locales du site, fuseau horaire {{zone}}.",
@@ -2590,7 +2605,8 @@
       "start": "Saisissez une heure de début.",
       "end": "Saisissez une heure de fin différente de l’heure de début.",
       "labelEn": "Saisissez un libellé anglais de 2 à 60 lettres, chiffres ou signes simples.",
-      "labelFr": "Saisissez un libellé français de 2 à 60 lettres, chiffres ou signes simples."
+      "labelFr": "Saisissez un libellé français de 2 à 60 lettres, chiffres ou signes simples.",
+      "reason": "Saisissez un motif de 2 à 500 caractères, sans caractère de contrôle."
     },
     "slot": {
       "legend": "Créneau {{position}}",
@@ -2619,7 +2635,7 @@
       "blocked": "Certains créneaux ne peuvent pas être publiés. Revenez en arrière, corrigez-les et affichez de nouveau l’aperçu.",
       "label": "Aperçu des créneaux",
       "ok": "Prêt",
-      "confirmText": "Une fois publié, cet horaire ne peut plus être modifié. Les employés affectés verront leurs créneaux.",
+      "confirmText": "Une fois publié, ses créneaux restent tels que publiés. Jusqu’au début de son premier créneau, il peut seulement être annulé ou remplacé en entier. Les employés affectés verront leurs créneaux.",
       "publish": "Confirmer et publier",
       "publishing": "Publication…",
       "back": "Revenir à la saisie"
@@ -2639,8 +2655,41 @@
       "NOT_EMPLOYED": "L’employé n’est pas en poste à ces dates",
       "NOT_AT_SITE": "L’employé n’est pas affecté à ce site à cette date",
       "PUBLISHED": "L’employé travaille déjà à ce moment-là dans un horaire publié",
-      "IN_SCHEDULE": "L’employé travaille déjà à ce moment-là dans cet horaire"
-    }
+      "IN_SCHEDULE": "L’employé travaille déjà à ce moment-là dans cet horaire",
+      "NOT_FUTURE": "Ce créneau ne commence pas dans le futur"
+    },
+    "status": {
+      "PUBLISHED": "Publié",
+      "CANCELLED": "Annulé",
+      "REPLACED": "Remplacé"
+    },
+    "cancel": {
+      "title": "Annuler cet horaire",
+      "reason": "Motif de l’annulation",
+      "reasonHelp": "Obligatoire, de 2 à 500 caractères. Visible uniquement par les administrateurs de l’organisation.",
+      "review": "Vérifier l’annulation",
+      "summary": "{{slots}} créneaux, dont {{assigned}} couverts, seront retirés. Les employés ne verront plus ces créneaux, et les dates et horaires redeviennent disponibles pour un autre horaire. Cette action est définitive.",
+      "confirm": "Confirmer l’annulation",
+      "cancelling": "Annulation…",
+      "edit": "Modifier le motif",
+      "keep": "Conserver l’horaire"
+    },
+    "cancelled": "Horaire annulé.",
+    "replace": {
+      "title": "Remplacer l’horaire",
+      "intro": "Le site et les dates restent ceux de l’horaire publié. Modifiez les créneaux, les libellés ou les employés ; chaque créneau doit commencer dans le futur.",
+      "site": "Site : {{site}}",
+      "period": "Dates : {{period}}",
+      "reason": "Motif du remplacement",
+      "abandon": "Abandonner le remplacement",
+      "current": "Horaire actuel",
+      "proposed": "Remplacement proposé",
+      "currentLabel": "Créneaux de l’horaire actuel",
+      "confirmText": "L’horaire actuel est conservé comme trace, marqué remplacé. Les employés ne verront que le nouvel horaire.",
+      "confirm": "Confirmer le remplacement",
+      "replacing": "Remplacement…"
+    },
+    "replaced": "Horaire remplacé : {{slots}} créneaux, {{uncovered}} non couverts."
   },
   "mySchedule": {
     "title": "Mon horaire",

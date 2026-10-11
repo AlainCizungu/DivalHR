@@ -21,7 +21,8 @@ export function EmployeeSearchPicker({
 }: {
   idPrefix: string;
   legend: string;
-  value: EmployeeSummary | null;
+  /** The chosen employee: only the identity and names are shown (MVP-050B prefills it). */
+  value: Pick<EmployeeSummary, 'id' | 'employeeNumber' | 'givenNames' | 'familyName'> | null;
   onChange: (value: EmployeeSummary | null) => void;
   invalid: boolean;
   errorId: string;
@@ -58,7 +59,7 @@ export function EmployeeSearchPicker({
     }
   };
 
-  const name = (employee: EmployeeSummary) =>
+  const name = (employee: Pick<EmployeeSummary, 'givenNames' | 'familyName' | 'employeeNumber'>) =>
     t('leaveSubstitutes.employee', {
       given: employee.givenNames,
       family: employee.familyName,

@@ -375,7 +375,10 @@
     "WORK_SCHEDULE_SLOT_INVALID": "A slot cannot be scheduled as entered.",
     "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE": "An assigned employee cannot work this slot.",
     "WORK_SCHEDULE_EMPLOYEE_CONFLICT": "An assigned employee already works at that time.",
-    "WORK_SCHEDULE_LIMIT_EXCEEDED": "A schedule holds at most 500 slots."
+    "WORK_SCHEDULE_LIMIT_EXCEEDED": "A schedule holds at most 500 slots.",
+    "WORK_SCHEDULE_ALREADY_CANCELLED": "This schedule is already cancelled.",
+    "WORK_SCHEDULE_ALREADY_REPLACED": "This schedule has already been replaced. Change its replacement instead.",
+    "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED": "A slot of this schedule has already started: it can no longer be cancelled or replaced."
   },
   "notFound": {
     "title": "Page not found",
@@ -2513,13 +2516,15 @@
     "unauthorized": "Only tenant administrators can manage schedules.",
     "signInRequired": "Sign in as a tenant administrator to manage schedules.",
     "list": {
-      "title": "Published schedules",
+      "title": "Schedule list",
       "loading": "Loading schedules…",
       "retry": "Try again",
       "empty": "No schedule is published yet.",
-      "label": "List of published schedules",
+      "label": "List of schedules",
       "more": "Show more schedules",
-      "loadingMore": "Loading more schedules…"
+      "loadingMore": "Loading more schedules…",
+      "filter": "Status",
+      "filterAll": "All statuses"
     },
     "columns": {
       "site": "Site",
@@ -2532,7 +2537,8 @@
       "work": "Work",
       "employee": "Employee",
       "position": "No.",
-      "check": "Check"
+      "check": "Check",
+      "status": "Status"
     },
     "siteName": "{{name}} ({{code}})",
     "siteUnknown": "Site unavailable",
@@ -2543,7 +2549,10 @@
     "warning": "Warning",
     "actions": {
       "view": "View",
-      "viewFor": "View the schedule of {{site}} for {{period}}"
+      "viewFor": "View the schedule of {{site}} for {{period}}",
+      "cancel": "Cancel schedule",
+      "replace": "Replace schedule",
+      "futureOnly": "A schedule can be cancelled or replaced only before its first slot starts. The original stays as a record."
     },
     "detail": {
       "title": "{{site}}, {{period}}",
@@ -2554,7 +2563,13 @@
       "uncoveredOnly": "Uncovered slots only",
       "count_one": "{{count}} slot shown",
       "count_other": "{{count}} slots shown",
-      "label": "Slots of the schedule"
+      "label": "Slots of the schedule",
+      "status": "Status: {{status}}",
+      "cancelledAt": "Cancelled on {{date}}.",
+      "replacedAt": "Replaced on {{date}}.",
+      "reason": "Reason: {{reason}}",
+      "viewSuccessor": "View the replacement schedule",
+      "viewPredecessor": "View the schedule it replaced"
     },
     "totals": "{{slots}} slots: {{assigned}} assigned, {{uncovered}} uncovered",
     "timezone": "Local times at the site, time zone {{zone}}.",
@@ -2590,7 +2605,8 @@
       "start": "Enter a start time.",
       "end": "Enter an end time different from the start time.",
       "labelEn": "Enter an English label of 2 to 60 letters, digits or simple punctuation.",
-      "labelFr": "Enter a French label of 2 to 60 letters, digits or simple punctuation."
+      "labelFr": "Enter a French label of 2 to 60 letters, digits or simple punctuation.",
+      "reason": "Enter a reason of 2 to 500 characters, without control characters."
     },
     "slot": {
       "legend": "Slot {{position}}",
@@ -2619,7 +2635,7 @@
       "blocked": "Some slots cannot be published. Go back, correct them and preview again.",
       "label": "Preview of the slots",
       "ok": "Ready",
-      "confirmText": "Once published, this schedule cannot be changed. Assigned employees will see their shifts.",
+      "confirmText": "Once published, its slots stay as published. Until its first slot starts, it can only be cancelled or replaced as a whole. Assigned employees will see their shifts.",
       "publish": "Confirm and publish",
       "publishing": "Publishing…",
       "back": "Back to editing"
@@ -2639,8 +2655,41 @@
       "NOT_EMPLOYED": "Employee is not employed on these dates",
       "NOT_AT_SITE": "Employee is not placed at this site on this date",
       "PUBLISHED": "Employee already works at that time in a published schedule",
-      "IN_SCHEDULE": "Employee already works at that time in this schedule"
-    }
+      "IN_SCHEDULE": "Employee already works at that time in this schedule",
+      "NOT_FUTURE": "This slot does not start in the future"
+    },
+    "status": {
+      "PUBLISHED": "Published",
+      "CANCELLED": "Cancelled",
+      "REPLACED": "Replaced"
+    },
+    "cancel": {
+      "title": "Cancel this schedule",
+      "reason": "Reason for the cancellation",
+      "reasonHelp": "Required, 2 to 500 characters. Shown to organization administrators only.",
+      "review": "Review the cancellation",
+      "summary": "{{slots}} slots, {{assigned}} of them assigned, will be withdrawn. Employees will no longer see these shifts, and the dates and times become free for another schedule. This cannot be undone.",
+      "confirm": "Confirm the cancellation",
+      "cancelling": "Cancelling…",
+      "edit": "Change the reason",
+      "keep": "Keep the schedule"
+    },
+    "cancelled": "Schedule cancelled.",
+    "replace": {
+      "title": "Replace the schedule",
+      "intro": "The site and the dates stay those of the published schedule. Change any slot, label or employee; every slot must start in the future.",
+      "site": "Site: {{site}}",
+      "period": "Dates: {{period}}",
+      "reason": "Reason for the replacement",
+      "abandon": "Stop replacing",
+      "current": "Current schedule",
+      "proposed": "Proposed replacement",
+      "currentLabel": "Slots of the current schedule",
+      "confirmText": "The current schedule stays as a record, marked replaced. Employees will see only the new schedule.",
+      "confirm": "Confirm the replacement",
+      "replacing": "Replacing…"
+    },
+    "replaced": "Schedule replaced: {{slots}} slots, {{uncovered}} uncovered."
   },
   "mySchedule": {
     "title": "My schedule",
