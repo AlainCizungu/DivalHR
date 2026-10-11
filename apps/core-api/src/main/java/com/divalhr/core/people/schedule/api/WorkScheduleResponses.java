@@ -383,20 +383,23 @@ public final class WorkScheduleResponses {
   }
 
   /**
-   * One page of the caller's own shifts.
+   * One page of the caller's own shifts (R100-2). Without {@code from}, the view is the shifts not
+   * yet ended at one server-owned instant ({@code asOfInstant}), pinned across its pages; with
+   * {@code from} (and optionally {@code to}), the shifts whose local start date, in their own
+   * schedule's site time zone, is within the dates.
    *
    * @param items shifts in start order
    * @param nextCursor next page, or {@code null}
-   * @param asOf the organization's business date (the default first date of the view)
-   * @param from first start date of the view
-   * @param to last start date of the view, or {@code null}
+   * @param asOfInstant the default view's anchor instant, or {@code null} with explicit dates
+   * @param from first local start date of an explicit view, or {@code null}
+   * @param to last local start date of an explicit view, or {@code null}
    */
   @Schema(name = "MyWorkSchedulePage")
   public record ShiftPage(
       List<Shift> items,
       @Schema(nullable = true) String nextCursor,
-      LocalDate asOf,
-      LocalDate from,
+      @Schema(nullable = true) Instant asOfInstant,
+      @Schema(nullable = true) LocalDate from,
       @Schema(nullable = true) LocalDate to) {
 
     /** Defensively copies the lists. */

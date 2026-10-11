@@ -28,7 +28,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -39,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -53,8 +53,18 @@ import org.springframework.transaction.support.TransactionTemplate;
  * privileged-denial evidence. Only the caller's own assigned slots are read: never another
  * employee, an uncovered slot, the publisher or audit data.
  *
+ * <p>Two views (R100-2). Without {@code from}, the default view holds the shifts not yet ended at
+ * one server-owned instant taken from the platform clock ({@code end_at > asOfInstant}: shifts in
+ * progress and to come, never ended ones). No single calendar date means "now" across schedules of
+ * sites in different time zones, so the organization's date plays no part. The instant is pinned in
+ * the signed cursor and reused by every later page, so the clock moving between pages neither adds
+ * nor drops a shift. With {@code from} (and optionally {@code to}, at most 366 days later), the
+ * view holds the shifts whose local start date, in their own schedule's site time zone, is within
+ * the dates. Every shift is returned in its own stored site time zone, never converted.
+ *
  * <p>A fail-closed disclosure: the page is returned only after its audit record committed with the
- * read. The cursor binds the tenant, the subject (a digest), the resolved dates and the page size.
+ * read. The cursor binds the tenant, the subject (a digest), the view's mode and dates and the page
+ * size; a cursor of one mode is refused in the other.
  */
 @Service
 public class MyWorkScheduleService {
@@ -69,7 +79,14 @@ public class MyWorkScheduleService {
   static final int MAX_DAYS = 366;
 
   private static final Logger LOG = LoggerFactory.getLogger("divalhr.schedule");
-  private static final String POSITION = "MS";
+
+  /** Keyset code of an explicit-dates page. */
+  private static final String EXPLICIT = "MS";
+
+  /** Keyset code prefix of a default (current) page: the anchor's epoch microseconds follow. */
+  private static final String DEFAULT = "MD";
+
+  private static final Pattern ANCHOR = Pattern.compile("^MD[0-9]{1,18}$");
   private static final Duration TRANSACTION_TIMEOUT = Duration.ofSeconds(15);
 
   private final JdbcWorkScheduleRepository schedules;
@@ -88,7 +105,7 @@ public class MyWorkScheduleService {
    * @param schedules schedule storage
    * @param links the identity port (joins this module's transactions)
    * @param directory the tenant module's unit port (site codes and names)
-   * @param calendar the organization's business date
+   * @param calendar the platform clock (the default view's anchor instant)
    * @param cursors signed cursors
    * @param audit audit recorder
    * @param metrics operation metrics
@@ -117,8 +134,9 @@ public class MyWorkScheduleService {
   }
 
   /**
-   * One page of the caller's own published shifts starting from {@code from} (default: the business
-   * date) to {@code to} (optional, at most 366 days later), in start order.
+   * One page of the caller's own published shifts in start order: without {@code from}, those not
+   * yet ended at the pinned server instant; with {@code from}, those starting on the local dates
+   * {@code from} to {@code to} (optional, at most 366 days later; {@code to} alone is refused).
    *
    * @param caller verified employee
    * @param from first start date or {@code null}
@@ -162,7 +180,17 @@ public class MyWorkScheduleService {
     LocalDate fromDate = WorkScheduleCommand.optionalDate(errors, "from", from);
     LocalDate toDate = WorkScheduleCommand.optionalDate(errors, "to", to);
     int size = WorkScheduleService.limit(limit, errors);
+    if (from == null && to != null) {
+      // An end date only bounds an explicit view; the default view is instant-based.
+      errors.add("from", Constraint.REQUIRED);
+    }
+    if (fromDate != null
+        && toDate != null
+        && (toDate.isBefore(fromDate) || ChronoUnit.DAYS.between(fromDate, toDate) >= MAX_DAYS)) {
+      errors.add("to", Constraint.RANGE);
+    }
     errors.throwIfAny();
+    boolean explicit = fromDate != null;
     TenantId tenant = caller.tenant();
     return read(
         () -> {
@@ -170,74 +198,124 @@ public class MyWorkScheduleService {
               links
                   .linkedEmployee(tenant, caller.subject())
                   .orElseThrow(() -> new ApiException(ErrorCode.EMPLOYEE_LINK_REQUIRED, Map.of()));
-          ZoneId zone = calendar.zone(tenant);
-          LocalDate asOf = calendar.today(zone);
-          LocalDate first = fromDate == null ? asOf : fromDate;
-          FieldErrors range = new FieldErrors();
-          if (toDate != null
-              && (toDate.isBefore(first) || ChronoUnit.DAYS.between(first, toDate) >= MAX_DAYS)) {
-            range.add("to", Constraint.RANGE);
-          }
-          range.throwIfAny();
-          CursorScope scope = scope(caller, first, toDate, size);
+          CursorScope scope = scope(caller, explicit, fromDate, toDate, size);
+          Instant anchor = null;
           Instant afterAt = null;
           UUID afterId = null;
           if (cursor != null) {
             KeysetPosition position = cursors.decode(cursor, scope);
-            if (!POSITION.equals(position.code())) {
-              throw WorkScheduleService.invalidCursor();
+            if (explicit) {
+              requireExplicit(position);
+            } else {
+              anchor = anchorOf(position);
             }
             afterAt =
                 schedules
                     .ownStart(tenant, link.employeeId(), position.id())
                     .orElseThrow(WorkScheduleService::invalidCursor);
             afterId = position.id();
+          } else if (!explicit) {
+            anchor = calendar.now().truncatedTo(ChronoUnit.MICROS);
           }
           List<OwnShift> rows =
               schedules.ownShifts(
-                  tenant, link.employeeId(), first, toDate, afterAt, afterId, size + 1);
+                  tenant, link.employeeId(), anchor, fromDate, toDate, afterAt, afterId, size + 1);
           List<OwnShift> shown = rows.subList(0, Math.min(rows.size(), size));
+          String code = explicit ? EXPLICIT : anchorCode(anchor);
           String next =
               rows.size() > size
                   ? cursors.encode(
-                      scope, new KeysetPosition(POSITION, shown.get(shown.size() - 1).slotId()))
+                      scope, new KeysetPosition(code, shown.get(shown.size() - 1).slotId()))
                   : null;
           Set<UUID> siteIds = new LinkedHashSet<>();
           shown.forEach(shift -> siteIds.add(shift.siteId()));
           Map<UUID, UnitView> sites =
               siteIds.isEmpty() ? Map.of() : directory.resolveIds(tenant, siteIds);
-          disclosed(caller, link.employeeId(), cursor == null ? "first" : "next", shown);
+          disclosed(
+              caller,
+              link.employeeId(),
+              cursor == null ? "first" : "next",
+              anchor,
+              fromDate,
+              toDate,
+              shown);
           return new ShiftPage(
               shown.stream().map(shift -> Shift.of(shift, sites.get(shift.siteId()))).toList(),
               next,
-              asOf,
-              first,
+              anchor,
+              fromDate,
               toDate);
         });
   }
 
-  /** Bound to the operation, tenant, subject (a digest), the resolved dates and the page size. */
-  private static CursorScope scope(PeopleCaller caller, LocalDate from, LocalDate to, int size) {
+  /**
+   * The keyset code of a default-view page: {@code "MD"} and the anchor instant in epoch
+   * microseconds. It travels inside the signed cursor payload, so later pages reuse exactly the
+   * server's anchor; it cannot be chosen or altered by the client.
+   */
+  static String anchorCode(Instant anchor) {
+    long micros = ChronoUnit.MICROS.between(Instant.EPOCH, anchor);
+    return DEFAULT + micros;
+  }
+
+  /** The anchor pinned in a default-view cursor; anything else is {@code CURSOR_INVALID}. */
+  static Instant anchorOf(KeysetPosition position) {
+    String code = position.code();
+    if (!ANCHOR.matcher(code).matches()) {
+      throw WorkScheduleService.invalidCursor();
+    }
+    return Instant.EPOCH.plus(Long.parseLong(code.substring(DEFAULT.length())), ChronoUnit.MICROS);
+  }
+
+  private static void requireExplicit(KeysetPosition position) {
+    if (!EXPLICIT.equals(position.code())) {
+      throw WorkScheduleService.invalidCursor();
+    }
+  }
+
+  /**
+   * Bound to the operation, tenant, subject (a digest), the view's mode, its explicit dates and the
+   * page size. The default view's anchor is pinned in the signed position.
+   */
+  private static CursorScope scope(
+      PeopleCaller caller, boolean explicit, LocalDate from, LocalDate to, int size) {
     Map<String, String> filters = new HashMap<>();
     filters.put(
         "subject", Fingerprints.sha256("DIVALHR-MY-WORK-SCHEDULE\nsubject=" + caller.subject()));
-    filters.put("from", from.toString());
+    filters.put("mode", explicit ? "dates" : "current");
+    filters.put("from", from == null ? "-" : from.toString());
     filters.put("to", to == null ? "-" : to.toString());
     filters.put("limit", Integer.toString(size));
     return new CursorScope(SELF_LIST, caller.tenant(), filters);
   }
 
   /** The disclosure audit: the page and the count; the slot IDs only in the digest. */
-  private void disclosed(PeopleCaller caller, UUID employeeId, String page, List<OwnShift> shown) {
+  private void disclosed(
+      PeopleCaller caller,
+      UUID employeeId,
+      String page,
+      Instant anchor,
+      LocalDate from,
+      LocalDate to,
+      List<OwnShift> shown) {
     Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("schemaVersion", WorkScheduleService.SCHEMA_VERSION);
     metadata.put("view", "my-work-schedule");
     metadata.put("page", page);
     metadata.put("resultCount", shown.size());
     StringBuilder text =
-        new StringBuilder("DIVALHR-MY-WORK-SCHEDULE-DISCLOSURE\nversion=1\nemployee=")
+        new StringBuilder("DIVALHR-MY-WORK-SCHEDULE-DISCLOSURE\nversion=2\nemployee=")
             .append(employeeId)
             .append('\n');
+    if (anchor != null) {
+      text.append("mode=current\nanchor=").append(anchor).append('\n');
+    } else {
+      text.append("mode=dates\nfrom=")
+          .append(from)
+          .append("\nto=")
+          .append(to == null ? "-" : to)
+          .append('\n');
+    }
     shown.forEach(shift -> text.append("slot=").append(shift.slotId()).append('\n'));
     audit.record(
         new AuditEvent(

@@ -428,11 +428,14 @@ public class JdbcWorkScheduleRepository {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * One keyset page of the employee's own published shifts starting on the dates, in start order.
+   * One keyset page of the employee's own published shifts, in start order: either those not yet
+   * ended at an instant ({@code endAfter}, the default view, R100-2) or those starting on local
+   * dates ({@code from}, {@code to}: each slot's local start in its own site time zone).
    *
    * @param tenant verified tenant
    * @param employeeId the caller's linked employee
-   * @param from first local start date
+   * @param endAfter only shifts ending after this instant, or {@code null}
+   * @param from first local start date, or {@code null}
    * @param to last local start date, or {@code null}
    * @param afterStartAt start instant of the previous page's last row, or {@code null}
    * @param afterId that row's id, or {@code null}
@@ -442,6 +445,7 @@ public class JdbcWorkScheduleRepository {
   public List<OwnShift> ownShifts(
       TenantId tenant,
       UUID employeeId,
+      Instant endAfter,
       LocalDate from,
       LocalDate to,
       Instant afterStartAt,
@@ -453,14 +457,20 @@ public class JdbcWorkScheduleRepository {
                 + " l.start_at, l.label_en, l.label_fr FROM people.work_schedule_slot l"
                 + " JOIN people.work_schedule s"
                 + " ON s.tenant_id = l.tenant_id AND s.id = l.schedule_id"
-                + " WHERE l.tenant_id = :tenant AND l.assigned_employee_id = :employee"
-                + " AND l.start_local >= :from");
+                + " WHERE l.tenant_id = :tenant AND l.assigned_employee_id = :employee");
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("tenant", tenant.value())
             .addValue("employee", employeeId)
-            .addValue("from", from.atStartOfDay())
             .addValue("limit", limit);
+    if (endAfter != null) {
+      sql.append(" AND l.end_at > :endAfter");
+      params.addValue("endAfter", Timestamp.from(endAfter));
+    }
+    if (from != null) {
+      sql.append(" AND l.start_local >= :from");
+      params.addValue("from", from.atStartOfDay());
+    }
     if (to != null) {
       sql.append(" AND l.start_local < :until");
       params.addValue("until", to.plusDays(1).atStartOfDay());

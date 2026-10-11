@@ -526,8 +526,8 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
             body: {
               items: [shift('s1', '2026-11-02T22:00', '2026-11-03T06:00', true)],
               nextCursor: 'next',
-              asOf: '2026-10-11',
-              from: '2026-10-11',
+              asOfInstant: '2026-10-11T08:00:00Z',
+              from: null,
               to: null,
             },
           }
@@ -538,8 +538,8 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
                 shift('s2', '2026-11-04T08:00', '2026-11-04T12:00', false, 'Africa/Lubumbashi'),
               ],
               nextCursor: null,
-              asOf: '2026-10-11',
-              from: '2026-10-11',
+              asOfInstant: '2026-10-11T08:00:00Z',
+              from: null,
               to: null,
             },
           };
@@ -548,6 +548,9 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
     const { container } = await show();
     expect(await screen.findByRole('heading', { level: 1, name: k.title })).toBeInTheDocument();
     const shifts = await screen.findAllByTestId('my-shift');
+    // The server's instant-based default view: no date is sent, none is presented as "today".
+    expect(screen.getByTestId('my-schedule-scope')).toHaveTextContent(k.current);
+    expect(requests[0]!.path).not.toMatch(/[?&](from|to)=/u);
     expect(shifts).toHaveLength(1);
     expect(within(shifts[0]!).getByTestId('my-shift-label')).toHaveTextContent(
       locale === 'fr' ? 'Veille de nuit' : 'Night watch',
@@ -582,7 +585,13 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
   it('shows the empty state and the link-required refusal without a retry', async () => {
     stubApi(() => ({
       status: 200,
-      body: { items: [], nextCursor: null, asOf: '2026-10-11', from: '2026-10-11', to: null },
+      body: {
+        items: [],
+        nextCursor: null,
+        asOfInstant: '2026-10-11T08:00:00Z',
+        from: null,
+        to: null,
+      },
     }));
     const { container } = await show();
     expect(await screen.findByTestId('my-schedule-empty')).toHaveTextContent(k.empty);

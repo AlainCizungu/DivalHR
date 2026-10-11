@@ -1696,7 +1696,7 @@ export interface paths {
         };
         /**
          * List my published shifts
-         * @description MVP-050A. The published shifts assigned to the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order, starting from from (default: the organization's business date) to to (optional, at most 366 days later): both labels, the site's code and name, the local start and end, the schedule's time zone and an overnight flag. Never another employee, an uncovered slot, the publisher or audit data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is bound to the operation, tenant, caller, the resolved dates and page size. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         * @description MVP-050A. The published shifts assigned to the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order. Without from, the default view (R100-2) holds the shifts not yet ended at one server-owned instant (asOfInstant, from the server clock): shifts in progress and to come, never ended ones; no calendar date is used, since schedules of sites in different time zones share no "today". The instant is pinned in the signed cursor and reused by every later page. With from, and optionally to (at most 366 days later), the view holds the shifts whose local start date, in their own schedule's site time zone, is within the dates; to without from is 400 (from REQUIRED). Each shift carries both labels, the site's code and name, its local start and end and its schedule's siteTimezone (never converted), and an overnight flag. Never another employee, an uncovered slot, the publisher or audit data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is bound to the operation, tenant, caller, the view's mode and dates (and, for the default view, its instant) and the page size; a cursor of one view is refused in the other (400 CURSOR_INVALID). Shares the work-schedule-self-read limit. Cache-Control private, no-store.
          */
         get: operations["listMyWorkSchedule"];
         put?: never;
@@ -3808,12 +3808,15 @@ export interface components {
             items: components["schemas"]["MyWorkShift"][];
             nextCursor: string | null;
             /**
-             * Format: date
-             * @description The organization's business date, the default first date of the view; each shift is in its own siteTimezone.
+             * Format: date-time
+             * @description The default view's server-owned instant (shifts ending after it), the same on every page of the view; null for a view with explicit dates.
              */
-            asOf: string;
-            /** Format: date */
-            from: string;
+            asOfInstant: string | null;
+            /**
+             * Format: date
+             * @description First local start date of an explicit view; null for the default view.
+             */
+            from: string | null;
             /** Format: date */
             to: string | null;
         };

@@ -16,6 +16,7 @@ import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -235,5 +236,125 @@ class WorkScheduleSiteTimezoneIntegrationTest {
     // Shown as published, in Goma's own time: never converted to the organization's zone.
     assertThat(inGoma.get("start").asText()).isEqualTo(later + "T08:00");
     assertThat(inGoma.get("end").asText()).isEqualTo(later + "T16:00");
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // R100-2: the default "My schedule" view is instant-based
+  // ------------------------------------------------------------------------------------------
+
+  private static List<String> starts(JsonNode page) {
+    List<String> starts = new java.util.ArrayList<>();
+    page.get("items")
+        .forEach(
+            item ->
+                starts.add(item.get("start").asText() + "@" + item.get("siteTimezone").asText()));
+    return starts;
+  }
+
+  @Test
+  void theDefaultViewShowsShiftsNotYetEndedAtOnePinnedServerInstant() throws Exception {
+    Goma g = goma();
+    ScheduleWorld w = g.w();
+    Person ana = w.person("Ana", "Mwamba");
+    LocalDate d = w.today.plusDays(5);
+    // The site (Kinshasa, UTC+1): an ended day shift, an overnight shift and a next-day shift.
+    w.published(
+        proposal(
+            w.site(),
+            d,
+            d.plusDays(1),
+            List.of(
+                shift("day", d, 8, 16, ana.employee()),
+                ScheduleWorld.slot(
+                    "night",
+                    d + "T22:00",
+                    d.plusDays(1) + "T06:00",
+                    "Night watch",
+                    "Veille de nuit",
+                    ana.employee()),
+                shift("next", d.plusDays(1), 8, 12, ana.employee()))));
+    // Later at Goma (UTC+2), in Goma's own time.
+    w.expect(w.change(ana.employee(), w.placement(g.site(), g.department(), d.plusDays(2))), 201);
+    LocalDate later = d.plusDays(3);
+    w.published(
+        proposal(g.site(), later, later, List.of(shift("goma", later, 8, 16, ana.employee()))));
+    // The organization runs on Goma's clock: one calendar day ahead of the Kinshasa site tonight.
+    jdbc.update("UPDATE tenant.organization SET timezone = ? WHERE id = ?", GOMA, w.tenant());
+
+    // 22:30 UTC: 23:30 on d at the Kinshasa site, already 00:30 on d + 1 for the organization.
+    Instant anchor = d.atTime(22, 30).toInstant(ZoneOffset.UTC);
+    clock.set(anchor);
+    JsonNode all = w.expect(get(MINE).header("Authorization", ana.bearer()), 200);
+    assertThat(all.get("asOfInstant").asText()).isEqualTo(anchor.toString());
+    assertThat(all.get("from").isNull()).isTrue();
+    // The overnight shift in progress at the site stays; the ended day shift does not.
+    assertThat(starts(all))
+        .containsExactly(
+            d + "T22:00@" + KINSHASA,
+            d.plusDays(1) + "T08:00@" + KINSHASA,
+            later + "T08:00@" + GOMA);
+    assertThat(all.get("items").get(2).get("end").asText()).isEqualTo(later + "T16:00");
+
+    // Pages keep the first page's instant: the clock passing the next-day shift's end between
+    // pages neither drops it nor adds anything.
+    JsonNode first = w.expect(get(MINE + "?limit=1").header("Authorization", ana.bearer()), 200);
+    assertThat(starts(first)).containsExactly(d + "T22:00@" + KINSHASA);
+    String cursor = first.get("nextCursor").asText();
+    clock.set(d.plusDays(1).atTime(11, 30).toInstant(ZoneOffset.UTC));
+    JsonNode second =
+        w.expect(
+            get(MINE + "?limit=1&cursor=" + cursor).header("Authorization", ana.bearer()), 200);
+    assertThat(second.get("asOfInstant").asText()).isEqualTo(anchor.toString());
+    assertThat(starts(second)).containsExactly(d.plusDays(1) + "T08:00@" + KINSHASA);
+    JsonNode third =
+        w.expect(
+            get(MINE + "?limit=1&cursor=" + second.get("nextCursor").asText())
+                .header("Authorization", ana.bearer()),
+            200);
+    assertThat(starts(third)).containsExactly(later + "T08:00@" + GOMA);
+    assertThat(third.get("nextCursor").isNull()).isTrue();
+    // A new view at the new instant no longer holds the ended shifts.
+    JsonNode now = w.expect(get(MINE).header("Authorization", ana.bearer()), 200);
+    assertThat(starts(now)).containsExactly(later + "T08:00@" + GOMA);
+
+    // Explicit dates keep the local-start-date view in each schedule's own zone, ended or not.
+    JsonNode dated =
+        w.expect(
+            get(MINE + "?from=" + d + "&to=" + d + "&limit=1")
+                .header("Authorization", ana.bearer()),
+            200);
+    assertThat(dated.get("asOfInstant").isNull()).isTrue();
+    assertThat(dated.get("from").asText()).isEqualTo(d.toString());
+    assertThat(starts(dated)).containsExactly(d + "T08:00@" + KINSHASA);
+    String datedCursor = dated.get("nextCursor").asText();
+    assertThat(
+            starts(
+                w.expect(
+                    get(MINE + "?from=" + d + "&to=" + d + "&limit=1&cursor=" + datedCursor)
+                        .header("Authorization", ana.bearer()),
+                    200)))
+        .containsExactly(d + "T22:00@" + KINSHASA);
+
+    // A cursor of one view is refused in the other, and a tampered one anywhere.
+    String current = first.get("nextCursor").asText();
+    w.problem(
+        get(MINE + "?limit=1&cursor=" + datedCursor).header("Authorization", ana.bearer()),
+        400,
+        "CURSOR_INVALID");
+    w.problem(
+        get(MINE + "?from=" + d + "&to=" + d + "&limit=1&cursor=" + current)
+            .header("Authorization", ana.bearer()),
+        400,
+        "CURSOR_INVALID");
+    String tampered =
+        current.substring(0, 5) + (current.charAt(5) == 'A' ? 'B' : 'A') + current.substring(6);
+    w.problem(
+        get(MINE + "?limit=1&cursor=" + tampered).header("Authorization", ana.bearer()),
+        400,
+        "CURSOR_INVALID");
+    w.problem(
+        get(MINE + "?limit=2&cursor=" + current).header("Authorization", ana.bearer()),
+        400,
+        "CURSOR_INVALID");
   }
 }

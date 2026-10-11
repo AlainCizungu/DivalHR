@@ -2650,7 +2650,7 @@
     "linkRequired": "Votre compte n’est pas encore lié à une fiche employé. Contactez votre administrateur.",
     "loading": "Chargement de votre horaire…",
     "retry": "Réessayer",
-    "asOf": "Créneaux à partir du {{date}}.",
+    "current": "Créneaux en cours et à venir, chacun à l’heure locale de son site.",
     "empty": "Vous n’avez aucun créneau publié à venir.",
     "label": "Mes créneaux",
     "time": "{{start}} – {{end}}",

@@ -892,8 +892,11 @@ class WorkScheduleIntegrationTest {
                     shift("a2", d.plusDays(1), 14, 18, ana.employee()),
                     shift("a3", d.plusDays(2), 8, 12, ana.employee()))));
     JsonNode page = w.expect(mine(ana.bearer(), "?limit=2"), 200);
-    assertThat(page.get("asOf").asText()).isEqualTo(w.today.toString());
-    assertThat(page.get("from").asText()).isEqualTo(w.today.toString());
+    // The default view is instant-based (R100-2): no organization date, no explicit dates.
+    assertThat(page.has("asOf")).isFalse();
+    assertThat(java.time.Instant.parse(page.get("asOfInstant").asText())).isNotNull();
+    assertThat(page.get("from").isNull()).isTrue();
+    assertThat(page.get("to").isNull()).isTrue();
     assertThat(page.get("items")).hasSize(2);
     JsonNode night = page.get("items").get(0);
     assertThat(night.get("scheduleId").asText()).isEqualTo(id);
@@ -929,6 +932,9 @@ class WorkScheduleIntegrationTest {
                     400,
                     "VALIDATION_FAILED")))
         .containsExactly("to:RANGE");
+    // An end date alone is not a view: the default view is instant-based.
+    assertThat(fields(w.problem(mine(ana.bearer(), "?to=" + d), 400, "VALIDATION_FAILED")))
+        .containsExactly("from:REQUIRED");
     // Employees cannot discover the administrators' endpoints.
     assertThat(w.call(list(ana.bearer(), "")).getStatus()).isIn(401, 403);
     assertThat(w.call(detail(ana.bearer(), id)).getStatus()).isIn(401, 403);

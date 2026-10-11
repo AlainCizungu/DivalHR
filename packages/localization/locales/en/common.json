@@ -2650,7 +2650,7 @@
     "linkRequired": "Your account is not linked to an employee record yet. Contact your administrator.",
     "loading": "Loading your schedule…",
     "retry": "Try again",
-    "asOf": "Shifts from {{date}}.",
+    "current": "Shifts in progress and upcoming, each in its site’s local time.",
     "empty": "You have no upcoming published shift.",
     "label": "My shifts",
     "time": "{{start}} – {{end}}",

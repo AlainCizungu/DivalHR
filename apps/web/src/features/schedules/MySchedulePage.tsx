@@ -15,10 +15,11 @@ import {
 type Listing =
   | { kind: 'loading' }
   | { kind: 'failed'; failure: ScheduleFailure }
-  | { kind: 'ready'; items: MyWorkShift[]; nextCursor: string | null; asOf: string };
+  | { kind: 'ready'; items: MyWorkShift[]; nextCursor: string | null };
 
 /**
- * MVP-050A: the employee's own published shifts (« Mon horaire » under My space), upcoming first:
+ * MVP-050A: the employee's own published shifts (« Mon horaire » under My space), in progress and
+ * upcoming first (the server's instant-based default view, R100-2; nothing ended):
  * the work in the current language, the site, the date and local start and end times, with an
  * overnight indicator. Never another employee, an uncovered slot or who published it.
  */
@@ -40,7 +41,7 @@ export function MySchedulePage() {
           cache: 'no-store',
         });
         return data
-          ? { kind: 'ready', items: data.items, nextCursor: data.nextCursor, asOf: data.asOf }
+          ? { kind: 'ready', items: data.items, nextCursor: data.nextCursor }
           : { kind: 'failed', failure: scheduleFailureOf(response, error) };
       } catch {
         return { kind: 'failed', failure: SCHEDULE_NETWORK_FAILURE };
@@ -115,8 +116,8 @@ export function MySchedulePage() {
         </div>
       )}
       {listing.kind === 'ready' && (
-        <p className="muted" data-testid="my-schedule-as-of">
-          {t('mySchedule.asOf', { date: formatDate(language, listing.asOf) })}
+        <p className="muted" data-testid="my-schedule-scope">
+          {t('mySchedule.current')}
         </p>
       )}
       {listing.kind === 'ready' && listing.items.length === 0 && (

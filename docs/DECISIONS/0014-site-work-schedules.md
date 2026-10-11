@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted (Issue #99, architect-approved plan D50A-1 to D50A-12, amended by architecture review
-R100-1 on PR #100: the site, not the organization, is the clock). First scheduling increment
+Accepted (Issue #99, architect-approved plan D50A-1 to D50A-12, amended by architecture reviews
+R100-1 and R100-2 on PR #100: the site, not the organization, is the clock, and the employee's
+default view is instant-based). First scheduling increment
 (MVP-050A); extends ADR 0007 (employment history) and ADR 0008 (separations and lock order).
 
 ## Context
@@ -62,9 +63,19 @@ availability, notification or manager view.
 - The site's time zone and business date are bound into the preview digest, so a site time zone
   changed between preview and publication (no API changes it today: a site is created with its zone)
   or a date that turned past is `WORK_SCHEDULE_PREVIEW_STALE` (or the period error), never a silent
-  republication. The administrators' list and the employee's view take explicit or default dates and
-  bind them, not a time zone, into their cursors; their `asOf` is the organization's business date
-  and is informational (the employee's view starts there by default).
+  republication. The administrators' list takes explicit date filters and binds them, not a time
+  zone, into its cursor; its `asOf` is the organization's business date and is informational.
+- **The employee's default view is instant-based (R100-2).** No single calendar date means "now"
+  across schedules of sites in different time zones: with an organization in Goma (UTC+2) already
+  on October 11 and a site in Kinshasa (UTC+1) still on October 10, a date-based default would hide
+  that evening's Kinshasa shift. Without `from`, `GET /me/work-schedule` therefore captures one
+  server-owned instant from the injectable platform clock and returns the shifts with
+  `end_at > instant`: in progress and to come, never ended. The instant is returned as
+  `asOfInstant` and pinned in the signed cursor (inside the HMAC-protected keyset position, with
+  the view's mode in the bound scope), so every later page reuses it and the clock moving between
+  pages neither adds nor drops a shift. With explicit `from` (and optional `to`), the view keeps the
+  local-start-date semantics, each shift's local start date in its own schedule's site zone; `to`
+  alone is refused. A cursor of one view is refused in the other.
 - The employee's own view returns every shift in the stored snapshot of its own schedule: shifts at
   sites in different zones are shown as published, never converted to one zone.
 - A local time converts only when it maps to exactly one instant (`ZoneRules.getValidOffsets` has one
