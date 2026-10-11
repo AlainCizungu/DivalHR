@@ -4186,7 +4186,7 @@ paths:
         dates in order, at most 31 days, the first today or later in the site's calendar (422
         WORK_SCHEDULE_PERIOD_INVALID, params.reason ORDER, TOO_LONG or PAST); a site of the
         organization in effect on every date (422 WORK_SCHEDULE_SITE_NOT_ACTIVE, unknown and
-        foreign alike); no published schedule of the site
+        foreign alike); no operational (published, not cancelled or replaced, MVP-050B) schedule of the site
         on any of the dates (409 WORK_SCHEDULE_OVERLAP); 1 to 500 slots (400 slots REQUIRED; 422
         WORK_SCHEDULE_LIMIT_EXCEEDED, params.maximum 500). Slot rules are per-slot issues, the
         first one found: WORK_SCHEDULE_SLOT_INVALID (OUTSIDE_PERIOD, END_NOT_AFTER_START,
@@ -4195,7 +4195,7 @@ paths:
         (NOT_FOUND: unknown or foreign, SEPARATED: a separation effective before the slot ends,
         NOT_EMPLOYED: not employed on every local date the slot occupies, NOT_AT_SITE: no placement
         at the site on its start date) and WORK_SCHEDULE_EMPLOYEE_CONFLICT (PUBLISHED: an
-        overlapping published assignment at any site, IN_SCHEDULE: an earlier overlapping slot of
+        overlapping operational assignment at any site, IN_SCHEDULE: an earlier overlapping slot of
         this proposal). Returns the normalized slots with their instants, assigned employees'
         current directory names, issues, derived totals, warnings (UNCOVERED_SLOTS), whether it is
         publishable and the domain-separated previewDigest binding the site's business date and
@@ -4243,15 +4243,19 @@ paths:
       summary: List published site work schedules
       description: >-
         MVP-050A. The organization's published schedules, latest period first (firstDate, then
-        id), optionally of one site and overlapping the dates (ending on or after from, starting on
-        or before to): the site's code and name, the dates, the stored time zone, the derived
-        totals (slots, assigned, uncovered) and the publication time. Never the publisher.
+        id), optionally of one site, of one derived state (status, MVP-050B) and overlapping the
+        dates (ending on or after from, starting on or before to): the site's code and name, the
+        dates, the stored time zone, the derived totals (slots, assigned, uncovered), the
+        publication time and the derived state (PUBLISHED, CANCELLED or REPLACED) with the change
+        instant, the change reason (Restricted HR, tenant administrators only) and the
+        predecessor and successor IDs. Never the publisher or the actor of a change.
         Restricted HR/Operations: a fail-closed disclosure (audit work-schedule.read). The signed
         cursor is bound to the operation, tenant, caller, filters and page size. Shares the
         work-schedule-read limit. Cache-Control private, no-store.
       tags: [people]
       parameters:
         - $ref: "#/components/parameters/WorkScheduleSiteFilter"
+        - $ref: "#/components/parameters/WorkScheduleStatusFilter"
         - $ref: "#/components/parameters/WorkScheduleFrom"
         - $ref: "#/components/parameters/WorkScheduleTo"
         - $ref: "#/components/parameters/Cursor"
@@ -4342,8 +4346,10 @@ paths:
         MVP-050A. One published schedule with every slot (at most 500) in publication order: local
         and instant boundaries, overnight, both labels and, when assigned, the employee's current
         directory fields; an unassigned slot is an uncovered position. Unknown, malformed and
-        foreign-tenant IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. Never the publisher. A
-        fail-closed disclosure (audit work-schedule.read). Shares the work-schedule-read limit.
+        foreign-tenant IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. Any derived state (MVP-050B):
+        a cancelled or replaced schedule keeps its slots as evidence, with its change instant,
+        change reason and successor. Never the publisher or the actor of a change. A fail-closed
+        disclosure (audit work-schedule.read). Shares the work-schedule-read limit.
         Cache-Control private, no-store.
       tags: [people]
       parameters:
@@ -4365,6 +4371,185 @@ paths:
           $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /work-schedules/{scheduleId}/cancellation:
+    post:
+      operationId: cancelWorkSchedule
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Cancel an entirely future published schedule
+      description: >-
+        MVP-050B. Cancels a published schedule whose every slot starts strictly after the server's
+        current instant (409 WORK_SCHEDULE_CHANGE_WINDOW_CLOSED otherwise), with a reason
+        (decision-reason grammar version 1; Restricted HR) and confirm true. Under the tenant's
+        scheduling lock and the schedule's row lock: a schedule already cancelled or replaced is
+        409 WORK_SCHEDULE_ALREADY_CANCELLED or WORK_SCHEDULE_ALREADY_REPLACED; unknown, malformed
+        and foreign IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. One transaction appends the
+        cancellation evidence, removes the schedule's operational coverage (its site dates and
+        employee instants become free; employees no longer see its shifts), and writes the audit
+        record (work-schedule.cancel: IDs, site, dates and counts only) and the outbox event
+        (people.work-schedule.cancelled.v1). The schedule and its slots stay as publication
+        evidence; a cancellation cannot be undone. Only the body's shape is checked before the
+        idempotency decision: an exact retry returns the stored 200 with Idempotent-Replayed true,
+        a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. The reason never enters
+        errors, logs, audit metadata or events. Shares the work-schedule-write limits.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelWorkScheduleRequest"
+      responses:
+        "200":
+          description: Cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkScheduleChangeReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /work-schedules/{scheduleId}/replacement-preview:
+    post:
+      operationId: previewWorkScheduleReplacement
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the full replacement of a future published schedule
+      description: >-
+        MVP-050B. Evaluates every slot of a proposed replacement and its reason against the
+        current facts, exactly like a new publication's preview, except that the original
+        schedule's own coverage does not conflict and every proposed slot must start strictly
+        after the server's current instant (slot issue WORK_SCHEDULE_SLOT_INVALID, reason
+        NOT_FUTURE). The site and the inclusive period are the original's and cannot be sent
+        (body UNKNOWN_PROPERTY); the period may already have begun at the site, since the
+        publication rule PAST does not apply to a replacement (R102-1). The original must be published (409
+        WORK_SCHEDULE_ALREADY_CANCELLED or WORK_SCHEDULE_ALREADY_REPLACED) with every slot still
+        ahead (409 WORK_SCHEDULE_CHANGE_WINDOW_CLOSED); a preview never holds the window open.
+        Stores nothing but its disclosure audit record (work-schedule.replacement-preview).
+        Returns the preview of a publication whose previewDigest also binds the original
+        schedule's ID, derived state and publication facts, and the reason. Restricted HR: a
+        fail-closed disclosure. Shares the work-schedule-write limit. Cache-Control private,
+        no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkScheduleReplacementRequest"
+      responses:
+        "200":
+          description: The evaluated replacement
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkSchedulePreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /work-schedules/{scheduleId}/replacement:
+    post:
+      operationId: replaceWorkSchedule
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Replace a future published schedule with a reviewed proposal
+      description: >-
+        MVP-050B. Replaces the original with exactly the reviewed replacement preview: the same
+        slots and reason, its previewDigest and confirm true. Under the tenant's scheduling lock,
+        the original's row lock and the replacement employees' employments locked FOR SHARE, the
+        state, the change window and every rule and fact are evaluated again: a slot issue is
+        refused with its code (params.position and params.reason); any other difference from the
+        reviewed preview is 409 WORK_SCHEDULE_PREVIEW_STALE. One transaction publishes the new
+        immutable schedule of the original's site and period with its slots, appends the
+        replacement evidence linking both, moves the operational coverage from the original to the
+        successor, and writes the audit record (work-schedule.replace: IDs, site, dates and counts
+        only) and the outbox event (people.work-schedule.replaced.v1); any failure leaves the
+        original fully operational. The original stays as evidence, REPLACED; the successor may
+        itself be replaced later (a chain without branch). Employees then see only the successor's
+        shifts. Only the body's shape is checked before the idempotency decision: an exact retry
+        returns the stored 201 with Idempotent-Replayed true, a changed body on the same key is 409
+        IDEMPOTENCY_KEY_REUSED. The reason, labels, names and numbers never enter errors, logs,
+        audit metadata or events. Shares the work-schedule-write limits. Cache-Control private,
+        no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplaceWorkScheduleRequest"
+      responses:
+        "201":
+          description: Replaced, or the original replacement replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkScheduleChangeReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
         "429":
           $ref: "#/components/responses/TooManyRequests"
   /me/work-schedule:
@@ -4850,6 +5035,12 @@ components:
       schema:
         type: string
         format: uuid
+    WorkScheduleStatusFilter:
+      name: status
+      in: query
+      description: Only schedules in this derived state (MVP-050B).
+      schema:
+        $ref: "#/components/schemas/WorkScheduleStatus"
     WorkScheduleFrom:
       name: from
       in: query
@@ -7880,6 +8071,9 @@ components:
         - WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE
         - WORK_SCHEDULE_EMPLOYEE_CONFLICT
         - WORK_SCHEDULE_LIMIT_EXCEEDED
+        - WORK_SCHEDULE_ALREADY_CANCELLED
+        - WORK_SCHEDULE_ALREADY_REPLACED
+        - WORK_SCHEDULE_CHANGE_WINDOW_CLOSED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -8909,6 +9103,87 @@ components:
           maxItems: 500
           items:
             $ref: "#/components/schemas/WorkScheduleSlotInput"
+    CancelWorkScheduleRequest:
+      type: object
+      description: MVP-050B. The cancellation's reason and the confirmation.
+      required: [reason, confirm]
+      properties:
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: >-
+            Decision-reason grammar version 1 (NFC; no control, format, private-use or
+            noncharacter code point; 2 to 500 code points). Restricted HR.
+        confirm:
+          type: boolean
+          enum: [true]
+    WorkScheduleReplacementRequest:
+      type: object
+      description: >-
+        MVP-050B. Every slot of the replacement and the reason. The site and the period are the
+        original's and cannot be sent.
+      required: [slots, reason]
+      properties:
+        slots:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/WorkScheduleSlotInput"
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: Decision-reason grammar version 1. Restricted HR.
+    ReplaceWorkScheduleRequest:
+      type: object
+      description: MVP-050B. The reviewed replacement, its preview digest and the confirmation.
+      required: [slots, reason, previewDigest, confirm]
+      properties:
+        slots:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/WorkScheduleSlotInput"
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: Decision-reason grammar version 1. Restricted HR.
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        confirm:
+          type: boolean
+          enum: [true]
+    WorkScheduleStatus:
+      type: string
+      description: >-
+        MVP-050B. A schedule's derived state: PUBLISHED (operational), CANCELLED or REPLACED,
+        from append-only evidence.
+      enum: [PUBLISHED, CANCELLED, REPLACED]
+    WorkScheduleChangeReceipt:
+      type: object
+      description: MVP-050B. The receipt of a cancellation or replacement; never the reason or actor.
+      required: [scheduleId, status, changedAt, replacementScheduleId, totals]
+      properties:
+        scheduleId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/WorkScheduleStatus"
+        changedAt:
+          type: string
+          format: date-time
+        replacementScheduleId:
+          type: [string, "null"]
+          format: uuid
+        totals:
+          oneOf:
+            - $ref: "#/components/schemas/WorkScheduleTotals"
+            - type: "null"
     PublishWorkScheduleRequest:
       type: object
       description: MVP-050A. The reviewed proposal, its preview digest and the confirmation.
@@ -8994,6 +9269,7 @@ components:
             - NOT_AT_SITE
             - PUBLISHED
             - IN_SCHEDULE
+            - NOT_FUTURE
     WorkSchedulePreviewSlot:
       type: object
       required:
@@ -9086,7 +9362,19 @@ components:
           $ref: "#/components/schemas/WorkScheduleTotals"
     WorkScheduleSummary:
       type: object
-      required: [id, site, firstDate, lastDate, siteTimezone, totals, publishedAt]
+      required:
+        - id
+        - site
+        - firstDate
+        - lastDate
+        - siteTimezone
+        - totals
+        - publishedAt
+        - status
+        - changedAt
+        - changeReason
+        - replacesScheduleId
+        - replacedByScheduleId
       properties:
         id:
           type: string
@@ -9107,6 +9395,21 @@ components:
         publishedAt:
           type: string
           format: date-time
+        status:
+          $ref: "#/components/schemas/WorkScheduleStatus"
+        changedAt:
+          type: [string, "null"]
+          format: date-time
+          description: The cancellation or replacement instant (MVP-050B).
+        changeReason:
+          type: [string, "null"]
+          description: The cancellation or replacement reason (Restricted HR; administrators only).
+        replacesScheduleId:
+          type: [string, "null"]
+          format: uuid
+        replacedByScheduleId:
+          type: [string, "null"]
+          format: uuid
     WorkSchedulePage:
       type: object
       required: [items, nextCursor, asOf]
@@ -9152,7 +9455,20 @@ components:
             - type: "null"
     WorkScheduleDetail:
       type: object
-      required: [id, site, firstDate, lastDate, siteTimezone, totals, publishedAt, slots]
+      required:
+        - id
+        - site
+        - firstDate
+        - lastDate
+        - siteTimezone
+        - totals
+        - publishedAt
+        - status
+        - changedAt
+        - changeReason
+        - replacesScheduleId
+        - replacedByScheduleId
+        - slots
       properties:
         id:
           type: string
@@ -9173,6 +9489,21 @@ components:
         publishedAt:
           type: string
           format: date-time
+        status:
+          $ref: "#/components/schemas/WorkScheduleStatus"
+        changedAt:
+          type: [string, "null"]
+          format: date-time
+          description: The cancellation or replacement instant (MVP-050B).
+        changeReason:
+          type: [string, "null"]
+          description: The cancellation or replacement reason (Restricted HR; administrators only).
+        replacesScheduleId:
+          type: [string, "null"]
+          format: uuid
+        replacedByScheduleId:
+          type: [string, "null"]
+          format: uuid
         slots:
           type: array
           items:

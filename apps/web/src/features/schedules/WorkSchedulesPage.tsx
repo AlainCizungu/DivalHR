@@ -2,6 +2,7 @@ import type {
   EmployeeSummary,
   WorkScheduleDetail,
   WorkSchedulePreview,
+  WorkScheduleStatus,
   WorkScheduleSummary,
 } from '@divalhr/api-client';
 import { useCallback, useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
@@ -23,13 +24,17 @@ import {
   SCHEDULE_NETWORK_FAILURE,
   SLOT_FIELDS,
   TIME_FIELDS,
+  changeReasonOf,
+  changeReasonValid,
   duplicateSlot,
   emptyScheduleForm,
   emptySlot,
+  formFromDetail,
   formatTime,
   hasProblems,
   issueKey,
   overnight,
+  replacementBodyOf,
   scheduleBodyOf,
   scheduleFailureOf,
   scheduleProblemsOf,
@@ -52,6 +57,19 @@ type Viewing =
   | { kind: 'ready'; detail: WorkScheduleDetail };
 
 const NO_PROBLEMS: FormProblems = { form: new Set(), slots: new Map() };
+
+const STATUSES: WorkScheduleStatus[] = ['PUBLISHED', 'CANCELLED', 'REPLACED'];
+
+const TONES = { PUBLISHED: 'success', CANCELLED: 'danger', REPLACED: 'info' } as const;
+
+/** A cancellation being prepared in the schedule's detail (MVP-050B). */
+interface Cancelling {
+  step: 'edit' | 'review';
+  reason: string;
+  problem: boolean;
+  failure: ScheduleFailure | null;
+  busy: boolean;
+}
 
 /** A refused request: the stable message, its slot and reason, retry delay and reference. */
 function ScheduleAlert({
@@ -116,13 +134,19 @@ function Labels({ en, fr, language }: { en: string; fr: string; language: 'en' |
  * published schedules with their assigned and uncovered totals, one schedule's slots with an
  * uncovered filter, and a new schedule built in the browser (site, period, slots with English and
  * French labels and an optional employee), previewed by the server, reviewed and explicitly
- * confirmed. Nothing is kept in browser storage or put in a URL; there is no saved draft.
+ * confirmed. MVP-050B: each schedule's derived status (published, cancelled, replaced) with its
+ * change and links; an entirely future published schedule can be cancelled (reason, review,
+ * confirmation) or replaced (the builder prefilled from it, site and dates read-only, the current
+ * and proposed schedules reviewed side by side). Nothing is kept in browser storage or put in a
+ * URL; there is no saved draft.
  */
 export function WorkSchedulesPage() {
   const { t, i18n } = useTranslation();
   const { core } = useApi();
   const ids = useId();
   const publishKey = useIdempotencyKey();
+  const replaceKey = useIdempotencyKey();
+  const cancelKey = useIdempotencyKey();
   const language: 'en' | 'fr' = i18n.language.startsWith('fr') ? 'fr' : 'en';
   const [listing, setListing] = useState<Listing>({ kind: 'loading' });
   const [viewing, setViewing] = useState<Viewing | null>(null);
@@ -134,6 +158,14 @@ export function WorkSchedulesPage() {
   const [failure, setFailure] = useState<ScheduleFailure | null>(null);
   const [busy, setBusy] = useState(false);
   const [announcement, setAnnouncement] = useState('');
+  const [statusFilter, setStatusFilter] = useState<WorkScheduleStatus | ''>('');
+  const [replacing, setReplacing] = useState<WorkScheduleDetail | null>(null);
+  const [reason, setReason] = useState('');
+  const [reasonProblem, setReasonProblem] = useState(false);
+  const [cancelling, setCancelling] = useState<Cancelling | null>(null);
+  const builderHeading = useRef<HTMLHeadingElement>(null);
+  const cancelHeading = useRef<HTMLHeadingElement>(null);
+  const cancelBox = useRef<HTMLDivElement>(null);
   const sending = useRef(false);
   const paging = useRef(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -158,7 +190,12 @@ export function WorkSchedulesPage() {
     async (cursor: string | null): Promise<Listing> => {
       try {
         const { data, error, response } = await core.GET('/work-schedules', {
-          params: { query: cursor ? { cursor } : {} },
+          params: {
+            query: {
+              ...(cursor ? { cursor } : {}),
+              ...(statusFilter ? { status: statusFilter } : {}),
+            },
+          },
           cache: 'no-store',
         });
         return data
@@ -168,7 +205,7 @@ export function WorkSchedulesPage() {
         return { kind: 'failed', failure: SCHEDULE_NETWORK_FAILURE };
       }
     },
-    [core],
+    [core, statusFilter],
   );
 
   const reload = useCallback(async () => {
@@ -213,6 +250,7 @@ export function WorkSchedulesPage() {
   const view = async (id: string) => {
     setViewing({ kind: 'loading', id });
     setUncoveredOnly(false);
+    setCancelling(null);
     try {
       const { data, error, response } = await core.GET('/work-schedules/{scheduleId}', {
         params: { path: { scheduleId: id } },
@@ -243,6 +281,14 @@ export function WorkSchedulesPage() {
           from: formatDate(language, first),
           to: formatDate(language, last),
         });
+
+  /** An instant in the schedule's site time zone, in the language's conventions. */
+  const when = (instant: string, zone: string) =>
+    new Intl.DateTimeFormat(language, {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: zone,
+    }).format(new Date(instant));
 
   const times = (start: string, end: string) => {
     const from = splitLocal(start);
@@ -313,20 +359,28 @@ export function WorkSchedulesPage() {
     event.preventDefault();
     if (sending.current) return;
     const found = scheduleProblemsOf(form);
+    const badReason = replacing !== null && !changeReasonValid(reason);
     setProblems(found);
+    setReasonProblem(badReason);
     setFailure(null);
     setAnnouncement('');
-    if (hasProblems(found)) {
+    if (hasProblems(found) || badReason) {
       requestAnimationFrame(() => problemsBox.current?.focus());
       return;
     }
     sending.current = true;
     setBusy(true);
     try {
-      const { data, error, response } = await core.POST('/work-schedules/preview', {
-        body: scheduleBodyOf(form),
-        cache: 'no-store',
-      });
+      const { data, error, response } = replacing
+        ? await core.POST('/work-schedules/{scheduleId}/replacement-preview', {
+            params: { path: { scheduleId: replacing.id } },
+            body: replacementBodyOf(form, reason),
+            cache: 'no-store',
+          })
+        : await core.POST('/work-schedules/preview', {
+            body: scheduleBodyOf(form),
+            cache: 'no-store',
+          });
       if (data) {
         setPreview(data);
         setStep('review');
@@ -343,6 +397,10 @@ export function WorkSchedulesPage() {
 
   const publish = async () => {
     if (!preview || sending.current) return;
+    if (replacing) {
+      await replace(replacing, preview);
+      return;
+    }
     sending.current = true;
     const body = {
       ...scheduleBodyOf(form),
@@ -385,11 +443,142 @@ export function WorkSchedulesPage() {
     }
   };
 
+  /** Leaves the builder's replacement mode for a new, empty schedule. */
+  const stopReplacing = () => {
+    setReplacing(null);
+    setReason('');
+    setReasonProblem(false);
+    setForm(emptyScheduleForm());
+    setProblems(NO_PROBLEMS);
+    setPreview(null);
+    setFailure(null);
+    setStep('edit');
+  };
+
+  const startReplace = (detail: WorkScheduleDetail) => {
+    setReplacing(detail);
+    setForm(formFromDetail(detail));
+    setReason('');
+    setReasonProblem(false);
+    setProblems(NO_PROBLEMS);
+    setPreview(null);
+    setFailure(null);
+    setStep('edit');
+    requestAnimationFrame(() => {
+      builderHeading.current?.focus();
+    });
+  };
+
+  const replace = async (original: WorkScheduleDetail, reviewed: WorkSchedulePreview) => {
+    sending.current = true;
+    const body = {
+      ...replacementBodyOf(form, reason),
+      previewDigest: reviewed.previewDigest,
+      confirm: true as const,
+    };
+    setBusy(true);
+    setFailure(null);
+    try {
+      const { data, error, response } = await core.POST(
+        '/work-schedules/{scheduleId}/replacement',
+        {
+          params: {
+            path: { scheduleId: original.id },
+            // The same replacement keeps its key across retries; any edit is a new key.
+            header: { 'Idempotency-Key': replaceKey.keyFor(body) },
+          },
+          body,
+        },
+      );
+      if (data) {
+        replaceKey.reset();
+        setAnnouncement(
+          t('workSchedules.replaced', {
+            slots: data.totals?.slots ?? 0,
+            uncovered: data.totals?.uncovered ?? 0,
+          }),
+        );
+        stopReplacing();
+        await reload();
+        if (data.replacementScheduleId) void view(data.replacementScheduleId);
+        return;
+      }
+      const refused = scheduleFailureOf(response, error);
+      if (refused.kind === 'stale') setPreview(null);
+      setFailure(refused);
+    } catch {
+      setFailure(SCHEDULE_NETWORK_FAILURE);
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
+  };
+
+  // ------------------------------------------------------------------------------------------
+  // Cancellation
+  // ------------------------------------------------------------------------------------------
+
+  const startCancel = () => {
+    setCancelling({ step: 'edit', reason: '', problem: false, failure: null, busy: false });
+    requestAnimationFrame(() => cancelHeading.current?.focus());
+  };
+
+  const reviewCancel = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!cancelling) return;
+    if (!changeReasonValid(cancelling.reason)) {
+      setCancelling({ ...cancelling, problem: true });
+      requestAnimationFrame(() => document.getElementById(`${ids}-cancel-reason`)?.focus());
+      return;
+    }
+    setCancelling({ ...cancelling, step: 'review', problem: false, failure: null });
+    requestAnimationFrame(() => cancelHeading.current?.focus());
+  };
+
+  const confirmCancel = async (detail: WorkScheduleDetail) => {
+    if (!cancelling || sending.current) return;
+    sending.current = true;
+    const body = { reason: changeReasonOf(cancelling.reason), confirm: true as const };
+    setCancelling({ ...cancelling, busy: true, failure: null });
+    try {
+      const { data, error, response } = await core.POST(
+        '/work-schedules/{scheduleId}/cancellation',
+        {
+          params: {
+            path: { scheduleId: detail.id },
+            header: { 'Idempotency-Key': cancelKey.keyFor(body) },
+          },
+          body,
+        },
+      );
+      if (data) {
+        cancelKey.reset();
+        setAnnouncement(t('workSchedules.cancelled'));
+        setCancelling(null);
+        await reload();
+        void view(detail.id);
+        return;
+      }
+      setCancelling((current) =>
+        current ? { ...current, busy: false, failure: scheduleFailureOf(response, error) } : null,
+      );
+    } catch {
+      setCancelling((current) =>
+        current ? { ...current, busy: false, failure: SCHEDULE_NETWORK_FAILURE } : null,
+      );
+    } finally {
+      sending.current = false;
+    }
+    requestAnimationFrame(() => cancelBox.current?.focus());
+  };
+
   const backToEdit = () => {
     setFailure(null);
     setStep('edit');
     requestAnimationFrame(() =>
-      document.getElementById(`${ids}-site`)?.focus({ preventScroll: false }),
+      document
+        .getElementById(replacing ? `${ids}-reason` : `${ids}-site`)
+        ?.focus({ preventScroll: false }),
     );
   };
 
@@ -423,6 +612,25 @@ export function WorkSchedulesPage() {
 
       <section aria-labelledby={`${ids}-list`} className="card">
         <h2 id={`${ids}-list`}>{t('workSchedules.list.title')}</h2>
+        <div className="field">
+          <label htmlFor={`${ids}-status-filter`}>{t('workSchedules.list.filter')}</label>
+          <select
+            id={`${ids}-status-filter`}
+            value={statusFilter}
+            data-testid="status-filter"
+            onChange={(event) => {
+              setListing({ kind: 'loading' });
+              setStatusFilter(event.target.value as WorkScheduleStatus | '');
+            }}
+          >
+            <option value="">{t('workSchedules.list.filterAll')}</option>
+            {STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {t(`workSchedules.status.${status}`)}
+              </option>
+            ))}
+          </select>
+        </div>
         {listing.kind === 'loading' && <p role="status">{t('workSchedules.list.loading')}</p>}
         {listing.kind === 'failed' && (
           <>
@@ -452,6 +660,7 @@ export function WorkSchedulesPage() {
                 <tr>
                   <th scope="col">{t('workSchedules.columns.site')}</th>
                   <th scope="col">{t('workSchedules.columns.period')}</th>
+                  <th scope="col">{t('workSchedules.columns.status')}</th>
                   <th scope="col">{t('workSchedules.columns.slots')}</th>
                   <th scope="col">{t('workSchedules.columns.assigned')}</th>
                   <th scope="col">{t('workSchedules.columns.uncovered')}</th>
@@ -470,6 +679,11 @@ export function WorkSchedulesPage() {
                         : t('workSchedules.siteUnknown')}
                     </th>
                     <td>{period(item.firstDate, item.lastDate)}</td>
+                    <td>
+                      <StatusBadge tone={TONES[item.status]} testId="schedule-status">
+                        {t(`workSchedules.status.${item.status}`)}
+                      </StatusBadge>
+                    </td>
                     <td>{item.totals.slots}</td>
                     <td>{item.totals.assigned}</td>
                     <td>
@@ -535,6 +749,199 @@ export function WorkSchedulesPage() {
           )}
           {viewing.kind === 'ready' && (
             <>
+              <p data-testid="detail-status">
+                <StatusBadge tone={TONES[viewing.detail.status]} testId="detail-status-badge">
+                  {t(`workSchedules.status.${viewing.detail.status}`)}
+                </StatusBadge>
+              </p>
+              {viewing.detail.changedAt && (
+                <p data-testid="detail-changed">
+                  {t(
+                    viewing.detail.status === 'CANCELLED'
+                      ? 'workSchedules.detail.cancelledAt'
+                      : 'workSchedules.detail.replacedAt',
+                    { date: when(viewing.detail.changedAt, viewing.detail.siteTimezone) },
+                  )}
+                </p>
+              )}
+              {viewing.detail.changeReason && (
+                <p data-testid="detail-reason">
+                  {t('workSchedules.detail.reason', { reason: viewing.detail.changeReason })}
+                </p>
+              )}
+              {(viewing.detail.replacedByScheduleId ?? viewing.detail.replacesScheduleId) && (
+                <p className="dialog-actions" data-testid="detail-links">
+                  {viewing.detail.replacesScheduleId && (
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      data-testid="view-predecessor"
+                      onClick={() => {
+                        if (viewing.detail.replacesScheduleId)
+                          void view(viewing.detail.replacesScheduleId);
+                      }}
+                    >
+                      {t('workSchedules.detail.viewPredecessor')}
+                    </button>
+                  )}
+                  {viewing.detail.replacedByScheduleId && (
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      data-testid="view-successor"
+                      onClick={() => {
+                        if (viewing.detail.replacedByScheduleId)
+                          void view(viewing.detail.replacedByScheduleId);
+                      }}
+                    >
+                      {t('workSchedules.detail.viewSuccessor')}
+                    </button>
+                  )}
+                </p>
+              )}
+              {viewing.detail.status === 'PUBLISHED' && !cancelling && (
+                <div data-testid="detail-actions">
+                  <p className="muted">{t('workSchedules.actions.futureOnly')}</p>
+                  <div className="dialog-actions">
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      onClick={() => {
+                        startReplace(viewing.detail);
+                      }}
+                    >
+                      {t('workSchedules.actions.replace')}
+                    </button>
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      onClick={startCancel}
+                    >
+                      {t('workSchedules.actions.cancel')}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {cancelling && viewing.detail.status === 'PUBLISHED' && (
+                <section
+                  aria-labelledby={`${ids}-cancel`}
+                  className="card"
+                  data-testid="cancel-schedule"
+                >
+                  <h3 id={`${ids}-cancel`} ref={cancelHeading} tabIndex={-1}>
+                    {cancelling.step === 'edit'
+                      ? t('workSchedules.cancel.title')
+                      : t('workSchedules.cancel.review')}
+                  </h3>
+                  {cancelling.failure && (
+                    <ScheduleAlert
+                      failure={cancelling.failure}
+                      alertRef={cancelBox}
+                      testId="cancel-error"
+                    />
+                  )}
+                  {cancelling.step === 'edit' && (
+                    <form noValidate onSubmit={reviewCancel}>
+                      <div className="field">
+                        <label htmlFor={`${ids}-cancel-reason`}>
+                          {t('workSchedules.cancel.reason')}
+                        </label>
+                        <p id={`${ids}-cancel-reason-help`} className="field__help">
+                          {t('workSchedules.cancel.reasonHelp')}
+                        </p>
+                        {cancelling.problem && (
+                          <p id={`${ids}-cancel-reason-error`} className="field__error">
+                            {t('workSchedules.problems.reason')}
+                          </p>
+                        )}
+                        <textarea
+                          id={`${ids}-cancel-reason`}
+                          rows={3}
+                          value={cancelling.reason}
+                          aria-invalid={cancelling.problem ? true : undefined}
+                          aria-describedby={[
+                            `${ids}-cancel-reason-help`,
+                            cancelling.problem ? `${ids}-cancel-reason-error` : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setCancelling((current) =>
+                              current ? { ...current, reason: value } : null,
+                            );
+                          }}
+                        />
+                      </div>
+                      <div className="dialog-actions">
+                        <button type="submit" className="button">
+                          {t('workSchedules.cancel.review')}
+                        </button>
+                        <button
+                          type="button"
+                          className="button button--secondary"
+                          onClick={() => {
+                            setCancelling(null);
+                          }}
+                        >
+                          {t('workSchedules.cancel.keep')}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                  {cancelling.step === 'review' && (
+                    <>
+                      <p data-testid="cancel-summary">
+                        {t('workSchedules.cancel.summary', {
+                          slots: viewing.detail.totals.slots,
+                          assigned: viewing.detail.totals.assigned,
+                        })}
+                      </p>
+                      <p data-testid="cancel-reason">
+                        {t('workSchedules.detail.reason', {
+                          reason: changeReasonOf(cancelling.reason),
+                        })}
+                      </p>
+                      <div className="dialog-actions">
+                        <button
+                          type="button"
+                          className="button"
+                          disabled={cancelling.busy}
+                          aria-busy={cancelling.busy ? true : undefined}
+                          onClick={() => void confirmCancel(viewing.detail)}
+                        >
+                          {cancelling.busy
+                            ? t('workSchedules.cancel.cancelling')
+                            : t('workSchedules.cancel.confirm')}
+                        </button>
+                        <button
+                          type="button"
+                          className="button button--secondary"
+                          disabled={cancelling.busy}
+                          onClick={() => {
+                            setCancelling({ ...cancelling, step: 'edit', failure: null });
+                            requestAnimationFrame(() =>
+                              document.getElementById(`${ids}-cancel-reason`)?.focus(),
+                            );
+                          }}
+                        >
+                          {t('workSchedules.cancel.edit')}
+                        </button>
+                        <button
+                          type="button"
+                          className="button button--secondary"
+                          disabled={cancelling.busy}
+                          onClick={() => {
+                            setCancelling(null);
+                          }}
+                        >
+                          {t('workSchedules.cancel.keep')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </section>
+              )}
               <p data-testid="detail-totals">
                 {t('workSchedules.totals', {
                   slots: viewing.detail.totals.slots,
@@ -616,8 +1023,12 @@ export function WorkSchedulesPage() {
       )}
 
       <section aria-labelledby={`${ids}-create`} className="card" data-testid="create-schedule">
-        <h2 id={`${ids}-create`}>
-          {step === 'edit' ? t('workSchedules.form.title') : t('workSchedules.review.title')}
+        <h2 id={`${ids}-create`} ref={builderHeading} tabIndex={-1}>
+          {replacing
+            ? t('workSchedules.replace.title')
+            : step === 'edit'
+              ? t('workSchedules.form.title')
+              : t('workSchedules.review.title')}
         </h2>
         {failure && <ScheduleAlert failure={failure} alertRef={failureBox} testId="create-error" />}
         {step === 'edit' && (
@@ -625,7 +1036,7 @@ export function WorkSchedulesPage() {
             <p className="muted">
               {t('workSchedules.form.intro', { days: MAX_DAYS, slots: MAX_SLOTS })}
             </p>
-            {(formProblems.length > 0 || slotProblems.length > 0) && !failure && (
+            {(formProblems.length > 0 || slotProblems.length > 0 || reasonProblem) && !failure && (
               <div
                 className="error-summary"
                 role="alert"
@@ -635,6 +1046,11 @@ export function WorkSchedulesPage() {
               >
                 <p>{t('employees.form.problems.title')}</p>
                 <ul>
+                  {reasonProblem && (
+                    <li>
+                      <a href={`#${ids}-reason`}>{t('workSchedules.problems.reason')}</a>
+                    </li>
+                  )}
                   {formProblems.map((field) => (
                     <li key={field}>
                       <a href={`#${ids}-${field}`}>{t(`workSchedules.problems.${field}`)}</a>
@@ -653,92 +1069,144 @@ export function WorkSchedulesPage() {
                 </ul>
               </div>
             )}
-            <fieldset className="field" data-testid="site-choice">
-              <legend>{t('workSchedules.form.site')}</legend>
-              {(legalEntities.status === 'failed' || sites.status === 'failed') && (
-                <p className="field__error" role="alert">
-                  {t('workSchedules.form.sitesUnavailable')}
+            {replacing ? (
+              <div data-testid="replace-fixed">
+                <p>{t('workSchedules.replace.intro')}</p>
+                <p data-testid="replace-site">
+                  {t('workSchedules.replace.site', {
+                    site: replacing.site.name
+                      ? t('workSchedules.siteName', {
+                          name: replacing.site.name,
+                          code: replacing.site.code,
+                        })
+                      : t('workSchedules.siteUnknown'),
+                  })}
                 </p>
-              )}
-              <label htmlFor={`${ids}-legal-entity`}>{t('workSchedules.form.legalEntity')}</label>
-              <select
-                id={`${ids}-legal-entity`}
-                value={form.legalEntityId}
-                onChange={(event) => {
-                  edit({ legalEntityId: event.target.value, siteId: '' });
-                }}
-              >
-                <option value="">{t('workSchedules.form.chooseLegalEntity')}</option>
-                {legalEntities.items.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {t('workSchedules.siteName', { name: option.name, code: option.code })}
-                  </option>
-                ))}
-              </select>
-              <label htmlFor={`${ids}-site`}>{t('workSchedules.form.siteLabel')}</label>
-              {problems.form.has('site') && (
-                <p id={`${ids}-site-error`} className="field__error">
-                  {t('workSchedules.problems.site')}
+                <p data-testid="replace-period">
+                  {t('workSchedules.replace.period', {
+                    period: period(replacing.firstDate, replacing.lastDate),
+                  })}
                 </p>
-              )}
-              <select
-                id={`${ids}-site`}
-                value={form.siteId}
-                disabled={!form.legalEntityId}
-                aria-invalid={problems.form.has('site') ? true : undefined}
-                aria-describedby={problems.form.has('site') ? `${ids}-site-error` : undefined}
-                onChange={(event) => {
-                  edit({ siteId: event.target.value });
-                }}
-              >
-                <option value="">{t('workSchedules.form.chooseSite')}</option>
-                {sites.items.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {t('workSchedules.siteName', { name: option.name, code: option.code })}
-                  </option>
-                ))}
-              </select>
-            </fieldset>
-            <p id={`${ids}-dates-help`} className="field__help">
-              {t('workSchedules.form.datesHelp', { days: MAX_DAYS })}
-            </p>
-            {PERIOD_FIELDS.map((field) => (
-              <div className="field" key={field}>
-                <label htmlFor={`${ids}-${field}`}>{t(`workSchedules.form.${field}`)}</label>
-                {problems.form.has(field) && (
-                  <p id={`${ids}-${field}-error`} className="field__error">
-                    {t(`workSchedules.problems.${field}`)}
+                <div className="field">
+                  <label htmlFor={`${ids}-reason`}>{t('workSchedules.replace.reason')}</label>
+                  <p id={`${ids}-reason-help`} className="field__help">
+                    {t('workSchedules.cancel.reasonHelp')}
                   </p>
-                )}
-                <input
-                  id={`${ids}-${field}`}
-                  type="date"
-                  value={form[field]}
-                  aria-invalid={problems.form.has(field) ? true : undefined}
-                  aria-describedby={[
-                    `${ids}-dates-help`,
-                    problems.form.has(field) ? `${ids}-${field}-error` : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setForm((previous) => ({
-                      ...previous,
-                      [field]: value,
-                      // A new first date fills the slots that have no date yet.
-                      slots:
-                        field === 'firstDate'
-                          ? previous.slots.map((slot) =>
-                              slot.date ? slot : { ...slot, date: value },
-                            )
-                          : previous.slots,
-                    }));
-                    setPreview(null);
-                  }}
-                />
+                  {reasonProblem && (
+                    <p id={`${ids}-reason-error`} className="field__error">
+                      {t('workSchedules.problems.reason')}
+                    </p>
+                  )}
+                  <textarea
+                    id={`${ids}-reason`}
+                    rows={3}
+                    value={reason}
+                    aria-invalid={reasonProblem ? true : undefined}
+                    aria-describedby={[
+                      `${ids}-reason-help`,
+                      reasonProblem ? `${ids}-reason-error` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onChange={(event) => {
+                      setReason(event.target.value);
+                      setPreview(null);
+                    }}
+                  />
+                </div>
               </div>
-            ))}
+            ) : (
+              <>
+                <fieldset className="field" data-testid="site-choice">
+                  <legend>{t('workSchedules.form.site')}</legend>
+                  {(legalEntities.status === 'failed' || sites.status === 'failed') && (
+                    <p className="field__error" role="alert">
+                      {t('workSchedules.form.sitesUnavailable')}
+                    </p>
+                  )}
+                  <label htmlFor={`${ids}-legal-entity`}>
+                    {t('workSchedules.form.legalEntity')}
+                  </label>
+                  <select
+                    id={`${ids}-legal-entity`}
+                    value={form.legalEntityId}
+                    onChange={(event) => {
+                      edit({ legalEntityId: event.target.value, siteId: '' });
+                    }}
+                  >
+                    <option value="">{t('workSchedules.form.chooseLegalEntity')}</option>
+                    {legalEntities.items.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {t('workSchedules.siteName', { name: option.name, code: option.code })}
+                      </option>
+                    ))}
+                  </select>
+                  <label htmlFor={`${ids}-site`}>{t('workSchedules.form.siteLabel')}</label>
+                  {problems.form.has('site') && (
+                    <p id={`${ids}-site-error`} className="field__error">
+                      {t('workSchedules.problems.site')}
+                    </p>
+                  )}
+                  <select
+                    id={`${ids}-site`}
+                    value={form.siteId}
+                    disabled={!form.legalEntityId}
+                    aria-invalid={problems.form.has('site') ? true : undefined}
+                    aria-describedby={problems.form.has('site') ? `${ids}-site-error` : undefined}
+                    onChange={(event) => {
+                      edit({ siteId: event.target.value });
+                    }}
+                  >
+                    <option value="">{t('workSchedules.form.chooseSite')}</option>
+                    {sites.items.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {t('workSchedules.siteName', { name: option.name, code: option.code })}
+                      </option>
+                    ))}
+                  </select>
+                </fieldset>
+                <p id={`${ids}-dates-help`} className="field__help">
+                  {t('workSchedules.form.datesHelp', { days: MAX_DAYS })}
+                </p>
+                {PERIOD_FIELDS.map((field) => (
+                  <div className="field" key={field}>
+                    <label htmlFor={`${ids}-${field}`}>{t(`workSchedules.form.${field}`)}</label>
+                    {problems.form.has(field) && (
+                      <p id={`${ids}-${field}-error`} className="field__error">
+                        {t(`workSchedules.problems.${field}`)}
+                      </p>
+                    )}
+                    <input
+                      id={`${ids}-${field}`}
+                      type="date"
+                      value={form[field]}
+                      aria-invalid={problems.form.has(field) ? true : undefined}
+                      aria-describedby={[
+                        `${ids}-dates-help`,
+                        problems.form.has(field) ? `${ids}-${field}-error` : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setForm((previous) => ({
+                          ...previous,
+                          [field]: value,
+                          // A new first date fills the slots that have no date yet.
+                          slots:
+                            field === 'firstDate'
+                              ? previous.slots.map((slot) =>
+                                  slot.date ? slot : { ...slot, date: value },
+                                )
+                              : previous.slots,
+                        }));
+                        setPreview(null);
+                      }}
+                    />
+                  </div>
+                ))}
+              </>
+            )}
             <h3 id={`${ids}-slots`}>
               {t('workSchedules.form.slots', { count: form.slots.length })}
             </h3>
@@ -879,6 +1347,16 @@ export function WorkSchedulesPage() {
               >
                 {busy ? t('workSchedules.form.previewing') : t('workSchedules.form.preview')}
               </button>
+              {replacing && (
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  disabled={busy}
+                  onClick={stopReplacing}
+                >
+                  {t('workSchedules.replace.abandon')}
+                </button>
+              )}
             </div>
           </form>
         )}
@@ -909,6 +1387,55 @@ export function WorkSchedulesPage() {
             {!preview.publishable && (
               <div className="error-summary" role="alert" data-testid="review-blocked">
                 <p>{t('workSchedules.review.blocked')}</p>
+              </div>
+            )}
+            {replacing && (
+              <div data-testid="review-current">
+                <h4>{t('workSchedules.replace.current')}</h4>
+                <p className="muted">
+                  {t('workSchedules.totals', {
+                    slots: replacing.totals.slots,
+                    assigned: replacing.totals.assigned,
+                    uncovered: replacing.totals.uncovered,
+                  })}
+                </p>
+                <ScrollRegion label={t('workSchedules.replace.currentLabel')}>
+                  <table>
+                    <caption className="visually-hidden">
+                      {t('workSchedules.replace.currentLabel')}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{t('workSchedules.columns.when')}</th>
+                        <th scope="col">{t('workSchedules.columns.work')}</th>
+                        <th scope="col">{t('workSchedules.columns.employee')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {replacing.slots.map((slot) => (
+                        <tr key={slot.id} data-testid="current-slot">
+                          <th scope="row">{times(slot.start, slot.end)}</th>
+                          <td>
+                            <Labels en={slot.labels.en} fr={slot.labels.fr} language={language} />
+                          </td>
+                          <td>
+                            {slot.employee ? (
+                              name(slot.employee)
+                            ) : (
+                              <StatusBadge tone="warning">
+                                {t('workSchedules.uncovered')}
+                              </StatusBadge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ScrollRegion>
+                <h4>{t('workSchedules.replace.proposed')}</h4>
+                <p data-testid="review-reason">
+                  {t('workSchedules.detail.reason', { reason: changeReasonOf(reason) })}
+                </p>
               </div>
             )}
             <ScrollRegion label={t('workSchedules.review.label')}>
@@ -954,7 +1481,11 @@ export function WorkSchedulesPage() {
                 </tbody>
               </table>
             </ScrollRegion>
-            <p>{t('workSchedules.review.confirmText')}</p>
+            <p>
+              {replacing
+                ? t('workSchedules.replace.confirmText')
+                : t('workSchedules.review.confirmText')}
+            </p>
             <div className="dialog-actions">
               <button
                 type="button"
@@ -963,7 +1494,13 @@ export function WorkSchedulesPage() {
                 aria-busy={busy ? true : undefined}
                 onClick={() => void publish()}
               >
-                {busy ? t('workSchedules.review.publishing') : t('workSchedules.review.publish')}
+                {replacing
+                  ? busy
+                    ? t('workSchedules.replace.replacing')
+                    : t('workSchedules.replace.confirm')
+                  : busy
+                    ? t('workSchedules.review.publishing')
+                    : t('workSchedules.review.publish')}
               </button>
               <button
                 type="button"

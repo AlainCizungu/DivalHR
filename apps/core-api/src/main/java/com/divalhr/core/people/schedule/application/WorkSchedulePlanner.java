@@ -139,6 +139,16 @@ public class WorkSchedulePlanner {
   }
 
   /**
+   * What a replacement proposal is evaluated against (MVP-050B, D50B-6): the original schedule,
+   * whose operational coverage is ignored, and the mutation's server instant, after which every
+   * proposed slot must start.
+   *
+   * @param scheduleId the schedule being replaced
+   * @param notBefore the server instant every slot must start after
+   */
+  public record Replacing(UUID scheduleId, Instant notBefore) {}
+
+  /**
    * Evaluates a proposal now.
    *
    * @param tenant verified tenant
@@ -147,6 +157,23 @@ public class WorkSchedulePlanner {
    * @throws ApiException on a whole-schedule rule
    */
   public Plan plan(TenantId tenant, WorkScheduleCommand command) {
+    return plan(tenant, command, null);
+  }
+
+  /**
+   * Evaluates a proposal now, as a new publication or as the replacement of a schedule: every rule
+   * is the same, except that the original's own coverage does not conflict and every slot must
+   * start after the replacement's instant ({@code WORK_SCHEDULE_SLOT_INVALID}, reason {@code
+   * NOT_FUTURE}).
+   *
+   * @param tenant verified tenant
+   * @param command the proposal
+   * @param replacing the schedule being replaced, or {@code null} for a new publication
+   * @return the plan
+   * @throws ApiException on a whole-schedule rule
+   */
+  public Plan plan(TenantId tenant, WorkScheduleCommand command, Replacing replacing) {
+    UUID excluding = replacing == null ? null : replacing.scheduleId();
     LocalDate first = command.firstDate();
     LocalDate last = command.lastDate();
     if (last.isBefore(first)) {
@@ -161,18 +188,27 @@ public class WorkSchedulePlanner {
       throw new ApiException(ErrorCode.WORK_SCHEDULE_SITE_NOT_ACTIVE, Map.of());
     }
     LocalDate today = calendar.today(zone);
-    if (first.isBefore(today)) {
+    // A new publication starts today or later at the site. A replacement keeps the original's
+    // period, which may have begun: it is bound instead by the change window, every original and
+    // proposed slot starting after the server's instant (D50B-4, R102-1).
+    if (replacing == null && first.isBefore(today)) {
       throw period("PAST");
     }
     if (!site.effectiveThroughout(first, last)) {
       throw new ApiException(ErrorCode.WORK_SCHEDULE_SITE_NOT_ACTIVE, Map.of());
     }
-    if (schedules.siteCovered(tenant, site.id(), first, last)) {
+    if (schedules.siteCovered(tenant, site.id(), first, last, excluding)) {
       throw new ApiException(ErrorCode.WORK_SCHEDULE_OVERLAP, Map.of());
     }
     List<PlannedSlot> slots = new ArrayList<>(command.slots().size());
     for (SlotDraft draft : command.slots()) {
-      slots.add(convert(draft, zone, first, last));
+      PlannedSlot slot = convert(draft, zone, first, last);
+      if (replacing != null
+          && slot.issue() == null
+          && !slot.startAt().isAfter(replacing.notBefore())) {
+        slot = slot.withIssue(new SlotIssue(SlotIssue.SLOT_INVALID, "NOT_FUTURE"));
+      }
+      slots.add(slot);
     }
     Set<UUID> employees = new LinkedHashSet<>();
     Instant from = first.atStartOfDay(zone).toInstant();
@@ -183,7 +219,7 @@ public class WorkSchedulePlanner {
       }
     }
     Map<UUID, EmployeeFacts> facts =
-        schedules.facts(tenant, employees, first, last.plusDays(1), from, to);
+        schedules.facts(tenant, employees, first, last.plusDays(1), from, to, excluding);
     slots = eligible(slots, facts, site.id());
     String digest = digest(tenant, today, zone, site, first, last, slots, facts);
     return new Plan(today, zone, site, first, last, slots, facts, digest);

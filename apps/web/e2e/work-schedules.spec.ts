@@ -22,6 +22,13 @@ import {
 // and English. The assigned employee sees only their own shift in French and English; the
 // unrelated employee sees none and cannot reach the administrators' endpoints. axe, keyboard use,
 // reflow at 320 px, 390 px and 200 % zoom, browser storage and URLs are checked.
+//
+// MVP-050B (Issue #101). In English the administrator replaces that future schedule from the
+// prefilled builder (site and dates fixed): Ana's shift goes to Ben, with a reason; the current and
+// proposed slots are reviewed side by side. The original stays as a record, marked replaced, with
+// its reason and a link to its successor, and a second terminal action on it is refused. Ana then
+// sees no shift and Ben sees his, in French and English. In French the administrator cancels the
+// replacement with a reason; Ben then sees no shift.
 
 const stamp = Date.now().toString(36).toUpperCase().slice(-6);
 const lower = stamp.toLowerCase();
@@ -179,7 +186,7 @@ async function fillSlot(
   }
 }
 
-test.describe.serial('MVP-050A: site work schedules', () => {
+test.describe.serial('MVP-050A and MVP-050B: site work schedules', () => {
   test('setup: a new site, two placed employees with linked access', async ({ page, browser }) => {
     test.setTimeout(300_000);
     const bearer = await signIn(page, USERS.adminA, 'fr');
@@ -379,6 +386,155 @@ test.describe.serial('MVP-050A: site work schedules', () => {
     ).text();
     expect(own).not.toContain(ANA_FAMILY);
     expect(own).not.toContain(DAY_FR);
+    await clean(other);
+    await context.close();
+  });
+
+  test('the administrator replaces the schedule in English; the original stays a record', async ({
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    const bearer = await signIn(page, USERS.adminA, 'fr');
+    await page.getByRole('button', { name: 'English', exact: true }).click();
+    await primaryNav(page).getByRole('link', { name: 'Schedules', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Schedules' })).toBeVisible();
+    const row = page.getByTestId('schedule-row').filter({ hasText: SITE_NAME });
+    await expect(row.getByTestId('schedule-status')).toHaveText('Published');
+    await row.getByRole('button', { name: /^View the schedule of/u }).click();
+    const detail = page.getByTestId('schedule-detail');
+    await expect(detail.getByTestId('detail-actions')).toContainText(
+      'before its first slot starts',
+    );
+    await detail.getByRole('button', { name: 'Replace schedule', exact: true }).click();
+    const builder = page.getByTestId('create-schedule');
+    await expect(builder.getByRole('heading', { name: 'Replace the schedule' })).toBeFocused();
+    await expect(builder.getByTestId('replace-site')).toContainText(SITE_NAME);
+    await expect(builder.getByTestId('site-choice')).toHaveCount(0);
+    await expect(builder.getByTestId('slot')).toHaveCount(2);
+    // Ana's day shift goes to Ben.
+    const picker = builder.getByTestId('slot').nth(0).getByTestId('slot-employee');
+    await expect(picker).toContainText(ANA_FAMILY);
+    await picker.getByRole('button', { name: 'Choose another employee' }).click();
+    await picker.getByLabel('Find by employee number or name').fill(BEN_NUMBER);
+    await picker.getByRole('button', { name: 'Search', exact: true }).click();
+    await picker.getByRole('button', { name: new RegExp(`\\(${BEN_NUMBER}\\)$`, 'u') }).click();
+    await builder.getByLabel('Reason for the replacement').fill('Inventory recount');
+    await expectAccessible(page);
+    await noOverflow(page);
+    await builder.getByRole('button', { name: 'Preview the schedule' }).click();
+    const review = page.getByTestId('schedule-review');
+    await expect(review.getByTestId('current-slot')).toHaveCount(2);
+    await expect(review.getByTestId('current-slot').nth(0)).toContainText(ANA_FAMILY);
+    await expect(review.getByTestId('review-slot')).toHaveCount(2);
+    await expect(review.getByTestId('review-slot').nth(0)).toContainText(BEN_FAMILY);
+    await expect(review.getByTestId('review-reason')).toHaveText('Reason: Inventory recount');
+    await expectAccessible(page);
+    await noOverflow(page);
+    await review.getByRole('button', { name: 'Confirm the replacement' }).click();
+    await expect(page.getByTestId('announcer')).toContainText('Schedule replaced');
+    await expect(detail.getByTestId('detail-status-badge')).toHaveText('Published');
+    await expect(detail.getByTestId('detail-slot').nth(0)).toContainText(BEN_FAMILY);
+    await detail.getByTestId('view-predecessor').click();
+    await expect(detail.getByTestId('detail-status-badge')).toHaveText('Replaced');
+    await expect(detail.getByTestId('detail-changed')).toContainText('Replaced on');
+    await expect(detail.getByTestId('detail-reason')).toHaveText('Reason: Inventory recount');
+    await expect(detail.getByTestId('detail-actions')).toHaveCount(0);
+    await expect(detail.getByTestId('view-successor')).toBeVisible();
+    await expectAccessible(page);
+    await page.getByTestId('status-filter').selectOption('REPLACED');
+    await expect(
+      page
+        .getByTestId('schedule-row')
+        .filter({ hasText: SITE_NAME })
+        .getByTestId('schedule-status'),
+    ).toHaveText('Replaced');
+    await clean(page);
+
+    // One terminal action per schedule.
+    const original = sql(
+      `SELECT r.schedule_id FROM people.work_schedule_replacement r
+       JOIN people.work_schedule s ON s.tenant_id = r.tenant_id AND s.id = r.schedule_id
+       JOIN tenant.site t ON t.tenant_id = s.tenant_id AND t.id = s.site_id
+       WHERE r.tenant_id = '${TENANT_A}' AND t.code = '${SITE}'`,
+    );
+    const again = await post(page, bearer, `/work-schedules/${original}/cancellation`, 'again', {
+      reason: 'Too late',
+      confirm: true,
+    });
+    expect(again.status()).toBe(409);
+    expect(((await again.json()) as { code: string }).code).toBe('WORK_SCHEDULE_ALREADY_REPLACED');
+  });
+
+  test('after the replacement Ana sees no shift and Ben sees his own', async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(180_000);
+    await signIn(page, [ANA_EMAIL, PASSWORD], 'fr', undefined);
+    await primaryNav(page).getByRole('link', { name: 'Mon horaire', exact: true }).click();
+    await expect(page.getByTestId('my-schedule-empty')).toBeVisible();
+    await expectAccessible(page);
+
+    const context = await browser.newContext({ locale: 'fr-FR' });
+    const other = await context.newPage();
+    await signIn(other, [BEN_EMAIL, PASSWORD], 'fr', undefined);
+    await primaryNav(other).getByRole('link', { name: 'Mon horaire', exact: true }).click();
+    const shifts = other.getByTestId('my-shift');
+    await expect(shifts).toHaveCount(1);
+    await expect(shifts.getByTestId('my-shift-label')).toHaveText(DAY_FR);
+    await expect(other.getByRole('main')).not.toContainText(ANA_FAMILY);
+    await expectAccessible(other);
+    await other.getByRole('button', { name: 'English', exact: true }).click();
+    await expect(shifts.getByTestId('my-shift-label')).toHaveText(DAY_EN);
+    await expect(other.getByRole('main')).not.toContainText('Inventory');
+    await expectAccessible(other);
+    await noOverflow(other);
+    await clean(other);
+    await context.close();
+  });
+
+  test('the administrator cancels the replacement in French; Ben no longer sees it', async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(240_000);
+    await signIn(page, USERS.adminA, 'fr');
+    await primaryNav(page).getByRole('link', { name: 'Horaires', exact: true }).click();
+    await page.getByTestId('status-filter').selectOption('PUBLISHED');
+    const row = page.getByTestId('schedule-row').filter({ hasText: SITE_NAME });
+    await expect(row).toHaveCount(1);
+    await row.getByRole('button', { name: /^Voir l’horaire de/u }).click();
+    const detail = page.getByTestId('schedule-detail');
+    await expect(detail.getByTestId('view-predecessor')).toBeVisible();
+    await detail.getByRole('button', { name: 'Annuler l’horaire', exact: true }).click();
+    const panel = page.getByTestId('cancel-schedule');
+    await expect(panel.getByRole('heading', { name: 'Annuler cet horaire' })).toBeFocused();
+    // An empty reason is named and focused.
+    await panel.getByRole('button', { name: 'Vérifier l’annulation' }).click();
+    await expect(panel.getByLabel('Motif de l’annulation')).toBeFocused();
+    await expect(panel.getByLabel('Motif de l’annulation')).toHaveAttribute('aria-invalid', 'true');
+    await panel.getByLabel('Motif de l’annulation').fill('Fermeture exceptionnelle du magasin');
+    await panel.getByRole('button', { name: 'Vérifier l’annulation' }).click();
+    await expect(panel.getByTestId('cancel-summary')).toContainText('2 créneaux');
+    await expect(panel.getByTestId('cancel-reason')).toHaveText(
+      'Motif : Fermeture exceptionnelle du magasin',
+    );
+    await expectAccessible(page);
+    await noOverflow(page);
+    await panel.getByRole('button', { name: 'Confirmer l’annulation' }).click();
+    await expect(page.getByTestId('announcer')).toContainText('Horaire annulé');
+    await expect(detail.getByTestId('detail-status-badge')).toHaveText('Annulé');
+    await expect(detail.getByTestId('detail-changed')).toContainText('Annulé le');
+    await expect(detail.getByTestId('detail-actions')).toHaveCount(0);
+    await expectAccessible(page);
+    await clean(page);
+
+    const context = await browser.newContext({ locale: 'fr-FR' });
+    const other = await context.newPage();
+    await signIn(other, [BEN_EMAIL, PASSWORD], 'fr', undefined);
+    await primaryNav(other).getByRole('link', { name: 'Mon horaire', exact: true }).click();
+    await expect(other.getByTestId('my-schedule-empty')).toBeVisible();
+    await expect(other.getByRole('main')).not.toContainText('Fermeture');
     await clean(other);
     await context.close();
   });

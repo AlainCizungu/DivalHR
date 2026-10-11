@@ -5,16 +5,22 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
 /**
- * The V25 constraints a publication may race into, and the integrity-violation constraint name of a
- * failure (never returned to clients or logs).
+ * The V25 and V26 constraints a publication, cancellation or replacement may race into, and the
+ * integrity-violation constraint name of a failure (never returned to clients or logs).
  */
 public final class ScheduleConstraintViolations {
 
-  /** One published schedule per site and date (V25). */
+  /** One operational schedule per site and date (V25; on the site coverage since V26). */
   public static final String SITE_OVERLAP = "work_schedule_site_no_overlap";
 
-  /** No overlapping assigned instants for an employee (V25). */
+  /** No overlapping operational assigned instants for an employee (V25; slot coverage, V26). */
   public static final String EMPLOYEE_OVERLAP = "work_schedule_slot_employee_no_overlap";
+
+  /** At most one terminal action per schedule (V26). */
+  public static final String SINGLE_TERMINAL = "work_schedule_single_terminal";
+
+  /** A terminal action only while every slot starts later (V26). */
+  public static final String CHANGE_WINDOW = "work_schedule_change_window";
 
   private ScheduleConstraintViolations() {}
 

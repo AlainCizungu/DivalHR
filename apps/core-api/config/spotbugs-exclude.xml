@@ -89,6 +89,8 @@
       <Class name="com.divalhr.core.people.schedule.application.WorkScheduleService"/>
       <Class name="com.divalhr.core.people.schedule.application.MyWorkScheduleService"/>
       <Class name="com.divalhr.core.people.schedule.application.WorkSchedulePlanner"/>
+      <Class name="com.divalhr.core.people.schedule.application.WorkScheduleChangeService"/>
+      <Class name="com.divalhr.core.people.schedule.api.WorkScheduleController"/>
       <Class name="com.divalhr.core.people.schedule.internal.JdbcWorkScheduleRepository"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>

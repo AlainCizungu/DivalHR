@@ -319,7 +319,16 @@ public enum ErrorCode {
    */
   WORK_SCHEDULE_EMPLOYEE_CONFLICT(HttpStatus.CONFLICT),
   /** More than 500 slots in one publication (MVP-050A; params.maximum). */
-  WORK_SCHEDULE_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT);
+  WORK_SCHEDULE_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** The schedule is already cancelled: nothing more can change (MVP-050B; no params). */
+  WORK_SCHEDULE_ALREADY_CANCELLED(HttpStatus.CONFLICT),
+  /** The schedule is already replaced: change its successor instead (MVP-050B; no params). */
+  WORK_SCHEDULE_ALREADY_REPLACED(HttpStatus.CONFLICT),
+  /**
+   * A slot of the schedule has already started: it can no longer be cancelled or replaced
+   * (MVP-050B; no params).
+   */
+  WORK_SCHEDULE_CHANGE_WINDOW_CLOSED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

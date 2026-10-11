@@ -294,6 +294,71 @@ final class ScheduleWorld {
     return key == null ? request : request.header("Idempotency-Key", key);
   }
 
+  /** The cancellation of a schedule (MVP-050B). */
+  static MockHttpServletRequestBuilder cancel(String bearer, String key, String id, String reason)
+      throws Exception {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("reason", reason);
+    body.put("confirm", true);
+    MockHttpServletRequestBuilder request =
+        Employees.postJson(
+            bearer, SCHEDULES + "/" + id + "/cancellation", JSON.writeValueAsString(body));
+    return key == null ? request : request.header("Idempotency-Key", key);
+  }
+
+  /** The replacement preview of a schedule (MVP-050B). */
+  static MockHttpServletRequestBuilder replacementPreview(
+      String bearer, String id, List<Map<String, Object>> slots, String reason) throws Exception {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("slots", slots);
+    body.put("reason", reason);
+    return Employees.postJson(
+        bearer, SCHEDULES + "/" + id + "/replacement-preview", JSON.writeValueAsString(body));
+  }
+
+  /** The replacement of a schedule by a previewed proposal (MVP-050B). */
+  static MockHttpServletRequestBuilder replace(
+      String bearer,
+      String key,
+      String id,
+      List<Map<String, Object>> slots,
+      String reason,
+      String digest)
+      throws Exception {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("slots", slots);
+    body.put("reason", reason);
+    body.put("previewDigest", digest);
+    body.put("confirm", true);
+    MockHttpServletRequestBuilder request =
+        Employees.postJson(
+            bearer, SCHEDULES + "/" + id + "/replacement", JSON.writeValueAsString(body));
+    return key == null ? request : request.header("Idempotency-Key", key);
+  }
+
+  /** Previews a replacement (expecting it publishable) and returns its digest. */
+  String replacementDigest(String id, List<Map<String, Object>> slots, String reason)
+      throws Exception {
+    JsonNode preview = expect(replacementPreview(admin, id, slots, reason), 200);
+    assertThat(preview.get("publishable").asBoolean()).as("publishable").isTrue();
+    return preview.get("previewDigest").asText();
+  }
+
+  /** Previews and replaces; returns the successor's id. */
+  String replaced(String id, List<Map<String, Object>> slots, String reason) throws Exception {
+    String digest = replacementDigest(id, slots, reason);
+    return expect(replace(admin, Organizations.newKey(), id, slots, reason, digest), 201)
+        .get("replacementScheduleId")
+        .asText();
+  }
+
+  /** The derived state of a schedule (administrators' detail). */
+  String status(String id) throws Exception {
+    return expect(get(SCHEDULES + "/" + id).header("Authorization", admin), 200)
+        .get("status")
+        .asText();
+  }
+
   /** Previews (expecting a publishable preview) and returns its digest. */
   String digest(Map<String, Object> proposal) throws Exception {
     JsonNode preview = expect(preview(admin, proposal), 200);
