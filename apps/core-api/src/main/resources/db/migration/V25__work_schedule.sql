@@ -6,8 +6,9 @@
 -- Ownership: the people module owns both tables; only the bounded com.divalhr.core.people.schedule
 -- package reads or writes them. Keys reference people's own employee rows and the tenant root, and
 -- (a deliberate integrity exception, ADR 0014, D50A-6) the tenant module's site through the
--- composite key tenant.site (tenant_id, id), so a schedule can never name another tenant's site.
--- Application code still reads sites only through the OrganizationPlacementDirectory port.
+-- composite key tenant.site (tenant_id, id), so a schedule can never name another tenant's site;
+-- the same exception lets work_schedule_site_timezone compare the snapshot with the site's time
+-- zone. Application code still reads sites only through the OrganizationPlacementDirectory port.
 --
 -- Classification: schedules and assignments are Restricted HR/Operations; slot labels are internal
 -- operational data. The publisher subject is evidence only and is never returned by the API.
@@ -17,8 +18,9 @@
 --     (work_schedule_immutable, _no_truncate; work_schedule_slot_immutable, _no_truncate). There is
 --     no mutable status column;
 --   * a schedule names one site of its tenant (work_schedule_site), an inclusive period of 1 to 31
---     days (work_schedule_period_valid) and the organization's IANA time zone as a snapshot
---     (work_schedule_timezone_valid: a name PostgreSQL knows);
+--     days (work_schedule_period_valid) and, as an immutable snapshot, that site's own IANA time
+--     zone, the clock of every slot (work_schedule_site_timezone: a name PostgreSQL knows, equal to
+--     tenant.site.timezone when the schedule is published; ADR 0014, R100-1);
 --   * one published schedule covers a site on any date (work_schedule_site_no_overlap, btree_gist);
 --   * a slot belongs to exactly one schedule of its tenant (work_schedule_slot_schedule), has local
 --     minute-precision boundaries, starts on a schedule date, ends after it and at most on the next
@@ -95,7 +97,7 @@ CREATE TABLE people.work_schedule (
     site_id         uuid        NOT NULL,
     first_date      date        NOT NULL,
     last_date       date        NOT NULL,
-    timezone        text        NOT NULL,
+    site_timezone   text        NOT NULL,
     slot_count      integer     NOT NULL,
     assigned_count  integer     NOT NULL,
     published_at    timestamptz NOT NULL,
@@ -107,9 +109,9 @@ CREATE TABLE people.work_schedule (
     CONSTRAINT work_schedule_period_valid CHECK (
         first_date BETWEEN DATE '2000-01-01' AND DATE '2999-12-31'
         AND last_date >= first_date AND last_date - first_date <= 30),
-    CONSTRAINT work_schedule_timezone_format
-        CHECK (timezone ~ '^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+){0,2}$'
-            AND char_length(timezone) BETWEEN 3 AND 64),
+    CONSTRAINT work_schedule_site_timezone_format
+        CHECK (site_timezone ~ '^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+){0,2}$'
+            AND char_length(site_timezone) BETWEEN 3 AND 64),
     CONSTRAINT work_schedule_counts_valid CHECK (
         slot_count BETWEEN 1 AND 500 AND assigned_count BETWEEN 0 AND slot_count),
     CONSTRAINT work_schedule_published_by_length
@@ -131,24 +133,37 @@ CREATE TRIGGER work_schedule_no_truncate
     BEFORE TRUNCATE ON people.work_schedule
     FOR EACH STATEMENT EXECUTE FUNCTION people.work_schedule_no_truncate();
 
--- The time zone snapshot is a name PostgreSQL's time zone database knows.
-CREATE FUNCTION people.work_schedule_timezone_valid() RETURNS trigger
+-- The time zone snapshot is the site's own time zone when the schedule is published (the site is
+-- the operational clock, R100-1), and a name PostgreSQL's time zone database knows.
+CREATE FUNCTION people.work_schedule_site_timezone() RETURNS trigger
     LANGUAGE plpgsql
 AS $fn$
+DECLARE
+    v_site_zone text;
 BEGIN
-    -- A name outside the IANA shape is left to work_schedule_timezone_format.
-    IF NEW.timezone ~ '^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+){0,2}$'
-        AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = NEW.timezone) THEN
-        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'work_schedule_timezone_valid',
-            MESSAGE = 'a work schedule names a known time zone';
+    -- A name outside the IANA shape is left to work_schedule_site_timezone_format.
+    IF NEW.site_timezone !~ '^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+){0,2}$' THEN
+        RETURN NEW;
+    END IF;
+    SELECT t.timezone INTO v_site_zone
+        FROM tenant.site t
+        WHERE t.tenant_id = NEW.tenant_id AND t.id = NEW.site_id;
+    IF NOT FOUND THEN
+        -- No site of this tenant: left to the work_schedule_site foreign key.
+        RETURN NEW;
+    END IF;
+    IF NEW.site_timezone IS DISTINCT FROM v_site_zone
+        OR NOT EXISTS (SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = NEW.site_timezone) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'work_schedule_site_timezone',
+            MESSAGE = 'a work schedule stores its site''s known time zone';
     END IF;
     RETURN NEW;
 END
 $fn$;
 
-CREATE TRIGGER work_schedule_timezone_valid
+CREATE TRIGGER work_schedule_site_timezone
     BEFORE INSERT ON people.work_schedule
-    FOR EACH ROW EXECUTE FUNCTION people.work_schedule_timezone_valid();
+    FOR EACH ROW EXECUTE FUNCTION people.work_schedule_site_timezone();
 
 -- ---------------------------------------------------------------------------------------------
 -- Slots: one required worker each, published with their schedule
@@ -249,7 +264,7 @@ END
 $fn$;
 
 -- A slot starts on a date of its schedule, and its instants are its local times in the schedule's
--- time zone, each local time existing exactly once there (no gap, no repeated hour).
+-- site time zone snapshot, each local time existing exactly once there (no gap, no repeated hour).
 CREATE FUNCTION people.work_schedule_slot_consistent() RETURNS trigger
     LANGUAGE plpgsql
 AS $fn$
@@ -258,7 +273,7 @@ DECLARE
     v_last  date;
     v_zone  text;
 BEGIN
-    SELECT s.first_date, s.last_date, s.timezone INTO v_first, v_last, v_zone
+    SELECT s.first_date, s.last_date, s.site_timezone INTO v_first, v_last, v_zone
         FROM people.work_schedule s
         WHERE s.tenant_id = NEW.tenant_id AND s.id = NEW.schedule_id;
     IF NOT FOUND THEN

@@ -27,7 +27,7 @@ DROP FUNCTION people.work_schedule_slot_consistent();
 DROP FUNCTION people.work_schedule_local_unique(timestamp, text, timestamptz);
 DROP FUNCTION people.work_schedule_slot_no_truncate();
 DROP FUNCTION people.work_schedule_slot_immutable();
-DROP FUNCTION people.work_schedule_timezone_valid();
+DROP FUNCTION people.work_schedule_site_timezone();
 DROP FUNCTION people.work_schedule_no_truncate();
 DROP FUNCTION people.work_schedule_immutable();
 DROP FUNCTION people.work_schedule_label_valid(text);

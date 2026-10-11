@@ -69,9 +69,9 @@ class WorkScheduleMigrationIntegrationTest {
       """;
 
   private static final String SCHEDULE =
-      "INSERT INTO people.work_schedule (id, tenant_id, site_id, first_date, last_date, timezone,"
-          + " slot_count, assigned_count, published_at, published_by)"
-          + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, now(), 'test')";
+      "INSERT INTO people.work_schedule (id, tenant_id, site_id, first_date, last_date,"
+          + " site_timezone, slot_count, assigned_count, published_at, published_by) VALUES (?, ?,"
+          + " ?, ?, ?, ?, ?, ?, now(), 'test')";
 
   private static final String SLOT =
       "INSERT INTO people.work_schedule_slot (id, tenant_id, schedule_id, position, start_local,"
@@ -83,8 +83,8 @@ class WorkScheduleMigrationIntegrationTest {
 
   private record Db(String url, JdbcTemplate jdbc) {}
 
-  /** A tenant with one legal entity and two sites. */
-  private record Org(UUID tenant, UUID site, UUID otherSite) {}
+  /** A tenant with one legal entity and two sites in the organization's time zone. */
+  private record Org(UUID tenant, UUID entity, UUID site, UUID otherSite) {}
 
   /** A schedule row: id, tenant, site, dates, zone, counts. */
   private record Schedule(
@@ -233,7 +233,23 @@ class WorkScheduleMigrationIntegrationTest {
           id.equals(site) ? "S1" : "S2",
           KINSHASA);
     }
-    return new Org(tenant, site, other);
+    return new Org(tenant, entity, site, other);
+  }
+
+  /** One more site of the organization's legal entity, with its own time zone. */
+  private static UUID site(Db db, Org org, String code, String zone) {
+    UUID id = UUID.randomUUID();
+    db.jdbc()
+        .update(
+            "INSERT INTO tenant.site (id, tenant_id, legal_entity_id, code, name, timezone,"
+                + " effective_from, created_at, created_by) VALUES (?, ?, ?, ?, 'Site', ?,"
+                + " DATE '2026-01-01', now(), 'test')",
+            id,
+            org.tenant(),
+            org.entity(),
+            code,
+            zone);
+    return id;
   }
 
   private static UUID employee(Db db, UUID tenant, String number) {
@@ -448,17 +464,44 @@ class WorkScheduleMigrationIntegrationTest {
               c ->
                   publish(
                       c, schedule(tenant, org.site(), DAY, DAY.plusDays(30)), at(DAY, 8), null));
-          // Zones: a name PostgreSQL knows, in the IANA shape.
+          // Zones (R100-1): exactly the site's own time zone, a name PostgreSQL knows, in the IANA
+          // shape. The organization's zone, or any other known zone, is not the site's clock.
+          UUID goma = site(db, org, "GOMA", "Africa/Lubumbashi");
           refused(
               db,
-              "work_schedule_timezone_valid",
+              "work_schedule_site_timezone",
+              c ->
+                  insert(
+                      c, new Schedule(UUID.randomUUID(), tenant, goma, DAY, DAY, KINSHASA, 1, 0)));
+          refused(
+              db,
+              "work_schedule_site_timezone",
               c -> {
                 Schedule s = schedule(tenant, org.otherSite(), DAY, DAY);
-                insert(c, new Schedule(s.id(), tenant, s.site(), DAY, DAY, "Mars/Olympus", 1, 0));
+                insert(
+                    c, new Schedule(s.id(), tenant, s.site(), DAY, DAY, "Africa/Lubumbashi", 1, 0));
               });
+          UUID unknownZone = site(db, org, "MARS", "Mars/Olympus");
           refused(
               db,
-              "work_schedule_timezone_format",
+              "work_schedule_site_timezone",
+              c ->
+                  insert(
+                      c,
+                      new Schedule(
+                          UUID.randomUUID(), tenant, unknownZone, DAY, DAY, "Mars/Olympus", 1, 0)));
+          committed(
+              db,
+              c ->
+                  publish(
+                      c,
+                      new Schedule(
+                          UUID.randomUUID(), tenant, goma, DAY, DAY, "Africa/Lubumbashi", 1, 0),
+                      at(DAY, 8),
+                      null));
+          refused(
+              db,
+              "work_schedule_site_timezone_format",
               c -> {
                 Schedule s = schedule(tenant, org.otherSite(), DAY, DAY);
                 insert(c, new Schedule(s.id(), tenant, s.site(), DAY, DAY, "+01:00", 1, 0));
@@ -590,18 +633,12 @@ class WorkScheduleMigrationIntegrationTest {
           migrate(db.url(), "25");
           Org org = organization(db);
           ZoneId paris = ZoneId.of("Europe/Paris");
+          UUID parisSite = site(db, org, "PARIS", "Europe/Paris");
           LocalDate spring = LocalDate.of(2027, 3, 28);
           LocalDate autumn = LocalDate.of(2027, 10, 31);
           Schedule s =
               new Schedule(
-                  UUID.randomUUID(),
-                  org.tenant(),
-                  org.site(),
-                  spring,
-                  spring,
-                  "Europe/Paris",
-                  1,
-                  0);
+                  UUID.randomUUID(), org.tenant(), parisSite, spring, spring, "Europe/Paris", 1, 0);
           // 02:30 does not exist on the spring date: no instant maps back to it.
           refused(
               db,
@@ -616,14 +653,7 @@ class WorkScheduleMigrationIntegrationTest {
           // 02:30 happens twice on the autumn date: refused at either instant.
           Schedule fall =
               new Schedule(
-                  UUID.randomUUID(),
-                  org.tenant(),
-                  org.site(),
-                  autumn,
-                  autumn,
-                  "Europe/Paris",
-                  1,
-                  0);
+                  UUID.randomUUID(), org.tenant(), parisSite, autumn, autumn, "Europe/Paris", 1, 0);
           for (Instant instant :
               new Instant[] {
                 autumn.atTime(2, 30).atZone(paris).withEarlierOffsetAtOverlap().toInstant(),

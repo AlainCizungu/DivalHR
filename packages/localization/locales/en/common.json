@@ -2557,7 +2557,7 @@
       "label": "Slots of the schedule"
     },
     "totals": "{{slots}} slots: {{assigned}} assigned, {{uncovered}} uncovered",
-    "timezone": "Local times in the organization’s time zone ({{zone}}).",
+    "timezone": "Local times at the site, time zone {{zone}}.",
     "times": "{{date}}, {{start}} – {{end}}",
     "timesOvernight": "{{date}}, {{start}} – {{end}} the next day",
     "published": "Schedule published for {{period}}: {{slots}} slots, {{uncovered}} uncovered.",
@@ -2570,7 +2570,7 @@
       "chooseLegalEntity": "Choose a legal entity",
       "siteLabel": "Site",
       "chooseSite": "Choose a site",
-      "datesHelp": "From today, at most {{days}} days.",
+      "datesHelp": "From today at the site, at most {{days}} days.",
       "firstDate": "First date",
       "lastDate": "Last date",
       "slots_one": "Slots ({{count}})",
@@ -2626,7 +2626,7 @@
     },
     "periodReasons": {
       "ORDER": "The last date is before the first date.",
-      "PAST": "The first date is before today.",
+      "PAST": "The first date is before today at the site.",
       "TOO_LONG": "A schedule covers at most 31 days."
     },
     "issues": {
@@ -2656,6 +2656,7 @@
     "time": "{{start}} – {{end}}",
     "overnight": "Ends {{date}}",
     "site": "Site: {{name}}",
+    "timezone": "Local time at the site ({{zone}})",
     "more": "Show more shifts",
     "loadingMore": "Loading more shifts…"
   }

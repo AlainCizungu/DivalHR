@@ -156,7 +156,7 @@ class WorkScheduleIntegrationTest {
                     null)));
     JsonNode preview = w.expect(preview(w.admin, proposal), 200);
     assertThat(preview.get("asOf").asText()).isEqualTo(w.today.toString());
-    assertThat(preview.get("timezone").asText()).isEqualTo("Africa/Kinshasa");
+    assertThat(preview.get("siteTimezone").asText()).isEqualTo("Africa/Kinshasa");
     assertThat(preview.get("site").get("id").asText()).isEqualTo(w.site().toString());
     assertThat(preview.get("site").get("code").asText()).isEqualTo(w.org.site());
     assertThat(preview.get("publishable").asBoolean()).isTrue();
@@ -192,7 +192,7 @@ class WorkScheduleIntegrationTest {
     assertThat(
             w.count(
                 "SELECT count(*) FROM people.work_schedule WHERE id = ?::uuid AND site_id = ?"
-                    + " AND first_date = ? AND last_date = ? AND timezone = 'Africa/Kinshasa'"
+                    + " AND first_date = ? AND last_date = ? AND site_timezone = 'Africa/Kinshasa'"
                     + " AND slot_count = 4 AND assigned_count = 2 AND published_by = ?",
                 id,
                 w.site(),
@@ -628,8 +628,12 @@ class WorkScheduleIntegrationTest {
   @Test
   void localTimesThatDoNotExistOrRepeatAreInvalid() throws Exception {
     ScheduleWorld w = world();
+    // The site's clock decides (R100-1): the organization stays in Kinshasa, where these local
+    // times all exist exactly once. (No API changes a site's zone; the fixture sets it directly.)
     jdbc.update(
-        "UPDATE tenant.organization SET timezone = 'Europe/Paris' WHERE id = ?", w.tenant());
+        "UPDATE tenant.site SET timezone = 'Europe/Paris' WHERE tenant_id = ? AND id = ?",
+        w.tenant(),
+        w.site());
     LocalDate autumn = LocalDate.of(2027, 10, 31);
     LocalDate spring = LocalDate.of(2027, 3, 28);
     // Only future dates are accepted; these are future in any test run before 2027.
@@ -668,7 +672,7 @@ class WorkScheduleIntegrationTest {
     assertThat(issue(fall, 0)).isEqualTo("WORK_SCHEDULE_SLOT_INVALID:LOCAL_TIME_INVALID");
     assertThat(issue(fall, 1)).isEqualTo("WORK_SCHEDULE_SLOT_INVALID:LOCAL_TIME_INVALID");
     assertThat(issue(fall, 2)).isEqualTo("-");
-    assertThat(fall.get("timezone").asText()).isEqualTo("Europe/Paris");
+    assertThat(fall.get("siteTimezone").asText()).isEqualTo("Europe/Paris");
     JsonNode gap =
         w.expect(
             preview(
@@ -724,7 +728,7 @@ class WorkScheduleIntegrationTest {
     assertThat(
             w.count(
                 "SELECT count(*) FROM people.work_schedule WHERE tenant_id = ?"
-                    + " AND timezone = 'Europe/Paris'",
+                    + " AND site_timezone = 'Europe/Paris'",
                 w.tenant()))
         .isEqualTo(1);
   }
@@ -897,7 +901,7 @@ class WorkScheduleIntegrationTest {
     assertThat(night.get("overnight").asBoolean()).isTrue();
     assertThat(night.get("labels").get("fr").asText()).isEqualTo("Veille de nuit");
     assertThat(night.get("site").get("code").asText()).isEqualTo(w.org.site());
-    assertThat(night.get("timezone").asText()).isEqualTo("Africa/Kinshasa");
+    assertThat(night.get("siteTimezone").asText()).isEqualTo("Africa/Kinshasa");
     String cursor = page.get("nextCursor").asText();
     JsonNode next = w.expect(mine(ana.bearer(), "?limit=2&cursor=" + cursor), 200);
     assertThat(next.get("items")).hasSize(1);

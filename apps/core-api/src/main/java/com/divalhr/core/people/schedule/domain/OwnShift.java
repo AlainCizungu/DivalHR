@@ -10,7 +10,7 @@ import java.util.UUID;
  * @param slotId slot
  * @param scheduleId schedule
  * @param siteId site
- * @param timezone the schedule's time zone
+ * @param siteTimezone the schedule's stored site time zone snapshot
  * @param start local start
  * @param end local end
  * @param startAt start instant
@@ -21,7 +21,7 @@ public record OwnShift(
     UUID slotId,
     UUID scheduleId,
     UUID siteId,
-    String timezone,
+    String siteTimezone,
     LocalDateTime start,
     LocalDateTime end,
     Instant startAt,

@@ -36,7 +36,7 @@ import org.springframework.stereotype.Repository;
 public class JdbcWorkScheduleRepository {
 
   private static final String SCHEDULE =
-      "SELECT s.id, s.site_id, s.first_date, s.last_date, s.timezone, s.slot_count,"
+      "SELECT s.id, s.site_id, s.first_date, s.last_date, s.site_timezone, s.slot_count,"
           + " s.assigned_count, s.published_at FROM people.work_schedule s";
 
   private final NamedParameterJdbcTemplate jdbc;
@@ -271,7 +271,7 @@ public class JdbcWorkScheduleRepository {
       String publishedBy) {
     jdbc.update(
         "INSERT INTO people.work_schedule (id, tenant_id, site_id, first_date, last_date,"
-            + " timezone, slot_count, assigned_count, published_at, published_by) VALUES (:id,"
+            + " site_timezone, slot_count, assigned_count, published_at, published_by) VALUES (:id,"
             + " :tenant, :site, :first, :last, :zone, :slots, :assigned, :at, :by)",
         new MapSqlParameterSource()
             .addValue("id", schedule.id())
@@ -279,7 +279,7 @@ public class JdbcWorkScheduleRepository {
             .addValue("site", schedule.siteId())
             .addValue("first", schedule.firstDate())
             .addValue("last", schedule.lastDate())
-            .addValue("zone", schedule.timezone())
+            .addValue("zone", schedule.siteTimezone())
             .addValue("slots", schedule.slotCount())
             .addValue("assigned", schedule.assignedCount())
             .addValue("at", Timestamp.from(schedule.publishedAt()))
@@ -449,7 +449,7 @@ public class JdbcWorkScheduleRepository {
       int limit) {
     StringBuilder sql =
         new StringBuilder(
-            "SELECT l.id, l.schedule_id, s.site_id, s.timezone, l.start_local, l.end_local,"
+            "SELECT l.id, l.schedule_id, s.site_id, s.site_timezone, l.start_local, l.end_local,"
                 + " l.start_at, l.label_en, l.label_fr FROM people.work_schedule_slot l"
                 + " JOIN people.work_schedule s"
                 + " ON s.tenant_id = l.tenant_id AND s.id = l.schedule_id"
@@ -478,7 +478,7 @@ public class JdbcWorkScheduleRepository {
                 rs.getObject("id", UUID.class),
                 rs.getObject("schedule_id", UUID.class),
                 rs.getObject("site_id", UUID.class),
-                rs.getString("timezone"),
+                rs.getString("site_timezone"),
                 rs.getObject("start_local", LocalDateTime.class),
                 rs.getObject("end_local", LocalDateTime.class),
                 rs.getTimestamp("start_at").toInstant(),
@@ -514,7 +514,7 @@ public class JdbcWorkScheduleRepository {
         rs.getObject("site_id", UUID.class),
         rs.getObject("first_date", LocalDate.class),
         rs.getObject("last_date", LocalDate.class),
-        rs.getString("timezone"),
+        rs.getString("site_timezone"),
         rs.getInt("slot_count"),
         rs.getInt("assigned_count"),
         rs.getTimestamp("published_at").toInstant());

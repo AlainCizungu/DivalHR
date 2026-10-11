@@ -12,7 +12,7 @@ import java.util.UUID;
  * @param siteId site
  * @param firstDate first date
  * @param lastDate last date
- * @param timezone the organization's IANA time zone snapshot
+ * @param siteTimezone the site's IANA time zone snapshot (R100-1)
  * @param slotCount slots
  * @param assignedCount assigned slots
  * @param publishedAt publication instant
@@ -22,7 +22,7 @@ public record WorkSchedule(
     UUID siteId,
     LocalDate firstDate,
     LocalDate lastDate,
-    String timezone,
+    String siteTimezone,
     int slotCount,
     int assignedCount,
     Instant publishedAt) {
@@ -33,7 +33,7 @@ public record WorkSchedule(
     Objects.requireNonNull(siteId, "siteId");
     Objects.requireNonNull(firstDate, "firstDate");
     Objects.requireNonNull(lastDate, "lastDate");
-    Objects.requireNonNull(timezone, "timezone");
+    Objects.requireNonNull(siteTimezone, "siteTimezone");
     Objects.requireNonNull(publishedAt, "publishedAt");
   }
 

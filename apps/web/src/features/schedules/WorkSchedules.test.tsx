@@ -73,7 +73,7 @@ const summary = (overrides: Record<string, unknown> = {}) => ({
   site: { id: SITE, code: 'KIN', name: 'Kinshasa <b>Gombe</b>' },
   firstDate: '2026-11-02',
   lastDate: '2026-11-04',
-  timezone: 'Africa/Kinshasa',
+  siteTimezone: 'Africa/Kinshasa',
   totals: { slots: 3, assigned: 1, uncovered: 2 },
   publishedAt: '2026-10-11T10:00:00Z',
   ...overrides,
@@ -120,7 +120,8 @@ const detail = () => ({
 
 const previewOf = (body: { slots: { clientRef: string; start: string; end: string }[] }) => ({
   asOf: '2026-10-11',
-  timezone: 'Africa/Kinshasa',
+  // The selected site's clock (R100-1), one hour from the organization's Kinshasa.
+  siteTimezone: 'Africa/Lubumbashi',
   site: { id: SITE, code: 'KIN', name: 'Kinshasa Gombe' },
   firstDate: '2026-11-02',
   lastDate: '2026-11-02',
@@ -339,6 +340,9 @@ describe.each(['fr', 'en'] as const)('MVP-050A schedules (%s)', (locale) => {
       expect(within(section).getAllByTestId('detail-slot')).toHaveLength(3);
     });
     expect(within(section).getByTestId('detail-totals')).toHaveTextContent('3');
+    expect(within(section).getByTestId('detail-timezone')).toHaveTextContent(
+      k.timezone.replace('{{zone}}', 'Africa/Kinshasa'),
+    );
     const slots = within(section).getAllByTestId('detail-slot');
     expect(slots[0]).toHaveTextContent('<i>Kabeya</i>');
     expect(slots[0]).toHaveTextContent(locale === 'fr' ? 'Veille de nuit' : 'Night watch');
@@ -427,6 +431,9 @@ describe.each(['fr', 'en'] as const)('MVP-050A schedules (%s)', (locale) => {
     const review = await screen.findByTestId('schedule-review');
     expect(within(review).getByTestId('review-warning')).toBeInTheDocument();
     expect(within(review).getAllByTestId('review-slot')).toHaveLength(1);
+    expect(within(review).getByTestId('review-timezone')).toHaveTextContent(
+      k.timezone.replace('{{zone}}', 'Africa/Lubumbashi'),
+    );
     await expectAccessible(container);
     const publish = within(review).getByRole('button', { name: k.review.publish });
     await user.click(publish);
@@ -492,13 +499,19 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
   const show = () =>
     renderWithSession(<MySchedulePage />, sessionWithRoles(['employee']), locale, '/me/schedule');
 
-  const shift = (id: string, start: string, end: string, overnightShift: boolean) => ({
+  const shift = (
+    id: string,
+    start: string,
+    end: string,
+    overnightShift: boolean,
+    siteTimezone = 'Africa/Kinshasa',
+  ) => ({
     id,
     scheduleId: SCHEDULE,
     site: { id: SITE, code: 'KIN', name: 'Kinshasa <b>Gombe</b>' },
     start,
     end,
-    timezone: 'Africa/Kinshasa',
+    siteTimezone,
     overnight: overnightShift,
     labels: { en: 'Night watch', fr: 'Veille de nuit' },
   });
@@ -521,7 +534,9 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
         : {
             status: 200,
             body: {
-              items: [shift('s2', '2026-11-04T08:00', '2026-11-04T12:00', false)],
+              items: [
+                shift('s2', '2026-11-04T08:00', '2026-11-04T12:00', false, 'Africa/Lubumbashi'),
+              ],
               nextCursor: null,
               asOf: '2026-10-11',
               from: '2026-10-11',
@@ -540,6 +555,9 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
     expect(within(shifts[0]!).getByTestId('my-shift-label')).toHaveAttribute('lang', locale);
     expect(within(shifts[0]!).getByTestId('my-shift-overnight')).toBeInTheDocument();
     expect(within(shifts[0]!).getByTestId('my-shift-site')).toHaveTextContent('<b>Gombe</b>');
+    expect(within(shifts[0]!).getByTestId('my-shift-timezone')).toHaveTextContent(
+      k.timezone.replace('{{zone}}', 'Africa/Kinshasa'),
+    );
     await expectAccessible(container);
     await user.click(screen.getByRole('button', { name: k.more }));
     await waitFor(() => {
@@ -551,6 +569,12 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
     expect(
       screen.getAllByTestId('my-shift')[1]!.querySelector('[data-testid="my-shift-overnight"]'),
     ).toBeNull();
+    // Each shift in its own schedule's site time zone, shown as published (never converted).
+    const later = screen.getAllByTestId('my-shift')[1]!;
+    expect(within(later).getByTestId('my-shift-timezone')).toHaveTextContent(
+      k.timezone.replace('{{zone}}', 'Africa/Lubumbashi'),
+    );
+    expect(within(later).getByTestId('my-shift-time')).toHaveTextContent(/\b8:00\b/u);
     expect(requests.at(-1)!.path).toContain('cursor=next');
     expect(screen.queryByRole('button', { name: k.more })).toBeNull();
   });

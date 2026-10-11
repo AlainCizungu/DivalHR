@@ -1634,7 +1634,7 @@ export interface paths {
         put?: never;
         /**
          * Preview a site work schedule
-         * @description MVP-050A. Evaluates a complete proposed schedule against the current facts and stores nothing but its disclosure audit record (work-schedule.preview); there is no draft. The server resolves the organization's business date (asOf) and IANA time zone, which the client cannot choose. Whole-schedule rules are errors: the dates in order, the first today or later, at most 31 days (422 WORK_SCHEDULE_PERIOD_INVALID, params.reason ORDER, PAST or TOO_LONG); a site of the organization in effect on every date (422 WORK_SCHEDULE_SITE_NOT_ACTIVE, unknown and foreign alike); no published schedule of the site on any of the dates (409 WORK_SCHEDULE_OVERLAP); 1 to 500 slots (400 slots REQUIRED; 422 WORK_SCHEDULE_LIMIT_EXCEEDED, params.maximum 500). Slot rules are per-slot issues, the first one found: WORK_SCHEDULE_SLOT_INVALID (OUTSIDE_PERIOD, END_NOT_AFTER_START, TOO_LONG: beyond the next date or 24 hours, LOCAL_TIME_INVALID: a local time that does not exist or happens twice in the time zone, never guessed), WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE (NOT_FOUND: unknown or foreign, SEPARATED: a separation effective before the slot ends, NOT_EMPLOYED: not employed on every local date the slot occupies, NOT_AT_SITE: no placement at the site on its start date) and WORK_SCHEDULE_EMPLOYEE_CONFLICT (PUBLISHED: an overlapping published assignment at any site, IN_SCHEDULE: an earlier overlapping slot of this proposal). Returns the normalized slots with their instants, assigned employees' current directory names, issues, derived totals, warnings (UNCOVERED_SLOTS), whether it is publishable and the domain-separated previewDigest binding the business date, time zone, site, every slot and every eligibility fact (employments with their versions, placements, separations). Restricted HR: a fail-closed disclosure. Shares the work-schedule-write limit. Cache-Control private, no-store.
+         * @description MVP-050A. Evaluates a complete proposed schedule against the current facts and stores nothing but its disclosure audit record (work-schedule.preview); there is no draft. The site is the operational clock: the server resolves the selected site's IANA time zone (siteTimezone) and its business date (asOf, today in that zone), which the client cannot choose; the organization's time zone plays no part. Whole-schedule rules are errors: the dates in order, at most 31 days, the first today or later in the site's calendar (422 WORK_SCHEDULE_PERIOD_INVALID, params.reason ORDER, TOO_LONG or PAST); a site of the organization in effect on every date (422 WORK_SCHEDULE_SITE_NOT_ACTIVE, unknown and foreign alike); no published schedule of the site on any of the dates (409 WORK_SCHEDULE_OVERLAP); 1 to 500 slots (400 slots REQUIRED; 422 WORK_SCHEDULE_LIMIT_EXCEEDED, params.maximum 500). Slot rules are per-slot issues, the first one found: WORK_SCHEDULE_SLOT_INVALID (OUTSIDE_PERIOD, END_NOT_AFTER_START, TOO_LONG: beyond the next date or 24 hours, LOCAL_TIME_INVALID: a local time that does not exist or happens twice in the site's time zone, never guessed), WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE (NOT_FOUND: unknown or foreign, SEPARATED: a separation effective before the slot ends, NOT_EMPLOYED: not employed on every local date the slot occupies, NOT_AT_SITE: no placement at the site on its start date) and WORK_SCHEDULE_EMPLOYEE_CONFLICT (PUBLISHED: an overlapping published assignment at any site, IN_SCHEDULE: an earlier overlapping slot of this proposal). Returns the normalized slots with their instants, assigned employees' current directory names, issues, derived totals, warnings (UNCOVERED_SLOTS), whether it is publishable and the domain-separated previewDigest binding the site's business date and time zone, the site, every slot and every eligibility fact (employments with their versions, placements, separations). Restricted HR: a fail-closed disclosure. Shares the work-schedule-write limit. Cache-Control private, no-store.
          */
         post: operations["previewWorkSchedule"];
         delete?: never;
@@ -1658,7 +1658,7 @@ export interface paths {
         put?: never;
         /**
          * Publish a previewed site work schedule
-         * @description MVP-050A. Publishes exactly the reviewed preview: the same proposal, its previewDigest and confirm true. Under the tenant's scheduling lock, with the assigned employees' employments locked FOR SHARE (so employment changes, corrections and separations serialize with it), every rule and fact is evaluated again: a slot issue is refused with its code (params.position and params.reason); any other difference from the reviewed preview is 409 WORK_SCHEDULE_PREVIEW_STALE, never recomputed and published; the whole-schedule errors are the preview's. One transaction with the immutable schedule and all its slots, the audit record (work-schedule.publish: IDs, site, dates and counts only) and the outbox event (people.work-schedule.published.v1). Only the body's shape is checked before the idempotency decision: an exact retry returns the stored 201 with Idempotent-Replayed true, a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. No label, employee name or number in errors, logs, audit metadata or events. Shares the work-schedule-write limits. Cache-Control private, no-store.
+         * @description MVP-050A. Publishes exactly the reviewed preview: the same proposal, its previewDigest and confirm true. Under the tenant's scheduling lock, with the assigned employees' employments locked FOR SHARE (so employment changes, corrections and separations serialize with it), every rule and fact is evaluated again: a slot issue is refused with its code (params.position and params.reason); any other difference from the reviewed preview (the site's time zone or business date included) is 409 WORK_SCHEDULE_PREVIEW_STALE, never recomputed and published; the whole-schedule errors are the preview's. One transaction with the immutable schedule and all its slots, the audit record (work-schedule.publish: IDs, site, dates and counts only) and the outbox event (people.work-schedule.published.v1). Only the body's shape is checked before the idempotency decision: an exact retry returns the stored 201 with Idempotent-Replayed true, a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. No label, employee name or number in errors, logs, audit metadata or events. Shares the work-schedule-write limits. Cache-Control private, no-store.
          */
         post: operations["publishWorkSchedule"];
         delete?: never;
@@ -3637,7 +3637,7 @@ export interface components {
         WorkScheduleSlotInput: {
             /** @description The client's correlation reference, unique in the request; never stored. */
             clientRef: string;
-            /** @description Local start on a schedule date, in the organization's time zone. */
+            /** @description Local start on a schedule date, in the selected site's time zone. */
             start: string;
             /** @description Local end, after the start, at most the next date and 24 hours later. */
             end: string;
@@ -3712,10 +3712,13 @@ export interface components {
             issue: components["schemas"]["WorkScheduleSlotIssue"] | null;
         };
         WorkSchedulePreview: {
-            /** Format: date */
+            /**
+             * Format: date
+             * @description The site's business date (today in siteTimezone), resolved by the server.
+             */
             asOf: string;
-            /** @description The organization's IANA time zone, stored with the schedule. */
-            timezone: string;
+            /** @description The selected site's IANA time zone: the clock of every slot, stored with the schedule as an immutable snapshot (never the organization's time zone). */
+            siteTimezone: string;
             site: components["schemas"]["WorkScheduleSite"];
             /** Format: date */
             firstDate: string;
@@ -3743,7 +3746,8 @@ export interface components {
             firstDate: string;
             /** Format: date */
             lastDate: string;
-            timezone: string;
+            /** @description The site time zone snapshot stored at publication, the clock of every slot. */
+            siteTimezone: string;
             totals: components["schemas"]["WorkScheduleTotals"];
             /** Format: date-time */
             publishedAt: string;
@@ -3751,7 +3755,10 @@ export interface components {
         WorkSchedulePage: {
             items: components["schemas"]["WorkScheduleSummary"][];
             nextCursor: string | null;
-            /** Format: date */
+            /**
+             * Format: date
+             * @description The organization's business date (informational; each schedule's clock is its siteTimezone).
+             */
             asOf: string;
         };
         WorkScheduleSlot: {
@@ -3776,7 +3783,8 @@ export interface components {
             firstDate: string;
             /** Format: date */
             lastDate: string;
-            timezone: string;
+            /** @description The site time zone snapshot stored at publication, the clock of every slot. */
+            siteTimezone: string;
             totals: components["schemas"]["WorkScheduleTotals"];
             /** Format: date-time */
             publishedAt: string;
@@ -3791,14 +3799,18 @@ export interface components {
             site: components["schemas"]["WorkScheduleSite"];
             start: string;
             end: string;
-            timezone: string;
+            /** @description The site time zone snapshot of this shift's schedule; start and end are local times there, never converted to another zone. */
+            siteTimezone: string;
             overnight: boolean;
             labels: components["schemas"]["WorkScheduleLabels"];
         };
         MyWorkSchedulePage: {
             items: components["schemas"]["MyWorkShift"][];
             nextCursor: string | null;
-            /** Format: date */
+            /**
+             * Format: date
+             * @description The organization's business date, the default first date of the view; each shift is in its own siteTimezone.
+             */
             asOf: string;
             /** Format: date */
             from: string;

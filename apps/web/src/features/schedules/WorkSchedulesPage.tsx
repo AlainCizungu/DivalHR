@@ -542,8 +542,8 @@ export function WorkSchedulesPage() {
                   uncovered: viewing.detail.totals.uncovered,
                 })}
               </p>
-              <p className="muted">
-                {t('workSchedules.timezone', { zone: viewing.detail.timezone })}
+              <p className="muted" data-testid="detail-timezone">
+                {t('workSchedules.timezone', { zone: viewing.detail.siteTimezone })}
               </p>
               <fieldset className="field" data-testid="coverage-filter">
                 <legend>{t('workSchedules.detail.filter')}</legend>
@@ -897,7 +897,9 @@ export function WorkSchedulesPage() {
                 uncovered: preview.totals.uncovered,
               })}
             </p>
-            <p className="muted">{t('workSchedules.timezone', { zone: preview.timezone })}</p>
+            <p className="muted" data-testid="review-timezone">
+              {t('workSchedules.timezone', { zone: preview.siteTimezone })}
+            </p>
             {preview.warnings.includes('UNCOVERED_SLOTS') && (
               <p data-testid="review-warning">
                 <StatusBadge tone="warning">{t('workSchedules.warning')}</StatusBadge>{' '}

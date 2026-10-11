@@ -42,11 +42,12 @@ const DAY_EN = 'Lead cashier';
 const NIGHT_FR = 'Veille de nuit';
 const NIGHT_EN = 'Night watch';
 
+// The site runs on its own clock (R100-1): Goma's zone, one hour from the organization's Kinshasa.
+const SITE_ZONE = 'Africa/Lubumbashi';
+
+/** Today at the site, the date the server's "not in the past" rule uses. */
 function today(): string {
-  return sql(
-    `SELECT (now() AT TIME ZONE timezone)::date::text FROM tenant.organization
-     WHERE id = '${TENANT_A}'`,
-  );
+  return sql(`SELECT (now() AT TIME ZONE '${SITE_ZONE}')::date::text`);
 }
 
 function plusDays(date: string, days: number): string {
@@ -193,7 +194,7 @@ test.describe.serial('MVP-050A: site work schedules', () => {
       legalEntityId: ((await entity.json()) as { id: string }).id,
       code: SITE,
       name: SITE_NAME,
-      timezone: 'Africa/Kinshasa',
+      timezone: SITE_ZONE,
       effectiveFrom: '2026-01-01',
     });
     expect(site.status()).toBe(201);
@@ -295,6 +296,9 @@ test.describe.serial('MVP-050A: site work schedules', () => {
     await expect(review.getByTestId('review-warning')).toContainText('non couvert');
     await expect(review.getByTestId('review-slot').nth(0)).toContainText(ANA_FAMILY);
     await expect(review.getByTestId('review-slot').nth(1)).toContainText('le lendemain');
+    await expect(review.getByTestId('review-timezone')).toHaveText(
+      `Heures locales du site, fuseau horaire ${SITE_ZONE}.`,
+    );
     await expectAccessible(page);
     await noOverflow(page);
     await review.getByRole('button', { name: 'Confirmer et publier' }).click();
@@ -338,6 +342,10 @@ test.describe.serial('MVP-050A: site work schedules', () => {
     await expect(shifts).toHaveCount(1);
     await expect(shifts.getByTestId('my-shift-label')).toHaveText(DAY_FR);
     await expect(shifts.getByTestId('my-shift-site')).toContainText(SITE_NAME);
+    await expect(shifts.getByTestId('my-shift-timezone')).toHaveText(
+      `Heure locale du site (${SITE_ZONE})`,
+    );
+    await expect(shifts.getByTestId('my-shift-time')).toContainText('8:00');
     await expect(page.getByRole('main')).not.toContainText(NIGHT_FR);
     await expect(page.getByRole('main')).not.toContainText(BEN_FAMILY);
     await expectAccessible(page);

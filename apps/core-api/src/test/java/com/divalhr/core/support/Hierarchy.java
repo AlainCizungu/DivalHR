@@ -198,13 +198,32 @@ public final class Hierarchy {
    */
   public static UUID newSite(
       MockMvc mvc, UUID tenant, UUID parent, String code, String from, String to) throws Exception {
+    return newSite(mvc, tenant, parent, code, "Africa/Kinshasa", from, to);
+  }
+
+  /**
+   * Creates a site in its own time zone (MVP-050A R100-1) and returns its id.
+   *
+   * @param mvc mock MVC
+   * @param tenant tenant
+   * @param parent legal entity
+   * @param code code
+   * @param timezone the site's IANA time zone (one the organization's country supports)
+   * @param from effective from
+   * @param to effective to or {@code null}
+   * @return id
+   * @throws Exception on request failure
+   */
+  public static UUID newSite(
+      MockMvc mvc, UUID tenant, UUID parent, String code, String timezone, String from, String to)
+      throws Exception {
     String body =
         mvc.perform(
                 create(
                     "/api/v1/sites",
                     admin(tenant),
                     Organizations.newKey(),
-                    site(parent, code, "Site " + code, "Africa/Kinshasa", from, to)))
+                    site(parent, code, "Site " + code, timezone, from, to)))
             .andExpect(status().isCreated())
             .andReturn()
             .getResponse()

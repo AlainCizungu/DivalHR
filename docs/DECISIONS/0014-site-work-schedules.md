@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (Issue #99, architect-approved plan D50A-1 to D50A-12). First scheduling increment
+Accepted (Issue #99, architect-approved plan D50A-1 to D50A-12, amended by architecture review
+R100-1 on PR #100: the site, not the organization, is the clock). First scheduling increment
 (MVP-050A); extends ADR 0007 (employment history) and ADR 0008 (separations and lock order).
 
 ## Context
@@ -19,12 +20,12 @@ availability, notification or manager view.
 ### Publish through a server preview; nothing mutable is stored (D50A-2)
 
 - The browser holds the proposal in memory only. `POST /work-schedules/preview` evaluates the whole
-  proposal against the current facts and returns the server's business date and the organization's
-  time zone, the normalized slots with their instants, the assigned employees' current directory
+  proposal against the current facts and returns the site's business date (`asOf`) and the site's
+  time zone (`siteTimezone`), the normalized slots with their instants, the assigned employees' current directory
   names, one issue per slot when it cannot be published, derived totals, warnings and a
   domain-separated digest (`DIVALHR-WORK-SCHEDULE-PREVIEW`, version 1). The preview writes only its
   disclosure audit record.
-- The digest binds the business date, the time zone, the site and its period, every normalized slot
+- The digest binds the site's business date and time zone, the site and its period, every normalized slot
   (position, client reference, local times, instants, employee, issue, both labels) and every fact
   the eligibility read: each assigned employee's employments with their versions, active placements
   and scheduled or effective separations.
@@ -35,8 +36,8 @@ availability, notification or manager view.
 
 ### One site, a bounded period, one required worker per slot (D50A-3, D50A-4)
 
-- One site of the tenant in effect on every date; inclusive dates from the business date on, at most
-  31 days; 1 to 500 slots. The site is resolved through the tenant module's
+- One site of the tenant in effect on every date; inclusive dates from the site's business date on,
+  at most 31 days; 1 to 500 slots. The site is resolved through the tenant module's
   `OrganizationPlacementDirectory` port; unknown, foreign and inactive sites are the same `422
   WORK_SCHEDULE_SITE_NOT_ACTIVE`.
 - A slot has local start and end (minute precision), English and French labels and an optional
@@ -46,16 +47,32 @@ availability, notification or manager view.
   Latin letters with accents, digits, single spaces and `. , ' ’ - ( ) / & # °`, 2 to 60 characters,
   no dot before a letter; markup, links and e-mail addresses cannot be written.
 
-### Time zone conversion fails closed (D50A-3, D50A-4)
+### The site is the clock; conversion fails closed (D50A-3, D50A-4, R100-1)
 
-- The organization's IANA time zone is resolved by the server and stored with the schedule as a
-  snapshot; the client never chooses it. (Sites carry their own time zone in the tenant module; this
-  increment follows the plan and uses the organization's, as every other business date in DivalHR.)
+- A schedule runs on the selected site's IANA time zone, never the organization's: organizations
+  span time zones (Kinshasa and Goma are one hour apart), and a Goma schedule must not inherit a
+  Kinshasa default. The server resolves the site's time zone through the tenant module's
+  `OrganizationPlacementDirectory` port (its unit view carries a site's `timezone`); the client never
+  chooses it. It is stored with the schedule as the immutable `site_timezone` snapshot and returned
+  as `siteTimezone` by preview, list, detail and the employee's own view.
+- The site's business date (`asOf`, today in the site's zone from the injectable platform clock)
+  decides "today or later": near midnight a date can already be past at one site and still open at
+  another. A site whose time zone is missing or unknown to the platform fails closed as
+  `WORK_SCHEDULE_SITE_NOT_ACTIVE`; there is no fallback clock.
+- The site's time zone and business date are bound into the preview digest, so a site time zone
+  changed between preview and publication (no API changes it today: a site is created with its zone)
+  or a date that turned past is `WORK_SCHEDULE_PREVIEW_STALE` (or the period error), never a silent
+  republication. The administrators' list and the employee's view take explicit or default dates and
+  bind them, not a time zone, into their cursors; their `asOf` is the organization's business date
+  and is informational (the employee's view starts there by default).
+- The employee's own view returns every shift in the stored snapshot of its own schedule: shifts at
+  sites in different zones are shown as published, never converted to one zone.
 - A local time converts only when it maps to exactly one instant (`ZoneRules.getValidOffsets` has one
   offset). A time in a spring-forward gap or repeated in a fall-back overlap is
   `WORK_SCHEDULE_SLOT_INVALID` with reason `LOCAL_TIME_INVALID`; it is never guessed. The database
-  checks the same rule independently (`people.work_schedule_local_unique`, used by
-  `work_schedule_slot_consistent`), so a slot's stored instants are exactly its local times.
+  checks the same rule independently in the schedule's snapshot (`people.work_schedule_local_unique`,
+  used by `work_schedule_slot_consistent`), so a slot's stored instants are exactly its local times
+  at the site.
 
 ### Eligibility and conflicts (D50A-5)
 
@@ -87,7 +104,10 @@ for the pilot.
   (`(tenant_id, assigned_employee_id)` to `people.employee`); and the site, `(tenant_id, site_id)` to
   `tenant.site (tenant_id, id)`. The site key is a deliberate integrity exception to module
   ownership, like ADR 0008 and ADR 0009: the plan requires the database to enforce tenant-consistent
-  site references. Application code still reads sites only through the platform port.
+  site references. Within the same exception, `work_schedule_site_timezone` checks at insert that the
+  snapshot equals the site's own time zone (and is a zone PostgreSQL knows). Application code still
+  reads sites only through the platform port; an architecture test refuses SQL naming a `tenant`
+  table in the scheduling package.
 - Exclusions: `work_schedule_site_no_overlap` (one published schedule per site and date) and
   `work_schedule_slot_employee_no_overlap` (assigned instants of an employee). They sit on the
   evidence itself: in MVP-050A no published row is ever superseded, so no historical row can block a

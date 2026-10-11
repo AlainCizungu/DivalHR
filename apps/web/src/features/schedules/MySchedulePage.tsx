@@ -152,6 +152,9 @@ export function MySchedulePage() {
                     ? t('mySchedule.site', { name: shift.site.name })
                     : t('workSchedules.siteUnknown')}
                 </p>
+                <p className="muted" data-testid="my-shift-timezone">
+                  {t('mySchedule.timezone', { zone: shift.siteTimezone })}
+                </p>
               </li>
             );
           })}

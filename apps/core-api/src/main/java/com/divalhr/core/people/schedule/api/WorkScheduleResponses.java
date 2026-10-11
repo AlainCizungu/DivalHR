@@ -106,8 +106,9 @@ public final class WorkScheduleResponses {
   /**
    * A preview: what would be published, its totals and digest.
    *
-   * @param asOf the organization's business date
-   * @param timezone the organization's time zone (stored with the schedule)
+   * @param asOf the site's business date (today in the site's time zone)
+   * @param siteTimezone the site's IANA time zone: the clock of every slot, stored with the
+   *     schedule
    * @param site the site
    * @param firstDate first date
    * @param lastDate last date
@@ -120,7 +121,7 @@ public final class WorkScheduleResponses {
   @Schema(name = "WorkSchedulePreview")
   public record Preview(
       LocalDate asOf,
-      String timezone,
+      String siteTimezone,
       Site site,
       LocalDate firstDate,
       LocalDate lastDate,
@@ -195,7 +196,7 @@ public final class WorkScheduleResponses {
    * @param site the site
    * @param firstDate first date
    * @param lastDate last date
-   * @param timezone the stored time zone
+   * @param siteTimezone the stored site time zone snapshot: the clock of every slot
    * @param totals totals
    * @param publishedAt publication instant
    */
@@ -205,7 +206,7 @@ public final class WorkScheduleResponses {
       Site site,
       LocalDate firstDate,
       LocalDate lastDate,
-      String timezone,
+      String siteTimezone,
       Totals totals,
       Instant publishedAt) {
 
@@ -222,7 +223,7 @@ public final class WorkScheduleResponses {
           Site.of(site, schedule.siteId()),
           schedule.firstDate(),
           schedule.lastDate(),
-          schedule.timezone(),
+          schedule.siteTimezone(),
           new Totals(schedule.slotCount(), schedule.assignedCount(), schedule.uncoveredCount()),
           schedule.publishedAt());
     }
@@ -233,7 +234,8 @@ public final class WorkScheduleResponses {
    *
    * @param items schedules, latest period first
    * @param nextCursor next page, or {@code null}
-   * @param asOf the organization's business date
+   * @param asOf the organization's business date (informational; each schedule's clock is its
+   *     {@code siteTimezone})
    */
   @Schema(name = "WorkSchedulePage")
   public record Page(
@@ -294,7 +296,7 @@ public final class WorkScheduleResponses {
    * @param site the site
    * @param firstDate first date
    * @param lastDate last date
-   * @param timezone the stored time zone
+   * @param siteTimezone the stored site time zone snapshot: the clock of every slot
    * @param totals totals
    * @param publishedAt publication instant
    * @param slots slots in publication order
@@ -305,7 +307,7 @@ public final class WorkScheduleResponses {
       Site site,
       LocalDate firstDate,
       LocalDate lastDate,
-      String timezone,
+      String siteTimezone,
       Totals totals,
       Instant publishedAt,
       List<Slot> slots) {
@@ -330,7 +332,7 @@ public final class WorkScheduleResponses {
           summary.site(),
           summary.firstDate(),
           summary.lastDate(),
-          summary.timezone(),
+          summary.siteTimezone(),
           summary.totals(),
           summary.publishedAt(),
           slots.stream().map(Slot::of).toList());
@@ -345,7 +347,7 @@ public final class WorkScheduleResponses {
    * @param site the site
    * @param start local start
    * @param end local end
-   * @param timezone the schedule's time zone
+   * @param siteTimezone the stored site time zone snapshot of the shift's schedule
    * @param overnight whether it ends on a later date
    * @param labels labels
    */
@@ -356,7 +358,7 @@ public final class WorkScheduleResponses {
       Site site,
       String start,
       String end,
-      String timezone,
+      String siteTimezone,
       boolean overnight,
       Labels labels) {
 
@@ -374,7 +376,7 @@ public final class WorkScheduleResponses {
           Site.of(site, shift.siteId()),
           WorkScheduleCommand.wire(shift.start()),
           WorkScheduleCommand.wire(shift.end()),
-          shift.timezone(),
+          shift.siteTimezone(),
           shift.end().toLocalDate().isAfter(shift.start().toLocalDate()),
           new Labels(shift.labelEn(), shift.labelFr()));
     }
@@ -385,7 +387,7 @@ public final class WorkScheduleResponses {
    *
    * @param items shifts in start order
    * @param nextCursor next page, or {@code null}
-   * @param asOf the organization's business date
+   * @param asOf the organization's business date (the default first date of the view)
    * @param from first start date of the view
    * @param to last start date of the view, or {@code null}
    */

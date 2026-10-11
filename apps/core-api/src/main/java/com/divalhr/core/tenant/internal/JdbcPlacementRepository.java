@@ -127,20 +127,18 @@ public class JdbcPlacementRepository {
     }
     jdbc.sql(
             "SELECT 'LEGAL_ENTITY' AS kind, id, code, name, effective_from, effective_to,"
-                + " NULL::uuid AS le, NULL::uuid AS site, NULL::uuid AS dept, NULL::uuid AS cc"
-                + " FROM tenant.legal_entity WHERE tenant_id = :tenant AND id = ANY(:ids)"
-                + " UNION ALL SELECT 'SITE', id, code, name, effective_from, effective_to,"
-                + " legal_entity_id, NULL, NULL, NULL"
-                + " FROM tenant.site WHERE tenant_id = :tenant AND id = ANY(:ids)"
-                + " UNION ALL SELECT 'DEPARTMENT', id, code, name, effective_from, effective_to,"
-                + " NULL, site_id, NULL, NULL"
-                + " FROM tenant.department WHERE tenant_id = :tenant AND id = ANY(:ids)"
-                + " UNION ALL SELECT 'COST_CENTER', id, code, name, effective_from, effective_to,"
-                + " NULL, site_id, NULL, NULL"
-                + " FROM tenant.cost_center WHERE tenant_id = :tenant AND id = ANY(:ids)"
-                + " UNION ALL SELECT 'TEAM', id, code, name, effective_from, effective_to,"
-                + " NULL, site_id, department_id, cost_center_id"
-                + " FROM tenant.team WHERE tenant_id = :tenant AND id = ANY(:ids)")
+                + " NULL::uuid AS le, NULL::uuid AS site, NULL::uuid AS dept, NULL::uuid AS cc,"
+                + " NULL::text AS tz FROM tenant.legal_entity WHERE tenant_id = :tenant AND id ="
+                + " ANY(:ids) UNION ALL SELECT 'SITE', id, code, name, effective_from,"
+                + " effective_to, legal_entity_id, NULL, NULL, NULL, timezone FROM tenant.site"
+                + " WHERE tenant_id = :tenant AND id = ANY(:ids) UNION ALL SELECT 'DEPARTMENT', id,"
+                + " code, name, effective_from, effective_to, NULL, site_id, NULL, NULL, NULL FROM"
+                + " tenant.department WHERE tenant_id = :tenant AND id = ANY(:ids) UNION ALL SELECT"
+                + " 'COST_CENTER', id, code, name, effective_from, effective_to, NULL, site_id,"
+                + " NULL, NULL, NULL FROM tenant.cost_center WHERE tenant_id = :tenant AND id ="
+                + " ANY(:ids) UNION ALL SELECT 'TEAM', id, code, name, effective_from,"
+                + " effective_to, NULL, site_id, department_id, cost_center_id, NULL FROM"
+                + " tenant.team WHERE tenant_id = :tenant AND id = ANY(:ids)")
         .param("tenant", tenant.value())
         .param("ids", ids.toArray(UUID[]::new))
         .query(
@@ -156,7 +154,8 @@ public class JdbcPlacementRepository {
                       rs.getObject("le", UUID.class),
                       rs.getObject("site", UUID.class),
                       rs.getObject("dept", UUID.class),
-                      rs.getObject("cc", UUID.class));
+                      rs.getObject("cc", UUID.class),
+                      rs.getString("tz"));
               return units.put(unit.id(), unit);
             })
         .list();

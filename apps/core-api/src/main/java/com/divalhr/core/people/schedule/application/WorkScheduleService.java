@@ -359,7 +359,7 @@ public class WorkScheduleService {
     Map<String, Object> afterState = new TreeMap<>(ids);
     afterState.remove("schemaVersion");
     afterState.put("tenantId", caller.tenant().toString());
-    afterState.put("timezone", schedule.timezone());
+    afterState.put("siteTimezone", schedule.siteTimezone());
     afterState.put("publishedAt", now.toString());
     afterState.put("publishedBy", caller.subject());
     List<Map<String, Object>> slots = new ArrayList<>(plan.slots().size());

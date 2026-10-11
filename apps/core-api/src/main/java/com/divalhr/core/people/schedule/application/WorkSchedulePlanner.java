@@ -37,20 +37,26 @@ import org.springframework.stereotype.Component;
  * evaluation serves the preview and, under the scheduling lock, the publication, so a publication
  * is exactly what was reviewed or is refused.
  *
- * <p>Whole-schedule rules throw: the period (today or later in the organization's calendar, in
- * order, at most 31 days: {@code WORK_SCHEDULE_PERIOD_INVALID}), the site (a site of the tenant in
- * effect on every date: {@code WORK_SCHEDULE_SITE_NOT_ACTIVE}; unknown and foreign alike) and the
- * site's published coverage ({@code WORK_SCHEDULE_OVERLAP}). Slot rules become per-slot issues, the
- * first one found: the local times ({@code WORK_SCHEDULE_SLOT_INVALID}: outside the period, not
- * after the start, beyond the next date or 24 hours, or a local time that does not exist or repeats
- * in the time zone), the assigned employee ({@code WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE}: not an
- * employee of the tenant, separated before the slot ends, not employed through it, not placed at
- * the site on its start date) and conflicts ({@code WORK_SCHEDULE_EMPLOYEE_CONFLICT}: an
- * overlapping published assignment, or an earlier overlapping slot of this proposal).
+ * <p>The site is the operational clock (R100-1): its IANA time zone, read through the tenant
+ * module's {@link OrganizationPlacementDirectory} port, decides the business date ("today"), the
+ * conversion of every local time to instants and the stored snapshot; the organization's time zone
+ * plays no part.
  *
- * <p>The digest binds the business date, the time zone, the site's period, every normalized slot
- * with its instants and issue, and every fact the eligibility read: employment IDs, periods and
- * versions, placement rows and separations.
+ * <p>Whole-schedule rules throw: the period (in order and at most 31 days, then, once the site is
+ * known, today or later in the site's calendar: {@code WORK_SCHEDULE_PERIOD_INVALID}), the site (a
+ * site of the tenant with a known time zone in effect on every date: {@code
+ * WORK_SCHEDULE_SITE_NOT_ACTIVE}; unknown and foreign alike) and the site's published coverage
+ * ({@code WORK_SCHEDULE_OVERLAP}). Slot rules become per-slot issues, the first one found: the
+ * local times ({@code WORK_SCHEDULE_SLOT_INVALID}: outside the period, not after the start, beyond
+ * the next date or 24 hours, or a local time that does not exist or repeats in the time zone), the
+ * assigned employee ({@code WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE}: not an employee of the tenant,
+ * separated before the slot ends, not employed through it, not placed at the site on its start
+ * date) and conflicts ({@code WORK_SCHEDULE_EMPLOYEE_CONFLICT}: an overlapping published
+ * assignment, or an earlier overlapping slot of this proposal).
+ *
+ * <p>The digest binds the site's business date and time zone, the site's period, every normalized
+ * slot with its instants and issue, and every fact the eligibility read: employment IDs, periods
+ * and versions, placement rows and separations.
  */
 @Component
 public class WorkSchedulePlanner {
@@ -67,8 +73,8 @@ public class WorkSchedulePlanner {
   /**
    * Creates the planner.
    *
-   * @param calendar the organization's business date and time zone
-   * @param directory the tenant module's unit port
+   * @param calendar the platform clock (the site's business date)
+   * @param directory the tenant module's unit port (the site, its period and time zone)
    * @param schedules schedule storage and facts
    */
   public WorkSchedulePlanner(
@@ -83,8 +89,8 @@ public class WorkSchedulePlanner {
   /**
    * An evaluated proposal.
    *
-   * @param asOf the organization's business date
-   * @param zone the organization's time zone
+   * @param asOf the site's business date
+   * @param zone the site's time zone
    * @param site the site
    * @param firstDate first date
    * @param lastDate last date
@@ -141,21 +147,24 @@ public class WorkSchedulePlanner {
    * @throws ApiException on a whole-schedule rule
    */
   public Plan plan(TenantId tenant, WorkScheduleCommand command) {
-    ZoneId zone = calendar.zone(tenant);
-    LocalDate today = calendar.today(zone);
     LocalDate first = command.firstDate();
     LocalDate last = command.lastDate();
     if (last.isBefore(first)) {
       throw period("ORDER");
     }
-    if (first.isBefore(today)) {
-      throw period("PAST");
-    }
     if (ChronoUnit.DAYS.between(first, last) >= MAX_DAYS) {
       throw period("TOO_LONG");
     }
     UnitView site = directory.resolveIds(tenant, Set.of(command.siteId())).get(command.siteId());
-    if (site == null || site.kind() != UnitKind.SITE || !site.effectiveThroughout(first, last)) {
+    ZoneId zone = site == null || site.kind() != UnitKind.SITE ? null : zone(site.timezone());
+    if (zone == null) {
+      throw new ApiException(ErrorCode.WORK_SCHEDULE_SITE_NOT_ACTIVE, Map.of());
+    }
+    LocalDate today = calendar.today(zone);
+    if (first.isBefore(today)) {
+      throw period("PAST");
+    }
+    if (!site.effectiveThroughout(first, last)) {
       throw new ApiException(ErrorCode.WORK_SCHEDULE_SITE_NOT_ACTIVE, Map.of());
     }
     if (schedules.siteCovered(tenant, site.id(), first, last)) {
@@ -178,6 +187,17 @@ public class WorkSchedulePlanner {
     slots = eligible(slots, facts, site.id());
     String digest = digest(tenant, today, zone, site, first, last, slots, facts);
     return new Plan(today, zone, site, first, last, slots, facts, digest);
+  }
+
+  /**
+   * The site's time zone, or {@code null} when it is missing or not a region the platform's time
+   * zone rules know (fails closed as an inactive site, never falls back to another clock).
+   */
+  static ZoneId zone(String timezone) {
+    if (timezone == null || !ZoneId.getAvailableZoneIds().contains(timezone)) {
+      return null;
+    }
+    return ZoneId.of(timezone);
   }
 
   private static ApiException period(String reason) {
@@ -330,8 +350,8 @@ public class WorkSchedulePlanner {
    * DIVALHR-WORK-SCHEDULE-PREVIEW
    * version=1
    * tenant=&lt;id&gt;
-   * asOf=&lt;date&gt;
-   * timezone=&lt;zone&gt;
+   * asOf=&lt;the site's date&gt;
+   * siteTimezone=&lt;the site's zone&gt;
    * site=&lt;id&gt;|&lt;from&gt;|&lt;to or -&gt;
    * period=&lt;first&gt;|&lt;last&gt;
    * slots=&lt;n&gt;
@@ -367,7 +387,7 @@ public class WorkSchedulePlanner {
     StringBuilder out = new StringBuilder("DIVALHR-WORK-SCHEDULE-PREVIEW\nversion=1\n");
     out.append("tenant=").append(tenant).append('\n');
     out.append("asOf=").append(asOf).append('\n');
-    out.append("timezone=").append(zone.getId()).append('\n');
+    out.append("siteTimezone=").append(zone.getId()).append('\n');
     out.append("site=")
         .append(site.id())
         .append('|')
