@@ -190,6 +190,10 @@ for the pilot.
   against the evidence's recorded instant (`work_schedule_change_window`). No client time is read.
   Otherwise `409 WORK_SCHEDULE_CHANGE_WINDOW_CLOSED`. Every slot of a replacement must also start
   after that instant (slot issue `WORK_SCHEDULE_SLOT_INVALID`, reason `NOT_FUTURE`).
+- The window is about slots, not dates (architecture review R102-1). A replacement keeps the
+  original's period even when that period has already begun at the site, for example Monday to
+  Friday with a first slot on Thursday, replaced on Tuesday. The MVP-050A rule that a period starts
+  today or later (`WORK_SCHEDULE_PERIOD_INVALID`, reason `PAST`) applies to new publications only.
 
 ### Lock order (D50B-9)
 

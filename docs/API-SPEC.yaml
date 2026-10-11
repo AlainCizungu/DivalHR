@@ -4446,7 +4446,8 @@ paths:
         schedule's own coverage does not conflict and every proposed slot must start strictly
         after the server's current instant (slot issue WORK_SCHEDULE_SLOT_INVALID, reason
         NOT_FUTURE). The site and the inclusive period are the original's and cannot be sent
-        (body UNKNOWN_PROPERTY). The original must be published (409
+        (body UNKNOWN_PROPERTY); the period may already have begun at the site, since the
+        publication rule PAST does not apply to a replacement (R102-1). The original must be published (409
         WORK_SCHEDULE_ALREADY_CANCELLED or WORK_SCHEDULE_ALREADY_REPLACED) with every slot still
         ahead (409 WORK_SCHEDULE_CHANGE_WINDOW_CLOSED); a preview never holds the window open.
         Stores nothing but its disclosure audit record (work-schedule.replacement-preview).

@@ -410,6 +410,70 @@ class WorkScheduleLifecycleIntegrationTest {
     assertThat(w.status(a)).isEqualTo("CANCELLED");
   }
 
+  @Test
+  void aScheduleWhosePeriodBeganIsReplaceableWhileEverySlotIsStillFuture() throws Exception {
+    // R102-1: Monday to Friday, the first slot on Thursday, replaced on Tuesday.
+    ScheduleWorld w = world();
+    Person ana = w.person("Ana", "Ngoy");
+    Person ben = w.person("Ben", "Ilunga");
+    LocalDate monday = w.today.plusDays(4);
+    LocalDate thursday = monday.plusDays(3);
+    LocalDate friday = monday.plusDays(4);
+    String a =
+        w.published(
+            proposal(
+                w.site(),
+                monday,
+                friday,
+                List.of(
+                    shift("a1", thursday, 8, 16, ana.employee()),
+                    shift("u1", friday, 8, 16, null))));
+
+    clock.set(monday.plusDays(1).atTime(10, 0).atZone(ZoneId.of("Africa/Kinshasa")).toInstant());
+    // The period began before the site's date, so a new publication of it is refused...
+    assertThat(
+            w.problem(
+                    ScheduleWorld.preview(
+                        w.admin,
+                        proposal(
+                            w.otherSite, monday, friday, List.of(shift("n", friday, 8, 9, null)))),
+                    422,
+                    "WORK_SCHEDULE_PERIOD_INVALID")
+                .get("params")
+                .get("reason")
+                .asText())
+        .isEqualTo("PAST");
+    // ...but the original is still replaceable: every one of its slots starts later.
+    List<Map<String, Object>> replacement =
+        List.of(
+            shift("b1", thursday, 8, 16, ben.employee()),
+            shift("b2", friday, 9, 17, ana.employee()));
+    JsonNode preview = w.expect(replacementPreview(w.admin, a, replacement, REPLACE_REASON), 200);
+    assertThat(preview.get("publishable").asBoolean()).isTrue();
+    assertThat(preview.get("firstDate").asText()).isEqualTo(monday.toString());
+    assertThat(preview.get("lastDate").asText()).isEqualTo(friday.toString());
+    MockHttpServletResponse done =
+        w.call(
+            replace(
+                w.admin,
+                Organizations.newKey(),
+                a,
+                replacement,
+                REPLACE_REASON,
+                preview.get("previewDigest").asText()));
+    assertThat(done.getStatus()).as(done.getContentAsString()).isEqualTo(201);
+    String b = JSON.readTree(done.getContentAsString()).get("replacementScheduleId").asText();
+
+    assertThat(w.status(a)).isEqualTo("REPLACED");
+    JsonNode successor = detail(w, b);
+    assertThat(successor.get("status").asText()).isEqualTo("PUBLISHED");
+    assertThat(successor.get("replacesScheduleId").asText()).isEqualTo(a);
+    assertThat(successor.get("firstDate").asText()).isEqualTo(monday.toString());
+    // Employees see only the successor.
+    assertThat(starts(mine(w, ana, ""))).containsExactly(friday + "T09:00");
+    assertThat(starts(mine(w, ben, ""))).containsExactly(thursday + "T08:00");
+  }
+
   // ------------------------------------------------------------------------------------------
   // Tenant isolation, MFA and membership
   // ------------------------------------------------------------------------------------------

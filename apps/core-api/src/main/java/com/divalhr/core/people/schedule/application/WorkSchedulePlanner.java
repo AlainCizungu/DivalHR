@@ -188,7 +188,10 @@ public class WorkSchedulePlanner {
       throw new ApiException(ErrorCode.WORK_SCHEDULE_SITE_NOT_ACTIVE, Map.of());
     }
     LocalDate today = calendar.today(zone);
-    if (first.isBefore(today)) {
+    // A new publication starts today or later at the site. A replacement keeps the original's
+    // period, which may have begun: it is bound instead by the change window, every original and
+    // proposed slot starting after the server's instant (D50B-4, R102-1).
+    if (replacing == null && first.isBefore(today)) {
       throw period("PAST");
     }
     if (!site.effectiveThroughout(first, last)) {
