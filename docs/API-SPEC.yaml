@@ -4169,6 +4169,243 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /work-schedules/preview:
+    post:
+      operationId: previewWorkSchedule
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a site work schedule
+      description: >-
+        MVP-050A. Evaluates a complete proposed schedule against the current facts and stores
+        nothing but its disclosure audit record (work-schedule.preview); there is no draft. The
+        server resolves the organization's business date (asOf) and IANA time zone, which the
+        client cannot choose. Whole-schedule rules are errors: the dates in order, the first today
+        or later, at most 31 days (422 WORK_SCHEDULE_PERIOD_INVALID, params.reason ORDER, PAST or
+        TOO_LONG); a site of the organization in effect on every date (422
+        WORK_SCHEDULE_SITE_NOT_ACTIVE, unknown and foreign alike); no published schedule of the site
+        on any of the dates (409 WORK_SCHEDULE_OVERLAP); 1 to 500 slots (400 slots REQUIRED; 422
+        WORK_SCHEDULE_LIMIT_EXCEEDED, params.maximum 500). Slot rules are per-slot issues, the
+        first one found: WORK_SCHEDULE_SLOT_INVALID (OUTSIDE_PERIOD, END_NOT_AFTER_START,
+        TOO_LONG: beyond the next date or 24 hours, LOCAL_TIME_INVALID: a local time that does not
+        exist or happens twice in the time zone, never guessed), WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE
+        (NOT_FOUND: unknown or foreign, SEPARATED: a separation effective before the slot ends,
+        NOT_EMPLOYED: not employed on every local date the slot occupies, NOT_AT_SITE: no placement
+        at the site on its start date) and WORK_SCHEDULE_EMPLOYEE_CONFLICT (PUBLISHED: an
+        overlapping published assignment at any site, IN_SCHEDULE: an earlier overlapping slot of
+        this proposal). Returns the normalized slots with their instants, assigned employees'
+        current directory names, issues, derived totals, warnings (UNCOVERED_SLOTS), whether it is
+        publishable and the domain-separated previewDigest binding the business date, time zone,
+        site, every slot and every eligibility fact (employments with their versions, placements,
+        separations). Restricted HR: a fail-closed disclosure. Shares the work-schedule-write
+        limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkScheduleRequest"
+      responses:
+        "200":
+          description: The evaluated proposal
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkSchedulePreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /work-schedules:
+    get:
+      operationId: listWorkSchedules
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List published site work schedules
+      description: >-
+        MVP-050A. The organization's published schedules, latest period first (firstDate, then
+        id), optionally of one site and overlapping the dates (ending on or after from, starting on
+        or before to): the site's code and name, the dates, the stored time zone, the derived
+        totals (slots, assigned, uncovered) and the publication time. Never the publisher.
+        Restricted HR/Operations: a fail-closed disclosure (audit work-schedule.read). The signed
+        cursor is bound to the operation, tenant, caller, filters and page size. Shares the
+        work-schedule-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleSiteFilter"
+        - $ref: "#/components/parameters/WorkScheduleFrom"
+        - $ref: "#/components/parameters/WorkScheduleTo"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkSchedulePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: publishWorkSchedule
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Publish a previewed site work schedule
+      description: >-
+        MVP-050A. Publishes exactly the reviewed preview: the same proposal, its previewDigest and
+        confirm true. Under the tenant's scheduling lock, with the assigned employees' employments
+        locked FOR SHARE (so employment changes, corrections and separations serialize with it),
+        every rule and fact is evaluated again: a slot issue is refused with its code
+        (params.position and params.reason); any other difference from the reviewed preview is 409
+        WORK_SCHEDULE_PREVIEW_STALE, never recomputed and published; the whole-schedule errors are
+        the preview's. One transaction with the immutable schedule and all its slots, the audit
+        record (work-schedule.publish: IDs, site, dates and counts only) and the outbox event
+        (people.work-schedule.published.v1). Only the body's shape is checked before the
+        idempotency decision: an exact retry returns the stored 201 with Idempotent-Replayed true,
+        a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. No label, employee name or
+        number in errors, logs, audit metadata or events. Shares the work-schedule-write limits.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishWorkScheduleRequest"
+      responses:
+        "201":
+          description: Published, or the original publication replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkSchedulePublicationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /work-schedules/{scheduleId}:
+    get:
+      operationId: getWorkSchedule
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a published site work schedule
+      description: >-
+        MVP-050A. One published schedule with every slot (at most 500) in publication order: local
+        and instant boundaries, overnight, both labels and, when assigned, the employee's current
+        directory fields; an unassigned slot is an uncovered position. Unknown, malformed and
+        foreign-tenant IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. Never the publisher. A
+        fail-closed disclosure (audit work-schedule.read). Shares the work-schedule-read limit.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkScheduleDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/work-schedule:
+    get:
+      operationId: listMyWorkSchedule
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my published shifts
+      description: >-
+        MVP-050A. The published shifts assigned to the employee of the caller's current active
+        employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order, starting from
+        from (default: the organization's business date) to to (optional, at most 366 days later):
+        both labels, the site's code and name, the local start and end, the schedule's time zone
+        and an overnight flag. Never another employee, an uncovered slot, the publisher or audit
+        data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial
+        evidence. The signed cursor is bound to the operation, tenant, caller, the resolved dates
+        and page size. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleFrom"
+        - $ref: "#/components/parameters/WorkScheduleTo"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyWorkSchedulePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     oauth2:
@@ -4588,6 +4825,35 @@ components:
       schema:
         type: string
         format: uuid
+    WorkScheduleId:
+      name: scheduleId
+      in: path
+      required: true
+      description: A published work schedule of the caller's organization.
+      schema:
+        type: string
+        format: uuid
+    WorkScheduleSiteFilter:
+      name: siteId
+      in: query
+      description: Only schedules of this site.
+      schema:
+        type: string
+        format: uuid
+    WorkScheduleFrom:
+      name: from
+      in: query
+      description: First date of the view (YYYY-MM-DD).
+      schema:
+        type: string
+        format: date
+    WorkScheduleTo:
+      name: to
+      in: query
+      description: Last date of the view (YYYY-MM-DD).
+      schema:
+        type: string
+        format: date
     LeavePolicyLimit:
       name: limit
       in: query
@@ -7595,6 +7861,15 @@ components:
         - LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE
         - LEAVE_APPROVAL_SUBSTITUTION_OVERLAP
         - LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED
+        - WORK_SCHEDULE_NOT_FOUND
+        - WORK_SCHEDULE_PREVIEW_STALE
+        - WORK_SCHEDULE_PERIOD_INVALID
+        - WORK_SCHEDULE_SITE_NOT_ACTIVE
+        - WORK_SCHEDULE_OVERLAP
+        - WORK_SCHEDULE_SLOT_INVALID
+        - WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE
+        - WORK_SCHEDULE_EMPLOYEE_CONFLICT
+        - WORK_SCHEDULE_LIMIT_EXCEEDED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -8565,6 +8840,367 @@ components:
         revokedAt:
           type: string
           format: date-time
+    WorkScheduleLabels:
+      type: object
+      description: >-
+        MVP-050A. A slot's English and French labels: closed plain-text grammar version 1 (2-60
+        characters, Latin letters with accents, digits, single spaces and . , ' ’ - ( ) / & # °;
+        no markup, link or e-mail address), trimmed with spaces collapsed.
+      required: [en, fr]
+      properties:
+        en:
+          type: string
+          minLength: 2
+          maxLength: 60
+        fr:
+          type: string
+          minLength: 2
+          maxLength: 60
+    WorkScheduleSlotInput:
+      type: object
+      description: MVP-050A. One proposed slot, one required worker.
+      required: [clientRef, start, end, labels]
+      properties:
+        clientRef:
+          type: string
+          pattern: "^[A-Za-z0-9_-]{1,40}$"
+          description: The client's correlation reference, unique in the request; never stored.
+        start:
+          type: string
+          pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$"
+          description: Local start on a schedule date, in the organization's time zone.
+        end:
+          type: string
+          pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$"
+          description: Local end, after the start, at most the next date and 24 hours later.
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+        employeeId:
+          type: [string, "null"]
+          format: uuid
+          description: The assigned employee; absent or null for an uncovered slot.
+    WorkScheduleRequest:
+      type: object
+      description: MVP-050A. A complete proposed schedule.
+      required: [siteId, firstDate, lastDate, slots]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        firstDate:
+          type: string
+          format: date
+        lastDate:
+          type: string
+          format: date
+        slots:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/WorkScheduleSlotInput"
+    PublishWorkScheduleRequest:
+      type: object
+      description: MVP-050A. The reviewed proposal, its preview digest and the confirmation.
+      required: [siteId, firstDate, lastDate, slots, previewDigest, confirm]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        firstDate:
+          type: string
+          format: date
+        lastDate:
+          type: string
+          format: date
+        slots:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/WorkScheduleSlotInput"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        confirm:
+          type: boolean
+          enum: [true]
+    WorkScheduleSite:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: [string, "null"]
+        name:
+          type: [string, "null"]
+    WorkScheduleEmployee:
+      type: object
+      description: Current directory data of an assigned employee; never stored with the slot.
+      required: [id, employeeNumber, givenNames, familyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    WorkScheduleTotals:
+      type: object
+      description: Derived from the slots, never stored as editable totals.
+      required: [slots, assigned, uncovered]
+      properties:
+        slots:
+          type: integer
+        assigned:
+          type: integer
+        uncovered:
+          type: integer
+    WorkScheduleSlotIssue:
+      type: object
+      required: [code, reason]
+      properties:
+        code:
+          type: string
+          enum:
+            - WORK_SCHEDULE_SLOT_INVALID
+            - WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE
+            - WORK_SCHEDULE_EMPLOYEE_CONFLICT
+        reason:
+          type: string
+          enum:
+            - OUTSIDE_PERIOD
+            - END_NOT_AFTER_START
+            - TOO_LONG
+            - LOCAL_TIME_INVALID
+            - NOT_FOUND
+            - SEPARATED
+            - NOT_EMPLOYED
+            - NOT_AT_SITE
+            - PUBLISHED
+            - IN_SCHEDULE
+    WorkSchedulePreviewSlot:
+      type: object
+      required:
+        [clientRef, position, start, end, startAt, endAt, overnight, labels, employee, issue]
+      properties:
+        clientRef:
+          type: string
+        position:
+          type: integer
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: [string, "null"]
+          format: date-time
+        endAt:
+          type: [string, "null"]
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+        employee:
+          oneOf:
+            - $ref: "#/components/schemas/WorkScheduleEmployee"
+            - type: "null"
+        issue:
+          oneOf:
+            - $ref: "#/components/schemas/WorkScheduleSlotIssue"
+            - type: "null"
+    WorkSchedulePreview:
+      type: object
+      required:
+        - asOf
+        - timezone
+        - site
+        - firstDate
+        - lastDate
+        - slots
+        - totals
+        - warnings
+        - publishable
+        - previewDigest
+      properties:
+        asOf:
+          type: string
+          format: date
+        timezone:
+          type: string
+          description: The organization's IANA time zone, stored with the schedule.
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        firstDate:
+          type: string
+          format: date
+        lastDate:
+          type: string
+          format: date
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkSchedulePreviewSlot"
+        totals:
+          $ref: "#/components/schemas/WorkScheduleTotals"
+        warnings:
+          type: array
+          items:
+            type: string
+            enum: [UNCOVERED_SLOTS]
+        publishable:
+          type: boolean
+        previewDigest:
+          type: string
+    WorkSchedulePublicationReceipt:
+      type: object
+      description: MVP-050A. The receipt of a publication; never a label or employee.
+      required: [scheduleId, publishedAt, totals]
+      properties:
+        scheduleId:
+          type: string
+          format: uuid
+        publishedAt:
+          type: string
+          format: date-time
+        totals:
+          $ref: "#/components/schemas/WorkScheduleTotals"
+    WorkScheduleSummary:
+      type: object
+      required: [id, site, firstDate, lastDate, timezone, totals, publishedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        firstDate:
+          type: string
+          format: date
+        lastDate:
+          type: string
+          format: date
+        timezone:
+          type: string
+        totals:
+          $ref: "#/components/schemas/WorkScheduleTotals"
+        publishedAt:
+          type: string
+          format: date-time
+    WorkSchedulePage:
+      type: object
+      required: [items, nextCursor, asOf]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkScheduleSummary"
+        nextCursor:
+          type: [string, "null"]
+        asOf:
+          type: string
+          format: date
+    WorkScheduleSlot:
+      type: object
+      required: [id, position, start, end, startAt, endAt, overnight, labels, employee]
+      properties:
+        id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+        employee:
+          oneOf:
+            - $ref: "#/components/schemas/WorkScheduleEmployee"
+            - type: "null"
+    WorkScheduleDetail:
+      type: object
+      required: [id, site, firstDate, lastDate, timezone, totals, publishedAt, slots]
+      properties:
+        id:
+          type: string
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        firstDate:
+          type: string
+          format: date
+        lastDate:
+          type: string
+          format: date
+        timezone:
+          type: string
+        totals:
+          $ref: "#/components/schemas/WorkScheduleTotals"
+        publishedAt:
+          type: string
+          format: date-time
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkScheduleSlot"
+    MyWorkShift:
+      type: object
+      description: MVP-050A. One of the caller's own published shifts.
+      required: [id, scheduleId, site, start, end, timezone, overnight, labels]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scheduleId:
+          type: string
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        start:
+          type: string
+        end:
+          type: string
+        timezone:
+          type: string
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+    MyWorkSchedulePage:
+      type: object
+      required: [items, nextCursor, asOf, from, to]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyWorkShift"
+        nextCursor:
+          type: [string, "null"]
+        asOf:
+          type: string
+          format: date
+        from:
+          type: string
+          format: date
+        to:
+          type: [string, "null"]
+          format: date
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.

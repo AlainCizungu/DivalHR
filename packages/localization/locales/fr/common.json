@@ -29,10 +29,13 @@
       "organization": "Organisation",
       "documents": "Documents",
       "access": "Accès et sécurité",
-      "mySpace": "Mon espace"
+      "mySpace": "Mon espace",
+      "operations": "Opérations"
     },
     "leaveRoutingExceptions": "Exceptions d’acheminement des congés",
-    "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés"
+    "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés",
+    "workSchedules": "Horaires",
+    "mySchedule": "Mon horaire"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -363,7 +366,16 @@
     "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD": "Le responsable ou le remplaçant n’est pas employé chacun des jours de ces dates.",
     "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE": "Cet employé n’encadre personne pendant ces dates : un remplaçant n’aurait rien à décider.",
     "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "Ce responsable a déjà un remplacement, en cours ou prévu, sur une partie de ces dates.",
-    "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "Ce remplacement a déjà été révoqué."
+    "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "Ce remplacement a déjà été révoqué.",
+    "WORK_SCHEDULE_NOT_FOUND": "Cet horaire n’est pas disponible. Il appartient peut-être à une autre organisation.",
+    "WORK_SCHEDULE_PREVIEW_STALE": "Un élément a changé depuis l’aperçu (un employé, une affectation ou le site). Affichez de nouveau l’aperçu avant de publier.",
+    "WORK_SCHEDULE_PERIOD_INVALID": "Ces dates ne peuvent pas être planifiées.",
+    "WORK_SCHEDULE_SITE_NOT_ACTIVE": "Ce site n’est pas ouvert à chaque date de l’horaire.",
+    "WORK_SCHEDULE_OVERLAP": "Un horaire publié couvre déjà ce site à certaines de ces dates.",
+    "WORK_SCHEDULE_SLOT_INVALID": "Un créneau ne peut pas être planifié tel qu’il a été saisi.",
+    "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE": "Un employé affecté ne peut pas travailler sur ce créneau.",
+    "WORK_SCHEDULE_EMPLOYEE_CONFLICT": "Un employé affecté travaille déjà à ce moment-là.",
+    "WORK_SCHEDULE_LIMIT_EXCEEDED": "Un horaire comporte au plus 500 créneaux."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2494,5 +2506,157 @@
       "revoked": "Le remplacement de {{manager}} par {{substitute}} a été révoqué.",
       "gone": "Ce remplacement a déjà été révoqué ou n’est plus disponible. La liste a été actualisée."
     }
+  },
+  "workSchedules": {
+    "title": "Horaires",
+    "description": "Publiez un horaire de travail par site sur 31 jours au plus. Chaque créneau correspond à une personne requise ; un créneau sans employé reste visible comme non couvert.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les horaires.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les horaires.",
+    "list": {
+      "title": "Horaires publiés",
+      "loading": "Chargement des horaires…",
+      "retry": "Réessayer",
+      "empty": "Aucun horaire n’est encore publié.",
+      "label": "Liste des horaires publiés",
+      "more": "Afficher plus d’horaires",
+      "loadingMore": "Chargement d’autres horaires…"
+    },
+    "columns": {
+      "site": "Site",
+      "period": "Dates",
+      "slots": "Créneaux",
+      "assigned": "Couverts",
+      "uncovered": "Non couverts",
+      "actions": "Actions",
+      "when": "Quand",
+      "work": "Travail",
+      "employee": "Employé",
+      "position": "N°",
+      "check": "Vérification"
+    },
+    "siteName": "{{name}} ({{code}})",
+    "siteUnknown": "Site indisponible",
+    "uncoveredCount_one": "{{count}} non couvert",
+    "uncoveredCount_other": "{{count}} non couverts",
+    "fullyCovered": "Entièrement couvert",
+    "uncovered": "Non couvert",
+    "warning": "Attention",
+    "actions": {
+      "view": "Voir",
+      "viewFor": "Voir l’horaire de {{site}} pour {{period}}"
+    },
+    "detail": {
+      "title": "{{site}}, {{period}}",
+      "loadingTitle": "Horaire",
+      "loading": "Chargement de l’horaire…",
+      "filter": "Afficher",
+      "all": "Tous les créneaux",
+      "uncoveredOnly": "Créneaux non couverts seulement",
+      "count_one": "{{count}} créneau affiché",
+      "count_other": "{{count}} créneaux affichés",
+      "label": "Créneaux de l’horaire"
+    },
+    "totals": "{{slots}} créneaux : {{assigned}} couverts, {{uncovered}} non couverts",
+    "timezone": "Heures locales dans le fuseau horaire de l’organisation ({{zone}}).",
+    "times": "{{date}}, {{start}} – {{end}}",
+    "timesOvernight": "{{date}}, {{start}} – {{end}} le lendemain",
+    "published": "Horaire publié pour {{period}} : {{slots}} créneaux, {{uncovered}} non couverts.",
+    "form": {
+      "title": "Nouvel horaire",
+      "intro": "Choisissez un site et au plus {{days}} jours, ajoutez jusqu’à {{slots}} créneaux, puis affichez l’aperçu. Rien n’est enregistré avant la publication.",
+      "site": "Lieu",
+      "sitesUnavailable": "Les sites ne peuvent pas être chargés pour le moment.",
+      "legalEntity": "Entité juridique",
+      "chooseLegalEntity": "Choisissez une entité juridique",
+      "siteLabel": "Site",
+      "chooseSite": "Choisissez un site",
+      "datesHelp": "À partir d’aujourd’hui, {{days}} jours au plus.",
+      "firstDate": "Première date",
+      "lastDate": "Dernière date",
+      "slots_one": "Créneaux ({{count}})",
+      "slots_other": "Créneaux ({{count}})",
+      "slotsHelp": "Une heure de fin antérieure à l’heure de début se termine le lendemain.",
+      "add": "Ajouter un créneau",
+      "preview": "Afficher l’aperçu de l’horaire",
+      "previewing": "Préparation de l’aperçu…"
+    },
+    "problems": {
+      "site": "Choisissez un site.",
+      "firstDate": "Saisissez une première date.",
+      "lastDate": "Saisissez une dernière date égale ou postérieure à la première, au plus 31 jours après.",
+      "slots": "Ajoutez entre 1 et 500 créneaux.",
+      "slot": "Créneau {{position}} : {{problem}}",
+      "date": "Choisissez une date comprise dans l’horaire.",
+      "start": "Saisissez une heure de début.",
+      "end": "Saisissez une heure de fin différente de l’heure de début.",
+      "labelEn": "Saisissez un libellé anglais de 2 à 60 lettres, chiffres ou signes simples.",
+      "labelFr": "Saisissez un libellé français de 2 à 60 lettres, chiffres ou signes simples."
+    },
+    "slot": {
+      "legend": "Créneau {{position}}",
+      "date": "Date",
+      "start": "Début",
+      "end": "Fin",
+      "overnight": "Se termine le lendemain.",
+      "labelEn": "Travail, en anglais",
+      "labelFr": "Travail, en français",
+      "labelHelp": "Par exemple un poste ou un guichet ; jusqu’à {{max}} caractères, sans lien ni note personnelle.",
+      "employee": "Employé (facultatif)",
+      "uncoveredHelp": "Sans employé, ce créneau est publié comme non couvert.",
+      "duplicate": "Dupliquer",
+      "duplicateFor": "Dupliquer le créneau {{position}}",
+      "remove": "Retirer",
+      "removeFor": "Retirer le créneau {{position}}",
+      "duplicated": "Créneau {{position}} ajouté comme copie.",
+      "removed": "Créneau {{position}} retiré."
+    },
+    "review": {
+      "title": "Vérifier et publier",
+      "summary": "{{site}}, {{period}}",
+      "slotNumber": "Créneau {{position}}",
+      "uncoveredWarning_one": "{{count}} créneau n’a pas d’employé et sera visible comme non couvert.",
+      "uncoveredWarning_other": "{{count}} créneaux n’ont pas d’employé et seront visibles comme non couverts.",
+      "blocked": "Certains créneaux ne peuvent pas être publiés. Revenez en arrière, corrigez-les et affichez de nouveau l’aperçu.",
+      "label": "Aperçu des créneaux",
+      "ok": "Prêt",
+      "confirmText": "Une fois publié, cet horaire ne peut plus être modifié. Les employés affectés verront leurs créneaux.",
+      "publish": "Confirmer et publier",
+      "publishing": "Publication…",
+      "back": "Revenir à la saisie"
+    },
+    "periodReasons": {
+      "ORDER": "La dernière date précède la première.",
+      "PAST": "La première date est antérieure à aujourd’hui.",
+      "TOO_LONG": "Un horaire couvre au plus 31 jours."
+    },
+    "issues": {
+      "OUTSIDE_PERIOD": "Commence en dehors des dates de l’horaire",
+      "END_NOT_AFTER_START": "Se termine avant de commencer",
+      "TOO_LONG": "Dure plus de 24 heures ou se termine après le lendemain",
+      "LOCAL_TIME_INVALID": "Cette heure locale n’existe pas ou se répète (changement d’heure)",
+      "NOT_FOUND": "Employé introuvable",
+      "SEPARATED": "L’employé quitte l’organisation avant la fin du créneau",
+      "NOT_EMPLOYED": "L’employé n’est pas en poste à ces dates",
+      "NOT_AT_SITE": "L’employé n’est pas affecté à ce site à cette date",
+      "PUBLISHED": "L’employé travaille déjà à ce moment-là dans un horaire publié",
+      "IN_SCHEDULE": "L’employé travaille déjà à ce moment-là dans cet horaire"
+    }
+  },
+  "mySchedule": {
+    "title": "Mon horaire",
+    "description": "Vos prochains créneaux publiés.",
+    "unauthorized": "Seuls les employés peuvent consulter leur horaire.",
+    "signInRequired": "Connectez-vous pour consulter votre horaire.",
+    "linkRequired": "Votre compte n’est pas encore lié à une fiche employé. Contactez votre administrateur.",
+    "loading": "Chargement de votre horaire…",
+    "retry": "Réessayer",
+    "asOf": "Créneaux à partir du {{date}}.",
+    "empty": "Vous n’avez aucun créneau publié à venir.",
+    "label": "Mes créneaux",
+    "time": "{{start}} – {{end}}",
+    "overnight": "Se termine le {{date}}",
+    "site": "Site : {{name}}",
+    "more": "Afficher plus de créneaux",
+    "loadingMore": "Chargement d’autres créneaux…"
   }
 }

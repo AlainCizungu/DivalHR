@@ -86,6 +86,10 @@
       <Class name="com.divalhr.core.people.leave.internal.JdbcLeaveRequestRepository"/>
       <Class name="com.divalhr.core.people.leave.application.LeaveSubstitutionService"/>
       <Class name="com.divalhr.core.people.leave.internal.JdbcLeaveSubstitutionRepository"/>
+      <Class name="com.divalhr.core.people.schedule.application.WorkScheduleService"/>
+      <Class name="com.divalhr.core.people.schedule.application.MyWorkScheduleService"/>
+      <Class name="com.divalhr.core.people.schedule.application.WorkSchedulePlanner"/>
+      <Class name="com.divalhr.core.people.schedule.internal.JdbcWorkScheduleRepository"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>

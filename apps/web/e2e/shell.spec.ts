@@ -53,6 +53,7 @@ test.describe('desktop', () => {
       'Leave approvals',
       'Leave routing exceptions',
       'Leave approval substitutes',
+      'Schedules',
       'Organizational structure',
       'Contract templates',
       'Contract expirations',
@@ -129,6 +130,7 @@ test.describe('desktop', () => {
     expect(await navLabels(page, 'Navigation principale')).toEqual([
       'Accueil',
       'Mes contrats',
+      'Mon horaire',
       'Mes congés',
       'Approbations de congé',
     ]);
@@ -186,7 +188,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(12);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(13);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

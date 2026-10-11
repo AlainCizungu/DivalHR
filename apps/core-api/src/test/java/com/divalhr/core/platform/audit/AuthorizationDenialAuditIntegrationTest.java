@@ -175,7 +175,12 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-041G: leave approval substitutes.
           "leave-approval-substitution.create",
           "leave-approval-substitution.list",
-          "leave-approval-substitution.revoke");
+          "leave-approval-substitution.revoke",
+          // MVP-050A: site work schedules.
+          "work-schedule.preview",
+          "work-schedule.publish",
+          "work-schedule.list",
+          "work-schedule.get");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -195,7 +200,9 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-041D: the employee's amendment of their own pending request.
           "leave-request.self-amend",
           // MVP-041F: the employee's withdrawal of their own approved leave.
-          "leave-request.self-withdraw");
+          "leave-request.self-withdraw",
+          // MVP-050A: the employee's own published shifts.
+          "work-schedule.self-list");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -612,7 +619,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(77);
+    assertThat(handlers).hasSize(81);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

@@ -19,6 +19,8 @@ import {
 import { LeaveApprovalSubstitutesPage } from '../features/leave/LeaveApprovalSubstitutesPage';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
+import { MySchedulePage } from '../features/schedules/MySchedulePage';
+import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { EmployeeDirectoryPage } from '../features/people/EmployeeDirectoryPage';
 import { EmployeeImportPage } from '../features/people/EmployeeImportPage';
@@ -54,6 +56,7 @@ const HOME: CrumbDef = { key: 'nav.home', to: '/' };
 const PEOPLE: CrumbDef = { key: 'nav.groups.people' };
 const ORGANIZATION: CrumbDef = { key: 'nav.groups.organization' };
 const DOCUMENTS: CrumbDef = { key: 'nav.groups.documents' };
+const OPERATIONS: CrumbDef = { key: 'nav.groups.operations' };
 const ACCESS: CrumbDef = { key: 'nav.groups.access' };
 const PLATFORM: CrumbDef = { key: 'nav.groups.platform' };
 const MY_SPACE: CrumbDef = { key: 'nav.groups.mySpace' };
@@ -150,6 +153,12 @@ export const ROUTES: AppRoute[] = [
     crumbs: [HOME, PEOPLE, { key: 'nav.leaveApprovalSubstitutes' }],
   },
   {
+    path: '/admin/work-schedules',
+    element: <WorkSchedulesPage />,
+    access: tenantAdmin('workSchedules.unauthorized', 'workSchedules.signInRequired'),
+    crumbs: [HOME, OPERATIONS, { key: 'nav.workSchedules' }],
+  },
+  {
     path: '/admin/contract-templates',
     element: <ContractTemplatesPage />,
     access: tenantAdmin('contracts.unauthorized', 'contracts.signInRequired'),
@@ -196,6 +205,16 @@ export const ROUTES: AppRoute[] = [
       { key: 'nav.myContracts', to: '/me/contracts' },
       { key: 'shell.crumb.contract' },
     ],
+  },
+  {
+    path: '/me/schedule',
+    element: <MySchedulePage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'mySchedule.unauthorized',
+      signInKey: 'mySchedule.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.mySchedule' }],
   },
   {
     path: '/me/leave',

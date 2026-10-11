@@ -1623,6 +1623,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/work-schedules/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a site work schedule
+         * @description MVP-050A. Evaluates a complete proposed schedule against the current facts and stores nothing but its disclosure audit record (work-schedule.preview); there is no draft. The server resolves the organization's business date (asOf) and IANA time zone, which the client cannot choose. Whole-schedule rules are errors: the dates in order, the first today or later, at most 31 days (422 WORK_SCHEDULE_PERIOD_INVALID, params.reason ORDER, PAST or TOO_LONG); a site of the organization in effect on every date (422 WORK_SCHEDULE_SITE_NOT_ACTIVE, unknown and foreign alike); no published schedule of the site on any of the dates (409 WORK_SCHEDULE_OVERLAP); 1 to 500 slots (400 slots REQUIRED; 422 WORK_SCHEDULE_LIMIT_EXCEEDED, params.maximum 500). Slot rules are per-slot issues, the first one found: WORK_SCHEDULE_SLOT_INVALID (OUTSIDE_PERIOD, END_NOT_AFTER_START, TOO_LONG: beyond the next date or 24 hours, LOCAL_TIME_INVALID: a local time that does not exist or happens twice in the time zone, never guessed), WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE (NOT_FOUND: unknown or foreign, SEPARATED: a separation effective before the slot ends, NOT_EMPLOYED: not employed on every local date the slot occupies, NOT_AT_SITE: no placement at the site on its start date) and WORK_SCHEDULE_EMPLOYEE_CONFLICT (PUBLISHED: an overlapping published assignment at any site, IN_SCHEDULE: an earlier overlapping slot of this proposal). Returns the normalized slots with their instants, assigned employees' current directory names, issues, derived totals, warnings (UNCOVERED_SLOTS), whether it is publishable and the domain-separated previewDigest binding the business date, time zone, site, every slot and every eligibility fact (employments with their versions, placements, separations). Restricted HR: a fail-closed disclosure. Shares the work-schedule-write limit. Cache-Control private, no-store.
+         */
+        post: operations["previewWorkSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/work-schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List published site work schedules
+         * @description MVP-050A. The organization's published schedules, latest period first (firstDate, then id), optionally of one site and overlapping the dates (ending on or after from, starting on or before to): the site's code and name, the dates, the stored time zone, the derived totals (slots, assigned, uncovered) and the publication time. Never the publisher. Restricted HR/Operations: a fail-closed disclosure (audit work-schedule.read). The signed cursor is bound to the operation, tenant, caller, filters and page size. Shares the work-schedule-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listWorkSchedules"];
+        put?: never;
+        /**
+         * Publish a previewed site work schedule
+         * @description MVP-050A. Publishes exactly the reviewed preview: the same proposal, its previewDigest and confirm true. Under the tenant's scheduling lock, with the assigned employees' employments locked FOR SHARE (so employment changes, corrections and separations serialize with it), every rule and fact is evaluated again: a slot issue is refused with its code (params.position and params.reason); any other difference from the reviewed preview is 409 WORK_SCHEDULE_PREVIEW_STALE, never recomputed and published; the whole-schedule errors are the preview's. One transaction with the immutable schedule and all its slots, the audit record (work-schedule.publish: IDs, site, dates and counts only) and the outbox event (people.work-schedule.published.v1). Only the body's shape is checked before the idempotency decision: an exact retry returns the stored 201 with Idempotent-Replayed true, a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. No label, employee name or number in errors, logs, audit metadata or events. Shares the work-schedule-write limits. Cache-Control private, no-store.
+         */
+        post: operations["publishWorkSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/work-schedules/{scheduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a published site work schedule
+         * @description MVP-050A. One published schedule with every slot (at most 500) in publication order: local and instant boundaries, overnight, both labels and, when assigned, the employee's current directory fields; an unassigned slot is an uncovered position. Unknown, malformed and foreign-tenant IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. Never the publisher. A fail-closed disclosure (audit work-schedule.read). Shares the work-schedule-read limit. Cache-Control private, no-store.
+         */
+        get: operations["getWorkSchedule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/work-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my published shifts
+         * @description MVP-050A. The published shifts assigned to the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order, starting from from (default: the organization's business date) to to (optional, at most 366 days later): both labels, the site's code and name, the local start and end, the schedule's time zone and an overnight flag. Never another employee, an uncovered slot, the publisher or audit data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is bound to the operation, tenant, caller, the resolved dates and page size. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listMyWorkSchedule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3037,7 +3121,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -3544,6 +3628,183 @@ export interface components {
             /** Format: date-time */
             revokedAt: string;
         };
+        /** @description MVP-050A. A slot's English and French labels: closed plain-text grammar version 1 (2-60 characters, Latin letters with accents, digits, single spaces and . , ' ’ - ( ) / & # °; no markup, link or e-mail address), trimmed with spaces collapsed. */
+        WorkScheduleLabels: {
+            en: string;
+            fr: string;
+        };
+        /** @description MVP-050A. One proposed slot, one required worker. */
+        WorkScheduleSlotInput: {
+            /** @description The client's correlation reference, unique in the request; never stored. */
+            clientRef: string;
+            /** @description Local start on a schedule date, in the organization's time zone. */
+            start: string;
+            /** @description Local end, after the start, at most the next date and 24 hours later. */
+            end: string;
+            labels: components["schemas"]["WorkScheduleLabels"];
+            /**
+             * Format: uuid
+             * @description The assigned employee; absent or null for an uncovered slot.
+             */
+            employeeId?: string | null;
+        };
+        /** @description MVP-050A. A complete proposed schedule. */
+        WorkScheduleRequest: {
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date */
+            firstDate: string;
+            /** Format: date */
+            lastDate: string;
+            slots: components["schemas"]["WorkScheduleSlotInput"][];
+        };
+        /** @description MVP-050A. The reviewed proposal, its preview digest and the confirmation. */
+        PublishWorkScheduleRequest: {
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date */
+            firstDate: string;
+            /** Format: date */
+            lastDate: string;
+            slots: components["schemas"]["WorkScheduleSlotInput"][];
+            previewDigest: string;
+            /** @enum {boolean} */
+            confirm: true;
+        };
+        WorkScheduleSite: {
+            /** Format: uuid */
+            id: string;
+            code: string | null;
+            name: string | null;
+        };
+        /** @description Current directory data of an assigned employee; never stored with the slot. */
+        WorkScheduleEmployee: {
+            /** Format: uuid */
+            id: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+        };
+        /** @description Derived from the slots, never stored as editable totals. */
+        WorkScheduleTotals: {
+            slots: number;
+            assigned: number;
+            uncovered: number;
+        };
+        WorkScheduleSlotIssue: {
+            /** @enum {string} */
+            code: "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT";
+            /** @enum {string} */
+            reason: "OUTSIDE_PERIOD" | "END_NOT_AFTER_START" | "TOO_LONG" | "LOCAL_TIME_INVALID" | "NOT_FOUND" | "SEPARATED" | "NOT_EMPLOYED" | "NOT_AT_SITE" | "PUBLISHED" | "IN_SCHEDULE";
+        };
+        WorkSchedulePreviewSlot: {
+            clientRef: string;
+            position: number;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            startAt: string | null;
+            /** Format: date-time */
+            endAt: string | null;
+            overnight: boolean;
+            labels: components["schemas"]["WorkScheduleLabels"];
+            employee: components["schemas"]["WorkScheduleEmployee"] | null;
+            issue: components["schemas"]["WorkScheduleSlotIssue"] | null;
+        };
+        WorkSchedulePreview: {
+            /** Format: date */
+            asOf: string;
+            /** @description The organization's IANA time zone, stored with the schedule. */
+            timezone: string;
+            site: components["schemas"]["WorkScheduleSite"];
+            /** Format: date */
+            firstDate: string;
+            /** Format: date */
+            lastDate: string;
+            slots: components["schemas"]["WorkSchedulePreviewSlot"][];
+            totals: components["schemas"]["WorkScheduleTotals"];
+            warnings: "UNCOVERED_SLOTS"[];
+            publishable: boolean;
+            previewDigest: string;
+        };
+        /** @description MVP-050A. The receipt of a publication; never a label or employee. */
+        WorkSchedulePublicationReceipt: {
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: date-time */
+            publishedAt: string;
+            totals: components["schemas"]["WorkScheduleTotals"];
+        };
+        WorkScheduleSummary: {
+            /** Format: uuid */
+            id: string;
+            site: components["schemas"]["WorkScheduleSite"];
+            /** Format: date */
+            firstDate: string;
+            /** Format: date */
+            lastDate: string;
+            timezone: string;
+            totals: components["schemas"]["WorkScheduleTotals"];
+            /** Format: date-time */
+            publishedAt: string;
+        };
+        WorkSchedulePage: {
+            items: components["schemas"]["WorkScheduleSummary"][];
+            nextCursor: string | null;
+            /** Format: date */
+            asOf: string;
+        };
+        WorkScheduleSlot: {
+            /** Format: uuid */
+            id: string;
+            position: number;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            startAt: string;
+            /** Format: date-time */
+            endAt: string;
+            overnight: boolean;
+            labels: components["schemas"]["WorkScheduleLabels"];
+            employee: components["schemas"]["WorkScheduleEmployee"] | null;
+        };
+        WorkScheduleDetail: {
+            /** Format: uuid */
+            id: string;
+            site: components["schemas"]["WorkScheduleSite"];
+            /** Format: date */
+            firstDate: string;
+            /** Format: date */
+            lastDate: string;
+            timezone: string;
+            totals: components["schemas"]["WorkScheduleTotals"];
+            /** Format: date-time */
+            publishedAt: string;
+            slots: components["schemas"]["WorkScheduleSlot"][];
+        };
+        /** @description MVP-050A. One of the caller's own published shifts. */
+        MyWorkShift: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            scheduleId: string;
+            site: components["schemas"]["WorkScheduleSite"];
+            start: string;
+            end: string;
+            timezone: string;
+            overnight: boolean;
+            labels: components["schemas"]["WorkScheduleLabels"];
+        };
+        MyWorkSchedulePage: {
+            items: components["schemas"]["MyWorkShift"][];
+            nextCursor: string | null;
+            /** Format: date */
+            asOf: string;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string | null;
+        };
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
             /** Format: uri */
@@ -3722,6 +3983,14 @@ export interface components {
         LeaveRequestId: string;
         /** @description A leave approval substitute appointment of the caller's organization. */
         LeaveApprovalSubstitutionId: string;
+        /** @description A published work schedule of the caller's organization. */
+        WorkScheduleId: string;
+        /** @description Only schedules of this site. */
+        WorkScheduleSiteFilter: string;
+        /** @description First date of the view (YYYY-MM-DD). */
+        WorkScheduleFrom: string;
+        /** @description Last date of the view (YYYY-MM-DD). */
+        WorkScheduleTo: string;
         /** @description Items per page (1-50, default 25). */
         LeavePolicyLimit: number;
         /** @description Items per page (1-50, default 25). */
@@ -7128,6 +7397,184 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewWorkSchedule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description The evaluated proposal */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSchedulePreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listWorkSchedules: {
+        parameters: {
+            query?: {
+                /** @description Only schedules of this site. */
+                siteId?: components["parameters"]["WorkScheduleSiteFilter"];
+                /** @description First date of the view (YYYY-MM-DD). */
+                from?: components["parameters"]["WorkScheduleFrom"];
+                /** @description Last date of the view (YYYY-MM-DD). */
+                to?: components["parameters"]["WorkScheduleTo"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["LeavePolicyLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSchedulePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    publishWorkSchedule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishWorkScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Published, or the original publication replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSchedulePublicationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getWorkSchedule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description A published work schedule of the caller's organization. */
+                scheduleId: components["parameters"]["WorkScheduleId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkScheduleDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listMyWorkSchedule: {
+        parameters: {
+            query?: {
+                /** @description First date of the view (YYYY-MM-DD). */
+                from?: components["parameters"]["WorkScheduleFrom"];
+                /** @description Last date of the view (YYYY-MM-DD). */
+                to?: components["parameters"]["WorkScheduleTo"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["LeavePolicyLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyWorkSchedulePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             429: components["responses"]["TooManyRequests"];
         };
     };

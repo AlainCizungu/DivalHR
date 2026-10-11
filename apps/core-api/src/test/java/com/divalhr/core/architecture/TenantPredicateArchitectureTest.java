@@ -109,6 +109,20 @@ class TenantPredicateArchitectureTest {
           .arePublic()
           .should(TAKE_TENANT_ID);
 
+  /** MVP-050A: the scheduling package's repositories follow the same rule, with no exception. */
+  @ArchTest
+  static final ArchRule scheduleRepositoriesRequireTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.people.schedule.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleNameEndingWith("Repository")
+          .and()
+          .arePublic()
+          .should(TAKE_TENANT_ID);
+
   /**
    * MVP-030: documents repositories follow the same rule; the read-only contract integrity job is
    * marked {@link CrossTenantAccess}.

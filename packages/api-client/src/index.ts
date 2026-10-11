@@ -204,6 +204,25 @@ export type LeaveApprovalSubstitutionReceipt =
   CoreComponents['schemas']['LeaveApprovalSubstitutionReceipt'];
 export type LeaveApprovalSubstitutionRevocationReceipt =
   CoreComponents['schemas']['LeaveApprovalSubstitutionRevocationReceipt'];
+/** MVP-050A: site work schedules (tenant administrators) and the employee's own shifts. */
+export type WorkScheduleRequest = CoreComponents['schemas']['WorkScheduleRequest'];
+export type PublishWorkScheduleRequest = CoreComponents['schemas']['PublishWorkScheduleRequest'];
+export type WorkScheduleSlotInput = CoreComponents['schemas']['WorkScheduleSlotInput'];
+export type WorkScheduleLabels = CoreComponents['schemas']['WorkScheduleLabels'];
+export type WorkScheduleEmployee = CoreComponents['schemas']['WorkScheduleEmployee'];
+export type WorkScheduleSite = CoreComponents['schemas']['WorkScheduleSite'];
+export type WorkScheduleTotals = CoreComponents['schemas']['WorkScheduleTotals'];
+export type WorkScheduleSlotIssue = CoreComponents['schemas']['WorkScheduleSlotIssue'];
+export type WorkSchedulePreview = CoreComponents['schemas']['WorkSchedulePreview'];
+export type WorkSchedulePreviewSlot = CoreComponents['schemas']['WorkSchedulePreviewSlot'];
+export type WorkSchedulePublicationReceipt =
+  CoreComponents['schemas']['WorkSchedulePublicationReceipt'];
+export type WorkScheduleSummary = CoreComponents['schemas']['WorkScheduleSummary'];
+export type WorkSchedulePage = CoreComponents['schemas']['WorkSchedulePage'];
+export type WorkScheduleSlot = CoreComponents['schemas']['WorkScheduleSlot'];
+export type WorkScheduleDetail = CoreComponents['schemas']['WorkScheduleDetail'];
+export type MyWorkShift = CoreComponents['schemas']['MyWorkShift'];
+export type MyWorkSchedulePage = CoreComponents['schemas']['MyWorkSchedulePage'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).
