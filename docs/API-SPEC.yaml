@@ -3903,6 +3903,166 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /leave-approval-substitutions:
+    get:
+      operationId: listLeaveApprovalSubstitutions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List leave approval substitute appointments
+      description: >-
+        MVP-041G. The organization's substitute appointments, newest first (createdAt, then id),
+        revoked and expired ones included: both employees' directory fields, the inclusive dates,
+        the reason as written, the creation time and, once revoked, the revocation's time and
+        reason. The state is derived on the organization's business date (asOf): REVOKED once a
+        revocation exists, otherwise SCHEDULED before the first day, ACTIVE within the period and
+        EXPIRED after the last day. Never a subject or actor. Restricted HR: recorded as a
+        fail-closed disclosure (audit leave-approval-substitution.read); if the audit record cannot
+        be written, nothing is returned. The signed cursor is bound to the operation, tenant, caller
+        and page size. Shares the leave-approval-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveApprovalSubstitutionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: createLeaveApprovalSubstitution
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Appoint a leave approval substitute for a manager
+      description: >-
+        MVP-041G. Appoints one substitute for a manager over inclusive business dates, with a
+        reason. While the appointment is effective (the organization's business date within its
+        period and no revocation), the substitute lists and decides the MANAGER-routed requests
+        whose employment reports to the manager on the request's first day, beside the manager,
+        who keeps every right: the first valid decision wins. No chain, sub-delegation,
+        notification or automatic activation. Under the tenant's manager-graph lock: manager and
+        substitute differ (422 LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE); both are employees of
+        the organization (404 EMPLOYEE_NOT_FOUND) employed on every day of the period (422
+        LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD); the manager has an active MANAGER
+        reporting line, as the manager, overlapping the period (422
+        LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE); no other unrevoked appointment of the
+        manager overlaps the period (409 LEAVE_APPROVAL_SUBSTITUTION_OVERLAP); all without
+        params. One transaction with the append-only appointment, the audit record
+        (leave-approval-substitution.create) and the outbox event
+        (people.leave-approval-substitution.created.v1). Only the body's shape is checked before
+        the idempotency decision: an exact retry returns the stored 201 with Idempotent-Replayed
+        true, a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never
+        contains the reason; errors never echo a value. Shares the leave-approval-write limits.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeaveApprovalSubstitution"
+      responses:
+        "201":
+          description: Appointed, or the original appointment replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveApprovalSubstitutionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /leave-approval-substitutions/{substitutionId}/revocation:
+    post:
+      operationId: revokeLeaveApprovalSubstitution
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Revoke a leave approval substitute appointment
+      description: >-
+        MVP-041G. Revokes a scheduled, active or expired appointment with a reason, effective
+        immediately: the substitute no longer lists or decides the manager's undecided requests,
+        which stay with the manager. The appointment and every decision already taken are kept
+        unchanged as evidence, and its remaining dates are free at once for a replacement
+        appointment. Under the tenant's
+        manager-graph lock, in one transaction with the append-only revocation, the audit record
+        (leave-approval-substitution.revoke) and the outbox event
+        (people.leave-approval-substitution.revoked.v1). Unknown and foreign-tenant appointments
+        are the same 404 LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND; an already revoked one is 409
+        LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED (no params), except the exact retry, which
+        returns the stored 201 with Idempotent-Replayed true. The receipt never contains the reason.
+        Shares the leave-approval-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/LeaveApprovalSubstitutionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeLeaveApprovalSubstitution"
+      responses:
+        "201":
+          description: Revoked, or the original revocation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveApprovalSubstitutionRevocationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /me/leave-approvals:
     get:
       operationId: listMyLeaveApprovals
@@ -3916,10 +4076,15 @@ paths:
         reporting line to the employee of the caller's current active employee-access link (403
         EMPLOYEE_LINK_REQUIRED otherwise), newest first. The relationship is re-evaluated on every
         call, so a later employment-history change reroutes a pending request; a request with no
-        qualifying manager is in no inbox. Restricted HR: recorded as a fail-closed disclosure
-        (audit leave-approval.manager-list). The signed cursor is bound to the operation, tenant,
-        caller, the caller's link and linked employee, and page size: a relink invalidates it.
-        Cache-Control private, no-store.
+        qualifying manager is in no inbox. MVP-041G: the same list also holds the requests that
+        report on their first day to a manager whose unrevoked appointment names the caller's
+        linked employee as substitute on the organization's business date, never the caller's own
+        requests; each item's approvalCapacity is PRIMARY or SUBSTITUTE, and no item names the
+        primary manager, the appointment or its reason. Authorization is recomputed on every page.
+        Restricted HR: recorded as a fail-closed disclosure (audit leave-approval.manager-list,
+        whose metadata also counts the substitute items). The signed cursor is bound to the
+        operation, tenant, caller, the caller's link and linked employee, and page size: a relink
+        invalidates it. Cache-Control private, no-store.
       tags: [people]
       parameters:
         - $ref: "#/components/parameters/Cursor"
@@ -3959,7 +4124,16 @@ paths:
         are the same 404 LEAVE_REQUEST_NOT_FOUND with no params, and a denied replay returns no
         stored response. Otherwise as decideLeaveRequest (409 LEAVE_REQUEST_ALREADY_DECIDED, 409
         LEAVE_REQUEST_NOT_ELIGIBLE EMPLOYMENT_PERIOD on approval, Idempotent-Replayed, no reason in
-        the receipt). Cache-Control private, no-store.
+        the receipt). MVP-041G: the caller may also be the effective substitute of the request's
+        primary manager (as listed with approvalCapacity SUBSTITUTE); the server chooses the
+        authority under the manager-graph lock, never the body: the caller's own reporting line
+        first (decisionAuthority MANAGER), otherwise the effective appointment (MANAGER_SUBSTITUTE,
+        recording the substitute and the primary manager; audit leave-request.approve or .reject
+        with the safe authority; event people.leave-request.substitute-approved.v1 or
+        -rejected.v1). The primary manager keeps every right and the first valid decision wins
+        (409 LEAVE_REQUEST_ALREADY_DECIDED for the other). A substitute's exact retry replays while
+        the stored decision was taken by the caller's currently linked employee, even after the
+        appointment expired or was revoked. Cache-Control private, no-store.
       tags: [people]
       parameters:
         - $ref: "#/components/parameters/LeaveRequestId"
@@ -4403,6 +4577,14 @@ components:
       in: path
       required: true
       description: Leave request ID.
+      schema:
+        type: string
+        format: uuid
+    LeaveApprovalSubstitutionId:
+      name: substitutionId
+      in: path
+      required: true
+      description: A leave approval substitute appointment of the caller's organization.
       schema:
         type: string
         format: uuid
@@ -7407,6 +7589,12 @@ components:
         - LEAVE_REQUEST_ALREADY_WITHDRAWN
         - LEAVE_REQUEST_NOT_APPROVED
         - LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED
+        - LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND
+        - LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE
+        - LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD
+        - LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE
+        - LEAVE_APPROVAL_SUBSTITUTION_OVERLAP
+        - LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -7929,6 +8117,15 @@ components:
           $ref: "#/components/schemas/LeaveApprovalRoute"
         state:
           $ref: "#/components/schemas/LeaveRequestState"
+        approvalCapacity:
+          $ref: "#/components/schemas/LeaveApprovalCapacity"
+    LeaveApprovalCapacity:
+      type: string
+      enum: [PRIMARY, SUBSTITUTE]
+      description: >-
+        MVP-041G, manager inbox only (absent from the tenant administrators' inbox): PRIMARY for
+        the caller's own reports, SUBSTITUTE for the reports of a manager the caller is the
+        effective substitute of. Never names the primary manager or the appointment.
     LeaveApprovalPage:
       type: object
       required: [items, nextCursor]
@@ -8191,6 +8388,181 @@ components:
           type: string
           enum: [CANCELLED]
         cancelledAt:
+          type: string
+          format: date-time
+    CreateLeaveApprovalSubstitution:
+      type: object
+      description: >-
+        MVP-041G. A tenant administrator's appointment of one substitute for a manager. Tenant and
+        actor are never fields.
+      additionalProperties: false
+      required:
+        - managerEmployeeId
+        - substituteEmployeeId
+        - effectiveFrom
+        - effectiveTo
+        - reasonLocale
+        - reason
+      properties:
+        managerEmployeeId:
+          type: string
+          format: uuid
+        substituteEmployeeId:
+          type: string
+          format: uuid
+          description: Another employee of the organization.
+        effectiveFrom:
+          type: string
+          format: date
+          description: First day (inclusive), 1900-01-01 to 2999-12-31.
+        effectiveTo:
+          type: string
+          format: date
+          description: Last day (inclusive), not before the first, at most 2999-12-31.
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason.
+    RevokeLeaveApprovalSubstitution:
+      type: object
+      description: >-
+        MVP-041G. The revocation of an appointment, with its reason. The appointment comes from
+        the path; tenant and actor are never fields.
+      additionalProperties: false
+      required: [reasonLocale, reason]
+      properties:
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          type: string
+          minLength: 2
+          maxLength: 500
+          description: Plain text, the same decision-reason grammar version 1 as DecideLeaveRequest.reason.
+    LeaveApprovalSubstitutionState:
+      type: string
+      enum: [SCHEDULED, ACTIVE, EXPIRED, REVOKED]
+      description: >-
+        MVP-041G. Derived on the organization's business date, never stored: REVOKED once revoked,
+        otherwise SCHEDULED before the first day, ACTIVE within the period, EXPIRED after it.
+    LeaveApprovalSubstitutionEmployee:
+      type: object
+      description: An employee's directory fields, as plain text.
+      required: [id, employeeNumber, givenNames, familyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    LeaveApprovalSubstitutionRevocation:
+      type: object
+      required: [revokedAt, reasonLocale, reason]
+      properties:
+        revokedAt:
+          type: string
+          format: date-time
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+          description: Plain text, never HTML or Markdown.
+    LeaveApprovalSubstitution:
+      type: object
+      description: >-
+        MVP-041G. An appointment as tenant administrators list it. Restricted HR; never a subject or
+        actor.
+      required:
+        - id
+        - manager
+        - substitute
+        - effectiveFrom
+        - effectiveTo
+        - state
+        - reasonLocale
+        - reason
+        - createdAt
+        - revocation
+      properties:
+        id:
+          type: string
+          format: uuid
+        manager:
+          $ref: "#/components/schemas/LeaveApprovalSubstitutionEmployee"
+        substitute:
+          $ref: "#/components/schemas/LeaveApprovalSubstitutionEmployee"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+        state:
+          $ref: "#/components/schemas/LeaveApprovalSubstitutionState"
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+          description: Plain text, never HTML or Markdown.
+        createdAt:
+          type: string
+          format: date-time
+        revocation:
+          oneOf:
+            - $ref: "#/components/schemas/LeaveApprovalSubstitutionRevocation"
+            - type: "null"
+    LeaveApprovalSubstitutionPage:
+      type: object
+      required: [items, nextCursor, asOf]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaveApprovalSubstitution"
+        nextCursor:
+          type: [string, "null"]
+        asOf:
+          type: string
+          format: date
+          description: The organization's business date the states were derived on.
+    LeaveApprovalSubstitutionReceipt:
+      type: object
+      description: MVP-041G. The minimal receipt of an appointment; never the reason.
+      required: [substitutionId, createdAt]
+      properties:
+        substitutionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+    LeaveApprovalSubstitutionRevocationReceipt:
+      type: object
+      description: MVP-041G. The minimal receipt of a revocation; never the reason.
+      required: [substitutionId, revocationId, state, revokedAt]
+      properties:
+        substitutionId:
+          type: string
+          format: uuid
+        revocationId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [REVOKED]
+        revokedAt:
           type: string
           format: date-time
     Problem:

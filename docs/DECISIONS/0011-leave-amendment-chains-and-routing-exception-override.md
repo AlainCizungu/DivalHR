@@ -106,4 +106,6 @@ every decision and cancellation, has no override and never edits `flyway_schema_
   write: one at a time per tenant, short transactions.
 - Withdrawal of approved leave (MVP-041F) and delegation or substitute approvers (MVP-041G) remain
   later stories; there is no escalation timer, automatic decision or notification. MVP-041F is
-  ADR 0012.
+  ADR 0012; MVP-041G is ADR 0013 (a request with a qualifying manager stays outside the
+  routing exceptions whether or not that manager has a substitute, and a substitute never
+  overrides).

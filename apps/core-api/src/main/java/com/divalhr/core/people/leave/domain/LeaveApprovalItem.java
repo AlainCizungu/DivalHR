@@ -26,6 +26,8 @@ import java.util.UUID;
  * @param endDate last day (inclusive)
  * @param route approval route
  * @param state state
+ * @param capacity how the caller may decide it in the manager inbox (MVP-041G), or {@code null} for
+ *     the tenant-administrator queues
  */
 public record LeaveApprovalItem(
     UUID id,
@@ -44,7 +46,8 @@ public record LeaveApprovalItem(
     LocalDate startDate,
     LocalDate endDate,
     ApprovalRoute route,
-    LeaveRequestState state) {
+    LeaveRequestState state,
+    ApprovalCapacity capacity) {
 
   /**
    * Identifiers only.

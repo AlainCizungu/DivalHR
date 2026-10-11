@@ -1,5 +1,6 @@
 package com.divalhr.core.people.leave.internal;
 
+import com.divalhr.core.people.leave.domain.ApprovalCapacity;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
 import com.divalhr.core.people.leave.domain.DecisionAuthority;
 import com.divalhr.core.people.leave.domain.Employment;
@@ -28,10 +29,10 @@ import org.springframework.stereotype.Repository;
 /**
  * Leave request storage (MVP-041A, V19), decisions (MVP-041B, V20), cancellations (MVP-041C, V21),
  * amendments and decision authorities (MVP-041D/E, V22), withdrawals of approved leave (MVP-041F,
- * V23) and the employment periods and reporting lines requests are checked against. Every query
- * names the verified tenant; employee reads are bound to the employee resolved from the caller's
- * own link, approval reads to the route and, for managers, to the caller's own reporting lines.
- * Runs in the caller's transaction.
+ * V23), substitute approvers' work (MVP-041G, V24) and the employment periods and reporting lines
+ * requests are checked against. Every query names the verified tenant; employee reads are bound to
+ * the employee resolved from the caller's own link, approval reads to the route and, for managers,
+ * to the caller's own reporting lines. Runs in the caller's transaction.
  */
 @Repository
 public class JdbcLeaveRequestRepository {
@@ -40,7 +41,8 @@ public class JdbcLeaveRequestRepository {
       "SELECT r.id, r.employee_id, r.employment_id, r.policy_version_id, r.start_date,"
           + " r.end_date, r.requested_amount, r.state, r.submitted_at, v.policy_id, p.code,"
           + " v.name_en, v.name_fr, v.unit, d.id AS decision_id, d.outcome, d.approval_route,"
-          + " d.decision_authority, d.manager_employee_id, d.reason_locale, d.reason_text,"
+          + " d.decision_authority, d.manager_employee_id, d.delegated_from_manager_employee_id,"
+          + " d.reason_locale, d.reason_text,"
           + " d.decided_at, x.id AS cancellation_id, x.reason_locale AS cancellation_locale,"
           + " x.reason_text AS cancellation_reason, x.cancelled_at, am.id AS amendment_id,"
           + " am.replacement_request_id, am.reason_locale AS amendment_locale,"
@@ -63,15 +65,19 @@ public class JdbcLeaveRequestRepository {
           + " LEFT JOIN people.leave_request_withdrawal w"
           + " ON w.tenant_id = r.tenant_id AND w.request_id = r.id";
 
-  private static final String ITEM =
+  private static final String ITEM_COLUMNS =
       "SELECT r.id, r.submitted_at, r.employee_id, e.employee_number, e.given_names,"
           + " e.family_name, v.policy_id, r.policy_version_id, p.code, v.name_en, v.name_fr,"
-          + " v.unit, r.requested_amount, r.start_date, r.end_date, v.approval_route, r.state"
-          + " FROM people.leave_request r"
+          + " v.unit, r.requested_amount, r.start_date, r.end_date, v.approval_route, r.state";
+
+  private static final String ITEM_FROM =
+      " FROM people.leave_request r"
           + " JOIN people.leave_policy_version v"
           + " ON v.tenant_id = r.tenant_id AND v.id = r.policy_version_id"
           + " JOIN people.leave_policy p ON p.tenant_id = v.tenant_id AND p.id = v.policy_id"
           + " JOIN people.employee e ON e.tenant_id = r.tenant_id AND e.id = r.employee_id";
+
+  private static final String ITEM = ITEM_COLUMNS + ITEM_FROM;
 
   private static final String ROUTING =
       "SELECT r.id, r.employee_id, r.employment_id, v.policy_id, r.policy_version_id,"
@@ -312,38 +318,60 @@ public class JdbcLeaveRequestRepository {
   }
 
   /**
-   * One keyset page of the pending {@code MANAGER} requests reporting to the manager on their first
-   * day, newest first.
+   * One keyset page of the manager inbox, newest first (MVP-041B; MVP-041G): the pending {@code
+   * MANAGER} requests reporting to the caller on their first day ({@code PRIMARY}), and those
+   * reporting on their first day to a manager whose unrevoked appointment names the caller as
+   * substitute on the business date ({@code SUBSTITUTE}), never the caller's own requests. A
+   * request appears once.
    *
    * @param tenant verified tenant
-   * @param managerEmployeeId the caller's linked employee
+   * @param callerEmployeeId the caller's linked employee
+   * @param today the organization's business date
    * @param afterSubmittedAt submission time of the previous page's last row, or {@code null}
    * @param afterId that row's id, or {@code null}
    * @param limit rows to read
-   * @return rows
+   * @return rows, each with its capacity
    */
   public List<LeaveApprovalItem> managerQueue(
-      TenantId tenant, UUID managerEmployeeId, Instant afterSubmittedAt, UUID afterId, int limit) {
+      TenantId tenant,
+      UUID callerEmployeeId,
+      LocalDate today,
+      Instant afterSubmittedAt,
+      UUID afterId,
+      int limit) {
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("tenant", tenant.value())
-            .addValue("manager", managerEmployeeId)
+            .addValue("caller", callerEmployeeId)
+            .addValue("today", today)
             .addValue("limit", limit);
     String keyset = "";
     if (afterSubmittedAt != null) {
       keyset = " AND (r.submitted_at, r.id) < (:afterAt, :afterId)";
       params.addValue("afterAt", Timestamp.from(afterSubmittedAt)).addValue("afterId", afterId);
     }
-    // The manager's active reporting lines (employment_assignment_reports), then, per line, the
-    // newest pending MANAGER requests of that employment whose first day the line covers
-    // (leave_request_employment_pending), merged newest first. Active lines of one employment
-    // never overlap, so a request matches at most one line.
+    // The managers the caller substitutes for today (leave_approval_substitution_substitute and the
+    // revocation lookup); the caller's own active reporting lines and those managers' lines
+    // (employment_assignment_reports); then, per line, the newest pending MANAGER requests of that
+    // employment whose first day the line covers (leave_request_employment_pending), merged newest
+    // first. Active lines of one employment never overlap and a line has one manager, so a request
+    // matches at most one line; it is still grouped by id, the primary capacity first.
     String sql =
-        "WITH lines AS MATERIALIZED (SELECT a.employment_id, a.effective_from, a.effective_to"
-            + " FROM people.employment_assignment a"
-            + " WHERE a.tenant_id = :tenant AND a.manager_employee_id = :manager"
+        "WITH delegators AS MATERIALIZED (SELECT s.manager_employee_id"
+            + " FROM people.leave_approval_substitution s"
+            + " WHERE s.tenant_id = :tenant AND s.substitute_employee_id = :caller"
+            + " AND s.effective_from <= :today AND s.effective_to >= :today"
+            + " AND NOT EXISTS (SELECT 1 FROM people.leave_approval_substitution_revocation x"
+            + " WHERE x.tenant_id = s.tenant_id AND x.substitution_id = s.id)),"
+            + " lines AS MATERIALIZED (SELECT a.employment_id, a.effective_from, a.effective_to,"
+            + " true AS primary_line FROM people.employment_assignment a"
+            + " WHERE a.tenant_id = :tenant AND a.manager_employee_id = :caller"
+            + " AND a.kind = 'MANAGER' AND a.superseded_by_change_id IS NULL"
+            + " UNION ALL SELECT a.employment_id, a.effective_from, a.effective_to,"
+            + " false AS primary_line FROM delegators d JOIN people.employment_assignment a"
+            + " ON a.tenant_id = :tenant AND a.manager_employee_id = d.manager_employee_id"
             + " AND a.kind = 'MANAGER' AND a.superseded_by_change_id IS NULL),"
-            + " queue AS (SELECT q.id FROM lines l CROSS JOIN LATERAL ("
+            + " found AS (SELECT q.id, l.primary_line FROM lines l CROSS JOIN LATERAL ("
             + "SELECT r.id FROM people.leave_request r"
             + " JOIN people.leave_policy_version v"
             + " ON v.tenant_id = r.tenant_id AND v.id = r.policy_version_id"
@@ -351,12 +379,17 @@ public class JdbcLeaveRequestRepository {
             + " AND r.state = 'PENDING' AND v.approval_route = 'MANAGER'"
             + " AND l.effective_from <= r.start_date"
             + " AND (l.effective_to IS NULL OR l.effective_to >= r.start_date)"
+            + " AND (l.primary_line OR r.employee_id <> :caller)"
             + keyset
-            + " ORDER BY r.submitted_at DESC, r.id DESC LIMIT :limit) q) "
-            + ITEM
+            + " ORDER BY r.submitted_at DESC, r.id DESC LIMIT :limit) q),"
+            + " queue AS (SELECT id, bool_or(primary_line) AS primary_line FROM found GROUP BY id) "
+            + ITEM_COLUMNS
+            + ", CASE WHEN queue.primary_line THEN 'PRIMARY' ELSE 'SUBSTITUTE' END AS capacity"
+            + ITEM_FROM
             + " JOIN queue ON queue.id = r.id WHERE r.tenant_id = :tenant"
             + " ORDER BY r.submitted_at DESC, r.id DESC LIMIT :limit";
-    return jdbc.query(sql, params, (rs, n) -> item(rs));
+    return jdbc.query(
+        sql, params, (rs, n) -> item(rs, ApprovalCapacity.valueOf(rs.getString("capacity"))));
   }
 
   /**
@@ -386,7 +419,7 @@ public class JdbcLeaveRequestRepository {
       params.addValue("afterAt", Timestamp.from(afterSubmittedAt)).addValue("afterId", afterId);
     }
     sql.append(" ORDER BY r.submitted_at DESC, r.id DESC LIMIT :limit");
-    return jdbc.query(sql.toString(), params, (rs, n) -> item(rs));
+    return jdbc.query(sql.toString(), params, (rs, n) -> item(rs, null));
   }
 
   /**
@@ -418,9 +451,10 @@ public class JdbcLeaveRequestRepository {
   public void decide(TenantId tenant, LeaveDecision decision, String decidedBy) {
     jdbc.update(
         "INSERT INTO people.leave_request_decision (id, tenant_id, request_id, outcome,"
-            + " approval_route, decision_authority, manager_employee_id, reason_locale,"
-            + " reason_text, decided_at, decided_by) VALUES (:id, :tenant, :request, :outcome,"
-            + " :route, :authority, :manager, :locale, :reason, :decidedAt, :decidedBy)",
+            + " approval_route, decision_authority, manager_employee_id,"
+            + " delegated_from_manager_employee_id, reason_locale, reason_text, decided_at,"
+            + " decided_by) VALUES (:id, :tenant, :request, :outcome, :route, :authority, :manager,"
+            + " :delegatedFrom, :locale, :reason, :decidedAt, :decidedBy)",
         new MapSqlParameterSource()
             .addValue("id", decision.id())
             .addValue("tenant", tenant.value())
@@ -429,6 +463,7 @@ public class JdbcLeaveRequestRepository {
             .addValue("route", decision.route().name())
             .addValue("authority", decision.authority().name())
             .addValue("manager", decision.managerEmployeeId())
+            .addValue("delegatedFrom", decision.delegatedFromManagerEmployeeId())
             .addValue("locale", decision.reasonLocale())
             .addValue("reason", decision.reason())
             .addValue("decidedAt", Timestamp.from(decision.decidedAt()))
@@ -684,6 +719,91 @@ public class JdbcLeaveRequestRepository {
         .findFirst();
   }
 
+  // ------------------------------------------------------------------------------------------
+  // Substitute approvers (MVP-041G)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * The delegation that lets a substitute decide a request: the request's primary manager (its
+   * active MANAGER line on its first day) and that manager's unrevoked appointment naming the
+   * substitute on the business date. Never for the substitute's own request.
+   *
+   * @param substitutionId the effective appointment
+   * @param managerEmployeeId the primary manager it delegates from
+   */
+  public record Delegation(UUID substitutionId, UUID managerEmployeeId) {}
+
+  /**
+   * The effective delegation from the request's primary manager to the substitute, read under the
+   * tenant's manager-graph lock (which appointment creation and revocation take too).
+   *
+   * @param tenant verified tenant
+   * @param requestId request
+   * @param substituteEmployeeId the caller's linked employee
+   * @param today the organization's business date
+   * @return the delegation, if the substitute may decide the request today
+   */
+  public Optional<Delegation> delegation(
+      TenantId tenant, UUID requestId, UUID substituteEmployeeId, LocalDate today) {
+    return jdbc
+        .query(
+            "SELECT s.id, s.manager_employee_id FROM people.leave_request r"
+                + " JOIN people.employment_assignment a ON a.tenant_id = r.tenant_id"
+                + " AND a.employment_id = r.employment_id AND a.kind = 'MANAGER'"
+                + " AND a.superseded_by_change_id IS NULL AND a.effective_from <= r.start_date"
+                + " AND (a.effective_to IS NULL OR a.effective_to >= r.start_date)"
+                + " JOIN people.leave_approval_substitution s ON s.tenant_id = r.tenant_id"
+                + " AND s.manager_employee_id = a.manager_employee_id"
+                + " AND s.substitute_employee_id = :substitute"
+                + " AND s.effective_from <= :today AND s.effective_to >= :today"
+                + " WHERE r.tenant_id = :tenant AND r.id = :id AND r.employee_id <> :substitute"
+                + " AND NOT EXISTS (SELECT 1 FROM people.leave_approval_substitution_revocation x"
+                + " WHERE x.tenant_id = s.tenant_id AND x.substitution_id = s.id)",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", requestId)
+                .addValue("substitute", substituteEmployeeId)
+                .addValue("today", today),
+            (rs, n) ->
+                new Delegation(
+                    rs.getObject("id", UUID.class),
+                    rs.getObject("manager_employee_id", UUID.class)))
+        .stream()
+        .findFirst();
+  }
+
+  /**
+   * Who took a request's decision: its authority and the deciding manager's employee (a manager or
+   * a substitute), for a replay.
+   *
+   * @param authority the authority
+   * @param managerEmployeeId the deciding manager or substitute, or {@code null}
+   */
+  public record Decider(DecisionAuthority authority, UUID managerEmployeeId) {}
+
+  /**
+   * The decider of a request's decision (a manager decision's replay).
+   *
+   * @param tenant verified tenant
+   * @param requestId request
+   * @return the decider, if the request has a decision in the tenant
+   */
+  public Optional<Decider> decider(TenantId tenant, UUID requestId) {
+    return jdbc
+        .query(
+            "SELECT decision_authority, manager_employee_id FROM people.leave_request_decision"
+                + " WHERE tenant_id = :tenant AND request_id = :id",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", requestId),
+            (rs, n) ->
+                new Decider(
+                    DecisionAuthority.valueOf(rs.getString("decision_authority")),
+                    rs.getObject("manager_employee_id", UUID.class)))
+        .stream()
+        .findFirst();
+  }
+
   private static LeaveRouting routing(ResultSet rs) throws SQLException {
     return new LeaveRouting(
         rs.getObject("id", UUID.class),
@@ -697,7 +817,8 @@ public class JdbcLeaveRequestRepository {
         LeaveRequestState.valueOf(rs.getString("state")));
   }
 
-  private static LeaveApprovalItem item(ResultSet rs) throws SQLException {
+  private static LeaveApprovalItem item(ResultSet rs, ApprovalCapacity capacity)
+      throws SQLException {
     return new LeaveApprovalItem(
         rs.getObject("id", UUID.class),
         rs.getTimestamp("submitted_at").toInstant(),
@@ -715,7 +836,8 @@ public class JdbcLeaveRequestRepository {
         rs.getObject("start_date", LocalDate.class),
         rs.getObject("end_date", LocalDate.class),
         ApprovalRoute.valueOf(rs.getString("approval_route")),
-        LeaveRequestState.valueOf(rs.getString("state")));
+        LeaveRequestState.valueOf(rs.getString("state")),
+        capacity);
   }
 
   private static LeaveRequest request(ResultSet rs) throws SQLException {
@@ -793,6 +915,7 @@ public class JdbcLeaveRequestRepository {
         ApprovalRoute.valueOf(rs.getString("approval_route")),
         DecisionAuthority.valueOf(rs.getString("decision_authority")),
         rs.getObject("manager_employee_id", UUID.class),
+        rs.getObject("delegated_from_manager_employee_id", UUID.class),
         rs.getString("reason_locale"),
         rs.getString("reason_text"),
         rs.getTimestamp("decided_at").toInstant());

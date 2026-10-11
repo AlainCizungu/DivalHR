@@ -9,6 +9,7 @@ import com.divalhr.core.people.leave.api.LeaveApprovalResponses.ExceptionPage;
 import com.divalhr.core.people.leave.api.LeaveApprovalResponses.Item;
 import com.divalhr.core.people.leave.api.LeaveApprovalResponses.Page;
 import com.divalhr.core.people.leave.api.LeaveApprovalResponses.Receipt;
+import com.divalhr.core.people.leave.domain.ApprovalCapacity;
 import com.divalhr.core.people.leave.domain.ApprovalRoute;
 import com.divalhr.core.people.leave.domain.DecisionAuthority;
 import com.divalhr.core.people.leave.domain.Employment;
@@ -17,6 +18,8 @@ import com.divalhr.core.people.leave.domain.LeaveDecision;
 import com.divalhr.core.people.leave.domain.LeaveRequestState;
 import com.divalhr.core.people.leave.domain.LeaveRouting;
 import com.divalhr.core.people.leave.internal.JdbcLeaveRequestRepository;
+import com.divalhr.core.people.leave.internal.JdbcLeaveRequestRepository.Decider;
+import com.divalhr.core.people.leave.internal.JdbcLeaveRequestRepository.Delegation;
 import com.divalhr.core.people.leave.internal.LeaveConstraintViolations;
 import com.divalhr.core.platform.access.EmployeeAccessLinks;
 import com.divalhr.core.platform.access.EmployeeAccessLinks.SelfLink;
@@ -58,7 +61,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Leave approval (MVP-041B, Issue #89; ADR 0010): the manager and tenant-administrator inboxes and
- * the one terminal decision on a pending request; the routing exceptions (MVP-041E, Issue #92).
+ * the one terminal decision on a pending request; the routing exceptions (MVP-041E, Issue #92);
+ * substitute approvers (MVP-041G, Issue #97; ADR 0013).
  *
  * <p>The route is the immutable {@code approval_route} of the request's policy version. A {@code
  * MANAGER} request belongs to the employee whose active, non-superseded MANAGER line covers the
@@ -82,6 +86,17 @@ import tools.jackson.databind.json.JsonMapper;
  * TENANT_ADMIN_OVERRIDE} authority under the unchanged {@code MANAGER} route (step 6). Its replay
  * checks only that the stored decision is this tenant's override: a manager assigned after it does
  * not invalidate it.
+ *
+ * <p>A substitute (MVP-041G) is the employee an unrevoked appointment of a request's primary
+ * manager names on the organization's business date. The manager inbox lists the caller's own
+ * reports' requests ({@code PRIMARY}) and the primary manager's ({@code SUBSTITUTE}) together,
+ * never the substitute's own; the manager decision endpoint decides either. The server chooses the
+ * authority under the manager-graph lock (which appointment creation and revocation take too): the
+ * caller's own reporting line first ({@code MANAGER}), otherwise the effective appointment ({@code
+ * MANAGER_SUBSTITUTE}, naming the substitute and the primary manager). The primary manager keeps
+ * every right; the first valid decision wins. A substitute decision's replay requires only that the
+ * stored decision was taken by the caller's currently linked employee as a substitute: a later
+ * expiry or revocation does not invalidate it.
  *
  * <p>The reason is Restricted HR: it is stored only in the decision row, returned only to the
  * requesting employee's own history, and never enters logs, metrics, audit metadata, events or the
@@ -113,6 +128,14 @@ public class LeaveApprovalService {
 
   /** Outbox event of a rejection. */
   public static final String REJECTED_EVENT = "people.leave-request.rejected.v1";
+
+  /** Outbox event of a substitute's approval (MVP-041G). */
+  public static final String SUBSTITUTE_APPROVED_EVENT =
+      "people.leave-request.substitute-approved.v1";
+
+  /** Outbox event of a substitute's rejection (MVP-041G). */
+  public static final String SUBSTITUTE_REJECTED_EVENT =
+      "people.leave-request.substitute-rejected.v1";
 
   /** Routing-exception queue (and its disclosure audit action; MVP-041E). */
   public static final String EXCEPTION_LIST = "leave-routing-exception.list";
@@ -216,8 +239,10 @@ public class LeaveApprovalService {
 
   /**
    * One page of the pending {@code MANAGER} requests that report to the caller's linked employee on
-   * their first day, newest first. A fail-closed disclosure: the body is returned only after its
-   * audit record committed with the read.
+   * their first day, and (MVP-041G) those of the managers the caller is the effective substitute of
+   * on the business date, each with its capacity, newest first. Authorization is recomputed on
+   * every page. A fail-closed disclosure: the body is returned only after its audit record
+   * committed with the read.
    *
    * @param caller verified employee
    * @param cursor opaque cursor or {@code null}
@@ -238,7 +263,12 @@ public class LeaveApprovalService {
                 Keyset after = after(caller.tenant(), cursor, scope);
                 List<LeaveApprovalItem> rows =
                     requests.managerQueue(
-                        caller.tenant(), link.employeeId(), after.at(), after.id(), size + 1);
+                        caller.tenant(),
+                        link.employeeId(),
+                        calendar.today(caller.tenant()),
+                        after.at(),
+                        after.id(),
+                        size + 1);
                 Page page = page(rows, size, scope);
                 disclosed(caller, MANAGER_LIST, "employee", link.employeeId(), cursor, page);
                 return page;
@@ -363,7 +393,10 @@ public class LeaveApprovalService {
     return Fingerprints.sha256("DIVALHR-LEAVE-APPROVAL\nsubject=" + caller.subject());
   }
 
-  /** The disclosure audit: the view, page and count; the request IDs, in order, in the digest. */
+  /**
+   * The disclosure audit: the view, page and counts (the manager inbox also counts its substitute
+   * items); the request IDs (and, in the manager inbox, their capacities), in order, in the digest.
+   */
   private void disclosed(
       PeopleCaller caller,
       String action,
@@ -376,11 +409,29 @@ public class LeaveApprovalService {
     metadata.put("view", view(action));
     metadata.put("page", cursor == null ? "first" : "next");
     metadata.put("resultCount", page.items().size());
+    boolean manager = MANAGER_LIST.equals(action);
+    if (manager) {
+      metadata.put(
+          "substituteCount",
+          page.items().stream()
+              .filter(item -> item.approvalCapacity() == ApprovalCapacity.SUBSTITUTE)
+              .count());
+    }
     StringBuilder text =
-        new StringBuilder("DIVALHR-LEAVE-APPROVAL-DISCLOSURE\nversion=1\nview=")
+        new StringBuilder("DIVALHR-LEAVE-APPROVAL-DISCLOSURE\nversion=")
+            .append(manager ? 2 : 1)
+            .append("\nview=")
             .append(metadata.get("view"))
             .append('\n');
-    page.items().forEach(item -> text.append("id=").append(item.id()).append('\n'));
+    page.items()
+        .forEach(
+            item -> {
+              text.append("id=").append(item.id());
+              if (manager) {
+                text.append(";capacity=").append(item.approvalCapacity());
+              }
+              text.append('\n');
+            });
     audit.record(
         new AuditEvent(
             UUID.randomUUID(),
@@ -408,8 +459,10 @@ public class LeaveApprovalService {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * Decides a pending {@code MANAGER} request of one of the caller's reports, or replays an earlier
-   * identical decision while the caller is still that request's manager.
+   * Decides a pending {@code MANAGER} request of one of the caller's reports, or (MVP-041G) of a
+   * report of a manager the caller is the effective substitute of; or replays an earlier identical
+   * decision while the caller is still that request's manager, or while the caller's linked
+   * employee is still the substitute who took it.
    *
    * @param caller verified employee
    * @param requestId path value
@@ -508,13 +561,27 @@ public class LeaveApprovalService {
     SelfLink link = link(caller);
     LeaveRouting routing =
         seen.isEmpty() ? null : requests.lockRouting(tenant, command.requestId()).orElse(null);
-    if (routing == null
-        || routing.route() != ApprovalRoute.MANAGER
-        || !requests.reportsTo(tenant, routing.id(), link.employeeId())) {
+    if (routing == null || routing.route() != ApprovalRoute.MANAGER) {
       throw LeaveDecisionCommand.notFound();
     }
+    if (requests.reportsTo(tenant, routing.id(), link.employeeId())) {
+      return decided(
+          caller, command, routing, employment, DecisionAuthority.MANAGER, link.employeeId(), null);
+    }
+    // Not the primary manager: only the effective substitute of the request's primary manager on
+    // the business date (MVP-041G), never for their own request.
+    Delegation delegation =
+        requests
+            .delegation(tenant, routing.id(), link.employeeId(), calendar.today(tenant))
+            .orElseThrow(LeaveDecisionCommand::notFound);
     return decided(
-        caller, command, routing, employment, DecisionAuthority.MANAGER, link.employeeId());
+        caller,
+        command,
+        routing,
+        employment,
+        DecisionAuthority.MANAGER_SUBSTITUTE,
+        link.employeeId(),
+        delegation);
   }
 
   private IdempotentOperation.Completed<Receipt> adminDecided(
@@ -531,7 +598,8 @@ public class LeaveApprovalService {
             .lockRouting(tenant, command.requestId())
             .filter(found -> found.route() == ApprovalRoute.TENANT_ADMIN)
             .orElseThrow(LeaveDecisionCommand::notFound);
-    return decided(caller, command, routing, employment, DecisionAuthority.TENANT_ADMIN, null);
+    return decided(
+        caller, command, routing, employment, DecisionAuthority.TENANT_ADMIN, null, null);
   }
 
   /**
@@ -561,7 +629,7 @@ public class LeaveApprovalService {
       throw LeaveDecisionCommand.notFound();
     }
     return decided(
-        caller, command, routing, employment, DecisionAuthority.TENANT_ADMIN_OVERRIDE, null);
+        caller, command, routing, employment, DecisionAuthority.TENANT_ADMIN_OVERRIDE, null, null);
   }
 
   /**
@@ -579,16 +647,27 @@ public class LeaveApprovalService {
     }
   }
 
-  /** A manager's replay: the lock, the current link and the current reporting line again. */
+  /**
+   * A manager's replay: the lock and the current link, then by the stored decision's authority. A
+   * substitute's decision (MVP-041G) replays while it was taken by the caller's currently linked
+   * employee, whatever the appointment has become since; a primary manager's while the current
+   * reporting line still names the caller's linked employee.
+   */
   private void managerReplayable(PeopleCaller caller, UUID requestId) {
     TenantId tenant = caller.tenant();
     graph.lock(tenant);
     Optional<LeaveRouting> routing =
         requestId == null ? Optional.empty() : requests.routing(tenant, requestId);
     SelfLink link = link(caller);
-    if (routing.isEmpty()
-        || routing.get().route() != ApprovalRoute.MANAGER
-        || !requests.reportsTo(tenant, requestId, link.employeeId())) {
+    if (routing.isEmpty() || routing.get().route() != ApprovalRoute.MANAGER) {
+      throw LeaveDecisionCommand.notFound();
+    }
+    Optional<Decider> decider = requests.decider(tenant, requestId);
+    boolean replayable =
+        decider.isPresent() && decider.get().authority() == DecisionAuthority.MANAGER_SUBSTITUTE
+            ? link.employeeId().equals(decider.get().managerEmployeeId())
+            : requests.reportsTo(tenant, requestId, link.employeeId());
+    if (!replayable) {
       throw LeaveDecisionCommand.notFound();
     }
   }
@@ -613,12 +692,14 @@ public class LeaveApprovalService {
       LeaveRouting routing,
       Employment employment,
       DecisionAuthority authority,
-      UUID managerEmployeeId) {
+      UUID managerEmployeeId,
+      Delegation delegation) {
     TenantId tenant = caller.tenant();
     if (routing.state().terminal()) {
       throw alreadyDecided();
     }
     boolean override = authority == DecisionAuthority.TENANT_ADMIN_OVERRIDE;
+    boolean substitute = authority == DecisionAuthority.MANAGER_SUBSTITUTE;
     // Approving needs the employment to cover the whole interval still; rejecting does not.
     if (command.outcome() == LeaveRequestState.APPROVED
         && (employment == null || !employment.covers(routing.startDate(), routing.endDate()))) {
@@ -634,6 +715,7 @@ public class LeaveApprovalService {
             routing.route(),
             authority,
             managerEmployeeId,
+            delegation == null ? null : delegation.managerEmployeeId(),
             command.reasonLocale(),
             command.reason(),
             now);
@@ -663,8 +745,11 @@ public class LeaveApprovalService {
     ids.put("policyId", routing.policyId().toString());
     ids.put("policyVersionId", routing.policyVersionId().toString());
     ids.put("approvalRoute", routing.route().name());
-    if (override) {
+    if (override || substitute) {
       ids.put("decisionAuthority", authority.name());
+    }
+    if (delegation != null) {
+      ids.put("substitutionId", delegation.substitutionId().toString());
     }
     Map<String, Object> metadata = new LinkedHashMap<>(ids);
     metadata.put("priorState", LeaveRequestState.PENDING.name());
@@ -689,9 +774,7 @@ public class LeaveApprovalService {
     outbox.append(
         new EventEnvelope(
             UUID.randomUUID().toString(),
-            override
-                ? approved ? EXCEPTION_APPROVED_EVENT : EXCEPTION_REJECTED_EVENT
-                : approved ? APPROVED_EVENT : REJECTED_EVENT,
+            eventType(authority, approved),
             LeavePolicyService.SCHEMA_VERSION,
             tenant.toString(),
             SOURCE,
@@ -735,11 +818,27 @@ public class LeaveApprovalService {
     state.put(
         "managerEmployeeId",
         decision.managerEmployeeId() == null ? "" : decision.managerEmployeeId().toString());
+    if (decision.delegatedFromManagerEmployeeId() != null) {
+      state.put(
+          "delegatedFromManagerEmployeeId", decision.delegatedFromManagerEmployeeId().toString());
+    }
     state.put("reasonLocale", decision.reasonLocale());
     state.put("reason", decision.reason());
     state.put("decidedAt", decision.decidedAt().toString());
     state.put("decidedBy", caller.subject());
     return state;
+  }
+
+  /**
+   * The event type by authority: the v1 manager and administrator contracts are unchanged; a
+   * routing-exception override and a substitute decision have their own (MVP-041E, MVP-041G).
+   */
+  private static String eventType(DecisionAuthority authority, boolean approved) {
+    return switch (authority) {
+      case TENANT_ADMIN_OVERRIDE -> approved ? EXCEPTION_APPROVED_EVENT : EXCEPTION_REJECTED_EVENT;
+      case MANAGER_SUBSTITUTE -> approved ? SUBSTITUTE_APPROVED_EVENT : SUBSTITUTE_REJECTED_EVENT;
+      case MANAGER, TENANT_ADMIN -> approved ? APPROVED_EVENT : REJECTED_EVENT;
+    };
   }
 
   private static String action(boolean override, boolean approved) {

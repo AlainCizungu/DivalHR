@@ -11,6 +11,7 @@ import com.divalhr.core.identity.application.ResendInvitationService;
 import com.divalhr.core.identity.application.RevokeInvitationService;
 import com.divalhr.core.people.leave.application.LeaveApprovalService;
 import com.divalhr.core.people.leave.application.LeavePolicyService;
+import com.divalhr.core.people.leave.application.LeaveSubstitutionService;
 import com.divalhr.core.people.leave.application.MyLeaveService;
 import com.divalhr.core.tenant.api.CostCenterController;
 import com.divalhr.core.tenant.api.DepartmentController;
@@ -132,6 +133,18 @@ class OperationNameTest {
         .isEqualTo("people.leave-request.routing-exception-approved.v1");
     assertThat(LeaveApprovalService.EXCEPTION_REJECTED_EVENT)
         .isEqualTo("people.leave-request.routing-exception-rejected.v1");
+    assertThat(LeaveApprovalService.SUBSTITUTE_APPROVED_EVENT)
+        .isEqualTo("people.leave-request.substitute-approved.v1");
+    assertThat(LeaveApprovalService.SUBSTITUTE_REJECTED_EVENT)
+        .isEqualTo("people.leave-request.substitute-rejected.v1");
+    assertThat(LeaveSubstitutionService.CREATE).isEqualTo("leave-approval-substitution.create");
+    assertThat(LeaveSubstitutionService.LIST).isEqualTo("leave-approval-substitution.list");
+    assertThat(LeaveSubstitutionService.READ).isEqualTo("leave-approval-substitution.read");
+    assertThat(LeaveSubstitutionService.REVOKE).isEqualTo("leave-approval-substitution.revoke");
+    assertThat(LeaveSubstitutionService.CREATED_EVENT)
+        .isEqualTo("people.leave-approval-substitution.created.v1");
+    assertThat(LeaveSubstitutionService.REVOKED_EVENT)
+        .isEqualTo("people.leave-approval-substitution.revoked.v1");
   }
 
   @Test

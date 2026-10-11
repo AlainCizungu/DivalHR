@@ -171,7 +171,11 @@ class AuthorizationDenialAuditIntegrationTest {
           "leave-request.admin-decide",
           // MVP-041E: the routing-exception queue and override decision.
           "leave-routing-exception.list",
-          "leave-request.routing-exception-decide");
+          "leave-request.routing-exception-decide",
+          // MVP-041G: leave approval substitutes.
+          "leave-approval-substitution.create",
+          "leave-approval-substitution.list",
+          "leave-approval-substitution.revoke");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -608,7 +612,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(74);
+    assertThat(handlers).hasSize(77);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

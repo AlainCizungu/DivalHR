@@ -52,6 +52,7 @@ test.describe('desktop', () => {
       'Leave policies',
       'Leave approvals',
       'Leave routing exceptions',
+      'Leave approval substitutes',
       'Organizational structure',
       'Contract templates',
       'Contract expirations',
@@ -185,7 +186,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(11);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(12);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

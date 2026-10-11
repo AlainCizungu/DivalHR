@@ -154,7 +154,7 @@ public record LeaveRequestCommand(
     return canonical;
   }
 
-  private static UUID uuid(FieldErrors errors, String field, Object raw) {
+  static UUID uuid(FieldErrors errors, String field, Object raw) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -166,7 +166,7 @@ public record LeaveRequestCommand(
     return UUID.fromString(text.toLowerCase(Locale.ROOT));
   }
 
-  private static LocalDate date(FieldErrors errors, String field, Object raw) {
+  static LocalDate date(FieldErrors errors, String field, Object raw) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;

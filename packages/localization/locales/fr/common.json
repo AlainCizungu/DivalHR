@@ -31,7 +31,8 @@
       "access": "Accès et sécurité",
       "mySpace": "Mon espace"
     },
-    "leaveRoutingExceptions": "Exceptions d’acheminement des congés"
+    "leaveRoutingExceptions": "Exceptions d’acheminement des congés",
+    "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -356,7 +357,13 @@
     "LEAVE_REQUEST_ALREADY_AMENDED": "Cette demande de congé a déjà été modifiée.",
     "LEAVE_REQUEST_ALREADY_WITHDRAWN": "Ce congé approuvé a déjà été retiré.",
     "LEAVE_REQUEST_NOT_APPROVED": "Seul un congé approuvé peut être retiré ; cette demande est encore en attente de décision.",
-    "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED": "Ce congé a déjà commencé ; il ne peut plus être retiré."
+    "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED": "Ce congé a déjà commencé ; il ne peut plus être retiré.",
+    "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND": "Ce remplacement n’est pas disponible. Il appartient peut-être à une autre organisation.",
+    "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE": "Le responsable et le remplaçant doivent être deux employés différents.",
+    "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD": "Le responsable ou le remplaçant n’est pas employé chacun des jours de ces dates.",
+    "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE": "Cet employé n’encadre personne pendant ces dates : un remplaçant n’aurait rien à décider.",
+    "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "Ce responsable a déjà un remplacement, en cours ou prévu, sur une partie de ces dates.",
+    "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "Ce remplacement a déjà été révoqué."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -1991,7 +1998,7 @@
     "manager": {
       "title": "Approbations de congé",
       "description": "Approuvez ou rejetez les demandes de congé des employés qui relèvent de vous.",
-      "routing": "Une demande s’affiche lorsque sa politique confie l’approbation au responsable et que vous êtes le responsable de l’employé le premier jour de la demande. Une demande sans responsable ce jour-là rejoint les exceptions d’acheminement des administrateurs de l’organisation.",
+      "routing": "Une demande s’affiche lorsque sa politique confie l’approbation au responsable et que vous êtes le responsable de l’employé le premier jour de la demande. Une demande sans responsable ce jour-là rejoint les exceptions d’acheminement des administrateurs de l’organisation. Si un administrateur vous a nommé remplaçant d’un responsable, les demandes de ce responsable apparaissent aussi, marquées « Remplacement » ; le responsable peut toujours les décider.",
       "empty": "Aucune demande de congé n’attend votre décision.",
       "unauthorized": "Cette page est réservée aux employés d’une organisation."
     },
@@ -2080,6 +2087,18 @@
       "confirmButton": {
         "APPROVED": "Confirmer l’approbation exceptionnelle",
         "REJECTED": "Confirmer le rejet exceptionnel"
+      }
+    },
+    "substitute": {
+      "badge": "Remplacement",
+      "notice": "Vous décidez en tant que remplaçant du responsable. Le responsable peut aussi décider cette demande ; la première décision est définitive.",
+      "confirm": {
+        "APPROVED": "Approuver la demande de {{name}} en tant que remplaçant du responsable ? Cette décision est définitive.",
+        "REJECTED": "Rejeter la demande de {{name}} en tant que remplaçant du responsable ? Cette décision est définitive."
+      },
+      "confirmButton": {
+        "APPROVED": "Confirmer l’approbation en remplacement",
+        "REJECTED": "Confirmer le rejet en remplacement"
       }
     }
   },
@@ -2375,6 +2394,105 @@
     "footer": {
       "tagline": "La technologie des effectifs pour l’Afrique.",
       "copyright": "© 2026 DivalHR · Une société Dival AI"
+    }
+  },
+  "leaveSubstitutes": {
+    "title": "Remplaçants pour approbation des congés",
+    "description": "Nommez un remplaçant pour un responsable sur une période : le remplaçant peut alors décider les demandes de congé de ce responsable.",
+    "signInRequired": "Connectez-vous pour gérer les remplaçants pour approbation des congés.",
+    "unauthorized": "Seuls les administrateurs de l’organisation connectés avec leur application d’authentification peuvent gérer les remplaçants pour approbation des congés.",
+    "rules": {
+      "primary": "Le responsable garde tous ses droits : pendant le remplacement, le responsable et le remplaçant peuvent décider, et la première décision est définitive.",
+      "one": "Un responsable a au plus un remplaçant en cours ou prévu à une date donnée. Révoquer un remplacement libère ses dates restantes pour un nouveau remplaçant.",
+      "scope": "Pas de notification, de chaîne de remplaçants ni de démarrage automatique : le remplacement s’applique de son premier à son dernier jour, dans le fuseau horaire de votre organisation, jusqu’à sa révocation."
+    },
+    "list": {
+      "title": "Remplacements",
+      "label": "Remplacements pour approbation des congés",
+      "loading": "Chargement des remplacements…",
+      "empty": "Aucun remplaçant n’a été nommé.",
+      "more": "Afficher plus de remplacements",
+      "loadingMore": "Chargement d’autres remplacements…",
+      "retry": "Réessayer",
+      "asOf": "États au {{date}}."
+    },
+    "columns": {
+      "manager": "Responsable",
+      "substitute": "Remplaçant",
+      "period": "Dates",
+      "state": "État",
+      "reason": "Motif",
+      "actions": "Actions"
+    },
+    "states": {
+      "SCHEDULED": "Prévu",
+      "ACTIVE": "En cours",
+      "EXPIRED": "Terminé",
+      "REVOKED": "Révoqué"
+    },
+    "employee": "{{given}} {{family}} ({{number}})",
+    "createdOn": "Nommé le {{date}}",
+    "revokedOn": "Révoqué le {{date}}",
+    "revocationReason": "Motif de la révocation",
+    "actions": {
+      "revoke": "Révoquer…",
+      "revokeFor": "Révoquer le remplacement de {{manager}} par {{substitute}}…"
+    },
+    "picker": {
+      "find": "Rechercher par matricule ou par nom",
+      "search": "Rechercher",
+      "searching": "Recherche en cours…",
+      "results": "Employés correspondants",
+      "noMatch": "Aucun employé ne correspond.",
+      "short": "Saisissez au moins 2 caractères.",
+      "failed": "La recherche a échoué. Réessayez.",
+      "selected": "Sélection : {{name}}",
+      "change": "Choisir un autre employé"
+    },
+    "form": {
+      "title": "Nommer un remplaçant",
+      "intro": "Tous les champs sont obligatoires. Vérifiez les dates : le remplacement ne peut pas être modifié, seulement révoqué.",
+      "manager": "Responsable",
+      "substitute": "Remplaçant",
+      "effectiveFrom": "Premier jour",
+      "effectiveTo": "Dernier jour",
+      "datesHelp": "Les deux jours sont inclus.",
+      "reason": "Motif",
+      "reasonHelp": "Obligatoire. Seuls les administrateurs le lisent ; le remplaçant et les employés ne le voient jamais. De 2 à {{max}} caractères, sans retour à la ligne.",
+      "count": "{{count}} caractères sur {{max}}",
+      "reasonLocale": "Langue du motif",
+      "reasonLocaleHelp": "Le motif est affiché dans cette langue ; il n’est jamais traduit.",
+      "locales": {
+        "fr": "Français",
+        "en": "English"
+      },
+      "review": "Vérifier le remplacement",
+      "confirmTitle": "Confirmer le remplacement",
+      "confirm": "Nommer {{substitute}} remplaçant de {{manager}} pour {{period}} ? Les deux pourront décider les demandes de congé du responsable pendant ces dates ; la première décision est définitive.",
+      "confirmButton": "Confirmer le remplacement",
+      "sending": "Enregistrement du remplacement…",
+      "back": "Modifier le remplacement"
+    },
+    "problems": {
+      "manager": "Choisissez le responsable.",
+      "substitute": "Choisissez un remplaçant différent du responsable.",
+      "effectiveFrom": "Saisissez le premier jour.",
+      "effectiveTo": "Saisissez un dernier jour égal ou postérieur au premier.",
+      "reason": "Saisissez un motif de 2 à 500 caractères, sans retour à la ligne ni caractère de contrôle.",
+      "reasonLocale": "Choisissez la langue du motif."
+    },
+    "created": "{{substitute}} a été nommé remplaçant de {{manager}} pour {{period}}.",
+    "revoke": {
+      "title": "Révoquer ce remplacement",
+      "intro": "Le remplaçant ne voit immédiatement plus les demandes non décidées du responsable ; elles restent au responsable. Les décisions déjà prises sont conservées. Le remplacement lui-même est conservé, révoqué.",
+      "confirmTitle": "Confirmer la révocation",
+      "confirm": "Révoquer le remplacement de {{manager}} par {{substitute}} ? La révocation prend effet immédiatement et est définitive.",
+      "confirmButton": "Confirmer la révocation",
+      "sending": "Révocation en cours…",
+      "back": "Modifier le motif",
+      "cancel": "Annuler",
+      "revoked": "Le remplacement de {{manager}} par {{substitute}} a été révoqué.",
+      "gone": "Ce remplacement a déjà été révoqué ou n’est plus disponible. La liste a été actualisée."
     }
   }
 }

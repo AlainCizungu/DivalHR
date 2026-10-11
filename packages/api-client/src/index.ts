@@ -187,6 +187,23 @@ export type WithdrawMyApprovedLeave = CoreComponents['schemas']['WithdrawMyAppro
 export type LeaveWithdrawalReceipt = CoreComponents['schemas']['LeaveWithdrawalReceipt'];
 export type LeaveRoutingException = CoreComponents['schemas']['LeaveRoutingException'];
 export type LeaveRoutingExceptionPage = CoreComponents['schemas']['LeaveRoutingExceptionPage'];
+/** MVP-041G: leave approval substitutes (tenant administrators) and the inbox capacity. */
+export type LeaveApprovalCapacity = CoreComponents['schemas']['LeaveApprovalCapacity'];
+export type LeaveApprovalSubstitution = CoreComponents['schemas']['LeaveApprovalSubstitution'];
+export type LeaveApprovalSubstitutionPage =
+  CoreComponents['schemas']['LeaveApprovalSubstitutionPage'];
+export type LeaveApprovalSubstitutionState =
+  CoreComponents['schemas']['LeaveApprovalSubstitutionState'];
+export type LeaveApprovalSubstitutionEmployee =
+  CoreComponents['schemas']['LeaveApprovalSubstitutionEmployee'];
+export type CreateLeaveApprovalSubstitution =
+  CoreComponents['schemas']['CreateLeaveApprovalSubstitution'];
+export type RevokeLeaveApprovalSubstitution =
+  CoreComponents['schemas']['RevokeLeaveApprovalSubstitution'];
+export type LeaveApprovalSubstitutionReceipt =
+  CoreComponents['schemas']['LeaveApprovalSubstitutionReceipt'];
+export type LeaveApprovalSubstitutionRevocationReceipt =
+  CoreComponents['schemas']['LeaveApprovalSubstitutionRevocationReceipt'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).
