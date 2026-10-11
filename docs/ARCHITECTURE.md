@@ -93,6 +93,7 @@ Events are published through a transactional outbox. Consumers must be idempoten
 - Search indexes enforce tenant and authorization boundaries.
 - Analytical projections are fed by governed events.
 - Effective-dated records preserve employment, organization, policy, and country-rule history.
+- Scheduling (MVP-050A, ADR 0014) starts as a bounded package of the people module (`com.divalhr.core.people.schedule`, architecture-tested) because its eligibility reads people's own employment facts; publication serializes on a tenant-wide advisory scheduling lock taken before the assigned employees' employments (`FOR SHARE`). Each schedule runs on its site's time zone (read through the `OrganizationPlacementDirectory` port, stored as a snapshot), not the organization's. Its site key to `tenant.site` and the snapshot check are a documented integrity exception; extraction to the Operations module needs an employment-facts port.
 
 ## Offline architecture
 

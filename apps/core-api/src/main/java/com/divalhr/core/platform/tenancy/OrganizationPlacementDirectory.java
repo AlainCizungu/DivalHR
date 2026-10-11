@@ -49,8 +49,8 @@ public interface OrganizationPlacementDirectory {
   }
 
   /**
-   * A unit with its display code and name (organizational data, not personal data), period and
-   * parents.
+   * A unit with its display code and name (organizational data, not personal data), period, parents
+   * and, for a site, its IANA time zone (the operational clock of the site, MVP-050A R100-1).
    *
    * @param id unit ID
    * @param kind unit kind
@@ -62,6 +62,7 @@ public interface OrganizationPlacementDirectory {
    * @param siteId parent site (departments, cost centers, teams), or {@code null}
    * @param departmentId parent department (teams), or {@code null}
    * @param costCenterId parent cost center (teams), or {@code null}
+   * @param timezone the site's IANA time zone (sites), or {@code null}
    */
   record UnitView(
       UUID id,
@@ -73,7 +74,8 @@ public interface OrganizationPlacementDirectory {
       UUID legalEntityId,
       UUID siteId,
       UUID departmentId,
-      UUID costCenterId) {
+      UUID costCenterId,
+      String timezone) {
 
     /** Requires the identity, kind and start. */
     public UnitView {

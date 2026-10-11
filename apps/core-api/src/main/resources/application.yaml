@@ -131,6 +131,10 @@ divalhr:
       # MVP-041B: leave approval inboxes and decisions.
       leave-approval-read: ${DIVALHR_LEAVE_APPROVAL_READ_REQUESTS_PER_MINUTE:60}
       leave-approval-write: ${DIVALHR_LEAVE_APPROVAL_WRITE_REQUESTS_PER_MINUTE:20}
+      # MVP-050A: site work schedules (administrators) and the employee's own schedule.
+      work-schedule-read: ${DIVALHR_WORK_SCHEDULE_READ_REQUESTS_PER_MINUTE:60}
+      work-schedule-write: ${DIVALHR_WORK_SCHEDULE_WRITE_REQUESTS_PER_MINUTE:20}
+      work-schedule-self-read: ${DIVALHR_WORK_SCHEDULE_SELF_READ_REQUESTS_PER_MINUTE:60}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -155,6 +159,9 @@ divalhr:
         window: 10m
       leave-approval-write:
         requests: ${DIVALHR_LEAVE_APPROVAL_TENANT_WRITES:200}
+        window: 10m
+      work-schedule-write:
+        requests: ${DIVALHR_WORK_SCHEDULE_TENANT_WRITES:100}
         window: 10m
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).

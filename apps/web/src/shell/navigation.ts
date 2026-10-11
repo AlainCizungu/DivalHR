@@ -12,7 +12,15 @@ export interface NavItem {
 }
 
 export interface NavGroupDef {
-  id: 'overview' | 'platform' | 'people' | 'organization' | 'documents' | 'access' | 'mySpace';
+  id:
+    | 'overview'
+    | 'platform'
+    | 'people'
+    | 'operations'
+    | 'organization'
+    | 'documents'
+    | 'access'
+    | 'mySpace';
   labelKey: string;
   items: NavItem[];
 }
@@ -88,6 +96,18 @@ export const NAVIGATION: NavGroupDef[] = [
     ],
   },
   {
+    id: 'operations',
+    labelKey: 'nav.groups.operations',
+    items: [
+      {
+        to: '/admin/work-schedules',
+        labelKey: 'nav.workSchedules',
+        icon: 'clock',
+        role: 'tenant-admin',
+      },
+    ],
+  },
+  {
     id: 'organization',
     labelKey: 'nav.groups.organization',
     items: [
@@ -130,6 +150,7 @@ export const NAVIGATION: NavGroupDef[] = [
     labelKey: 'nav.groups.mySpace',
     items: [
       { to: '/me/contracts', labelKey: 'nav.myContracts', icon: 'contract', role: 'employee' },
+      { to: '/me/schedule', labelKey: 'nav.mySchedule', icon: 'clock', role: 'employee' },
       { to: '/me/leave', labelKey: 'nav.myLeave', icon: 'calendar', role: 'employee' },
       {
         to: '/me/leave/approvals',

@@ -29,10 +29,13 @@
       "organization": "Organization",
       "documents": "Documents",
       "access": "Access and security",
-      "mySpace": "My space"
+      "mySpace": "My space",
+      "operations": "Operations"
     },
     "leaveRoutingExceptions": "Leave routing exceptions",
-    "leaveApprovalSubstitutes": "Leave approval substitutes"
+    "leaveApprovalSubstitutes": "Leave approval substitutes",
+    "workSchedules": "Schedules",
+    "mySchedule": "My schedule"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -363,7 +366,16 @@
     "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD": "The manager or the substitute is not employed on every day of these dates.",
     "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE": "This employee manages no one during these dates, so a substitute has nothing to decide.",
     "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "This manager already has a current or planned substitute on some of these dates.",
-    "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "This substitute appointment has already been revoked."
+    "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "This substitute appointment has already been revoked.",
+    "WORK_SCHEDULE_NOT_FOUND": "This schedule is not available. It may belong to another organization.",
+    "WORK_SCHEDULE_PREVIEW_STALE": "Something changed since the preview (an employee, a placement or the site). Preview the schedule again before publishing.",
+    "WORK_SCHEDULE_PERIOD_INVALID": "These dates cannot be scheduled.",
+    "WORK_SCHEDULE_SITE_NOT_ACTIVE": "This site is not open on every date of the schedule.",
+    "WORK_SCHEDULE_OVERLAP": "A published schedule already covers this site on some of these dates.",
+    "WORK_SCHEDULE_SLOT_INVALID": "A slot cannot be scheduled as entered.",
+    "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE": "An assigned employee cannot work this slot.",
+    "WORK_SCHEDULE_EMPLOYEE_CONFLICT": "An assigned employee already works at that time.",
+    "WORK_SCHEDULE_LIMIT_EXCEEDED": "A schedule holds at most 500 slots."
   },
   "notFound": {
     "title": "Page not found",
@@ -2494,5 +2506,158 @@
       "revoked": "The appointment of {{substitute}} for {{manager}} was revoked.",
       "gone": "This appointment was already revoked or is no longer available. The list has been refreshed."
     }
+  },
+  "workSchedules": {
+    "title": "Schedules",
+    "description": "Publish one work schedule per site for up to 31 days. Each slot is one required worker; a slot without an employee stays visible as uncovered.",
+    "unauthorized": "Only tenant administrators can manage schedules.",
+    "signInRequired": "Sign in as a tenant administrator to manage schedules.",
+    "list": {
+      "title": "Published schedules",
+      "loading": "Loading schedules…",
+      "retry": "Try again",
+      "empty": "No schedule is published yet.",
+      "label": "List of published schedules",
+      "more": "Show more schedules",
+      "loadingMore": "Loading more schedules…"
+    },
+    "columns": {
+      "site": "Site",
+      "period": "Dates",
+      "slots": "Slots",
+      "assigned": "Assigned",
+      "uncovered": "Uncovered",
+      "actions": "Actions",
+      "when": "When",
+      "work": "Work",
+      "employee": "Employee",
+      "position": "No.",
+      "check": "Check"
+    },
+    "siteName": "{{name}} ({{code}})",
+    "siteUnknown": "Site unavailable",
+    "uncoveredCount_one": "{{count}} uncovered",
+    "uncoveredCount_other": "{{count}} uncovered",
+    "fullyCovered": "Fully covered",
+    "uncovered": "Uncovered",
+    "warning": "Warning",
+    "actions": {
+      "view": "View",
+      "viewFor": "View the schedule of {{site}} for {{period}}"
+    },
+    "detail": {
+      "title": "{{site}}, {{period}}",
+      "loadingTitle": "Schedule",
+      "loading": "Loading the schedule…",
+      "filter": "Show",
+      "all": "All slots",
+      "uncoveredOnly": "Uncovered slots only",
+      "count_one": "{{count}} slot shown",
+      "count_other": "{{count}} slots shown",
+      "label": "Slots of the schedule"
+    },
+    "totals": "{{slots}} slots: {{assigned}} assigned, {{uncovered}} uncovered",
+    "timezone": "Local times at the site, time zone {{zone}}.",
+    "times": "{{date}}, {{start}} – {{end}}",
+    "timesOvernight": "{{date}}, {{start}} – {{end}} the next day",
+    "published": "Schedule published for {{period}}: {{slots}} slots, {{uncovered}} uncovered.",
+    "form": {
+      "title": "New schedule",
+      "intro": "Choose a site and up to {{days}} days, add up to {{slots}} slots, then preview. Nothing is saved until you publish.",
+      "site": "Location",
+      "sitesUnavailable": "Sites cannot be loaded right now.",
+      "legalEntity": "Legal entity",
+      "chooseLegalEntity": "Choose a legal entity",
+      "siteLabel": "Site",
+      "chooseSite": "Choose a site",
+      "datesHelp": "From today at the site, at most {{days}} days.",
+      "firstDate": "First date",
+      "lastDate": "Last date",
+      "slots_one": "Slots ({{count}})",
+      "slots_other": "Slots ({{count}})",
+      "slotsHelp": "An end time earlier than the start time ends the next day.",
+      "add": "Add a slot",
+      "preview": "Preview the schedule",
+      "previewing": "Preparing the preview…"
+    },
+    "problems": {
+      "site": "Choose a site.",
+      "firstDate": "Enter a first date.",
+      "lastDate": "Enter a last date on or after the first date, at most 31 days later.",
+      "slots": "Add between 1 and 500 slots.",
+      "slot": "Slot {{position}}: {{problem}}",
+      "date": "Choose a date within the schedule.",
+      "start": "Enter a start time.",
+      "end": "Enter an end time different from the start time.",
+      "labelEn": "Enter an English label of 2 to 60 letters, digits or simple punctuation.",
+      "labelFr": "Enter a French label of 2 to 60 letters, digits or simple punctuation."
+    },
+    "slot": {
+      "legend": "Slot {{position}}",
+      "date": "Date",
+      "start": "Start",
+      "end": "End",
+      "overnight": "Ends the next day.",
+      "labelEn": "Work, in English",
+      "labelFr": "Work, in French",
+      "labelHelp": "For example a position or a desk; up to {{max}} characters, no links or personal notes.",
+      "employee": "Employee (optional)",
+      "uncoveredHelp": "Without an employee, this slot is published as uncovered.",
+      "duplicate": "Duplicate",
+      "duplicateFor": "Duplicate slot {{position}}",
+      "remove": "Remove",
+      "removeFor": "Remove slot {{position}}",
+      "duplicated": "Slot {{position}} added as a copy.",
+      "removed": "Slot {{position}} removed."
+    },
+    "review": {
+      "title": "Review and publish",
+      "summary": "{{site}}, {{period}}",
+      "slotNumber": "Slot {{position}}",
+      "uncoveredWarning_one": "{{count}} slot has no employee and will be visible as uncovered.",
+      "uncoveredWarning_other": "{{count}} slots have no employee and will be visible as uncovered.",
+      "blocked": "Some slots cannot be published. Go back, correct them and preview again.",
+      "label": "Preview of the slots",
+      "ok": "Ready",
+      "confirmText": "Once published, this schedule cannot be changed. Assigned employees will see their shifts.",
+      "publish": "Confirm and publish",
+      "publishing": "Publishing…",
+      "back": "Back to editing"
+    },
+    "periodReasons": {
+      "ORDER": "The last date is before the first date.",
+      "PAST": "The first date is before today at the site.",
+      "TOO_LONG": "A schedule covers at most 31 days."
+    },
+    "issues": {
+      "OUTSIDE_PERIOD": "Starts outside the schedule’s dates",
+      "END_NOT_AFTER_START": "Ends before it starts",
+      "TOO_LONG": "Longer than 24 hours or ends after the next day",
+      "LOCAL_TIME_INVALID": "This local time does not exist or happens twice (clock change)",
+      "NOT_FOUND": "Employee not found",
+      "SEPARATED": "Employee leaves before the slot ends",
+      "NOT_EMPLOYED": "Employee is not employed on these dates",
+      "NOT_AT_SITE": "Employee is not placed at this site on this date",
+      "PUBLISHED": "Employee already works at that time in a published schedule",
+      "IN_SCHEDULE": "Employee already works at that time in this schedule"
+    }
+  },
+  "mySchedule": {
+    "title": "My schedule",
+    "description": "Your upcoming published shifts.",
+    "unauthorized": "Only employees can see their schedule.",
+    "signInRequired": "Sign in to see your schedule.",
+    "linkRequired": "Your account is not linked to an employee record yet. Contact your administrator.",
+    "loading": "Loading your schedule…",
+    "retry": "Try again",
+    "current": "Shifts in progress and upcoming, each in its site’s local time.",
+    "empty": "You have no upcoming published shift.",
+    "label": "My shifts",
+    "time": "{{start}} – {{end}}",
+    "overnight": "Ends {{date}}",
+    "site": "Site: {{name}}",
+    "timezone": "Local time at the site ({{zone}})",
+    "more": "Show more shifts",
+    "loadingMore": "Loading more shifts…"
   }
 }

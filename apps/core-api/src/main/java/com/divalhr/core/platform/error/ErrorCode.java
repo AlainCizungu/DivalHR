@@ -282,7 +282,44 @@ public enum ErrorCode {
   /** Another unrevoked appointment of the manager overlaps these dates (MVP-041G; no params). */
   LEAVE_APPROVAL_SUBSTITUTION_OVERLAP(HttpStatus.CONFLICT),
   /** The appointment was already revoked (MVP-041G; no params). */
-  LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED(HttpStatus.CONFLICT);
+  LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED(HttpStatus.CONFLICT),
+  /** Unknown and foreign-tenant work schedules are indistinguishable (MVP-050A; no params). */
+  WORK_SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * A fact the reviewed preview bound changed before publication: preview again (MVP-050A; no
+   * params).
+   */
+  WORK_SCHEDULE_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /**
+   * The schedule's dates are not in order, start before the business date, or span more than 31
+   * days (MVP-050A; params.reason ORDER, PAST or TOO_LONG).
+   */
+  WORK_SCHEDULE_PERIOD_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /**
+   * The site is not a site of the organization in effect on every date; unknown and foreign alike
+   * (MVP-050A; no params).
+   */
+  WORK_SCHEDULE_SITE_NOT_ACTIVE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** A published schedule already covers the site on one of the dates (MVP-050A; no params). */
+  WORK_SCHEDULE_OVERLAP(HttpStatus.CONFLICT),
+  /**
+   * A slot's local times are outside the period, not in order, too long, or do not exist exactly
+   * once in the time zone (MVP-050A; params.position and params.reason).
+   */
+  WORK_SCHEDULE_SLOT_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /**
+   * A slot's employee is not eligible: unknown or foreign, separated, not employed through the slot
+   * or not placed at the site (MVP-050A; params.position and params.reason).
+   */
+  WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /**
+   * A slot's employee already has an overlapping published or proposed assignment (MVP-050A;
+   * params.position and params.reason PUBLISHED or IN_SCHEDULE, or no params when the database
+   * refused a race).
+   */
+  WORK_SCHEDULE_EMPLOYEE_CONFLICT(HttpStatus.CONFLICT),
+  /** More than 500 slots in one publication (MVP-050A; params.maximum). */
+  WORK_SCHEDULE_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT);
 
   private final HttpStatus status;
 
