@@ -465,7 +465,8 @@ class LeaveSubstitutionIntegrationTest {
     }
     assertThat(w.substitutions()).containsExactly(0, 0, 0, 0);
 
-    // One appointment per manager per date, inclusive ends; a revoked one still holds its dates.
+    // One unrevoked appointment per manager per date, inclusive ends; a revocation frees the dates
+    // (R98-1).
     String first = w.appoint(team.manager(), team.substitute(), t.plusDays(1), t.plusDays(10));
     w.problem(
         appoint(
@@ -481,15 +482,16 @@ class LeaveSubstitutionIntegrationTest {
         409,
         "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP");
     w.revoke(first);
+    w.appoint(team.manager(), team.colleague(), t.plusDays(5), t.plusDays(5));
     w.problem(
         appoint(
             w.admin,
             Organizations.newKey(),
             appointment(
                 manager,
-                team.colleague().employee(),
-                t.plusDays(5),
-                t.plusDays(5),
+                team.own().employee(),
+                t.plusDays(4),
+                t.plusDays(6),
                 "fr",
                 APPOINT_REASON)),
         409,
@@ -497,7 +499,7 @@ class LeaveSubstitutionIntegrationTest {
     w.appoint(team.manager(), team.colleague(), t.plusDays(11), t.plusDays(12));
     // Another manager may name the same substitute on the same dates.
     w.appoint(team.substitute(), team.colleague(), t.plusDays(1), t.plusDays(10));
-    assertThat(w.substitutions()).containsExactly(3, 1, 4, 4);
+    assertThat(w.substitutions()).containsExactly(4, 1, 5, 5);
 
     // Unknown, malformed and another tenant's appointments are one answer.
     for (String unknown : List.of(UUID.randomUUID().toString(), "not-an-id")) {
@@ -513,6 +515,79 @@ class LeaveSubstitutionIntegrationTest {
         404,
         "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND");
     assertThat(ids(other.expect(list(other.admin), 200))).isEmpty();
+  }
+
+  @Test
+  void aRevokedAppointmentIsReplacedForItsRemainingDatesWithoutRewritingHistory() throws Exception {
+    Team team = team();
+    LeaveWorld w = team.w();
+    LocalDate t = w.today;
+    String id = w.request(team.report(), team.managed(), t.plusDays(10), t.plusDays(10));
+    String a = w.appoint(team.manager(), team.substitute(), t, t.plusDays(30));
+    String before =
+        jdbc.queryForObject(
+            "SELECT to_jsonb(s)::text FROM people.leave_approval_substitution s"
+                + " WHERE id = ?::uuid",
+            String.class,
+            a);
+    assertThat(capacities(w.expect(inbox(team.substitute().bearer()), 200)))
+        .containsEntry(id, "SUBSTITUTE");
+    // Revoke A, then appoint B over A's remaining dates: accepted.
+    w.revoke(a);
+    String b = w.appoint(team.manager(), team.outsider(), t, t.plusDays(30));
+    assertThat(b).isNotEqualTo(a);
+    // A stays in the history, revoked, with its original dates and reason; its row is unchanged.
+    Map<String, JsonNode> listed = new LinkedHashMap<>();
+    w.expect(list(w.admin), 200)
+        .get("items")
+        .forEach(item -> listed.put(item.get("id").asText(), item));
+    assertThat(listed.get(a).get("state").asText()).isEqualTo("REVOKED");
+    assertThat(listed.get(a).get("effectiveFrom").asText()).isEqualTo(t.toString());
+    assertThat(listed.get(a).get("effectiveTo").asText()).isEqualTo(t.plusDays(30).toString());
+    assertThat(listed.get(a).get("reason").asText()).isEqualTo("Remplacement pendant les congés.");
+    assertThat(listed.get(b).get("state").asText()).isEqualTo("ACTIVE");
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT to_jsonb(s)::text FROM people.leave_approval_substitution s"
+                    + " WHERE id = ?::uuid",
+                String.class,
+                a))
+        .isEqualTo(before);
+    assertThat(
+            w.count(
+                "SELECT count(*) FROM people.leave_approval_substitution_coverage"
+                    + " WHERE tenant_id = ?",
+                w.tenant()))
+        .isEqualTo(1);
+    // Only B grants the inbox and the decision now.
+    assertThat(ids(w.expect(inbox(team.substitute().bearer()), 200))).doesNotContain(id);
+    w.problem(
+        decide(
+            MY_APPROVALS,
+            team.substitute().bearer(),
+            id,
+            Organizations.newKey(),
+            decision("APPROVED", "fr", DECIDE_REASON)),
+        404,
+        "LEAVE_REQUEST_NOT_FOUND");
+    assertThat(capacities(w.expect(inbox(team.outsider().bearer()), 200)))
+        .containsEntry(id, "SUBSTITUTE");
+    w.expect(
+        decide(
+            MY_APPROVALS,
+            team.outsider().bearer(),
+            id,
+            Organizations.newKey(),
+            decision("APPROVED", "fr", DECIDE_REASON)),
+        200);
+    assertThat(
+            jdbc.queryForMap(
+                "SELECT manager_employee_id, delegated_from_manager_employee_id"
+                    + " FROM people.leave_request_decision WHERE request_id = ?::uuid",
+                id))
+        .containsEntry("manager_employee_id", team.outsider().employee())
+        .containsEntry("delegated_from_manager_employee_id", team.manager().employee());
+    assertThat(metadata("leave-request.approve", id).get("substitutionId").asText()).isEqualTo(b);
   }
 
   @Test

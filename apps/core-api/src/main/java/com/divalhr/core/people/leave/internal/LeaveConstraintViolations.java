@@ -32,8 +32,9 @@ public final class LeaveConstraintViolations {
   /** One withdrawal per request (MVP-041F, V23). */
   public static final String WITHDRAWAL_UNIQUE = "leave_request_withdrawal_request_unique";
 
-  /** One leave approval substitute per manager per date, revoked or not (MVP-041G, V24). */
-  public static final String SUBSTITUTION_OVERLAP = "leave_approval_substitution_no_overlap";
+  /** One unrevoked leave approval substitute per manager per date (MVP-041G, V24; R98-1). */
+  public static final String SUBSTITUTION_OVERLAP =
+      "leave_approval_substitution_coverage_no_overlap";
 
   /** One revocation per appointment (MVP-041G, V24). */
   public static final String SUBSTITUTION_REVOCATION_UNIQUE =

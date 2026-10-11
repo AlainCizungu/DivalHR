@@ -328,6 +328,49 @@ class LeaveSubstitutionConcurrencyIntegrationTest {
   }
 
   // ------------------------------------------------------------------------------------------
+  // A revocation and its replacement (R98-1)
+  // ------------------------------------------------------------------------------------------
+
+  @Test
+  void aReplacementIsSerializedWithTheRevocationItReplaces() throws Exception {
+    LeaveWorld w = new LeaveWorld(mvc, jdbc, lookups);
+    LocalDate t = w.today;
+    Person manager = w.person("Josué", "Kabeya");
+    Person first = w.person("Grâce", "Lukusa");
+    Person second = w.person("Héritier", "Banza");
+    Person report = w.person("Bénédicte", "Mbuyi");
+    w.manage(report.employee(), manager.employee(), t);
+    String a = w.appoint(manager, first, t, t.plusDays(30));
+
+    // (1) The replacement queues first while A is still active: the overlap conflict; A's
+    // revocation then commits; the same replacement, retried with its key, is accepted.
+    String replacementKey = Organizations.newKey();
+    Map<String, Object> replacement =
+        appointment(
+            manager.employee(), second.employee(), t.plusDays(5), t.plusDays(30), "fr", "Relève.");
+    assertThat(queued(w, List.of(appoint(w.admin, replacementKey, replacement), revokeNow(w, a))))
+        .containsExactly("409 LEAVE_APPROVAL_SUBSTITUTION_OVERLAP", "201");
+    assertThat(code(w.call(appoint(w.admin, replacementKey, replacement)))).isEqualTo("201");
+    String b =
+        jdbc.queryForObject(
+            "SELECT substitution_id::text FROM people.leave_approval_substitution_coverage"
+                + " WHERE tenant_id = ?",
+            String.class,
+            w.tenant());
+
+    // (2) The revocation queues first: the overlapping replacement after it is accepted.
+    assertThat(
+            queued(
+                w,
+                List.of(
+                    revokeNow(w, b),
+                    appointNow(w, manager, first, t.plusDays(10), t.plusDays(20)))))
+        .containsExactly("201", "201");
+    assertThat(w.substitutions()).containsExactly(3, 2, 5, 5);
+    assertThat(coverage(w)).isEqualTo(1);
+  }
+
+  // ------------------------------------------------------------------------------------------
   // The primary manager against the substitute
   // ------------------------------------------------------------------------------------------
 
@@ -607,6 +650,7 @@ class LeaveSubstitutionConcurrencyIntegrationTest {
     assertThat(w.call(appoint(w.admin, key, body)).getStatus()).isEqualTo(500);
     restore.run();
     assertThat(w.substitutions()).containsExactly(0, 0, 0, 0);
+    assertThat(coverage(w)).isZero();
     assertThat(keys(w, key)).isZero();
     JsonNode created = w.expect(appoint(w.admin, key, body), 201);
     String appointment = created.get("substitutionId").asText();
@@ -637,9 +681,18 @@ class LeaveSubstitutionConcurrencyIntegrationTest {
         .isEqualTo(500);
     restore.run();
     assertThat(w.substitutions()).containsExactly(1, 0, 1, 1);
+    // The revocation's coverage change rolled back with it: the dates are still held.
+    assertThat(coverage(w)).isEqualTo(1);
     assertThat(keys(w, revokeKey)).isZero();
     w.expect(revoke(w.admin, appointment, revokeKey, revocation), 201);
     assertThat(w.substitutions()).containsExactly(1, 1, 2, 2);
+    assertThat(coverage(w)).isZero();
+  }
+
+  private static int coverage(LeaveWorld w) {
+    return w.count(
+        "SELECT count(*) FROM people.leave_approval_substitution_coverage WHERE tenant_id = ?",
+        w.tenant());
   }
 
   private static int keys(LeaveWorld w, String key) {

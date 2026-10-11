@@ -27,11 +27,22 @@ notifications) in this story.
   existence of a revocation.
 - `people.leave_approval_substitution_revocation` (append-only, one per appointment) revokes it at
   database time, whatever its dates. Prior decisions stay valid.
-- An exclusion constraint (`leave_approval_substitution_no_overlap`, btree_gist) keeps one
-  manager's appointment periods from overlapping. It covers every appointment, revoked or not: with
-  append-only rows and no mutable status, the database cannot exempt a revoked period, so a revoked
-  appointment keeps its dates for the overlap rule. This is stricter than "one non-revoked substitute
-  per date", which it implies.
+- At most one **non-revoked** appointment covers a manager on any date (R98-1). The exclusion
+  constraint (`leave_approval_substitution_coverage_no_overlap`, btree_gist) sits on an operational
+  projection, `people.leave_approval_substitution_coverage`, never on the historical rows: one
+  coverage row per unrevoked appointment, keyed to that appointment's exact tenant, manager and
+  dates by a composite foreign key. Creation inserts the appointment and its coverage; revocation
+  inserts the revocation and deletes the coverage; each in one transaction under the manager-graph
+  lock. A revocation therefore frees the remaining dates for a replacement, while the revoked
+  appointment keeps its original dates and reason as evidence. The historical rows never gain a
+  status column and are never rewritten.
+- Database safeguards: coverage is never updated or truncated, is deleted only once its
+  appointment is revoked and never inserted for a revoked one
+  (`leave_approval_substitution_coverage_guard`); an appointment commits only with its coverage
+  (`leave_approval_substitution_covered`, deferred); a revocation commits only once the coverage is
+  gone (`leave_approval_substitution_revocation_uncovered`, deferred). The projection is never the
+  source of truth for authority: inbox and decision read the appointment and the absence of a
+  revocation.
 
 ### The substitute's authority (D41G-1, D41G-4)
 
@@ -101,15 +112,14 @@ notifications) in this story.
 ### Rollback
 
 `db/rollback/V24__rollback.sql` restores V23 exactly (signature-tested) only while no appointment,
-no revocation and no `MANAGER_SUBSTITUTE` decision exists; no override; it never edits
+coverage row, revocation or `MANAGER_SUBSTITUTE` decision exists; no override; it never edits
 `flyway_schema_history`.
 
 ## Consequences
 
 - ADR 0010's "a `MANAGER` request belongs to its manager" now reads "to its manager and, while an
   appointment is effective, to that manager's substitute as well".
-- A revoked appointment cannot be replaced by another one overlapping its original dates; the
-  administrator chooses dates outside it. Relaxing this would need a mutable status or a separate
-  coverage structure (a later decision).
+- A revoked appointment's remaining dates can be covered by a replacement at once; an expired
+  appointment keeps its coverage (it was never revoked), so its past dates stay taken.
 - No self-delegation, chain, sub-delegation, concurrent substitutes, absence calendar, automatic
   activation, escalation, notification, site/department limits, balances, payroll or AI.

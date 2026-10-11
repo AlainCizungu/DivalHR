@@ -50,17 +50,21 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Leave approval substitutes (MVP-041G, Issue #97; ADR 0013): a tenant administrator appoints one
- * effective-dated substitute for a manager, lists the appointments and revokes one. Nothing is ever
- * changed or deleted: an appointment is effective on a business date inside its inclusive period
- * while no revocation exists, and its state is derived on every read.
+ * effective-dated substitute for a manager, lists the appointments and revokes one. The evidence is
+ * never changed or deleted: an appointment is effective on a business date inside its inclusive
+ * period while no revocation exists, and its state is derived on every read. Exclusivity (one
+ * unrevoked appointment per manager per date, R98-1) is held by the operational coverage row each
+ * unrevoked appointment has: inserted with the appointment, removed with its revocation, so a
+ * revocation frees the remaining dates for a replacement.
  *
  * <p>Creation and revocation are one bounded transaction each: idempotency (step 0), the tenant's
  * manager-graph lock (step 1, which every manager decision also takes, so no decision reads an
  * appointment half-written or a revocation not yet committed), every employment of the manager and
  * the substitute overlapping the period {@code FOR SHARE} in UUID order (step 2), then the
- * appointment row (revocation: {@code FOR UPDATE}), the evidence, the audit record and the outbox
- * event. An exact replay rechecks only the tenant-administrator authorization, done before any
- * argument is read; a changed body under the same key is the idempotency conflict first.
+ * appointment row (revocation: {@code FOR UPDATE}), the evidence and the coverage change, the
+ * deferred coverage checks, the audit record and the outbox event. An exact replay rechecks only
+ * the tenant-administrator authorization, done before any argument is read; a changed body under
+ * the same key is the idempotency conflict first.
  *
  * <p>The reasons are Restricted HR: stored only in their rows and returned only in this list; never
  * in receipts, logs, metrics, audit metadata or events.
@@ -210,6 +214,7 @@ public class LeaveSubstitutionService {
             now);
     try {
       substitutions.insert(tenant, substitution, caller.subject());
+      substitutions.checkCoverage(tenant);
     } catch (DataIntegrityViolationException violated) {
       // Never expected under the lock; the stable conflict, no database text.
       if (LeaveConstraintViolations.constraint(violated)
@@ -309,6 +314,7 @@ public class LeaveSubstitutionService {
             UUID.randomUUID(), substitution.id(), command.reasonLocale(), command.reason(), now);
     try {
       substitutions.revoke(tenant, revocation, caller.subject());
+      substitutions.checkCoverage(tenant);
     } catch (DataIntegrityViolationException violated) {
       // Never expected: the appointment row is locked. No database text is exposed.
       if (LeaveConstraintViolations.constraint(violated)

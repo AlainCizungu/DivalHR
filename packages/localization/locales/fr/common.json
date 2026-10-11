@@ -362,7 +362,7 @@
     "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE": "Le responsable et le remplaçant doivent être deux employés différents.",
     "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD": "Le responsable ou le remplaçant n’est pas employé chacun des jours de ces dates.",
     "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE": "Cet employé n’encadre personne pendant ces dates : un remplaçant n’aurait rien à décider.",
-    "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "Ce responsable a déjà un remplacement, en cours, révoqué ou prévu, sur une partie de ces dates.",
+    "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "Ce responsable a déjà un remplacement, en cours ou prévu, sur une partie de ces dates.",
     "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "Ce remplacement a déjà été révoqué."
   },
   "notFound": {
@@ -2403,7 +2403,7 @@
     "unauthorized": "Seuls les administrateurs de l’organisation connectés avec leur application d’authentification peuvent gérer les remplaçants pour approbation des congés.",
     "rules": {
       "primary": "Le responsable garde tous ses droits : pendant le remplacement, le responsable et le remplaçant peuvent décider, et la première décision est définitive.",
-      "one": "Un responsable a au plus un remplaçant à une date donnée. Un remplacement révoqué conserve ses dates.",
+      "one": "Un responsable a au plus un remplaçant en cours ou prévu à une date donnée. Révoquer un remplacement libère ses dates restantes pour un nouveau remplaçant.",
       "scope": "Pas de notification, de chaîne de remplaçants ni de démarrage automatique : le remplacement s’applique de son premier à son dernier jour, dans le fuseau horaire de votre organisation, jusqu’à sa révocation."
     },
     "list": {

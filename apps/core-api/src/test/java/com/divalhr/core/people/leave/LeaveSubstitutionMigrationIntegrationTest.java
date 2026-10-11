@@ -29,9 +29,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * MVP-041G V24 directly against PostgreSQL, bypassing the application (the database is the final
  * authority): the refusing rollback that restores V23 exactly, append-only appointments and
- * revocations with their grammar, one appointment per manager per date (a revoked one included),
- * the exact decision authority shapes, the deferred substitute-decision rule (line, unrevoked
- * appointment, never the requester), and the lookups' indexes on a fresh database.
+ * revocations with their grammar, one unrevoked appointment per manager per date held by the
+ * coverage projection and its safeguards (R98-1: a revocation frees the dates), the exact decision
+ * authority shapes, the deferred substitute-decision rule (line, unrevoked appointment, never the
+ * requester), and the lookups' indexes on a fresh database.
  */
 @IntegrationTest
 class LeaveSubstitutionMigrationIntegrationTest {
@@ -63,6 +64,27 @@ class LeaveSubstitutionMigrationIntegrationTest {
   private static final String REVOCATION =
       "INSERT INTO people.leave_approval_substitution_revocation (id, tenant_id, substitution_id,"
           + " reason_locale, reason_text, revoked_at, revoked_by) VALUES (?, ?, ?, ?, ?, now(), ?)";
+
+  private static final String COVERAGE =
+      "INSERT INTO people.leave_approval_substitution_coverage (tenant_id, substitution_id,"
+          + " manager_employee_id, effective_from, effective_to) VALUES (?, ?, ?, ?, ?)";
+
+  /** Appoints in the application's order: the appointment, then its coverage row. */
+  private static void appoint(Connection c, Object[] row) throws SQLException {
+    exec(c, SUBSTITUTION, row);
+    exec(c, COVERAGE, row[1], row[0], row[2], row[4], row[5]);
+  }
+
+  /** Revokes in the application's order: the revocation, then the coverage row is removed. */
+  private static void revokeWithCoverage(Connection c, Object[] revocation) throws SQLException {
+    exec(c, REVOCATION, revocation);
+    exec(
+        c,
+        "DELETE FROM people.leave_approval_substitution_coverage WHERE tenant_id = ?"
+            + " AND substitution_id = ?",
+        revocation[1],
+        revocation[2]);
+  }
 
   @Autowired private JdbcTemplate jdbc;
   @Autowired private PostgreSQLContainer postgres;
@@ -344,6 +366,15 @@ class LeaveSubstitutionMigrationIntegrationTest {
         request);
   }
 
+  /** The whole stored appointment row, for byte-identical comparisons. */
+  private static String row(Db db, Object id) {
+    return db.jdbc()
+        .queryForObject(
+            "SELECT to_jsonb(s)::text FROM people.leave_approval_substitution s WHERE id = ?",
+            String.class,
+            id);
+  }
+
   private static int history(Db db) {
     return java.util.Objects.requireNonNull(
         db.jdbc().queryForObject("SELECT count(*) FROM flyway_schema_history", Integer.class));
@@ -466,7 +497,7 @@ class LeaveSubstitutionMigrationIntegrationTest {
           Object[] appointment =
               substitutionRow(tenant, people[1].employee(), people[2].employee());
           try {
-            committed(db, c -> exec(c, SUBSTITUTION, appointment));
+            committed(db, c -> appoint(c, appointment));
           } catch (SQLException e) {
             throw new IllegalStateException(e);
           }
@@ -486,7 +517,7 @@ class LeaveSubstitutionMigrationIntegrationTest {
                         "MANAGER_SUBSTITUTE",
                         people[2].employee(),
                         people[1].employee()));
-            committed(db, c -> exec(c, REVOCATION, revocationRow(tenant, appointment[0])));
+            committed(db, c -> revokeWithCoverage(c, revocationRow(tenant, appointment[0])));
           } catch (SQLException e) {
             throw new IllegalStateException(e);
           }
@@ -557,9 +588,9 @@ class LeaveSubstitutionMigrationIntegrationTest {
                     new Object[] {
                       "leave_approval_substitution_manager", change(good, 2, people[3].employee())
                     })) {
-              refused(db, (String) bad[0], c -> exec(c, SUBSTITUTION, (Object[]) bad[1]));
+              refused(db, (String) bad[0], c -> appoint(c, (Object[]) bad[1]));
             }
-            committed(db, c -> exec(c, SUBSTITUTION, good));
+            committed(db, c -> appoint(c, good));
             // Another appointment of the manager overlapping by one day, with any substitute, is
             // refused; adjacent periods and other managers are not.
             Object[] overlapping =
@@ -569,27 +600,32 @@ class LeaveSubstitutionMigrationIntegrationTest {
                     START.plusDays(60));
             refused(
                 db,
-                "leave_approval_substitution_no_overlap",
-                c -> exec(c, SUBSTITUTION, overlapping));
+                "leave_approval_substitution_coverage_no_overlap",
+                c -> appoint(c, overlapping));
+            Object[] adjacent =
+                change(change(overlapping, 0, UUID.randomUUID()), 4, START.plusDays(31));
             committed(
                 db,
                 c -> {
-                  exec(
-                      c,
-                      SUBSTITUTION,
-                      change(change(overlapping, 0, UUID.randomUUID()), 4, START.plusDays(31)));
-                  exec(c, SUBSTITUTION, substitutionRow(tenant, substitute, manager));
+                  appoint(c, adjacent);
+                  appoint(c, substitutionRow(tenant, substitute, manager));
                 });
-            // A revocation does not free the stored period.
-            committed(db, c -> exec(c, REVOCATION, revocationRow(tenant, good[0])));
+            // R98-1: the revocation frees the dates; the revoked appointment keeps them as
+            // evidence.
+            String revokedBefore = row(db, good[0]);
+            committed(db, c -> revokeWithCoverage(c, revocationRow(tenant, good[0])));
+            Object[] replacement =
+                change(
+                    change(change(good, 0, UUID.randomUUID()), 3, people[2].employee()),
+                    4,
+                    START.plusDays(10));
+            committed(db, c -> appoint(c, replacement));
+            assertThat(row(db, good[0])).isEqualTo(revokedBefore);
+            // The replacement now holds the dates against another appointment.
             refused(
                 db,
-                "leave_approval_substitution_no_overlap",
-                c ->
-                    exec(
-                        c,
-                        SUBSTITUTION,
-                        change(change(good, 0, UUID.randomUUID()), 3, people[2].employee())));
+                "leave_approval_substitution_coverage_no_overlap",
+                c -> appoint(c, change(change(good, 0, UUID.randomUUID()), 4, START.plusDays(20))));
             // Append-only.
             refused(
                 db,
@@ -633,7 +669,7 @@ class LeaveSubstitutionMigrationIntegrationTest {
                   Hired substitute = hire(c, tenant, "S-1");
                   appointment[0] =
                       substitutionRow(tenant, manager.employee(), substitute.employee());
-                  exec(c, SUBSTITUTION, (Object[]) appointment[0]);
+                  appoint(c, (Object[]) appointment[0]);
                 });
             Object id = ((Object[]) appointment[0])[0];
             Object[] good = revocationRow(tenant, id);
@@ -657,9 +693,9 @@ class LeaveSubstitutionMigrationIntegrationTest {
                       "leave_approval_substitution_revocation_substitution",
                       change(good, 2, UUID.randomUUID())
                     })) {
-              refused(db, (String) bad[0], c -> exec(c, REVOCATION, (Object[]) bad[1]));
+              refused(db, (String) bad[0], c -> revokeWithCoverage(c, (Object[]) bad[1]));
             }
-            committed(db, c -> exec(c, REVOCATION, good));
+            committed(db, c -> revokeWithCoverage(c, good));
             refused(
                 db,
                 "leave_approval_substitution_revocation_substitution_unique",
@@ -685,6 +721,100 @@ class LeaveSubstitutionMigrationIntegrationTest {
                 db,
                 "leave_approval_substitution_immutable",
                 c -> exec(c, "DELETE FROM people.leave_approval_substitution"));
+          } catch (SQLException e) {
+            throw new IllegalStateException(e);
+          }
+        });
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Coverage safeguards (R98-1)
+  // ------------------------------------------------------------------------------------------
+
+  @Test
+  void directSqlCannotLeaveCoverageOutOfStepWithItsAppointment() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "24");
+          UUID tenant = organization(db.jdbc());
+          UUID other = organization(db.jdbc());
+          Hired[] people = new Hired[4];
+          Object[][] rows = new Object[1][];
+          try {
+            committed(
+                db,
+                c -> {
+                  people[0] = hire(c, tenant, "M-1");
+                  people[1] = hire(c, tenant, "S-1");
+                  people[2] = hire(c, tenant, "M-2");
+                  people[3] = hire(c, other, "X-1");
+                  rows[0] = substitutionRow(tenant, people[0].employee(), people[1].employee());
+                  appoint(c, rows[0]);
+                });
+            Object[] a = rows[0];
+            // Coverage that does not match its appointment's tenant, manager or dates.
+            Object[] b = substitutionRow(tenant, people[2].employee(), people[1].employee());
+            for (Object[] bad :
+                List.of(
+                    new Object[] {other, b[0], b[2], b[4], b[5]},
+                    new Object[] {b[1], b[0], people[1].employee(), b[4], b[5]},
+                    new Object[] {b[1], b[0], b[2], START.plusDays(1), b[5]},
+                    new Object[] {b[1], b[0], b[2], b[4], START.plusDays(40)},
+                    new Object[] {b[1], UUID.randomUUID(), b[2], b[4], b[5]})) {
+              refused(
+                  db,
+                  "leave_approval_substitution_coverage_appointment",
+                  c -> {
+                    exec(c, SUBSTITUTION, b);
+                    exec(c, COVERAGE, bad);
+                  });
+            }
+            // Never changed or truncated; never deleted while the appointment is not revoked.
+            refused(
+                db,
+                "leave_approval_substitution_coverage_guard",
+                c ->
+                    exec(
+                        c,
+                        "UPDATE people.leave_approval_substitution_coverage"
+                            + " SET effective_to = effective_to - 1"));
+            refused(
+                db,
+                "leave_approval_substitution_coverage_guard",
+                c -> exec(c, "DELETE FROM people.leave_approval_substitution_coverage"));
+            refused(
+                db,
+                "leave_approval_substitution_coverage_no_truncate",
+                c -> exec(c, "TRUNCATE people.leave_approval_substitution_coverage"));
+            // An appointment never commits without its coverage.
+            refused(
+                db,
+                "leave_approval_substitution_covered",
+                c ->
+                    exec(
+                        c,
+                        SUBSTITUTION,
+                        substitutionRow(tenant, people[2].employee(), people[1].employee())));
+            // A revocation never commits while the coverage is still there.
+            refused(
+                db,
+                "leave_approval_substitution_revocation_uncovered",
+                c -> exec(c, REVOCATION, revocationRow(tenant, a[0])));
+            // Once revoked, coverage can never be (re)inserted for that appointment.
+            committed(db, c -> revokeWithCoverage(c, revocationRow(tenant, a[0])));
+            refused(
+                db,
+                "leave_approval_substitution_coverage_guard",
+                c -> exec(c, COVERAGE, a[1], a[0], a[2], a[4], a[5]));
+            assertThat(
+                    count(
+                        db,
+                        "SELECT count(*) FROM people.leave_approval_substitution_coverage"
+                            + " WHERE substitution_id = ?",
+                        a[0]))
+                .isZero();
+            assertThat(count(db, "SELECT count(*) FROM people.leave_approval_substitution"))
+                .isEqualTo(1);
           } catch (SQLException e) {
             throw new IllegalStateException(e);
           }
@@ -719,7 +849,7 @@ class LeaveSubstitutionMigrationIntegrationTest {
                   versions[1] = policyVersion(c, tenant, "AD", "TENANT_ADMIN");
                   appointment[0] =
                       substitutionRow(tenant, people[1].employee(), people[2].employee());
-                  exec(c, SUBSTITUTION, (Object[]) appointment[0]);
+                  appoint(c, (Object[]) appointment[0]);
                 });
             UUID employee = people[0].employee();
             UUID manager = people[1].employee();
@@ -824,7 +954,7 @@ class LeaveSubstitutionMigrationIntegrationTest {
                 db,
                 c -> {
                   later[0] = pending(c, people[0], versions[0], START.plusDays(3));
-                  exec(c, REVOCATION, revocationRow(tenant, ((Object[]) appointment[0])[0]));
+                  revokeWithCoverage(c, revocationRow(tenant, ((Object[]) appointment[0])[0]));
                 });
             refused(
                 db,
@@ -927,17 +1057,26 @@ class LeaveSubstitutionMigrationIntegrationTest {
                 .contains("leave_approval_substitution_revocation_substitution_unique")
                 .contains("employment_assignment_reports")
                 .contains("leave_request_employment_pending");
-            // The manager's appointment on a date (decision and overlap pre-check).
+            // The overlap pre-check reads the coverage exclusion's index.
             assertThat(
                     plan(
                         db,
-                        "SELECT s.id FROM people.leave_approval_substitution s WHERE s.tenant_id ="
-                            + " ? AND s.manager_employee_id = ? AND daterange(s.effective_from,"
-                            + " s.effective_to, '[]') && ?::daterange",
+                        "SELECT c.substitution_id FROM people.leave_approval_substitution_coverage"
+                            + " c WHERE c.tenant_id = ? AND c.manager_employee_id = ? AND"
+                            + " daterange(c.effective_from, c.effective_to, '[]') && ?::daterange",
                         tenant,
                         someone,
                         "[" + today + "," + today + "]"))
-                .contains("leave_approval_substitution_no_overlap");
+                .contains("leave_approval_substitution_coverage_no_overlap");
+            // The revocation's delete reads the coverage key.
+            assertThat(
+                    plan(
+                        db,
+                        "DELETE FROM people.leave_approval_substitution_coverage"
+                            + " WHERE tenant_id = ? AND substitution_id = ?",
+                        tenant,
+                        someone))
+                .contains("leave_approval_substitution_coverage_pkey");
             // The administrators' list, newest first, without a sort.
             assertThat(
                     plan(
@@ -961,6 +1100,12 @@ class LeaveSubstitutionMigrationIntegrationTest {
                         db,
                         "SELECT count(*) FROM pg_indexes WHERE schemaname = 'people'"
                             + " AND tablename = 'leave_approval_substitution_revocation'"))
+                .isEqualTo(2);
+            assertThat(
+                    count(
+                        db,
+                        "SELECT count(*) FROM pg_indexes WHERE schemaname = 'people'"
+                            + " AND tablename = 'leave_approval_substitution_coverage'"))
                 .isEqualTo(2);
           } catch (SQLException e) {
             throw new IllegalStateException(e);

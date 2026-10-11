@@ -19,11 +19,21 @@
 --     bounded dates (_dates_valid), the shared reason grammar version 1 (people.leave_reason_valid).
 --     There is no mutable status: an appointment is effective on a business date inside its period
 --     when no revocation exists; SCHEDULED, ACTIVE, EXPIRED and REVOKED are derived;
---   * the periods of one manager's appointments never overlap
---     (leave_approval_substitution_no_overlap, btree_gist), so at most one substitute covers a
---     manager on any date. A revocation does not shorten the stored period: a revoked appointment
---     keeps its dates for the overlap rule;
 --   * revocations are append-only, one per appointment (leave_approval_substitution_revocation_*);
+--   * at most one NON-REVOKED appointment covers a manager on any date (R98-1). The exclusion
+--     (leave_approval_substitution_coverage_no_overlap, btree_gist) sits on the operational
+--     projection people.leave_approval_substitution_coverage, never on the historical rows: one
+--     coverage row per unrevoked appointment, keyed to the appointment's exact tenant, manager and
+--     inclusive dates (leave_approval_substitution_coverage_appointment, a composite foreign key),
+--     inserted with the appointment and deleted with its revocation, in one transaction. The
+--     projection is never the source of truth for authority, which always reads the appointment
+--     and the absence of a revocation. Safeguards: a coverage row is never updated or truncated,
+--     is deleted only once its appointment is revoked, and is never inserted for a revoked
+--     appointment (leave_approval_substitution_coverage_guard); an appointment commits only with
+--     its coverage or its revocation (leave_approval_substitution_covered, deferred); a revocation
+--     commits only once the coverage is gone (leave_approval_substitution_revocation_uncovered,
+--     deferred). A revoked appointment keeps its original dates and reason as evidence; its
+--     remaining dates are free for a replacement;
 --   * a decision names its authority: MANAGER (the deciding primary manager), MANAGER_SUBSTITUTE
 --     (the deciding substitute in manager_employee_id and the primary manager it was delegated
 --     from in delegated_from_manager_employee_id, never the same employee), TENANT_ADMIN_OVERRIDE
@@ -37,14 +47,16 @@
 --     organization's business date is the application's rule, checked under the tenant's
 --     manager-graph lock, which appointment creation and revocation also take.
 --
--- Indexes: leave_approval_substitution_no_overlap (tenant, manager, period) is the manager lookup;
+-- Indexes: leave_approval_substitution_coverage_no_overlap (tenant, manager, period) is the
+-- overlap check; leave_approval_substitution_coverage_pkey the revocation's delete;
+-- leave_approval_substitution_coverage_key the projection's composite key;
 -- leave_approval_substitution_substitute is the substitute's active-appointment lookup;
 -- leave_approval_substitution_list_order is the administrators' newest-first keyset;
 -- leave_approval_substitution_revocation_substitution_unique is the revocation lookup. A
 -- substitute decision's replay reads V20's leave_request_decision_request_unique.
 --
 -- Rollback: db/rollback/V24__rollback.sql (manual, never run by Flyway). It restores V23 exactly
--- only while no appointment, no revocation and no MANAGER_SUBSTITUTE decision exists; there is no
+-- only while no appointment, coverage, revocation or MANAGER_SUBSTITUTE decision exists; there is no
 -- override, and it never touches flyway_schema_history.
 
 -- ---------------------------------------------------------------------------------------------
@@ -99,14 +111,13 @@ CREATE TABLE people.leave_approval_substitution (
         CHECK (people.leave_reason_valid(reason_text)),
     CONSTRAINT leave_approval_substitution_created_by_length
         CHECK (char_length(created_by) BETWEEN 1 AND 255),
-    -- One appointment per manager on any date (both ends inclusive), revoked or not.
-    CONSTRAINT leave_approval_substitution_no_overlap EXCLUDE USING gist (
-        tenant_id WITH =, manager_employee_id WITH =,
-        daterange(effective_from, effective_to, '[]') WITH &&)
+    -- The target of the coverage projection's composite key (exact tenant, manager and dates).
+    CONSTRAINT leave_approval_substitution_coverage_key
+        UNIQUE (id, tenant_id, manager_employee_id, effective_from, effective_to)
 );
 
 COMMENT ON TABLE people.leave_approval_substitution IS
-    'MVP-041G effective-dated leave approval substitute of a manager (Restricted HR). Append-only; one per manager per date.';
+    'MVP-041G effective-dated leave approval substitute of a manager (Restricted HR). Append-only evidence; one unrevoked per manager per date (see the coverage projection).';
 
 -- The substitute's appointments (manager inbox and decision).
 CREATE INDEX leave_approval_substitution_substitute
@@ -179,6 +190,113 @@ CREATE TRIGGER leave_approval_substitution_revocation_immutable
 CREATE TRIGGER leave_approval_substitution_revocation_no_truncate
     BEFORE TRUNCATE ON people.leave_approval_substitution_revocation
     FOR EACH STATEMENT EXECUTE FUNCTION people.leave_approval_substitution_revocation_no_truncate();
+
+-- ---------------------------------------------------------------------------------------------
+-- Coverage: the operational projection of unrevoked appointments (R98-1)
+-- ---------------------------------------------------------------------------------------------
+
+CREATE TABLE people.leave_approval_substitution_coverage (
+    tenant_id           uuid NOT NULL,
+    substitution_id     uuid NOT NULL,
+    manager_employee_id uuid NOT NULL,
+    effective_from      date NOT NULL,
+    effective_to        date NOT NULL,
+    CONSTRAINT leave_approval_substitution_coverage_pkey PRIMARY KEY (tenant_id, substitution_id),
+    -- Exactly the appointment's tenant, manager and dates: a mismatched row cannot exist.
+    CONSTRAINT leave_approval_substitution_coverage_appointment
+        FOREIGN KEY (tenant_id, substitution_id, manager_employee_id, effective_from, effective_to)
+            REFERENCES people.leave_approval_substitution
+                (tenant_id, id, manager_employee_id, effective_from, effective_to),
+    -- At most one unrevoked appointment per manager on any date (both ends inclusive).
+    CONSTRAINT leave_approval_substitution_coverage_no_overlap EXCLUDE USING gist (
+        tenant_id WITH =, manager_employee_id WITH =,
+        daterange(effective_from, effective_to, '[]') WITH &&)
+);
+
+COMMENT ON TABLE people.leave_approval_substitution_coverage IS
+    'MVP-041G operational projection: one row per unrevoked leave approval substitute appointment, removed with its revocation. Never the source of truth for authority.';
+
+-- Never updated or truncated; deleted only once revoked; never inserted for a revoked appointment.
+CREATE FUNCTION people.leave_approval_substitution_coverage_guard() RETURNS trigger
+    LANGUAGE plpgsql
+AS $fn$
+DECLARE
+    v_row people.leave_approval_substitution_coverage%ROWTYPE;
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        RAISE EXCEPTION USING ERRCODE = '23514',
+            CONSTRAINT = 'leave_approval_substitution_coverage_guard',
+            MESSAGE = 'leave approval substitution coverage is never changed';
+    END IF;
+    v_row := CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+    IF (TG_OP = 'DELETE') <> EXISTS (SELECT 1 FROM people.leave_approval_substitution_revocation x
+            WHERE x.tenant_id = v_row.tenant_id AND x.substitution_id = v_row.substitution_id) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514',
+            CONSTRAINT = 'leave_approval_substitution_coverage_guard',
+            MESSAGE = 'coverage exists exactly while its appointment is not revoked';
+    END IF;
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END
+$fn$;
+
+CREATE FUNCTION people.leave_approval_substitution_coverage_no_truncate() RETURNS trigger
+    LANGUAGE plpgsql
+AS $fn$
+BEGIN
+    RAISE EXCEPTION USING ERRCODE = '23514',
+        CONSTRAINT = 'leave_approval_substitution_coverage_no_truncate',
+        MESSAGE = 'leave approval substitution coverage is never truncated';
+END
+$fn$;
+
+CREATE TRIGGER leave_approval_substitution_coverage_guard
+    BEFORE INSERT OR UPDATE OR DELETE ON people.leave_approval_substitution_coverage
+    FOR EACH ROW EXECUTE FUNCTION people.leave_approval_substitution_coverage_guard();
+CREATE TRIGGER leave_approval_substitution_coverage_no_truncate
+    BEFORE TRUNCATE ON people.leave_approval_substitution_coverage
+    FOR EACH STATEMENT EXECUTE FUNCTION people.leave_approval_substitution_coverage_no_truncate();
+
+-- An appointment commits only with its coverage (or, created and revoked at once, its revocation).
+CREATE FUNCTION people.leave_approval_substitution_covered() RETURNS trigger
+    LANGUAGE plpgsql
+AS $fn$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM people.leave_approval_substitution_coverage c
+            WHERE c.tenant_id = NEW.tenant_id AND c.substitution_id = NEW.id)
+        AND NOT EXISTS (SELECT 1 FROM people.leave_approval_substitution_revocation x
+            WHERE x.tenant_id = NEW.tenant_id AND x.substitution_id = NEW.id) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514',
+            CONSTRAINT = 'leave_approval_substitution_covered',
+            MESSAGE = 'an unrevoked appointment commits with its coverage';
+    END IF;
+    RETURN NULL;
+END
+$fn$;
+
+CREATE CONSTRAINT TRIGGER leave_approval_substitution_covered
+    AFTER INSERT ON people.leave_approval_substitution
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION people.leave_approval_substitution_covered();
+
+-- A revocation commits only once its appointment's coverage is gone.
+CREATE FUNCTION people.leave_approval_substitution_revocation_uncovered() RETURNS trigger
+    LANGUAGE plpgsql
+AS $fn$
+BEGIN
+    IF EXISTS (SELECT 1 FROM people.leave_approval_substitution_coverage c
+            WHERE c.tenant_id = NEW.tenant_id AND c.substitution_id = NEW.substitution_id) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514',
+            CONSTRAINT = 'leave_approval_substitution_revocation_uncovered',
+            MESSAGE = 'a revocation commits with its coverage removed';
+    END IF;
+    RETURN NULL;
+END
+$fn$;
+
+CREATE CONSTRAINT TRIGGER leave_approval_substitution_revocation_uncovered
+    AFTER INSERT ON people.leave_approval_substitution_revocation
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION people.leave_approval_substitution_revocation_uncovered();
 
 -- ---------------------------------------------------------------------------------------------
 -- Decisions: the substitute authority and the manager it was delegated from

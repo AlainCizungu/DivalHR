@@ -279,9 +279,7 @@ public enum ErrorCode {
    * params).
    */
   LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE(HttpStatus.UNPROCESSABLE_CONTENT),
-  /**
-   * Another appointment of the manager, revoked or not, overlaps these dates (MVP-041G; no params).
-   */
+  /** Another unrevoked appointment of the manager overlaps these dates (MVP-041G; no params). */
   LEAVE_APPROVAL_SUBSTITUTION_OVERLAP(HttpStatus.CONFLICT),
   /** The appointment was already revoked (MVP-041G; no params). */
   LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED(HttpStatus.CONFLICT);

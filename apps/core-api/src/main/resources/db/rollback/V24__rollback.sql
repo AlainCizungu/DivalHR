@@ -3,8 +3,8 @@
 --
 -- Prefer rolling back only the application. This script restores the V23 schema exactly
 -- (signature-tested: the function body below is V22's, verbatim, unchanged by V23), but it REFUSES
--- once any substitute appointment or revocation exists or any decision was taken with the
--- MANAGER_SUBSTITUTE authority: that evidence must never be erased or reinterpreted by a schema
+-- once any substitute appointment, coverage row or revocation exists or any decision was taken
+-- with the MANAGER_SUBSTITUTE authority: that evidence must never be erased or reinterpreted by a schema
 -- rollback, so there is no override flag. Every V23 request, decision, cancellation, amendment and
 -- withdrawal is kept unchanged (dropping delegated_from_manager_employee_id removes only a column
 -- that is null on every remaining decision).
@@ -15,11 +15,13 @@
 -- Run in one transaction.
 BEGIN;
 LOCK TABLE people.leave_request_decision, people.leave_approval_substitution,
-    people.leave_approval_substitution_revocation IN ACCESS EXCLUSIVE MODE;
+    people.leave_approval_substitution_coverage, people.leave_approval_substitution_revocation
+    IN ACCESS EXCLUSIVE MODE;
 DO
 $$
 BEGIN
     IF EXISTS (SELECT 1 FROM people.leave_approval_substitution)
+        OR EXISTS (SELECT 1 FROM people.leave_approval_substitution_coverage)
         OR EXISTS (SELECT 1 FROM people.leave_approval_substitution_revocation)
         OR EXISTS (SELECT 1 FROM people.leave_request_decision
             WHERE decision_authority = 'MANAGER_SUBSTITUTE'
@@ -28,8 +30,13 @@ BEGIN
     END IF;
 END
 $$;
+DROP TABLE people.leave_approval_substitution_coverage;
 DROP TABLE people.leave_approval_substitution_revocation;
 DROP TABLE people.leave_approval_substitution;
+DROP FUNCTION people.leave_approval_substitution_revocation_uncovered();
+DROP FUNCTION people.leave_approval_substitution_covered();
+DROP FUNCTION people.leave_approval_substitution_coverage_no_truncate();
+DROP FUNCTION people.leave_approval_substitution_coverage_guard();
 DROP FUNCTION people.leave_approval_substitution_revocation_no_truncate();
 DROP FUNCTION people.leave_approval_substitution_revocation_immutable();
 DROP FUNCTION people.leave_approval_substitution_no_truncate();

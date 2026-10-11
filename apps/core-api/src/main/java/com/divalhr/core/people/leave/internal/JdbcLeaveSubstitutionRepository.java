@@ -155,8 +155,8 @@ public class JdbcLeaveSubstitutionRepository {
   }
 
   /**
-   * Whether another appointment of the manager, revoked or not, overlaps the period (the exclusion
-   * constraint's rule, checked first so the answer is the stable conflict).
+   * Whether another unrevoked appointment of the manager overlaps the period: its coverage row (the
+   * exclusion constraint's rule, R98-1, checked first so the answer is the stable conflict).
    *
    * @param tenant verified tenant
    * @param managerEmployeeId the manager
@@ -167,9 +167,9 @@ public class JdbcLeaveSubstitutionRepository {
   public boolean overlaps(TenantId tenant, UUID managerEmployeeId, LocalDate from, LocalDate to) {
     Boolean found =
         jdbc.queryForObject(
-            "SELECT EXISTS (SELECT 1 FROM people.leave_approval_substitution s"
-                + " WHERE s.tenant_id = :tenant AND s.manager_employee_id = :manager"
-                + " AND daterange(s.effective_from, s.effective_to, '[]')"
+            "SELECT EXISTS (SELECT 1 FROM people.leave_approval_substitution_coverage c"
+                + " WHERE c.tenant_id = :tenant AND c.manager_employee_id = :manager"
+                + " AND daterange(c.effective_from, c.effective_to, '[]')"
                 + " && daterange(:from, :to, '[]'))",
             new MapSqlParameterSource()
                 .addValue("tenant", tenant.value())
@@ -181,7 +181,8 @@ public class JdbcLeaveSubstitutionRepository {
   }
 
   /**
-   * Inserts an appointment.
+   * Inserts an appointment and its coverage row (the operational projection of an unrevoked
+   * appointment, R98-1), in the caller's transaction.
    *
    * @param tenant verified tenant
    * @param substitution the appointment
@@ -205,6 +206,16 @@ public class JdbcLeaveSubstitutionRepository {
             .addValue("reason", substitution.reason())
             .addValue("createdAt", Timestamp.from(substitution.createdAt()))
             .addValue("createdBy", createdBy));
+    jdbc.update(
+        "INSERT INTO people.leave_approval_substitution_coverage (tenant_id, substitution_id,"
+            + " manager_employee_id, effective_from, effective_to) VALUES (:tenant, :id, :manager,"
+            + " :from, :to)",
+        new MapSqlParameterSource()
+            .addValue("tenant", tenant.value())
+            .addValue("id", substitution.id())
+            .addValue("manager", substitution.managerEmployeeId())
+            .addValue("from", substitution.effectiveFrom())
+            .addValue("to", substitution.effectiveTo()));
   }
 
   /**
@@ -262,7 +273,8 @@ public class JdbcLeaveSubstitutionRepository {
   }
 
   /**
-   * Inserts a revocation.
+   * Inserts a revocation and removes the appointment's coverage row, which frees its dates for a
+   * replacement (R98-1); the appointment itself is never touched.
    *
    * @param tenant verified tenant
    * @param revocation the revocation
@@ -282,6 +294,31 @@ public class JdbcLeaveSubstitutionRepository {
             .addValue("reason", revocation.reason())
             .addValue("revokedAt", Timestamp.from(revocation.revokedAt()))
             .addValue("revokedBy", revokedBy));
+    int removed =
+        jdbc.update(
+            "DELETE FROM people.leave_approval_substitution_coverage"
+                + " WHERE tenant_id = :tenant AND substitution_id = :id",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("id", revocation.substitutionId()));
+    if (removed != 1) {
+      throw new IllegalStateException("an unrevoked appointment had no coverage under its lock");
+    }
+  }
+
+  /**
+   * Runs the deferred coverage checks now ({@code leave_approval_substitution_covered}, {@code
+   * leave_approval_substitution_revocation_uncovered}), so that a violation surfaces inside the
+   * business work, before the audit and outbox records are written.
+   *
+   * @param tenant verified tenant whose transaction it is
+   */
+  public void checkCoverage(TenantId tenant) {
+    java.util.Objects.requireNonNull(tenant, "tenant");
+    jdbc.getJdbcOperations()
+        .execute(
+            "SET CONSTRAINTS people.leave_approval_substitution_covered,"
+                + " people.leave_approval_substitution_revocation_uncovered IMMEDIATE");
   }
 
   /**

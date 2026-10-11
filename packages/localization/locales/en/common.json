@@ -362,7 +362,7 @@
     "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE": "The manager and the substitute must be two different employees.",
     "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD": "The manager or the substitute is not employed on every day of these dates.",
     "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE": "This employee manages no one during these dates, so a substitute has nothing to decide.",
-    "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "This manager already has a substitute appointment, current, revoked or planned, on some of these dates.",
+    "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP": "This manager already has a current or planned substitute on some of these dates.",
     "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED": "This substitute appointment has already been revoked."
   },
   "notFound": {
@@ -2403,7 +2403,7 @@
     "unauthorized": "Only tenant administrators who signed in with their authenticator app can manage leave approval substitutes.",
     "rules": {
       "primary": "The manager keeps every right: during the appointment, both the manager and the substitute can decide, and the first decision is final.",
-      "one": "A manager has at most one substitute on any date. A revoked appointment keeps its dates.",
+      "one": "A manager has at most one active or planned substitute on any date. Revoking an appointment frees its remaining dates for a replacement.",
       "scope": "No notification, chain of substitutes or automatic start: the appointment applies from its first day to its last day, in your organization’s time zone, until it is revoked."
     },
     "list": {
