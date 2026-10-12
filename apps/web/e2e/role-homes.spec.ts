@@ -188,9 +188,16 @@ test.describe('employee home', () => {
     const roadmap = page.getByTestId('roadmap');
     await expect(roadmap.getByRole('listitem')).toHaveCount(3);
     await expect(roadmap).not.toContainText('Congés');
-    // UI3-7: the employee home requests nothing beyond the session.
+    // UI3-7: the employee home loads only the session and, as the one approved exception
+    // (MVP-060B, B60B-8), the first item of the caller's own team-attendance queue for the
+    // conditional task card; an employee who manages nobody sees no card.
     await page.waitForLoadState('networkidle');
-    expect([...new Set(api)].filter((path) => path !== '/session')).toEqual([]);
+    expect(
+      [...new Set(api)].filter(
+        (path) => !['/session', '/me/team-attendance/actions'].includes(path),
+      ),
+    ).toEqual([]);
+    await expect(page.getByTestId('home-team-attendance')).toHaveCount(0);
     await expectAccessible(page);
 
     const home = () =>
