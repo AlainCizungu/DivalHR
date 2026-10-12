@@ -211,7 +211,11 @@ class AuthorizationDenialAuditIntegrationTest {
           "work-schedule-substitution.request",
           "work-schedule-substitution.manager-list",
           "work-schedule-substitution.candidate-list",
-          "work-schedule-substitution.decide");
+          "work-schedule-substitution.decide",
+          // MVP-060A: the employee's own online attendance.
+          "attendance.self-list",
+          "attendance.check-in",
+          "attendance.check-out");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

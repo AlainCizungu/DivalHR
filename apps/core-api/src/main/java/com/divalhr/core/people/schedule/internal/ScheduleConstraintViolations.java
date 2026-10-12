@@ -5,8 +5,9 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
 /**
- * The V25 and V26 constraints a publication, cancellation or replacement may race into, and the
- * integrity-violation constraint name of a failure (never returned to clients or logs).
+ * The V25 to V28 constraints a publication, cancellation, replacement, substitution or attendance
+ * command may race into, and the integrity-violation constraint name of a failure (never returned
+ * to clients or logs).
  */
 public final class ScheduleConstraintViolations {
 
@@ -33,6 +34,15 @@ public final class ScheduleConstraintViolations {
   /** MVP-051: one approved substitution per slot. */
   public static final String SUBSTITUTION_ONE_APPROVAL =
       "work_schedule_substitution_decision_one_approval";
+
+  /** MVP-060A: one attendance record per slot and employee. */
+  public static final String ATTENDANCE_SLOT_EMPLOYEE = "attendance_record_slot_employee_unique";
+
+  /** MVP-060A: one check-in and at most one check-out per record. */
+  public static final String ATTENDANCE_EVENT_TYPE = "attendance_event_record_type_unique";
+
+  /** MVP-060A: at most one actionable open record per employee. */
+  public static final String ATTENDANCE_ONE_OPEN = "attendance_record_one_open";
 
   private ScheduleConstraintViolations() {}
 

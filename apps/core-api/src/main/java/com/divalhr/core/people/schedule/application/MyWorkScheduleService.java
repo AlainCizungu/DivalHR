@@ -239,8 +239,11 @@ public class MyWorkScheduleService {
               fromDate,
               toDate,
               shown);
+          // MVP-060A: the attendance actions are evaluated at the view's instant (the default
+          // view's anchor, or the server's current instant for explicit dates).
+          Instant at = anchor != null ? anchor : calendar.now().truncatedTo(ChronoUnit.MICROS);
           return new ShiftPage(
-              shown.stream().map(shift -> Shift.of(shift, sites.get(shift.siteId()))).toList(),
+              shown.stream().map(shift -> Shift.of(shift, sites.get(shift.siteId()), at)).toList(),
               next,
               anchor,
               fromDate,
@@ -304,7 +307,7 @@ public class MyWorkScheduleService {
     metadata.put("page", page);
     metadata.put("resultCount", shown.size());
     StringBuilder text =
-        new StringBuilder("DIVALHR-MY-WORK-SCHEDULE-DISCLOSURE\nversion=2\nemployee=")
+        new StringBuilder("DIVALHR-MY-WORK-SCHEDULE-DISCLOSURE\nversion=3\nemployee=")
             .append(employeeId)
             .append('\n');
     if (anchor != null) {
@@ -316,7 +319,13 @@ public class MyWorkScheduleService {
           .append(to == null ? "-" : to)
           .append('\n');
     }
-    shown.forEach(shift -> text.append("slot=").append(shift.slotId()).append('\n'));
+    shown.forEach(
+        shift ->
+            text.append("slot=")
+                .append(shift.slotId())
+                .append(";attendance=")
+                .append(shift.attendance().status())
+                .append('\n'));
     audit.record(
         new AuditEvent(
             UUID.randomUUID(),

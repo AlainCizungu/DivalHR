@@ -36,6 +36,7 @@
     "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés",
     "workSchedules": "Horaires",
     "mySchedule": "Mon horaire",
+    "myAttendance": "Ma présence",
     "myScheduleSubstitutions": "Remplacements d’horaire"
   },
   "shell": {
@@ -197,6 +198,7 @@
       "cards": {
         "leave": "Demandez un congé, suivez vos demandes et consultez chaque décision.",
         "schedule": "Consultez vos créneaux en cours et à venir, chacun à l’heure locale de son site.",
+        "attendance": "Pointez votre arrivée et votre départ sur vos créneaux et consultez votre historique de présence.",
         "contracts": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus."
       },
       "approvals": {
@@ -419,7 +421,16 @@
     "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED": "Cette demande de remplacement a déjà été décidée.",
     "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED": "Ce créneau a déjà commencé : son remplacement ne peut plus être demandé ni décidé.",
     "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE": "Cette personne ne peut pas remplacer l’employé pour ce créneau. Relancez la recherche et choisissez un employé admissible.",
-    "WORK_SCHEDULE_SUBSTITUTE_CONFLICT": "Cette personne travaille déjà à ce moment-là. Choisissez quelqu’un d’autre."
+    "WORK_SCHEDULE_SUBSTITUTE_CONFLICT": "Cette personne travaille déjà à ce moment-là. Choisissez quelqu’un d’autre.",
+    "ATTENDANCE_SHIFT_NOT_FOUND": "Ce créneau ne vous est pas accessible pour le pointage.",
+    "ATTENDANCE_CHECK_IN_TOO_EARLY": "Le pointage de l’arrivée n’est pas encore ouvert pour ce créneau.",
+    "ATTENDANCE_CHECK_IN_WINDOW_CLOSED": "Le pointage de l’arrivée est fermé pour ce créneau.",
+    "ATTENDANCE_ALREADY_CHECKED_IN": "Vous avez déjà pointé votre arrivée pour ce créneau.",
+    "ATTENDANCE_OPEN_RECORD_EXISTS": "Pointez le départ de votre créneau en cours avant de pointer une nouvelle arrivée.",
+    "ATTENDANCE_RECORD_NOT_FOUND": "Ce pointage ne vous est pas accessible.",
+    "ATTENDANCE_ALREADY_CHECKED_OUT": "Vous avez déjà pointé votre départ pour ce créneau.",
+    "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Le départ ne peut plus être pointé pour ce créneau.",
+    "ATTENDANCE_STATE_CONFLICT": "L’enregistrement est impossible pour le moment. Actualisez la page et réessayez."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2760,6 +2771,56 @@
     "timezone": "Heure locale du site ({{zone}})",
     "more": "Afficher plus de créneaux",
     "loadingMore": "Chargement d’autres créneaux…"
+  },
+  "attendance": {
+    "title": "Ma présence",
+    "description": "Vos arrivées et départs pointés sur vos créneaux. Le serveur enregistre l’heure au moment où vous confirmez.",
+    "unauthorized": "Seuls les employés peuvent consulter leur présence.",
+    "signInRequired": "Connectez-vous pour consulter votre présence.",
+    "loading": "Chargement de votre présence…",
+    "retry": "Réessayer",
+    "empty": "Vous n’avez encore pointé votre arrivée sur aucun créneau.",
+    "label": "Mes pointages",
+    "more": "Afficher plus de pointages",
+    "loadingMore": "Chargement d’autres pointages…",
+    "scheduled": "Prévu",
+    "checkedIn": "Arrivée",
+    "checkedOut": "Départ",
+    "notCheckedOut": "Départ non pointé",
+    "siteTime": "Heures locales du site ({{zone}}).",
+    "status": {
+      "OPEN": "En cours",
+      "COMPLETED": "Terminée"
+    },
+    "shiftStatus": {
+      "NOT_RECORDED": "Arrivée non pointée",
+      "OPEN": "Arrivée pointée",
+      "COMPLETED": "Arrivée et départ pointés"
+    },
+    "shiftCheckedIn": "Arrivée pointée à {{time}}",
+    "shiftCheckedOut": "Départ pointé à {{time}}",
+    "checkInNotOpen": "Le pointage de l’arrivée n’est pas ouvert pour ce créneau en ce moment.",
+    "checkOutClosed": "Le départ ne peut plus être pointé pour ce pointage.",
+    "checkIn": {
+      "action": "Pointer l’arrivée",
+      "actionFor": "Pointer l’arrivée pour {{work}} le {{date}}",
+      "title": "Pointer l’arrivée",
+      "confirm": "Confirmez votre arrivée pour ce créneau. Le serveur enregistre l’heure au moment où vous confirmez.",
+      "confirmButton": "Confirmer l’arrivée",
+      "done": "Votre arrivée a été enregistrée à {{time}}."
+    },
+    "checkOut": {
+      "action": "Pointer le départ",
+      "actionFor": "Pointer le départ pour {{work}} le {{date}}",
+      "title": "Pointer le départ",
+      "confirm": "Confirmez votre départ de ce créneau. Le serveur enregistre l’heure au moment où vous confirmez.",
+      "confirmButton": "Confirmer le départ",
+      "done": "Votre départ a été enregistré à {{time}}."
+    },
+    "form": {
+      "cancel": "Annuler",
+      "sending": "Enregistrement…"
+    }
   },
   "scheduleSubstitutions": {
     "unauthorized": "Seuls les employés peuvent utiliser les remplacements d’horaire.",

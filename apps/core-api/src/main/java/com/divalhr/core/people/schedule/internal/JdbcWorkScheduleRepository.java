@@ -1,5 +1,6 @@
 package com.divalhr.core.people.schedule.internal;
 
+import com.divalhr.core.people.schedule.domain.Attendance;
 import com.divalhr.core.people.schedule.domain.EmployeeFacts;
 import com.divalhr.core.people.schedule.domain.Lifecycle;
 import com.divalhr.core.people.schedule.domain.OwnShift;
@@ -695,12 +696,15 @@ public class JdbcWorkScheduleRepository {
     StringBuilder sql =
         new StringBuilder(
             "SELECT l.id, l.schedule_id, s.site_id, s.site_timezone, l.start_local, l.end_local,"
-                + " l.start_at, l.label_en, l.label_fr, c.decision_id"
+                + " l.start_at, l.end_at, l.label_en, l.label_fr, c.decision_id,"
+                + " a.id AS attendance_id, a.checked_in_at, a.checked_out_at"
                 + " FROM people.work_schedule_slot_coverage c"
                 + " JOIN people.work_schedule_slot l"
                 + " ON l.tenant_id = c.tenant_id AND l.id = c.slot_id"
                 + " JOIN people.work_schedule s"
                 + " ON s.tenant_id = c.tenant_id AND s.id = c.schedule_id"
+                + " LEFT JOIN people.attendance_record a ON a.tenant_id = c.tenant_id"
+                + " AND a.slot_id = c.slot_id AND a.employee_id = c.employee_id"
                 + " WHERE c.tenant_id = :tenant AND c.employee_id = :employee");
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -736,11 +740,24 @@ public class JdbcWorkScheduleRepository {
                 rs.getObject("start_local", LocalDateTime.class),
                 rs.getObject("end_local", LocalDateTime.class),
                 rs.getTimestamp("start_at").toInstant(),
+                rs.getTimestamp("end_at").toInstant(),
                 rs.getString("label_en"),
                 rs.getString("label_fr"),
                 rs.getObject("decision_id", UUID.class) == null
                     ? Substitution.Source.PUBLISHED
-                    : Substitution.Source.SUBSTITUTION));
+                    : Substitution.Source.SUBSTITUTION,
+                mark(rs)));
+  }
+
+  /** MVP-060A: the caller's own attendance on the shift, if recorded. */
+  private static Attendance.Mark mark(ResultSet rs) throws SQLException {
+    UUID id = rs.getObject("attendance_id", UUID.class);
+    if (id == null) {
+      return Attendance.Mark.NONE;
+    }
+    Timestamp out = rs.getTimestamp("checked_out_at");
+    return new Attendance.Mark(
+        id, rs.getTimestamp("checked_in_at").toInstant(), out == null ? null : out.toInstant());
   }
 
   /**

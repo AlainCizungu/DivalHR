@@ -86,6 +86,7 @@ describe('signed-in frame', () => {
         en.nav.home,
         en.nav.myContracts,
         en.nav.mySchedule,
+        en.nav.myAttendance,
         en.nav.myScheduleSubstitutions,
         en.nav.myLeave,
         en.nav.myLeaveApprovals,

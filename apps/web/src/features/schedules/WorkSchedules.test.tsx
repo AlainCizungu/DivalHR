@@ -838,6 +838,14 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
     overnight: overnightShift,
     labels: { en: 'Night watch', fr: 'Veille de nuit' },
     assignmentSource: 'PUBLISHED',
+    attendance: {
+      status: 'NOT_RECORDED',
+      attendanceRecordId: null,
+      checkedInAt: null,
+      checkedOutAt: null,
+      checkInAvailable: false,
+      checkOutAvailable: false,
+    },
   });
 
   it('lists my shifts in my language with an overnight indicator and pages on', async () => {

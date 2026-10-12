@@ -146,6 +146,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     expect(groupLinks('home-my-work')).toEqual([
       [c.nav.myLeave, '/me/leave'],
       [c.nav.mySchedule, '/me/schedule'],
+      [c.nav.myAttendance, '/me/attendance'],
       [c.nav.myContracts, '/me/contracts'],
     ]);
     const approvals = screen.getByTestId('home-leave-approvals');

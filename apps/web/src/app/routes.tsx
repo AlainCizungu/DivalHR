@@ -19,6 +19,7 @@ import {
 import { LeaveApprovalSubstitutesPage } from '../features/leave/LeaveApprovalSubstitutesPage';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
+import { MyAttendancePage } from '../features/schedules/MyAttendancePage';
 import { MySchedulePage } from '../features/schedules/MySchedulePage';
 import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/ScheduleSubstitutionApprovalsPage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
@@ -216,6 +217,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'mySchedule.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.mySchedule' }],
+  },
+  {
+    path: '/me/attendance',
+    element: <MyAttendancePage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'attendance.unauthorized',
+      signInKey: 'attendance.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myAttendance' }],
   },
   {
     path: '/me/schedule/substitutions',

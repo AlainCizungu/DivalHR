@@ -4579,8 +4579,10 @@ paths:
         (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is
         bound to the operation, tenant, caller, the view's mode and dates (and, for the default
         view, its instant) and the page size; a cursor of one view is refused in the other (400
-        CURSOR_INVALID). Shares the work-schedule-self-read limit. Cache-Control private,
-        no-store.
+        CURSOR_INVALID). MVP-060A: each shift carries the caller's own attendance on it
+        (NOT_RECORDED, OPEN with the check-in instant, COMPLETED with both instants) and whether
+        a check-in or check-out is possible at the view's instant. Shares the
+        work-schedule-self-read limit. Cache-Control private, no-store.
       tags: [people]
       parameters:
         - $ref: "#/components/parameters/WorkScheduleFrom"
@@ -4878,6 +4880,162 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/attendance:
+    get:
+      operationId: listMyAttendance
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my attendance
+      description: >-
+        MVP-060A. The attendance records of the employee of the caller's current active
+        employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest shift first (the
+        shift's start instant, then the record ID). Each record carries its shift (schedule, slot,
+        site and siteTimezone, local and instant boundaries, overnight, both labels), its status
+        (OPEN or COMPLETED), the server-recorded check-in and check-out instants and whether a
+        check-out is still possible at the page's server-owned instant (asOfInstant, pinned in the
+        signed cursor). A record stays as evidence after its schedule is cancelled or replaced or
+        its slot is substituted; an OPEN record whose check-out window has closed stays OPEN
+        (checkOutAvailable false) for a later correction story. Never another employee, a
+        subject, an employment or an evidence field. Restricted HR/Operations: a fail-closed
+        disclosure (audit attendance.self-list). The signed cursor is bound to the operation,
+        tenant, caller, the caller's link and linked employee, the page size and asOfInstant.
+        Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyAttendancePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/attendance/check-in:
+    post:
+      operationId: checkInMyAttendance
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Check in for one of my scheduled shifts
+      description: >-
+        MVP-060A. Records the check-in of the employee of the caller's current active
+        employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise) for a slot of an operational
+        schedule whose current operational coverage is that employee (the published assignee, or
+        an approved MVP-051 substitute; never the published employee of a substituted slot).
+        Tenant, employee, employment, schedule, instant and actor are never fields: the instant is
+        the server's. Malformed, unknown, foreign-tenant, cancelled, replaced, uncovered and other
+        employees' slots are the same 404 ATTENDANCE_SHIFT_NOT_FOUND without params. The
+        check-in window opens 2 hours before the scheduled start (409
+        ATTENDANCE_CHECK_IN_TOO_EARLY before) and closes at the scheduled end (409
+        ATTENDANCE_CHECK_IN_WINDOW_CLOSED from then). A slot already checked in by the caller is
+        409 ATTENDANCE_ALREADY_CHECKED_IN; another of the caller's records still open within its
+        check-out window is 409 ATTENDANCE_OPEN_RECORD_EXISTS; zero or several qualifying
+        employments are 409 ATTENDANCE_STATE_CONFLICT. One transaction, under the tenant's
+        scheduling lock, writes the CHECKED_IN event, the OPEN record, the audit record
+        (attendance.check-in) and the outbox event (people.attendance.checked-in.v1). An exact
+        retry returns the stored 201 with Idempotent-Replayed true while the caller is still
+        linked to the recording employee; otherwise no stored response is returned (403
+        EMPLOYEE_LINK_REQUIRED, or 409 IDEMPOTENCY_KEY_REUSED without params). Errors never echo
+        an ID, name, number, label or shift detail. Shares the attendance-write limits.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckInAttendanceRequest"
+      responses:
+        "201":
+          description: Checked in, or the original check-in replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/attendance/{attendanceRecordId}/check-out:
+    post:
+      operationId: checkOutMyAttendance
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Check out of one of my open attendance records
+      description: >-
+        MVP-060A. Records the single check-out of an OPEN attendance record of the employee of the
+        caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), at
+        the server's instant. No body. Malformed, unknown, foreign-tenant and other employees'
+        records are the same 404 ATTENDANCE_RECORD_NOT_FOUND without params. A record already
+        checked out is 409 ATTENDANCE_ALREADY_CHECKED_OUT; after 24 hours past the scheduled end,
+        409 ATTENDANCE_CHECK_OUT_WINDOW_CLOSED; an instant not strictly after the check-in is 409
+        ATTENDANCE_STATE_CONFLICT. The check-out does not depend on the shift still being
+        operational or covered by the caller: evidence recorded before a cancellation,
+        replacement or substitution is kept and can be completed. One transaction, under the
+        tenant's scheduling lock, writes the CHECKED_OUT event, completes the record, writes the
+        audit record (attendance.check-out) and the outbox event
+        (people.attendance.checked-out.v1). Replay as for the check-in. Shares the
+        attendance-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceRecordId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Checked out, or the original check-out replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
 components:
@@ -5361,6 +5519,23 @@ components:
         type: integer
         minimum: 1
         maximum: 20
+        default: 20
+    AttendanceRecordId:
+      name: attendanceRecordId
+      in: path
+      required: true
+      description: Attendance record ID.
+      schema:
+        type: string
+        format: uuid
+    AttendanceLimit:
+      name: limit
+      in: query
+      description: Items per page (1-100, default 20).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
         default: 20
     LeavePolicyLimit:
       name: limit
@@ -8389,6 +8564,15 @@ components:
         - WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED
         - WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE
         - WORK_SCHEDULE_SUBSTITUTE_CONFLICT
+        - ATTENDANCE_SHIFT_NOT_FOUND
+        - ATTENDANCE_CHECK_IN_TOO_EARLY
+        - ATTENDANCE_CHECK_IN_WINDOW_CLOSED
+        - ATTENDANCE_ALREADY_CHECKED_IN
+        - ATTENDANCE_OPEN_RECORD_EXISTS
+        - ATTENDANCE_RECORD_NOT_FOUND
+        - ATTENDANCE_ALREADY_CHECKED_OUT
+        - ATTENDANCE_CHECK_OUT_WINDOW_CLOSED
+        - ATTENDANCE_STATE_CONFLICT
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -9843,8 +10027,10 @@ components:
       description: >-
         MVP-050A. One of the caller's own shifts, read from the operational coverage (MVP-051):
         assignmentSource tells a published shift from one assigned by an approved substitution;
-        the original employee is never named.
-      required: [id, scheduleId, site, start, end, siteTimezone, overnight, labels, assignmentSource]
+        the original employee is never named. MVP-060A: attendance is the caller's own attendance
+        on the shift at the page's server instant.
+      required:
+        [id, scheduleId, site, start, end, siteTimezone, overnight, labels, assignmentSource, attendance]
       properties:
         id:
           type: string
@@ -9869,6 +10055,8 @@ components:
           $ref: "#/components/schemas/WorkScheduleLabels"
         assignmentSource:
           $ref: "#/components/schemas/WorkScheduleAssignmentSource"
+        attendance:
+          $ref: "#/components/schemas/MyWorkShiftAttendance"
     MyWorkSchedulePage:
       type: object
       required: [items, nextCursor, asOfInstant, from, to]
@@ -9892,6 +10080,143 @@ components:
         to:
           type: [string, "null"]
           format: date
+    MyWorkShiftAttendance:
+      type: object
+      description: >-
+        MVP-060A. The caller's attendance on one of their shifts, evaluated at the page's server
+        instant (asOfInstant, or the server's current instant for a view with explicit dates).
+        checkInAvailable is true only while NOT_RECORDED and inside the check-in window;
+        checkOutAvailable only while OPEN and inside the check-out window. Never a subject, an
+        employment or an evidence field.
+      required:
+        [status, attendanceRecordId, checkedInAt, checkedOutAt, checkInAvailable, checkOutAvailable]
+      properties:
+        status:
+          $ref: "#/components/schemas/WorkShiftAttendanceStatus"
+        attendanceRecordId:
+          type: [string, "null"]
+          format: uuid
+        checkedInAt:
+          type: [string, "null"]
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        checkInAvailable:
+          type: boolean
+        checkOutAvailable:
+          type: boolean
+    WorkShiftAttendanceStatus:
+      type: string
+      description: >-
+        MVP-060A. NOT_RECORDED: no check-in yet. OPEN: checked in, not checked out. COMPLETED:
+        checked in and out.
+      enum: [NOT_RECORDED, OPEN, COMPLETED]
+    AttendanceStatus:
+      type: string
+      description: MVP-060A. OPEN (checked in only) or COMPLETED (checked in and out).
+      enum: [OPEN, COMPLETED]
+    CheckInAttendanceRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-060A. The slot only. Tenant, employee, employment, schedule, instant and actor are
+        never fields. VALIDATION_FAILED fields: slotId (REQUIRED), body (UNKNOWN_PROPERTY) and
+        Idempotency-Key; a slotId that is not a UUID is the same 404 ATTENDANCE_SHIFT_NOT_FOUND
+        as an unknown one.
+      required: [slotId]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+    AttendanceReceipt:
+      type: object
+      description: >-
+        MVP-060A. The minimal receipt of a check-in (OPEN, checkedOutAt null) or a check-out
+        (COMPLETED); instants are the server's.
+      required: [attendanceRecordId, slotId, status, checkedInAt, checkedOutAt]
+      properties:
+        attendanceRecordId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/AttendanceStatus"
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+    AttendanceShift:
+      type: object
+      description: MVP-060A. The immutable published shift an attendance record is about.
+      required:
+        [scheduleId, slotId, site, siteTimezone, start, end, startAt, endAt, overnight, labels]
+      properties:
+        scheduleId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        siteTimezone:
+          type: string
+          description: The schedule's site time zone snapshot; start and end are local times there.
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+    MyAttendanceRecord:
+      type: object
+      description: MVP-060A. One of the caller's own attendance records.
+      required: [id, status, checkedInAt, checkedOutAt, checkOutAvailable, shift]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/AttendanceStatus"
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        checkOutAvailable:
+          type: boolean
+          description: True only while OPEN and inside the check-out window at asOfInstant.
+        shift:
+          $ref: "#/components/schemas/AttendanceShift"
+    MyAttendancePage:
+      type: object
+      required: [items, nextCursor, asOfInstant]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/MyAttendanceRecord"
+        nextCursor:
+          type: [string, "null"]
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server-owned instant of the view, the same on every page.
     WorkScheduleAssignmentSource:
       type: string
       description: >-
