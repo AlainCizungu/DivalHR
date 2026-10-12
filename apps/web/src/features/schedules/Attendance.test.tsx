@@ -246,7 +246,9 @@ describe('MVP-060A My schedule: check in and check out', () => {
     await waitFor(() => expect(confirm).toHaveFocus());
     await expectAccessible(container);
     await user.dblClick(confirm);
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
     const posts = requests.filter((r) => r.method === 'POST');
     expect(posts).toHaveLength(1);
     expect(posts[0]?.path).toBe('/me/attendance/check-in');
@@ -295,7 +297,9 @@ describe('MVP-060A My schedule: check in and check out', () => {
     expect(
       within(dialog).getByRole('button', { name: c.attendance.checkIn.confirmButton }),
     ).toBeDisabled();
-    await waitFor(() => expect(lists).toBe(2));
+    await waitFor(() => {
+      expect(lists).toBe(2);
+    });
     await expectAccessible(container);
     expect(requests.filter((r) => r.method === 'POST')).toHaveLength(1);
   });
@@ -393,7 +397,9 @@ describe('MVP-060A My attendance', () => {
     await user.click(
       within(dialog).getByRole('button', { name: c.attendance.checkOut.confirmButton }),
     );
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
     const post = requests.find((r) => r.method === 'POST');
     expect(post?.path).toBe(`/me/attendance/${RECORD}/check-out`);
     expect(post?.body).toBe('');
