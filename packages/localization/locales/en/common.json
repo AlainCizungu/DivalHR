@@ -124,23 +124,57 @@
     "tenant": {
       "eyebrow": "Organization workspace",
       "title": "Organization administration",
-      "description": "Set up your organization, manage your people and contracts, and control who has access.",
+      "description": "Manage your people, leave and work schedules, set up your organization and contracts, and control who has access.",
       "quickActions": "Quick actions",
       "actions": {
         "importEmployees": "Import employees",
-        "inviteUser": "Invite a user",
-        "createTemplate": "Create a contract template",
-        "reviewAccess": "Review access"
+        "reviewLeave": "Review leave requests",
+        "openSchedules": "Open work schedules",
+        "inviteUser": "Invite a user"
       },
-      "modulesTitle": "Your modules",
-      "modulesDescription": "Everything available to you today.",
+      "groups": {
+        "people": {
+          "title": "People and operations",
+          "description": "Employees, leave and work schedules."
+        },
+        "governance": {
+          "title": "Organization and governance",
+          "description": "Structure, contracts, users and access."
+        }
+      },
       "cards": {
-        "employees": "Search the directory, open employee records and record employment changes and separations.",
-        "hierarchy": "Legal entities, sites, regions, departments, cost centers and teams.",
-        "users": "Invite people to DivalHR and follow each invitation.",
-        "accessReview": "See who can access what, and from which assignment.",
-        "contractTemplates": "Write, approve and retire the templates used to issue contracts.",
-        "employeeImport": "Bring existing employees in from a spreadsheet, with a preview first."
+        "employees": {
+          "title": "Employees",
+          "description": "Search the directory, open employee records and record employment changes and separations."
+        },
+        "leavePolicies": {
+          "title": "Leave policies",
+          "description": "Define the leave types, rules and approval routes of your organization."
+        },
+        "leaveApprovals": {
+          "title": "Leave approvals",
+          "description": "Decide the leave requests routed to organization administrators."
+        },
+        "workSchedules": {
+          "title": "Work schedules",
+          "description": "Publish site schedules, assign employees and see uncovered slots."
+        },
+        "hierarchy": {
+          "title": "Organization structure",
+          "description": "Legal entities, sites, regions, departments, cost centers and teams."
+        },
+        "contractTemplates": {
+          "title": "Contract templates",
+          "description": "Write, approve and retire the templates used to issue contracts."
+        },
+        "users": {
+          "title": "Users and invitations",
+          "description": "Invite people to DivalHR and follow each invitation."
+        },
+        "accessReview": {
+          "title": "Access review",
+          "description": "See who can access what, and from which assignment."
+        }
       },
       "attention": {
         "title": "Contracts needing attention",
@@ -157,9 +191,18 @@
     "employee": {
       "eyebrow": "Employee space",
       "title": "My space",
-      "description": "Your employment documents in one place. More services will appear here as they become available.",
-      "contractsDescription": "Read the contracts your organization has issued to you and confirm that you received them.",
-      "contractsAction": "Open my contracts"
+      "description": "Your leave, your shifts and your contracts in one place.",
+      "myWork": "My work",
+      "cards": {
+        "leave": "Request leave, follow your requests and see each decision.",
+        "schedule": "See your shifts in progress and upcoming, each in its site’s local time.",
+        "contracts": "Read the contracts your organization has issued to you and confirm that you received them."
+      },
+      "approvals": {
+        "title": "Leave approvals assigned to you",
+        "description": "If you are assigned as a leave approver, or as a substitute for one, the requests waiting for your decision appear here.",
+        "action": "Open leave approvals"
+      }
     }
   },
   "roadmap": {
@@ -167,21 +210,9 @@
     "description": "On the DivalHR roadmap. Not available yet.",
     "badge": "Coming later",
     "items": {
-      "leave": {
-        "title": "Leave and approvals",
-        "description": "Requests, balances and approval chains."
-      },
       "attendance": {
         "title": "Attendance and timesheets",
         "description": "Online and offline time capture."
-      },
-      "scheduling": {
-        "title": "Scheduling and rotations",
-        "description": "Shifts and rotations for sites and teams."
-      },
-      "documentExpiry": {
-        "title": "Document expiration",
-        "description": "Follow expiring credentials and identity documents."
       },
       "payrollInputs": {
         "title": "Payroll inputs",
@@ -190,10 +221,6 @@
       "expenses": {
         "title": "Expenses and allowances",
         "description": "Claims, allowances and reimbursements."
-      },
-      "myLeave": {
-        "title": "Leave",
-        "description": "Request time off and follow your balances."
       },
       "myDocuments": {
         "title": "Documents",
@@ -2145,23 +2172,27 @@
       "nav": {
         "home": "Home",
         "employees": "Employees",
-        "organization": "Organization",
-        "contracts": "Contracts",
-        "access": "Access review"
+        "leave": "Leave",
+        "schedules": "Work schedules",
+        "contracts": "Contracts"
       },
       "actions": {
         "import": "Import employees",
-        "invite": "Invite a user",
-        "template": "Create a template"
+        "reviewLeave": "Review leave",
+        "openSchedules": "Open work schedules"
       },
       "cards": {
         "employees": {
           "title": "Employees",
           "description": "Records and employment history"
         },
-        "organization": {
-          "title": "Organization",
-          "description": "Entities, sites and teams"
+        "leave": {
+          "title": "Leave",
+          "description": "Policies, requests and approvals"
+        },
+        "schedules": {
+          "title": "Work schedules",
+          "description": "Site shifts and uncovered slots"
         },
         "contracts": {
           "title": "Contract templates",
@@ -2188,7 +2219,7 @@
         },
         "operations": {
           "title": "Daily operations",
-          "description": "Sites, shifts, attendance and approvals."
+          "description": "Sites, leave approvals and work schedules."
         },
         "pay": {
           "title": "Pay + benefits",
@@ -2215,7 +2246,7 @@
         },
         "leave": {
           "title": "Leave Management",
-          "description": "Requests, approvals, balances and team calendars."
+          "description": "Leave policies, requests, approvals, amendments, cancellations, withdrawals, routing exceptions and substitute approvers."
         },
         "payroll": {
           "title": "Payroll & Payments",
@@ -2260,6 +2291,10 @@
         "organization": {
           "title": "Organization structure",
           "description": "Legal entities, sites, regions, departments, cost centers and teams."
+        },
+        "scheduling": {
+          "title": "Work scheduling",
+          "description": "Publish site schedules, assign employees, see uncovered slots, show employees their shifts, and cancel or replace an entirely future schedule."
         },
         "contracts": {
           "title": "Contracts",
@@ -2389,7 +2424,7 @@
         },
         "operations": {
           "title": "Operations",
-          "description": "Sites, shifts and approvals in one view."
+          "description": "Sites, work schedules and leave approvals in one view."
         },
         "finance": {
           "title": "Finance",
@@ -2397,7 +2432,7 @@
         },
         "employees": {
           "title": "Employees",
-          "description": "Contracts today; leave, pay and benefits on mobile later."
+          "description": "Contracts, leave and assigned shifts today; pay and benefits later."
         }
       }
     },

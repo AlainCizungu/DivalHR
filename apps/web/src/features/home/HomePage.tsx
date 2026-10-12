@@ -18,10 +18,11 @@ import { ContractAttentionCard } from './ContractAttentionCard';
 import { EMPLOYEE_ROADMAP, TENANT_ADMIN_ROADMAP, type RoadmapItem } from './roadmap';
 
 /**
- * UI-001 role homes. Static entry points only: no counts, totals, alerts or activity (D10), with
+ * UI-001 role homes, refreshed by UI-003 (Issue #103) with the shipped leave and scheduling
+ * destinations. Static entry points only: no counts, totals, alerts or activity (D10, UI3-7), with
  * one approved exception (MVP-031A, C3b): the organization administrator's live "Contracts needing
  * attention" card. Each section appears for the role that can open its destinations; users with
- * several roles see each of their sections (D13).
+ * several roles see each of their sections (D13, UI3-6).
  */
 
 function Roadmap({ items }: { items: RoadmapItem[] }) {
@@ -57,10 +58,10 @@ interface CardDef {
   testId: string;
 }
 
-function CardGrid({ cards }: { cards: CardDef[] }) {
+function CardGrid({ cards, pairs = false }: { cards: CardDef[]; pairs?: boolean }) {
   const { t } = useTranslation();
   return (
-    <ul className="card-grid">
+    <ul className={pairs ? 'card-grid card-grid--pairs' : 'card-grid'}>
       {cards.map((card) => (
         <LinkCard
           key={card.to}
@@ -113,62 +114,68 @@ function PlatformSection() {
   );
 }
 
+/** UI-003 (UI3-4): the organization administrator's quick actions, the first one primary. */
 const QUICK_ACTIONS: { to: string; icon: IconName; key: string }[] = [
   { to: '/admin/people/import', icon: 'import', key: 'importEmployees' },
+  { to: '/admin/leave-approvals', icon: 'calendar', key: 'reviewLeave' },
+  { to: '/admin/work-schedules', icon: 'rotation', key: 'openSchedules' },
   { to: '/admin/users', icon: 'invite', key: 'inviteUser' },
-  { to: '/admin/contract-templates', icon: 'contract', key: 'createTemplate' },
-  { to: '/admin/access', icon: 'shield', key: 'reviewAccess' },
 ];
 
-const TENANT_CARDS: CardDef[] = [
+function tenantCard(id: string, to: string, icon: IconName, testId: string): CardDef {
+  return {
+    to,
+    icon,
+    titleKey: `home.tenant.cards.${id}.title`,
+    descriptionKey: `home.tenant.cards.${id}.description`,
+    testId,
+  };
+}
+
+/** UI-003 (UI3-4): two groups, each card a destination the tenant administrator can open. */
+const TENANT_GROUPS: { id: 'people' | 'governance'; cards: CardDef[] }[] = [
   {
-    to: '/admin/people',
-    icon: 'people',
-    titleKey: 'nav.employees',
-    descriptionKey: 'home.tenant.cards.employees',
-    testId: 'home-card-employees',
+    id: 'people',
+    cards: [
+      tenantCard('employees', '/admin/people', 'people', 'home-card-employees'),
+      tenantCard('leavePolicies', '/admin/leave-policies', 'calendar', 'home-card-leave-policies'),
+      tenantCard('leaveApprovals', '/admin/leave-approvals', 'check', 'home-card-leave-approvals'),
+      tenantCard('workSchedules', '/admin/work-schedules', 'rotation', 'home-card-work-schedules'),
+    ],
   },
   {
-    to: '/admin/hierarchy',
-    icon: 'structure',
-    titleKey: 'nav.hierarchy',
-    descriptionKey: 'home.tenant.cards.hierarchy',
-    testId: 'home-card-hierarchy',
-  },
-  {
-    to: '/admin/users',
-    icon: 'invite',
-    titleKey: 'nav.users',
-    descriptionKey: 'home.tenant.cards.users',
-    testId: 'home-card-users',
-  },
-  {
-    to: '/admin/access',
-    icon: 'shield',
-    titleKey: 'nav.accessReview',
-    descriptionKey: 'home.tenant.cards.accessReview',
-    testId: 'home-card-access-review',
-  },
-  {
-    to: '/admin/contract-templates',
-    icon: 'contract',
-    titleKey: 'nav.contractTemplates',
-    descriptionKey: 'home.tenant.cards.contractTemplates',
-    testId: 'home-card-contract-templates',
-  },
-  {
-    to: '/admin/people/import',
-    icon: 'import',
-    titleKey: 'nav.employeeImport',
-    descriptionKey: 'home.tenant.cards.employeeImport',
-    testId: 'home-card-employee-import',
+    id: 'governance',
+    cards: [
+      tenantCard('hierarchy', '/admin/hierarchy', 'structure', 'home-card-hierarchy'),
+      tenantCard(
+        'contractTemplates',
+        '/admin/contract-templates',
+        'contract',
+        'home-card-contract-templates',
+      ),
+      tenantCard('users', '/admin/users', 'invite', 'home-card-users'),
+      tenantCard('accessReview', '/admin/access', 'shield', 'home-card-access-review'),
+    ],
   },
 ];
+
+function TenantGroup({ group }: { group: (typeof TENANT_GROUPS)[number] }) {
+  const { t } = useTranslation();
+  const id = useId();
+  return (
+    <section className="home-section" aria-labelledby={id} data-testid={`home-group-${group.id}`}>
+      <div className="home-section__header">
+        <h2 id={id}>{t(`home.tenant.groups.${group.id}.title`)}</h2>
+        <p>{t(`home.tenant.groups.${group.id}.description`)}</p>
+      </div>
+      <CardGrid cards={group.cards} pairs />
+    </section>
+  );
+}
 
 function TenantAdminSections() {
   const { t } = useTranslation();
   const quickId = useId();
-  const modulesId = useId();
   return (
     <>
       <section className="home-section" aria-labelledby={quickId}>
@@ -190,34 +197,65 @@ function TenantAdminSections() {
         </ul>
       </section>
       <ContractAttentionCard />
-      <section className="home-section" aria-labelledby={modulesId}>
-        <div className="home-section__header">
-          <h2 id={modulesId}>{t('home.tenant.modulesTitle')}</h2>
-          <p>{t('home.tenant.modulesDescription')}</p>
-        </div>
-        <CardGrid cards={TENANT_CARDS} />
-      </section>
+      {TENANT_GROUPS.map((group) => (
+        <TenantGroup key={group.id} group={group} />
+      ))}
     </>
   );
 }
 
+/** UI-003 (UI3-5): the employee's own destinations; each page loads its own data when opened. */
+const EMPLOYEE_CARDS: CardDef[] = [
+  {
+    to: '/me/leave',
+    icon: 'calendar',
+    titleKey: 'nav.myLeave',
+    descriptionKey: 'home.employee.cards.leave',
+    testId: 'home-card-my-leave',
+  },
+  {
+    to: '/me/schedule',
+    icon: 'rotation',
+    titleKey: 'nav.mySchedule',
+    descriptionKey: 'home.employee.cards.schedule',
+    testId: 'home-card-my-schedule',
+  },
+  {
+    to: '/me/contracts',
+    icon: 'contract',
+    titleKey: 'nav.myContracts',
+    descriptionKey: 'home.employee.cards.contracts',
+    testId: 'home-card-my-contracts',
+  },
+];
+
 function EmployeeSection() {
   const { t } = useTranslation();
-  const id = useId();
+  const workId = useId();
+  const approvalsId = useId();
   return (
-    <Card labelledBy={id} className="feature-card" testId="home-my-contracts">
-      <span className="feature-card__icon">
-        <Icon name="contract" />
-      </span>
-      <div className="feature-card__body">
-        <h2 id={id}>{t('nav.myContracts')}</h2>
-        <p>{t('home.employee.contractsDescription')}</p>
-        <Link to="/me/contracts" className="button">
-          {t('home.employee.contractsAction')}
-          <Icon name="chevronRight" />
-        </Link>
-      </div>
-    </Card>
+    <>
+      <section className="home-section" aria-labelledby={workId} data-testid="home-my-work">
+        <div className="home-section__header">
+          <h2 id={workId}>{t('home.employee.myWork')}</h2>
+        </div>
+        <CardGrid cards={EMPLOYEE_CARDS} />
+      </section>
+      {/* Conditional wording: the inbox is empty unless the employee is an approver (UI3-5). */}
+      <Card labelledBy={approvalsId} className="feature-card" testId="home-leave-approvals">
+        <span className="feature-card__icon">
+          <Icon name="check" />
+        </span>
+        <div className="feature-card__body">
+          <h2 id={approvalsId}>{t('home.employee.approvals.title')}</h2>
+          <p>{t('home.employee.approvals.description')}</p>
+          <Link to="/me/leave/approvals" className="button button--secondary">
+            {t('home.employee.approvals.action')}
+            <Icon name="chevronRight" />
+          </Link>
+        </div>
+      </Card>
+    </>
   );
 }
 

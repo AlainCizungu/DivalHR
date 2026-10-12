@@ -64,12 +64,19 @@ const ALLOWED_NUMBERS = new Set(['2026', '20022', '365', '30']);
 describe('catalogue (UI2-1, UI2-2)', () => {
   it('keeps the twelve vision modules in order, with statuses reviewed against the product', () => {
     expect(VISION_MODULES.map((module) => module.id)).toEqual(APPROVED_VISION);
+    // UI-003 (UI3-1): exactly what is live; scheduling is shipped, not a thirteenth vision module.
     expect(AVAILABLE_MODULES.map((module) => module.id)).toEqual([
       'employees',
+      'leave',
       'organization',
+      'scheduling',
       'contracts',
       'access',
     ]);
+    expect(
+      VISION_MODULES.filter((module) => module.status === 'available').map((m) => m.id),
+    ).toEqual(['employees', 'leave']);
+    expect(MODULES.find((module) => module.id === 'scheduling')?.vision).toBe(false);
     expect(new Set(MODULES.map((module) => module.id)).size).toBe(MODULES.length);
   });
 
@@ -163,6 +170,49 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     expect(
       [...today.querySelectorAll('li')].map((item) => item.getAttribute('data-module')),
     ).toEqual(AVAILABLE_MODULES.map((module) => module.id));
+  });
+
+  it('marks Leave available, lists Work scheduling today and keeps the rest planned (UI-003)', async () => {
+    await renderLanding(locale);
+    const modules = screen.getByTestId('landing-modules');
+    const card = (id: string) => modules.querySelector(`li[data-module="${id}"]`) as HTMLElement;
+    expect(within(card('leave')).getByText(strings.landing.modules.available)).toBeInTheDocument();
+    expect(card('leave')).toHaveTextContent(strings.landing.modules.items.leave.description);
+    for (const id of ['payroll', 'loans', 'benefits', 'integrations', 'ai', 'mobile']) {
+      expect(within(card(id)).getByText(strings.landing.modules.later)).toBeInTheDocument();
+    }
+    // Scheduling is in "In DivalHR today", never among the twelve vision cards.
+    expect(modules.querySelector('li[data-status][data-module="scheduling"]')).toBeNull();
+    const today = screen.getByTestId('landing-today');
+    const scheduling = today.querySelector('li[data-module="scheduling"]') as HTMLElement;
+    expect(scheduling).toHaveTextContent(strings.landing.modules.items.scheduling.title);
+    expect(scheduling).toHaveTextContent(strings.landing.modules.items.scheduling.description);
+    // No unbuilt leave capability is claimed (UI3-1, UI3-2).
+    const leave = `${strings.landing.modules.items.leave.description} ${strings.landing.platform.steps.operations.description} ${strings.landing.outcomes.items.employees.description}`;
+    expect(leave).not.toMatch(/balance|solde|calendar|calendrier|attendance|présence/iu);
+  });
+
+  it('shows the shipped work areas in the illustrative preview (UI3-3)', async () => {
+    await renderLanding(locale);
+    const preview = screen.getByTestId('landing-preview');
+    const p = strings.landing.preview;
+    for (const text of [
+      p.nav.employees,
+      p.nav.leave,
+      p.nav.schedules,
+      p.nav.contracts,
+      p.actions.import,
+      p.actions.reviewLeave,
+      p.actions.openSchedules,
+      p.cards.leave.title,
+      p.cards.schedules.title,
+      p.cards.contracts.title,
+    ]) {
+      expect(preview).toHaveTextContent(text);
+    }
+    expect(preview.querySelectorAll('.landing-preview__card')).toHaveLength(4);
+    expect(preview.querySelectorAll('a, button')).toHaveLength(0);
+    expect(screen.getByRole('figure')).toHaveAccessibleName(p.caption);
   });
 
   it('shows integrations as planned, with local logos announced once and the disclaimer', async () => {
