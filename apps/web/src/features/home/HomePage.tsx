@@ -233,6 +233,7 @@ function EmployeeSection() {
   const { t } = useTranslation();
   const workId = useId();
   const approvalsId = useId();
+  const substitutionsId = useId();
   return (
     <>
       <section className="home-section" aria-labelledby={workId} data-testid="home-my-work">
@@ -251,6 +252,20 @@ function EmployeeSection() {
           <p>{t('home.employee.approvals.description')}</p>
           <Link to="/me/leave/approvals" className="button button--secondary">
             {t('home.employee.approvals.action')}
+            <Icon name="chevronRight" />
+          </Link>
+        </div>
+      </Card>
+      {/* MVP-051: the same conditional wording; the home loads no approval data (UI3-7). */}
+      <Card labelledBy={substitutionsId} className="feature-card" testId="home-shift-substitutions">
+        <span className="feature-card__icon">
+          <Icon name="rotation" />
+        </span>
+        <div className="feature-card__body">
+          <h2 id={substitutionsId}>{t('home.employee.substitutions.title')}</h2>
+          <p>{t('home.employee.substitutions.description')}</p>
+          <Link to="/me/schedule/substitutions" className="button button--secondary">
+            {t('home.employee.substitutions.action')}
             <Icon name="chevronRight" />
           </Link>
         </div>

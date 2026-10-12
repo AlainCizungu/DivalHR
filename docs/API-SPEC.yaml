@@ -4348,7 +4348,10 @@ paths:
         directory fields; an unassigned slot is an uncovered position. Unknown, malformed and
         foreign-tenant IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. Any derived state (MVP-050B):
         a cancelled or replaced schedule keeps its slots as evidence, with its change instant,
-        change reason and successor. Never the publisher or the actor of a change. A fail-closed
+        change reason and successor. MVP-051: each slot keeps employee as the immutable published
+        assignee and adds effectiveEmployee (current operational coverage) and the approved
+        substitution's identifiers and instant; never a substitution reason, the requester's
+        reason or the deciding manager. Never the publisher or the actor of a change. A fail-closed
         disclosure (audit work-schedule.read). Shares the work-schedule-read limit.
         Cache-Control private, no-store.
       tags: [people]
@@ -4560,8 +4563,10 @@ paths:
       x-divalhr-required-role: employee
       summary: List my published shifts
       description: >-
-        MVP-050A. The published shifts assigned to the employee of the caller's current active
-        employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order. Without from,
+        MVP-050A. The operational shifts (MVP-051: the slot coverage, so a shift given away by an
+        approved substitution leaves the original employee's view and appears in the
+        substitute's with assignmentSource SUBSTITUTION) of the employee of the caller's current
+        active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order. Without from,
         the default view (R100-2) holds the shifts not yet ended at one server-owned instant
         (asOfInstant, from the server clock): shifts in progress and to come, never ended ones; no
         calendar date is used, since schedules of sites in different time zones share no "today".
@@ -4599,6 +4604,280 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/work-schedule-substitutions:
+    get:
+      operationId: listMyWorkScheduleSubstitutions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my shift-substitution requests
+      description: >-
+        MVP-051. The substitution requests of the employee of the caller's current active
+        employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest first (requestedAt,
+        then id). Each carries the shift (schedule, slot, site and siteTimezone, local and instant
+        boundaries, overnight, both labels), the request reason in the language it was written in,
+        the derived state and, once decided, the decision instant and reason; for an approval, the
+        substitute's current minimal directory identity (ID, number, name). Never the deciding
+        manager, a candidate or another request. The state is derived at one server-owned instant
+        (asOfInstant), returned and pinned in the signed cursor: PENDING (pending and not started),
+        APPROVED, REJECTED, EXPIRED (pending but started) or VOIDED (the schedule was cancelled or
+        replaced before a decision). Restricted HR/Operations: a fail-closed disclosure (audit
+        work-schedule-substitution.self-list). The signed cursor is bound to the operation,
+        tenant, caller, linked employee, page size and asOfInstant. Shares the
+        work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyWorkScheduleSubstitutionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: requestWorkScheduleSubstitution
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Request a substitute for one of my shifts
+      description: >-
+        MVP-051. Records a PENDING substitution request for a shift originally published to, and
+        still operationally covered by, the employee of the caller's current active
+        employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise). Tenant, employee,
+        employment, manager and actor are never fields. Malformed, unknown, foreign-tenant,
+        uncovered and other employees' slots are the same 404 WORK_SCHEDULE_SHIFT_NOT_FOUND
+        without params. The shift must start strictly after the server's current instant (409
+        WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED) and must not already have a pending request (409
+        WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING); a new request after a rejection is allowed.
+        409 WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE carries params.reason: NOT_OPERATIONAL (the
+        schedule was cancelled or replaced), SUBSTITUTED (an approved substitution already covers
+        the shift), EMPLOYMENT (zero or several employments cover the shift and own the site
+        placement) or NO_MANAGER (no active manager on the shift's site-local start date). The
+        server stores the single qualifying employment; the manager is never stored and is
+        re-evaluated on every read, decision and replay. One transaction, under the tenant's
+        manager-graph lock and then its scheduling lock, writes the request, its pending
+        projection, the audit record (work-schedule-substitution.request) and the outbox event
+        (people.work-schedule-substitution.requested.v1). An exact retry returns the stored 201
+        with Idempotent-Replayed true while the caller is still linked to the requesting
+        employee; otherwise no stored response is returned (403 EMPLOYEE_LINK_REQUIRED, or 409
+        IDEMPOTENCY_KEY_REUSED without params when linked to another employee). Errors never echo
+        an ID, name, number, label or the reason. Shares the work-schedule-substitution-write
+        limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkScheduleSubstitutionRequest"
+      responses:
+        "201":
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyWorkScheduleSubstitution"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/work-schedule-substitution-approvals:
+    get:
+      operationId: listMyWorkScheduleSubstitutionApprovals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List substitution requests awaiting my decision as a manager
+      description: >-
+        MVP-051. The PENDING, not yet started substitution requests whose stored employment has,
+        on the shift's site-local start date, an active MANAGER assignment naming the employee of
+        the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise),
+        oldest first (requestedAt, then id). The relationship is re-evaluated on every call, so an
+        employment-history change reroutes a pending request at once. Never the caller's own
+        requests; tenant administration and MVP-041G leave-approval substitute appointments give
+        no access. Each item holds only what deciding requires: the request ID and instant, the
+        employee's number and current name, the request reason, the schedule, slot, site and
+        siteTimezone, local and instant boundaries, overnight and both labels. Restricted
+        HR/Operations: a fail-closed disclosure (audit work-schedule-substitution.manager-list).
+        The signed cursor is bound to the operation, tenant, caller, the caller's link and linked
+        employee, page size and asOfInstant: a relink invalidates it. Shares the
+        work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/LeavePolicyLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkScheduleSubstitutionApprovalPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/work-schedule-substitution-approvals/{requestId}/candidates:
+    get:
+      operationId: searchWorkScheduleSubstitutionCandidates
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Search eligible substitutes for a substitution request
+      description: >-
+        MVP-051. Employees who, for a PENDING, not yet started request routed to the caller (as
+        listed by listMyWorkScheduleSubstitutionApprovals), report to the caller's linked employee
+        on the shift's site-local start date and meet every MVP-050 scheduling eligibility rule for
+        the shift (one qualifying employment covering every occupied local date, no separation
+        before the shift ends, placed at the schedule's site on its start date, no overlapping
+        operational assignment at any site, half-open instants), never the requesting employee or
+        the caller, whose employee number starts with, or whose name words match, the normalized
+        query (2-100 code points after NFC normalization and trimming), ordered by employee
+        number. At most 20 per page (default 20). Each item is only the employee's ID, number and
+        current name; why another employee is absent is never returned. The query is never
+        logged, audited or echoed, and the edge proxies drop query strings from access logs.
+        Unknown, foreign, decided, expired, voided and other managers' requests are the same 404
+        WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND. Restricted HR/Operations: a fail-closed disclosure
+        (audit work-schedule-substitution.candidate-list, with a digest of the query, never the
+        query). The signed cursor is bound to the operation, tenant, caller, the caller's link and
+        linked employee, the request, a digest of the normalized query and the page size. Shares
+        the work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleSubstitutionRequestId"
+        - $ref: "#/components/parameters/WorkScheduleSubstitutionQuery"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/WorkScheduleSubstitutionCandidateLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkScheduleSubstitutionCandidatePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/work-schedule-substitution-approvals/{requestId}/decision:
+    post:
+      operationId: decideWorkScheduleSubstitution
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Approve or reject a shift-substitution request as its manager
+      description: >-
+        MVP-051. Decides, once, a PENDING request routed to the caller as listed by
+        listMyWorkScheduleSubstitutionApprovals. REJECTED records the rejection and removes the
+        pending projection; the original employee keeps the shift. APPROVED names one substitute
+        (substituteEmployeeId, required for approval and refused with VALIDATION_FAILED FORMAT for
+        rejection) and, in one transaction, removes the original employee's operational coverage,
+        inserts the substitute's coverage on the same immutable slot, removes the pending
+        projection, records the decision and runs the deferred exactness and exclusion checks
+        immediately; the published schedule and slot never change. The authority is
+        re-evaluated under the manager-graph lock, then the scheduling lock, with the
+        employments FOR SHARE in ID order, the caller's link FOR SHARE and the schedule and request
+        FOR UPDATE. Unknown, foreign, other managers' and otherwise undisclosable requests are the
+        same 404 WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND without params; a decided request is 409
+        WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED; a started shift is 409
+        WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED; a cancelled or replaced schedule is 409
+        WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE (NOT_OPERATIONAL). A substitute who is unknown,
+        foreign, the original employee, the caller, not the caller's report on the shift's
+        site-local start date, without exactly one qualifying employment, separated before the
+        shift ends, not employed on every occupied date or not placed at the site is the same 422
+        WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE without params; an overlapping operational
+        assignment at any site is 409 WORK_SCHEDULE_SUBSTITUTE_CONFLICT without params. Audit
+        work-schedule-substitution.approve or .reject; event
+        people.work-schedule-substitution.approved.v1 or .rejected.v1 (IDs and outcome only). The
+        200 receipt never carries a reason. An exact retry replays only while the caller's
+        currently linked employee is still the request's effective manager; a denied replay
+        returns no stored response or identifier. Shares the work-schedule-substitution-write
+        limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/WorkScheduleSubstitutionRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecideWorkScheduleSubstitution"
+      responses:
+        "200":
+          description: Decided, or the original decision replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkScheduleSubstitutionDecisionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
         "429":
           $ref: "#/components/responses/TooManyRequests"
 components:
@@ -5055,6 +5334,34 @@ components:
       schema:
         type: string
         format: date
+    WorkScheduleSubstitutionRequestId:
+      name: requestId
+      in: path
+      required: true
+      description: Work-schedule substitution request ID.
+      schema:
+        type: string
+        format: uuid
+    WorkScheduleSubstitutionQuery:
+      name: query
+      in: query
+      required: true
+      description: >-
+        Employee-number prefix or name words (2-100 code points after NFC normalization and
+        trimming). Never logged, audited or echoed.
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 100
+    WorkScheduleSubstitutionCandidateLimit:
+      name: limit
+      in: query
+      description: Items per page (1-20, default 20).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 20
+        default: 20
     LeavePolicyLimit:
       name: limit
       in: query
@@ -8074,6 +8381,14 @@ components:
         - WORK_SCHEDULE_ALREADY_CANCELLED
         - WORK_SCHEDULE_ALREADY_REPLACED
         - WORK_SCHEDULE_CHANGE_WINDOW_CLOSED
+        - WORK_SCHEDULE_SHIFT_NOT_FOUND
+        - WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND
+        - WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE
+        - WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING
+        - WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED
+        - WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED
+        - WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE
+        - WORK_SCHEDULE_SUBSTITUTE_CONFLICT
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -9428,7 +9743,14 @@ components:
             siteTimezone).
     WorkScheduleSlot:
       type: object
-      required: [id, position, start, end, startAt, endAt, overnight, labels, employee]
+      description: >-
+        employee is the immutable published assignee. MVP-051: effectiveEmployee is the employee
+        of the slot's current operational coverage (the published assignee, or the approved
+        substitute; null for an uncovered slot and for every slot of a cancelled or replaced
+        schedule, whose coverage was released), and substitution the slot's approved
+        substitution, if any.
+      required:
+        [id, position, start, end, startAt, endAt, overnight, labels, employee, effectiveEmployee, substitution]
       properties:
         id:
           type: string
@@ -9452,6 +9774,14 @@ components:
         employee:
           oneOf:
             - $ref: "#/components/schemas/WorkScheduleEmployee"
+            - type: "null"
+        effectiveEmployee:
+          oneOf:
+            - $ref: "#/components/schemas/WorkScheduleEmployee"
+            - type: "null"
+        substitution:
+          oneOf:
+            - $ref: "#/components/schemas/WorkScheduleSlotSubstitution"
             - type: "null"
     WorkScheduleDetail:
       type: object
@@ -9510,8 +9840,11 @@ components:
             $ref: "#/components/schemas/WorkScheduleSlot"
     MyWorkShift:
       type: object
-      description: MVP-050A. One of the caller's own published shifts.
-      required: [id, scheduleId, site, start, end, siteTimezone, overnight, labels]
+      description: >-
+        MVP-050A. One of the caller's own shifts, read from the operational coverage (MVP-051):
+        assignmentSource tells a published shift from one assigned by an approved substitution;
+        the original employee is never named.
+      required: [id, scheduleId, site, start, end, siteTimezone, overnight, labels, assignmentSource]
       properties:
         id:
           type: string
@@ -9534,6 +9867,8 @@ components:
           type: boolean
         labels:
           $ref: "#/components/schemas/WorkScheduleLabels"
+        assignmentSource:
+          $ref: "#/components/schemas/WorkScheduleAssignmentSource"
     MyWorkSchedulePage:
       type: object
       required: [items, nextCursor, asOfInstant, from, to]
@@ -9557,6 +9892,261 @@ components:
         to:
           type: [string, "null"]
           format: date
+    WorkScheduleAssignmentSource:
+      type: string
+      description: >-
+        MVP-051. PUBLISHED: the shift is covered by the employee it was published to.
+        SUBSTITUTION: an approved substitution assigned it to the caller.
+      enum: [PUBLISHED, SUBSTITUTION]
+    WorkScheduleSubstitutionState:
+      type: string
+      description: >-
+        MVP-051. Derived at one server instant: PENDING (pending, not started), APPROVED,
+        REJECTED, EXPIRED (still pending when the shift started) or VOIDED (the schedule was
+        cancelled or replaced before a decision).
+      enum: [PENDING, APPROVED, REJECTED, EXPIRED, VOIDED]
+    WorkScheduleSubstitutionReason:
+      type: string
+      minLength: 2
+      maxLength: 500
+      description: >-
+        Plain text, decision-reason grammar version 1 (identical in the Core, the database and the
+        web form; see DecideLeaveRequest.reason). Restricted HR; never logged, audited, sent in an
+        event or echoed in an error.
+    CreateWorkScheduleSubstitutionRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-051. The shift and the reason. Tenant, employee, employment, manager, substitute and
+        actor are never fields. VALIDATION_FAILED fields: slotId (REQUIRED), reasonLocale, reason,
+        body (UNKNOWN_PROPERTY) and Idempotency-Key; a slotId that is not a UUID is the same 404
+        WORK_SCHEDULE_SHIFT_NOT_FOUND as an unknown one.
+      required: [slotId, reasonLocale, reason]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionReason"
+    DecideWorkScheduleSubstitution:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-051. The manager's decision. substituteEmployeeId is required for APPROVED and refused
+        (FORMAT) for REJECTED. The request comes from the path; tenant, manager and actor are never
+        fields.
+      required: [decision, reasonLocale, reason]
+      properties:
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+        substituteEmployeeId:
+          type: [string, "null"]
+          format: uuid
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionReason"
+    WorkScheduleSubstitutionDecisionReceipt:
+      type: object
+      description: MVP-051. The minimal receipt of a decision; never a reason or a name.
+      required: [requestId, decisionId, state, decidedAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        decisionId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [APPROVED, REJECTED]
+        decidedAt:
+          type: string
+          format: date-time
+    WorkScheduleSubstitutionShift:
+      type: object
+      description: MVP-051. The immutable published shift a substitution request is about.
+      required:
+        [scheduleId, slotId, site, siteTimezone, start, end, startAt, endAt, overnight, labels]
+      properties:
+        scheduleId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        siteTimezone:
+          type: string
+          description: The schedule's site time zone snapshot; start and end are local times there.
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+    WorkScheduleSubstitutionPerson:
+      type: object
+      description: MVP-051. An employee's current minimal directory identity.
+      required: [id, employeeNumber, givenNames, familyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    MyWorkScheduleSubstitutionDecision:
+      type: object
+      description: >-
+        MVP-051. The decision of one of the caller's requests: never the deciding manager. The
+        substitute is present for an approval only.
+      required: [outcome, decidedAt, reasonLocale, reason, substitute]
+      properties:
+        outcome:
+          type: string
+          enum: [APPROVED, REJECTED]
+        decidedAt:
+          type: string
+          format: date-time
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+        substitute:
+          oneOf:
+            - $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+            - type: "null"
+    MyWorkScheduleSubstitution:
+      type: object
+      description: MVP-051. One of the caller's substitution requests.
+      required: [id, requestedAt, state, shift, reasonLocale, reason, decision]
+      properties:
+        id:
+          type: string
+          format: uuid
+        requestedAt:
+          type: string
+          format: date-time
+        state:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionState"
+        shift:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionShift"
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+        decision:
+          oneOf:
+            - $ref: "#/components/schemas/MyWorkScheduleSubstitutionDecision"
+            - type: "null"
+    MyWorkScheduleSubstitutionPage:
+      type: object
+      required: [items, nextCursor, asOfInstant]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyWorkScheduleSubstitution"
+        nextCursor:
+          type: [string, "null"]
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server instant every state of the view is derived at (pinned in the cursor).
+    WorkScheduleSubstitutionApprovalEmployee:
+      type: object
+      description: MVP-051. The requesting employee's number and current name; never their ID.
+      required: [employeeNumber, givenNames, familyName]
+      properties:
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    WorkScheduleSubstitutionApproval:
+      type: object
+      description: MVP-051. A pending request routed to the caller; only what deciding requires.
+      required: [id, requestedAt, employee, reasonLocale, reason, shift]
+      properties:
+        id:
+          type: string
+          format: uuid
+        requestedAt:
+          type: string
+          format: date-time
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionApprovalEmployee"
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+        reason:
+          type: string
+        shift:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionShift"
+    WorkScheduleSubstitutionApprovalPage:
+      type: object
+      required: [items, nextCursor, asOfInstant]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkScheduleSubstitutionApproval"
+        nextCursor:
+          type: [string, "null"]
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server instant shifts must start after (pinned in the cursor).
+    WorkScheduleSubstitutionCandidatePage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        nextCursor:
+          type: [string, "null"]
+    WorkScheduleSlotSubstitution:
+      type: object
+      description: >-
+        MVP-051. The approved substitution of a slot (administrators only): identifiers and
+        instant, never a reason, the requester's reason or the deciding manager.
+      required: [requestId, decisionId, approvedAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        decisionId:
+          type: string
+          format: uuid
+        approvedAt:
+          type: string
+          format: date-time
     Problem:
       type: object
       description: RFC 9457 problem details with DivalHR extensions.

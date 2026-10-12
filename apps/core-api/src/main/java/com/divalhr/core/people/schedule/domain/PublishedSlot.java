@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * A published slot, with the assigned employee's current directory names when there is one.
+ * A published slot, with the assigned employee's current directory names when there is one, and
+ * (MVP-051) its current operational coverage and approved substitution.
  *
  * @param id slot
  * @param scheduleId schedule
@@ -20,6 +21,8 @@ import java.util.UUID;
  * @param employeeNumber current employee number, or {@code null}
  * @param givenNames current given names, or {@code null}
  * @param familyName current family name, or {@code null}
+ * @param effective the employee of the slot's current operational coverage, or {@code null}
+ * @param substitution the slot's approved substitution, or {@code null}
  */
 public record PublishedSlot(
     UUID id,
@@ -34,7 +37,18 @@ public record PublishedSlot(
     UUID employeeId,
     String employeeNumber,
     String givenNames,
-    String familyName) {
+    String familyName,
+    Substitution.Person effective,
+    ApprovedSubstitution substitution) {
+
+  /**
+   * A slot's approved substitution: identifiers and instant only.
+   *
+   * @param requestId request
+   * @param decisionId approving decision
+   * @param approvedAt decision instant
+   */
+  public record ApprovedSubstitution(UUID requestId, UUID decisionId, Instant approvedAt) {}
 
   @Override
   public String toString() {

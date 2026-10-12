@@ -8,6 +8,7 @@ import com.divalhr.core.people.schedule.domain.OwnShift;
 import com.divalhr.core.people.schedule.domain.PlannedSlot;
 import com.divalhr.core.people.schedule.domain.PublishedSlot;
 import com.divalhr.core.people.schedule.domain.ScheduleView;
+import com.divalhr.core.people.schedule.domain.Substitution;
 import com.divalhr.core.people.schedule.domain.WorkSchedule;
 import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory.UnitView;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -317,7 +318,10 @@ public final class WorkScheduleResponses {
    * @param endAt end instant
    * @param overnight whether it ends on a later date
    * @param labels labels
-   * @param employee the assigned employee, or {@code null} for an uncovered slot
+   * @param employee the published (original) assignee, or {@code null} for an uncovered slot
+   * @param effectiveEmployee MVP-051: the employee of the slot's current operational coverage, or
+   *     {@code null} (uncovered, or every slot of a cancelled or replaced schedule)
+   * @param substitution MVP-051: the slot's approved substitution, or {@code null}
    */
   @Schema(name = "WorkScheduleSlot")
   public record Slot(
@@ -329,7 +333,9 @@ public final class WorkScheduleResponses {
       Instant endAt,
       boolean overnight,
       Labels labels,
-      @Schema(nullable = true) Employee employee) {
+      @Schema(nullable = true) Employee employee,
+      @Schema(nullable = true) Employee effectiveEmployee,
+      @Schema(nullable = true) SlotSubstitution substitution) {
 
     static Slot of(PublishedSlot slot) {
       return new Slot(
@@ -344,9 +350,33 @@ public final class WorkScheduleResponses {
           slot.employeeId() == null
               ? null
               : new Employee(
-                  slot.employeeId(), slot.employeeNumber(), slot.givenNames(), slot.familyName()));
+                  slot.employeeId(), slot.employeeNumber(), slot.givenNames(), slot.familyName()),
+          slot.effective() == null
+              ? null
+              : new Employee(
+                  slot.effective().id(),
+                  slot.effective().employeeNumber(),
+                  slot.effective().givenNames(),
+                  slot.effective().familyName()),
+          slot.substitution() == null
+              ? null
+              : new SlotSubstitution(
+                  slot.substitution().requestId(),
+                  slot.substitution().decisionId(),
+                  slot.substitution().approvedAt()));
     }
   }
+
+  /**
+   * MVP-051: a slot's approved substitution (administrators only): identifiers and instant, never a
+   * reason or the deciding manager.
+   *
+   * @param requestId request
+   * @param decisionId approving decision
+   * @param approvedAt decision instant
+   */
+  @Schema(name = "WorkScheduleSlotSubstitution")
+  public record SlotSubstitution(UUID requestId, UUID decisionId, Instant approvedAt) {}
 
   /**
    * A published schedule with all its slots and its derived state (MVP-050B).
@@ -434,6 +464,7 @@ public final class WorkScheduleResponses {
    * @param siteTimezone the stored site time zone snapshot of the shift's schedule
    * @param overnight whether it ends on a later date
    * @param labels labels
+   * @param assignmentSource MVP-051: published to the caller, or assigned by a substitution
    */
   @Schema(name = "MyWorkShift")
   public record Shift(
@@ -444,7 +475,8 @@ public final class WorkScheduleResponses {
       String end,
       String siteTimezone,
       boolean overnight,
-      Labels labels) {
+      Labels labels,
+      Substitution.Source assignmentSource) {
 
     /**
      * The view of an own shift.
@@ -462,7 +494,8 @@ public final class WorkScheduleResponses {
           WorkScheduleCommand.wire(shift.end()),
           shift.siteTimezone(),
           shift.end().toLocalDate().isAfter(shift.start().toLocalDate()),
-          new Labels(shift.labelEn(), shift.labelFr()));
+          new Labels(shift.labelEn(), shift.labelFr()),
+          shift.source());
     }
   }
 

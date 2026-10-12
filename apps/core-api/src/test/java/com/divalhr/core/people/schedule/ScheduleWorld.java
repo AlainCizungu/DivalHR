@@ -212,6 +212,32 @@ final class ScheduleWorld {
         .header("Idempotency-Key", Organizations.newKey());
   }
 
+  /** MVP-051: a CHANGE of the report's MANAGER line from {@code from} on (or none). */
+  Map<String, Object> managerCommand(UUID manager, LocalDate from) {
+    Map<String, Object> command = new LinkedHashMap<>();
+    command.put("type", "CHANGE");
+    command.put("effectiveFrom", from.toString());
+    Map<String, Object> line = new LinkedHashMap<>();
+    line.put("employeeId", manager == null ? null : manager.toString());
+    command.put("manager", line);
+    if (from.isBefore(today)) {
+      command.put("reasonCode", "LATE_NOTIFICATION");
+    }
+    return command;
+  }
+
+  /** MVP-051: makes {@code manager} the report's manager from {@code from} on. */
+  void manage(UUID report, UUID manager, LocalDate from) throws Exception {
+    expect(change(report, managerCommand(manager, from)), 201);
+  }
+
+  /** MVP-051: makes {@code manager} the manager of every report from today on. */
+  void manageAll(Person manager, Person... reports) throws Exception {
+    for (Person report : reports) {
+      manage(report.employee(), manager.employee(), today);
+    }
+  }
+
   /** The commit of a previewed separation with the acknowledgements it required (for races). */
   MockHttpServletRequestBuilder separate(UUID employee, LocalDate lastDay) throws Exception {
     Map<String, Object> command = new LinkedHashMap<>();

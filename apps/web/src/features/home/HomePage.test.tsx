@@ -156,6 +156,15 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     expect(
       within(approvals).getByRole('link', { name: c.home.employee.approvals.action }),
     ).toHaveAttribute('href', '/me/leave/approvals');
+    // MVP-051: the shift-substitution card, worded conditionally and loading nothing.
+    const substitutions = screen.getByTestId('home-shift-substitutions');
+    expect(within(substitutions).getByRole('heading', { level: 2 })).toHaveTextContent(
+      c.home.employee.substitutions.title,
+    );
+    expect(substitutions).toHaveTextContent(c.home.employee.substitutions.description);
+    expect(
+      within(substitutions).getByRole('link', { name: c.home.employee.substitutions.action }),
+    ).toHaveAttribute('href', '/me/schedule/substitutions');
     const roadmap = screen.getByTestId('roadmap');
     const items = within(roadmap).getAllByRole('listitem');
     expect(items).toHaveLength(3);

@@ -35,7 +35,8 @@
     "leaveRoutingExceptions": "Exceptions d’acheminement des congés",
     "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés",
     "workSchedules": "Horaires",
-    "mySchedule": "Mon horaire"
+    "mySchedule": "Mon horaire",
+    "myScheduleSubstitutions": "Remplacements d’horaire"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -202,6 +203,11 @@
         "title": "Approbations de congé qui vous sont confiées",
         "description": "Si vous êtes désigné comme approbateur de congés, ou comme remplaçant d’un approbateur, les demandes qui attendent votre décision apparaissent ici.",
         "action": "Ouvrir les approbations de congé"
+      },
+      "substitutions": {
+        "title": "Remplacements d’horaire à décider",
+        "description": "Si vous gérez des employés, leurs demandes de remplacement pour un créneau à venir apparaissent ici pour votre décision.",
+        "action": "Ouvrir les remplacements d’horaire"
       }
     }
   },
@@ -405,7 +411,15 @@
     "WORK_SCHEDULE_LIMIT_EXCEEDED": "Un horaire comporte au plus 500 créneaux.",
     "WORK_SCHEDULE_ALREADY_CANCELLED": "Cet horaire est déjà annulé.",
     "WORK_SCHEDULE_ALREADY_REPLACED": "Cet horaire a déjà été remplacé. Modifiez plutôt son remplacement.",
-    "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED": "Un créneau de cet horaire a déjà commencé : il ne peut plus être annulé ni remplacé."
+    "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED": "Un créneau de cet horaire a déjà commencé : il ne peut plus être annulé ni remplacé.",
+    "WORK_SCHEDULE_SHIFT_NOT_FOUND": "Ce créneau ne vous est pas accessible.",
+    "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND": "Cette demande de remplacement ne vous est pas accessible.",
+    "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE": "Un remplacement ne peut pas être demandé pour ce créneau.",
+    "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING": "Une demande de remplacement attend déjà une décision pour ce créneau.",
+    "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED": "Cette demande de remplacement a déjà été décidée.",
+    "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED": "Ce créneau a déjà commencé : son remplacement ne peut plus être demandé ni décidé.",
+    "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE": "Cette personne ne peut pas remplacer l’employé pour ce créneau. Relancez la recherche et choisissez un employé admissible.",
+    "WORK_SCHEDULE_SUBSTITUTE_CONFLICT": "Cette personne travaille déjà à ce moment-là. Choisissez quelqu’un d’autre."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2573,7 +2587,8 @@
       "employee": "Employé",
       "position": "N°",
       "check": "Vérification",
-      "status": "Statut"
+      "status": "Statut",
+      "effective": "Effectue le créneau"
     },
     "siteName": "{{name}} ({{code}})",
     "siteUnknown": "Site indisponible",
@@ -2604,7 +2619,9 @@
       "replacedAt": "Remplacé le {{date}}.",
       "reason": "Motif : {{reason}}",
       "viewSuccessor": "Voir l’horaire de remplacement",
-      "viewPredecessor": "Voir l’horaire qu’il remplace"
+      "viewPredecessor": "Voir l’horaire qu’il remplace",
+      "noCoverage": "Aucune affectation en cours",
+      "substituted": "Remplacement approuvé le {{date}}"
     },
     "totals": "{{slots}} créneaux : {{assigned}} couverts, {{uncovered}} non couverts",
     "timezone": "Heures locales du site, fuseau horaire {{zone}}.",
@@ -2743,5 +2760,128 @@
     "timezone": "Heure locale du site ({{zone}})",
     "more": "Afficher plus de créneaux",
     "loadingMore": "Chargement d’autres créneaux…"
+  },
+  "scheduleSubstitutions": {
+    "unauthorized": "Seuls les employés peuvent utiliser les remplacements d’horaire.",
+    "signInRequired": "Connectez-vous pour utiliser les remplacements d’horaire.",
+    "badge": "Remplacement",
+    "pendingBadge": "Remplacement demandé",
+    "shift": {
+      "date": "Date",
+      "time": "Heures",
+      "work": "Poste",
+      "site": "Site",
+      "zone": "Fuseau horaire du site"
+    },
+    "states": {
+      "PENDING": "En attente de décision",
+      "APPROVED": "Approuvée",
+      "REJECTED": "Refusée",
+      "EXPIRED": "Expirée",
+      "VOIDED": "Annulée avec l’horaire"
+    },
+    "problems": {
+      "substitute": "Choisissez l’employé qui effectuera le créneau.",
+      "reasonLocale": "Choisissez la langue du motif.",
+      "reason": "Saisissez un motif de 2 à 500 caractères, sans retour à la ligne ni caractère invisible."
+    },
+    "notAvailable": {
+      "NOT_OPERATIONAL": "Cet horaire a été annulé ou remplacé : ses créneaux ne peuvent plus être remplacés.",
+      "SUBSTITUTED": "Ce créneau a déjà été confié à un remplaçant.",
+      "EMPLOYMENT": "Votre dossier d’emploi pour ce créneau ne peut pas être déterminé. Contactez votre administrateur.",
+      "NO_MANAGER": "Aucun gestionnaire n’est enregistré pour vous à cette date. Contactez votre administrateur."
+    },
+    "form": {
+      "reason": "Motif",
+      "reasonHelp": "Obligatoire. Il s’affiche tel que vous l’écrivez. De 2 à {{max}} caractères, sans retour à la ligne.",
+      "count": "{{count}} caractères sur {{max}}",
+      "reasonLocale": "Langue du motif",
+      "reasonLocaleHelp": "Le motif s’affiche dans cette langue ; il n’est jamais traduit.",
+      "review": "Vérifier",
+      "cancel": "Fermer",
+      "back": "Modifier",
+      "sending": "Envoi en cours…"
+    },
+    "request": {
+      "action": "Demander un remplacement",
+      "actionFor": "Demander un remplacement pour {{work}} le {{date}}",
+      "title": "Demander un remplacement",
+      "confirmTitle": "Confirmer votre demande",
+      "intro": "Votre gestionnaire choisit qui vous remplace. Tant qu’il n’a pas décidé, le créneau reste le vôtre.",
+      "confirm": "Votre gestionnaire recevra cette demande avec votre motif.",
+      "confirmButton": "Envoyer la demande",
+      "sent": "Votre demande de remplacement a été envoyée à votre gestionnaire."
+    },
+    "mine": {
+      "title": "Mes demandes de remplacement",
+      "description": "Vos demandes de remplacement, les plus récentes d’abord, avec chaque décision.",
+      "loading": "Chargement de vos demandes de remplacement…",
+      "empty": "Vous n’avez demandé aucun remplacement.",
+      "requested": "Demandé le {{date}}",
+      "yourReason": "Votre motif",
+      "decided": {
+        "APPROVED": "Approuvée le {{date}}.",
+        "REJECTED": "Refusée le {{date}}."
+      },
+      "substitute": "Remplaçant : {{name}}",
+      "decisionReason": "Motif de la décision",
+      "voided": "L’horaire a été annulé ou remplacé avant une décision.",
+      "expired": "Le créneau a commencé avant une décision.",
+      "more": "Afficher plus de demandes",
+      "loadingMore": "Chargement d’autres demandes…"
+    },
+    "approvals": {
+      "title": "Remplacements d’horaire",
+      "description": "Les demandes de remplacement des employés que vous gérez.",
+      "scope": "Vous voyez les demandes des employés qui relèvent de vous à la date de leur créneau.",
+      "routing": "Si le gestionnaire d’un employé change, sa demande passe aussitôt au nouveau gestionnaire.",
+      "inbox": "Demandes en attente de votre décision",
+      "loading": "Chargement des demandes…",
+      "empty": "Aucune demande de remplacement n’attend votre décision.",
+      "employeeReason": "Motif de l’employé",
+      "approve": "Choisir un remplaçant",
+      "reject": "Refuser",
+      "approveFor": "Choisir un remplaçant pour {{name}}",
+      "rejectFor": "Refuser la demande de {{name}}",
+      "more": "Afficher plus de demandes",
+      "loadingMore": "Chargement d’autres demandes…",
+      "original": "Employé",
+      "replacement": "Remplaçant",
+      "dialog": {
+        "title": {
+          "APPROVED": "Approuver avec un remplaçant",
+          "REJECTED": "Refuser la demande"
+        },
+        "confirmTitle": {
+          "APPROVED": "Confirmer le remplacement",
+          "REJECTED": "Confirmer le refus"
+        }
+      },
+      "picker": {
+        "legend": "Remplaçant",
+        "help": "Seuls les employés qui relèvent de vous et peuvent effectuer ce créneau sont trouvés.",
+        "selected": "Choisi : {{name}}",
+        "change": "Choisir quelqu’un d’autre",
+        "find": "Nom ou matricule",
+        "search": "Rechercher",
+        "searching": "Recherche en cours…",
+        "short": "Saisissez au moins 2 caractères.",
+        "none": "Aucun employé admissible ne correspond à cette recherche.",
+        "results": "Employés admissibles",
+        "more": "Afficher plus d’employés"
+      },
+      "confirm": {
+        "APPROVED": "{{replacement}} effectuera ce créneau à la place de {{original}}.",
+        "REJECTED": "{{name}} conserve ce créneau."
+      },
+      "confirmButton": {
+        "APPROVED": "Approuver le remplacement",
+        "REJECTED": "Refuser la demande"
+      },
+      "decided": {
+        "APPROVED": "Le remplacement demandé par {{name}} a été approuvé.",
+        "REJECTED": "Le remplacement demandé par {{name}} a été refusé."
+      }
+    }
   }
 }

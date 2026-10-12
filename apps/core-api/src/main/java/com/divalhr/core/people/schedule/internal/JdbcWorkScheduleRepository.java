@@ -6,6 +6,7 @@ import com.divalhr.core.people.schedule.domain.OwnShift;
 import com.divalhr.core.people.schedule.domain.PlannedSlot;
 import com.divalhr.core.people.schedule.domain.PublishedSlot;
 import com.divalhr.core.people.schedule.domain.ScheduleView;
+import com.divalhr.core.people.schedule.domain.Substitution;
 import com.divalhr.core.people.schedule.domain.WorkSchedule;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.sql.ResultSet;
@@ -486,7 +487,9 @@ public class JdbcWorkScheduleRepository {
   }
 
   /**
-   * Removes a schedule's operational coverage (its terminal evidence must already exist).
+   * Removes a schedule's operational coverage, original and substituted alike, and its pending
+   * substitution requests (MVP-051), whose evidence stays and then reads as {@code VOIDED}. Its
+   * terminal evidence must already exist.
    *
    * @param tenant verified tenant
    * @param id schedule
@@ -494,6 +497,10 @@ public class JdbcWorkScheduleRepository {
   public void releaseCoverage(TenantId tenant, UUID id) {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("tenant", tenant.value()).addValue("id", id);
+    jdbc.update(
+        "DELETE FROM people.work_schedule_substitution_pending"
+            + " WHERE tenant_id = :tenant AND schedule_id = :id",
+        params);
     jdbc.update(
         "DELETE FROM people.work_schedule_slot_coverage"
             + " WHERE tenant_id = :tenant AND schedule_id = :id",
@@ -518,7 +525,11 @@ public class JdbcWorkScheduleRepository {
                 + " people.work_schedule_covered, people.work_schedule_cancellation_uncovered,"
                 + " people.work_schedule_replacement_uncovered,"
                 + " people.work_schedule_site_coverage_exact,"
-                + " people.work_schedule_slot_coverage_exact IMMEDIATE");
+                + " people.work_schedule_slot_coverage_exact,"
+                + " people.work_schedule_slot_coverage_bound,"
+                + " people.work_schedule_cancellation_unpending,"
+                + " people.work_schedule_replacement_unpending,"
+                + " people.work_schedule_substitution_pending_exact IMMEDIATE");
   }
 
   // ------------------------------------------------------------------------------------------
@@ -606,9 +617,17 @@ public class JdbcWorkScheduleRepository {
     return jdbc.query(
         "SELECT l.id, l.schedule_id, l.position, l.start_local, l.end_local, l.start_at,"
             + " l.end_at, l.label_en, l.label_fr, l.assigned_employee_id, e.employee_number,"
-            + " e.given_names, e.family_name FROM people.work_schedule_slot l"
+            + " e.given_names, e.family_name, c.employee_id AS effective_id,"
+            + " f.employee_number AS effective_number, f.given_names AS effective_given,"
+            + " f.family_name AS effective_family, d.id AS decision_id, d.request_id,"
+            + " d.decided_at FROM people.work_schedule_slot l"
             + " LEFT JOIN people.employee e"
             + " ON e.tenant_id = l.tenant_id AND e.id = l.assigned_employee_id"
+            + " LEFT JOIN people.work_schedule_slot_coverage c"
+            + " ON c.tenant_id = l.tenant_id AND c.slot_id = l.id"
+            + " LEFT JOIN people.employee f ON f.tenant_id = c.tenant_id AND f.id = c.employee_id"
+            + " LEFT JOIN people.work_schedule_substitution_decision d"
+            + " ON d.tenant_id = l.tenant_id AND d.slot_id = l.id AND d.outcome = 'APPROVED'"
             + " WHERE l.tenant_id = :tenant AND l.schedule_id = :schedule ORDER BY l.position",
         new MapSqlParameterSource()
             .addValue("tenant", tenant.value())
@@ -627,7 +646,20 @@ public class JdbcWorkScheduleRepository {
                 rs.getObject("assigned_employee_id", UUID.class),
                 rs.getString("employee_number"),
                 rs.getString("given_names"),
-                rs.getString("family_name")));
+                rs.getString("family_name"),
+                rs.getObject("effective_id", UUID.class) == null
+                    ? null
+                    : new Substitution.Person(
+                        rs.getObject("effective_id", UUID.class),
+                        rs.getString("effective_number"),
+                        rs.getString("effective_given"),
+                        rs.getString("effective_family")),
+                rs.getObject("decision_id", UUID.class) == null
+                    ? null
+                    : new PublishedSlot.ApprovedSubstitution(
+                        rs.getObject("request_id", UUID.class),
+                        rs.getObject("decision_id", UUID.class),
+                        rs.getTimestamp("decided_at").toInstant())));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -635,9 +667,11 @@ public class JdbcWorkScheduleRepository {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * One keyset page of the employee's own published shifts, in start order: either those not yet
+   * One keyset page of the employee's own operational shifts, read from the slot coverage (MVP-051:
+   * the published employee's, or the approved substitute's), in start order: either those not yet
    * ended at an instant ({@code endAfter}, the default view, R100-2) or those starting on local
-   * dates ({@code from}, {@code to}: each slot's local start in its own site time zone).
+   * dates ({@code from}, {@code to}: each slot's local start in its own site time zone). Coverage
+   * exists exactly while its schedule has no terminal action (V26, V27).
    *
    * @param tenant verified tenant
    * @param employeeId the caller's linked employee
@@ -661,18 +695,20 @@ public class JdbcWorkScheduleRepository {
     StringBuilder sql =
         new StringBuilder(
             "SELECT l.id, l.schedule_id, s.site_id, s.site_timezone, l.start_local, l.end_local,"
-                + " l.start_at, l.label_en, l.label_fr FROM people.work_schedule_slot l"
+                + " l.start_at, l.label_en, l.label_fr, c.decision_id"
+                + " FROM people.work_schedule_slot_coverage c"
+                + " JOIN people.work_schedule_slot l"
+                + " ON l.tenant_id = c.tenant_id AND l.id = c.slot_id"
                 + " JOIN people.work_schedule s"
-                + " ON s.tenant_id = l.tenant_id AND s.id = l.schedule_id"
-                + " WHERE l.tenant_id = :tenant AND l.assigned_employee_id = :employee AND"
-                + OPERATIONAL);
+                + " ON s.tenant_id = c.tenant_id AND s.id = c.schedule_id"
+                + " WHERE c.tenant_id = :tenant AND c.employee_id = :employee");
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("tenant", tenant.value())
             .addValue("employee", employeeId)
             .addValue("limit", limit);
     if (endAfter != null) {
-      sql.append(" AND l.end_at > :endAfter");
+      sql.append(" AND c.end_at > :endAfter");
       params.addValue("endAfter", Timestamp.from(endAfter));
     }
     if (from != null) {
@@ -684,10 +720,10 @@ public class JdbcWorkScheduleRepository {
       params.addValue("until", to.plusDays(1).atStartOfDay());
     }
     if (afterId != null) {
-      sql.append(" AND (l.start_at, l.id) > (:afterAt, :afterId)");
+      sql.append(" AND (c.start_at, c.slot_id) > (:afterAt, :afterId)");
       params.addValue("afterAt", Timestamp.from(afterStartAt)).addValue("afterId", afterId);
     }
-    sql.append(" ORDER BY l.start_at, l.id LIMIT :limit");
+    sql.append(" ORDER BY c.start_at, c.slot_id LIMIT :limit");
     return jdbc.query(
         sql.toString(),
         params,
@@ -701,11 +737,15 @@ public class JdbcWorkScheduleRepository {
                 rs.getObject("end_local", LocalDateTime.class),
                 rs.getTimestamp("start_at").toInstant(),
                 rs.getString("label_en"),
-                rs.getString("label_fr")));
+                rs.getString("label_fr"),
+                rs.getObject("decision_id", UUID.class) == null
+                    ? Substitution.Source.PUBLISHED
+                    : Substitution.Source.SUBSTITUTION));
   }
 
   /**
-   * The start instant of one of the employee's own slots (a cursor position).
+   * The start instant of one of the employee's own slots (a cursor position): one published to the
+   * employee or substituted to them (evidence, so a cursor survives a later coverage change).
    *
    * @param tenant verified tenant
    * @param employeeId the caller's linked employee
@@ -715,8 +755,11 @@ public class JdbcWorkScheduleRepository {
   public Optional<Instant> ownStart(TenantId tenant, UUID employeeId, UUID slotId) {
     return jdbc
         .query(
-            "SELECT start_at FROM people.work_schedule_slot WHERE tenant_id = :tenant"
-                + " AND assigned_employee_id = :employee AND id = :id",
+            "SELECT l.start_at FROM people.work_schedule_slot l WHERE l.tenant_id = :tenant"
+                + " AND l.id = :id AND (l.assigned_employee_id = :employee"
+                + " OR EXISTS (SELECT 1 FROM people.work_schedule_substitution_decision d"
+                + " WHERE d.tenant_id = l.tenant_id AND d.slot_id = l.id"
+                + " AND d.replacement_employee_id = :employee))",
             new MapSqlParameterSource()
                 .addValue("tenant", tenant.value())
                 .addValue("employee", employeeId)
