@@ -22,6 +22,18 @@ public final class ScheduleConstraintViolations {
   /** A terminal action only while every slot starts later (V26). */
   public static final String CHANGE_WINDOW = "work_schedule_change_window";
 
+  /** MVP-051: one pending substitution request per slot. */
+  public static final String SUBSTITUTION_PENDING_SLOT =
+      "work_schedule_substitution_pending_slot_unique";
+
+  /** MVP-051: one decision per substitution request. */
+  public static final String SUBSTITUTION_DECISION_REQUEST =
+      "work_schedule_substitution_decision_request_unique";
+
+  /** MVP-051: one approved substitution per slot. */
+  public static final String SUBSTITUTION_ONE_APPROVAL =
+      "work_schedule_substitution_decision_one_approval";
+
   private ScheduleConstraintViolations() {}
 
   /**

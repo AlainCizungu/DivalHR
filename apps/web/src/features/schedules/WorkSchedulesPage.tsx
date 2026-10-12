@@ -989,6 +989,7 @@ export function WorkSchedulesPage() {
                         <th scope="col">{t('workSchedules.columns.when')}</th>
                         <th scope="col">{t('workSchedules.columns.work')}</th>
                         <th scope="col">{t('workSchedules.columns.employee')}</th>
+                        <th scope="col">{t('workSchedules.columns.effective')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1009,6 +1010,26 @@ export function WorkSchedulesPage() {
                               <StatusBadge tone="warning" testId="slot-uncovered">
                                 {t('workSchedules.uncovered')}
                               </StatusBadge>
+                            )}
+                          </td>
+                          {/* MVP-051: current coverage, apart from the published history. */}
+                          <td data-testid="slot-effective">
+                            {slot.effectiveEmployee ? (
+                              name(slot.effectiveEmployee)
+                            ) : (
+                              <span className="muted">{t('workSchedules.detail.noCoverage')}</span>
+                            )}
+                            {slot.substitution && (
+                              <>
+                                {' '}
+                                <StatusBadge tone="info" testId="slot-substituted">
+                                  {t('workSchedules.detail.substituted', {
+                                    date: new Intl.DateTimeFormat(language, {
+                                      dateStyle: 'medium',
+                                    }).format(new Date(slot.substitution.approvedAt)),
+                                  })}
+                                </StatusBadge>
+                              </>
                             )}
                           </td>
                         </tr>

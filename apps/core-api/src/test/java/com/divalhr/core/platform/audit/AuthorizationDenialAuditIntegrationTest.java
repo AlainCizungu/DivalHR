@@ -205,7 +205,13 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-041F: the employee's withdrawal of their own approved leave.
           "leave-request.self-withdraw",
           // MVP-050A: the employee's own published shifts.
-          "work-schedule.self-list");
+          "work-schedule.self-list",
+          // MVP-051: shift substitution (employee requests and the manager's decisions).
+          "work-schedule-substitution.self-list",
+          "work-schedule-substitution.request",
+          "work-schedule-substitution.manager-list",
+          "work-schedule-substitution.candidate-list",
+          "work-schedule-substitution.decide");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

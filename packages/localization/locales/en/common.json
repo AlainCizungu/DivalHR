@@ -35,7 +35,8 @@
     "leaveRoutingExceptions": "Leave routing exceptions",
     "leaveApprovalSubstitutes": "Leave approval substitutes",
     "workSchedules": "Schedules",
-    "mySchedule": "My schedule"
+    "mySchedule": "My schedule",
+    "myScheduleSubstitutions": "Shift substitutions"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -202,6 +203,11 @@
         "title": "Leave approvals assigned to you",
         "description": "If you are assigned as a leave approver, or as a substitute for one, the requests waiting for your decision appear here.",
         "action": "Open leave approvals"
+      },
+      "substitutions": {
+        "title": "Shift substitutions to decide",
+        "description": "If you manage employees, their requests for a substitute on an upcoming shift appear here for your decision.",
+        "action": "Open shift substitutions"
       }
     }
   },
@@ -405,7 +411,15 @@
     "WORK_SCHEDULE_LIMIT_EXCEEDED": "A schedule holds at most 500 slots.",
     "WORK_SCHEDULE_ALREADY_CANCELLED": "This schedule is already cancelled.",
     "WORK_SCHEDULE_ALREADY_REPLACED": "This schedule has already been replaced. Change its replacement instead.",
-    "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED": "A slot of this schedule has already started: it can no longer be cancelled or replaced."
+    "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED": "A slot of this schedule has already started: it can no longer be cancelled or replaced.",
+    "WORK_SCHEDULE_SHIFT_NOT_FOUND": "This shift is not available to you.",
+    "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND": "This substitution request is not available to you.",
+    "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE": "A substitute cannot be requested for this shift.",
+    "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING": "A substitution request is already waiting for a decision for this shift.",
+    "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED": "This substitution request has already been decided.",
+    "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED": "This shift has already started: its substitution can no longer be requested or decided.",
+    "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE": "This person cannot replace the employee on this shift. Search again and choose an eligible employee.",
+    "WORK_SCHEDULE_SUBSTITUTE_CONFLICT": "This person already works at that time. Choose someone else."
   },
   "notFound": {
     "title": "Page not found",
@@ -2573,7 +2587,8 @@
       "employee": "Employee",
       "position": "No.",
       "check": "Check",
-      "status": "Status"
+      "status": "Status",
+      "effective": "Works the shift now"
     },
     "siteName": "{{name}} ({{code}})",
     "siteUnknown": "Site unavailable",
@@ -2604,7 +2619,9 @@
       "replacedAt": "Replaced on {{date}}.",
       "reason": "Reason: {{reason}}",
       "viewSuccessor": "View the replacement schedule",
-      "viewPredecessor": "View the schedule it replaced"
+      "viewPredecessor": "View the schedule it replaced",
+      "noCoverage": "No current coverage",
+      "substituted": "Substitution approved on {{date}}"
     },
     "totals": "{{slots}} slots: {{assigned}} assigned, {{uncovered}} uncovered",
     "timezone": "Local times at the site, time zone {{zone}}.",
@@ -2743,5 +2760,128 @@
     "timezone": "Local time at the site ({{zone}})",
     "more": "Show more shifts",
     "loadingMore": "Loading more shifts…"
+  },
+  "scheduleSubstitutions": {
+    "unauthorized": "Only employees can use shift substitutions.",
+    "signInRequired": "Sign in to use shift substitutions.",
+    "badge": "Substitution",
+    "pendingBadge": "Substitute requested",
+    "shift": {
+      "date": "Date",
+      "time": "Time",
+      "work": "Work",
+      "site": "Site",
+      "zone": "Site time zone"
+    },
+    "states": {
+      "PENDING": "Waiting for a decision",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "EXPIRED": "Expired",
+      "VOIDED": "Cancelled with the schedule"
+    },
+    "problems": {
+      "substitute": "Choose the employee who will work the shift.",
+      "reasonLocale": "Choose the language of the reason.",
+      "reason": "Enter a reason of 2 to 500 characters, without line breaks or invisible characters."
+    },
+    "notAvailable": {
+      "NOT_OPERATIONAL": "This schedule was cancelled or replaced: its shifts can no longer be substituted.",
+      "SUBSTITUTED": "This shift has already been given to a substitute.",
+      "EMPLOYMENT": "Your employment record for this shift cannot be determined. Contact your administrator.",
+      "NO_MANAGER": "No manager is recorded for you on this date. Contact your administrator."
+    },
+    "form": {
+      "reason": "Reason",
+      "reasonHelp": "Required. It is shown as you write it. 2 to {{max}} characters, without line breaks.",
+      "count": "{{count}} of {{max}} characters",
+      "reasonLocale": "Language of the reason",
+      "reasonLocaleHelp": "The reason is shown in this language; it is never translated.",
+      "review": "Review",
+      "cancel": "Close",
+      "back": "Edit",
+      "sending": "Sending…"
+    },
+    "request": {
+      "action": "Request a substitute",
+      "actionFor": "Request a substitute for {{work}} on {{date}}",
+      "title": "Request a substitute",
+      "confirmTitle": "Confirm your request",
+      "intro": "Your manager chooses who replaces you. Until they decide, the shift stays yours.",
+      "confirm": "Your manager will receive this request with your reason.",
+      "confirmButton": "Send the request",
+      "sent": "Your substitution request was sent to your manager."
+    },
+    "mine": {
+      "title": "My substitution requests",
+      "description": "Your requests for a substitute, newest first, with each decision.",
+      "loading": "Loading your substitution requests…",
+      "empty": "You have not requested a substitute.",
+      "requested": "Requested on {{date}}",
+      "yourReason": "Your reason",
+      "decided": {
+        "APPROVED": "Approved on {{date}}.",
+        "REJECTED": "Rejected on {{date}}."
+      },
+      "substitute": "Substitute: {{name}}",
+      "decisionReason": "Reason for the decision",
+      "voided": "The schedule was cancelled or replaced before a decision.",
+      "expired": "The shift started before a decision.",
+      "more": "Show more requests",
+      "loadingMore": "Loading more requests…"
+    },
+    "approvals": {
+      "title": "Shift substitutions",
+      "description": "Requests for a substitute from the employees you manage.",
+      "scope": "You see the requests of the employees who report to you on the date of their shift.",
+      "routing": "If an employee’s manager changes, their request moves to the new manager at once.",
+      "inbox": "Requests waiting for your decision",
+      "loading": "Loading the requests…",
+      "empty": "No substitution request is waiting for your decision.",
+      "employeeReason": "Employee’s reason",
+      "approve": "Choose a substitute",
+      "reject": "Reject",
+      "approveFor": "Choose a substitute for {{name}}",
+      "rejectFor": "Reject the request of {{name}}",
+      "more": "Show more requests",
+      "loadingMore": "Loading more requests…",
+      "original": "Employee",
+      "replacement": "Substitute",
+      "dialog": {
+        "title": {
+          "APPROVED": "Approve with a substitute",
+          "REJECTED": "Reject the request"
+        },
+        "confirmTitle": {
+          "APPROVED": "Confirm the substitution",
+          "REJECTED": "Confirm the rejection"
+        }
+      },
+      "picker": {
+        "legend": "Substitute",
+        "help": "Only employees who report to you and can work this shift are found.",
+        "selected": "Selected: {{name}}",
+        "change": "Choose someone else",
+        "find": "Name or employee number",
+        "search": "Search",
+        "searching": "Searching…",
+        "short": "Enter at least 2 characters.",
+        "none": "No eligible employee matches this search.",
+        "results": "Eligible employees",
+        "more": "Show more employees"
+      },
+      "confirm": {
+        "APPROVED": "{{replacement}} will work this shift instead of {{original}}.",
+        "REJECTED": "{{name}} keeps this shift."
+      },
+      "confirmButton": {
+        "APPROVED": "Approve the substitution",
+        "REJECTED": "Reject the request"
+      },
+      "decided": {
+        "APPROVED": "The substitution requested by {{name}} was approved.",
+        "REJECTED": "The substitution requested by {{name}} was rejected."
+      }
+    }
   }
 }

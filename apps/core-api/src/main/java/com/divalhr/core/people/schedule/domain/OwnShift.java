@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * One of the caller's own published shifts.
+ * One of the caller's own operational shifts (MVP-050A), read from the slot coverage (MVP-051): the
+ * employee it was published to, or the approved substitute.
  *
  * @param slotId slot
  * @param scheduleId schedule
@@ -16,6 +17,7 @@ import java.util.UUID;
  * @param startAt start instant
  * @param labelEn English label
  * @param labelFr French label
+ * @param source how the caller came to work it (MVP-051)
  */
 public record OwnShift(
     UUID slotId,
@@ -26,7 +28,8 @@ public record OwnShift(
     LocalDateTime end,
     Instant startAt,
     String labelEn,
-    String labelFr) {
+    String labelFr,
+    Substitution.Source source) {
 
   @Override
   public String toString() {

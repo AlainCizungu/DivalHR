@@ -229,6 +229,36 @@ export type ReplaceWorkScheduleRequest = CoreComponents['schemas']['ReplaceWorkS
 export type WorkScheduleChangeReceipt = CoreComponents['schemas']['WorkScheduleChangeReceipt'];
 export type MyWorkShift = CoreComponents['schemas']['MyWorkShift'];
 export type MyWorkSchedulePage = CoreComponents['schemas']['MyWorkSchedulePage'];
+/** MVP-051: shift substitution. */
+export type WorkScheduleAssignmentSource =
+  CoreComponents['schemas']['WorkScheduleAssignmentSource'];
+export type WorkScheduleSubstitutionState =
+  CoreComponents['schemas']['WorkScheduleSubstitutionState'];
+export type CreateWorkScheduleSubstitutionRequest =
+  CoreComponents['schemas']['CreateWorkScheduleSubstitutionRequest'];
+export type DecideWorkScheduleSubstitution =
+  CoreComponents['schemas']['DecideWorkScheduleSubstitution'];
+export type WorkScheduleSubstitutionDecisionReceipt =
+  CoreComponents['schemas']['WorkScheduleSubstitutionDecisionReceipt'];
+export type WorkScheduleSubstitutionShift =
+  CoreComponents['schemas']['WorkScheduleSubstitutionShift'];
+export type WorkScheduleSubstitutionPerson =
+  CoreComponents['schemas']['WorkScheduleSubstitutionPerson'];
+export type MyWorkScheduleSubstitutionDecision =
+  CoreComponents['schemas']['MyWorkScheduleSubstitutionDecision'];
+export type MyWorkScheduleSubstitution = CoreComponents['schemas']['MyWorkScheduleSubstitution'];
+export type MyWorkScheduleSubstitutionPage =
+  CoreComponents['schemas']['MyWorkScheduleSubstitutionPage'];
+export type WorkScheduleSubstitutionApprovalEmployee =
+  CoreComponents['schemas']['WorkScheduleSubstitutionApprovalEmployee'];
+export type WorkScheduleSubstitutionApproval =
+  CoreComponents['schemas']['WorkScheduleSubstitutionApproval'];
+export type WorkScheduleSubstitutionApprovalPage =
+  CoreComponents['schemas']['WorkScheduleSubstitutionApprovalPage'];
+export type WorkScheduleSubstitutionCandidatePage =
+  CoreComponents['schemas']['WorkScheduleSubstitutionCandidatePage'];
+export type WorkScheduleSlotSubstitution =
+  CoreComponents['schemas']['WorkScheduleSlotSubstitution'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

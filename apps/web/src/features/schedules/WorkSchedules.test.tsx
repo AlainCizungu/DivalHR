@@ -837,11 +837,19 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
     siteTimezone,
     overnight: overnightShift,
     labels: { en: 'Night watch', fr: 'Veille de nuit' },
+    assignmentSource: 'PUBLISHED',
   });
 
   it('lists my shifts in my language with an overnight indicator and pages on', async () => {
     let page = 0;
-    const requests = stubApi(() => {
+    const requests = stubApi((request) => {
+      // MVP-051: the page also loads the employee's substitution history.
+      if (request.path.startsWith('/me/work-schedule-substitutions')) {
+        return {
+          status: 200,
+          body: { items: [], nextCursor: null, asOfInstant: '2026-10-11T08:00:00Z' },
+        };
+      }
       page += 1;
       return page === 1
         ? {
@@ -873,7 +881,11 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
     const shifts = await screen.findAllByTestId('my-shift');
     // The server's instant-based default view: no date is sent, none is presented as "today".
     expect(screen.getByTestId('my-schedule-scope')).toHaveTextContent(k.current);
-    expect(requests[0]!.path).not.toMatch(/[?&](from|to)=/u);
+    expect(
+      requests.find(
+        (r) => r.path.startsWith('/me/work-schedule?') || r.path === '/me/work-schedule',
+      )!.path,
+    ).not.toMatch(/[?&](from|to)=/u);
     expect(shifts).toHaveLength(1);
     expect(within(shifts[0]!).getByTestId('my-shift-label')).toHaveTextContent(
       locale === 'fr' ? 'Veille de nuit' : 'Night watch',
@@ -901,7 +913,9 @@ describe.each(['fr', 'en'] as const)('MVP-050A my schedule (%s)', (locale) => {
       k.timezone.replace('{{zone}}', 'Africa/Lubumbashi'),
     );
     expect(within(later).getByTestId('my-shift-time')).toHaveTextContent(/\b8:00\b/u);
-    expect(requests.at(-1)!.path).toContain('cursor=next');
+    expect(requests.filter((r) => r.path.startsWith('/me/work-schedule?')).at(-1)!.path).toContain(
+      'cursor=next',
+    );
     expect(screen.queryByRole('button', { name: k.more })).toBeNull();
   });
 

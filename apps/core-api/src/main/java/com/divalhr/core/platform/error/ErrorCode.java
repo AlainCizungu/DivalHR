@@ -328,7 +328,35 @@ public enum ErrorCode {
    * A slot of the schedule has already started: it can no longer be cancelled or replaced
    * (MVP-050B; no params).
    */
-  WORK_SCHEDULE_CHANGE_WINDOW_CLOSED(HttpStatus.CONFLICT);
+  WORK_SCHEDULE_CHANGE_WINDOW_CLOSED(HttpStatus.CONFLICT),
+  /**
+   * MVP-051: malformed, unknown, foreign-tenant, uncovered, another employee's or otherwise
+   * undisclosable shift (all the same).
+   */
+  WORK_SCHEDULE_SHIFT_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * MVP-051: malformed, unknown, foreign-tenant, another manager's or otherwise undisclosable
+   * substitution request (all the same).
+   */
+  WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * MVP-051: the shift cannot be substituted; params.reason NOT_OPERATIONAL, SUBSTITUTED,
+   * EMPLOYMENT or NO_MANAGER (non-personal states only).
+   */
+  WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE(HttpStatus.CONFLICT),
+  /** MVP-051: the shift already has a pending substitution request. */
+  WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING(HttpStatus.CONFLICT),
+  /** MVP-051: the substitution request was already decided. */
+  WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED(HttpStatus.CONFLICT),
+  /** MVP-051: the shift has started; it can no longer be requested or decided. */
+  WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED(HttpStatus.CONFLICT),
+  /**
+   * MVP-051: the chosen substitute is not an eligible direct report for the shift (generic; no
+   * detail about foreign employees or other managers' reports).
+   */
+  WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-051: the chosen substitute has an overlapping operational assignment (no detail). */
+  WORK_SCHEDULE_SUBSTITUTE_CONFLICT(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

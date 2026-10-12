@@ -215,6 +215,14 @@ test.describe('employee home', () => {
     await expect(page).toHaveURL(/\/me\/leave\/approvals$/u);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await home();
+    // MVP-051: the shift-substitution card opens the manager's page.
+    await page
+      .getByTestId('home-shift-substitutions')
+      .getByRole('link', { name: 'Ouvrir les remplacements d’horaire' })
+      .click();
+    await expect(page).toHaveURL(/\/me\/schedule\/substitutions$/u);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Remplacements d’horaire');
+    await home();
 
     await page.getByRole('button', { name: 'English', exact: true }).click();
     await expect(

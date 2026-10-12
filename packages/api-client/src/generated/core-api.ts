@@ -1676,7 +1676,7 @@ export interface paths {
         };
         /**
          * Read a published site work schedule
-         * @description MVP-050A. One published schedule with every slot (at most 500) in publication order: local and instant boundaries, overnight, both labels and, when assigned, the employee's current directory fields; an unassigned slot is an uncovered position. Unknown, malformed and foreign-tenant IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. Any derived state (MVP-050B): a cancelled or replaced schedule keeps its slots as evidence, with its change instant, change reason and successor. Never the publisher or the actor of a change. A fail-closed disclosure (audit work-schedule.read). Shares the work-schedule-read limit. Cache-Control private, no-store.
+         * @description MVP-050A. One published schedule with every slot (at most 500) in publication order: local and instant boundaries, overnight, both labels and, when assigned, the employee's current directory fields; an unassigned slot is an uncovered position. Unknown, malformed and foreign-tenant IDs are the same 404 WORK_SCHEDULE_NOT_FOUND. Any derived state (MVP-050B): a cancelled or replaced schedule keeps its slots as evidence, with its change instant, change reason and successor. MVP-051: each slot keeps employee as the immutable published assignee and adds effectiveEmployee (current operational coverage) and the approved substitution's identifiers and instant; never a substitution reason, the requester's reason or the deciding manager. Never the publisher or the actor of a change. A fail-closed disclosure (audit work-schedule.read). Shares the work-schedule-read limit. Cache-Control private, no-store.
          */
         get: operations["getWorkSchedule"];
         put?: never;
@@ -1756,11 +1756,95 @@ export interface paths {
         };
         /**
          * List my published shifts
-         * @description MVP-050A. The published shifts assigned to the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order. Without from, the default view (R100-2) holds the shifts not yet ended at one server-owned instant (asOfInstant, from the server clock): shifts in progress and to come, never ended ones; no calendar date is used, since schedules of sites in different time zones share no "today". The instant is pinned in the signed cursor and reused by every later page. With from, and optionally to (at most 366 days later), the view holds the shifts whose local start date, in their own schedule's site time zone, is within the dates; to without from is 400 (from REQUIRED). Each shift carries both labels, the site's code and name, its local start and end and its schedule's siteTimezone (never converted), and an overnight flag. Never another employee, an uncovered slot, the publisher or audit data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is bound to the operation, tenant, caller, the view's mode and dates (and, for the default view, its instant) and the page size; a cursor of one view is refused in the other (400 CURSOR_INVALID). Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         * @description MVP-050A. The operational shifts (MVP-051: the slot coverage, so a shift given away by an approved substitution leaves the original employee's view and appears in the substitute's with assignmentSource SUBSTITUTION) of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order. Without from, the default view (R100-2) holds the shifts not yet ended at one server-owned instant (asOfInstant, from the server clock): shifts in progress and to come, never ended ones; no calendar date is used, since schedules of sites in different time zones share no "today". The instant is pinned in the signed cursor and reused by every later page. With from, and optionally to (at most 366 days later), the view holds the shifts whose local start date, in their own schedule's site time zone, is within the dates; to without from is 400 (from REQUIRED). Each shift carries both labels, the site's code and name, its local start and end and its schedule's siteTimezone (never converted), and an overnight flag. Never another employee, an uncovered slot, the publisher or audit data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is bound to the operation, tenant, caller, the view's mode and dates (and, for the default view, its instant) and the page size; a cursor of one view is refused in the other (400 CURSOR_INVALID). Shares the work-schedule-self-read limit. Cache-Control private, no-store.
          */
         get: operations["listMyWorkSchedule"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/work-schedule-substitutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my shift-substitution requests
+         * @description MVP-051. The substitution requests of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest first (requestedAt, then id). Each carries the shift (schedule, slot, site and siteTimezone, local and instant boundaries, overnight, both labels), the request reason in the language it was written in, the derived state and, once decided, the decision instant and reason; for an approval, the substitute's current minimal directory identity (ID, number, name). Never the deciding manager, a candidate or another request. The state is derived at one server-owned instant (asOfInstant), returned and pinned in the signed cursor: PENDING (pending and not started), APPROVED, REJECTED, EXPIRED (pending but started) or VOIDED (the schedule was cancelled or replaced before a decision). Restricted HR/Operations: a fail-closed disclosure (audit work-schedule-substitution.self-list). The signed cursor is bound to the operation, tenant, caller, linked employee, page size and asOfInstant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listMyWorkScheduleSubstitutions"];
+        put?: never;
+        /**
+         * Request a substitute for one of my shifts
+         * @description MVP-051. Records a PENDING substitution request for a shift originally published to, and still operationally covered by, the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise). Tenant, employee, employment, manager and actor are never fields. Malformed, unknown, foreign-tenant, uncovered and other employees' slots are the same 404 WORK_SCHEDULE_SHIFT_NOT_FOUND without params. The shift must start strictly after the server's current instant (409 WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED) and must not already have a pending request (409 WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING); a new request after a rejection is allowed. 409 WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE carries params.reason: NOT_OPERATIONAL (the schedule was cancelled or replaced), SUBSTITUTED (an approved substitution already covers the shift), EMPLOYMENT (zero or several employments cover the shift and own the site placement) or NO_MANAGER (no active manager on the shift's site-local start date). The server stores the single qualifying employment; the manager is never stored and is re-evaluated on every read, decision and replay. One transaction, under the tenant's manager-graph lock and then its scheduling lock, writes the request, its pending projection, the audit record (work-schedule-substitution.request) and the outbox event (people.work-schedule-substitution.requested.v1). An exact retry returns the stored 201 with Idempotent-Replayed true while the caller is still linked to the requesting employee; otherwise no stored response is returned (403 EMPLOYEE_LINK_REQUIRED, or 409 IDEMPOTENCY_KEY_REUSED without params when linked to another employee). Errors never echo an ID, name, number, label or the reason. Shares the work-schedule-substitution-write limits. Cache-Control private, no-store.
+         */
+        post: operations["requestWorkScheduleSubstitution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/work-schedule-substitution-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List substitution requests awaiting my decision as a manager
+         * @description MVP-051. The PENDING, not yet started substitution requests whose stored employment has, on the shift's site-local start date, an active MANAGER assignment naming the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), oldest first (requestedAt, then id). The relationship is re-evaluated on every call, so an employment-history change reroutes a pending request at once. Never the caller's own requests; tenant administration and MVP-041G leave-approval substitute appointments give no access. Each item holds only what deciding requires: the request ID and instant, the employee's number and current name, the request reason, the schedule, slot, site and siteTimezone, local and instant boundaries, overnight and both labels. Restricted HR/Operations: a fail-closed disclosure (audit work-schedule-substitution.manager-list). The signed cursor is bound to the operation, tenant, caller, the caller's link and linked employee, page size and asOfInstant: a relink invalidates it. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listMyWorkScheduleSubstitutionApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/work-schedule-substitution-approvals/{requestId}/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search eligible substitutes for a substitution request
+         * @description MVP-051. Employees who, for a PENDING, not yet started request routed to the caller (as listed by listMyWorkScheduleSubstitutionApprovals), report to the caller's linked employee on the shift's site-local start date and meet every MVP-050 scheduling eligibility rule for the shift (one qualifying employment covering every occupied local date, no separation before the shift ends, placed at the schedule's site on its start date, no overlapping operational assignment at any site, half-open instants), never the requesting employee or the caller, whose employee number starts with, or whose name words match, the normalized query (2-100 code points after NFC normalization and trimming), ordered by employee number. At most 20 per page (default 20). Each item is only the employee's ID, number and current name; why another employee is absent is never returned. The query is never logged, audited or echoed, and the edge proxies drop query strings from access logs. Unknown, foreign, decided, expired, voided and other managers' requests are the same 404 WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND. Restricted HR/Operations: a fail-closed disclosure (audit work-schedule-substitution.candidate-list, with a digest of the query, never the query). The signed cursor is bound to the operation, tenant, caller, the caller's link and linked employee, the request, a digest of the normalized query and the page size. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["searchWorkScheduleSubstitutionCandidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/work-schedule-substitution-approvals/{requestId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or reject a shift-substitution request as its manager
+         * @description MVP-051. Decides, once, a PENDING request routed to the caller as listed by listMyWorkScheduleSubstitutionApprovals. REJECTED records the rejection and removes the pending projection; the original employee keeps the shift. APPROVED names one substitute (substituteEmployeeId, required for approval and refused with VALIDATION_FAILED FORMAT for rejection) and, in one transaction, removes the original employee's operational coverage, inserts the substitute's coverage on the same immutable slot, removes the pending projection, records the decision and runs the deferred exactness and exclusion checks immediately; the published schedule and slot never change. The authority is re-evaluated under the manager-graph lock, then the scheduling lock, with the employments FOR SHARE in ID order, the caller's link FOR SHARE and the schedule and request FOR UPDATE. Unknown, foreign, other managers' and otherwise undisclosable requests are the same 404 WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND without params; a decided request is 409 WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED; a started shift is 409 WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED; a cancelled or replaced schedule is 409 WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE (NOT_OPERATIONAL). A substitute who is unknown, foreign, the original employee, the caller, not the caller's report on the shift's site-local start date, without exactly one qualifying employment, separated before the shift ends, not employed on every occupied date or not placed at the site is the same 422 WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE without params; an overlapping operational assignment at any site is 409 WORK_SCHEDULE_SUBSTITUTE_CONFLICT without params. Audit work-schedule-substitution.approve or .reject; event people.work-schedule-substitution.approved.v1 or .rejected.v1 (IDs and outcome only). The 200 receipt never carries a reason. An exact retry replays only while the caller's currently linked employee is still the request's effective manager; a denied replay returns no stored response or identifier. Shares the work-schedule-substitution-write limits. Cache-Control private, no-store.
+         */
+        post: operations["decideWorkScheduleSubstitution"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3181,7 +3265,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -3871,6 +3955,7 @@ export interface components {
              */
             asOf: string;
         };
+        /** @description employee is the immutable published assignee. MVP-051: effectiveEmployee is the employee of the slot's current operational coverage (the published assignee, or the approved substitute; null for an uncovered slot and for every slot of a cancelled or replaced schedule, whose coverage was released), and substitution the slot's approved substitution, if any. */
         WorkScheduleSlot: {
             /** Format: uuid */
             id: string;
@@ -3884,6 +3969,8 @@ export interface components {
             overnight: boolean;
             labels: components["schemas"]["WorkScheduleLabels"];
             employee: components["schemas"]["WorkScheduleEmployee"] | null;
+            effectiveEmployee: components["schemas"]["WorkScheduleEmployee"] | null;
+            substitution: components["schemas"]["WorkScheduleSlotSubstitution"] | null;
         };
         WorkScheduleDetail: {
             /** Format: uuid */
@@ -3912,7 +3999,7 @@ export interface components {
             replacedByScheduleId: string | null;
             slots: components["schemas"]["WorkScheduleSlot"][];
         };
-        /** @description MVP-050A. One of the caller's own published shifts. */
+        /** @description MVP-050A. One of the caller's own shifts, read from the operational coverage (MVP-051): assignmentSource tells a published shift from one assigned by an approved substitution; the original employee is never named. */
         MyWorkShift: {
             /** Format: uuid */
             id: string;
@@ -3925,6 +4012,7 @@ export interface components {
             siteTimezone: string;
             overnight: boolean;
             labels: components["schemas"]["WorkScheduleLabels"];
+            assignmentSource: components["schemas"]["WorkScheduleAssignmentSource"];
         };
         MyWorkSchedulePage: {
             items: components["schemas"]["MyWorkShift"][];
@@ -3941,6 +4029,152 @@ export interface components {
             from: string | null;
             /** Format: date */
             to: string | null;
+        };
+        /**
+         * @description MVP-051. PUBLISHED: the shift is covered by the employee it was published to. SUBSTITUTION: an approved substitution assigned it to the caller.
+         * @enum {string}
+         */
+        WorkScheduleAssignmentSource: "PUBLISHED" | "SUBSTITUTION";
+        /**
+         * @description MVP-051. Derived at one server instant: PENDING (pending, not started), APPROVED, REJECTED, EXPIRED (still pending when the shift started) or VOIDED (the schedule was cancelled or replaced before a decision).
+         * @enum {string}
+         */
+        WorkScheduleSubstitutionState: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "VOIDED";
+        /** @description Plain text, decision-reason grammar version 1 (identical in the Core, the database and the web form; see DecideLeaveRequest.reason). Restricted HR; never logged, audited, sent in an event or echoed in an error. */
+        WorkScheduleSubstitutionReason: string;
+        /** @description MVP-051. The shift and the reason. Tenant, employee, employment, manager, substitute and actor are never fields. VALIDATION_FAILED fields: slotId (REQUIRED), reasonLocale, reason, body (UNKNOWN_PROPERTY) and Idempotency-Key; a slotId that is not a UUID is the same 404 WORK_SCHEDULE_SHIFT_NOT_FOUND as an unknown one. */
+        CreateWorkScheduleSubstitutionRequest: {
+            /** Format: uuid */
+            slotId: string;
+            /**
+             * @description The language the reason is written in.
+             * @enum {string}
+             */
+            reasonLocale: "en" | "fr";
+            reason: components["schemas"]["WorkScheduleSubstitutionReason"];
+        };
+        /** @description MVP-051. The manager's decision. substituteEmployeeId is required for APPROVED and refused (FORMAT) for REJECTED. The request comes from the path; tenant, manager and actor are never fields. */
+        DecideWorkScheduleSubstitution: {
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
+            /** Format: uuid */
+            substituteEmployeeId?: string | null;
+            /**
+             * @description The language the reason is written in.
+             * @enum {string}
+             */
+            reasonLocale: "en" | "fr";
+            reason: components["schemas"]["WorkScheduleSubstitutionReason"];
+        };
+        /** @description MVP-051. The minimal receipt of a decision; never a reason or a name. */
+        WorkScheduleSubstitutionDecisionReceipt: {
+            /** Format: uuid */
+            requestId: string;
+            /** Format: uuid */
+            decisionId: string;
+            /** @enum {string} */
+            state: "APPROVED" | "REJECTED";
+            /** Format: date-time */
+            decidedAt: string;
+        };
+        /** @description MVP-051. The immutable published shift a substitution request is about. */
+        WorkScheduleSubstitutionShift: {
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            slotId: string;
+            site: components["schemas"]["WorkScheduleSite"];
+            /** @description The schedule's site time zone snapshot; start and end are local times there. */
+            siteTimezone: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            startAt: string;
+            /** Format: date-time */
+            endAt: string;
+            overnight: boolean;
+            labels: components["schemas"]["WorkScheduleLabels"];
+        };
+        /** @description MVP-051. An employee's current minimal directory identity. */
+        WorkScheduleSubstitutionPerson: {
+            /** Format: uuid */
+            id: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+        };
+        /** @description MVP-051. The decision of one of the caller's requests: never the deciding manager. The substitute is present for an approval only. */
+        MyWorkScheduleSubstitutionDecision: {
+            /** @enum {string} */
+            outcome: "APPROVED" | "REJECTED";
+            /** Format: date-time */
+            decidedAt: string;
+            /** @enum {string} */
+            reasonLocale: "en" | "fr";
+            reason: string;
+            substitute: components["schemas"]["WorkScheduleSubstitutionPerson"] | null;
+        };
+        /** @description MVP-051. One of the caller's substitution requests. */
+        MyWorkScheduleSubstitution: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            state: components["schemas"]["WorkScheduleSubstitutionState"];
+            shift: components["schemas"]["WorkScheduleSubstitutionShift"];
+            /** @enum {string} */
+            reasonLocale: "en" | "fr";
+            reason: string;
+            decision: components["schemas"]["MyWorkScheduleSubstitutionDecision"] | null;
+        };
+        MyWorkScheduleSubstitutionPage: {
+            items: components["schemas"]["MyWorkScheduleSubstitution"][];
+            nextCursor: string | null;
+            /**
+             * Format: date-time
+             * @description The server instant every state of the view is derived at (pinned in the cursor).
+             */
+            asOfInstant: string;
+        };
+        /** @description MVP-051. The requesting employee's number and current name; never their ID. */
+        WorkScheduleSubstitutionApprovalEmployee: {
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+        };
+        /** @description MVP-051. A pending request routed to the caller; only what deciding requires. */
+        WorkScheduleSubstitutionApproval: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            employee: components["schemas"]["WorkScheduleSubstitutionApprovalEmployee"];
+            /** @enum {string} */
+            reasonLocale: "en" | "fr";
+            reason: string;
+            shift: components["schemas"]["WorkScheduleSubstitutionShift"];
+        };
+        WorkScheduleSubstitutionApprovalPage: {
+            items: components["schemas"]["WorkScheduleSubstitutionApproval"][];
+            nextCursor: string | null;
+            /**
+             * Format: date-time
+             * @description The server instant shifts must start after (pinned in the cursor).
+             */
+            asOfInstant: string;
+        };
+        WorkScheduleSubstitutionCandidatePage: {
+            items: components["schemas"]["WorkScheduleSubstitutionPerson"][];
+            nextCursor: string | null;
+        };
+        /** @description MVP-051. The approved substitution of a slot (administrators only): identifiers and instant, never a reason, the requester's reason or the deciding manager. */
+        WorkScheduleSlotSubstitution: {
+            /** Format: uuid */
+            requestId: string;
+            /** Format: uuid */
+            decisionId: string;
+            /** Format: date-time */
+            approvedAt: string;
         };
         /** @description RFC 9457 problem details with DivalHR extensions. */
         Problem: {
@@ -4130,6 +4364,12 @@ export interface components {
         WorkScheduleFrom: string;
         /** @description Last date of the view (YYYY-MM-DD). */
         WorkScheduleTo: string;
+        /** @description Work-schedule substitution request ID. */
+        WorkScheduleSubstitutionRequestId: string;
+        /** @description Employee-number prefix or name words (2-100 code points after NFC normalization and trimming). Never logged, audited or echoed. */
+        WorkScheduleSubstitutionQuery: string;
+        /** @description Items per page (1-20, default 20). */
+        WorkScheduleSubstitutionCandidateLimit: number;
         /** @description Items per page (1-50, default 25). */
         LeavePolicyLimit: number;
         /** @description Items per page (1-50, default 25). */
@@ -7835,6 +8075,189 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listMyWorkScheduleSubstitutions: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["LeavePolicyLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyWorkScheduleSubstitutionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    requestWorkScheduleSubstitution: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkScheduleSubstitutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyWorkScheduleSubstitution"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listMyWorkScheduleSubstitutionApprovals: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["LeavePolicyLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkScheduleSubstitutionApprovalPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    searchWorkScheduleSubstitutionCandidates: {
+        parameters: {
+            query: {
+                /** @description Employee-number prefix or name words (2-100 code points after NFC normalization and trimming). Never logged, audited or echoed. */
+                query: components["parameters"]["WorkScheduleSubstitutionQuery"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-20, default 20). */
+                limit?: components["parameters"]["WorkScheduleSubstitutionCandidateLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Work-schedule substitution request ID. */
+                requestId: components["parameters"]["WorkScheduleSubstitutionRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkScheduleSubstitutionCandidatePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    decideWorkScheduleSubstitution: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Work-schedule substitution request ID. */
+                requestId: components["parameters"]["WorkScheduleSubstitutionRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideWorkScheduleSubstitution"];
+            };
+        };
+        responses: {
+            /** @description Decided, or the original decision replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkScheduleSubstitutionDecisionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
         };
     };
