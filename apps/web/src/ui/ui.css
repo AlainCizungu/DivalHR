@@ -119,6 +119,13 @@
   list-style: none;
 }
 
+/* UI-003: four destinations read as two pairs rather than a row of three and an orphan. */
+@media (min-width: 40rem) {
+  .card-grid--pairs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .link-card {
   position: relative;
   display: flex;

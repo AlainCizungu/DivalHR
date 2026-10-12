@@ -18,7 +18,9 @@ export interface ModuleEntry {
 export const MODULES: readonly ModuleEntry[] = [
   // Records, employment history (MVP-021), bulk import (MVP-020) and separation (MVP-022).
   { id: 'employees', icon: 'people', status: 'available', vision: true },
-  { id: 'leave', icon: 'calendar', status: 'later', vision: true },
+  // Policies, requests, approvals, amendments, cancellations, withdrawals, routing exceptions and
+  // substitute approvers (MVP-040 to MVP-041G). Balances and team calendars are not built.
+  { id: 'leave', icon: 'calendar', status: 'available', vision: true },
   { id: 'payroll', icon: 'payroll', status: 'later', vision: true },
   { id: 'loans', icon: 'bank', status: 'later', vision: true },
   { id: 'benefits', icon: 'benefits', status: 'later', vision: true },
@@ -31,8 +33,10 @@ export const MODULES: readonly ModuleEntry[] = [
   { id: 'integrations', icon: 'network', status: 'later', vision: true },
   // Native iOS and Android applications are roadmap items.
   { id: 'mobile', icon: 'phone', status: 'later', vision: true },
-  // Shipped capabilities shown in addition to the vision modules (MVP-002, MVP-030, MVP-011/012).
+  // Shipped capabilities shown in addition to the vision modules (MVP-002, MVP-030, MVP-011/012,
+  // MVP-050A/B). Work scheduling is listed here, not as a thirteenth vision module (UI3-2).
   { id: 'organization', icon: 'structure', status: 'available', vision: false },
+  { id: 'scheduling', icon: 'rotation', status: 'available', vision: false },
   { id: 'contracts', icon: 'contract', status: 'available', vision: false },
   { id: 'access', icon: 'shield', status: 'available', vision: false },
 ];
@@ -147,19 +151,21 @@ export const FINANCE_STEPS: readonly StepDef[] = [
   { key: 'repayment', icon: 'payroll' },
 ];
 
+/** UI-003 (UI3-3): the illustrative administrator home shows the shipped work areas. */
 export const PREVIEW_NAV: readonly StepDef[] = [
   { key: 'home', icon: 'home' },
   { key: 'employees', icon: 'people' },
-  { key: 'organization', icon: 'structure' },
+  { key: 'leave', icon: 'calendar' },
+  { key: 'schedules', icon: 'rotation' },
   { key: 'contracts', icon: 'contract' },
-  { key: 'access', icon: 'shield' },
 ];
 
-export const PREVIEW_ACTIONS = ['import', 'invite', 'template'] as const;
+export const PREVIEW_ACTIONS = ['import', 'reviewLeave', 'openSchedules'] as const;
 
 export const PREVIEW_CARDS: readonly StepDef[] = [
   { key: 'employees', icon: 'people' },
-  { key: 'organization', icon: 'structure' },
+  { key: 'leave', icon: 'calendar' },
+  { key: 'schedules', icon: 'rotation' },
   { key: 'contracts', icon: 'contract' },
 ];
 

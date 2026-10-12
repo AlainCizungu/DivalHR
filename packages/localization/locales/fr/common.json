@@ -124,23 +124,57 @@
     "tenant": {
       "eyebrow": "Espace de l’organisation",
       "title": "Administration de l’organisation",
-      "description": "Configurez votre organisation, gérez votre personnel et vos contrats, et contrôlez qui a accès à quoi.",
+      "description": "Gérez votre personnel, les congés et les horaires, configurez votre organisation et vos contrats, et contrôlez qui a accès à quoi.",
       "quickActions": "Actions rapides",
       "actions": {
         "importEmployees": "Importer des employés",
-        "inviteUser": "Inviter un utilisateur",
-        "createTemplate": "Créer un modèle de contrat",
-        "reviewAccess": "Passer en revue les accès"
+        "reviewLeave": "Examiner les demandes de congé",
+        "openSchedules": "Ouvrir les horaires",
+        "inviteUser": "Inviter un utilisateur"
       },
-      "modulesTitle": "Vos modules",
-      "modulesDescription": "Tout ce qui est disponible aujourd’hui.",
+      "groups": {
+        "people": {
+          "title": "Personnel et opérations",
+          "description": "Employés, congés et horaires."
+        },
+        "governance": {
+          "title": "Organisation et gouvernance",
+          "description": "Structure, contrats, utilisateurs et accès."
+        }
+      },
       "cards": {
-        "employees": "Recherchez dans l’annuaire, ouvrez les dossiers et enregistrez les changements d’emploi et les sorties.",
-        "hierarchy": "Entités juridiques, sites, régions, départements, centres de coûts et équipes.",
-        "users": "Invitez des personnes sur DivalHR et suivez chaque invitation.",
-        "accessReview": "Voyez qui a accès à quoi, et par quelle affectation.",
-        "contractTemplates": "Rédigez, approuvez et retirez les modèles servant à émettre les contrats.",
-        "employeeImport": "Reprenez vos employés existants depuis un tableur, avec un aperçu préalable."
+        "employees": {
+          "title": "Employés",
+          "description": "Recherchez dans l’annuaire, ouvrez les dossiers et enregistrez les changements d’emploi et les sorties."
+        },
+        "leavePolicies": {
+          "title": "Politiques de congé",
+          "description": "Définissez les types de congé, leurs règles et leurs circuits d’approbation."
+        },
+        "leaveApprovals": {
+          "title": "Approbations de congé",
+          "description": "Décidez des demandes de congé confiées aux administrateurs de l’organisation."
+        },
+        "workSchedules": {
+          "title": "Horaires",
+          "description": "Publiez les horaires des sites, affectez les employés et repérez les créneaux non couverts."
+        },
+        "hierarchy": {
+          "title": "Structure organisationnelle",
+          "description": "Entités juridiques, sites, régions, départements, centres de coûts et équipes."
+        },
+        "contractTemplates": {
+          "title": "Modèles de contrat",
+          "description": "Rédigez, approuvez et retirez les modèles servant à émettre les contrats."
+        },
+        "users": {
+          "title": "Utilisateurs et invitations",
+          "description": "Invitez des personnes sur DivalHR et suivez chaque invitation."
+        },
+        "accessReview": {
+          "title": "Revue des accès",
+          "description": "Voyez qui a accès à quoi, et par quelle affectation."
+        }
       },
       "attention": {
         "title": "Contrats à traiter",
@@ -157,9 +191,18 @@
     "employee": {
       "eyebrow": "Espace employé",
       "title": "Mon espace",
-      "description": "Vos documents d’emploi au même endroit. D’autres services apparaîtront ici dès qu’ils seront disponibles.",
-      "contractsDescription": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus.",
-      "contractsAction": "Ouvrir mes contrats"
+      "description": "Vos congés, vos créneaux et vos contrats au même endroit.",
+      "myWork": "Mon travail",
+      "cards": {
+        "leave": "Demandez un congé, suivez vos demandes et consultez chaque décision.",
+        "schedule": "Consultez vos créneaux en cours et à venir, chacun à l’heure locale de son site.",
+        "contracts": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus."
+      },
+      "approvals": {
+        "title": "Approbations de congé qui vous sont confiées",
+        "description": "Si vous êtes désigné comme approbateur de congés, ou comme remplaçant d’un approbateur, les demandes qui attendent votre décision apparaissent ici.",
+        "action": "Ouvrir les approbations de congé"
+      }
     }
   },
   "roadmap": {
@@ -167,21 +210,9 @@
     "description": "Prévu dans la feuille de route DivalHR. Pas encore disponible.",
     "badge": "À venir",
     "items": {
-      "leave": {
-        "title": "Congés et approbations",
-        "description": "Demandes, soldes et circuits d’approbation."
-      },
       "attendance": {
         "title": "Présences et feuilles de temps",
         "description": "Pointage en ligne et hors ligne."
-      },
-      "scheduling": {
-        "title": "Plannings et rotations",
-        "description": "Horaires et rotations par site et par équipe."
-      },
-      "documentExpiry": {
-        "title": "Échéances des documents",
-        "description": "Suivi des habilitations et pièces d’identité qui expirent."
       },
       "payrollInputs": {
         "title": "Éléments de paie",
@@ -190,10 +221,6 @@
       "expenses": {
         "title": "Frais et indemnités",
         "description": "Notes de frais, indemnités et remboursements."
-      },
-      "myLeave": {
-        "title": "Congés",
-        "description": "Demandez des congés et suivez vos soldes."
       },
       "myDocuments": {
         "title": "Documents",
@@ -2145,23 +2172,27 @@
       "nav": {
         "home": "Accueil",
         "employees": "Employés",
-        "organization": "Organisation",
-        "contracts": "Contrats",
-        "access": "Revue des accès"
+        "leave": "Congés",
+        "schedules": "Horaires",
+        "contracts": "Contrats"
       },
       "actions": {
         "import": "Importer des employés",
-        "invite": "Inviter un utilisateur",
-        "template": "Créer un modèle"
+        "reviewLeave": "Examiner les congés",
+        "openSchedules": "Ouvrir les horaires"
       },
       "cards": {
         "employees": {
           "title": "Employés",
           "description": "Dossiers et historique d’emploi"
         },
-        "organization": {
-          "title": "Organisation",
-          "description": "Entités, sites et équipes"
+        "leave": {
+          "title": "Congés",
+          "description": "Politiques, demandes et approbations"
+        },
+        "schedules": {
+          "title": "Horaires",
+          "description": "Créneaux des sites et créneaux non couverts"
         },
         "contracts": {
           "title": "Modèles de contrat",
@@ -2188,7 +2219,7 @@
         },
         "operations": {
           "title": "Opérations",
-          "description": "Sites, horaires, présence et validations."
+          "description": "Sites, approbations de congé et horaires de travail."
         },
         "pay": {
           "title": "Paie + avantages",
@@ -2215,7 +2246,7 @@
         },
         "leave": {
           "title": "Gestion des congés",
-          "description": "Demandes, validations, soldes et calendrier d’équipe."
+          "description": "Politiques de congé, demandes, approbations, modifications, annulations, retraits, exceptions d’acheminement et approbateurs remplaçants."
         },
         "payroll": {
           "title": "Paie et paiements",
@@ -2260,6 +2291,10 @@
         "organization": {
           "title": "Structure de l’organisation",
           "description": "Entités juridiques, sites, régions, départements, centres de coûts et équipes."
+        },
+        "scheduling": {
+          "title": "Planification du travail",
+          "description": "Publiez les horaires de chaque site, affectez les employés, repérez les créneaux non couverts, montrez à chaque employé ses créneaux, et annulez ou remplacez un horaire entièrement futur."
         },
         "contracts": {
           "title": "Contrats",
@@ -2389,7 +2424,7 @@
         },
         "operations": {
           "title": "Opérations",
-          "description": "Sites, horaires et validations dans une seule vue."
+          "description": "Sites, horaires et approbations de congé dans une seule vue."
         },
         "finance": {
           "title": "Finance",
@@ -2397,7 +2432,7 @@
         },
         "employees": {
           "title": "Employés",
-          "description": "Les contrats aujourd’hui ; congés, paie et avantages sur mobile plus tard."
+          "description": "Contrats, congés et créneaux attribués dès aujourd’hui ; paie et avantages plus tard."
         }
       }
     },
