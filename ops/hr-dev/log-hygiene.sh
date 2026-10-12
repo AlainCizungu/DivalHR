@@ -10,8 +10,8 @@
 #     provisioner secret, Keycloak's and the operator's passwords and, live, the synthetic
 #     acceptance accounts' passwords and authenticator keys);
 #   - token, cookie, code and credential shapes: JWTs, bearer credentials, Keycloak session cookie
-#     values, OIDC query parameters (code, state, session_state, tokens, verifiers) and
-#     password or secret assignments.
+#     values, OIDC query parameters (code, state, session_state, tokens, verifiers),
+#     password or secret assignments and (SEC-002) Idempotency-Key header values.
 # It prints counts per container only, never a matched value or a log line. Exit 1 on any match.
 set -u
 . "$(dirname "$0")/lib.sh"
@@ -48,7 +48,7 @@ fi
 needles=$(wc -l < "$W/needles")
 [ -d "$S" ] && [ "$needles" = 0 ] && hr_die "no secret values could be read from $S"
 
-SHAPES='eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}|[Bb]earer [A-Za-z0-9._~+/=-]{16,}|KEYCLOAK_(IDENTITY|SESSION)[A-Z_]*=[^;[:space:]"]{8,}|[?&](code|state|session_state|code_verifier|id_token_hint|id_token|access_token|refresh_token)=[^&[:space:]"]{6,}|(password|secret|totpSecret)=[^&[:space:]",]{6,}'
+SHAPES='eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}|[Bb]earer [A-Za-z0-9._~+/=-]{16,}|KEYCLOAK_(IDENTITY|SESSION)[A-Z_]*=[^;[:space:]"]{8,}|[?&](code|state|session_state|code_verifier|id_token_hint|id_token|access_token|refresh_token)=[^&[:space:]"]{6,}|(password|secret|totpSecret)=[^&[:space:]",]{6,}|[Ii]dempotency-[Kk]ey"?: ?\[?"?[^][:space:]"]{8,}'
 
 total=0 bad=0
 containers=$(docker ps -a --filter "label=com.docker.compose.project=$PROJECT" --format '{{.Names}}' | sort)

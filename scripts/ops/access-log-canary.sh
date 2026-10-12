@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# SEC-001: runtime test that OIDC authorization data never reaches an access log.
+# SEC-001: runtime test that OIDC authorization data never reaches an access log; SEC-002: nor an
+# Idempotency-Key header value.
 #
 #   bash scripts/ops/access-log-canary.sh            # CI: the pinned Caddy and web nginx images
 #   bash scripts/ops/access-log-canary.sh --local    # caddy and nginx binaries on PATH
 #
 # Unique random canaries are placed where authorization data travels: an /auth/callback query
 # (code, state, session_state), a Referer header, a redirect Location header (Keycloak's redirect
-# to the callback, proxied by Caddy), a Cookie, an Authorization header and a Set-Cookie header.
+# to the callback, proxied by Caddy), a Cookie, an Authorization header, a Set-Cookie header and
+# an Idempotency-Key header (SEC-002).
 # The committed configuration must keep every canary out of the logs while the method, the path
 # and the status stay visible. Then each required redaction is removed in turn (a mutation): the
 # canary it protects must appear, which proves the check would catch that regression.
@@ -41,7 +43,8 @@ wait_http() { # <url>
 
 QCODE=$(canary code) QSTATE=$(canary state) QSESSION=$(canary session) REFERER=$(canary referer)
 LOCATION=$(canary location) COOKIE=$(canary cookie) AUTHZ=$(canary authorization) SETCOOKIE=$(canary setcookie)
-ALL=("$QCODE" "$QSTATE" "$QSESSION" "$REFERER" "$LOCATION" "$COOKIE" "$AUTHZ" "$SETCOOKIE")
+IDEMKEY=$(canary idempotency)
+ALL=("$QCODE" "$QSTATE" "$QSESSION" "$REFERER" "$LOCATION" "$COOKIE" "$AUTHZ" "$SETCOOKIE" "$IDEMKEY")
 
 requests() { # <base url>: the browser's view of a sign-in, with every canary in place
   local base="$1"
@@ -50,6 +53,9 @@ requests() { # <base url>: the browser's view of a sign-in, with every canary in
     "$base/identity/realms/divalhr-test/protocol/openid-connect/auth?client_id=divalhr-web&state=$QSTATE"
   curl -s -o /dev/null -H "Referer: https://hr-dev.example.test/identity/realms/x?session_code=$REFERER" \
     "$base/auth/callback?state=$QSTATE&session_state=$QSESSION&code=$QCODE"
+  # SEC-002: a command with its idempotency key, as the web app sends one to the Core API.
+  curl -s -o /dev/null -X POST -H "Authorization: Bearer $AUTHZ" -H "Idempotency-Key: $IDEMKEY" \
+    -H 'Content-Type: application/json' --data '{}' "$base/api/v1/me/attendance/check-in"
 }
 leaks() { # <log file>: how many canaries appear (never which values)
   local n=0 c
@@ -125,8 +131,8 @@ if run_caddy "$W/accesslog" "$W/caddy.log"; then
     && pass "Caddy: method, path without query and status are still logged" \
     || fail "Caddy: the safe fields are missing from the access log"
   # The deleted fields are absent altogether (Caddy itself would only write REDACTED for some).
-  present=$(grep -oE '"(Referer|Location|Cookie|Set-Cookie|Authorization)":' "$W/caddy.log" | sort -u | tr -d '":' | tr '\n' ' ')
-  [ -z "$present" ] && pass "Caddy: no Referer, Location, Cookie, Set-Cookie or Authorization field is logged" \
+  present=$(grep -oE '"(Referer|Location|Cookie|Set-Cookie|Authorization|Idempotency-Key)":' "$W/caddy.log" | sort -u | tr -d '":' | tr '\n' ' ')
+  [ -z "$present" ] && pass "Caddy: no Referer, Location, Cookie, Set-Cookie, Authorization or Idempotency-Key field is logged" \
     || fail "Caddy: logged fields that must be deleted: $present"
 else
   fail "Caddy did not start"
@@ -145,6 +151,7 @@ caddy_mutation() { # <name> <pattern of the removed line> <canary or field marke
 caddy_mutation 'Caddy query kept' 'request>uri regexp' "$QCODE"
 caddy_mutation 'Caddy Referer kept' 'request>headers>Referer delete' "$REFERER"
 caddy_mutation 'Caddy Location kept' 'resp_headers>Location delete' "$LOCATION"
+caddy_mutation 'Caddy Idempotency-Key kept' 'request>headers>Idempotency-Key delete' "$IDEMKEY"
 # Caddy writes REDACTED for these three by default, so their values cannot leak even then; the
 # deletion is still required, and its removal makes the deleted-field check above fail.
 caddy_mutation 'Caddy Cookie kept' 'request>headers>Cookie delete' '"Cookie":'
@@ -240,6 +247,7 @@ nginx_mutation 'nginx Referer logged' "s/\\\$request_time'/\$request_time \"\$ht
 nginx_mutation 'nginx Cookie logged' "s/\\\$request_time'/\$request_time \"\$http_cookie\"'/" "$COOKIE"
 nginx_mutation 'nginx uninitialized-variable warning on (error log)' '/uninitialized_variable_warn off;/d' "$QCODE"
 nginx_mutation 'nginx Authorization logged' "s/\\\$request_time'/\$request_time \"\$http_authorization\"'/" "$AUTHZ"
+nginx_mutation 'nginx Idempotency-Key logged' "s/\\\$request_time'/\$request_time \"\$http_idempotency_key\"'/" "$IDEMKEY"
 
-if [ "$FAILED" = 0 ]; then echo "ALL PASS (SEC-001 access-log canaries, $MODE)"; else echo "SOME CHECKS FAILED"; fi
+if [ "$FAILED" = 0 ]; then echo "ALL PASS (SEC-001 and SEC-002 access-log canaries, $MODE)"; else echo "SOME CHECKS FAILED"; fi
 exit "$FAILED"

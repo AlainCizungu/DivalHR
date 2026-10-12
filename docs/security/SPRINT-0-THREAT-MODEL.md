@@ -385,3 +385,12 @@ Logging configuration of the test environment's Caddy and of the web image's ngi
 
 New data: none. New configuration: none. Residual risks: nginx error-level messages still quote the request line by design; the template avoids the conditions that produce them on normal traffic. Logs written before the fix keep expired, single-use, PKCE-bound codes until their containers are recreated and their log files removed; checksummed evidence is kept unaltered and inventoried by counts and paths only.
 
+## SEC-002 delta (idempotency keys in access logs)
+
+Logging configuration of the test environment's Caddy; no product code.
+
+| # | Threat | Mitigation | Verified by |
+|---|---|---|---|
+| I34 | An `Idempotency-Key` header value reaches a log (found live after the MVP-060A deployment: Caddy logs every request header it does not filter, so each command's key was in the access log) | Caddy deletes `request>headers>Idempotency-Key` outright; nginx never logs `$http_idempotency_key` (forbidden by the static policy); `log-hygiene.sh` counts `Idempotency-Key` header values as a forbidden shape | `scripts/ops/access-log.test.mjs` (policy, mutations, a JSON and a raw header leak), `scripts/ops/access-log-canary.sh` in CI (a key canary on a command through the pinned Caddy and nginx images, one mutation each) |
+
+New data: none. New configuration: one deleted log field. Residual risk: keys logged before the fix stay in the current containers' log files until those containers are recreated (the next deployment recreates Caddy); a key is a client-chosen retry token, not a credential, and is never reused across operations.

@@ -1,6 +1,7 @@
 // SEC-001: the static access-log policy of the test environment's Caddy and of the web image's
 // nginx. OIDC authorization data (code, state, session_state) travels in callback queries, in
-// referring URLs and in redirect targets, so none of these may reach an access log.
+// referring URLs and in redirect targets, so none of these may reach an access log. SEC-002: nor
+// may an Idempotency-Key request header value.
 // Each check returns a list of violations (empty when the configuration complies).
 
 /** Caddy filter fields that must be deleted outright, never rewritten. */
@@ -10,6 +11,7 @@ export const CADDY_DELETED = [
   'request>headers>Referer',
   'resp_headers>Location',
   'resp_headers>Set-Cookie',
+  'request>headers>Idempotency-Key',
 ];
 
 /** nginx variables the safe format may use, and only these. */
@@ -38,6 +40,7 @@ export const NGINX_FORBIDDEN = [
   'sent_http_location',
   'sent_http_set_cookie',
   'request_body',
+  'http_idempotency_key',
 ];
 
 const withoutComments = (text) =>

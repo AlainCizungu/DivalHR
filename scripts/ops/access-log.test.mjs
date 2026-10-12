@@ -1,6 +1,6 @@
-// SEC-001: static tests of the access-log policy (Caddy of the test environment, nginx of the web
-// image), mutation checks of that policy, and the wiring of the runtime canary test and of the
-// hr-dev log check. Run: pnpm ops:test
+// SEC-001 and SEC-002: static tests of the access-log policy (Caddy of the test environment, nginx
+// of the web image), mutation checks of that policy, and the wiring of the runtime canary test and
+// of the hr-dev log check. Run: pnpm ops:test
 import assert from 'node:assert/strict';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,7 +31,11 @@ const replace = (text, from, to) => {
 test('the committed Caddyfile deletes the fields that carry OIDC data and drops queries', () => {
   assert.deepEqual(checkCaddy(CADDYFILE), []);
   const snippet = caddyAccessLogSnippet(CADDYFILE);
-  for (const field of ['request>headers>Referer', 'resp_headers>Location']) {
+  for (const field of [
+    'request>headers>Referer',
+    'resp_headers>Location',
+    'request>headers>Idempotency-Key',
+  ]) {
     assert.match(snippet, new RegExp(`^\\s*${field} delete$`, 'm'), field);
   }
   // The three public sites log through the filter; the internal identity route and the operator
@@ -52,6 +56,12 @@ test('every removed or weakened Caddy redaction is a violation', () => {
     'Authorization kept': without(CADDYFILE, /request>headers>Authorization delete/),
     'Cookie kept': without(CADDYFILE, /request>headers>Cookie delete/),
     'Set-Cookie kept': without(CADDYFILE, /resp_headers>Set-Cookie delete/),
+    'Idempotency-Key kept': without(CADDYFILE, /request>headers>Idempotency-Key delete/),
+    'Idempotency-Key rewritten instead of deleted': replace(
+      CADDYFILE,
+      'request>headers>Idempotency-Key delete',
+      'request>headers>Idempotency-Key replace REDACTED',
+    ),
     'query kept': without(CADDYFILE, /request>uri regexp/),
     'Location rewritten instead of deleted': replace(
       CADDYFILE,
@@ -97,6 +107,7 @@ test('every unsafe nginx logging change is a violation', () => {
     cookie: replace(TEMPLATE, '$request_time', '$request_time $http_cookie'),
     'one cookie': replace(TEMPLATE, '$request_time', '$request_time $cookie_KEYCLOAK_IDENTITY'),
     authorization: replace(TEMPLATE, '$request_time', '$request_time $http_authorization'),
+    'idempotency key': replace(TEMPLATE, '$request_time', '$request_time $http_idempotency_key'),
     'redirect target': replace(TEMPLATE, '$request_time', '$request_time $sent_http_location'),
     'one argument': replace(TEMPLATE, '$request_time', '$request_time $arg_code'),
     'image default format': replace(
@@ -139,7 +150,14 @@ test('the runtime canary test runs in CI with the pinned images, and the hr-dev 
   assert.match(nginxImage, /@sha256:[0-9a-f]{64}$/);
   // Canaries are unique per run, and every required redaction has a mutation that must leak.
   assert.match(canary, /\/dev\/urandom/);
-  for (const field of ['Referer', 'Location', 'Authorization', 'Cookie', 'Set-Cookie']) {
+  for (const field of [
+    'Referer',
+    'Location',
+    'Authorization',
+    'Cookie',
+    'Set-Cookie',
+    'Idempotency-Key',
+  ]) {
     assert.ok(canary.includes(field), `mutation for ${field}`);
   }
   const browser = read('ops/hr-dev/rehearsal-browser.sh');
@@ -242,6 +260,9 @@ test('log-hygiene fails on a secret value or an authorization shape, without pri
     // Built at run time: a literal cookie assignment would itself trip the secret scanner.
     'session cookie': ['Cookie: KEYCLOAK_IDENTITY', 'cafe'.repeat(4)].join('='),
     'password assignment': 'form password=hunter22secret',
+    // SEC-002: Caddy's JSON access log records request headers as arrays of values.
+    'idempotency key header (JSON)': '{"headers":{"Idempotency-Key":["web-key-0123456789abcdef"]}}',
+    'idempotency key header (raw)': 'Idempotency-Key: web-key-0123456789abcdef',
   };
   for (const [name, line] of Object.entries(leaks)) {
     const result = hygieneWorld({ 'p-caddy-1': CLEAN, 'p-web-1': `${CLEAN}${line}\n` });
