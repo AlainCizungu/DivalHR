@@ -82,6 +82,12 @@ const attendance = (overrides: Record<string, unknown> = {}) => ({
   checkedOutAt: null,
   checkInAvailable: false,
   checkOutAvailable: false,
+  checkInRecordingMethod: null,
+  checkInSupervisorReasonLocale: null,
+  checkInSupervisorReason: null,
+  checkOutRecordingMethod: null,
+  checkOutSupervisorReasonLocale: null,
+  checkOutSupervisorReason: null,
   ...overrides,
 });
 
@@ -113,6 +119,13 @@ const record = (id: string, overrides: Record<string, unknown> = {}) => ({
   checkedInAt: '2099-11-02T06:55:00Z',
   checkedOutAt: '2099-11-02T15:05:00Z',
   checkOutAvailable: false,
+  // MVP-060B: the employee's own times (SELF); a supervisor's are covered in TeamAttendance.test.
+  checkInRecordingMethod: 'SELF',
+  checkInSupervisorReasonLocale: null,
+  checkInSupervisorReason: null,
+  checkOutRecordingMethod: 'SELF',
+  checkOutSupervisorReasonLocale: null,
+  checkOutSupervisorReason: null,
   shift: {
     scheduleId: SCHEDULE,
     slotId: SLOT,

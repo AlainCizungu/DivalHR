@@ -215,7 +215,11 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-060A: the employee's own online attendance.
           "attendance.self-list",
           "attendance.check-in",
-          "attendance.check-out");
+          "attendance.check-out",
+          // MVP-060B: the manager's team attendance (authority re-derived from the reporting line).
+          "attendance.team-actions-list",
+          "attendance.supervisor-check-in",
+          "attendance.supervisor-check-out");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

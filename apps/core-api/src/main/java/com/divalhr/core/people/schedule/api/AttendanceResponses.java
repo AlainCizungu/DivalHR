@@ -113,6 +113,12 @@ public final class AttendanceResponses {
    * @param checkedOutAt check-out instant, or {@code null}
    * @param checkOutAvailable open and inside the check-out window at the page's instant
    * @param shift its shift
+   * @param checkInRecordingMethod how the check-in was recorded (MVP-060B)
+   * @param checkInSupervisorReasonLocale a supervisor's check-in reason language, or {@code null}
+   * @param checkInSupervisorReason a supervisor's check-in reason, or {@code null}
+   * @param checkOutRecordingMethod how the check-out was recorded, or {@code null}
+   * @param checkOutSupervisorReasonLocale a supervisor's check-out reason language, or {@code null}
+   * @param checkOutSupervisorReason a supervisor's check-out reason, or {@code null}
    */
   @Schema(name = "MyAttendanceRecord")
   public record Item(
@@ -121,7 +127,13 @@ public final class AttendanceResponses {
       Instant checkedInAt,
       Instant checkedOutAt,
       boolean checkOutAvailable,
-      ShiftView shift) {
+      ShiftView shift,
+      Attendance.Method checkInRecordingMethod,
+      String checkInSupervisorReasonLocale,
+      String checkInSupervisorReason,
+      Attendance.Method checkOutRecordingMethod,
+      String checkOutSupervisorReasonLocale,
+      String checkOutSupervisorReason) {
 
     /**
      * The view of a history row.
@@ -133,13 +145,21 @@ public final class AttendanceResponses {
      */
     public static Item of(Attendance.HistoryItem item, UnitView site, Instant at) {
       Attendance.Record record = item.record();
+      Attendance.Recording in = item.checkIn() == null ? Attendance.Recording.SELF : item.checkIn();
+      Attendance.Recording out = item.checkOut();
       return new Item(
           record.id(),
           record.status(),
           record.checkedInAt(),
           record.checkedOutAt(),
           record.checkOutAvailable(at),
-          ShiftView.of(item.shift(), site));
+          ShiftView.of(item.shift(), site),
+          in.method(),
+          in.supervisorReasonLocale(),
+          in.supervisorReason(),
+          out == null ? null : out.method(),
+          out == null ? null : out.supervisorReasonLocale(),
+          out == null ? null : out.supervisorReason());
     }
 
     /**

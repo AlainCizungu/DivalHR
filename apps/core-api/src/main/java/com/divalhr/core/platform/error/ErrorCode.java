@@ -377,7 +377,14 @@ public enum ErrorCode {
   /** MVP-060A: the check-out window closed 24 hours after the scheduled end. */
   ATTENDANCE_CHECK_OUT_WINDOW_CLOSED(HttpStatus.CONFLICT),
   /** MVP-060A: the command does not fit the current state (no detail). */
-  ATTENDANCE_STATE_CONFLICT(HttpStatus.CONFLICT);
+  ATTENDANCE_STATE_CONFLICT(HttpStatus.CONFLICT),
+  /**
+   * MVP-060B: an unknown, malformed, foreign, non-report, own or no-longer-routed shift or record
+   * for a supervisor-assisted action (one indistinguishable not-found).
+   */
+  TEAM_ATTENDANCE_ACTION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-060B: the caller manages nobody around the actionable dates. */
+  TEAM_ATTENDANCE_MANAGER_REQUIRED(HttpStatus.FORBIDDEN);
 
   private final HttpStatus status;
 

@@ -96,6 +96,7 @@
       <Class name="com.divalhr.core.people.schedule.internal.JdbcWorkScheduleSubstitutionRepository"/>
       <Class name="com.divalhr.core.people.schedule.application.AttendanceService"/>
       <Class name="com.divalhr.core.people.schedule.internal.JdbcAttendanceRepository"/>
+      <Class name="com.divalhr.core.people.schedule.application.TeamAttendanceService"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>

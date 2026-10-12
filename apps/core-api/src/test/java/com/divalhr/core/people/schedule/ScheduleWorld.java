@@ -240,10 +240,16 @@ final class ScheduleWorld {
 
   /** The commit of a previewed separation with the acknowledgements it required (for races). */
   MockHttpServletRequestBuilder separate(UUID employee, LocalDate lastDay) throws Exception {
+    return separate(employee, lastDay, "END_OF_LAST_DAY");
+  }
+
+  /** As {@link #separate(UUID, LocalDate)}, with the access timing (IMMEDIATELY for a past day). */
+  MockHttpServletRequestBuilder separate(UUID employee, LocalDate lastDay, String accessTiming)
+      throws Exception {
     Map<String, Object> command = new LinkedHashMap<>();
     command.put("lastDay", lastDay.toString());
     command.put("reasonCode", "RESIGNATION");
-    command.put("accessTiming", "END_OF_LAST_DAY");
+    command.put("accessTiming", accessTiming);
     JsonNode preview =
         expect(
             Employees.postJson(

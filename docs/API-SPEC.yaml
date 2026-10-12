@@ -4581,7 +4581,9 @@ paths:
         view, its instant) and the page size; a cursor of one view is refused in the other (400
         CURSOR_INVALID). MVP-060A: each shift carries the caller's own attendance on it
         (NOT_RECORDED, OPEN with the check-in instant, COMPLETED with both instants) and whether
-        a check-in or check-out is possible at the view's instant. Shares the
+        a check-in or check-out is possible at the view's instant. MVP-060B: how each event was
+        recorded (SELF or SUPERVISOR) and, for a supervisor-assisted event, the supervisor's reason
+        exactly as submitted; never the supervisor's identity. Shares the
         work-schedule-self-read limit. Cache-Control private, no-store.
       tags: [people]
       parameters:
@@ -4899,8 +4901,10 @@ paths:
         signed cursor). A record stays as evidence after its schedule is cancelled or replaced or
         its slot is substituted; an OPEN record whose check-out window has closed stays OPEN
         (checkOutAvailable false) for a later correction story. Never another employee, a
-        subject, an employment or an evidence field. Restricted HR/Operations: a fail-closed
-        disclosure (audit attendance.self-list). The signed cursor is bound to the operation,
+        subject, an employment or an evidence field. MVP-060B: each record also says how its
+        check-in and check-out were recorded (SELF or SUPERVISOR) and carries a supervisor's reason
+        exactly as submitted, never the supervisor's identity. Restricted HR/Operations: a
+        fail-closed disclosure (audit attendance.self-list). The signed cursor is bound to the operation,
         tenant, caller, the caller's link and linked employee, the page size and asOfInstant.
         Shares the work-schedule-self-read limit. Cache-Control private, no-store.
       tags: [people]
@@ -5026,6 +5030,166 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttendanceReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/team-attendance/actions:
+    get:
+      operationId: listTeamAttendanceActions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List the attendance actions my direct reports need now
+      description: >-
+        MVP-060B. The scheduled shifts of the caller's current direct reports that need a
+        supervisor-assisted action at the page's server-owned instant (asOfInstant, pinned in the
+        signed cursor): CHECK_IN for a not-recorded shift inside its check-in window (and no other
+        actionable open record of the employee), CHECK_OUT for an OPEN record inside its check-out
+        window. A direct report is the shift's current effective assignee (operational coverage)
+        whose one qualifying employment has an active, non-superseded MANAGER line naming the
+        employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED
+        otherwise) on the shift's site-local start date; never the caller themselves. A caller who
+        manages nobody from three days before to one day after the organization's business date is
+        403 TEAM_ATTENDANCE_MANAGER_REQUIRED. Ordered by the action deadline (the scheduled end
+        for a check-in, 24 hours after it for a check-out), then the shift start, the slot and the
+        action. Only what acting requires: IDs, the employee's number and current name, the site,
+        the shift, the required action and deadline, the attendance state and recorded instants;
+        never a reason, subject or employment. Restricted HR/Operations: a fail-closed disclosure
+        (audit attendance.team-actions-list). The signed cursor is bound to the operation, tenant,
+        subject digest, link, manager employee, page size and asOfInstant. Shares the
+        work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamAttendanceActionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/team-attendance/check-in:
+    post:
+      operationId: checkInTeamAttendance
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Check a direct report in on a scheduled shift
+      description: >-
+        MVP-060B. The caller, the target's effective manager (see listTeamAttendanceActions),
+        records the check-in of the slot's current effective assignee with a reason. Tenant,
+        employee, manager, employment, actor and instant are never fields: the target comes from
+        the slot's current operational coverage and the instant is the server's. Malformed,
+        unknown, foreign-tenant, non-report, self, uncovered, cancelled and replaced slots are the
+        same 404 TEAM_ATTENDANCE_ACTION_NOT_FOUND without params. After authority, the MVP-060A
+        rules and codes apply unchanged: 409 ATTENDANCE_CHECK_IN_TOO_EARLY,
+        ATTENDANCE_CHECK_IN_WINDOW_CLOSED, ATTENDANCE_ALREADY_CHECKED_IN (by the employee or a
+        supervisor), ATTENDANCE_OPEN_RECORD_EXISTS and ATTENDANCE_STATE_CONFLICT. One transaction,
+        under the tenant's manager-graph and scheduling locks, writes the SUPERVISOR CHECKED_IN
+        event, the supervisor action (the manager, the manager's employment and the reason), the
+        target's OPEN record, the audit record (attendance.supervisor-check-in) and the outbox
+        event (people.attendance.supervisor-checked-in.v1). An exact retry returns the stored 201
+        with Idempotent-Replayed true only while the caller is still the target's effective
+        manager; otherwise the same 404 with no stored data. Errors never echo an ID, name,
+        number, label, subject or the reason. Shares the attendance-write limits. Cache-Control
+        private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupervisorCheckInRequest"
+      responses:
+        "201":
+          description: Checked in on the employee's behalf, or the original check-in replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupervisorAttendanceReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/team-attendance/{attendanceRecordId}/check-out:
+    post:
+      operationId: checkOutTeamAttendance
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Check a direct report out of an open attendance record
+      description: >-
+        MVP-060B. The caller, the effective manager of the record's employment on its shift's
+        site-local start date, records the single check-out of the target's OPEN record with a
+        reason. Malformed, unknown, foreign-tenant, non-report and self records are the same 404
+        TEAM_ATTENDANCE_ACTION_NOT_FOUND without params. After authority, 409
+        ATTENDANCE_ALREADY_CHECKED_OUT, ATTENDANCE_CHECK_OUT_WINDOW_CLOSED and
+        ATTENDANCE_STATE_CONFLICT apply unchanged. One transaction writes the SUPERVISOR
+        CHECKED_OUT event, the supervisor action, completes the record and writes the audit record
+        (attendance.supervisor-check-out) and the outbox event
+        (people.attendance.supervisor-checked-out.v1). Replay as for the check-in. Shares the
+        attendance-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceRecordId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupervisorCheckOutRequest"
+      responses:
+        "200":
+          description: Checked out on the employee's behalf, or the original check-out replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupervisorAttendanceReceipt"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -8573,6 +8737,8 @@ components:
         - ATTENDANCE_ALREADY_CHECKED_OUT
         - ATTENDANCE_CHECK_OUT_WINDOW_CLOSED
         - ATTENDANCE_STATE_CONFLICT
+        - TEAM_ATTENDANCE_ACTION_NOT_FOUND
+        - TEAM_ATTENDANCE_MANAGER_REQUIRED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -10089,7 +10255,20 @@ components:
         checkOutAvailable only while OPEN and inside the check-out window. Never a subject, an
         employment or an evidence field.
       required:
-        [status, attendanceRecordId, checkedInAt, checkedOutAt, checkInAvailable, checkOutAvailable]
+        [
+          status,
+          attendanceRecordId,
+          checkedInAt,
+          checkedOutAt,
+          checkInAvailable,
+          checkOutAvailable,
+          checkInRecordingMethod,
+          checkInSupervisorReasonLocale,
+          checkInSupervisorReason,
+          checkOutRecordingMethod,
+          checkOutSupervisorReasonLocale,
+          checkOutSupervisorReason,
+        ]
       properties:
         status:
           $ref: "#/components/schemas/WorkShiftAttendanceStatus"
@@ -10106,6 +10285,34 @@ components:
           type: boolean
         checkOutAvailable:
           type: boolean
+        checkInRecordingMethod:
+          description: MVP-060B. How the check-in was recorded; null when not recorded.
+          oneOf:
+            - $ref: "#/components/schemas/AttendanceRecordingMethod"
+            - type: "null"
+        checkInSupervisorReasonLocale:
+          type: [string, "null"]
+          enum: [en, fr, null]
+          description: MVP-060B. The language of a supervisor's check-in reason; null otherwise.
+        checkInSupervisorReason:
+          type: [string, "null"]
+          description: >-
+            MVP-060B. A supervisor's check-in reason exactly as submitted; null for a SELF
+            check-in. Never the supervisor's identity.
+        checkOutRecordingMethod:
+          description: MVP-060B. How the check-out was recorded; null when not checked out.
+          oneOf:
+            - $ref: "#/components/schemas/AttendanceRecordingMethod"
+            - type: "null"
+        checkOutSupervisorReasonLocale:
+          type: [string, "null"]
+          enum: [en, fr, null]
+          description: MVP-060B. The language of a supervisor's check-out reason; null otherwise.
+        checkOutSupervisorReason:
+          type: [string, "null"]
+          description: >-
+            MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never
+            the supervisor's identity.
     WorkShiftAttendanceStatus:
       type: string
       description: >-
@@ -10183,8 +10390,25 @@ components:
           $ref: "#/components/schemas/WorkScheduleLabels"
     MyAttendanceRecord:
       type: object
-      description: MVP-060A. One of the caller's own attendance records.
-      required: [id, status, checkedInAt, checkedOutAt, checkOutAvailable, shift]
+      description: >-
+        MVP-060A. One of the caller's own attendance records. MVP-060B: how each event was
+        recorded and, for a supervisor-assisted event, the supervisor's reason exactly as
+        submitted; never the supervisor's identity.
+      required:
+        [
+          id,
+          status,
+          checkedInAt,
+          checkedOutAt,
+          checkOutAvailable,
+          shift,
+          checkInRecordingMethod,
+          checkInSupervisorReasonLocale,
+          checkInSupervisorReason,
+          checkOutRecordingMethod,
+          checkOutSupervisorReasonLocale,
+          checkOutSupervisorReason,
+        ]
       properties:
         id:
           type: string
@@ -10202,6 +10426,31 @@ components:
           description: True only while OPEN and inside the check-out window at asOfInstant.
         shift:
           $ref: "#/components/schemas/AttendanceShift"
+        checkInRecordingMethod:
+          $ref: "#/components/schemas/AttendanceRecordingMethod"
+        checkInSupervisorReasonLocale:
+          type: [string, "null"]
+          enum: [en, fr, null]
+          description: MVP-060B. The language of a supervisor's check-in reason; null otherwise.
+        checkInSupervisorReason:
+          type: [string, "null"]
+          description: >-
+            MVP-060B. A supervisor's check-in reason exactly as submitted; null for a SELF
+            check-in. Never the supervisor's identity.
+        checkOutRecordingMethod:
+          description: MVP-060B. How the check-out was recorded; null when not checked out.
+          oneOf:
+            - $ref: "#/components/schemas/AttendanceRecordingMethod"
+            - type: "null"
+        checkOutSupervisorReasonLocale:
+          type: [string, "null"]
+          enum: [en, fr, null]
+          description: MVP-060B. The language of a supervisor's check-out reason; null otherwise.
+        checkOutSupervisorReason:
+          type: [string, "null"]
+          description: >-
+            MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never
+            the supervisor's identity.
     MyAttendancePage:
       type: object
       required: [items, nextCursor, asOfInstant]
@@ -10211,6 +10460,170 @@ components:
           maxItems: 100
           items:
             $ref: "#/components/schemas/MyAttendanceRecord"
+        nextCursor:
+          type: [string, "null"]
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server-owned instant of the view, the same on every page.
+    AttendanceRecordingMethod:
+      type: string
+      description: >-
+        MVP-060B. SELF: recorded by the employee. SUPERVISOR: recorded by the employee's effective
+        manager on their behalf, with a reason.
+      enum: [SELF, SUPERVISOR]
+    TeamAttendanceRequiredAction:
+      type: string
+      description: MVP-060B. The action a direct report's shift needs now.
+      enum: [CHECK_IN, CHECK_OUT]
+    SupervisorCheckInRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-060B. The slot and the reason. Tenant, employee, manager, employment, actor and instant
+        are never fields. VALIDATION_FAILED fields: slotId (REQUIRED), reasonLocale, reason, body
+        (UNKNOWN_PROPERTY) and Idempotency-Key; a slotId that is not a UUID is the same 404
+        TEAM_ATTENDANCE_ACTION_NOT_FOUND as an unknown one.
+      required: [slotId, reasonLocale, reason]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionReason"
+    SupervisorCheckOutRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-060B. The reason; the record comes from the path. VALIDATION_FAILED fields:
+        reasonLocale, reason, body (REQUIRED, UNKNOWN_PROPERTY) and Idempotency-Key.
+      required: [reasonLocale, reason]
+      properties:
+        reasonLocale:
+          type: string
+          enum: [en, fr]
+          description: The language the reason is written in.
+        reason:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionReason"
+    SupervisorAttendanceReceipt:
+      type: object
+      description: >-
+        MVP-060B. The minimal receipt of a supervisor-assisted check-in (OPEN) or check-out
+        (COMPLETED) of the target employee; instants are the server's. Never the reason or the
+        manager's identity.
+      required:
+        [
+          attendanceRecordId,
+          slotId,
+          employeeId,
+          status,
+          recordingMethod,
+          checkedInAt,
+          checkedOutAt,
+        ]
+      properties:
+        attendanceRecordId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+          description: The target employee.
+        status:
+          $ref: "#/components/schemas/AttendanceStatus"
+        recordingMethod:
+          type: string
+          enum: [SUPERVISOR]
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+    TeamAttendanceAction:
+      type: object
+      description: >-
+        MVP-060B. One action a direct report's shift needs now. attendanceRecordId and checkedInAt
+        are present for CHECK_OUT only.
+      required:
+        [
+          requiredAction,
+          actionDeadline,
+          slotId,
+          scheduleId,
+          attendanceRecordId,
+          employee,
+          attendanceStatus,
+          checkedInAt,
+          site,
+          siteTimezone,
+          start,
+          end,
+          startAt,
+          endAt,
+          overnight,
+          labels,
+        ]
+      properties:
+        requiredAction:
+          $ref: "#/components/schemas/TeamAttendanceRequiredAction"
+        actionDeadline:
+          type: string
+          format: date-time
+          description: >-
+            The last instant the action is possible: the scheduled end (exclusive) for a check-in,
+            24 hours after it (inclusive) for a check-out.
+        slotId:
+          type: string
+          format: uuid
+        scheduleId:
+          type: string
+          format: uuid
+        attendanceRecordId:
+          type: [string, "null"]
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        attendanceStatus:
+          $ref: "#/components/schemas/WorkShiftAttendanceStatus"
+        checkedInAt:
+          type: [string, "null"]
+          format: date-time
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        siteTimezone:
+          type: string
+          description: The schedule's site time zone snapshot; start and end are local times there.
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+    TeamAttendanceActionPage:
+      type: object
+      required: [items, nextCursor, asOfInstant]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/TeamAttendanceAction"
         nextCursor:
           type: [string, "null"]
         asOfInstant:

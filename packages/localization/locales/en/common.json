@@ -37,7 +37,8 @@
     "workSchedules": "Schedules",
     "mySchedule": "My schedule",
     "myAttendance": "My attendance",
-    "myScheduleSubstitutions": "Shift substitutions"
+    "myScheduleSubstitutions": "Shift substitutions",
+    "teamAttendance": "Team attendance"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -210,6 +211,11 @@
         "title": "Shift substitutions to decide",
         "description": "If you manage employees, their requests for a substitute on an upcoming shift appear here for your decision.",
         "action": "Open shift substitutions"
+      },
+      "teamAttendance": {
+        "title": "Team attendance to record",
+        "description": "Some of your direct reports’ shifts need a check-in or a check-out now. You can record it for them, with a reason they will see.",
+        "action": "Open team attendance"
       }
     }
   },
@@ -430,7 +436,9 @@
     "ATTENDANCE_RECORD_NOT_FOUND": "This attendance record is not available to you.",
     "ATTENDANCE_ALREADY_CHECKED_OUT": "You have already checked out for this shift.",
     "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Check-out is no longer possible for this shift.",
-    "ATTENDANCE_STATE_CONFLICT": "This could not be recorded now. Refresh the page and try again."
+    "ATTENDANCE_STATE_CONFLICT": "This could not be recorded now. Refresh the page and try again.",
+    "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "This attendance action is not available to you. The list has been refreshed.",
+    "TEAM_ATTENDANCE_MANAGER_REQUIRED": "Team attendance is for managers of direct reports."
   },
   "notFound": {
     "title": "Page not found",
@@ -2820,6 +2828,10 @@
     "form": {
       "cancel": "Cancel",
       "sending": "Recording…"
+    },
+    "assisted": {
+      "label": "Recorded by a supervisor",
+      "reason": "Reason given"
     }
   },
   "scheduleSubstitutions": {
@@ -2943,6 +2955,44 @@
         "APPROVED": "The substitution requested by {{name}} was approved.",
         "REJECTED": "The substitution requested by {{name}} was rejected."
       }
+    }
+  },
+  "teamAttendance": {
+    "title": "Team attendance",
+    "description": "Your direct reports’ shifts that need a check-in or a check-out now. You record it for them with a reason; the server records the time, and the employee sees the reason.",
+    "unauthorized": "Only employees can open team attendance.",
+    "signInRequired": "Sign in to open team attendance.",
+    "notManager": "Team attendance is for managers. You have no direct reports right now.",
+    "loading": "Loading team attendance…",
+    "retry": "Try again",
+    "refresh": "Refresh",
+    "empty": "No shift of your direct reports needs a check-in or a check-out right now.",
+    "label": "Team attendance actions",
+    "more": "Show more actions",
+    "loadingMore": "Loading more actions…",
+    "deadline": "Record by",
+    "required": {
+      "CHECK_IN": "Check-in needed",
+      "CHECK_OUT": "Check-out needed"
+    },
+    "dialog": {
+      "employee": "Employee: {{name}}"
+    },
+    "checkIn": {
+      "action": "Record check-in",
+      "actionFor": "Record check-in for {{name}}, {{work}} on {{date}}",
+      "title": "Record a check-in",
+      "confirm": "Confirm the employee’s arrival for this shift. The server records the time when you confirm; the employee sees that a supervisor recorded it and your reason.",
+      "confirmButton": "Confirm check-in",
+      "done": "Check-in recorded for {{name}} at {{time}}."
+    },
+    "checkOut": {
+      "action": "Record check-out",
+      "actionFor": "Record check-out for {{name}}, {{work}} on {{date}}",
+      "title": "Record a check-out",
+      "confirm": "Confirm the employee’s departure from this shift. The server records the time when you confirm; the employee sees that a supervisor recorded it and your reason.",
+      "confirmButton": "Confirm check-out",
+      "done": "Check-out recorded for {{name}} at {{time}}."
     }
   }
 }

@@ -19,9 +19,10 @@ import com.tngtech.archunit.lang.ArchRule;
  * MVP-050A (ADR 0014): scheduling is a bounded package of the people module. It uses the platform
  * and only a few people types (the business calendar, the verified caller and the strict-request
  * base; MVP-051, ADR 0015: the tenant's manager-graph lock, the shared lock order of every
- * reporting-line decision, and the employee search key, the directory's name normalization); it
- * never depends on the leave package or on the tenant module (sites come through the platform
- * port), and nothing else in the application depends on it.
+ * reporting-line decision, and the employee search key, the directory's name normalization;
+ * MVP-060B, ADR 0017: the same manager-graph lock for supervisor-assisted attendance); it never
+ * depends on the leave package or on the tenant module (sites come through the platform port), and
+ * nothing else in the application depends on it.
  */
 @AnalyzeClasses(packages = "com.divalhr.core", importOptions = ImportOption.DoNotIncludeTests.class)
 class SchedulePackageBoundaryTest {

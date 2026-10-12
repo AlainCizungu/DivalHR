@@ -5,9 +5,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Online attendance on a scheduled shift (MVP-060A, A60A-2; ADR 0016). The windows are named
- * constants of this increment, mirrored by V28's database checks, and are not tenant-configurable.
- * Every instant is the server's.
+ * Online attendance on a scheduled shift (MVP-060A, A60A-2; ADR 0016) and its supervisor-assisted
+ * recording (MVP-060B; ADR 0017). The windows are named constants of this increment, mirrored by
+ * V28's database checks, and are not tenant-configurable. Every instant is the server's.
  */
 public final class Attendance {
 
@@ -43,6 +43,46 @@ public final class Attendance {
     CHECKED_IN,
     /** The check-out. */
     CHECKED_OUT
+  }
+
+  /** How an event was recorded (MVP-060B). */
+  public enum Method {
+    /** By the employee. */
+    SELF,
+    /** By the employee's effective manager on their behalf, with a reason. */
+    SUPERVISOR
+  }
+
+  /** The action a direct report's shift needs now (MVP-060B). */
+  public enum RequiredAction {
+    /** A check-in. */
+    CHECK_IN,
+    /** A check-out. */
+    CHECK_OUT
+  }
+
+  /**
+   * How one event was recorded, as the employee may see it: the method and, for a supervisor's
+   * event, the reason exactly as submitted; never the supervisor's identity (MVP-060B).
+   *
+   * @param method SELF or SUPERVISOR
+   * @param supervisorReasonLocale the reason's language, or {@code null} for SELF
+   * @param supervisorReason the reason, or {@code null} for SELF
+   */
+  public record Recording(Method method, String supervisorReasonLocale, String supervisorReason) {
+
+    /** A self-service event. */
+    public static final Recording SELF = new Recording(Method.SELF, null, null);
+
+    /**
+     * The method only: a reason never reaches a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "Attendance.Recording[" + method + "]";
+    }
   }
 
   /**
@@ -166,11 +206,18 @@ public final class Attendance {
    * @param recordId record, or {@code null} when not recorded
    * @param checkedInAt check-in instant, or {@code null}
    * @param checkedOutAt check-out instant, or {@code null}
+   * @param checkIn how the check-in was recorded, or {@code null}
+   * @param checkOut how the check-out was recorded, or {@code null}
    */
-  public record Mark(UUID recordId, Instant checkedInAt, Instant checkedOutAt) {
+  public record Mark(
+      UUID recordId,
+      Instant checkedInAt,
+      Instant checkedOutAt,
+      Recording checkIn,
+      Recording checkOut) {
 
     /** No attendance recorded. */
-    public static final Mark NONE = new Mark(null, null, null);
+    public static final Mark NONE = new Mark(null, null, null, null, null);
 
     /**
      * The status on the shift.
@@ -190,6 +237,44 @@ public final class Attendance {
    *
    * @param record the record
    * @param shift its immutable shift
+   * @param checkIn how the check-in was recorded
+   * @param checkOut how the check-out was recorded, or {@code null}
    */
-  public record HistoryItem(Record record, Substitution.Shift shift) {}
+  public record HistoryItem(
+      Record record, Substitution.Shift shift, Recording checkIn, Recording checkOut) {}
+
+  /**
+   * One action a direct report's shift needs now (MVP-060B).
+   *
+   * @param action CHECK_IN or CHECK_OUT
+   * @param deadline the last instant the action is possible
+   * @param shift the immutable shift
+   * @param employeeId the target employee
+   * @param employeeNumber their number
+   * @param givenNames their current given names
+   * @param familyName their current family name
+   * @param recordId the open record (check-out), or {@code null}
+   * @param checkedInAt its check-in instant, or {@code null}
+   */
+  public record TeamAction(
+      RequiredAction action,
+      Instant deadline,
+      Substitution.Shift shift,
+      UUID employeeId,
+      String employeeNumber,
+      String givenNames,
+      String familyName,
+      UUID recordId,
+      Instant checkedInAt) {
+
+    /**
+     * Identifiers and the action only: names and labels never reach a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "Attendance.TeamAction[" + action + ", slot=" + shift.slotId() + "]";
+    }
+  }
 }

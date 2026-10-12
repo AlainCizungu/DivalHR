@@ -37,7 +37,8 @@
     "workSchedules": "Horaires",
     "mySchedule": "Mon horaire",
     "myAttendance": "Ma présence",
-    "myScheduleSubstitutions": "Remplacements d’horaire"
+    "myScheduleSubstitutions": "Remplacements d’horaire",
+    "teamAttendance": "Présence de l’équipe"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -210,6 +211,11 @@
         "title": "Remplacements d’horaire à décider",
         "description": "Si vous gérez des employés, leurs demandes de remplacement pour un créneau à venir apparaissent ici pour votre décision.",
         "action": "Ouvrir les remplacements d’horaire"
+      },
+      "teamAttendance": {
+        "title": "Présence de l’équipe à enregistrer",
+        "description": "Des créneaux de vos collaborateurs directs attendent maintenant une arrivée ou un départ. Vous pouvez l’enregistrer pour eux, avec un motif qu’ils verront.",
+        "action": "Ouvrir la présence de l’équipe"
       }
     }
   },
@@ -430,7 +436,9 @@
     "ATTENDANCE_RECORD_NOT_FOUND": "Ce pointage ne vous est pas accessible.",
     "ATTENDANCE_ALREADY_CHECKED_OUT": "Vous avez déjà pointé votre départ pour ce créneau.",
     "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Le départ ne peut plus être pointé pour ce créneau.",
-    "ATTENDANCE_STATE_CONFLICT": "L’enregistrement est impossible pour le moment. Actualisez la page et réessayez."
+    "ATTENDANCE_STATE_CONFLICT": "L’enregistrement est impossible pour le moment. Actualisez la page et réessayez.",
+    "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "Cette action de présence ne vous est pas disponible. La liste a été actualisée.",
+    "TEAM_ATTENDANCE_MANAGER_REQUIRED": "La présence de l’équipe est réservée aux responsables de collaborateurs directs."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2820,6 +2828,10 @@
     "form": {
       "cancel": "Annuler",
       "sending": "Enregistrement…"
+    },
+    "assisted": {
+      "label": "Enregistré par un responsable",
+      "reason": "Motif indiqué"
     }
   },
   "scheduleSubstitutions": {
@@ -2943,6 +2955,44 @@
         "APPROVED": "Le remplacement demandé par {{name}} a été approuvé.",
         "REJECTED": "Le remplacement demandé par {{name}} a été refusé."
       }
+    }
+  },
+  "teamAttendance": {
+    "title": "Présence de l’équipe",
+    "description": "Les créneaux de vos collaborateurs directs qui attendent maintenant une arrivée ou un départ. Vous l’enregistrez pour eux avec un motif ; le serveur enregistre l’heure et l’employé voit le motif.",
+    "unauthorized": "Seuls les employés peuvent ouvrir la présence de l’équipe.",
+    "signInRequired": "Connectez-vous pour ouvrir la présence de l’équipe.",
+    "notManager": "La présence de l’équipe est réservée aux responsables. Vous n’avez aucun collaborateur direct en ce moment.",
+    "loading": "Chargement de la présence de l’équipe…",
+    "retry": "Réessayer",
+    "refresh": "Actualiser",
+    "empty": "Aucun créneau de vos collaborateurs directs n’attend d’arrivée ni de départ en ce moment.",
+    "label": "Actions de présence de l’équipe",
+    "more": "Afficher plus d’actions",
+    "loadingMore": "Chargement d’autres actions…",
+    "deadline": "À enregistrer avant",
+    "required": {
+      "CHECK_IN": "Arrivée à enregistrer",
+      "CHECK_OUT": "Départ à enregistrer"
+    },
+    "dialog": {
+      "employee": "Employé : {{name}}"
+    },
+    "checkIn": {
+      "action": "Enregistrer l’arrivée",
+      "actionFor": "Enregistrer l’arrivée de {{name}}, {{work}} le {{date}}",
+      "title": "Enregistrer une arrivée",
+      "confirm": "Confirmez l’arrivée de l’employé pour ce créneau. Le serveur enregistre l’heure au moment où vous confirmez ; l’employé voit qu’un responsable l’a enregistrée et votre motif.",
+      "confirmButton": "Confirmer l’arrivée",
+      "done": "Arrivée enregistrée pour {{name}} à {{time}}."
+    },
+    "checkOut": {
+      "action": "Enregistrer le départ",
+      "actionFor": "Enregistrer le départ de {{name}}, {{work}} le {{date}}",
+      "title": "Enregistrer un départ",
+      "confirm": "Confirmez le départ de l’employé de ce créneau. Le serveur enregistre l’heure au moment où vous confirmez ; l’employé voit qu’un responsable l’a enregistré et votre motif.",
+      "confirmButton": "Confirmer le départ",
+      "done": "Départ enregistré pour {{name}} à {{time}}."
     }
   }
 }

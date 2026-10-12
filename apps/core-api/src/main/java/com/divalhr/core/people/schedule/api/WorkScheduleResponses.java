@@ -513,6 +513,12 @@ public final class WorkScheduleResponses {
    * @param checkedOutAt check-out instant, or {@code null}
    * @param checkInAvailable not recorded and inside the check-in window
    * @param checkOutAvailable open and inside the check-out window
+   * @param checkInRecordingMethod how the check-in was recorded, or {@code null} (MVP-060B)
+   * @param checkInSupervisorReasonLocale a supervisor's check-in reason language, or {@code null}
+   * @param checkInSupervisorReason a supervisor's check-in reason, or {@code null}
+   * @param checkOutRecordingMethod how the check-out was recorded, or {@code null}
+   * @param checkOutSupervisorReasonLocale a supervisor's check-out reason language, or {@code null}
+   * @param checkOutSupervisorReason a supervisor's check-out reason, or {@code null}
    */
   @Schema(name = "MyWorkShiftAttendance")
   public record ShiftAttendance(
@@ -521,7 +527,13 @@ public final class WorkScheduleResponses {
       Instant checkedInAt,
       Instant checkedOutAt,
       boolean checkInAvailable,
-      boolean checkOutAvailable) {
+      boolean checkOutAvailable,
+      Attendance.Method checkInRecordingMethod,
+      String checkInSupervisorReasonLocale,
+      String checkInSupervisorReason,
+      Attendance.Method checkOutRecordingMethod,
+      String checkOutSupervisorReasonLocale,
+      String checkOutSupervisorReason) {
 
     static ShiftAttendance of(OwnShift shift, Instant at) {
       Attendance.Mark mark = shift.attendance();
@@ -534,7 +546,23 @@ public final class WorkScheduleResponses {
           status == Attendance.ShiftStatus.NOT_RECORDED
               && Attendance.checkInOpen(shift.startAt(), shift.endAt(), at),
           status == Attendance.ShiftStatus.OPEN
-              && Attendance.checkOutOpen(mark.checkedInAt(), shift.endAt(), at));
+              && Attendance.checkOutOpen(mark.checkedInAt(), shift.endAt(), at),
+          mark.checkIn() == null ? null : mark.checkIn().method(),
+          mark.checkIn() == null ? null : mark.checkIn().supervisorReasonLocale(),
+          mark.checkIn() == null ? null : mark.checkIn().supervisorReason(),
+          mark.checkOut() == null ? null : mark.checkOut().method(),
+          mark.checkOut() == null ? null : mark.checkOut().supervisorReasonLocale(),
+          mark.checkOut() == null ? null : mark.checkOut().supervisorReason());
+    }
+
+    /**
+     * State only: a supervisor's reason never reaches a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "MyWorkShiftAttendance[status=" + status + ", record=" + attendanceRecordId + "]";
     }
   }
 

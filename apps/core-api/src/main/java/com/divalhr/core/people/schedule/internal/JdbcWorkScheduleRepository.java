@@ -697,7 +697,8 @@ public class JdbcWorkScheduleRepository {
         new StringBuilder(
             "SELECT l.id, l.schedule_id, s.site_id, s.site_timezone, l.start_local, l.end_local,"
                 + " l.start_at, l.end_at, l.label_en, l.label_fr, c.decision_id,"
-                + " a.id AS attendance_id, a.checked_in_at, a.checked_out_at"
+                + " a.id AS attendance_id, a.checked_in_at, a.checked_out_at,"
+                + JdbcAttendanceRepository.RECORDING_COLUMNS
                 + " FROM people.work_schedule_slot_coverage c"
                 + " JOIN people.work_schedule_slot l"
                 + " ON l.tenant_id = c.tenant_id AND l.id = c.slot_id"
@@ -705,6 +706,7 @@ public class JdbcWorkScheduleRepository {
                 + " ON s.tenant_id = c.tenant_id AND s.id = c.schedule_id"
                 + " LEFT JOIN people.attendance_record a ON a.tenant_id = c.tenant_id"
                 + " AND a.slot_id = c.slot_id AND a.employee_id = c.employee_id"
+                + JdbcAttendanceRepository.RECORDING_JOINS
                 + " WHERE c.tenant_id = :tenant AND c.employee_id = :employee");
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -757,7 +759,11 @@ public class JdbcWorkScheduleRepository {
     }
     Timestamp out = rs.getTimestamp("checked_out_at");
     return new Attendance.Mark(
-        id, rs.getTimestamp("checked_in_at").toInstant(), out == null ? null : out.toInstant());
+        id,
+        rs.getTimestamp("checked_in_at").toInstant(),
+        out == null ? null : out.toInstant(),
+        JdbcAttendanceRepository.recording(rs, "in"),
+        JdbcAttendanceRepository.recording(rs, "out"));
   }
 
   /**

@@ -1756,7 +1756,7 @@ export interface paths {
         };
         /**
          * List my published shifts
-         * @description MVP-050A. The operational shifts (MVP-051: the slot coverage, so a shift given away by an approved substitution leaves the original employee's view and appears in the substitute's with assignmentSource SUBSTITUTION) of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order. Without from, the default view (R100-2) holds the shifts not yet ended at one server-owned instant (asOfInstant, from the server clock): shifts in progress and to come, never ended ones; no calendar date is used, since schedules of sites in different time zones share no "today". The instant is pinned in the signed cursor and reused by every later page. With from, and optionally to (at most 366 days later), the view holds the shifts whose local start date, in their own schedule's site time zone, is within the dates; to without from is 400 (from REQUIRED). Each shift carries both labels, the site's code and name, its local start and end and its schedule's siteTimezone (never converted), and an overnight flag. Never another employee, an uncovered slot, the publisher or audit data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is bound to the operation, tenant, caller, the view's mode and dates (and, for the default view, its instant) and the page size; a cursor of one view is refused in the other (400 CURSOR_INVALID). MVP-060A: each shift carries the caller's own attendance on it (NOT_RECORDED, OPEN with the check-in instant, COMPLETED with both instants) and whether a check-in or check-out is possible at the view's instant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         * @description MVP-050A. The operational shifts (MVP-051: the slot coverage, so a shift given away by an approved substitution leaves the original employee's view and appears in the substitute's with assignmentSource SUBSTITUTION) of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), in start order. Without from, the default view (R100-2) holds the shifts not yet ended at one server-owned instant (asOfInstant, from the server clock): shifts in progress and to come, never ended ones; no calendar date is used, since schedules of sites in different time zones share no "today". The instant is pinned in the signed cursor and reused by every later page. With from, and optionally to (at most 366 days later), the view holds the shifts whose local start date, in their own schedule's site time zone, is within the dates; to without from is 400 (from REQUIRED). Each shift carries both labels, the site's code and name, its local start and end and its schedule's siteTimezone (never converted), and an overnight flag. Never another employee, an uncovered slot, the publisher or audit data. A fail-closed disclosure (audit work-schedule.self-list), not privileged-denial evidence. The signed cursor is bound to the operation, tenant, caller, the view's mode and dates (and, for the default view, its instant) and the page size; a cursor of one view is refused in the other (400 CURSOR_INVALID). MVP-060A: each shift carries the caller's own attendance on it (NOT_RECORDED, OPEN with the check-in instant, COMPLETED with both instants) and whether a check-in or check-out is possible at the view's instant. MVP-060B: how each event was recorded (SELF or SUPERVISOR) and, for a supervisor-assisted event, the supervisor's reason exactly as submitted; never the supervisor's identity. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
          */
         get: operations["listMyWorkSchedule"];
         put?: never;
@@ -1860,7 +1860,7 @@ export interface paths {
         };
         /**
          * List my attendance
-         * @description MVP-060A. The attendance records of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest shift first (the shift's start instant, then the record ID). Each record carries its shift (schedule, slot, site and siteTimezone, local and instant boundaries, overnight, both labels), its status (OPEN or COMPLETED), the server-recorded check-in and check-out instants and whether a check-out is still possible at the page's server-owned instant (asOfInstant, pinned in the signed cursor). A record stays as evidence after its schedule is cancelled or replaced or its slot is substituted; an OPEN record whose check-out window has closed stays OPEN (checkOutAvailable false) for a later correction story. Never another employee, a subject, an employment or an evidence field. Restricted HR/Operations: a fail-closed disclosure (audit attendance.self-list). The signed cursor is bound to the operation, tenant, caller, the caller's link and linked employee, the page size and asOfInstant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         * @description MVP-060A. The attendance records of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest shift first (the shift's start instant, then the record ID). Each record carries its shift (schedule, slot, site and siteTimezone, local and instant boundaries, overnight, both labels), its status (OPEN or COMPLETED), the server-recorded check-in and check-out instants and whether a check-out is still possible at the page's server-owned instant (asOfInstant, pinned in the signed cursor). A record stays as evidence after its schedule is cancelled or replaced or its slot is substituted; an OPEN record whose check-out window has closed stays OPEN (checkOutAvailable false) for a later correction story. Never another employee, a subject, an employment or an evidence field. MVP-060B: each record also says how its check-in and check-out were recorded (SELF or SUPERVISOR) and carries a supervisor's reason exactly as submitted, never the supervisor's identity. Restricted HR/Operations: a fail-closed disclosure (audit attendance.self-list). The signed cursor is bound to the operation, tenant, caller, the caller's link and linked employee, the page size and asOfInstant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
          */
         get: operations["listMyAttendance"];
         put?: never;
@@ -1905,6 +1905,66 @@ export interface paths {
          * @description MVP-060A. Records the single check-out of an OPEN attendance record of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), at the server's instant. No body. Malformed, unknown, foreign-tenant and other employees' records are the same 404 ATTENDANCE_RECORD_NOT_FOUND without params. A record already checked out is 409 ATTENDANCE_ALREADY_CHECKED_OUT; after 24 hours past the scheduled end, 409 ATTENDANCE_CHECK_OUT_WINDOW_CLOSED; an instant not strictly after the check-in is 409 ATTENDANCE_STATE_CONFLICT. The check-out does not depend on the shift still being operational or covered by the caller: evidence recorded before a cancellation, replacement or substitution is kept and can be completed. One transaction, under the tenant's scheduling lock, writes the CHECKED_OUT event, completes the record, writes the audit record (attendance.check-out) and the outbox event (people.attendance.checked-out.v1). Replay as for the check-in. Shares the attendance-write limits. Cache-Control private, no-store.
          */
         post: operations["checkOutMyAttendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/team-attendance/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the attendance actions my direct reports need now
+         * @description MVP-060B. The scheduled shifts of the caller's current direct reports that need a supervisor-assisted action at the page's server-owned instant (asOfInstant, pinned in the signed cursor): CHECK_IN for a not-recorded shift inside its check-in window (and no other actionable open record of the employee), CHECK_OUT for an OPEN record inside its check-out window. A direct report is the shift's current effective assignee (operational coverage) whose one qualifying employment has an active, non-superseded MANAGER line naming the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise) on the shift's site-local start date; never the caller themselves. A caller who manages nobody from three days before to one day after the organization's business date is 403 TEAM_ATTENDANCE_MANAGER_REQUIRED. Ordered by the action deadline (the scheduled end for a check-in, 24 hours after it for a check-out), then the shift start, the slot and the action. Only what acting requires: IDs, the employee's number and current name, the site, the shift, the required action and deadline, the attendance state and recorded instants; never a reason, subject or employment. Restricted HR/Operations: a fail-closed disclosure (audit attendance.team-actions-list). The signed cursor is bound to the operation, tenant, subject digest, link, manager employee, page size and asOfInstant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listTeamAttendanceActions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/team-attendance/check-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a direct report in on a scheduled shift
+         * @description MVP-060B. The caller, the target's effective manager (see listTeamAttendanceActions), records the check-in of the slot's current effective assignee with a reason. Tenant, employee, manager, employment, actor and instant are never fields: the target comes from the slot's current operational coverage and the instant is the server's. Malformed, unknown, foreign-tenant, non-report, self, uncovered, cancelled and replaced slots are the same 404 TEAM_ATTENDANCE_ACTION_NOT_FOUND without params. After authority, the MVP-060A rules and codes apply unchanged: 409 ATTENDANCE_CHECK_IN_TOO_EARLY, ATTENDANCE_CHECK_IN_WINDOW_CLOSED, ATTENDANCE_ALREADY_CHECKED_IN (by the employee or a supervisor), ATTENDANCE_OPEN_RECORD_EXISTS and ATTENDANCE_STATE_CONFLICT. One transaction, under the tenant's manager-graph and scheduling locks, writes the SUPERVISOR CHECKED_IN event, the supervisor action (the manager, the manager's employment and the reason), the target's OPEN record, the audit record (attendance.supervisor-check-in) and the outbox event (people.attendance.supervisor-checked-in.v1). An exact retry returns the stored 201 with Idempotent-Replayed true only while the caller is still the target's effective manager; otherwise the same 404 with no stored data. Errors never echo an ID, name, number, label, subject or the reason. Shares the attendance-write limits. Cache-Control private, no-store.
+         */
+        post: operations["checkInTeamAttendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/team-attendance/{attendanceRecordId}/check-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a direct report out of an open attendance record
+         * @description MVP-060B. The caller, the effective manager of the record's employment on its shift's site-local start date, records the single check-out of the target's OPEN record with a reason. Malformed, unknown, foreign-tenant, non-report and self records are the same 404 TEAM_ATTENDANCE_ACTION_NOT_FOUND without params. After authority, 409 ATTENDANCE_ALREADY_CHECKED_OUT, ATTENDANCE_CHECK_OUT_WINDOW_CLOSED and ATTENDANCE_STATE_CONFLICT apply unchanged. One transaction writes the SUPERVISOR CHECKED_OUT event, the supervisor action, completes the record and writes the audit record (attendance.supervisor-check-out) and the outbox event (people.attendance.supervisor-checked-out.v1). Replay as for the check-in. Shares the attendance-write limits. Cache-Control private, no-store.
+         */
+        post: operations["checkOutTeamAttendance"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3325,7 +3385,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -4102,6 +4162,24 @@ export interface components {
             checkedOutAt: string | null;
             checkInAvailable: boolean;
             checkOutAvailable: boolean;
+            /** @description MVP-060B. How the check-in was recorded; null when not recorded. */
+            checkInRecordingMethod: components["schemas"]["AttendanceRecordingMethod"] | null;
+            /**
+             * @description MVP-060B. The language of a supervisor's check-in reason; null otherwise.
+             * @enum {string|null}
+             */
+            checkInSupervisorReasonLocale: "en" | "fr" | null;
+            /** @description MVP-060B. A supervisor's check-in reason exactly as submitted; null for a SELF check-in. Never the supervisor's identity. */
+            checkInSupervisorReason: string | null;
+            /** @description MVP-060B. How the check-out was recorded; null when not checked out. */
+            checkOutRecordingMethod: components["schemas"]["AttendanceRecordingMethod"] | null;
+            /**
+             * @description MVP-060B. The language of a supervisor's check-out reason; null otherwise.
+             * @enum {string|null}
+             */
+            checkOutSupervisorReasonLocale: "en" | "fr" | null;
+            /** @description MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never the supervisor's identity. */
+            checkOutSupervisorReason: string | null;
         };
         /**
          * @description MVP-060A. NOT_RECORDED: no check-in yet. OPEN: checked in, not checked out. COMPLETED: checked in and out.
@@ -4148,7 +4226,7 @@ export interface components {
             overnight: boolean;
             labels: components["schemas"]["WorkScheduleLabels"];
         };
-        /** @description MVP-060A. One of the caller's own attendance records. */
+        /** @description MVP-060A. One of the caller's own attendance records. MVP-060B: how each event was recorded and, for a supervisor-assisted event, the supervisor's reason exactly as submitted; never the supervisor's identity. */
         MyAttendanceRecord: {
             /** Format: uuid */
             id: string;
@@ -4160,9 +4238,114 @@ export interface components {
             /** @description True only while OPEN and inside the check-out window at asOfInstant. */
             checkOutAvailable: boolean;
             shift: components["schemas"]["AttendanceShift"];
+            checkInRecordingMethod: components["schemas"]["AttendanceRecordingMethod"];
+            /**
+             * @description MVP-060B. The language of a supervisor's check-in reason; null otherwise.
+             * @enum {string|null}
+             */
+            checkInSupervisorReasonLocale: "en" | "fr" | null;
+            /** @description MVP-060B. A supervisor's check-in reason exactly as submitted; null for a SELF check-in. Never the supervisor's identity. */
+            checkInSupervisorReason: string | null;
+            /** @description MVP-060B. How the check-out was recorded; null when not checked out. */
+            checkOutRecordingMethod: components["schemas"]["AttendanceRecordingMethod"] | null;
+            /**
+             * @description MVP-060B. The language of a supervisor's check-out reason; null otherwise.
+             * @enum {string|null}
+             */
+            checkOutSupervisorReasonLocale: "en" | "fr" | null;
+            /** @description MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never the supervisor's identity. */
+            checkOutSupervisorReason: string | null;
         };
         MyAttendancePage: {
             items: components["schemas"]["MyAttendanceRecord"][];
+            nextCursor: string | null;
+            /**
+             * Format: date-time
+             * @description The server-owned instant of the view, the same on every page.
+             */
+            asOfInstant: string;
+        };
+        /**
+         * @description MVP-060B. SELF: recorded by the employee. SUPERVISOR: recorded by the employee's effective manager on their behalf, with a reason.
+         * @enum {string}
+         */
+        AttendanceRecordingMethod: "SELF" | "SUPERVISOR";
+        /**
+         * @description MVP-060B. The action a direct report's shift needs now.
+         * @enum {string}
+         */
+        TeamAttendanceRequiredAction: "CHECK_IN" | "CHECK_OUT";
+        /** @description MVP-060B. The slot and the reason. Tenant, employee, manager, employment, actor and instant are never fields. VALIDATION_FAILED fields: slotId (REQUIRED), reasonLocale, reason, body (UNKNOWN_PROPERTY) and Idempotency-Key; a slotId that is not a UUID is the same 404 TEAM_ATTENDANCE_ACTION_NOT_FOUND as an unknown one. */
+        SupervisorCheckInRequest: {
+            /** Format: uuid */
+            slotId: string;
+            /**
+             * @description The language the reason is written in.
+             * @enum {string}
+             */
+            reasonLocale: "en" | "fr";
+            reason: components["schemas"]["WorkScheduleSubstitutionReason"];
+        };
+        /** @description MVP-060B. The reason; the record comes from the path. VALIDATION_FAILED fields: reasonLocale, reason, body (REQUIRED, UNKNOWN_PROPERTY) and Idempotency-Key. */
+        SupervisorCheckOutRequest: {
+            /**
+             * @description The language the reason is written in.
+             * @enum {string}
+             */
+            reasonLocale: "en" | "fr";
+            reason: components["schemas"]["WorkScheduleSubstitutionReason"];
+        };
+        /** @description MVP-060B. The minimal receipt of a supervisor-assisted check-in (OPEN) or check-out (COMPLETED) of the target employee; instants are the server's. Never the reason or the manager's identity. */
+        SupervisorAttendanceReceipt: {
+            /** Format: uuid */
+            attendanceRecordId: string;
+            /** Format: uuid */
+            slotId: string;
+            /**
+             * Format: uuid
+             * @description The target employee.
+             */
+            employeeId: string;
+            status: components["schemas"]["AttendanceStatus"];
+            /** @enum {string} */
+            recordingMethod: "SUPERVISOR";
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt: string | null;
+        };
+        /** @description MVP-060B. One action a direct report's shift needs now. attendanceRecordId and checkedInAt are present for CHECK_OUT only. */
+        TeamAttendanceAction: {
+            requiredAction: components["schemas"]["TeamAttendanceRequiredAction"];
+            /**
+             * Format: date-time
+             * @description The last instant the action is possible: the scheduled end (exclusive) for a check-in, 24 hours after it (inclusive) for a check-out.
+             */
+            actionDeadline: string;
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            attendanceRecordId: string | null;
+            employee: components["schemas"]["WorkScheduleSubstitutionPerson"];
+            attendanceStatus: components["schemas"]["WorkShiftAttendanceStatus"];
+            /** Format: date-time */
+            checkedInAt: string | null;
+            site: components["schemas"]["WorkScheduleSite"];
+            /** @description The schedule's site time zone snapshot; start and end are local times there. */
+            siteTimezone: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            startAt: string;
+            /** Format: date-time */
+            endAt: string;
+            overnight: boolean;
+            labels: components["schemas"]["WorkScheduleLabels"];
+        };
+        TeamAttendanceActionPage: {
+            items: components["schemas"]["TeamAttendanceAction"][];
             nextCursor: string | null;
             /**
              * Format: date-time
@@ -8501,6 +8684,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listTeamAttendanceActions: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamAttendanceActionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    checkInTeamAttendance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupervisorCheckInRequest"];
+            };
+        };
+        responses: {
+            /** @description Checked in on the employee's behalf, or the original check-in replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupervisorAttendanceReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    checkOutTeamAttendance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Attendance record ID. */
+                attendanceRecordId: components["parameters"]["AttendanceRecordId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupervisorCheckOutRequest"];
+            };
+        };
+        responses: {
+            /** @description Checked out on the employee's behalf, or the original check-out replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupervisorAttendanceReceipt"];
                 };
             };
             400: components["responses"]["BadRequest"];

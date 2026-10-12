@@ -268,6 +268,15 @@ export type AttendanceReceipt = CoreComponents['schemas']['AttendanceReceipt'];
 export type AttendanceShift = CoreComponents['schemas']['AttendanceShift'];
 export type MyAttendanceRecord = CoreComponents['schemas']['MyAttendanceRecord'];
 export type MyAttendancePage = CoreComponents['schemas']['MyAttendancePage'];
+/** MVP-060B: supervisor-assisted attendance for direct reports. */
+export type AttendanceRecordingMethod = CoreComponents['schemas']['AttendanceRecordingMethod'];
+export type TeamAttendanceRequiredAction =
+  CoreComponents['schemas']['TeamAttendanceRequiredAction'];
+export type SupervisorCheckInRequest = CoreComponents['schemas']['SupervisorCheckInRequest'];
+export type SupervisorCheckOutRequest = CoreComponents['schemas']['SupervisorCheckOutRequest'];
+export type SupervisorAttendanceReceipt = CoreComponents['schemas']['SupervisorAttendanceReceipt'];
+export type TeamAttendanceAction = CoreComponents['schemas']['TeamAttendanceAction'];
+export type TeamAttendanceActionPage = CoreComponents['schemas']['TeamAttendanceActionPage'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).
