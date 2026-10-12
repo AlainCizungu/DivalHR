@@ -221,6 +221,13 @@ const EMPLOYEE_CARDS: CardDef[] = [
     testId: 'home-card-my-schedule',
   },
   {
+    to: '/me/attendance',
+    icon: 'clock',
+    titleKey: 'nav.myAttendance',
+    descriptionKey: 'home.employee.cards.attendance',
+    testId: 'home-card-my-attendance',
+  },
+  {
     to: '/me/contracts',
     icon: 'contract',
     titleKey: 'nav.myContracts',

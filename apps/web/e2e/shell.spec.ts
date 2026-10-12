@@ -131,6 +131,7 @@ test.describe('desktop', () => {
       'Accueil',
       'Mes contrats',
       'Mon horaire',
+      'Ma présence',
       'Remplacements d’horaire',
       'Mes congés',
       'Approbations de congé',

@@ -1,0 +1,195 @@
+package com.divalhr.core.people.schedule.domain;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Online attendance on a scheduled shift (MVP-060A, A60A-2; ADR 0016). The windows are named
+ * constants of this increment, mirrored by V28's database checks, and are not tenant-configurable.
+ * Every instant is the server's.
+ */
+public final class Attendance {
+
+  /** The check-in opens this long before the scheduled start (inclusive). */
+  public static final Duration CHECK_IN_OPENS_BEFORE_START = Duration.ofHours(2);
+
+  /** The check-out closes this long after the scheduled end (inclusive). */
+  public static final Duration CHECK_OUT_CLOSES_AFTER_END = Duration.ofHours(24);
+
+  private Attendance() {}
+
+  /** A record's derived status. */
+  public enum Status {
+    /** Checked in, not checked out. */
+    OPEN,
+    /** Checked in and out. */
+    COMPLETED
+  }
+
+  /** The caller's attendance on one of their shifts. */
+  public enum ShiftStatus {
+    /** No check-in yet. */
+    NOT_RECORDED,
+    /** Checked in, not checked out. */
+    OPEN,
+    /** Checked in and out. */
+    COMPLETED
+  }
+
+  /** The two evidence events. */
+  public enum EventType {
+    /** The check-in. */
+    CHECKED_IN,
+    /** The check-out. */
+    CHECKED_OUT
+  }
+
+  /**
+   * The first instant a check-in is accepted.
+   *
+   * @param startAt the scheduled start
+   * @return the opening instant
+   */
+  public static Instant checkInOpensAt(Instant startAt) {
+    return startAt.minus(CHECK_IN_OPENS_BEFORE_START);
+  }
+
+  /**
+   * The last instant a check-out is accepted.
+   *
+   * @param endAt the scheduled end
+   * @return the closing instant
+   */
+  public static Instant checkOutUntil(Instant endAt) {
+    return endAt.plus(CHECK_OUT_CLOSES_AFTER_END);
+  }
+
+  /**
+   * Whether a check-in at the instant is inside the window: from two hours before the start,
+   * strictly before the end.
+   *
+   * @param startAt scheduled start
+   * @param endAt scheduled end
+   * @param at the server instant
+   * @return true inside the window
+   */
+  public static boolean checkInOpen(Instant startAt, Instant endAt, Instant at) {
+    return !at.isBefore(checkInOpensAt(startAt)) && at.isBefore(endAt);
+  }
+
+  /**
+   * Whether a check-out at the instant is inside the window: strictly after the check-in, until 24
+   * hours after the end.
+   *
+   * @param checkedInAt the check-in instant
+   * @param endAt scheduled end
+   * @param at the server instant
+   * @return true inside the window
+   */
+  public static boolean checkOutOpen(Instant checkedInAt, Instant endAt, Instant at) {
+    return at.isAfter(checkedInAt) && !at.isAfter(checkOutUntil(endAt));
+  }
+
+  /**
+   * One attendance record (the projection), bound to its immutable shift, employee and qualifying
+   * employment.
+   *
+   * @param id record
+   * @param scheduleId schedule
+   * @param slotId slot
+   * @param employeeId the effective assignee at check-in
+   * @param employmentId their qualifying employment
+   * @param slotStartAt scheduled start
+   * @param slotEndAt scheduled end
+   * @param checkInEventId the check-in event
+   * @param checkedInAt the check-in instant
+   * @param checkOutEventId the check-out event, or {@code null}
+   * @param checkedOutAt the check-out instant, or {@code null}
+   */
+  public record Record(
+      UUID id,
+      UUID scheduleId,
+      UUID slotId,
+      UUID employeeId,
+      UUID employmentId,
+      Instant slotStartAt,
+      Instant slotEndAt,
+      UUID checkInEventId,
+      Instant checkedInAt,
+      UUID checkOutEventId,
+      Instant checkedOutAt) {
+
+    /**
+     * The derived status.
+     *
+     * @return OPEN or COMPLETED
+     */
+    public Status status() {
+      return checkOutEventId == null ? Status.OPEN : Status.COMPLETED;
+    }
+
+    /**
+     * Whether the record is open and its check-out window still includes the instant.
+     *
+     * @param at the server instant
+     * @return true when a check-out is possible
+     */
+    public boolean checkOutAvailable(Instant at) {
+      return status() == Status.OPEN && checkOutOpen(checkedInAt, slotEndAt, at);
+    }
+
+    /**
+     * Identifiers only: never an employee's data in a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "Attendance.Record[id=" + id + ", status=" + status() + "]";
+    }
+  }
+
+  /**
+   * One evidence event.
+   *
+   * @param id event
+   * @param recordId its record
+   * @param type CHECKED_IN or CHECKED_OUT
+   * @param recordedAt the server instant
+   */
+  public record Event(UUID id, UUID recordId, EventType type, Instant recordedAt) {}
+
+  /**
+   * The caller's attendance on a shift, as read with the shift.
+   *
+   * @param recordId record, or {@code null} when not recorded
+   * @param checkedInAt check-in instant, or {@code null}
+   * @param checkedOutAt check-out instant, or {@code null}
+   */
+  public record Mark(UUID recordId, Instant checkedInAt, Instant checkedOutAt) {
+
+    /** No attendance recorded. */
+    public static final Mark NONE = new Mark(null, null, null);
+
+    /**
+     * The status on the shift.
+     *
+     * @return NOT_RECORDED, OPEN or COMPLETED
+     */
+    public ShiftStatus status() {
+      if (recordId == null) {
+        return ShiftStatus.NOT_RECORDED;
+      }
+      return checkedOutAt == null ? ShiftStatus.OPEN : ShiftStatus.COMPLETED;
+    }
+  }
+
+  /**
+   * One record of the caller's history with its shift.
+   *
+   * @param record the record
+   * @param shift its immutable shift
+   */
+  public record HistoryItem(Record record, Substitution.Shift shift) {}
+}

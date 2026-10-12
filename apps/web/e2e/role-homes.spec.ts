@@ -201,6 +201,7 @@ test.describe('employee home', () => {
     for (const [name, path] of [
       ['Mes congés', '/me/leave'],
       ['Mon horaire', '/me/schedule'],
+      ['Ma présence', '/me/attendance'],
       ['Mes contrats', '/me/contracts'],
     ] as const) {
       await page.getByTestId('home-my-work').getByRole('link', { name, exact: true }).click();

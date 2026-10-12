@@ -23,6 +23,7 @@ const TENANT = [
 const EMPLOYEE = [
   '/me/contracts',
   '/me/schedule',
+  '/me/attendance',
   '/me/schedule/substitutions',
   '/me/leave',
   '/me/leave/approvals',
@@ -103,6 +104,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/work-schedules',
         '/me/contracts',
         '/me/schedule',
+        '/me/attendance',
         '/me/schedule/substitutions',
         '/me/leave',
         '/me/leave/approvals',

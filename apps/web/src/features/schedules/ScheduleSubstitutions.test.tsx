@@ -100,6 +100,14 @@ const shiftOf = (overrides: Record<string, unknown> = {}) => ({
   overnight: false,
   labels: { en: 'Cashier', fr: 'Caissière' },
   assignmentSource: 'PUBLISHED',
+  attendance: {
+    status: 'NOT_RECORDED',
+    attendanceRecordId: null,
+    checkedInAt: null,
+    checkedOutAt: null,
+    checkInAvailable: false,
+    checkOutAvailable: false,
+  },
   ...overrides,
 });
 

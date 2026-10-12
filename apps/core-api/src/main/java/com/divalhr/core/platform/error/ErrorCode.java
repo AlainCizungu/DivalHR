@@ -356,7 +356,28 @@ public enum ErrorCode {
    */
   WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE(HttpStatus.UNPROCESSABLE_CONTENT),
   /** MVP-051: the chosen substitute has an overlapping operational assignment (no detail). */
-  WORK_SCHEDULE_SUBSTITUTE_CONFLICT(HttpStatus.CONFLICT);
+  WORK_SCHEDULE_SUBSTITUTE_CONFLICT(HttpStatus.CONFLICT),
+  /**
+   * MVP-060A: an unknown, malformed, foreign, cancelled, replaced, uncovered or other employee's
+   * slot (one indistinguishable answer).
+   */
+  ATTENDANCE_SHIFT_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-060A: the check-in window has not opened yet (2 hours before the scheduled start). */
+  ATTENDANCE_CHECK_IN_TOO_EARLY(HttpStatus.CONFLICT),
+  /** MVP-060A: the check-in window closed at the scheduled end. */
+  ATTENDANCE_CHECK_IN_WINDOW_CLOSED(HttpStatus.CONFLICT),
+  /** MVP-060A: the caller already checked in for this shift. */
+  ATTENDANCE_ALREADY_CHECKED_IN(HttpStatus.CONFLICT),
+  /** MVP-060A: another of the caller's records is open within its check-out window. */
+  ATTENDANCE_OPEN_RECORD_EXISTS(HttpStatus.CONFLICT),
+  /** MVP-060A: an unknown, malformed, foreign or other employee's record. */
+  ATTENDANCE_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-060A: the record already has its check-out. */
+  ATTENDANCE_ALREADY_CHECKED_OUT(HttpStatus.CONFLICT),
+  /** MVP-060A: the check-out window closed 24 hours after the scheduled end. */
+  ATTENDANCE_CHECK_OUT_WINDOW_CLOSED(HttpStatus.CONFLICT),
+  /** MVP-060A: the command does not fit the current state (no detail). */
+  ATTENDANCE_STATE_CONFLICT(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

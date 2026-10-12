@@ -1,12 +1,18 @@
-import type { MyWorkScheduleSubstitution, MyWorkShift } from '@divalhr/api-client';
+import type {
+  AttendanceReceipt,
+  MyWorkScheduleSubstitution,
+  MyWorkShift,
+} from '@divalhr/api-client';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApi } from '../../app/ApiProvider';
 import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate } from '../people/history';
+import { AttendanceDialog } from './AttendanceDialog';
 import { MySubstitutionHistory, type History } from './MySubstitutionHistory';
 import { SubstitutionRequestDialog } from './SubstitutionRequestDialog';
+import { formatInstant, receiptMessageKey, type AttendanceAction } from './attendance';
 import {
   SUBSTITUTION_NETWORK_FAILURE,
   pendingSlotsOf,
@@ -37,6 +43,12 @@ type Listing =
  * reason), and a shift they gave away disappears. A future shift published to them offers « Demander
  * un remplacement » / "Request a substitute"; « Mes demandes de remplacement » / "My substitution
  * requests" lists their requests with each state and decision.
+ *
+ * MVP-060A: each shift shows the employee's own attendance (not checked in, checked in at a time,
+ * or checked in and out) and, only while the server says it is possible, « Pointer l’arrivée » /
+ * "Check in" or « Pointer le départ » / "Check out", each after an explicit confirmation; the
+ * times shown are the server's, in the site's local time. After a command the list is reloaded
+ * from the server.
  */
 export function MySchedulePage() {
   const { t, i18n } = useTranslation();
@@ -55,6 +67,11 @@ export function MySchedulePage() {
   const opener = useRef<HTMLButtonElement | null>(null);
   const historyHeading = `${ids}-substitutions`;
   const requestKey = useIdempotencyKey();
+  const attendanceKey = useIdempotencyKey();
+  const [attendanceTarget, setAttendanceTarget] = useState<{
+    action: AttendanceAction;
+    shift: MyWorkShift;
+  } | null>(null);
 
   const fetchPage = useCallback(
     async (cursor: string | null): Promise<Listing> => {
@@ -143,6 +160,14 @@ export function MySchedulePage() {
         : previous,
     );
     setAnnouncement(t('scheduleSubstitutions.request.sent'));
+  };
+
+  const recorded = (receipt: AttendanceReceipt) => {
+    attendanceKey.reset();
+    const zone = attendanceTarget?.shift.siteTimezone ?? 'UTC';
+    const time = receipt.checkedOutAt ?? receipt.checkedInAt;
+    setAnnouncement(t(receiptMessageKey(receipt), { time: formatInstant(language, time, zone) }));
+    void reload();
   };
 
   const more = async (cursor: string) => {
@@ -253,6 +278,17 @@ export function MySchedulePage() {
                 <p className="muted" data-testid="my-shift-timezone">
                   {t('mySchedule.timezone', { zone: shift.siteTimezone })}
                 </p>
+                <ShiftAttendance
+                  shift={shift}
+                  day={day}
+                  label={label}
+                  busy={attendanceTarget !== null}
+                  onAction={(action, button) => {
+                    opener.current = button;
+                    setAnnouncement('');
+                    setAttendanceTarget({ action, shift });
+                  }}
+                />
                 {pendingSlots.has(shift.id) && (
                   <p>
                     <StatusBadge tone="info" testId="my-shift-pending">
@@ -308,6 +344,36 @@ export function MySchedulePage() {
         onMore={(cursor) => void moreHistory(cursor)}
         onRetry={() => void reloadHistory()}
       />
+      <AttendanceDialog
+        key={
+          attendanceTarget
+            ? `attendance-${attendanceTarget.action.kind}-${attendanceTarget.shift.id}`
+            : 'attendance-none'
+        }
+        action={attendanceTarget?.action ?? null}
+        shift={
+          attendanceTarget
+            ? {
+                start: attendanceTarget.shift.start,
+                end: attendanceTarget.shift.end,
+                labels: attendanceTarget.shift.labels,
+                siteName: attendanceTarget.shift.site.name,
+                siteTimezone: attendanceTarget.shift.siteTimezone,
+                checkedInAt: attendanceTarget.shift.attendance.checkedInAt,
+              }
+            : null
+        }
+        keyFor={attendanceKey.keyFor}
+        onRecorded={recorded}
+        onSettled={() => void reload()}
+        onClosed={() => {
+          setAttendanceTarget(null);
+          requestAnimationFrame(() => {
+            if (opener.current?.isConnected) opener.current.focus();
+            else document.getElementById(`${ids}-title`)?.focus();
+          });
+        }}
+      />
       <SubstitutionRequestDialog
         key={target?.id ?? 'none'}
         shift={target}
@@ -326,5 +392,96 @@ export function MySchedulePage() {
         }}
       />
     </section>
+  );
+}
+
+/**
+ * MVP-060A: the employee's attendance on one shift: its status, the recorded server times in the
+ * site's local time and the one action the server says is possible now, if any.
+ */
+function ShiftAttendance({
+  shift,
+  day,
+  label,
+  busy,
+  onAction,
+}: {
+  shift: MyWorkShift;
+  day: string;
+  label: string;
+  busy: boolean;
+  onAction: (action: AttendanceAction, opener: HTMLButtonElement) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const language: 'en' | 'fr' = i18n.language.startsWith('fr') ? 'fr' : 'en';
+  const attendance = shift.attendance;
+  const at = (instant: string) => formatInstant(language, instant, shift.siteTimezone);
+  return (
+    <div
+      className="shift-attendance"
+      data-testid="my-shift-attendance"
+      data-status={attendance.status}
+    >
+      <p>
+        <StatusBadge
+          tone={attendance.status === 'NOT_RECORDED' ? 'neutral' : 'success'}
+          testId="my-shift-attendance-status"
+        >
+          {t(`attendance.shiftStatus.${attendance.status}`)}
+        </StatusBadge>
+      </p>
+      {attendance.checkedInAt && (
+        <p data-testid="my-shift-checked-in">
+          {t('attendance.shiftCheckedIn', { time: at(attendance.checkedInAt) })}
+        </p>
+      )}
+      {attendance.checkedOutAt && (
+        <p data-testid="my-shift-checked-out">
+          {t('attendance.shiftCheckedOut', { time: at(attendance.checkedOutAt) })}
+        </p>
+      )}
+      {attendance.checkInAvailable && (
+        <p>
+          <button
+            type="button"
+            className="button"
+            disabled={busy}
+            aria-label={t('attendance.checkIn.actionFor', { work: label, date: day })}
+            data-testid="check-in"
+            onClick={(event) => {
+              onAction({ kind: 'checkIn', slotId: shift.id }, event.currentTarget);
+            }}
+          >
+            {t('attendance.checkIn.action')}
+          </button>
+        </p>
+      )}
+      {attendance.checkOutAvailable && attendance.attendanceRecordId && (
+        <p>
+          <button
+            type="button"
+            className="button"
+            disabled={busy}
+            aria-label={t('attendance.checkOut.actionFor', { work: label, date: day })}
+            data-testid="check-out"
+            onClick={(event) => {
+              if (attendance.attendanceRecordId) {
+                onAction(
+                  { kind: 'checkOut', recordId: attendance.attendanceRecordId },
+                  event.currentTarget,
+                );
+              }
+            }}
+          >
+            {t('attendance.checkOut.action')}
+          </button>
+        </p>
+      )}
+      {attendance.status === 'NOT_RECORDED' && !attendance.checkInAvailable && (
+        <p className="muted" data-testid="my-shift-check-in-not-open">
+          {t('attendance.checkInNotOpen')}
+        </p>
+      )}
+    </div>
   );
 }

@@ -259,6 +259,15 @@ export type WorkScheduleSubstitutionCandidatePage =
   CoreComponents['schemas']['WorkScheduleSubstitutionCandidatePage'];
 export type WorkScheduleSlotSubstitution =
   CoreComponents['schemas']['WorkScheduleSlotSubstitution'];
+/** MVP-060A: online attendance on scheduled shifts. */
+export type MyWorkShiftAttendance = CoreComponents['schemas']['MyWorkShiftAttendance'];
+export type WorkShiftAttendanceStatus = CoreComponents['schemas']['WorkShiftAttendanceStatus'];
+export type AttendanceStatus = CoreComponents['schemas']['AttendanceStatus'];
+export type CheckInAttendanceRequest = CoreComponents['schemas']['CheckInAttendanceRequest'];
+export type AttendanceReceipt = CoreComponents['schemas']['AttendanceReceipt'];
+export type AttendanceShift = CoreComponents['schemas']['AttendanceShift'];
+export type MyAttendanceRecord = CoreComponents['schemas']['MyAttendanceRecord'];
+export type MyAttendancePage = CoreComponents['schemas']['MyAttendancePage'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

@@ -36,6 +36,7 @@
     "leaveApprovalSubstitutes": "Leave approval substitutes",
     "workSchedules": "Schedules",
     "mySchedule": "My schedule",
+    "myAttendance": "My attendance",
     "myScheduleSubstitutions": "Shift substitutions"
   },
   "shell": {
@@ -197,6 +198,7 @@
       "cards": {
         "leave": "Request leave, follow your requests and see each decision.",
         "schedule": "See your shifts in progress and upcoming, each in its site’s local time.",
+        "attendance": "Check in and out of your scheduled shifts and see your attendance history.",
         "contracts": "Read the contracts your organization has issued to you and confirm that you received them."
       },
       "approvals": {
@@ -419,7 +421,16 @@
     "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED": "This substitution request has already been decided.",
     "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED": "This shift has already started: its substitution can no longer be requested or decided.",
     "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE": "This person cannot replace the employee on this shift. Search again and choose an eligible employee.",
-    "WORK_SCHEDULE_SUBSTITUTE_CONFLICT": "This person already works at that time. Choose someone else."
+    "WORK_SCHEDULE_SUBSTITUTE_CONFLICT": "This person already works at that time. Choose someone else.",
+    "ATTENDANCE_SHIFT_NOT_FOUND": "This shift is not available to you for attendance.",
+    "ATTENDANCE_CHECK_IN_TOO_EARLY": "Check-in for this shift is not open yet.",
+    "ATTENDANCE_CHECK_IN_WINDOW_CLOSED": "Check-in for this shift has closed.",
+    "ATTENDANCE_ALREADY_CHECKED_IN": "You have already checked in for this shift.",
+    "ATTENDANCE_OPEN_RECORD_EXISTS": "Check out of your current shift before checking in again.",
+    "ATTENDANCE_RECORD_NOT_FOUND": "This attendance record is not available to you.",
+    "ATTENDANCE_ALREADY_CHECKED_OUT": "You have already checked out for this shift.",
+    "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Check-out is no longer possible for this shift.",
+    "ATTENDANCE_STATE_CONFLICT": "This could not be recorded now. Refresh the page and try again."
   },
   "notFound": {
     "title": "Page not found",
@@ -2760,6 +2771,56 @@
     "timezone": "Local time at the site ({{zone}})",
     "more": "Show more shifts",
     "loadingMore": "Loading more shifts…"
+  },
+  "attendance": {
+    "title": "My attendance",
+    "description": "Your check-ins and check-outs on your scheduled shifts. The server records each time when you confirm.",
+    "unauthorized": "Only employees can see their attendance.",
+    "signInRequired": "Sign in to see your attendance.",
+    "loading": "Loading your attendance…",
+    "retry": "Try again",
+    "empty": "You have not checked in on any shift yet.",
+    "label": "My attendance records",
+    "more": "Show more records",
+    "loadingMore": "Loading more records…",
+    "scheduled": "Scheduled",
+    "checkedIn": "Check-in",
+    "checkedOut": "Check-out",
+    "notCheckedOut": "Not checked out",
+    "siteTime": "Times in the site’s local time ({{zone}}).",
+    "status": {
+      "OPEN": "Open",
+      "COMPLETED": "Completed"
+    },
+    "shiftStatus": {
+      "NOT_RECORDED": "Not checked in",
+      "OPEN": "Checked in",
+      "COMPLETED": "Checked in and out"
+    },
+    "shiftCheckedIn": "Checked in at {{time}}",
+    "shiftCheckedOut": "Checked out at {{time}}",
+    "checkInNotOpen": "Check-in is not open for this shift right now.",
+    "checkOutClosed": "Check-out is no longer possible for this record.",
+    "checkIn": {
+      "action": "Check in",
+      "actionFor": "Check in for {{work}} on {{date}}",
+      "title": "Check in",
+      "confirm": "Confirm your arrival for this shift. The server records the time when you confirm.",
+      "confirmButton": "Confirm check-in",
+      "done": "Your check-in was recorded at {{time}}."
+    },
+    "checkOut": {
+      "action": "Check out",
+      "actionFor": "Check out of {{work}} on {{date}}",
+      "title": "Check out",
+      "confirm": "Confirm your departure from this shift. The server records the time when you confirm.",
+      "confirmButton": "Confirm check-out",
+      "done": "Your check-out was recorded at {{time}}."
+    },
+    "form": {
+      "cancel": "Cancel",
+      "sending": "Recording…"
+    }
   },
   "scheduleSubstitutions": {
     "unauthorized": "Only employees can use shift substitutions.",

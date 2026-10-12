@@ -2,6 +2,7 @@ package com.divalhr.core.people.schedule.api;
 
 import com.divalhr.core.people.schedule.application.WorkScheduleCommand;
 import com.divalhr.core.people.schedule.application.WorkSchedulePlanner.Plan;
+import com.divalhr.core.people.schedule.domain.Attendance;
 import com.divalhr.core.people.schedule.domain.EmployeeFacts;
 import com.divalhr.core.people.schedule.domain.Lifecycle;
 import com.divalhr.core.people.schedule.domain.OwnShift;
@@ -465,6 +466,7 @@ public final class WorkScheduleResponses {
    * @param overnight whether it ends on a later date
    * @param labels labels
    * @param assignmentSource MVP-051: published to the caller, or assigned by a substitution
+   * @param attendance MVP-060A: the caller's own attendance on it
    */
   @Schema(name = "MyWorkShift")
   public record Shift(
@@ -476,16 +478,18 @@ public final class WorkScheduleResponses {
       String siteTimezone,
       boolean overnight,
       Labels labels,
-      Substitution.Source assignmentSource) {
+      Substitution.Source assignmentSource,
+      ShiftAttendance attendance) {
 
     /**
      * The view of an own shift.
      *
      * @param shift the shift
      * @param site its site, or {@code null}
+     * @param at the server instant the attendance actions are evaluated at
      * @return the view
      */
-    public static Shift of(OwnShift shift, UnitView site) {
+    public static Shift of(OwnShift shift, UnitView site, Instant at) {
       return new Shift(
           shift.slotId(),
           shift.scheduleId(),
@@ -495,7 +499,42 @@ public final class WorkScheduleResponses {
           shift.siteTimezone(),
           shift.end().toLocalDate().isAfter(shift.start().toLocalDate()),
           new Labels(shift.labelEn(), shift.labelFr()),
-          shift.source());
+          shift.source(),
+          ShiftAttendance.of(shift, at));
+    }
+  }
+
+  /**
+   * MVP-060A: the caller's attendance on one of their shifts, at the page's server instant.
+   *
+   * @param status NOT_RECORDED, OPEN or COMPLETED
+   * @param attendanceRecordId the record, or {@code null} when not recorded
+   * @param checkedInAt check-in instant, or {@code null}
+   * @param checkedOutAt check-out instant, or {@code null}
+   * @param checkInAvailable not recorded and inside the check-in window
+   * @param checkOutAvailable open and inside the check-out window
+   */
+  @Schema(name = "MyWorkShiftAttendance")
+  public record ShiftAttendance(
+      Attendance.ShiftStatus status,
+      UUID attendanceRecordId,
+      Instant checkedInAt,
+      Instant checkedOutAt,
+      boolean checkInAvailable,
+      boolean checkOutAvailable) {
+
+    static ShiftAttendance of(OwnShift shift, Instant at) {
+      Attendance.Mark mark = shift.attendance();
+      Attendance.ShiftStatus status = mark.status();
+      return new ShiftAttendance(
+          status,
+          mark.recordId(),
+          mark.checkedInAt(),
+          mark.checkedOutAt(),
+          status == Attendance.ShiftStatus.NOT_RECORDED
+              && Attendance.checkInOpen(shift.startAt(), shift.endAt(), at),
+          status == Attendance.ShiftStatus.OPEN
+              && Attendance.checkOutOpen(mark.checkedInAt(), shift.endAt(), at));
     }
   }
 

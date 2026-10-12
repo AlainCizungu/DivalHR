@@ -228,8 +228,9 @@ class WorkScheduleSubstitutionMigrationIntegrationTest {
     return Objects.requireNonNull(db.jdbc().queryForObject(sql, Integer.class, args));
   }
 
-  private static String signature(Db db) {
-    return db.jdbc().queryForObject(SIGNATURE, String.class);
+  /** The people schema signature (shared with {@link AttendanceMigrationIntegrationTest}). */
+  static String signature(JdbcTemplate jdbc) {
+    return jdbc.queryForObject(SIGNATURE, String.class);
   }
 
   private static Timestamp ts(LocalDateTime local) {
@@ -524,10 +525,10 @@ class WorkScheduleSubstitutionMigrationIntegrationTest {
     withDatabase(
         db -> {
           migrate(db.url(), "26");
-          String v26 = signature(db);
+          String v26 = signature(db.jdbc());
           World w = world(db);
           migrate(db.url(), "27");
-          String v27 = signature(db);
+          String v27 = signature(db.jdbc());
           assertThat(v27)
               .isNotEqualTo(v26)
               .contains("work_schedule_substitution_request")
@@ -541,14 +542,14 @@ class WorkScheduleSubstitutionMigrationIntegrationTest {
               .isEqualTo(1);
           int recorded = count(db, "SELECT count(*) FROM flyway_schema_history");
           db.jdbc().execute(resource("db/rollback/V27__rollback.sql"));
-          assertThat(signature(db)).isEqualTo(v26);
+          assertThat(signature(db.jdbc())).isEqualTo(v26);
           assertThat(count(db, "SELECT count(*) FROM flyway_schema_history")).isEqualTo(recorded);
           assertThat(count(db, "SELECT count(*) FROM people.work_schedule_slot_coverage"))
               .isEqualTo(1);
 
           // A request refuses the rollback; nothing changes.
           db.jdbc().execute(resource("db/migration/V27__work_schedule_substitution.sql"));
-          assertThat(signature(db)).isEqualTo(v27);
+          assertThat(signature(db.jdbc())).isEqualTo(v27);
           committed(
               db,
               c -> {
@@ -559,13 +560,13 @@ class WorkScheduleSubstitutionMigrationIntegrationTest {
           assertThatThrownBy(() -> db.jdbc().execute(resource("db/rollback/V27__rollback.sql")))
               .isInstanceOf(DataAccessException.class)
               .hasMessageContaining("V27 rollback refused: work schedule substitution evidence");
-          assertThat(signature(db)).isEqualTo(v27);
+          assertThat(signature(db.jdbc())).isEqualTo(v27);
         });
     withDatabase(
         db -> {
           migrate(db.url(), "27");
           World w = world(db);
-          String v27 = signature(db);
+          String v27 = signature(db.jdbc());
           // Coverage that is no longer the original (only reachable with every trigger off).
           db.jdbc()
               .execute(
@@ -577,7 +578,7 @@ class WorkScheduleSubstitutionMigrationIntegrationTest {
           assertThatThrownBy(() -> db.jdbc().execute(resource("db/rollback/V27__rollback.sql")))
               .isInstanceOf(DataAccessException.class)
               .hasMessageContaining("the slot coverage is not the original assignments");
-          assertThat(signature(db)).isEqualTo(v27);
+          assertThat(signature(db.jdbc())).isEqualTo(v27);
         });
   }
 
