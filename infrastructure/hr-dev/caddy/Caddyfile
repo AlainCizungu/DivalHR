@@ -42,6 +42,9 @@
 				request>headers>Referer delete
 				resp_headers>Location delete
 				resp_headers>Set-Cookie delete
+				# SEC-002: an Idempotency-Key value must never be logged (Caddy logs every other
+				# request header verbatim): delete the field.
+				request>headers>Idempotency-Key delete
 			}
 		}
 	}
