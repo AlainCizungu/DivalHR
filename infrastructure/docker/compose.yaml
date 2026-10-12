@@ -70,7 +70,7 @@ services:
   mailpit:
     # Catches every email of the stack (invitations from the Core API, password setup from
     # Keycloak); nothing leaves the machine. SMTP is reachable only inside the compose network.
-    image: axllent/mailpit:v1.29.6@sha256:0b5c5f7ffd3c93474baa7fd3869c1462e5a3d03256ed0933dfc0e7d81d794036
+    image: axllent/mailpit:v1.31.4@sha256:b68349e3a014b90c5610bfb26b2ae36f3892d7b8cf25ee140c6c71c98d2fcf48
     environment:
       MP_MAX_MESSAGES: '500'
     ports:
