@@ -994,11 +994,12 @@ class WorkScheduleSubstitutionMigrationIntegrationTest {
               c -> {
                 UUID entity =
                     UUID.fromString(
-                        db.jdbc()
-                            .queryForObject(
-                                "SELECT legal_entity_id::text FROM tenant.site WHERE id = ?",
-                                String.class,
-                                w.site()));
+                        java.util.Objects.requireNonNull(
+                            db.jdbc()
+                                .queryForObject(
+                                    "SELECT legal_entity_id::text FROM tenant.site WHERE id = ?",
+                                    String.class,
+                                    w.site())));
                 UUID other = UUID.randomUUID();
                 exec(
                     c,

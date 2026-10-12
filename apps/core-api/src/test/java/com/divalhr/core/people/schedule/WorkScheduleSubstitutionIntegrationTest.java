@@ -360,10 +360,11 @@ class WorkScheduleSubstitutionIntegrationTest {
     String started =
         w.published(proposal(w.site(), g, g, List.of(shift("s", g, 8, 12, cleo.employee()))));
     Instant start =
-        jdbc.queryForObject(
-                "SELECT start_at FROM people.work_schedule_slot WHERE schedule_id = ?::uuid",
-                java.sql.Timestamp.class,
-                started)
+        java.util.Objects.requireNonNull(
+                jdbc.queryForObject(
+                    "SELECT start_at FROM people.work_schedule_slot WHERE schedule_id = ?::uuid",
+                    java.sql.Timestamp.class,
+                    started))
             .toInstant();
     clock.set(start);
     w.problem(
@@ -727,10 +728,11 @@ class WorkScheduleSubstitutionIntegrationTest {
     ScheduleWorld w = t.w();
     String id = requested(t);
     Instant start =
-        jdbc.queryForObject(
-                "SELECT start_at FROM people.work_schedule_slot WHERE id = ?::uuid",
-                java.sql.Timestamp.class,
-                t.slot(0))
+        java.util.Objects.requireNonNull(
+                jdbc.queryForObject(
+                    "SELECT start_at FROM people.work_schedule_slot WHERE id = ?::uuid",
+                    java.sql.Timestamp.class,
+                    t.slot(0)))
             .toInstant();
     clock.set(start);
     assertThat(w.expect(history(t.ana().bearer()), 200).get("items").get(0).get("state").asText())
