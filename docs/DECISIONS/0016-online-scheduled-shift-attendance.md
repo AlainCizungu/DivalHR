@@ -61,8 +61,10 @@ MVP-062).
 
 - "At most one open record per employee" taken literally would block every future check-in after
   a missed check-out until MVP-062 provides corrections. The architect chose the actionable rule:
-  an employee's open records may not have overlapping ranges `[check-in, scheduled end + 24 hours)`
-  (`attendance_record_one_open`, a GiST exclusion over the stored `check_out_until`). Within a
+  an employee's open records may not have overlapping ranges `[check-in, scheduled end + 24 hours]`
+  (`attendance_record_one_open`, a GiST exclusion over the stored `check_out_until`). The range is
+  closed at both ends, like the check-out window: a record can still be checked out at exactly
+  `check_out_until`, so another open record at that instant is refused (review R114-1). Within a
   check-out window there is exactly one open record; once it has closed, the record stays `OPEN` as
   evidence (no check-out offered; « Le départ ne peut plus être pointé » / "Check-out is no longer
   possible") and a later shift can be checked in. The missed check-out is a future MVP-062

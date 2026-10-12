@@ -33,7 +33,8 @@
 --     inserted only OPEN; the single permitted update attaches the check-out, after its event,
 --     and changes nothing else (attendance_record_guard); never deleted or truncated;
 --   * an employee has at most one actionable open record: the open records' ranges [check-in,
---     check_out_until) never overlap (attendance_record_one_open). An open record whose
+--     check_out_until] never overlap (attendance_record_one_open); the range includes
+--     check_out_until because a check-out is still permitted at that instant. An open record whose
 --     check-out window has closed stays OPEN as evidence for a later correction story (MVP-062)
 --     and no longer blocks a new check-in (architect decision on Issue #113);
 --   * deferred (attendance_exact, per record): every event has its record and agrees with it; a
@@ -127,7 +128,7 @@ CREATE TABLE people.attendance_record (
         CHECK (checked_out_at IS NULL OR checked_out_at <= check_out_until),
     CONSTRAINT attendance_record_one_open
         EXCLUDE USING gist (tenant_id WITH =, employee_id WITH =,
-            tstzrange(checked_in_at, check_out_until, '[)') WITH &&)
+            tstzrange(checked_in_at, check_out_until, '[]') WITH &&)
         WHERE (check_out_event_id IS NULL)
 );
 

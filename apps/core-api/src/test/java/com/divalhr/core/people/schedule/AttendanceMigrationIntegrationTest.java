@@ -18,6 +18,7 @@ import java.time.ZoneId;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
@@ -905,6 +906,93 @@ class AttendanceMigrationIntegrationTest {
           assertThat(
                   count(db, "SELECT count(*) FROM people.attendance_record WHERE status = 'OPEN'"))
               .isEqualTo(2);
+        });
+  }
+
+  @Test
+  void theOpenRangeIncludesTheCheckOutDeadline() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "28");
+          World w = world(db);
+          // A shift of Ana's whose check-in window (15:00 to 21:00) contains the first shift's
+          // check-out deadline (the next day at 16:00).
+          UUID boundarySchedule = UUID.randomUUID();
+          UUID[] boundary = new UUID[1];
+          committed(
+              db,
+              c ->
+                  boundary[0] =
+                      operational(
+                          c,
+                          w.tenant(),
+                          w.site(),
+                          boundarySchedule,
+                          DAY.plusDays(1).atTime(17, 0),
+                          DAY.plusDays(1).atTime(21, 0),
+                          w.ana().employee()));
+          Timestamp boundaryStart = ts(DAY.plusDays(1).atTime(17, 0));
+          Timestamp boundaryEnd = ts(DAY.plusDays(1).atTime(21, 0));
+          UUID first = UUID.randomUUID();
+          committed(db, c -> checkIn(c, w, first, UUID.randomUUID(), in(w)));
+          Timestamp until = plus(w.end(), Duration.ofHours(24));
+          Function<Timestamp, SqlWork> checkInAt =
+              at ->
+                  c -> {
+                    UUID record = UUID.randomUUID();
+                    UUID event = UUID.randomUUID();
+                    event(
+                        c,
+                        w,
+                        event,
+                        record,
+                        boundary[0],
+                        boundarySchedule,
+                        w.ana(),
+                        "CHECKED_IN",
+                        at);
+                    record(
+                        c,
+                        w,
+                        record,
+                        boundary[0],
+                        boundarySchedule,
+                        w.ana(),
+                        boundaryStart,
+                        boundaryEnd,
+                        event,
+                        at);
+                  };
+          SqlWork atDeadline = checkInAt.apply(until);
+          // Exactly at the first record's deadline it can still be checked out: a second open
+          // record is refused.
+          refused(db, "attendance_record_one_open", atDeadline);
+          // One microsecond later the first record's window has closed: accepted (rolled back
+          // after the deferred checks, so the first record can still be completed below).
+          try (Connection c = connect(db)) {
+            checkInAt.apply(plus(until, Duration.ofNanos(1_000))).run(c);
+            exec(c, "SET CONSTRAINTS ALL IMMEDIATE");
+            c.rollback();
+          } catch (SQLException e) {
+            throw new IllegalStateException(e);
+          }
+          // Completing the first record at its deadline removes the conflict at that instant.
+          committed(db, c -> checkOut(c, w, first, UUID.randomUUID(), until));
+          committed(db, atDeadline);
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM people.attendance_record WHERE status = 'COMPLETED'"
+                          + " AND checked_out_at = ?",
+                      until))
+              .isEqualTo(1);
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM people.attendance_record WHERE status = 'OPEN'"
+                          + " AND checked_in_at = ?",
+                      until))
+              .isEqualTo(1);
         });
   }
 
