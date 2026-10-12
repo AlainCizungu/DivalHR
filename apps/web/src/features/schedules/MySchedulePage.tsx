@@ -12,7 +12,9 @@ import { formatDate } from '../people/history';
 import { AttendanceDialog } from './AttendanceDialog';
 import { MySubstitutionHistory, type History } from './MySubstitutionHistory';
 import { SubstitutionRequestDialog } from './SubstitutionRequestDialog';
+import { AssistedNote } from './AssistedNote';
 import { formatInstant, receiptMessageKey, type AttendanceAction } from './attendance';
+import { assistedOf } from './teamAttendance';
 import {
   SUBSTITUTION_NETWORK_FAILURE,
   pendingSlotsOf,
@@ -397,7 +399,8 @@ export function MySchedulePage() {
 
 /**
  * MVP-060A: the employee's attendance on one shift: its status, the recorded server times in the
- * site's local time and the one action the server says is possible now, if any.
+ * site's local time and the one action the server says is possible now, if any. MVP-060B: a time
+ * a supervisor recorded is marked as such, with the reason (never the supervisor).
  */
 function ShiftAttendance({
   shift,
@@ -435,11 +438,27 @@ function ShiftAttendance({
           {t('attendance.shiftCheckedIn', { time: at(attendance.checkedInAt) })}
         </p>
       )}
+      <AssistedNote
+        event={assistedOf(
+          attendance.checkInRecordingMethod,
+          attendance.checkInSupervisorReasonLocale,
+          attendance.checkInSupervisorReason,
+        )}
+        testId="my-shift-check-in-assisted"
+      />
       {attendance.checkedOutAt && (
         <p data-testid="my-shift-checked-out">
           {t('attendance.shiftCheckedOut', { time: at(attendance.checkedOutAt) })}
         </p>
       )}
+      <AssistedNote
+        event={assistedOf(
+          attendance.checkOutRecordingMethod,
+          attendance.checkOutSupervisorReasonLocale,
+          attendance.checkOutSupervisorReason,
+        )}
+        testId="my-shift-check-out-assisted"
+      />
       {attendance.checkInAvailable && (
         <p>
           <button

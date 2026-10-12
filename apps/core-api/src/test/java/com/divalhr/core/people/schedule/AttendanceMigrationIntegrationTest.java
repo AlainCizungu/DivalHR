@@ -997,6 +997,456 @@ class AttendanceMigrationIntegrationTest {
   }
 
   // ------------------------------------------------------------------------------------------
+  // MVP-060B (V29): supervisor evidence
+  // ------------------------------------------------------------------------------------------
+
+  private static final String METHOD_EVENT =
+      "INSERT INTO people.attendance_event (tenant_id, id, record_id, schedule_id, slot_id,"
+          + " employee_id, employment_id, event_type, recorded_at, recorded_by,"
+          + " idempotency_digest, recording_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'test', ?,"
+          + " ?)";
+
+  private static final String ACTION =
+      "INSERT INTO people.attendance_supervisor_action (tenant_id, id, event_id, record_id,"
+          + " schedule_id, slot_id, employee_id, employment_id, event_type, recorded_at,"
+          + " manager_employee_id, manager_employment_id, reason_locale, reason, recorded_by,"
+          + " idempotency_digest) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'fr', ?, 'test', ?)";
+
+  private static final String REASON = "Badgeuse en panne à l'entrée du site";
+
+  /** An open-ended MANAGER line of the report's employment, from START. */
+  private static void reportsTo(Connection c, UUID tenant, Hired report, Hired manager)
+      throws SQLException {
+    UUID change = UUID.randomUUID();
+    exec(
+        c,
+        "INSERT INTO people.employment_change (id, tenant_id, employee_id, employment_id, type,"
+            + " effective_from, kinds, timing, recorded_at, recorded_by, version_after) VALUES"
+            + " (?, ?, ?, ?, 'CHANGE', ?, ARRAY['MANAGER'], 'SCHEDULED', now(), 'test', 1)",
+        change,
+        tenant,
+        report.employee(),
+        report.employment(),
+        START);
+    exec(
+        c,
+        "INSERT INTO people.employment_assignment (id, tenant_id, employee_id, employment_id,"
+            + " kind, effective_from, manager_employee_id, created_by_change_id,"
+            + " origin_change_id) VALUES (?, ?, ?, ?, 'MANAGER', ?, ?, ?, ?)",
+        UUID.randomUUID(),
+        tenant,
+        report.employee(),
+        report.employment(),
+        START,
+        manager.employee(),
+        change,
+        change);
+  }
+
+  /** One of Ana's events on {@code slot} with its recording method. */
+  private static void methodEvent(
+      Connection c,
+      World w,
+      UUID id,
+      UUID record,
+      UUID slot,
+      UUID schedule,
+      String type,
+      Timestamp at,
+      String method)
+      throws SQLException {
+    exec(
+        c,
+        METHOD_EVENT,
+        w.tenant(),
+        id,
+        record,
+        schedule,
+        slot,
+        w.ana().employee(),
+        w.ana().employment(),
+        type,
+        at,
+        DIGEST,
+        method);
+  }
+
+  /** The supervisor action of one of Ana's events, by {@code manager}. */
+  private static void action(
+      Connection c,
+      World w,
+      UUID event,
+      UUID record,
+      UUID slot,
+      UUID schedule,
+      String type,
+      Timestamp at,
+      Hired manager,
+      String reason)
+      throws SQLException {
+    exec(
+        c,
+        ACTION,
+        w.tenant(),
+        UUID.randomUUID(),
+        event,
+        record,
+        schedule,
+        slot,
+        w.ana().employee(),
+        w.ana().employment(),
+        type,
+        at,
+        manager.employee(),
+        manager.employment(),
+        reason,
+        DIGEST);
+  }
+
+  /** Ben checks Ana in on her first shift: the SUPERVISOR event, the record, the action. */
+  private static void supervisedCheckIn(
+      Connection c, World w, UUID record, UUID event, Timestamp at) throws SQLException {
+    methodEvent(c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SUPERVISOR");
+    record(c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+    action(c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, w.ben(), REASON);
+  }
+
+  @Test
+  void theV29RollbackRestoresV28ExactlyKeepsSelfAttendanceAndRefusesSupervisorEvidence() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "28");
+          World w = world(db);
+          UUID first = UUID.randomUUID();
+          committed(db, c -> checkIn(c, w, first, UUID.randomUUID(), in(w)));
+          String v28 = WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc());
+          migrate(db.url(), "29");
+          String v29 = WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc());
+          assertThat(v29).isNotEqualTo(v28).contains("attendance_supervisor_action");
+          // Every V28 event is SELF; no default remains for later inserts.
+          assertThat(
+                  db.jdbc()
+                      .queryForList(
+                          "SELECT recording_method FROM people.attendance_event", String.class))
+              .containsExactly("SELF");
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM information_schema.columns WHERE table_schema ="
+                          + " 'people' AND table_name = 'attendance_event' AND column_name ="
+                          + " 'recording_method' AND column_default IS NULL"))
+              .isEqualTo(1);
+          int recorded = count(db, "SELECT count(*) FROM flyway_schema_history");
+          db.jdbc().execute(resource("db/rollback/V29__rollback.sql"));
+          assertThat(WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc()))
+              .isEqualTo(v28);
+          assertThat(count(db, "SELECT count(*) FROM flyway_schema_history")).isEqualTo(recorded);
+          // The SELF attendance survives the rollback unchanged.
+          assertThat(count(db, "SELECT count(*) FROM people.attendance_event")).isEqualTo(1);
+          assertThat(count(db, "SELECT count(*) FROM people.attendance_record")).isEqualTo(1);
+
+          db.jdbc().execute(resource("db/migration/V29__supervisor_attendance.sql"));
+          assertThat(WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc()))
+              .isEqualTo(v29);
+          // Once a manager has recorded one check-in, the rollback refuses and changes nothing.
+          committed(
+              db,
+              c -> {
+                UUID out = UUID.randomUUID();
+                Timestamp outAt = plus(w.end(), Duration.ofHours(1));
+                methodEvent(c, w, out, first, w.slot(), w.schedule(), "CHECKED_OUT", outAt, "SELF");
+                exec(
+                    c,
+                    "UPDATE people.attendance_record SET check_out_event_id = ?, checked_out_at = ?"
+                        + " WHERE tenant_id = ? AND id = ?",
+                    out,
+                    outAt,
+                    w.tenant(),
+                    first);
+                reportsTo(c, w.tenant(), w.ana(), w.ben());
+                UUID event = UUID.randomUUID();
+                UUID record = UUID.randomUUID();
+                Timestamp at = plus(w.laterStart(), Duration.ofHours(-1));
+                methodEvent(
+                    c,
+                    w,
+                    event,
+                    record,
+                    w.laterSlot(),
+                    w.laterSchedule(),
+                    "CHECKED_IN",
+                    at,
+                    "SUPERVISOR");
+                record(
+                    c,
+                    w,
+                    record,
+                    w.laterSlot(),
+                    w.laterSchedule(),
+                    w.ana(),
+                    w.laterStart(),
+                    w.laterEnd(),
+                    event,
+                    at);
+                action(
+                    c,
+                    w,
+                    event,
+                    record,
+                    w.laterSlot(),
+                    w.laterSchedule(),
+                    "CHECKED_IN",
+                    at,
+                    w.ben(),
+                    REASON);
+              });
+          assertThatThrownBy(() -> db.jdbc().execute(resource("db/rollback/V29__rollback.sql")))
+              .isInstanceOf(DataAccessException.class)
+              .hasMessageContaining("V29 rollback refused: supervisor attendance evidence exists");
+          assertThat(WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc()))
+              .isEqualTo(v29);
+          assertThat(count(db, "SELECT count(*) FROM people.attendance_supervisor_action"))
+              .isEqualTo(1);
+        });
+  }
+
+  @Test
+  void supervisorEvidenceIsCompleteMatchingAuthorizedAndAppendOnly() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "29");
+          World w = world(db);
+          UUID zoeEmployment = UUID.randomUUID();
+          Hired[] zoe = new Hired[1];
+          committed(
+              db,
+              c -> {
+                reportsTo(c, w.tenant(), w.ana(), w.ben());
+                zoe[0] = hire(c, w.tenant(), w.site(), "E-ZOE");
+              });
+          Timestamp at = in(w);
+          Timestamp later = plus(w.laterStart(), Duration.ofHours(-1));
+
+          // A SUPERVISOR event needs its one action; a SELF event has none.
+          refused(
+              db,
+              "attendance_supervisor_exact",
+              c -> {
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SUPERVISOR");
+                record(
+                    c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+              });
+          refused(
+              db,
+              "attendance_supervisor_action_event",
+              c -> {
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SELF");
+                record(
+                    c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+                action(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, w.ben(), REASON);
+              });
+          // The action agrees with its event: another instant, slot or type is refused.
+          refused(
+              db,
+              "attendance_supervisor_action_event",
+              c -> {
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SUPERVISOR");
+                record(
+                    c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+                action(
+                    c,
+                    w,
+                    event,
+                    record,
+                    w.slot(),
+                    w.schedule(),
+                    "CHECKED_IN",
+                    plus(at, Duration.ofSeconds(1)),
+                    w.ben(),
+                    REASON);
+              });
+          // Only the target employment's manager, with their own employment, never the target.
+          refused(
+              db,
+              "attendance_supervisor_action_authority",
+              c -> {
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SUPERVISOR");
+                record(
+                    c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+                action(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, zoe[0], REASON);
+              });
+          // The authority guard already refuses a self-manager; with it set aside (inside the
+          // rolled-back transaction) the CHECK still holds on its own.
+          refused(
+              db,
+              "attendance_supervisor_action_not_self",
+              c -> {
+                exec(
+                    c,
+                    "ALTER TABLE people.attendance_supervisor_action"
+                        + " DISABLE TRIGGER attendance_supervisor_action_guard");
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SUPERVISOR");
+                record(
+                    c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+                action(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, w.ana(), REASON);
+              });
+          refused(
+              db,
+              "attendance_supervisor_action_manager_employment",
+              c -> {
+                // The guard checks the pair too; set aside, the foreign key still refuses it.
+                exec(
+                    c,
+                    "ALTER TABLE people.attendance_supervisor_action"
+                        + " DISABLE TRIGGER attendance_supervisor_action_guard");
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SUPERVISOR");
+                record(
+                    c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+                action(
+                    c,
+                    w,
+                    event,
+                    record,
+                    w.slot(),
+                    w.schedule(),
+                    "CHECKED_IN",
+                    at,
+                    new Hired(w.ben().employee(), w.ana().employment()),
+                    REASON);
+              });
+          refused(
+              db,
+              "attendance_supervisor_action_reason_valid",
+              c -> {
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, "SUPERVISOR");
+                record(
+                    c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+                action(c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", at, w.ben(), "x");
+              });
+
+          // The complete check-in: the record is the target's, never the manager's.
+          UUID record = UUID.randomUUID();
+          UUID checkIn = UUID.randomUUID();
+          committed(db, c -> supervisedCheckIn(c, w, record, checkIn, at));
+          assertThat(
+                  db.jdbc()
+                      .queryForObject(
+                          "SELECT employee_id FROM people.attendance_record WHERE id = ?",
+                          UUID.class,
+                          record))
+              .isEqualTo(w.ana().employee());
+          // One action per event.
+          refused(
+              db,
+              "attendance_supervisor_action_event_unique",
+              c ->
+                  action(
+                      c,
+                      w,
+                      checkIn,
+                      record,
+                      w.slot(),
+                      w.schedule(),
+                      "CHECKED_IN",
+                      at,
+                      w.ben(),
+                      REASON));
+          // Append-only: no update, delete or truncate of the action; the event's method is fixed.
+          refused(
+              db,
+              "attendance_supervisor_action_immutable",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE people.attendance_supervisor_action SET reason = 'Autre motif ici'"
+                          + " WHERE event_id = ?",
+                      checkIn));
+          refused(
+              db,
+              "attendance_supervisor_action_immutable",
+              c ->
+                  exec(
+                      c,
+                      "DELETE FROM people.attendance_supervisor_action WHERE event_id = ?",
+                      checkIn));
+          refused(
+              db,
+              "attendance_supervisor_action_no_truncate",
+              c -> exec(c, "TRUNCATE people.attendance_supervisor_action CASCADE"));
+          refused(
+              db,
+              "attendance_event_immutable",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE people.attendance_event SET recording_method = 'SELF' WHERE id = ?",
+                      checkIn));
+          // A supervised check-out completes the record; the record never names the manager.
+          committed(
+              db,
+              c -> {
+                UUID out = UUID.randomUUID();
+                Timestamp when = plus(w.end(), Duration.ofHours(1));
+                methodEvent(
+                    c, w, out, record, w.slot(), w.schedule(), "CHECKED_OUT", when, "SUPERVISOR");
+                action(
+                    c,
+                    w,
+                    out,
+                    record,
+                    w.slot(),
+                    w.schedule(),
+                    "CHECKED_OUT",
+                    when,
+                    w.ben(),
+                    REASON);
+                exec(
+                    c,
+                    "UPDATE people.attendance_record SET check_out_event_id = ?, checked_out_at ="
+                        + " ? WHERE tenant_id = ? AND id = ?",
+                    out,
+                    when,
+                    w.tenant(),
+                    record);
+              });
+          assertThat(count(db, "SELECT count(*) FROM people.attendance_supervisor_action"))
+              .isEqualTo(2);
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM information_schema.columns WHERE table_schema ="
+                          + " 'people' AND table_name = 'attendance_record' AND (column_name"
+                          + " LIKE '%manager%' OR column_name LIKE '%reason%')"))
+              .isZero();
+          assertThat(zoeEmployment).isNotNull();
+          assertThat(later).isNotNull();
+        });
+  }
+
+  // ------------------------------------------------------------------------------------------
   // Query plans
   // ------------------------------------------------------------------------------------------
 

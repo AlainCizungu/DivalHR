@@ -15,13 +15,15 @@ import {
   StatusBadge,
 } from '../../ui/primitives';
 import { ContractAttentionCard } from './ContractAttentionCard';
+import { TeamAttendanceCard } from './TeamAttendanceCard';
 import { EMPLOYEE_ROADMAP, TENANT_ADMIN_ROADMAP, type RoadmapItem } from './roadmap';
 
 /**
  * UI-001 role homes, refreshed by UI-003 (Issue #103) with the shipped leave and scheduling
  * destinations. Static entry points only: no counts, totals, alerts or activity (D10, UI3-7), with
- * one approved exception (MVP-031A, C3b): the organization administrator's live "Contracts needing
- * attention" card. Each section appears for the role that can open its destinations; users with
+ * two approved exceptions: the organization administrator's live "Contracts needing attention"
+ * card (MVP-031A, C3b) and the manager's conditional "Team attendance to record" card (MVP-060B,
+ * B60B-8, shown only while the caller's queue is not empty, without a count). Each section appears for the role that can open its destinations; users with
  * several roles see each of their sections (D13, UI3-6).
  */
 
@@ -249,6 +251,8 @@ function EmployeeSection() {
         </div>
         <CardGrid cards={EMPLOYEE_CARDS} />
       </section>
+      {/* MVP-060B: shown only while the caller has team-attendance actions (no count). */}
+      <TeamAttendanceCard />
       {/* Conditional wording: the inbox is empty unless the employee is an approver (UI3-5). */}
       <Card labelledBy={approvalsId} className="feature-card" testId="home-leave-approvals">
         <span className="feature-card__icon">

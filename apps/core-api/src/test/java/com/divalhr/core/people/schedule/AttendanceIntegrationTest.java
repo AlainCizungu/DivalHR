@@ -196,7 +196,17 @@ class AttendanceIntegrationTest {
             "checkedInAt",
             "checkedOutAt",
             "checkInAvailable",
-            "checkOutAvailable");
+            "checkOutAvailable",
+            "checkInRecordingMethod",
+            "checkInSupervisorReasonLocale",
+            "checkInSupervisorReason",
+            "checkOutRecordingMethod",
+            "checkOutSupervisorReasonLocale",
+            "checkOutSupervisorReason");
+    // MVP-060B: a self-service check-in is SELF, with no supervisor reason.
+    assertThat(open.get("checkInRecordingMethod").asText()).isEqualTo("SELF");
+    assertThat(open.get("checkInSupervisorReason").isNull()).isTrue();
+    assertThat(open.get("checkOutRecordingMethod").isNull()).isTrue();
     assertThat(open.get("status").asText()).isEqualTo("OPEN");
     assertThat(open.get("attendanceRecordId").asText()).isEqualTo(id);
     assertThat(open.get("checkInAvailable").asBoolean()).isFalse();
@@ -224,6 +234,21 @@ class AttendanceIntegrationTest {
     assertThat(again.getHeader("Idempotent-Replayed")).isEqualTo("true");
     w.problem(checkOut(t.ana(), Organizations.newKey(), id), 409, "ATTENDANCE_ALREADY_CHECKED_OUT");
     assertThat(events(id)).isEqualTo(2);
+    // MVP-060B (B60B-9 item 9): self-service events are SELF and have no supervisor evidence.
+    assertThat(
+            jdbc.queryForList(
+                "SELECT recording_method FROM people.attendance_event WHERE record_id = ?::uuid",
+                String.class,
+                id))
+        .containsOnly("SELF")
+        .hasSize(2);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM people.attendance_supervisor_action WHERE record_id ="
+                    + " ?::uuid",
+                Integer.class,
+                id))
+        .isZero();
     assertThat(
             jdbc.queryForObject(
                 "SELECT status FROM people.attendance_record WHERE id = ?::uuid", String.class, id))
@@ -239,7 +264,21 @@ class AttendanceIntegrationTest {
     JsonNode item = page.get("items").get(0);
     assertThat(fieldNames(item))
         .containsExactly(
-            "id", "status", "checkedInAt", "checkedOutAt", "checkOutAvailable", "shift");
+            "id",
+            "status",
+            "checkedInAt",
+            "checkedOutAt",
+            "checkOutAvailable",
+            "shift",
+            "checkInRecordingMethod",
+            "checkInSupervisorReasonLocale",
+            "checkInSupervisorReason",
+            "checkOutRecordingMethod",
+            "checkOutSupervisorReasonLocale",
+            "checkOutSupervisorReason");
+    assertThat(item.get("checkInRecordingMethod").asText()).isEqualTo("SELF");
+    assertThat(item.get("checkOutRecordingMethod").asText()).isEqualTo("SELF");
+    assertThat(item.get("checkOutSupervisorReasonLocale").isNull()).isTrue();
     assertThat(item.get("status").asText()).isEqualTo("COMPLETED");
     assertThat(item.get("checkOutAvailable").asBoolean()).isFalse();
     assertThat(item.get("shift").get("slotId").asText()).isEqualTo(slot);

@@ -22,6 +22,7 @@ import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { MyAttendancePage } from '../features/schedules/MyAttendancePage';
 import { MySchedulePage } from '../features/schedules/MySchedulePage';
 import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/ScheduleSubstitutionApprovalsPage';
+import { TeamAttendancePage } from '../features/schedules/TeamAttendancePage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { EmployeeDirectoryPage } from '../features/people/EmployeeDirectoryPage';
@@ -227,6 +228,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'attendance.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myAttendance' }],
+  },
+  {
+    path: '/me/team-attendance',
+    element: <TeamAttendancePage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'teamAttendance.unauthorized',
+      signInKey: 'teamAttendance.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.teamAttendance' }],
   },
   {
     path: '/me/schedule/substitutions',

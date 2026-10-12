@@ -5,6 +5,7 @@ import { useApi } from '../../app/ApiProvider';
 import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate } from '../people/history';
+import { AssistedNote } from './AssistedNote';
 import { AttendanceDialog } from './AttendanceDialog';
 import {
   ATTENDANCE_NETWORK_FAILURE,
@@ -13,6 +14,7 @@ import {
   receiptMessageKey,
   type AttendanceFailure,
 } from './attendance';
+import { assistedOf } from './teamAttendance';
 import { formatTime, splitLocal } from './workSchedules';
 
 type Listing =
@@ -27,7 +29,9 @@ type Listing =
  * / "Open" or « Terminée » / "Completed". An open record still inside its check-out window offers
  * « Pointer le départ » / "Check out" after an explicit confirmation (the shift may have left My
  * schedule at its scheduled end). Cards stack on narrow screens; nothing is kept in browser
- * storage or put in a URL.
+ * storage or put in a URL. MVP-060B: a check-in or check-out a supervisor recorded is marked
+ * « Enregistré par un responsable » / "Recorded by a supervisor" with the reason, never the
+ * supervisor.
  */
 export function MyAttendancePage() {
   const { t, i18n } = useTranslation();
@@ -189,12 +193,28 @@ export function MyAttendancePage() {
                   <dt>{t('attendance.checkedIn')}</dt>
                   <dd data-testid="my-attendance-checked-in">
                     {formatInstant(language, record.checkedInAt, zone)}
+                    <AssistedNote
+                      event={assistedOf(
+                        record.checkInRecordingMethod,
+                        record.checkInSupervisorReasonLocale,
+                        record.checkInSupervisorReason,
+                      )}
+                      testId="my-attendance-check-in-assisted"
+                    />
                   </dd>
                   <dt>{t('attendance.checkedOut')}</dt>
                   <dd data-testid="my-attendance-checked-out">
                     {record.checkedOutAt
                       ? formatInstant(language, record.checkedOutAt, zone)
                       : t('attendance.notCheckedOut')}
+                    <AssistedNote
+                      event={assistedOf(
+                        record.checkOutRecordingMethod,
+                        record.checkOutSupervisorReasonLocale,
+                        record.checkOutSupervisorReason,
+                      )}
+                      testId="my-attendance-check-out-assisted"
+                    />
                   </dd>
                 </dl>
                 <p className="muted" data-testid="my-attendance-timezone">
