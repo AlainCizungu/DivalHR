@@ -5,6 +5,7 @@ import com.divalhr.core.people.schedule.api.AttendanceResponses.Page;
 import com.divalhr.core.people.schedule.api.AttendanceResponses.Receipt;
 import com.divalhr.core.people.schedule.application.AttendanceService;
 import com.divalhr.core.people.schedule.application.MyWorkScheduleService;
+import com.divalhr.core.people.schedule.application.OfflineAttendanceService;
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.idempotency.IdempotencyKeys;
@@ -16,6 +17,10 @@ import com.divalhr.core.platform.tenancy.TenantContextResolver;
 import com.divalhr.core.platform.web.CorrelationId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
@@ -47,16 +52,22 @@ public class AttendanceController {
   static final String CACHE_CONTROL = "private, no-store";
 
   private final AttendanceService attendance;
+  private final OfflineAttendanceService offline;
   private final TenantContextResolver tenants;
 
   /**
    * Creates the controller.
    *
    * @param attendance attendance service
+   * @param offline offline synchronization service (MVP-061A)
    * @param tenants verified tenant resolver
    */
-  public AttendanceController(AttendanceService attendance, TenantContextResolver tenants) {
+  public AttendanceController(
+      AttendanceService attendance,
+      OfflineAttendanceService offline,
+      TenantContextResolver tenants) {
     this.attendance = attendance;
+    this.offline = offline;
     this.tenants = tenants;
   }
 
@@ -130,6 +141,43 @@ public class AttendanceController {
     IdempotentOperation.Result<Receipt> result =
         attendance.checkOut(caller(authentication, request), attendanceRecordId, idempotencyKey);
     return respond(ResponseEntity.ok(), result);
+  }
+
+  /**
+   * Applies one attendance event the caller captured while offline (MVP-061A), or returns the
+   * original result of the identical earlier submission. The client event ID is the idempotency
+   * identity; no {@code Idempotency-Key} is read.
+   *
+   * @param body the event
+   * @param authentication verified employee
+   * @param request current request
+   * @return 201 when applied now, 200 with the original result for an identical replay
+   */
+  @Operation(operationId = "syncMyOfflineAttendanceEvent")
+  @ApiResponses({
+    @ApiResponse(
+        responseCode = "201",
+        description = "Applied",
+        content =
+            @Content(schema = @Schema(implementation = OfflineAttendanceResponses.Result.class))),
+    @ApiResponse(
+        responseCode = "200",
+        description = "Already applied",
+        content =
+            @Content(schema = @Schema(implementation = OfflineAttendanceResponses.Result.class)))
+  })
+  @PostMapping(path = PATH + "/offline-events:sync", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @EmployeeSelfOperation(operation = OfflineAttendanceService.OFFLINE_SYNC)
+  @SubjectRateLimited(bucket = AttendanceService.SUBJECT_WRITE_BUCKET)
+  @TenantRateLimited(bucket = AttendanceService.TENANT_WRITE_BUCKET)
+  public ResponseEntity<OfflineAttendanceResponses.Result> syncOffline(
+      @RequestBody SyncOfflineAttendanceRequest body,
+      @Parameter(hidden = true) JwtAuthenticationToken authentication,
+      @Parameter(hidden = true) HttpServletRequest request) {
+    OfflineAttendanceService.Synced synced = offline.sync(caller(authentication, request), body);
+    return ResponseEntity.status(synced.replayed() ? HttpStatus.OK : HttpStatus.CREATED)
+        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
+        .body(synced.result());
   }
 
   private static ResponseEntity<Receipt> respond(

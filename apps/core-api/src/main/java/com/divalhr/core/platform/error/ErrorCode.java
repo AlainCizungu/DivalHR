@@ -389,7 +389,21 @@ public enum ErrorCode {
    * MVP-060C: the attendance-exception review scope (a site) is unknown, foreign or malformed; the
    * same answer for each.
    */
-  ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND(HttpStatus.NOT_FOUND);
+  ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * MVP-061A: an offline attendance event was received more than 72 hours after its claimed device
+   * time, or more than 72 hours after its attendance window closed.
+   */
+  OFFLINE_ATTENDANCE_TOO_OLD(HttpStatus.CONFLICT),
+  /** MVP-061A: the claimed device time is more than 5 minutes after the server's receipt. */
+  OFFLINE_ATTENDANCE_FUTURE_TIME(HttpStatus.CONFLICT),
+  /** MVP-061A: the offset of {@code deviceOccurredAt} differs from {@code deviceOffsetMinutes}. */
+  OFFLINE_ATTENDANCE_OFFSET_MISMATCH(HttpStatus.UNPROCESSABLE_CONTENT),
+  /**
+   * MVP-061A: another accepted attendance event makes this offline event impossible to apply
+   * exactly (never used for authentication, foreign resources or validation).
+   */
+  OFFLINE_ATTENDANCE_CONFLICT(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

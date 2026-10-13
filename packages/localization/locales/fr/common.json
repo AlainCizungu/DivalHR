@@ -439,6 +439,10 @@
     "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Le départ ne peut plus être pointé pour ce créneau.",
     "ATTENDANCE_STATE_CONFLICT": "L’enregistrement est impossible pour le moment. Actualisez la page et réessayez.",
     "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND": "Ce site n’est pas disponible pour le suivi de la présence.",
+    "OFFLINE_ATTENDANCE_TOO_OLD": "Ce pointage a été reçu trop longtemps après l’heure enregistrée sur cet appareil : il n’a pas pu être appliqué.",
+    "OFFLINE_ATTENDANCE_FUTURE_TIME": "L’heure enregistrée sur cet appareil est postérieure à la réception de ce pointage : il n’a pas pu être appliqué. Vérifiez la date et l’heure de l’appareil.",
+    "OFFLINE_ATTENDANCE_OFFSET_MISMATCH": "L’heure enregistrée sur cet appareil n’a pas pu être lue de façon cohérente : ce pointage n’a pas pu être appliqué.",
+    "OFFLINE_ATTENDANCE_CONFLICT": "Ce pointage a été reçu plus tard et n’a pas pu être appliqué, car il entre en conflit avec un pointage déjà enregistré pour vous.",
     "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "Cette action de présence ne vous est pas disponible. La liste a été actualisée.",
     "TEAM_ATTENDANCE_MANAGER_REQUIRED": "La présence de l’équipe est réservée aux responsables de collaborateurs directs."
   },

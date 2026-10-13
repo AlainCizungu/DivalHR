@@ -5042,6 +5042,92 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  "/me/attendance/offline-events:sync":
+    post:
+      operationId: syncMyOfflineAttendanceEvent
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Synchronize one attendance event captured offline
+      description: >-
+        MVP-061A. Applies, exactly once, one check-in or check-out that the employee of the
+        caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise, on
+        every first submission and replay) captured while offline. One event per request; no
+        batch. Tenant, employee, employment, schedule, record, receipt instant, recording method
+        and actor are never fields. The claimed device time (deviceOccurredAt, RFC 3339 with an
+        explicit offset equal to deviceOffsetMinutes, else 422 OFFLINE_ATTENDANCE_OFFSET_MISMATCH)
+        is untrusted evidence; the receipt instant is the server's. Idempotency: the durable
+        identity is the verified tenant, the linked employee and clientEventId, stored with the
+        evidence; no Idempotency-Key is read. The identical submission returns 200 with the
+        original result (outcome ALREADY_APPLIED, the original IDs and both instants, the record's
+        current status) and writes nothing; the same clientEventId with another slot, type,
+        instant or offset is 409 IDEMPOTENCY_KEY_REUSED without params. A first submission is
+        decided at receipt exactly as MVP-060A, on the claimed time. CHECK_IN: the slot of an
+        operational schedule currently covered by the employee (the published assignee or the
+        approved substitute); malformed, unknown, foreign-tenant, cancelled, replaced, uncovered
+        and other employees' slots are the same 404 ATTENDANCE_SHIFT_NOT_FOUND without params;
+        the claimed time from 2 hours before the scheduled start (409
+        ATTENDANCE_CHECK_IN_TOO_EARLY before) to the scheduled end, exclusive (409
+        ATTENDANCE_CHECK_IN_WINDOW_CLOSED). CHECK_OUT: the caller's own record on the slot (else
+        the same 404 ATTENDANCE_RECORD_NOT_FOUND, also for a malformed, unknown or foreign slot),
+        whatever the schedule's later state; the claimed time until 24 hours after the scheduled
+        end, inclusive (409 ATTENDANCE_CHECK_OUT_WINDOW_CLOSED). Fixed safeguards: a claimed time
+        more than 5 minutes after the receipt is 409 OFFLINE_ATTENDANCE_FUTURE_TIME; a receipt
+        more than 72 hours after the claimed time, or more than 72 hours after the applicable
+        window closed (the scheduled end for a check-in, the check-out deadline for a check-out),
+        is 409 OFFLINE_ATTENDANCE_TOO_OLD; each bound is inclusive. An event another accepted
+        event makes impossible to apply exactly is 409 OFFLINE_ATTENDANCE_CONFLICT: a check-in on
+        a slot already checked in (by any method) or overlapping another open record of the
+        employee; a check-out of a completed record or not strictly after the accepted check-in.
+        Zero or several qualifying employments are 409 ATTENDANCE_STATE_CONFLICT. Existing events
+        are never changed or reordered. One transaction, under the tenant's scheduling lock,
+        writes the EMPLOYEE_OFFLINE_SYNC event with its provenance (client event, offset, receipt
+        instant), the record (its instant is the claimed time), the audit record
+        (attendance.offline-event-sync) and the outbox event (people.attendance.checked-in.v1 or
+        checked-out.v1, unchanged; never the offset). Errors never echo an ID, timestamp, name,
+        number or label. Shares the attendance-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncOfflineAttendanceRequest"
+      responses:
+        "201":
+          description: Applied now
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfflineAttendanceSyncResult"
+        "200":
+          description: The identical submission was applied before; the original result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfflineAttendanceSyncResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /me/team-attendance/actions:
     get:
       operationId: listTeamAttendanceActions
@@ -8951,6 +9037,10 @@ components:
         - TEAM_ATTENDANCE_ACTION_NOT_FOUND
         - TEAM_ATTENDANCE_MANAGER_REQUIRED
         - ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND
+        - OFFLINE_ATTENDANCE_TOO_OLD
+        - OFFLINE_ATTENDANCE_FUTURE_TIME
+        - OFFLINE_ATTENDANCE_OFFSET_MISMATCH
+        - OFFLINE_ATTENDANCE_CONFLICT
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -10682,8 +10772,91 @@ components:
       type: string
       description: >-
         MVP-060B. SELF: recorded by the employee. SUPERVISOR: recorded by the employee's effective
-        manager on their behalf, with a reason.
-      enum: [SELF, SUPERVISOR]
+        manager on their behalf, with a reason. MVP-061A: EMPLOYEE_OFFLINE_SYNC: captured by the
+        employee while offline and synchronized later; its instant is the claimed device time.
+      enum: [SELF, SUPERVISOR, EMPLOYEE_OFFLINE_SYNC]
+    SyncOfflineAttendanceRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-061A. One event captured offline. Tenant, employee, employment, schedule, record,
+        receipt instant, recording method and actor are never fields. VALIDATION_FAILED fields:
+        clientEventId (REQUIRED, FORMAT), slotId (REQUIRED), type (REQUIRED, FORMAT),
+        deviceOccurredAt (REQUIRED, FORMAT), deviceOffsetMinutes (REQUIRED, FORMAT, RANGE) and body
+        (REQUIRED, UNKNOWN_PROPERTY); a slotId that is not a UUID is the same 404 as an unknown
+        one (ATTENDANCE_SHIFT_NOT_FOUND for CHECK_IN, ATTENDANCE_RECORD_NOT_FOUND for CHECK_OUT).
+      required: [clientEventId, slotId, type, deviceOccurredAt, deviceOffsetMinutes]
+      properties:
+        clientEventId:
+          type: string
+          format: uuid
+          description: The immutable identity the client gave the event when it captured it.
+        slotId:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/OfflineAttendanceEventType"
+        deviceOccurredAt:
+          type: string
+          format: date-time
+          description: >-
+            The claimed device time: RFC 3339 with upper-case T, seconds, at most six fractional
+            digits and an explicit offset (Z or +hh:mm/-hh:mm, at most 14 hours, never -00:00); a
+            real calendar date and time. Anything else is FORMAT.
+        deviceOffsetMinutes:
+          type: integer
+          minimum: -840
+          maximum: 840
+          description: The device's UTC offset in minutes at capture; equal to the offset above.
+    OfflineAttendanceEventType:
+      type: string
+      description: MVP-061A. The event captured offline.
+      enum: [CHECK_IN, CHECK_OUT]
+    OfflineAttendanceSyncResult:
+      type: object
+      description: >-
+        MVP-061A. The result of a submission: APPLIED now (201) or ALREADY_APPLIED earlier (200,
+        the original IDs and instants). Never the tenant, employee, employment, subject or offset.
+      required:
+        [
+          outcome,
+          clientEventId,
+          attendanceRecordId,
+          attendanceEventId,
+          type,
+          deviceOccurredAt,
+          serverReceivedAt,
+          recordingMethod,
+          recordStatus,
+        ]
+      properties:
+        outcome:
+          type: string
+          enum: [APPLIED, ALREADY_APPLIED]
+        clientEventId:
+          type: string
+          format: uuid
+        attendanceRecordId:
+          type: string
+          format: uuid
+        attendanceEventId:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/OfflineAttendanceEventType"
+        deviceOccurredAt:
+          type: string
+          format: date-time
+          description: The claimed device time as accepted (UTC).
+        serverReceivedAt:
+          type: string
+          format: date-time
+          description: The server's receipt instant of the first application.
+        recordingMethod:
+          type: string
+          enum: [EMPLOYEE_OFFLINE_SYNC]
+        recordStatus:
+          $ref: "#/components/schemas/AttendanceStatus"
     TeamAttendanceRequiredAction:
       type: string
       description: MVP-060B. The action a direct report's shift needs now.

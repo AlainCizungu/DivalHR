@@ -283,6 +283,11 @@ export type AttendanceException = CoreComponents['schemas']['AttendanceException
 export type AttendanceExceptionPage = CoreComponents['schemas']['AttendanceExceptionPage'];
 export type TeamAttendanceException = CoreComponents['schemas']['TeamAttendanceException'];
 export type TeamAttendanceExceptionPage = CoreComponents['schemas']['TeamAttendanceExceptionPage'];
+/** MVP-061A: synchronization of one attendance event captured offline (consumed by MVP-061B). */
+export type SyncOfflineAttendanceRequest =
+  CoreComponents['schemas']['SyncOfflineAttendanceRequest'];
+export type OfflineAttendanceEventType = CoreComponents['schemas']['OfflineAttendanceEventType'];
+export type OfflineAttendanceSyncResult = CoreComponents['schemas']['OfflineAttendanceSyncResult'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

@@ -44,6 +44,9 @@ public final class ScheduleConstraintViolations {
   /** MVP-060A: at most one actionable open record per employee. */
   public static final String ATTENDANCE_ONE_OPEN = "attendance_record_one_open";
 
+  /** MVP-061A: one offline event per tenant, employee and client event. */
+  public static final String ATTENDANCE_CLIENT_EVENT = "attendance_event_client_event_unique";
+
   private ScheduleConstraintViolations() {}
 
   /**

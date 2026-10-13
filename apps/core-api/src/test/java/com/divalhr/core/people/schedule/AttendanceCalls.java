@@ -43,6 +43,31 @@ final class AttendanceCalls {
     return checkOut(person.bearer(), key, recordId);
   }
 
+  /** MVP-061A: one offline event; the body as given (a map, or raw JSON text). */
+  static MockHttpServletRequestBuilder sync(String bearer, Object body) throws Exception {
+    return Employees.postJson(
+        bearer,
+        ATTENDANCE + "/offline-events:sync",
+        body instanceof String text ? text : JSON.writeValueAsString(body));
+  }
+
+  /** An offline event body: the claimed time written at the offset given in minutes. */
+  static Map<String, Object> offline(
+      String clientEventId, String slotId, String type, Instant at, int offsetMinutes) {
+    return Map.of(
+        "clientEventId",
+        clientEventId,
+        "slotId",
+        slotId,
+        "type",
+        type,
+        "deviceOccurredAt",
+        at.atOffset(java.time.ZoneOffset.ofTotalSeconds(offsetMinutes * 60))
+            .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+        "deviceOffsetMinutes",
+        offsetMinutes);
+  }
+
   static MockHttpServletRequestBuilder history(String bearer) {
     return get(ATTENDANCE).header("Authorization", bearer);
   }

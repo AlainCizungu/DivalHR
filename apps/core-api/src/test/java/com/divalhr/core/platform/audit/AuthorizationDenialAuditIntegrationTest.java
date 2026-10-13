@@ -224,7 +224,9 @@ class AuthorizationDenialAuditIntegrationTest {
           "attendance.supervisor-check-out",
           // MVP-060C: the employee's own and the manager's attendance exceptions.
           "attendance.exception-self-list",
-          "attendance.exception-team-list");
+          "attendance.exception-team-list",
+          // MVP-061A: the employee's own offline attendance synchronization.
+          "attendance.offline-event-sync");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

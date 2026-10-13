@@ -50,7 +50,12 @@ public final class Attendance {
     /** By the employee. */
     SELF,
     /** By the employee's effective manager on their behalf, with a reason. */
-    SUPERVISOR
+    SUPERVISOR,
+    /**
+     * By the employee, captured offline and synchronized later (MVP-061A): the event's instant is
+     * the claimed device time; the server receipt instant is kept as evidence.
+     */
+    EMPLOYEE_OFFLINE_SYNC
   }
 
   /** The action a direct report's shift needs now (MVP-060B). */
