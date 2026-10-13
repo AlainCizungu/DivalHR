@@ -35,7 +35,7 @@ public class JdbcAttendanceRepository {
           + " a.slot_start_at, a.slot_end_at, a.check_in_event_id, a.checked_in_at,"
           + " a.check_out_event_id, a.checked_out_at";
 
-  private static final String SHIFT_COLUMNS =
+  static final String SHIFT_COLUMNS =
       " l.id AS slot_id, l.schedule_id, s.site_id, s.site_timezone, l.start_local, l.end_local,"
           + " l.start_at, l.end_at, l.label_en, l.label_fr, l.assigned_employee_id,"
           + " (NOT people.work_schedule_terminal(s.tenant_id, s.id)) AS operational";
@@ -64,13 +64,13 @@ public class JdbcAttendanceRepository {
    * An employment {@code e} that covers the shift's dates and is placed at its site on the first
    * date (the qualifying employment, MVP-060A), for a slot {@code l} of schedule {@code s}.
    */
-  private static final String QUALIFIES =
+  static final String QUALIFIES =
       " people.attendance_employment_qualifies(e.tenant_id, e.id, e.employee_id, s.site_id,"
           + " l.start_local::date, people.work_schedule_slot_last_date(l.start_local,"
           + " l.end_local))";
 
   /** Employment {@code :alias} reports to {@code :manager} on slot {@code l}'s first date. */
-  private static String reports(String employment) {
+  static String reports(String employment) {
     return " EXISTS (SELECT 1 FROM people.employment_assignment ma"
         + " WHERE ma.tenant_id = :tenant AND ma.employment_id = "
         + employment
@@ -715,7 +715,7 @@ public class JdbcAttendanceRepository {
         out == null ? null : out.toInstant());
   }
 
-  private static Shift shift(ResultSet rs) throws SQLException {
+  static Shift shift(ResultSet rs) throws SQLException {
     return new Shift(
         rs.getObject("slot_id", UUID.class),
         rs.getObject("schedule_id", UUID.class),

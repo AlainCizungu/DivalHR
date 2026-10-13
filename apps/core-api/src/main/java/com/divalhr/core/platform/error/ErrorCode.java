@@ -384,7 +384,12 @@ public enum ErrorCode {
    */
   TEAM_ATTENDANCE_ACTION_NOT_FOUND(HttpStatus.NOT_FOUND),
   /** MVP-060B: the caller manages nobody around the actionable dates. */
-  TEAM_ATTENDANCE_MANAGER_REQUIRED(HttpStatus.FORBIDDEN);
+  TEAM_ATTENDANCE_MANAGER_REQUIRED(HttpStatus.FORBIDDEN),
+  /**
+   * MVP-060C: the attendance-exception review scope (a site) is unknown, foreign or malformed; the
+   * same answer for each.
+   */
+  ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND(HttpStatus.NOT_FOUND);
 
   private final HttpStatus status;
 

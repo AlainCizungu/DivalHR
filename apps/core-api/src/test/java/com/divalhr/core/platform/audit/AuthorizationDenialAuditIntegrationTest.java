@@ -183,7 +183,9 @@ class AuthorizationDenialAuditIntegrationTest {
           "work-schedule.get",
           "work-schedule.cancel",
           "work-schedule.replacement-preview",
-          "work-schedule.replace");
+          "work-schedule.replace",
+          // MVP-060C: the organization's attendance-exception review.
+          "attendance.exception-admin-list");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -219,7 +221,10 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-060B: the manager's team attendance (authority re-derived from the reporting line).
           "attendance.team-actions-list",
           "attendance.supervisor-check-in",
-          "attendance.supervisor-check-out");
+          "attendance.supervisor-check-out",
+          // MVP-060C: the employee's own and the manager's attendance exceptions.
+          "attendance.exception-self-list",
+          "attendance.exception-team-list");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -636,7 +641,7 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    assertThat(handlers).hasSize(84);
+    assertThat(handlers).hasSize(85);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

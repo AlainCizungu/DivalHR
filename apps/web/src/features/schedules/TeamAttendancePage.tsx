@@ -5,6 +5,7 @@ import { useApi } from '../../app/ApiProvider';
 import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate } from '../people/history';
+import { AttendanceExceptions } from './AttendanceExceptions';
 import { TeamAttendanceDialog } from './TeamAttendanceDialog';
 import { formatInstant } from './attendance';
 import {
@@ -29,7 +30,8 @@ type Listing =
  * record. « Enregistrer l'arrivée » / "Record check-in" and « Enregistrer le départ » / "Record
  * check-out" open the confirmation with the reason; after a recorded or refused command the queue
  * is read again from the server. Cards stack on narrow screens; nothing is kept in browser storage
- * or put in a URL. The server decides who may act, on every request.
+ * or put in a URL. The server decides who may act, on every request. MVP-060C: « Anomalies » /
+ * "Exceptions" lists the direct reports' factual exceptions below the queue, read-only.
  */
 export function TeamAttendancePage() {
   const { t, i18n } = useTranslation();
@@ -297,6 +299,7 @@ export function TeamAttendancePage() {
           });
         }}
       />
+      <AttendanceExceptions view="team" level={2} />
     </section>
   );
 }

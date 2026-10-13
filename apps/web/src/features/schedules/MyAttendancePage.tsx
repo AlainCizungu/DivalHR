@@ -6,6 +6,7 @@ import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate } from '../people/history';
 import { AssistedNote } from './AssistedNote';
+import { AttendanceExceptions } from './AttendanceExceptions';
 import { AttendanceDialog } from './AttendanceDialog';
 import {
   ATTENDANCE_NETWORK_FAILURE,
@@ -31,7 +32,8 @@ type Listing =
  * schedule at its scheduled end). Cards stack on narrow screens; nothing is kept in browser
  * storage or put in a URL. MVP-060B: a check-in or check-out a supervisor recorded is marked
  * « Enregistré par un responsable » / "Recorded by a supervisor" with the reason, never the
- * supervisor.
+ * supervisor. MVP-060C: « Anomalies de présence » / "Attendance exceptions" lists the caller's
+ * own factual exceptions below the records, read-only.
  */
 export function MyAttendancePage() {
   const { t, i18n } = useTranslation();
@@ -289,6 +291,7 @@ export function MyAttendancePage() {
           });
         }}
       />
+      <AttendanceExceptions view="self" level={2} />
     </section>
   );
 }

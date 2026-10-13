@@ -1971,6 +1971,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/attendance/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my factual attendance exceptions
+         * @description MVP-060C. The factual attendance exceptions of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), and only theirs. Exceptions are derived at one server-owned asOfInstant (pinned in the signed cursor) from the immutable schedules and slots, terminal evidence, approved substitutions and the attendance evidence; nothing is stored. MISSING_CHECK_IN: a shift of a schedule not cancelled or replaced by asOfInstant has ended (asOfInstant at or after its scheduled end) and its effective assignee (the approved substitute when the substitution was approved before the end, otherwise the published assignee) has no record for it. MISSING_CHECK_OUT: a record has no check-out and its check-out deadline (end + 24 hours, inclusive) has passed. LATE_CHECK_IN: the check-in was more than 5 minutes after the scheduled start. EARLY_CHECK_OUT: the check-out was more than 5 minutes before the scheduled end. Exactly 5 minutes is not an exception; varianceMinutes is the difference rounded up to whole minutes. A recorded exception stays bound to the record's employee whatever happened to the schedule or its coverage later. Facts only: no guilt, absence, policy, pay or disciplinary conclusion. Optional type; from and to are inclusive site-local dates of the shift start, given together, at most 93 days (400 VALIDATION_FAILED otherwise); without them, the last 31 site-local dates through the as-of date in each site's time zone. Ordered by scheduled start descending, then slot ID descending, then employee ID descending, then type (MISSING_CHECK_IN, LATE_CHECK_IN, EARLY_CHECK_OUT, MISSING_CHECK_OUT). Never another employee, a subject, an employment, a reason or a recorder. Restricted HR/Operations: a fail-closed disclosure (audit attendance.exception-self-list). The signed cursor is bound to the operation, tenant, caller, link, linked employee, filters, page size and asOfInstant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listMyAttendanceExceptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/team-attendance/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my direct reports' factual attendance exceptions
+         * @description MVP-060C. The factual attendance exceptions of the employees whose qualifying employment (for a recorded exception, the record's employment) has an active, non-superseded MANAGER line naming the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise) on the shift's site-local start date; never the caller's own. Re-evaluated on every page: a former manager loses the rows at once, and a cursor whose position is no longer in scope is 400 CURSOR_INVALID. A caller who manages nobody gets an empty page. Leave substitutes and substitution approvals grant nothing. Exceptions are derived at one server-owned asOfInstant (pinned in the signed cursor) from the immutable schedules and slots, terminal evidence, approved substitutions and the attendance evidence; nothing is stored. MISSING_CHECK_IN: a shift of a schedule not cancelled or replaced by asOfInstant has ended (asOfInstant at or after its scheduled end) and its effective assignee (the approved substitute when the substitution was approved before the end, otherwise the published assignee) has no record for it. MISSING_CHECK_OUT: a record has no check-out and its check-out deadline (end + 24 hours, inclusive) has passed. LATE_CHECK_IN: the check-in was more than 5 minutes after the scheduled start. EARLY_CHECK_OUT: the check-out was more than 5 minutes before the scheduled end. Exactly 5 minutes is not an exception; varianceMinutes is the difference rounded up to whole minutes. A recorded exception stays bound to the record's employee whatever happened to the schedule or its coverage later. Facts only: no guilt, absence, policy, pay or disciplinary conclusion. Optional type; from and to are inclusive site-local dates of the shift start, given together, at most 93 days (400 VALIDATION_FAILED otherwise); without them, the last 31 site-local dates through the as-of date in each site's time zone. Ordered by scheduled start descending, then slot ID descending, then employee ID descending, then type (MISSING_CHECK_IN, LATE_CHECK_IN, EARLY_CHECK_OUT, MISSING_CHECK_OUT). Each item names its employee (ID, employee number, current name); never a manager, subject, employment, reason or recorder. Restricted HR/Operations: a fail-closed disclosure (audit attendance.exception-team-list). The signed cursor is bound to the operation, tenant, caller, link, manager, filters, page size and asOfInstant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listTeamAttendanceExceptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review the organization's factual attendance exceptions
+         * @description MVP-060C. The organization's factual attendance exceptions, optionally of one of its sites (active or historical); an unknown, foreign, malformed or non-site siteId is 404 ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND without params. Exceptions are derived at one server-owned asOfInstant (pinned in the signed cursor) from the immutable schedules and slots, terminal evidence, approved substitutions and the attendance evidence; nothing is stored. MISSING_CHECK_IN: a shift of a schedule not cancelled or replaced by asOfInstant has ended (asOfInstant at or after its scheduled end) and its effective assignee (the approved substitute when the substitution was approved before the end, otherwise the published assignee) has no record for it. MISSING_CHECK_OUT: a record has no check-out and its check-out deadline (end + 24 hours, inclusive) has passed. LATE_CHECK_IN: the check-in was more than 5 minutes after the scheduled start. EARLY_CHECK_OUT: the check-out was more than 5 minutes before the scheduled end. Exactly 5 minutes is not an exception; varianceMinutes is the difference rounded up to whole minutes. A recorded exception stays bound to the record's employee whatever happened to the schedule or its coverage later. Facts only: no guilt, absence, policy, pay or disciplinary conclusion. Optional type; from and to are inclusive site-local dates of the shift start, given together, at most 93 days (400 VALIDATION_FAILED otherwise); without them, the last 31 site-local dates through the as-of date in each site's time zone. Ordered by scheduled start descending, then slot ID descending, then employee ID descending, then type (MISSING_CHECK_IN, LATE_CHECK_IN, EARLY_CHECK_OUT, MISSING_CHECK_OUT). Each item names its employee (ID, employee number, current name); never a manager, subject, employment, reason or recorder. Restricted HR/Operations: a fail-closed disclosure (audit attendance.exception-admin-list). The signed cursor is bound to the operation, tenant, caller and membership, filters, page size and asOfInstant. Shares the work-schedule-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listAttendanceExceptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3385,7 +3445,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -4344,6 +4404,82 @@ export interface components {
             overnight: boolean;
             labels: components["schemas"]["WorkScheduleLabels"];
         };
+        /**
+         * @description MVP-060C. A factual comparison of a scheduled shift with its attendance evidence, never a decision. MISSING_CHECK_IN: no check-in recorded by the scheduled end. MISSING_CHECK_OUT: no check-out recorded by the check-out deadline. LATE_CHECK_IN: checked in more than 5 minutes after the scheduled start. EARLY_CHECK_OUT: checked out more than 5 minutes before the scheduled end.
+         * @enum {string}
+         */
+        AttendanceExceptionType: "MISSING_CHECK_IN" | "LATE_CHECK_IN" | "EARLY_CHECK_OUT" | "MISSING_CHECK_OUT";
+        /** @description MVP-060C. One factual exception of the caller's own shift. attendanceRecordId and checkedInAt are null for MISSING_CHECK_IN; checkedOutAt is the recorded check-out, if any, at asOfInstant; varianceMinutes is present for LATE_CHECK_IN and EARLY_CHECK_OUT only. */
+        AttendanceException: {
+            type: components["schemas"]["AttendanceExceptionType"];
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            attendanceRecordId: string | null;
+            site: components["schemas"]["WorkScheduleSite"];
+            /** @description The schedule's site time zone snapshot; start and end are local times there. */
+            siteTimezone: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            startAt: string;
+            /** Format: date-time */
+            endAt: string;
+            overnight: boolean;
+            labels: components["schemas"]["WorkScheduleLabels"];
+            /** Format: date-time */
+            checkedInAt: string | null;
+            /** Format: date-time */
+            checkedOutAt: string | null;
+            /** @description Whole minutes after the start (LATE_CHECK_IN) or before the end (EARLY_CHECK_OUT), rounded up; null for the other types. */
+            varianceMinutes: number | null;
+        };
+        AttendanceExceptionPage: {
+            items: components["schemas"]["AttendanceException"][];
+            nextCursor: string | null;
+            /**
+             * Format: date-time
+             * @description The server-owned instant of the view, the same on every page.
+             */
+            asOfInstant: string;
+        };
+        /** @description MVP-060C. One factual exception of a direct report's (or, for a tenant administrator, any employee's) shift, with the employee's minimal identity. The fields are those of AttendanceException. */
+        TeamAttendanceException: {
+            type: components["schemas"]["AttendanceExceptionType"];
+            employee: components["schemas"]["WorkScheduleSubstitutionPerson"];
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            attendanceRecordId: string | null;
+            site: components["schemas"]["WorkScheduleSite"];
+            siteTimezone: string;
+            start: string;
+            end: string;
+            /** Format: date-time */
+            startAt: string;
+            /** Format: date-time */
+            endAt: string;
+            overnight: boolean;
+            labels: components["schemas"]["WorkScheduleLabels"];
+            /** Format: date-time */
+            checkedInAt: string | null;
+            /** Format: date-time */
+            checkedOutAt: string | null;
+            varianceMinutes: number | null;
+        };
+        TeamAttendanceExceptionPage: {
+            items: components["schemas"]["TeamAttendanceException"][];
+            nextCursor: string | null;
+            /**
+             * Format: date-time
+             * @description The server-owned instant of the view, the same on every page.
+             */
+            asOfInstant: string;
+        };
         TeamAttendanceActionPage: {
             items: components["schemas"]["TeamAttendanceAction"][];
             nextCursor: string | null;
@@ -4695,6 +4831,14 @@ export interface components {
         WorkScheduleSubstitutionCandidateLimit: number;
         /** @description Attendance record ID. */
         AttendanceRecordId: string;
+        /** @description Only this exception type (MVP-060C). */
+        AttendanceExceptionType: components["schemas"]["AttendanceExceptionType"];
+        /** @description First site-local date of the shift start (YYYY-MM-DD), inclusive; given together with to, at most 93 days. */
+        AttendanceExceptionFrom: string;
+        /** @description Last site-local date of the shift start (YYYY-MM-DD), inclusive; given together with from, at most 93 days. */
+        AttendanceExceptionTo: string;
+        /** @description Only exceptions of shifts at this site of the organization (active or historical). */
+        AttendanceExceptionSite: string;
         /** @description Items per page (1-100, default 20). */
         AttendanceLimit: number;
         /** @description Items per page (1-50, default 25). */
@@ -8801,6 +8945,126 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listMyAttendanceExceptions: {
+        parameters: {
+            query?: {
+                /** @description Only this exception type (MVP-060C). */
+                type?: components["parameters"]["AttendanceExceptionType"];
+                /** @description First site-local date of the shift start (YYYY-MM-DD), inclusive; given together with to, at most 93 days. */
+                from?: components["parameters"]["AttendanceExceptionFrom"];
+                /** @description Last site-local date of the shift start (YYYY-MM-DD), inclusive; given together with from, at most 93 days. */
+                to?: components["parameters"]["AttendanceExceptionTo"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceExceptionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listTeamAttendanceExceptions: {
+        parameters: {
+            query?: {
+                /** @description Only this exception type (MVP-060C). */
+                type?: components["parameters"]["AttendanceExceptionType"];
+                /** @description First site-local date of the shift start (YYYY-MM-DD), inclusive; given together with to, at most 93 days. */
+                from?: components["parameters"]["AttendanceExceptionFrom"];
+                /** @description Last site-local date of the shift start (YYYY-MM-DD), inclusive; given together with from, at most 93 days. */
+                to?: components["parameters"]["AttendanceExceptionTo"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamAttendanceExceptionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listAttendanceExceptions: {
+        parameters: {
+            query?: {
+                /** @description Only exceptions of shifts at this site of the organization (active or historical). */
+                siteId?: components["parameters"]["AttendanceExceptionSite"];
+                /** @description Only this exception type (MVP-060C). */
+                type?: components["parameters"]["AttendanceExceptionType"];
+                /** @description First site-local date of the shift start (YYYY-MM-DD), inclusive; given together with to, at most 93 days. */
+                from?: components["parameters"]["AttendanceExceptionFrom"];
+                /** @description Last site-local date of the shift start (YYYY-MM-DD), inclusive; given together with from, at most 93 days. */
+                to?: components["parameters"]["AttendanceExceptionTo"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamAttendanceExceptionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
         };
     };

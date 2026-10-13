@@ -40,7 +40,13 @@ function stubApi(route: (request: Recorded) => Reply | Promise<Reply>) {
         key: incoming.headers.get('Idempotency-Key'),
       };
       requests.push(recorded);
-      const reply = await route(recorded);
+      // MVP-060C: the read-only exceptions section has its own tests (AttendanceExceptions.test).
+      const reply = /\/exceptions(\?|$)/u.test(recorded.path)
+        ? {
+            status: 200,
+            body: { items: [], nextCursor: null, asOfInstant: '2099-11-02T06:00:00Z' },
+          }
+        : await route(recorded);
       return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {
         status: reply.status,
         headers: {
