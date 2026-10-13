@@ -428,8 +428,14 @@ test.describe.serial('MVP-051: request and decide shift substitutions', () => {
     await expect(dialog).toBeHidden();
     await expect(page.getByTestId('substitution-announcer')).toContainText('was approved');
     await expect(page.getByTestId('substitution-inbox-empty')).toBeVisible();
-    expect(await storage(page)).not.toMatch(new RegExp(`${stamp}|${letters}`, 'iu'));
-    expect(page.url()).not.toContain(letters);
+    // The run's own markers only (stamp, synthetic family names, slot labels), never the stamp's
+    // bare letter fragment, which can be a single letter of the route itself.
+    const markers = new RegExp(
+      `${stamp}|${ANA_FAMILY}|${BEN_FAMILY}|${CLEO_FAMILY}|Caissi|Cashier`,
+      'iu',
+    );
+    expect(await storage(page)).not.toMatch(markers);
+    expect(page.url()).not.toMatch(markers);
   });
 
   test('Ana sees the approval with Ben and no longer works the shift; Cléo keeps hers', async ({
