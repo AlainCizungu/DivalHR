@@ -3,6 +3,7 @@ import {
   CORE_API,
   USERS,
   acceptInvitationInUi,
+  openInvitationInUi,
   expectAccessible,
   freshCode,
   mailTo,
@@ -80,7 +81,8 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
   test('the revoked link is refused', async ({ browser }) => {
     const context = await browser.newContext({ locale: 'fr-FR' });
     const page = await context.newPage();
-    await openSecretLink(page, revokedLink ?? '');
+    // R120-3: the real page; a 429 from another worker's public traffic waits and retries.
+    expect((await openInvitationInUi(page, revokedLink ?? '')).status()).toBe(404);
     await expect(page.getByTestId('invitation-result')).toContainText(
       'Ce lien d’invitation n’est pas valide.',
     );
@@ -94,7 +96,8 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
     expect(link, 'invitation link').not.toBeNull();
     const context = await browser.newContext({ locale: 'fr-FR' });
     const page = await context.newPage();
-    await openSecretLink(page, link?.[0] ?? '');
+    // R120-3: the real page; a 429 from another worker's public traffic waits and retries.
+    expect((await openInvitationInUi(page, link?.[0] ?? '')).status()).toBe(200);
     await expect(page.getByTestId('invitation-preview')).toContainText(
       'Administrateur de l’organisation',
     );

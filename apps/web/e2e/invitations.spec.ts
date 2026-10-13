@@ -3,6 +3,7 @@ import {
   CORE_API,
   USERS,
   acceptInvitationInUi,
+  openInvitationInUi,
   expectAccessible,
   mailTo,
   signInFr,
@@ -102,7 +103,8 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
     page.on('request', (request) => {
       if (request.url().startsWith(CORE_API)) api.push(request);
     });
-    await openSecretLink(page, link);
+    // R120-3: the real page; a 429 from another worker's public traffic waits and retries.
+    expect((await openInvitationInUi(page, link)).status()).toBe(200);
     await expect(page.getByTestId('invitation-preview')).toContainText('Employé');
     // The fragment is removed from the address bar and the current history entry.
     expect(new URL(page.url()).hash).toBe('');
@@ -125,7 +127,7 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
 
     // The same link is now unusable, with the generic message.
     const again = await context.newPage();
-    await openSecretLink(again, link);
+    expect((await openInvitationInUi(again, link)).status()).toBe(404);
     await expect(again.getByTestId('invitation-result')).toContainText(
       'Ce lien d’invitation n’est pas valide.',
     );
@@ -198,7 +200,8 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
 
     const context = await browser.newContext({ locale: 'fr-FR' });
     const invitee = await context.newPage();
-    await openSecretLink(invitee, link);
+    // R120-3: the real page; a 429 from another worker's public traffic waits and retries.
+    expect((await openInvitationInUi(invitee, link)).status()).toBe(404);
     await expect(invitee.getByTestId('invitation-result')).toContainText(
       'Ce lien d’invitation n’est pas valide.',
     );

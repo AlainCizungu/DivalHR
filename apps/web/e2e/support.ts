@@ -87,6 +87,31 @@ export async function acceptInvitation(page: Page, token: string): Promise<numbe
 }
 
 /**
+ * R120-3: opens an anonymous invitation link through the real page (openSecretLink: the token
+ * stays in the fragment and the page removes it) and returns the page's inspection response. The
+ * inspection shares the anonymous endpoints' per-client limit with every other worker, so a 429
+ * follows the same rule as the acceptance (rate-limit.ts): wait the bounded Retry-After, then the
+ * page's own « Réessayer », which inspects again with the same token; at most three attempts. Any
+ * other status (200 for a usable link, 404 for an unusable one) is returned for the caller's
+ * assertions. French UI journeys only.
+ */
+export async function openInvitationInUi(page: Page, link: string): Promise<Response> {
+  return retryOn429(
+    async (attempt) => {
+      const inspected = page.waitForResponse(
+        (response) =>
+          response.url().endsWith('/public/invitations/inspect') &&
+          response.request().method() === 'POST',
+      );
+      if (attempt === 1) await openSecretLink(page, link);
+      else await page.getByRole('button', { name: 'Réessayer', exact: true }).click();
+      return inspected;
+    },
+    (milliseconds) => page.waitForTimeout(milliseconds),
+  );
+}
+
+/**
  * R120-2: accepts the invitation shown on the page through the real UI. The first attempt clicks
  * « Accepter l’invitation »; after a 429 (the page then offers « Réessayer », which repeats the
  * acceptance with the same token) the same rule as {@link acceptInvitation} applies: wait the
