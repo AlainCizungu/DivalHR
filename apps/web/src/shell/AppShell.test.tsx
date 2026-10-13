@@ -72,6 +72,7 @@ describe('signed-in frame', () => {
         en.nav.leaveRoutingExceptions,
         en.nav.leaveApprovalSubstitutes,
         en.nav.workSchedules,
+        en.nav.attendanceReview,
         en.nav.hierarchy,
         en.nav.contractTemplates,
         en.nav.contractExpirations,

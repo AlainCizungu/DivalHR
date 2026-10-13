@@ -105,6 +105,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'clock',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/attendance-review',
+        labelKey: 'nav.attendanceReview',
+        icon: 'check',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

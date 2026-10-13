@@ -35,6 +35,7 @@
     "leaveRoutingExceptions": "Leave routing exceptions",
     "leaveApprovalSubstitutes": "Leave approval substitutes",
     "workSchedules": "Schedules",
+    "attendanceReview": "Attendance review",
     "mySchedule": "My schedule",
     "myAttendance": "My attendance",
     "myScheduleSubstitutions": "Shift substitutions",
@@ -437,6 +438,7 @@
     "ATTENDANCE_ALREADY_CHECKED_OUT": "You have already checked out for this shift.",
     "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Check-out is no longer possible for this shift.",
     "ATTENDANCE_STATE_CONFLICT": "This could not be recorded now. Refresh the page and try again.",
+    "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND": "This site is not available for attendance review.",
     "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "This attendance action is not available to you. The list has been refreshed.",
     "TEAM_ATTENDANCE_MANAGER_REQUIRED": "Team attendance is for managers of direct reports."
   },
@@ -2994,5 +2996,74 @@
       "confirmButton": "Confirm check-out",
       "done": "Check-out recorded for {{name}} at {{time}}."
     }
+  },
+  "attendanceExceptions": {
+    "title": {
+      "self": "Attendance exceptions",
+      "team": "Exceptions",
+      "admin": "Attendance review"
+    },
+    "disclaimer": "This compares the schedule with the recorded check-ins and check-outs. It is not a pay, absence or disciplinary decision.",
+    "correctionsLater": "Corrections are coming later. For now, an exception cannot be corrected, excused or approved here.",
+    "loading": "Loading exceptions…",
+    "retry": "Try again",
+    "found_one": "{{count}} exception shown.",
+    "found_other": "{{count}} exceptions shown.",
+    "empty": {
+      "self": "You have no attendance exceptions in this period.",
+      "team": "Your direct reports have no attendance exceptions in this period.",
+      "admin": "No attendance exceptions in this period."
+    },
+    "emptyFiltered": "No exceptions match these filters.",
+    "label": {
+      "self": "Your attendance exceptions",
+      "team": "Your direct reports’ attendance exceptions",
+      "admin": "Organization attendance exceptions"
+    },
+    "more": "Show more exceptions",
+    "loadingMore": "Loading more exceptions…",
+    "notRecorded": "Not recorded",
+    "difference": "Difference",
+    "variance": {
+      "LATE_CHECK_IN": "{{minutes}} min after the scheduled start",
+      "EARLY_CHECK_OUT": "{{minutes}} min before the scheduled end"
+    },
+    "type": {
+      "MISSING_CHECK_IN": "No check-in recorded",
+      "LATE_CHECK_IN": "Checked in after scheduled start",
+      "EARLY_CHECK_OUT": "Checked out before scheduled end",
+      "MISSING_CHECK_OUT": "No check-out recorded"
+    },
+    "filters": {
+      "label": "Exception filters",
+      "type": "Type",
+      "anyType": "All types",
+      "from": "From",
+      "to": "To",
+      "datesHelp": "Dates of the shift start at the site. Leave both empty for the last {{days}} days; at most {{max}} days.",
+      "site": "Site",
+      "legalEntity": "Legal entity",
+      "anyLegalEntity": "All legal entities",
+      "siteLabel": "Site",
+      "anySite": "All sites",
+      "sitesUnavailable": "Sites could not be loaded. You can still review every site.",
+      "apply": "Apply filters",
+      "reset": "Clear filters"
+    },
+    "problems": {
+      "from": {
+        "required": "Enter the first date too, or clear both dates."
+      },
+      "to": {
+        "required": "Enter the last date too, or clear both dates.",
+        "range": "The last date must be on or after the first, at most 93 days later."
+      }
+    }
+  },
+  "attendanceReview": {
+    "title": "Attendance review",
+    "description": "Factual attendance exceptions across the organization: shifts with no check-in or check-out recorded, and check-ins or check-outs more than 5 minutes off the schedule. Filter by site, type and dates.",
+    "unauthorized": "Only tenant administrators can review attendance.",
+    "signInRequired": "Sign in as a tenant administrator to review attendance."
   }
 }

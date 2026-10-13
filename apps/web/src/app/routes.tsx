@@ -19,6 +19,7 @@ import {
 import { LeaveApprovalSubstitutesPage } from '../features/leave/LeaveApprovalSubstitutesPage';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
+import { AttendanceReviewPage } from '../features/schedules/AttendanceReviewPage';
 import { MyAttendancePage } from '../features/schedules/MyAttendancePage';
 import { MySchedulePage } from '../features/schedules/MySchedulePage';
 import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/ScheduleSubstitutionApprovalsPage';
@@ -160,6 +161,12 @@ export const ROUTES: AppRoute[] = [
     element: <WorkSchedulesPage />,
     access: tenantAdmin('workSchedules.unauthorized', 'workSchedules.signInRequired'),
     crumbs: [HOME, OPERATIONS, { key: 'nav.workSchedules' }],
+  },
+  {
+    path: '/admin/attendance-review',
+    element: <AttendanceReviewPage />,
+    access: tenantAdmin('attendanceReview.unauthorized', 'attendanceReview.signInRequired'),
+    crumbs: [HOME, OPERATIONS, { key: 'nav.attendanceReview' }],
   },
   {
     path: '/admin/contract-templates',

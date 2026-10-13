@@ -5202,6 +5202,186 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /me/attendance/exceptions:
+    get:
+      operationId: listMyAttendanceExceptions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my factual attendance exceptions
+      description: >-
+        MVP-060C. The factual attendance exceptions of the employee of the caller's current active
+        employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), and only theirs. Exceptions are derived at one server-owned asOfInstant (pinned in the signed cursor) from
+        the immutable schedules and slots, terminal evidence, approved substitutions and the attendance
+        evidence; nothing is stored. MISSING_CHECK_IN: a shift of a schedule not cancelled or replaced
+        by asOfInstant has ended (asOfInstant at or after its scheduled end) and its effective assignee
+        (the approved substitute when the substitution was approved before the end, otherwise the
+        published assignee) has no record for it. MISSING_CHECK_OUT: a record has no check-out and
+        its check-out deadline (end + 24 hours, inclusive) has passed. LATE_CHECK_IN: the check-in was
+        more than 5 minutes after the scheduled start. EARLY_CHECK_OUT: the check-out was more than 5
+        minutes before the scheduled end. Exactly 5 minutes is not an exception; varianceMinutes is
+        the difference rounded up to whole minutes. A recorded exception stays bound to the
+        record's employee whatever happened to the schedule or its coverage later. Facts only: no
+        guilt, absence, policy, pay or disciplinary conclusion. Optional type; from and to are
+        inclusive site-local dates of the shift start, given together, at most 93 days (400
+        VALIDATION_FAILED otherwise); without them, the last 31 site-local dates through the as-of
+        date in each site's time zone. Ordered by scheduled start descending, then slot ID
+        descending, then employee ID descending, then type (MISSING_CHECK_IN, LATE_CHECK_IN,
+        EARLY_CHECK_OUT, MISSING_CHECK_OUT).
+        Never another employee, a subject, an employment, a reason or a recorder. Restricted
+        HR/Operations: a fail-closed disclosure (audit attendance.exception-self-list). The signed
+        cursor is bound to the operation, tenant, caller, link, linked employee, filters, page size
+        and asOfInstant. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceExceptionType"
+        - $ref: "#/components/parameters/AttendanceExceptionFrom"
+        - $ref: "#/components/parameters/AttendanceExceptionTo"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceExceptionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/team-attendance/exceptions:
+    get:
+      operationId: listTeamAttendanceExceptions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my direct reports' factual attendance exceptions
+      description: >-
+        MVP-060C. The factual attendance exceptions of the employees whose qualifying employment
+        (for a recorded exception, the record's employment) has an active, non-superseded MANAGER
+        line naming the employee of the caller's current active employee-access link (403
+        EMPLOYEE_LINK_REQUIRED otherwise) on the shift's site-local start date; never the caller's
+        own. Re-evaluated on every page: a former manager loses the rows at once, and a cursor whose
+        position is no longer in scope is 400 CURSOR_INVALID. A caller who manages nobody gets an
+        empty page. Leave substitutes and substitution approvals grant nothing. Exceptions are derived at one server-owned asOfInstant (pinned in the signed cursor) from
+        the immutable schedules and slots, terminal evidence, approved substitutions and the attendance
+        evidence; nothing is stored. MISSING_CHECK_IN: a shift of a schedule not cancelled or replaced
+        by asOfInstant has ended (asOfInstant at or after its scheduled end) and its effective assignee
+        (the approved substitute when the substitution was approved before the end, otherwise the
+        published assignee) has no record for it. MISSING_CHECK_OUT: a record has no check-out and
+        its check-out deadline (end + 24 hours, inclusive) has passed. LATE_CHECK_IN: the check-in was
+        more than 5 minutes after the scheduled start. EARLY_CHECK_OUT: the check-out was more than 5
+        minutes before the scheduled end. Exactly 5 minutes is not an exception; varianceMinutes is
+        the difference rounded up to whole minutes. A recorded exception stays bound to the
+        record's employee whatever happened to the schedule or its coverage later. Facts only: no
+        guilt, absence, policy, pay or disciplinary conclusion. Optional type; from and to are
+        inclusive site-local dates of the shift start, given together, at most 93 days (400
+        VALIDATION_FAILED otherwise); without them, the last 31 site-local dates through the as-of
+        date in each site's time zone. Ordered by scheduled start descending, then slot ID
+        descending, then employee ID descending, then type (MISSING_CHECK_IN, LATE_CHECK_IN,
+        EARLY_CHECK_OUT, MISSING_CHECK_OUT). Each
+        item names its employee (ID, employee number, current name); never a manager, subject,
+        employment, reason or recorder. Restricted HR/Operations: a fail-closed disclosure (audit
+        attendance.exception-team-list). The signed cursor is bound to the operation, tenant,
+        caller, link, manager, filters, page size and asOfInstant. Shares the
+        work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceExceptionType"
+        - $ref: "#/components/parameters/AttendanceExceptionFrom"
+        - $ref: "#/components/parameters/AttendanceExceptionTo"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamAttendanceExceptionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /attendance/exceptions:
+    get:
+      operationId: listAttendanceExceptions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Review the organization's factual attendance exceptions
+      description: >-
+        MVP-060C. The organization's factual attendance exceptions, optionally of one of its sites
+        (active or historical); an unknown, foreign, malformed or non-site siteId is 404
+        ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND without params. Exceptions are derived at one server-owned asOfInstant (pinned in the signed cursor) from
+        the immutable schedules and slots, terminal evidence, approved substitutions and the attendance
+        evidence; nothing is stored. MISSING_CHECK_IN: a shift of a schedule not cancelled or replaced
+        by asOfInstant has ended (asOfInstant at or after its scheduled end) and its effective assignee
+        (the approved substitute when the substitution was approved before the end, otherwise the
+        published assignee) has no record for it. MISSING_CHECK_OUT: a record has no check-out and
+        its check-out deadline (end + 24 hours, inclusive) has passed. LATE_CHECK_IN: the check-in was
+        more than 5 minutes after the scheduled start. EARLY_CHECK_OUT: the check-out was more than 5
+        minutes before the scheduled end. Exactly 5 minutes is not an exception; varianceMinutes is
+        the difference rounded up to whole minutes. A recorded exception stays bound to the
+        record's employee whatever happened to the schedule or its coverage later. Facts only: no
+        guilt, absence, policy, pay or disciplinary conclusion. Optional type; from and to are
+        inclusive site-local dates of the shift start, given together, at most 93 days (400
+        VALIDATION_FAILED otherwise); without them, the last 31 site-local dates through the as-of
+        date in each site's time zone. Ordered by scheduled start descending, then slot ID
+        descending, then employee ID descending, then type (MISSING_CHECK_IN, LATE_CHECK_IN,
+        EARLY_CHECK_OUT, MISSING_CHECK_OUT). Each item names its
+        employee (ID, employee number, current name); never a manager, subject, employment, reason
+        or recorder. Restricted HR/Operations: a fail-closed disclosure (audit
+        attendance.exception-admin-list). The signed cursor is bound to the operation, tenant,
+        caller and membership, filters, page size and asOfInstant. Shares the work-schedule-read
+        limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceExceptionSite"
+        - $ref: "#/components/parameters/AttendanceExceptionType"
+        - $ref: "#/components/parameters/AttendanceExceptionFrom"
+        - $ref: "#/components/parameters/AttendanceExceptionTo"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamAttendanceExceptionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     oauth2:
@@ -5689,6 +5869,37 @@ components:
       in: path
       required: true
       description: Attendance record ID.
+      schema:
+        type: string
+        format: uuid
+    AttendanceExceptionType:
+      name: type
+      in: query
+      description: Only this exception type (MVP-060C).
+      schema:
+        $ref: "#/components/schemas/AttendanceExceptionType"
+    AttendanceExceptionFrom:
+      name: from
+      in: query
+      description: >-
+        First site-local date of the shift start (YYYY-MM-DD), inclusive; given together with to,
+        at most 93 days.
+      schema:
+        type: string
+        format: date
+    AttendanceExceptionTo:
+      name: to
+      in: query
+      description: >-
+        Last site-local date of the shift start (YYYY-MM-DD), inclusive; given together with from,
+        at most 93 days.
+      schema:
+        type: string
+        format: date
+    AttendanceExceptionSite:
+      name: siteId
+      in: query
+      description: Only exceptions of shifts at this site of the organization (active or historical).
       schema:
         type: string
         format: uuid
@@ -8739,6 +8950,7 @@ components:
         - ATTENDANCE_STATE_CONFLICT
         - TEAM_ATTENDANCE_ACTION_NOT_FOUND
         - TEAM_ATTENDANCE_MANAGER_REQUIRED
+        - ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -10615,6 +10827,178 @@ components:
           type: boolean
         labels:
           $ref: "#/components/schemas/WorkScheduleLabels"
+    AttendanceExceptionType:
+      type: string
+      description: >-
+        MVP-060C. A factual comparison of a scheduled shift with its attendance evidence, never a
+        decision. MISSING_CHECK_IN: no check-in recorded by the scheduled end. MISSING_CHECK_OUT: no
+        check-out recorded by the check-out deadline. LATE_CHECK_IN: checked in more than 5 minutes
+        after the scheduled start. EARLY_CHECK_OUT: checked out more than 5 minutes before the
+        scheduled end.
+      enum: [MISSING_CHECK_IN, LATE_CHECK_IN, EARLY_CHECK_OUT, MISSING_CHECK_OUT]
+    AttendanceException:
+      type: object
+      description: >-
+        MVP-060C. One factual exception of the caller's own shift. attendanceRecordId and
+        checkedInAt are null for MISSING_CHECK_IN; checkedOutAt is the recorded check-out, if any,
+        at asOfInstant; varianceMinutes is present for LATE_CHECK_IN and EARLY_CHECK_OUT only.
+      required:
+        [
+          type,
+          scheduleId,
+          slotId,
+          attendanceRecordId,
+          site,
+          siteTimezone,
+          start,
+          end,
+          startAt,
+          endAt,
+          overnight,
+          labels,
+          checkedInAt,
+          checkedOutAt,
+          varianceMinutes,
+        ]
+      properties:
+        type:
+          $ref: "#/components/schemas/AttendanceExceptionType"
+        scheduleId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        attendanceRecordId:
+          type: [string, "null"]
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        siteTimezone:
+          type: string
+          description: The schedule's site time zone snapshot; start and end are local times there.
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+        checkedInAt:
+          type: [string, "null"]
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        varianceMinutes:
+          type: [integer, "null"]
+          minimum: 6
+          description: >-
+            Whole minutes after the start (LATE_CHECK_IN) or before the end (EARLY_CHECK_OUT),
+            rounded up; null for the other types.
+    AttendanceExceptionPage:
+      type: object
+      required: [items, nextCursor, asOfInstant]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/AttendanceException"
+        nextCursor:
+          type: [string, "null"]
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server-owned instant of the view, the same on every page.
+    TeamAttendanceException:
+      type: object
+      description: >-
+        MVP-060C. One factual exception of a direct report's (or, for a tenant administrator, any
+        employee's) shift, with the employee's minimal identity. The fields are those of
+        AttendanceException.
+      required:
+        [
+          type,
+          employee,
+          scheduleId,
+          slotId,
+          attendanceRecordId,
+          site,
+          siteTimezone,
+          start,
+          end,
+          startAt,
+          endAt,
+          overnight,
+          labels,
+          checkedInAt,
+          checkedOutAt,
+          varianceMinutes,
+        ]
+      properties:
+        type:
+          $ref: "#/components/schemas/AttendanceExceptionType"
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        scheduleId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        attendanceRecordId:
+          type: [string, "null"]
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        siteTimezone:
+          type: string
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+        checkedInAt:
+          type: [string, "null"]
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        varianceMinutes:
+          type: [integer, "null"]
+          minimum: 6
+    TeamAttendanceExceptionPage:
+      type: object
+      required: [items, nextCursor, asOfInstant]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/TeamAttendanceException"
+        nextCursor:
+          type: [string, "null"]
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server-owned instant of the view, the same on every page.
     TeamAttendanceActionPage:
       type: object
       required: [items, nextCursor, asOfInstant]

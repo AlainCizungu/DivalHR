@@ -165,3 +165,27 @@ caller is still linked to the record's employee; otherwise `403 EMPLOYEE_LINK_RE
 - Rollback: `db/rollback/V28__rollback.sql` restores V27 exactly only while no attendance event or
   record exists; it refuses otherwise, with no override, and never edits
   `flyway_schema_history`.
+
+## Amendment: factual attendance exceptions (MVP-060C, Issue #119)
+
+Exceptions are derived, not stored: a query over schedules, terminal evidence, approved
+substitutions and attendance records at one server-owned instant (`asOfInstant`), with no V30, no
+exception table and no event. This keeps the evidence model of this ADR and ADR 0017 the only
+truth and lets a later correction story change records without reconciling a second store.
+
+- **Types and boundaries.** MISSING_CHECK_IN from the scheduled end, for the effective assignee
+  at the end (the substitute whose approval was decided before the end, otherwise the published
+  employee) when no record of theirs exists at the instant; LATE_CHECK_IN when the check-in is
+  strictly more than 5 minutes after the start; EARLY_CHECK_OUT when a check-out recorded by the
+  instant is strictly more than 5 minutes before the end; MISSING_CHECK_OUT when the record is still
+  open at the instant and the inclusive check-out deadline has passed. Exactly 5 minutes is not an
+  exception. The difference is shown in whole minutes, rounded up. A shift can carry several types.
+- **Terminal schedules.** A schedule cancelled or replaced at or before the instant creates no
+  missing check-in; records already made on it stay reviewable with their own types.
+- **Order and paging.** Start descending, slot, employee, then the type order above; signed
+  keyset cursors carry the instant, so every page of a review describes the same moment.
+- **Query shape.** The employee and manager paths start from the employee's records and slots (the
+  approved substitute's slots are a second, small union branch); the tenant path starts from the
+  schedules in the date window and reaches slots and records through their existing unique
+  indexes. Planner fences (`OFFSET 0`, a `LIMIT 1` scalar check) keep these shapes; plan tests on
+  a seeded multi-tenant volume guard them. No index was needed.

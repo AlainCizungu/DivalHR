@@ -35,6 +35,7 @@
     "leaveRoutingExceptions": "Exceptions d’acheminement des congés",
     "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés",
     "workSchedules": "Horaires",
+    "attendanceReview": "Suivi de la présence",
     "mySchedule": "Mon horaire",
     "myAttendance": "Ma présence",
     "myScheduleSubstitutions": "Remplacements d’horaire",
@@ -437,6 +438,7 @@
     "ATTENDANCE_ALREADY_CHECKED_OUT": "Vous avez déjà pointé votre départ pour ce créneau.",
     "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Le départ ne peut plus être pointé pour ce créneau.",
     "ATTENDANCE_STATE_CONFLICT": "L’enregistrement est impossible pour le moment. Actualisez la page et réessayez.",
+    "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND": "Ce site n’est pas disponible pour le suivi de la présence.",
     "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "Cette action de présence ne vous est pas disponible. La liste a été actualisée.",
     "TEAM_ATTENDANCE_MANAGER_REQUIRED": "La présence de l’équipe est réservée aux responsables de collaborateurs directs."
   },
@@ -2994,5 +2996,74 @@
       "confirmButton": "Confirmer le départ",
       "done": "Départ enregistré pour {{name}} à {{time}}."
     }
+  },
+  "attendanceExceptions": {
+    "title": {
+      "self": "Anomalies de présence",
+      "team": "Anomalies",
+      "admin": "Suivi de la présence"
+    },
+    "disclaimer": "Il s’agit d’une comparaison entre l’horaire et les arrivées et départs enregistrés. Ce n’est pas une décision de paie, d’absence ni de discipline.",
+    "correctionsLater": "Les corrections arriveront plus tard. Pour l’instant, une anomalie ne peut être ni corrigée, ni justifiée, ni approuvée ici.",
+    "loading": "Chargement des anomalies…",
+    "retry": "Réessayer",
+    "found_one": "{{count}} anomalie affichée.",
+    "found_other": "{{count}} anomalies affichées.",
+    "empty": {
+      "self": "Vous n’avez aucune anomalie de présence sur cette période.",
+      "team": "Vos collaborateurs directs n’ont aucune anomalie de présence sur cette période.",
+      "admin": "Aucune anomalie de présence sur cette période."
+    },
+    "emptyFiltered": "Aucune anomalie ne correspond à ces filtres.",
+    "label": {
+      "self": "Vos anomalies de présence",
+      "team": "Anomalies de présence de vos collaborateurs directs",
+      "admin": "Anomalies de présence de l’organisation"
+    },
+    "more": "Afficher plus d’anomalies",
+    "loadingMore": "Chargement d’autres anomalies…",
+    "notRecorded": "Non enregistré",
+    "difference": "Écart",
+    "variance": {
+      "LATE_CHECK_IN": "{{minutes}} min après le début prévu",
+      "EARLY_CHECK_OUT": "{{minutes}} min avant la fin prévue"
+    },
+    "type": {
+      "MISSING_CHECK_IN": "Aucune arrivée enregistrée",
+      "LATE_CHECK_IN": "Arrivée après l’heure prévue",
+      "EARLY_CHECK_OUT": "Départ avant l’heure prévue",
+      "MISSING_CHECK_OUT": "Aucun départ enregistré"
+    },
+    "filters": {
+      "label": "Filtres des anomalies",
+      "type": "Type",
+      "anyType": "Tous les types",
+      "from": "Du",
+      "to": "Au",
+      "datesHelp": "Dates de début du créneau sur le site. Laissez les deux vides pour les {{days}} derniers jours ; {{max}} jours au plus.",
+      "site": "Site",
+      "legalEntity": "Entité juridique",
+      "anyLegalEntity": "Toutes les entités juridiques",
+      "siteLabel": "Site",
+      "anySite": "Tous les sites",
+      "sitesUnavailable": "Les sites n’ont pas pu être chargés. Vous pouvez tout de même consulter tous les sites.",
+      "apply": "Appliquer les filtres",
+      "reset": "Effacer les filtres"
+    },
+    "problems": {
+      "from": {
+        "required": "Saisissez aussi la première date, ou effacez les deux dates."
+      },
+      "to": {
+        "required": "Saisissez aussi la dernière date, ou effacez les deux dates.",
+        "range": "La dernière date doit être identique ou postérieure à la première, au plus 93 jours après."
+      }
+    }
+  },
+  "attendanceReview": {
+    "title": "Suivi de la présence",
+    "description": "Les anomalies de présence factuelles de l’organisation : créneaux sans arrivée ni départ enregistré, et arrivées ou départs à plus de 5 minutes de l’horaire. Filtrez par site, type et dates.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent suivre la présence.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour suivre la présence."
   }
 }

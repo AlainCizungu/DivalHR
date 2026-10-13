@@ -277,6 +277,12 @@ export type SupervisorCheckOutRequest = CoreComponents['schemas']['SupervisorChe
 export type SupervisorAttendanceReceipt = CoreComponents['schemas']['SupervisorAttendanceReceipt'];
 export type TeamAttendanceAction = CoreComponents['schemas']['TeamAttendanceAction'];
 export type TeamAttendanceActionPage = CoreComponents['schemas']['TeamAttendanceActionPage'];
+/** MVP-060C: factual attendance exceptions (employee, manager and tenant administrator views). */
+export type AttendanceExceptionType = CoreComponents['schemas']['AttendanceExceptionType'];
+export type AttendanceException = CoreComponents['schemas']['AttendanceException'];
+export type AttendanceExceptionPage = CoreComponents['schemas']['AttendanceExceptionPage'];
+export type TeamAttendanceException = CoreComponents['schemas']['TeamAttendanceException'];
+export type TeamAttendanceExceptionPage = CoreComponents['schemas']['TeamAttendanceExceptionPage'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).
