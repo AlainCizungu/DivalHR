@@ -189,3 +189,49 @@ truth and lets a later correction story change records without reconciling a sec
   schedules in the date window and reaches slots and records through their existing unique
   indexes. Planner fences (`OFFSET 0`, a `LIMIT 1` scalar check) keep these shapes; plan tests on
   a seeded multi-tenant volume guard them. No index was needed.
+
+## Amendment: offline attendance synchronization (MVP-061A, Issue #122)
+
+An employee who was offline submits one scheduled check-in or check-out later
+(`POST /api/v1/me/attendance/offline-events:sync`). This amendment fixes how far DivalHR trusts
+the time such an event claims, and how the event is applied exactly once. The browser queue is
+MVP-061B.
+
+- **Two instants, two trust levels.** The claimed device time (`deviceOccurredAt`) is untrusted
+  evidence supplied by the client: never proof of presence, never server time. The receipt instant
+  is the server's (`BusinessCalendar`). Both are kept, immutable, on the event; the offset the
+  device reported is kept as provenance and is never published.
+- **The claimed time takes the event's place.** For an `EMPLOYEE_OFFLINE_SYNC` event `recorded_at`
+  (and the record's instant) is the claimed time, and every rule of this ADR applies to it
+  unchanged: the check-in window `[start − 2 h, end)`, the check-out strictly after the accepted
+  check-in and no later than `end + 24 h`, one check-in and one check-out per record and the
+  one-open exclusion. Exception review (MVP-060C) therefore compares the claimed time.
+- **Eligibility at receipt.** The effective assignee and the operational schedule are resolved
+  when the event is received, exactly as for an online check-in: after an approved substitution
+  only the substitute may check in; a cancelled or replaced schedule without a record refuses; a
+  recorded check-in survives a later terminal action, and its check-out can still be synchronized.
+- **Fixed safeguards (pilot constants, not tenant policy).** The claimed time at most 5 minutes
+  after the receipt (`OFFLINE_ATTENDANCE_FUTURE_TIME`); the receipt at most 72 hours after the
+  claimed time and at most 72 hours after the applicable window closed (`OFFLINE_ATTENDANCE_TOO_OLD`;
+  with the existing windows the second is implied by the first and is kept as an explicit rule).
+  Every bound is inclusive. The timestamp is RFC 3339 with an explicit offset equal to
+  `deviceOffsetMinutes` (`OFFLINE_ATTENDANCE_OFFSET_MISMATCH`), at most microsecond precision;
+  anything malformed fails closed.
+- **Never overwrite, never reorder.** An event another accepted event makes impossible to apply
+  exactly is `OFFLINE_ATTENDANCE_CONFLICT` (a second check-in, an overlap with another open record,
+  a check-out of a completed record or not after the accepted check-in); the existing codes are
+  used where their meaning is exact (not found, windows, qualifying employment).
+- **Replay identity.** Tenant, linked employee and client event ID, stored with the evidence
+  (`attendance_event_client_event_unique`), so a replay is answered from the database for as long
+  as the evidence exists, after a restart and beyond the HTTP idempotency retention. The HTTP
+  `Idempotency-Key` is not read. The identical payload returns the original result with the
+  record's current status and writes nothing; a changed slot, type, instant or offset is
+  `IDEMPOTENCY_KEY_REUSED` without params. Every submission of a tenant takes the scheduling lock
+  first, so identical racing submissions give one event and different ones are decided in turn.
+- **Audit and events.** A first application writes the event, its provenance, the projection, the
+  audit record `attendance.offline-event-sync` (metadata: schema version, event type, outcome,
+  recording method, replay false; the IDs and both instants only in the digest) and the unchanged
+  `people.attendance.checked-in.v1` / `checked-out.v1` event in one transaction. No consumer needs
+  the method or the receipt yet, so the envelope is unchanged.
+- **Rollback.** `db/rollback/V30__rollback.sql` restores V29 exactly only while no offline evidence
+  exists.

@@ -98,6 +98,7 @@
       <Class name="com.divalhr.core.people.schedule.internal.JdbcAttendanceRepository"/>
       <Class name="com.divalhr.core.people.schedule.application.TeamAttendanceService"/>
       <Class name="com.divalhr.core.people.schedule.application.AttendanceExceptionService"/>
+      <Class name="com.divalhr.core.people.schedule.application.OfflineAttendanceService"/>
       <Class name="com.divalhr.core.people.schedule.internal.JdbcAttendanceExceptionRepository"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>

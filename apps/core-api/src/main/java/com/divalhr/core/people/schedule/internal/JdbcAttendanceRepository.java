@@ -308,12 +308,232 @@ public class JdbcAttendanceRepository {
   }
 
   private void insertEvent(MapSqlParameterSource params) {
+    if (!params.hasValue("client")) {
+      params.addValue("client", null).addValue("offset", null).addValue("received", null);
+    }
     jdbc.update(
         "INSERT INTO people.attendance_event (tenant_id, id, record_id, schedule_id, slot_id,"
             + " employee_id, employment_id, event_type, recorded_at, recorded_by,"
-            + " idempotency_digest, recording_method) VALUES (:tenant, :event, :id, :schedule,"
-            + " :slot, :employee, :employment, :type, :at, :by, :digest, :method)",
+            + " idempotency_digest, recording_method, client_event_id, device_offset_minutes,"
+            + " received_at) VALUES (:tenant, :event, :id, :schedule, :slot, :employee,"
+            + " :employment, :type, :at, :by, :digest, :method, :client, :offset, :received)",
         params);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // MVP-061A: offline synchronization (V30)
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * The offline provenance of an EMPLOYEE_OFFLINE_SYNC event (MVP-061A): the client's event
+   * identity, the device's UTC offset at capture and the server receipt instant. The event's own
+   * instant is the claimed device time.
+   *
+   * @param clientEventId the client's immutable event identity
+   * @param offsetMinutes the device UTC offset in minutes
+   * @param receivedAt the server receipt instant
+   */
+  public record Offline(UUID clientEventId, int offsetMinutes, Instant receivedAt) {
+
+    /**
+     * Never an identifier or instant in a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "Offline[]";
+    }
+  }
+
+  /**
+   * An applied offline event of the employee, found by its client identity (the replay lookup),
+   * with its record's current status.
+   *
+   * @param eventId the attendance event
+   * @param recordId its record
+   * @param slotId the slot
+   * @param type the event type
+   * @param occurredAt the claimed device time (the event's instant)
+   * @param offsetMinutes the device UTC offset in minutes
+   * @param receivedAt the server receipt instant
+   * @param recordStatus the record's current status
+   */
+  public record OfflineEvent(
+      UUID eventId,
+      UUID recordId,
+      UUID slotId,
+      Attendance.EventType type,
+      Instant occurredAt,
+      int offsetMinutes,
+      Instant receivedAt,
+      Attendance.Status recordStatus) {
+
+    /**
+     * Never an identifier or instant in a log line.
+     *
+     * @return safe text
+     */
+    @Override
+    public String toString() {
+      return "OfflineEvent[" + type + "]";
+    }
+  }
+
+  /**
+   * The employee's offline event with this client identity, if any: one probe of {@code
+   * attendance_event_client_event_unique}.
+   *
+   * @param tenant verified tenant
+   * @param employeeId the caller's linked employee
+   * @param clientEventId the client's event identity
+   * @return the applied event
+   */
+  public Optional<OfflineEvent> offlineEvent(TenantId tenant, UUID employeeId, UUID clientEventId) {
+    return jdbc
+        .query(
+            "SELECT e.id, e.record_id, e.slot_id, e.event_type, e.recorded_at,"
+                + " e.device_offset_minutes, e.received_at, r.check_out_event_id"
+                + " FROM people.attendance_event e JOIN people.attendance_record r"
+                + " ON r.tenant_id = e.tenant_id AND r.id = e.record_id"
+                + " WHERE e.tenant_id = :tenant AND e.client_event_id = :client"
+                + " AND e.employee_id = :employee",
+            new MapSqlParameterSource()
+                .addValue("tenant", tenant.value())
+                .addValue("client", clientEventId)
+                .addValue("employee", employeeId),
+            (rs, n) ->
+                new OfflineEvent(
+                    rs.getObject("id", UUID.class),
+                    rs.getObject("record_id", UUID.class),
+                    rs.getObject("slot_id", UUID.class),
+                    Attendance.EventType.valueOf(rs.getString("event_type")),
+                    rs.getTimestamp("recorded_at").toInstant(),
+                    rs.getInt("device_offset_minutes"),
+                    rs.getTimestamp("received_at").toInstant(),
+                    rs.getObject("check_out_event_id") == null
+                        ? Attendance.Status.OPEN
+                        : Attendance.Status.COMPLETED))
+        .stream()
+        .findFirst();
+  }
+
+  /**
+   * Every employee's record on a slot (unlocked; at most a few rows, through {@code
+   * attendance_record_slot_employee_unique}).
+   *
+   * @param tenant verified tenant
+   * @param slotId slot
+   * @return the records
+   */
+  public List<Record> slotRecords(TenantId tenant, UUID slotId) {
+    return jdbc.query(
+        "SELECT"
+            + RECORD_COLUMNS
+            + " FROM people.attendance_record a WHERE a.tenant_id = :tenant"
+            + " AND a.slot_id = :slot ORDER BY a.employee_id",
+        new MapSqlParameterSource().addValue("tenant", tenant.value()).addValue("slot", slotId),
+        (rs, n) -> record(rs));
+  }
+
+  /**
+   * Locks {@code FOR UPDATE} the employee's open records whose range {@code [checked_in_at,
+   * check_out_until]} meets {@code [from, until]}: exactly the records {@code
+   * attendance_record_one_open} would refuse a new open record against.
+   *
+   * @param tenant verified tenant
+   * @param employeeId employee
+   * @param from the new record's check-in instant
+   * @param until the new record's check-out deadline
+   * @return the overlapping open records
+   */
+  public List<UUID> lockOpenOverlapping(
+      TenantId tenant, UUID employeeId, Instant from, Instant until) {
+    return jdbc.query(
+        "SELECT id FROM people.attendance_record WHERE tenant_id = :tenant"
+            + " AND employee_id = :employee AND check_out_event_id IS NULL"
+            + " AND checked_in_at <= :until AND check_out_until >= :from ORDER BY id FOR UPDATE",
+        new MapSqlParameterSource()
+            .addValue("tenant", tenant.value())
+            .addValue("employee", employeeId)
+            .addValue("from", Timestamp.from(from))
+            .addValue("until", Timestamp.from(until)),
+        (rs, n) -> rs.getObject("id", UUID.class));
+  }
+
+  /**
+   * Records an offline check-in at the claimed device time: the EMPLOYEE_OFFLINE_SYNC event with
+   * its provenance, then the open record.
+   *
+   * @param tenant verified tenant
+   * @param record the open record ({@code checkedInAt} is the claimed device time)
+   * @param by verified subject (evidence only)
+   * @param idempotencyDigest digest of the client event reference
+   * @param offline the offline provenance
+   */
+  public void insertOfflineCheckIn(
+      TenantId tenant, Record record, String by, String idempotencyDigest, Offline offline) {
+    MapSqlParameterSource params =
+        offline(
+            recordParams(tenant, record)
+                .addValue("event", record.checkInEventId())
+                .addValue("type", Attendance.EventType.CHECKED_IN.name())
+                .addValue("at", Timestamp.from(record.checkedInAt()))
+                .addValue("by", by)
+                .addValue("digest", idempotencyDigest),
+            offline);
+    insertEvent(params);
+    jdbc.update(
+        "INSERT INTO people.attendance_record (tenant_id, id, schedule_id, slot_id, employee_id,"
+            + " employment_id, slot_start_at, slot_end_at, check_out_until, check_in_event_id,"
+            + " checked_in_at) VALUES (:tenant, :id, :schedule, :slot, :employee, :employment,"
+            + " :start, :end, :until, :event, :at)",
+        params);
+  }
+
+  /**
+   * Records an offline check-out at the claimed device time: the EMPLOYEE_OFFLINE_SYNC event with
+   * its provenance, then the record's single permitted update.
+   *
+   * @param tenant verified tenant
+   * @param record the open record
+   * @param eventId the check-out event
+   * @param at the claimed device time
+   * @param by verified subject (evidence only)
+   * @param idempotencyDigest digest of the client event reference
+   * @param offline the offline provenance
+   * @return rows updated (1)
+   */
+  public int insertOfflineCheckOut(
+      TenantId tenant,
+      Record record,
+      UUID eventId,
+      Instant at,
+      String by,
+      String idempotencyDigest,
+      Offline offline) {
+    MapSqlParameterSource params =
+        offline(
+            recordParams(tenant, record)
+                .addValue("event", eventId)
+                .addValue("type", Attendance.EventType.CHECKED_OUT.name())
+                .addValue("at", Timestamp.from(at))
+                .addValue("by", by)
+                .addValue("digest", idempotencyDigest),
+            offline);
+    insertEvent(params);
+    return jdbc.update(
+        "UPDATE people.attendance_record SET check_out_event_id = :event, checked_out_at = :at"
+            + " WHERE tenant_id = :tenant AND id = :id AND check_out_event_id IS NULL",
+        params);
+  }
+
+  private static MapSqlParameterSource offline(MapSqlParameterSource params, Offline offline) {
+    return params
+        .addValue("method", Attendance.Method.EMPLOYEE_OFFLINE_SYNC.name())
+        .addValue("client", offline.clientEventId())
+        .addValue("offset", offline.offsetMinutes())
+        .addValue("received", Timestamp.from(offline.receivedAt()));
   }
 
   private void insertSupervision(MapSqlParameterSource params, Supervision supervision) {

@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -1444,6 +1445,508 @@ class AttendanceMigrationIntegrationTest {
           assertThat(zoeEmployment).isNotNull();
           assertThat(later).isNotNull();
         });
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // MVP-061A (V30): offline provenance
+  // ------------------------------------------------------------------------------------------
+
+  private static final String OFFLINE_EVENT =
+      "INSERT INTO people.attendance_event (tenant_id, id, record_id, schedule_id, slot_id,"
+          + " employee_id, employment_id, event_type, recorded_at, recorded_by,"
+          + " idempotency_digest, recording_method, client_event_id, device_offset_minutes,"
+          + " received_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'test', ?, ?, ?, ?, ?)";
+
+  private static final String OFFLINE = "EMPLOYEE_OFFLINE_SYNC";
+
+  /** One of Ana's events on {@code slot} with any method and provenance. */
+  private static void provenanced(
+      Connection c,
+      World w,
+      UUID id,
+      UUID record,
+      UUID slot,
+      UUID schedule,
+      String type,
+      Timestamp at,
+      String method,
+      UUID client,
+      Integer offset,
+      Timestamp received)
+      throws SQLException {
+    exec(
+        c,
+        OFFLINE_EVENT,
+        w.tenant(),
+        id,
+        record,
+        schedule,
+        slot,
+        w.ana().employee(),
+        w.ana().employment(),
+        type,
+        at,
+        DIGEST,
+        method,
+        client,
+        offset,
+        received);
+  }
+
+  /** Ana's offline check-in on her first shift, claimed at {@code at}. */
+  private static void offlineCheckIn(
+      Connection c, World w, UUID record, UUID client, Timestamp at, Timestamp received)
+      throws SQLException {
+    UUID event = UUID.randomUUID();
+    provenanced(
+        c,
+        w,
+        event,
+        record,
+        w.slot(),
+        w.schedule(),
+        "CHECKED_IN",
+        at,
+        OFFLINE,
+        client,
+        60,
+        received);
+    record(c, w, record, w.slot(), w.schedule(), w.ana(), w.start(), w.end(), event, at);
+  }
+
+  /** Ana's offline check-out of {@code record} on her first shift, claimed at {@code at}. */
+  private static void offlineCheckOut(
+      Connection c, World w, UUID record, UUID client, Timestamp at, Timestamp received)
+      throws SQLException {
+    UUID event = UUID.randomUUID();
+    provenanced(
+        c,
+        w,
+        event,
+        record,
+        w.slot(),
+        w.schedule(),
+        "CHECKED_OUT",
+        at,
+        OFFLINE,
+        client,
+        60,
+        received);
+    exec(
+        c,
+        "UPDATE people.attendance_record SET check_out_event_id = ?, checked_out_at = ?"
+            + " WHERE tenant_id = ? AND id = ?",
+        event,
+        at,
+        w.tenant(),
+        record);
+  }
+
+  @Test
+  void theV30RollbackRestoresV29ExactlyKeepsOnlineAttendanceAndRefusesOfflineEvidence() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "29");
+          World w = world(db);
+          committed(
+              db,
+              c -> {
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                methodEvent(
+                    c, w, event, record, w.slot(), w.schedule(), "CHECKED_IN", in(w), "SELF");
+                record(
+                    c,
+                    w,
+                    record,
+                    w.slot(),
+                    w.schedule(),
+                    w.ana(),
+                    w.start(),
+                    w.end(),
+                    event,
+                    in(w));
+              });
+          String v29 = WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc());
+          migrate(db.url(), "30");
+          String v30 = WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc());
+          assertThat(v30)
+              .isNotEqualTo(v29)
+              .contains("client_event_id")
+              .contains("attendance_event_offline_guard");
+          // Existing evidence keeps its exact shape: no provenance.
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM people.attendance_event WHERE recording_method ="
+                          + " 'SELF' AND client_event_id IS NULL AND device_offset_minutes IS NULL"
+                          + " AND received_at IS NULL"))
+              .isEqualTo(1);
+          int recorded = count(db, "SELECT count(*) FROM flyway_schema_history");
+          db.jdbc().execute(resource("db/rollback/V30__rollback.sql"));
+          assertThat(WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc()))
+              .isEqualTo(v29);
+          assertThat(count(db, "SELECT count(*) FROM flyway_schema_history")).isEqualTo(recorded);
+          assertThat(count(db, "SELECT count(*) FROM people.attendance_event")).isEqualTo(1);
+
+          db.jdbc().execute(resource("db/migration/V30__offline_attendance_sync.sql"));
+          assertThat(WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc()))
+              .isEqualTo(v30);
+          // Once one offline event exists, the rollback refuses and changes nothing.
+          committed(
+              db,
+              c -> {
+                UUID record = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                Timestamp at = plus(w.laterStart(), Duration.ofHours(-1));
+                provenanced(
+                    c,
+                    w,
+                    event,
+                    record,
+                    w.laterSlot(),
+                    w.laterSchedule(),
+                    "CHECKED_IN",
+                    at,
+                    OFFLINE,
+                    UUID.randomUUID(),
+                    60,
+                    w.laterStart());
+                record(
+                    c,
+                    w,
+                    record,
+                    w.laterSlot(),
+                    w.laterSchedule(),
+                    w.ana(),
+                    w.laterStart(),
+                    w.laterEnd(),
+                    event,
+                    at);
+              });
+          assertThatThrownBy(() -> db.jdbc().execute(resource("db/rollback/V30__rollback.sql")))
+              .isInstanceOf(DataAccessException.class)
+              .hasMessageContaining("V30 rollback refused: offline attendance evidence exists");
+          assertThat(WorkScheduleSubstitutionMigrationIntegrationTest.signature(db.jdbc()))
+              .isEqualTo(v30);
+          assertThat(count(db, "SELECT count(*) FROM people.attendance_event")).isEqualTo(2);
+        });
+  }
+
+  @Test
+  void offlineEvidenceHasItsExactShapeBoundsIdentityAndImmutability() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "30");
+          World w = world(db);
+          Timestamp at = in(w);
+          Timestamp received = w.start();
+          Duration micro = Duration.ofNanos(1_000);
+
+          // Provenance exactly for EMPLOYEE_OFFLINE_SYNC; online and supervisor events keep their
+          // V29 shape.
+          for (Object[] shape :
+              new Object[][] {
+                {OFFLINE, null, 60, received},
+                {OFFLINE, UUID.randomUUID(), null, received},
+                {OFFLINE, UUID.randomUUID(), 60, null},
+                {"SELF", UUID.randomUUID(), 60, received},
+                {"SELF", null, null, received},
+                {"SUPERVISOR", null, 60, null}
+              }) {
+            refused(
+                db,
+                "attendance_event_offline_shape",
+                c ->
+                    provenanced(
+                        c,
+                        w,
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        w.slot(),
+                        w.schedule(),
+                        "CHECKED_IN",
+                        at,
+                        (String) shape[0],
+                        (UUID) shape[1],
+                        (Integer) shape[2],
+                        (Timestamp) shape[3]));
+          }
+          refused(
+              db,
+              "attendance_event_recording_method",
+              c ->
+                  provenanced(
+                      c,
+                      w,
+                      UUID.randomUUID(),
+                      UUID.randomUUID(),
+                      w.slot(),
+                      w.schedule(),
+                      "CHECKED_IN",
+                      at,
+                      "OFFLINE",
+                      null,
+                      null,
+                      null));
+          for (int offset : new int[] {841, -841}) {
+            refused(
+                db,
+                "attendance_event_offline_offset",
+                c ->
+                    provenanced(
+                        c,
+                        w,
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        w.slot(),
+                        w.schedule(),
+                        "CHECKED_IN",
+                        at,
+                        OFFLINE,
+                        UUID.randomUUID(),
+                        offset,
+                        received));
+          }
+          // The claimed time at most 5 minutes after the receipt; the receipt at most 72 hours
+          // after the claimed time.
+          refused(
+              db,
+              "attendance_event_offline_receipt",
+              c ->
+                  offlineCheckIn(
+                      c,
+                      w,
+                      UUID.randomUUID(),
+                      UUID.randomUUID(),
+                      at,
+                      plus(at, Duration.ofMinutes(-5).minus(micro))));
+          refused(
+              db,
+              "attendance_event_offline_receipt",
+              c ->
+                  offlineCheckIn(
+                      c,
+                      w,
+                      UUID.randomUUID(),
+                      UUID.randomUUID(),
+                      at,
+                      plus(at, Duration.ofHours(72).plus(micro))));
+          // The receipt at most 72 hours after the window closed (the guard fires before the
+          // receipt check, so it is seen on its own).
+          refused(
+              db,
+              "attendance_event_offline_guard",
+              c ->
+                  offlineCheckIn(
+                      c,
+                      w,
+                      UUID.randomUUID(),
+                      UUID.randomUUID(),
+                      plus(w.end(), micro.negated()),
+                      plus(w.end(), Duration.ofHours(72).plus(micro))));
+          // Every MVP-060A rule applies to the claimed time.
+          refused(
+              db,
+              "attendance_event_check_in_window",
+              c ->
+                  offlineCheckIn(
+                      c,
+                      w,
+                      UUID.randomUUID(),
+                      UUID.randomUUID(),
+                      plus(w.start(), Duration.ofHours(-2).minus(micro)),
+                      w.start()));
+
+          UUID record = UUID.randomUUID();
+          UUID client = UUID.randomUUID();
+          committed(db, c -> offlineCheckIn(c, w, record, client, at, received));
+          // One event per tenant, employee and client event.
+          refused(
+              db,
+              "attendance_event_client_event_unique",
+              c ->
+                  offlineCheckOut(
+                      c,
+                      w,
+                      record,
+                      client,
+                      plus(w.end(), Duration.ofHours(1)),
+                      plus(w.end(), Duration.ofHours(1))));
+          // A check-out strictly after the accepted check-in.
+          refused(
+              db,
+              "attendance_event_check_out",
+              c -> offlineCheckOut(c, w, record, UUID.randomUUID(), at, received));
+          // Both instants and the provenance are immutable.
+          for (String change :
+              new String[] {
+                "received_at = received_at + interval '1 second'",
+                "recorded_at = recorded_at + interval '1 second'",
+                "device_offset_minutes = 0",
+                "client_event_id = gen_random_uuid()"
+              }) {
+            refused(
+                db,
+                "attendance_event_immutable",
+                c ->
+                    exec(
+                        c,
+                        "UPDATE people.attendance_event SET "
+                            + change
+                            + " WHERE client_event_id = ?",
+                        client));
+          }
+          // The check-out deadline and both 72-hour bounds are inclusive at once.
+          Timestamp until = plus(w.end(), Duration.ofHours(24));
+          committed(
+              db,
+              c ->
+                  offlineCheckOut(
+                      c, w, record, UUID.randomUUID(), until, plus(until, Duration.ofHours(72))));
+          // Another tenant's employee may use the same client event ID.
+          World other = world(db);
+          committed(
+              db,
+              c -> {
+                UUID theirs = UUID.randomUUID();
+                UUID event = UUID.randomUUID();
+                Timestamp claimed = in(other);
+                exec(
+                    c,
+                    OFFLINE_EVENT,
+                    other.tenant(),
+                    event,
+                    theirs,
+                    other.schedule(),
+                    other.slot(),
+                    other.ana().employee(),
+                    other.ana().employment(),
+                    "CHECKED_IN",
+                    claimed,
+                    DIGEST,
+                    OFFLINE,
+                    client,
+                    -840,
+                    other.start());
+                record(
+                    c,
+                    other,
+                    theirs,
+                    other.slot(),
+                    other.schedule(),
+                    other.ana(),
+                    other.start(),
+                    other.end(),
+                    event,
+                    claimed);
+              });
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM people.attendance_event WHERE client_event_id = ?",
+                      client))
+              .isEqualTo(2);
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM people.attendance_record WHERE id = ?"
+                          + " AND status = 'COMPLETED'",
+                      record))
+              .isEqualTo(1);
+        });
+  }
+
+  @Test
+  void theOfflineLookupsUseTheClientEventKeyAndTheExistingIndexes() {
+    withDatabase(
+        db -> {
+          migrate(db.url(), "30");
+          UUID tenant = UUID.fromString("00000000-0000-4000-8000-000000000007");
+          UUID employee = UUID.fromString("00000000-0000-4000-9000-000000000042");
+          UUID id = UUID.randomUUID();
+          Timestamp now = Timestamp.from(Instant.parse("2026-06-02T08:00:00Z"));
+          List<String> plans =
+              analyzedPlans(
+                  db,
+                  List.of(
+                      // The replay lookup.
+                      "SELECT e.id FROM people.attendance_event e JOIN people.attendance_record r"
+                          + " ON r.tenant_id = e.tenant_id AND r.id = e.record_id"
+                          + " WHERE e.tenant_id = ? AND e.client_event_id = ?"
+                          + " AND e.employee_id = ?",
+                      // A slot's records (the check-out).
+                      "SELECT a.id FROM people.attendance_record a WHERE a.tenant_id = ?"
+                          + " AND a.slot_id = ? ORDER BY a.employee_id",
+                      // The employee's overlapping open records (the check-in).
+                      "SELECT id FROM people.attendance_record WHERE tenant_id = ?"
+                          + " AND employee_id = ? AND check_out_event_id IS NULL"
+                          + " AND checked_in_at <= ? AND check_out_until >= ? ORDER BY id"
+                          + " FOR UPDATE"),
+                  List.of(
+                      new Object[] {tenant, id, employee},
+                      new Object[] {tenant, id},
+                      new Object[] {tenant, employee, now, now}));
+          assertThat(plans.get(0)).contains("attendance_event_client_event_unique");
+          assertThat(plans.get(1)).contains("attendance_record_slot_employee_unique");
+          assertThat(plans.get(2)).containsAnyOf("attendance_record_history", "one_open");
+          for (String plan : plans) {
+            assertThat(plan).doesNotContain("Seq Scan");
+          }
+        });
+  }
+
+  /**
+   * The plans of {@code sqls} over 40,000 analyzed records and offline events of 20 tenants and
+   * 4,000 employees (inserted with triggers and foreign keys set aside, then rolled back).
+   */
+  private List<String> analyzedPlans(Db db, List<String> sqls, List<Object[]> args) {
+    try (Connection c = connect(db)) {
+      exec(c, "SET LOCAL session_replication_role = replica");
+      exec(
+          c,
+          "INSERT INTO people.attendance_record (tenant_id, id, schedule_id, slot_id,"
+              + " employee_id, employment_id, slot_start_at, slot_end_at, check_out_until,"
+              + " check_in_event_id, checked_in_at, check_out_event_id, checked_out_at)"
+              + " SELECT t, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), e,"
+              + " gen_random_uuid(), s, s + interval '8 hours', s + interval '32 hours',"
+              + " gen_random_uuid(), s, gen_random_uuid(), s + interval '8 hours'"
+              + " FROM (SELECT ('00000000-0000-4000-8000-' || lpad((g % 20)::text, 12, '0'))::uuid"
+              + " AS t, ('00000000-0000-4000-9000-' || lpad((g % 4000)::text, 12, '0'))::uuid"
+              + " AS e, timestamptz '2026-01-01' + (g % 300) * interval '1 day' AS s"
+              + " FROM generate_series(1, 40000) g) x");
+      exec(
+          c,
+          "INSERT INTO people.attendance_event (tenant_id, id, record_id, schedule_id, slot_id,"
+              + " employee_id, employment_id, event_type, recorded_at, recorded_by,"
+              + " idempotency_digest, recording_method, client_event_id, device_offset_minutes,"
+              + " received_at) SELECT tenant_id, check_in_event_id, id, schedule_id, slot_id,"
+              + " employee_id, employment_id, 'CHECKED_IN', checked_in_at, 'test',"
+              + " repeat('a', 64), 'EMPLOYEE_OFFLINE_SYNC', gen_random_uuid(), 60,"
+              + " checked_in_at FROM people.attendance_record");
+      exec(c, "ANALYZE people.attendance_event");
+      exec(c, "ANALYZE people.attendance_record");
+      List<String> plans = new java.util.ArrayList<>();
+      for (int i = 0; i < sqls.size(); i++) {
+        StringBuilder plan = new StringBuilder();
+        try (PreparedStatement explain = c.prepareStatement("EXPLAIN " + sqls.get(i))) {
+          Object[] values = args.get(i);
+          for (int k = 0; k < values.length; k++) {
+            explain.setObject(k + 1, values[k]);
+          }
+          try (var rows = explain.executeQuery()) {
+            while (rows.next()) {
+              plan.append(rows.getString(1)).append('\n');
+            }
+          }
+        }
+        plans.add(plan.toString());
+      }
+      c.rollback();
+      return plans;
+    } catch (SQLException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   // ------------------------------------------------------------------------------------------

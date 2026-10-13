@@ -439,6 +439,10 @@
     "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED": "Check-out is no longer possible for this shift.",
     "ATTENDANCE_STATE_CONFLICT": "This could not be recorded now. Refresh the page and try again.",
     "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND": "This site is not available for attendance review.",
+    "OFFLINE_ATTENDANCE_TOO_OLD": "This attendance was received too long after the time recorded on this device, so it could not be applied.",
+    "OFFLINE_ATTENDANCE_FUTURE_TIME": "The time recorded on this device is later than the time this attendance was received, so it could not be applied. Check the device's date and time.",
+    "OFFLINE_ATTENDANCE_OFFSET_MISMATCH": "The time recorded on this device could not be read consistently, so this attendance could not be applied.",
+    "OFFLINE_ATTENDANCE_CONFLICT": "This attendance was received later and could not be applied because it conflicts with attendance already recorded for you.",
     "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "This attendance action is not available to you. The list has been refreshed.",
     "TEAM_ATTENDANCE_MANAGER_REQUIRED": "Team attendance is for managers of direct reports."
   },

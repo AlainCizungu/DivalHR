@@ -1,4 +1,5 @@
 import type {
+  AttendanceRecordingMethod,
   Problem,
   SupervisorCheckInRequest,
   SupervisorCheckOutRequest,
@@ -176,7 +177,7 @@ export interface AssistedEvent {
 }
 
 export function assistedOf(
-  method: 'SELF' | 'SUPERVISOR' | null | undefined,
+  method: AttendanceRecordingMethod | null | undefined,
   locale: 'en' | 'fr' | null | undefined,
   reason: string | null | undefined,
 ): AssistedEvent | null {
