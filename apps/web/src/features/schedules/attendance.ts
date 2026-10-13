@@ -2,10 +2,11 @@ import type { AttendanceReceipt, Problem } from '@divalhr/api-client';
 
 /**
  * MVP-060A: what the employee confirms. A check-in names the slot; a check-out the record. The
- * instant is never sent: the server records its own.
+ * instant is never sent online: the server records its own. MVP-061B: a check-out also carries
+ * the server-displayed record's slot, the only identifier an offline check-out queues.
  */
 export type AttendanceAction =
-  { kind: 'checkIn'; slotId: string } | { kind: 'checkOut'; recordId: string };
+  { kind: 'checkIn'; slotId: string } | { kind: 'checkOut'; recordId: string; slotId: string };
 
 /** The shift shown in the confirmation (display only). */
 export interface AttendanceShiftFacts {
@@ -38,6 +39,12 @@ export interface AttendanceFailure {
 export const ATTENDANCE_NETWORK_FAILURE: AttendanceFailure = {
   kind: 'general',
   messageKey: 'errors.network',
+};
+
+/** MVP-061B: the event could not be saved on this device (never shown as saved). */
+export const OFFLINE_SAVE_FAILURE: AttendanceFailure = {
+  kind: 'general',
+  messageKey: 'offlineAttendance.saveFailed',
 };
 
 /** Kinds after which the page's data is stale: it is refreshed from the server. */

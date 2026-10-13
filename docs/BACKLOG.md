@@ -194,9 +194,27 @@ Employees or authorized supervisors can record attendance using an approved meth
 
 Queued events synchronize idempotently and preserve device event time and server receipt time.
 
-**MVP-061A (Issue #122). In review.** Backend synchronization of offline attendance (ADR 0016 amendment). `POST /api/v1/me/attendance/offline-events:sync` applies, exactly once, one scheduled check-in or check-out the employee captured while offline: a client event ID, the slot, the type, the claimed device time (RFC 3339, its offset equal to `deviceOffsetMinutes`) and the offset. The claimed time is untrusted evidence, checked against the unchanged MVP-060A windows and fixed safeguards (at most 5 minutes after the server receipt, received within 72 hours of it and of the window's close); eligibility is decided at receipt as for an online check-in. The tenant, linked employee and client event ID are the durable replay identity: the identical submission returns the original result, a changed one is refused, and an event that conflicts with accepted attendance is refused without overwriting or reordering anything. V30 adds the `EMPLOYEE_OFFLINE_SYNC` method and the client event, device offset and receipt instant to `people.attendance_event`. Audit `attendance.offline-event-sync`; the existing check-in and check-out events. No browser queue or offline UI, batch, retry scheduling, supervisor or administrator offline entry, correction, configurable skew, device registration, location, break, unscheduled attendance, pay, notification or dashboard.
+**MVP-061A (Issue #122). Merged (PR #123, merged as `b803812`); not deployed, so that it ships to hr-dev together with MVP-061B.** Backend synchronization of offline attendance (ADR 0016 amendment). `POST /api/v1/me/attendance/offline-events:sync` applies, exactly once, one scheduled check-in or check-out the employee captured while offline: a client event ID, the slot, the type, the claimed device time (RFC 3339, its offset equal to `deviceOffsetMinutes`) and the offset. The claimed time is untrusted evidence, checked against the unchanged MVP-060A windows and fixed safeguards (at most 5 minutes after the server receipt, received within 72 hours of it and of the window's close); eligibility is decided at receipt as for an online check-in. The tenant, linked employee and client event ID are the durable replay identity: the identical submission returns the original result, a changed one is refused, and an event that conflicts with accepted attendance is refused without overwriting or reordering anything. V30 adds the `EMPLOYEE_OFFLINE_SYNC` method and the client event, device offset and receipt instant to `people.attendance_event`. Audit `attendance.offline-event-sync`; the existing check-in and check-out events. No browser queue or offline UI, batch, retry scheduling, supervisor or administrator offline entry, correction, configurable skew, device registration, location, break, unscheduled attendance, pay, notification or dashboard.
 
-**MVP-061B. Planned.** The browser-held offline queue and its user experience (capture while offline, « heure enregistrée sur cet appareil » / "time recorded on this device", synchronization through the MVP-061A endpoint and its outcomes), after MVP-061A's single-event semantics are proven.
+**MVP-061B (Issue #124). In review.** The browser queue for offline attendance, in the foreground on screens that are already loaded.
+
+- **Capture.** An employee on « Mon horaire » / "My schedule" or « Ma présence » / "My attendance" confirms a check-in or a check-out as before. If the browser is offline, or the online command fails without any HTTP response, the event is saved in IndexedDB, and the page says « Enregistré sur cet appareil — en attente de synchronisation » / "Saved on this device — waiting to synchronize". An HTTP refusal is never saved. A failed save is an error.
+- **What is saved.** The event is captured once: client event ID, slot, type, the time recorded on this device with its offset, and the creation instant. Only bounded attempt metadata can change afterwards.
+- **Owner.** Each row is separated by a SHA-256 owner scope of the verified tenant and subject:
+  - other accounts on the same browser never see, count, discard or send it;
+  - it survives sign-out and returns when the same person signs in;
+  - it expires after 7 days, when the queue is next opened.
+- **The « Présence hors connexion » / "Offline attendance" section** on My attendance shows:
+  - the connection status in words and the owner's count;
+  - each event's type and time recorded on this device;
+  - « En attente de synchronisation » / "Pending sync", or « Action requise » / "Needs attention" with a neutral reason;
+  - « Synchroniser maintenant » / "Sync now" while online, and a confirmed discard.
+- **Synchronization.** It runs only while the app is open: once when the session is ready, on the browser's online event, or on demand. It sends the owner's events oldest first, one at a time, through MVP-061A, with one pass per tab.
+  - Applied events are deleted.
+  - A network failure, 401, 403, 429 or 5xx keeps the event and stops the pass.
+  - A permanent 400, 404, 409 or 422 needs attention.
+- **No backend, API or database change.** The service worker is unchanged.
+- **Not included:** cold-start offline mode, Background Sync, push, encryption or key management, cross-device queue, batch, manager or administrator offline entry, or configurable limits.
 
 ### MVP-062 Correct attendance
 

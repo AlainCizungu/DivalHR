@@ -2840,6 +2840,57 @@
       "reason": "Motif indiqué"
     }
   },
+  "offlineAttendance": {
+    "title": "Présence hors connexion",
+    "online": "Connexion : en ligne",
+    "offline": "Connexion : hors ligne",
+    "explanation": "Les pointages enregistrés sur cet appareil hors connexion ne sont pas acceptés par DivalHR tant qu’ils ne sont pas synchronisés.",
+    "unavailable": "L’enregistrement hors connexion n’est pas disponible dans ce navigateur.",
+    "empty": "Rien n’est en attente sur cet appareil.",
+    "count_one": "{{count}} pointage enregistré sur cet appareil",
+    "count_other": "{{count}} pointages enregistrés sur cet appareil",
+    "listLabel": "Pointages enregistrés sur cet appareil",
+    "type": {
+      "CHECK_IN": "Arrivée",
+      "CHECK_OUT": "Départ"
+    },
+    "state": {
+      "PENDING": "En attente de synchronisation",
+      "NEEDS_ATTENTION": "Action requise",
+      "UNREADABLE": "Illisible"
+    },
+    "recordedOnDevice": "Heure enregistrée sur cet appareil : {{time}}",
+    "reason": {
+      "generic": "DivalHR n’a pas pu appliquer ce pointage. Vous pouvez le supprimer."
+    },
+    "unreadable": "Cet élément enregistré est illisible et ne sera jamais envoyé. Vous pouvez le supprimer.",
+    "discard": "Supprimer",
+    "discardFor": "Supprimer le pointage « {{type}} » avec l’heure enregistrée sur cet appareil {{time}}",
+    "discardUnreadable": "Supprimer l’élément enregistré illisible",
+    "discardTitle": "Supprimer ce pointage enregistré ?",
+    "discardBody": "Il sera retiré de cet appareil et ne sera jamais envoyé à DivalHR.",
+    "discardConfirm": "Supprimer",
+    "cancel": "Annuler",
+    "discarded": "Le pointage enregistré a été supprimé.",
+    "syncNow": "Synchroniser maintenant",
+    "syncing": "Synchronisation…",
+    "queued": "Enregistré sur cet appareil — en attente de synchronisation.",
+    "queuedBadge": "{{type}} enregistré sur cet appareil — en attente de synchronisation",
+    "duplicate": "Ce pointage est déjà enregistré sur cet appareil et attend la synchronisation.",
+    "saveFailed": "L’enregistrement sur cet appareil a échoué. Rien n’a été enregistré.",
+    "offlineConfirm": "Vous êtes hors ligne. Si vous confirmez, l’heure enregistrée sur cet appareil est conservée ici et envoyée à DivalHR à votre retour en ligne.",
+    "synced_one": "{{count}} pointage enregistré a été synchronisé.",
+    "synced_other": "{{count}} pointages enregistrés ont été synchronisés.",
+    "attention_one": "{{count}} pointage enregistré demande une action.",
+    "attention_other": "{{count}} pointages enregistrés demandent une action.",
+    "stopped": {
+      "network": "La connexion est indisponible. Les pointages enregistrés restent sur cet appareil et seront envoyés à votre retour en ligne.",
+      "auth": "Votre session a pris fin. Reconnectez-vous pour envoyer les pointages enregistrés sur cet appareil.",
+      "forbidden": "Votre accès ne permet pas d’envoyer les pointages enregistrés sur cet appareil. Rétablissez votre accès, puis réessayez.",
+      "rateLimited": "Trop de demandes pour le moment. Les pointages enregistrés restent sur cet appareil ; réessayez plus tard.",
+      "server": "DivalHR n’est pas disponible pour le moment. Les pointages enregistrés restent sur cet appareil ; réessayez plus tard."
+    }
+  },
   "scheduleSubstitutions": {
     "unauthorized": "Seuls les employés peuvent utiliser les remplacements d’horaire.",
     "signInRequired": "Connectez-vous pour utiliser les remplacements d’horaire.",

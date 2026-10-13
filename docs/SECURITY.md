@@ -471,6 +471,34 @@ An employee submits, exactly once, one scheduled check-in or check-out captured 
 - **Privacy.** Audit metadata holds the schema version, event type, outcome `APPLIED`, recording method and `replay: false`; the IDs, client event and both instants only inside `after_state_sha256`. The `people.attendance.checked-in.v1` / `.checked-out.v1` events are unchanged (IDs, type, the record's instant) and never carry the offset. Logs and the `divalhr.attendance.offline.sync` counter carry only the operation, a bounded outcome, the event type and replay yes/no; the request body and errors are never logged. No client event, slot, record or event ID, instant, offset, subject, name, number or label enters logs, metrics or error bodies (tested on captured logs). No location, IP-derived presence, device fingerprint or biometric is collected.
 - **Rolling back V30.** Roll back the application first. `db/rollback/V30__rollback.sql` refuses while any offline evidence exists; there is no override. Existing SELF and SUPERVISOR attendance survives an allowed rollback unchanged. Then remove the `30` row from `flyway_schema_history` as a separate reviewed step.
 
+### Offline attendance queue in the browser (MVP-061B)
+
+A foreground queue on already-loaded screens (Issue #124, B61B-1 to B61B-12). There is no backend, API or database change; MVP-061A's endpoint audits each accepted event.
+
+- **When an event is queued.** Only after the employee's explicit confirmation, for a signed-in employee with writable IndexedDB, and only when the browser is offline or the online MVP-060A command fails without any HTTP response. An HTTP answer (4xx, 409, 422, 429 or 5xx) is never queued, and an IndexedDB write failure is shown as an error, never as saved. Online, the MVP-060A commands are unchanged.
+- **What a row holds (IndexedDB `divalhr-attendance-queue`).** Schema version, client event ID, slot, `CHECK_IN`/`CHECK_OUT`, the time recorded on this device with its explicit offset, the offset in minutes, the creation instant, the owner scope, and bounded attempt metadata (state, attempt count up to 99, an allow-listed refusal code).
+  - It never holds tokens, cookies, codes, PKCE material, the tenant or subject in clear, employee identity, names, numbers, shift or site labels, reasons, response bodies or manager identity.
+  - Only the metadata ever changes. A row is deleted once it is applied.
+  - Nothing queued is written to localStorage, sessionStorage, Cache Storage, a URL, the console or a log (Vitest and Playwright check this).
+- **Owner scope.** Web Crypto SHA-256 over a domain-separated, length-prefixed string of the verified session's tenant and the ID token's subject.
+  - Another account on the same browser cannot see, count, inspect, expire, discard or send another owner's rows. Ownership is decided in one place (`offlineQueue.ts`), whatever the store.
+  - Sign-out keeps the rows for their owner. Rows expire 7 days after capture, when the owner's queue is next opened.
+  - The owner scope separates browser users. It is not encryption, and the rows are **not encrypted by DivalHR**: anyone with access to the browser profile can read them.
+- **Unreadable rows.** A row of another schema version, or malformed, is never submitted or guessed: it is shown as unreadable and can be discarded.
+- **Synchronization.** Only while the app is open, sequentially and oldest first through the generated client, one pass per tab (several tabs are safe through MVP-061A's idempotency).
+  - A network failure, 401, 403, 429 or 5xx keeps the row and stops the pass, with a neutral message (sign in again, restore access, try later).
+  - A permanent 400, 404, 409 or 422 marks it « Action requise » / "Needs attention" with an allow-listed code and a neutral message, until the employee discards it after a confirmation.
+  - There is no timer, infinite retry, Background Sync, notification or new browser permission.
+- **Service worker.** Unchanged and pinned by tests: application shell only, no runtime caching, never an API, identity, auth or AI response.
+- **Production follow-ups (not in this increment):**
+  - cold-start offline launch;
+  - background synchronization;
+  - browser encryption or native secure storage;
+  - device attestation;
+  - support recovery of a device queue;
+  - cross-device behaviour;
+  - queue monitoring.
+
 ## Privileged multifactor authentication (MVP-011)
 
 Every interactive holder of `platform-admin` or `tenant-admin` completes TOTP, and the Core API enforces it independently. SMS and email codes are never a privileged factor; passkeys are a future, stronger option.

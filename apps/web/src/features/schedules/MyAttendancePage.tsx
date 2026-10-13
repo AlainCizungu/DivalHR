@@ -8,6 +8,8 @@ import { formatDate } from '../people/history';
 import { AssistedNote } from './AssistedNote';
 import { AttendanceExceptions } from './AttendanceExceptions';
 import { AttendanceDialog } from './AttendanceDialog';
+import { OfflineAttendancePanel } from './offline/OfflineAttendancePanel';
+import { useOfflineAttendance } from './offline/OfflineAttendanceProvider';
 import {
   ATTENDANCE_NETWORK_FAILURE,
   attendanceFailureOf,
@@ -48,6 +50,9 @@ export function MyAttendancePage() {
   const [announcement, setAnnouncement] = useState('');
   const opener = useRef<HTMLButtonElement | null>(null);
   const actionKey = useIdempotencyKey();
+  const offline = useOfflineAttendance();
+  const appliedVersion = offline?.appliedVersion ?? 0;
+  const [queuedNotice, setQueuedNotice] = useState(false);
 
   const fetchPage = useCallback(
     async (cursor: string | null): Promise<Listing> => {
@@ -80,6 +85,18 @@ export function MyAttendancePage() {
       active = false;
     };
   }, [fetchPage]);
+
+  // MVP-061B: after saved attendance was synchronized, the records show the server's state.
+  useEffect(() => {
+    if (appliedVersion === 0) return;
+    let active = true;
+    void fetchPage(null).then((next) => {
+      if (active) setListing(next);
+    });
+    return () => {
+      active = false;
+    };
+  }, [appliedVersion, fetchPage]);
 
   const more = async (cursor: string) => {
     if (paging.current) return;
@@ -124,6 +141,10 @@ export function MyAttendancePage() {
       <p role="status" className="visually-hidden" data-testid="my-attendance-announcer">
         {announcement}
       </p>
+      <p role="status" data-testid="my-attendance-offline-notice">
+        {queuedNotice ? t('offlineAttendance.queued') : ''}
+      </p>
+      <OfflineAttendancePanel />
       {listing.kind === 'loading' && <p role="status">{t('attendance.loading')}</p>}
       {listing.kind === 'failed' && (
         <div className="error-summary" role="alert" data-testid="my-attendance-error">
@@ -157,6 +178,7 @@ export function MyAttendancePage() {
             const label = language === 'fr' ? record.shift.labels.fr : record.shift.labels.en;
             const day = formatDate(language, start.date);
             const zone = record.shift.siteTimezone;
+            const queuedOut = offline?.queuedFor(record.shift.slotId, 'CHECK_OUT') ?? false;
             return (
               <li
                 key={record.id}
@@ -222,7 +244,16 @@ export function MyAttendancePage() {
                 <p className="muted" data-testid="my-attendance-timezone">
                   {t('attendance.siteTime', { zone })}
                 </p>
-                {record.checkOutAvailable && (
+                {queuedOut && (
+                  <p>
+                    <StatusBadge tone="info" testId="my-attendance-offline-queued">
+                      {t('offlineAttendance.queuedBadge', {
+                        type: t('offlineAttendance.type.CHECK_OUT'),
+                      })}
+                    </StatusBadge>
+                  </p>
+                )}
+                {record.checkOutAvailable && !queuedOut && (
                   <p>
                     <button
                       type="button"
@@ -233,6 +264,7 @@ export function MyAttendancePage() {
                       onClick={(event) => {
                         opener.current = event.currentTarget;
                         setAnnouncement('');
+                        setQueuedNotice(false);
                         setTarget(record);
                       }}
                     >
@@ -267,7 +299,9 @@ export function MyAttendancePage() {
       )}
       <AttendanceDialog
         key={target?.id ?? 'none'}
-        action={target ? { kind: 'checkOut', recordId: target.id } : null}
+        action={
+          target ? { kind: 'checkOut', recordId: target.id, slotId: target.shift.slotId } : null
+        }
         shift={
           target
             ? {
@@ -283,6 +317,10 @@ export function MyAttendancePage() {
         keyFor={actionKey.keyFor}
         onRecorded={recorded}
         onSettled={() => void reload()}
+        onQueued={() => {
+          actionKey.reset();
+          setQueuedNotice(true);
+        }}
         onClosed={() => {
           setTarget(null);
           requestAnimationFrame(() => {

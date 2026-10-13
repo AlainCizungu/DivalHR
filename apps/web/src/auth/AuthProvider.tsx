@@ -31,6 +31,11 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   completeSignIn: () => Promise<string>;
   getAccessToken: () => string | undefined;
+  /**
+   * The verified ID token's subject of the signed-in user (MVP-061B: only to derive the offline
+   * attendance owner scope; never stored, shown or sent).
+   */
+  getSubject: () => string | undefined;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -150,6 +155,7 @@ export function AuthProvider({
       signOut,
       completeSignIn,
       getAccessToken: () => userRef.current?.access_token,
+      getSubject: () => userRef.current?.profile.sub,
     }),
     [user, status, signIn, requireStepUp, stepUp, mfaBlocked, signOut, completeSignIn],
   );

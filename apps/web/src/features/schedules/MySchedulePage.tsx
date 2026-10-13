@@ -13,6 +13,7 @@ import { AttendanceDialog } from './AttendanceDialog';
 import { MySubstitutionHistory, type History } from './MySubstitutionHistory';
 import { SubstitutionRequestDialog } from './SubstitutionRequestDialog';
 import { AssistedNote } from './AssistedNote';
+import { useOfflineAttendance } from './offline/OfflineAttendanceProvider';
 import { formatInstant, receiptMessageKey, type AttendanceAction } from './attendance';
 import { assistedOf } from './teamAttendance';
 import {
@@ -70,6 +71,9 @@ export function MySchedulePage() {
   const historyHeading = `${ids}-substitutions`;
   const requestKey = useIdempotencyKey();
   const attendanceKey = useIdempotencyKey();
+  const offline = useOfflineAttendance();
+  const appliedVersion = offline?.appliedVersion ?? 0;
+  const [queuedNotice, setQueuedNotice] = useState(false);
   const [attendanceTarget, setAttendanceTarget] = useState<{
     action: AttendanceAction;
     shift: MyWorkShift;
@@ -131,6 +135,18 @@ export function MySchedulePage() {
       active = false;
     };
   }, [fetchPage, fetchHistory]);
+
+  // MVP-061B: after saved attendance was synchronized, the shifts show the server's state.
+  useEffect(() => {
+    if (appliedVersion === 0) return;
+    let active = true;
+    void fetchPage(null).then((next) => {
+      if (active) setListing(next);
+    });
+    return () => {
+      active = false;
+    };
+  }, [appliedVersion, fetchPage]);
 
   const moreHistory = async (cursor: string) => {
     if (historyPaging.current) return;
@@ -204,6 +220,9 @@ export function MySchedulePage() {
       />
       <p role="status" className="visually-hidden" data-testid="my-schedule-announcer">
         {announcement}
+      </p>
+      <p role="status" data-testid="my-schedule-offline-notice">
+        {queuedNotice ? t('offlineAttendance.queued') : ''}
       </p>
       {listing.kind === 'loading' && <p role="status">{t('mySchedule.loading')}</p>}
       {listing.kind === 'failed' && (
@@ -288,6 +307,7 @@ export function MySchedulePage() {
                   onAction={(action, button) => {
                     opener.current = button;
                     setAnnouncement('');
+                    setQueuedNotice(false);
                     setAttendanceTarget({ action, shift });
                   }}
                 />
@@ -368,6 +388,10 @@ export function MySchedulePage() {
         keyFor={attendanceKey.keyFor}
         onRecorded={recorded}
         onSettled={() => void reload()}
+        onQueued={() => {
+          attendanceKey.reset();
+          setQueuedNotice(true);
+        }}
         onClosed={() => {
           setAttendanceTarget(null);
           requestAnimationFrame(() => {
@@ -419,6 +443,9 @@ function ShiftAttendance({
   const language: 'en' | 'fr' = i18n.language.startsWith('fr') ? 'fr' : 'en';
   const attendance = shift.attendance;
   const at = (instant: string) => formatInstant(language, instant, shift.siteTimezone);
+  const offline = useOfflineAttendance();
+  const queuedIn = offline?.queuedFor(shift.id, 'CHECK_IN') ?? false;
+  const queuedOut = offline?.queuedFor(shift.id, 'CHECK_OUT') ?? false;
   return (
     <div
       className="shift-attendance"
@@ -459,7 +486,16 @@ function ShiftAttendance({
         )}
         testId="my-shift-check-out-assisted"
       />
-      {attendance.checkInAvailable && (
+      {(queuedIn || queuedOut) && (
+        <p>
+          <StatusBadge tone="info" testId="my-shift-offline-queued">
+            {t('offlineAttendance.queuedBadge', {
+              type: t(`offlineAttendance.type.${queuedIn ? 'CHECK_IN' : 'CHECK_OUT'}`),
+            })}
+          </StatusBadge>
+        </p>
+      )}
+      {attendance.checkInAvailable && !queuedIn && (
         <p>
           <button
             type="button"
@@ -475,7 +511,7 @@ function ShiftAttendance({
           </button>
         </p>
       )}
-      {attendance.checkOutAvailable && attendance.attendanceRecordId && (
+      {attendance.checkOutAvailable && attendance.attendanceRecordId && !queuedOut && (
         <p>
           <button
             type="button"
@@ -486,7 +522,11 @@ function ShiftAttendance({
             onClick={(event) => {
               if (attendance.attendanceRecordId) {
                 onAction(
-                  { kind: 'checkOut', recordId: attendance.attendanceRecordId },
+                  {
+                    kind: 'checkOut',
+                    recordId: attendance.attendanceRecordId,
+                    slotId: shift.id,
+                  },
                   event.currentTarget,
                 );
               }
