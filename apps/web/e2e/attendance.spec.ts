@@ -115,8 +115,11 @@ async function noOverflow(page: Page) {
 }
 
 async function clean(page: Page) {
-  expect(await storage(page)).not.toMatch(new RegExp(`${stamp}|${letters}|Caissi|Cashier`, 'iu'));
-  expect(page.url()).not.toMatch(new RegExp(`${stamp}|${letters}`, 'iu'));
+  // The run's own markers only: the stamp, the synthetic family names and the slot labels. Never
+  // the stamp's bare letter fragment, which can be one or two letters that occur in any route.
+  const markers = new RegExp(`${stamp}|${ANA_FAMILY}|${CLEO_FAMILY}|Caissi|Cashier`, 'iu');
+  expect(await storage(page)).not.toMatch(markers);
+  expect(page.url()).not.toMatch(markers);
   expect(page.url()).not.toMatch(/[?&#](code|state|session_state)=/u);
 }
 
