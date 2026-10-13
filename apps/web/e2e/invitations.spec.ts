@@ -2,6 +2,7 @@ import { expect, test, type Page, type Request } from '@playwright/test';
 import {
   CORE_API,
   USERS,
+  acceptInvitationInUi,
   expectAccessible,
   mailTo,
   signInFr,
@@ -108,9 +109,8 @@ test.describe.serial('MVP-010: invite a user and assign a scoped role', () => {
     expect(await page.evaluate(() => window.location.href)).not.toContain('token');
     await expectAccessible(page);
 
-    const accepted = page.waitForResponse((r) => r.url().endsWith('/public/invitations/accept'));
-    await page.getByRole('button', { name: 'Accepter l’invitation' }).click();
-    const response = await accepted;
+    // R120-2: the real button; a 429 from another worker's public traffic waits and retries.
+    const response = await acceptInvitationInUi(page);
     expect(response.status()).toBe(200);
     expect(response.headers()['cache-control']).toBe('no-store');
     await expect(page.getByTestId('invitation-result')).toContainText('Invitation acceptée');

@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   CORE_API,
   USERS,
+  acceptInvitationInUi,
   expectAccessible,
   freshCode,
   mailTo,
@@ -98,7 +99,8 @@ test.describe.serial('MVP-014: first tenant administrator', () => {
       'Administrateur de l’organisation',
     );
     await expectAccessible(page);
-    await page.getByRole('button', { name: 'Accepter l’invitation' }).click();
+    // R120-2: the real button; a 429 from another worker's public traffic waits and retries.
+    expect((await acceptInvitationInUi(page)).status()).toBe(200);
     await expect(page.getByTestId('invitation-result')).toContainText('Invitation acceptée');
 
     const setup = SETUP_LINK.exec(

@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { TOTP_SEEDS, totp } from './credentials.ts';
 import globalSetup from './global-setup.ts';
 import { check, scanText, seedCodes, textsOf } from './hygiene.ts';
+import { MAX_ATTEMPTS, retryAfterSeconds, retryOn429 } from './rate-limit.ts';
 import {
   createSsoDir,
   readState,
@@ -369,5 +370,72 @@ void describe('canonical entry points (R76-1)', () => {
     assert.match(makefile, /^e2e: (?:[^\n#]* )?e2e-host\b/mu);
     assert.match(recipe('e2e-host'), /\$\(PNPM\) run e2e\b/u);
     assert.doesNotMatch(makefile, /playwright\s+test/u);
+  });
+});
+
+// R120-2 (PR #120): the shared 429 rule of the invitation acceptances (rate-limit.ts).
+void describe('invitation acceptance 429 rule', () => {
+  const reply = (status: number, retryAfter?: string) => ({
+    status: () => status,
+    headers: (): Record<string, string> =>
+      retryAfter === undefined ? {} : { 'retry-after': retryAfter },
+  });
+  const run = async (replies: ReturnType<typeof reply>[]) => {
+    const attempts: number[] = [];
+    const waits: number[] = [];
+    const last = await retryOn429(
+      (number) => {
+        attempts.push(number);
+        const next = replies[attempts.length - 1];
+        assert.ok(next, 'no more attempts than replies');
+        return Promise.resolve(next);
+      },
+      (milliseconds) => {
+        waits.push(milliseconds);
+        return Promise.resolve();
+      },
+    );
+    return { status: last.status(), attempts, waits };
+  };
+
+  void it('returns a first-attempt success without waiting', async () => {
+    assert.deepEqual(await run([reply(200)]), { status: 200, attempts: [1], waits: [] });
+  });
+
+  void it('waits Retry-After after a 429 and repeats the action once', async () => {
+    assert.deepEqual(await run([reply(429, '7'), reply(200)]), {
+      status: 200,
+      attempts: [1, 2],
+      waits: [7000],
+    });
+  });
+
+  void it('returns any other status at once for the caller to fail on', async () => {
+    assert.deepEqual(await run([reply(400)]), { status: 400, attempts: [1], waits: [] });
+    assert.deepEqual(await run([reply(429, '1'), reply(503)]), {
+      status: 503,
+      attempts: [1, 2],
+      waits: [1000],
+    });
+  });
+
+  void it('stops after three attempts and returns the last 429', async () => {
+    assert.equal(MAX_ATTEMPTS, 3);
+    assert.deepEqual(await run([reply(429, '2'), reply(429, '3'), reply(429, '4')]), {
+      status: 429,
+      attempts: [1, 2, 3],
+      waits: [2000, 3000],
+    });
+  });
+
+  void it('bounds Retry-After to 1 to 61 seconds, 60 when absent or invalid', () => {
+    assert.equal(retryAfterSeconds(undefined), 60);
+    assert.equal(retryAfterSeconds(''), 60);
+    assert.equal(retryAfterSeconds('0'), 60);
+    assert.equal(retryAfterSeconds('-5'), 60);
+    assert.equal(retryAfterSeconds('soon'), 60);
+    assert.equal(retryAfterSeconds('1.2'), 2);
+    assert.equal(retryAfterSeconds('5'), 5);
+    assert.equal(retryAfterSeconds('3600'), 61);
   });
 });

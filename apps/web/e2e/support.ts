@@ -1,10 +1,11 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Response } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { retryOn429 } from './rate-limit.ts';
 import { readState, ssoDir } from './sso-state.ts';
 
 // DEVELOPMENT-ONLY seed users, TOTP seeds and the TOTP generator live in credentials.ts (shared
@@ -74,21 +75,42 @@ interface MailSummary {
 /**
  * Accepts an invitation through the public endpoint. The anonymous endpoints allow 10 requests per
  * client per minute (application.yaml) and every spec of a run shares one client address, so a 429
- * is honoured: wait Retry-After (at most 61 s) and try again, at most three times. The limit is
- * exercised, never raised.
+ * is honoured by the shared rule (rate-limit.ts): wait Retry-After (at most 61 s) and try again, at
+ * most three attempts. The limit is exercised, never raised.
  */
 export async function acceptInvitation(page: Page, token: string): Promise<number> {
-  let status = 0;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const accepted = await page.request.post(`${CORE_API}/public/invitations/accept`, {
-      data: { token },
-    });
-    status = accepted.status();
-    if (status !== 429) return status;
-    const wait = Math.min(Number(accepted.headers()['retry-after'] ?? '60') || 60, 61);
-    await page.waitForTimeout(wait * 1000);
-  }
-  return status;
+  const accepted = await retryOn429(
+    () => page.request.post(`${CORE_API}/public/invitations/accept`, { data: { token } }),
+    (milliseconds) => page.waitForTimeout(milliseconds),
+  );
+  return accepted.status();
+}
+
+/**
+ * R120-2: accepts the invitation shown on the page through the real UI. The first attempt clicks
+ * « Accepter l’invitation »; after a 429 (the page then offers « Réessayer », which repeats the
+ * acceptance with the same token) the same rule as {@link acceptInvitation} applies: wait the
+ * bounded Retry-After and click « Réessayer », at most three attempts. Returns the last acceptance
+ * response for the caller's assertions. French UI journeys only.
+ */
+export async function acceptInvitationInUi(page: Page): Promise<Response> {
+  return retryOn429(
+    async (attempt) => {
+      const accepted = page.waitForResponse(
+        (response) =>
+          response.url().endsWith('/public/invitations/accept') &&
+          response.request().method() === 'POST',
+      );
+      await page
+        .getByRole('button', {
+          name: attempt === 1 ? 'Accepter l’invitation' : 'Réessayer',
+          exact: true,
+        })
+        .click();
+      return accepted;
+    },
+    (milliseconds) => page.waitForTimeout(milliseconds),
+  );
 }
 
 /** Waits for a message to the address whose subject matches, and returns its text body. */
