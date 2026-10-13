@@ -6,6 +6,7 @@ import { MfaRequiredPage } from '../auth/MfaRequiredPage';
 import type { RuntimeConfig } from '../config/runtime';
 import { RequirePlatformAdmin } from '../features/admin/RequirePlatformAdmin';
 import { RequireRole } from '../features/hierarchy/RequireRole';
+import { OfflineAttendanceProvider } from '../features/schedules/offline/OfflineAttendanceProvider';
 import { NotFoundPage } from '../layout/NotFoundPage';
 import { AppShell } from '../shell/AppShell';
 import { ThemeProvider } from '../theme/ThemeProvider';
@@ -46,18 +47,20 @@ export function App({ config, userManager }: { config: RuntimeConfig; userManage
       <AuthProvider userManager={userManager}>
         <ApiProvider config={config}>
           <SessionProvider>
-            <BrowserRouter>
-              <AppShell environment={config.environment}>
-                <MfaGate>
-                  <Routes>
-                    {ROUTES.map((route) => (
-                      <Route key={route.path} path={route.path} element={guarded(route)} />
-                    ))}
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
-                </MfaGate>
-              </AppShell>
-            </BrowserRouter>
+            <OfflineAttendanceProvider>
+              <BrowserRouter>
+                <AppShell environment={config.environment}>
+                  <MfaGate>
+                    <Routes>
+                      {ROUTES.map((route) => (
+                        <Route key={route.path} path={route.path} element={guarded(route)} />
+                      ))}
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </MfaGate>
+                </AppShell>
+              </BrowserRouter>
+            </OfflineAttendanceProvider>
           </SessionProvider>
         </ApiProvider>
       </AuthProvider>

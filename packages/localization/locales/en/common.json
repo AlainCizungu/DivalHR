@@ -2840,6 +2840,57 @@
       "reason": "Reason given"
     }
   },
+  "offlineAttendance": {
+    "title": "Offline attendance",
+    "online": "Connection: online",
+    "offline": "Connection: offline",
+    "explanation": "Check-ins and check-outs saved on this device while you were offline are not accepted by DivalHR until they are synchronized.",
+    "unavailable": "Offline saving is not available in this browser.",
+    "empty": "Nothing is waiting on this device.",
+    "count_one": "{{count}} attendance event saved on this device",
+    "count_other": "{{count}} attendance events saved on this device",
+    "listLabel": "Attendance saved on this device",
+    "type": {
+      "CHECK_IN": "Check-in",
+      "CHECK_OUT": "Check-out"
+    },
+    "state": {
+      "PENDING": "Pending sync",
+      "NEEDS_ATTENTION": "Needs attention",
+      "UNREADABLE": "Cannot be read"
+    },
+    "recordedOnDevice": "Time recorded on this device: {{time}}",
+    "reason": {
+      "generic": "DivalHR could not apply this attendance. You can discard it."
+    },
+    "unreadable": "This saved item cannot be read and will never be sent. You can discard it.",
+    "discard": "Discard",
+    "discardFor": "Discard the {{type}} with the time recorded on this device {{time}}",
+    "discardUnreadable": "Discard the saved item that cannot be read",
+    "discardTitle": "Discard this saved attendance?",
+    "discardBody": "It will be removed from this device and never sent to DivalHR.",
+    "discardConfirm": "Discard",
+    "cancel": "Cancel",
+    "discarded": "The saved attendance was discarded.",
+    "syncNow": "Sync now",
+    "syncing": "Synchronizing…",
+    "queued": "Saved on this device — waiting to synchronize.",
+    "queuedBadge": "{{type}} saved on this device — waiting to synchronize",
+    "duplicate": "This is already saved on this device and waiting to synchronize.",
+    "saveFailed": "This could not be saved on this device. Nothing was recorded.",
+    "offlineConfirm": "You are offline. If you confirm, the time recorded on this device is saved here and sent to DivalHR when you are back online.",
+    "synced_one": "{{count}} saved attendance event was synchronized.",
+    "synced_other": "{{count}} saved attendance events were synchronized.",
+    "attention_one": "{{count}} saved attendance event needs attention.",
+    "attention_other": "{{count}} saved attendance events need attention.",
+    "stopped": {
+      "network": "The connection is unavailable. Saved attendance stays on this device and is sent when you are back online.",
+      "auth": "Your session has ended. Sign in again to send the attendance saved on this device.",
+      "forbidden": "Your access does not allow sending the attendance saved on this device. Restore your access, then try again.",
+      "rateLimited": "Too many requests right now. Saved attendance stays on this device; try again later.",
+      "server": "DivalHR is not available right now. Saved attendance stays on this device; try again later."
+    }
+  },
   "scheduleSubstitutions": {
     "unauthorized": "Only employees can use shift substitutions.",
     "signInRequired": "Sign in to use shift substitutions.",

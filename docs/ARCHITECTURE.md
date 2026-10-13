@@ -99,6 +99,22 @@ Events are published through a transactional outbox. Consumers must be idempoten
 
 Essential attendance, roster, task, and expense workflows use a secure local queue. Synchronization preserves device event time and server receipt time, uses idempotent requests, and sends uncertain conflicts to human review.
 
+Implemented for attendance (MVP-061A, MVP-061B): the development increment is a **foreground** queue for screens that are already loaded.
+
+- **Capture.** On « Mon horaire » and « Ma présence », a confirmed check-in or check-out made while the browser is offline, or whose online command fails without any HTTP response, is saved in IndexedDB (`divalhr-attendance-queue`, one row per event). It is sent through `POST /me/attendance/offline-events:sync` while the app is open: once when the employee's verified session is ready, on the browser's `online` event, and on "Sync now".
+- **Isolation.** Rows are separated per signed-in user by a SHA-256 owner scope of the verified tenant and subject.
+- **Not encrypted.** The rows are not encrypted by DivalHR.
+- **Service worker.** It is unchanged: it caches the application shell only, has no runtime caching, and never answers API, identity, auth or AI requests (`src/pwa/workbox.ts`).
+- **Not provided:** a cold start offline, Background Sync, push, or a queue shared across devices.
+- **Production follow-ups:**
+  - cold-start offline launch;
+  - background synchronization;
+  - browser encryption or native secure storage;
+  - device attestation;
+  - support recovery of a stuck device queue;
+  - cross-device behaviour;
+  - queue monitoring.
+
 ## Reliability baseline
 
 - 99.9% monthly availability target for core APIs

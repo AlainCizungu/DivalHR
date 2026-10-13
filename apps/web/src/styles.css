@@ -533,6 +533,26 @@ fieldset.field {
   outline-offset: 2px;
 }
 
+/* MVP-061B: attendance saved on this device while offline. */
+.offline-attendance {
+  margin-bottom: var(--dv-space-4);
+  overflow-wrap: anywhere;
+}
+
+.offline-attendance__list {
+  list-style: none;
+  margin: 0 0 var(--dv-space-3);
+  padding: 0;
+  display: grid;
+  gap: var(--dv-space-2);
+}
+
+.offline-attendance__item {
+  border-top: 1px solid var(--dv-color-border);
+  padding-top: var(--dv-space-2);
+  min-width: 0;
+}
+
 .shift-list__date {
   font-size: 1.1rem;
   margin: 0 0 var(--dv-space-1);
