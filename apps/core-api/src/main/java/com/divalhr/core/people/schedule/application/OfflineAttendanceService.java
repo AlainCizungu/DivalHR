@@ -341,7 +341,7 @@ public class OfflineAttendanceService {
     Instant at = command.occurredAt();
     Instant until = Attendance.checkOutUntil(record.slotEndAt());
     safeguarded(at, received, until);
-    if (record.status() == Attendance.Status.COMPLETED) {
+    if (!record.acceptsCheckOut()) {
       throw conflict();
     }
     if (at.isAfter(until)) {

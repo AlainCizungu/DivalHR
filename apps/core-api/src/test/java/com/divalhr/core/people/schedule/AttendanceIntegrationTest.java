@@ -202,7 +202,8 @@ class AttendanceIntegrationTest {
             "checkInSupervisorReason",
             "checkOutRecordingMethod",
             "checkOutSupervisorReasonLocale",
-            "checkOutSupervisorReason");
+            "checkOutSupervisorReason",
+            "correctedAt");
     // MVP-060B: a self-service check-in is SELF, with no supervisor reason.
     assertThat(open.get("checkInRecordingMethod").asText()).isEqualTo("SELF");
     assertThat(open.get("checkInSupervisorReason").isNull()).isTrue();
@@ -275,7 +276,8 @@ class AttendanceIntegrationTest {
             "checkInSupervisorReason",
             "checkOutRecordingMethod",
             "checkOutSupervisorReasonLocale",
-            "checkOutSupervisorReason");
+            "checkOutSupervisorReason",
+            "correctedAt");
     assertThat(item.get("checkInRecordingMethod").asText()).isEqualTo("SELF");
     assertThat(item.get("checkOutRecordingMethod").asText()).isEqualTo("SELF");
     assertThat(item.get("checkOutSupervisorReasonLocale").isNull()).isTrue();

@@ -697,7 +697,7 @@ public class JdbcWorkScheduleRepository {
         new StringBuilder(
             "SELECT l.id, l.schedule_id, s.site_id, s.site_timezone, l.start_local, l.end_local,"
                 + " l.start_at, l.end_at, l.label_en, l.label_fr, c.decision_id,"
-                + " a.id AS attendance_id, a.checked_in_at, a.checked_out_at,"
+                + " a.id AS attendance_id, a.checked_in_at, a.checked_out_at, a.corrected_at,"
                 + JdbcAttendanceRepository.RECORDING_COLUMNS
                 + " FROM people.work_schedule_slot_coverage c"
                 + " JOIN people.work_schedule_slot l"
@@ -758,12 +758,14 @@ public class JdbcWorkScheduleRepository {
       return Attendance.Mark.NONE;
     }
     Timestamp out = rs.getTimestamp("checked_out_at");
+    Timestamp corrected = rs.getTimestamp("corrected_at");
     return new Attendance.Mark(
         id,
         rs.getTimestamp("checked_in_at").toInstant(),
         out == null ? null : out.toInstant(),
         JdbcAttendanceRepository.recording(rs, "in"),
-        JdbcAttendanceRepository.recording(rs, "out"));
+        JdbcAttendanceRepository.recording(rs, "out"),
+        corrected == null ? null : corrected.toInstant());
   }
 
   /**

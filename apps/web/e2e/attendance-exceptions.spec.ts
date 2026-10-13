@@ -396,7 +396,7 @@ test.describe.serial('MVP-060C: factual attendance exceptions', () => {
       'not a pay, absence or disciplinary decision',
     );
     await expect(section.getByTestId('attendance-exceptions-corrections')).toContainText(
-      'Corrections are coming later',
+      'Only the organization’s administrators can correct attendance',
     );
     await expect(
       section.getByRole('button', { name: /correct|excuse|approve|justify/iu }),
@@ -453,11 +453,11 @@ test.describe.serial('MVP-060C: factual attendance exceptions', () => {
       /^\d+ min après le début prévu$/u,
     );
     await expect(review.getByTestId('attendance-exceptions-corrections')).toContainText(
-      'Les corrections arriveront plus tard',
+      'Corrigez un pointage, ou créez un pointage manquant',
     );
-    await expect(review.getByRole('button', { name: /corrig|justif|approuv|excus/iu })).toHaveCount(
-      0,
-    );
+    // MVP-062: one correction action per card; never excuse or approve.
+    await expect(review.getByRole('button', { name: /justif|approuv|excus/iu })).toHaveCount(0);
+    await expect(review.getByTestId('attendance-exception-correct')).toHaveCount(3);
     await expectAccessible(page);
     await noOverflow(page);
     await evidence(page, 'mvp060c-3-admin-review-fr');

@@ -5468,6 +5468,268 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /attendance/records/{attendanceRecordId}/correction-preview:
+    post:
+      operationId: previewAttendanceRecordCorrection
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a correction of an attendance record
+      description: >-
+        MVP-062 (REPLACE_TIMES). Evaluates the complete new effective check-in and optional
+        check-out of one attendance record of the organization, with a closed reasonCode and an
+        explanation (10 to 500 characters after trimming; no control character, markup or link).
+        An unknown, foreign, malformed or undisclosable record is 404
+        ATTENDANCE_CORRECTION_TARGET_NOT_FOUND without params. The values are RFC 3339 instants
+        with an explicit offset and at most six fractional digits (microseconds), never clamped,
+        reordered or converted: the check-in from 2 hours before the scheduled start (inclusive)
+        to the scheduled end (exclusive), the check-out strictly after it and at most 24 hours
+        after the scheduled end, and neither more than 5 minutes after the server's instant (400
+        VALIDATION_FAILED with RANGE on the field otherwise); values identical to the current ones
+        are 409 ATTENDANCE_CORRECTION_NOT_ALLOWED. The employee, employment, schedule and slot
+        never change; a record of a schedule cancelled or replaced later stays correctable (warning
+        SCHEDULE_NOT_OPERATIONAL). Returns the target (employee ID, number and current name; the
+        site and bilingual shift; the immutable boundaries), the before and after values, the
+        factual exception types before and after at the same server instant (MVP-060C rules),
+        neutral warnings, the server's previewedAt, the targetVersion (the record's correction
+        count) and the previewDigest a commit must present. Writes no correction, event or outbox
+        row: a fail-closed disclosure (audit attendance.correction-preview, metadata view and
+        count only). Shares the work-schedule-write limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceRecordId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceCorrectionRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCorrectionPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /attendance/records/{attendanceRecordId}/corrections:
+    get:
+      operationId: listAttendanceRecordCorrections
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read an attendance record's correction history
+      description: >-
+        MVP-062. One attendance record of the organization: its current effective values (status,
+        check-in, check-out, correctionVersion, correctedAt), its employee (ID, number, current
+        name), its shift, its original events unchanged (type, instant, recording method; none for
+        a record created by a correction) and its append-only corrections, newest first (version,
+        operation, before and after values, reasonCode, explanation, correctedAt, whether the
+        viewing administrator committed it, and a stable pseudonymous administratorReference; never
+        the subject). An unknown, foreign or malformed record is 404
+        ATTENDANCE_CORRECTION_TARGET_NOT_FOUND. Restricted HR/Operations: a fail-closed disclosure
+        (audit attendance.correction-history). Shares the work-schedule-read limit. Cache-Control
+        private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceRecordId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCorrectionHistory"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: correctAttendanceRecord
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Commit a previewed correction of an attendance record
+      description: >-
+        MVP-062 (REPLACE_TIMES). Commits exactly the reviewed preview: the identical proposal, its
+        targetVersion, its previewDigest and confirm true. Under the tenant's scheduling lock, with
+        the record's employment FOR SHARE, the schedule and the record FOR UPDATE, every fact is
+        evaluated again: a changed record version or any other difference from the reviewed
+        preview is 409 ATTENDANCE_CORRECTION_PREVIEW_STALE, never recomputed and committed;
+        leaving the record open over another open record of the employee is 409
+        ATTENDANCE_CORRECTION_NOT_ALLOWED. One transaction with the append-only correction
+        (version + 1), the effective record's guarded update, the audit record
+        (attendance.correction-create: schemaVersion, operation, reasonCode, hadCheckOutBefore,
+        hasCheckOutAfter only) and the outbox event (people.attendance.corrected.v1). The original
+        events are never changed. Only the body's shape is checked before the idempotency
+        decision: an exact retry returns the stored 201 with Idempotent-Replayed true, a changed
+        body on the same key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never carries the
+        explanation. Shares the work-schedule-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/AttendanceRecordId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitAttendanceCorrectionRequest"
+      responses:
+        "201":
+          description: Corrected, or the original correction replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCorrectionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /attendance/corrections/missing-record-preview:
+    post:
+      operationId: previewMissingAttendanceCorrection
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview creating a missing attendance record
+      description: >-
+        MVP-062 (CREATE_MISSING_RECORD). Evaluates the creation of the missing record of one slot
+        of the organization for its effective assignee (the substitute approved before the
+        scheduled end, otherwise the published assignee), given as employeeId exactly as reviewed:
+        an unknown, foreign or malformed slot, or an employeeId that is not its effective
+        assignee, is the same 404 ATTENDANCE_CORRECTION_TARGET_NOT_FOUND without params. A slot
+        of a schedule cancelled or replaced, an existing record of the slot and employee (correct
+        it instead), or an employee without exactly one qualifying employment is 409
+        ATTENDANCE_CORRECTION_NOT_ALLOWED. The corrected check-in and optional check-out follow
+        the record correction's time rules (400 VALIDATION_FAILED with RANGE otherwise). Returns
+        the same preview as a record correction, with targetVersion 0 and no before values.
+        Writes nothing but its fail-closed disclosure audit (attendance.correction-preview).
+        Shares the work-schedule-write limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MissingAttendanceCorrectionRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCorrectionPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /attendance/corrections/missing-record:
+    post:
+      operationId: createMissingAttendanceRecord
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Commit a previewed creation of a missing attendance record
+      description: >-
+        MVP-062 (CREATE_MISSING_RECORD). Commits exactly the reviewed preview (targetVersion 0).
+        Under the tenant's scheduling lock, with the employee's employments FOR SHARE and the
+        schedule FOR UPDATE, every fact is evaluated again: a record created meanwhile, a terminal
+        action, a changed effective assignee or employment, or any other difference is 409
+        ATTENDANCE_CORRECTION_PREVIEW_STALE. One transaction with the append-only correction
+        (version 1), the effective record created by it (correctionVersion 1, no invented SELF,
+        SUPERVISOR or offline event), the audit record (attendance.correction-create) and the
+        outbox event (people.attendance.corrected.v1). Idempotent as a record correction. Shares
+        the work-schedule-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitMissingAttendanceCorrectionRequest"
+      responses:
+        "201":
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCorrectionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     oauth2:
@@ -9041,6 +9303,9 @@ components:
         - OFFLINE_ATTENDANCE_FUTURE_TIME
         - OFFLINE_ATTENDANCE_OFFSET_MISMATCH
         - OFFLINE_ATTENDANCE_CONFLICT
+        - ATTENDANCE_CORRECTION_TARGET_NOT_FOUND
+        - ATTENDANCE_CORRECTION_NOT_ALLOWED
+        - ATTENDANCE_CORRECTION_PREVIEW_STALE
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -10570,6 +10835,7 @@ components:
           checkOutRecordingMethod,
           checkOutSupervisorReasonLocale,
           checkOutSupervisorReason,
+          correctedAt,
         ]
       properties:
         status:
@@ -10615,6 +10881,13 @@ components:
           description: >-
             MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never
             the supervisor's identity.
+        correctedAt:
+          type: [string, "null"]
+          format: date-time
+          description: >-
+            MVP-062. When the organization last corrected the record; null when uncorrected. The
+            times shown are then the corrected effective times. Never who corrected it, why, or
+            the explanation.
     WorkShiftAttendanceStatus:
       type: string
       description: >-
@@ -10710,6 +10983,7 @@ components:
           checkOutRecordingMethod,
           checkOutSupervisorReasonLocale,
           checkOutSupervisorReason,
+          correctedAt,
         ]
       properties:
         id:
@@ -10729,7 +11003,12 @@ components:
         shift:
           $ref: "#/components/schemas/AttendanceShift"
         checkInRecordingMethod:
-          $ref: "#/components/schemas/AttendanceRecordingMethod"
+          description: >-
+            How the original check-in was recorded; null for a record created by the
+            organization's correction (MVP-062).
+          oneOf:
+            - $ref: "#/components/schemas/AttendanceRecordingMethod"
+            - type: "null"
         checkInSupervisorReasonLocale:
           type: [string, "null"]
           enum: [en, fr, null]
@@ -10753,6 +11032,383 @@ components:
           description: >-
             MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never
             the supervisor's identity.
+        correctedAt:
+          type: [string, "null"]
+          format: date-time
+          description: >-
+            MVP-062. When the organization last corrected the record; null when uncorrected. The
+            times shown are then the corrected effective times. Never who corrected it, why, or
+            the explanation.
+    AttendanceCorrectionOperation:
+      type: string
+      description: >-
+        MVP-062. CREATE_MISSING_RECORD: the missing record of a slot's effective assignee is
+        created by the correction. REPLACE_TIMES: an existing record's effective check-in and
+        optional check-out are replaced.
+      enum: [CREATE_MISSING_RECORD, REPLACE_TIMES]
+    AttendanceCorrectionReason:
+      type: string
+      description: MVP-062. The closed reason code of a correction.
+      enum:
+        [
+          DEVICE_OR_CONNECTIVITY,
+          SUPERVISOR_OR_EMPLOYEE_REPORT,
+          DATA_ENTRY_ERROR,
+          SYSTEM_ERROR,
+          OTHER,
+        ]
+    AttendanceCorrectionWarning:
+      type: string
+      description: >-
+        MVP-062. Neutral factual warnings of a preview. CHECK_OUT_REMOVED: the current check-out is
+        removed. NO_CHECK_OUT: the corrected record has no check-out. SCHEDULE_NOT_OPERATIONAL: the
+        record's schedule was cancelled or replaced. ORIGINAL_EVENTS_KEPT: the original events stay
+        unchanged and the record shows the corrected values.
+      enum: [CHECK_OUT_REMOVED, NO_CHECK_OUT, SCHEDULE_NOT_OPERATIONAL, ORIGINAL_EVENTS_KEPT]
+    AttendanceCorrectionRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-062. The complete new effective values of a record (REPLACE_TIMES), the reason and the
+        explanation. Tenant, actor, employee, employment, schedule and slot are never fields.
+        VALIDATION_FAILED fields: checkedInAt (REQUIRED, FORMAT, RANGE), checkedOutAt (FORMAT,
+        RANGE), reasonCode (REQUIRED, FORMAT), explanation (REQUIRED, LENGTH, FORMAT), body
+        (UNKNOWN_PROPERTY).
+      required: [checkedInAt, reasonCode, explanation]
+      properties:
+        checkedInAt:
+          type: string
+          format: date-time
+          description: RFC 3339 with an explicit offset; at most six fractional digits.
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+          description: The corrected check-out, or null or absent for none.
+        reasonCode:
+          $ref: "#/components/schemas/AttendanceCorrectionReason"
+        explanation:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: >-
+            Restricted HR/Operations. Trimmed; 10 to 500 characters; no control or format
+            character, markup or link. Shown to tenant administrators only.
+    MissingAttendanceCorrectionRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-062. A missing record's creation (CREATE_MISSING_RECORD): the slot, its effective
+        assignee as reviewed, the corrected check-in and optional check-out, the reason and the
+        explanation. VALIDATION_FAILED fields as a record correction, plus slotId and employeeId
+        (REQUIRED); a malformed slotId or employeeId is the same 404
+        ATTENDANCE_CORRECTION_TARGET_NOT_FOUND as an unknown one.
+      required: [slotId, employeeId, checkedInAt, reasonCode, explanation]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        reasonCode:
+          $ref: "#/components/schemas/AttendanceCorrectionReason"
+        explanation:
+          type: string
+          minLength: 10
+          maxLength: 500
+    CommitAttendanceCorrectionRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-062. The commit of a previewed record correction: the identical proposal, the
+        previewed targetVersion, its previewDigest and confirm true.
+      required: [checkedInAt, reasonCode, explanation, targetVersion, previewDigest, confirm]
+      properties:
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        reasonCode:
+          $ref: "#/components/schemas/AttendanceCorrectionReason"
+        explanation:
+          type: string
+          minLength: 10
+          maxLength: 500
+        targetVersion:
+          type: integer
+          minimum: 0
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        confirm:
+          type: boolean
+          enum: [true]
+    CommitMissingAttendanceCorrectionRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-062. The commit of a previewed missing record's creation: the identical proposal,
+        targetVersion 0, the previewDigest and confirm true.
+      required:
+        [slotId, employeeId, checkedInAt, reasonCode, explanation, targetVersion, previewDigest, confirm]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        reasonCode:
+          $ref: "#/components/schemas/AttendanceCorrectionReason"
+        explanation:
+          type: string
+          minLength: 10
+          maxLength: 500
+        targetVersion:
+          type: integer
+          minimum: 0
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        confirm:
+          type: boolean
+          enum: [true]
+    AttendanceCorrectionTimes:
+      type: object
+      description: MVP-062. A check-in and an optional check-out.
+      required: [checkedInAt, checkedOutAt]
+      properties:
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+    AttendanceCorrectionBoundaries:
+      type: object
+      description: >-
+        MVP-062. The immutable boundaries: a check-in from checkInOpensAt (inclusive) to
+        checkInClosesAt (the scheduled end, exclusive); a check-out no later than checkOutUntil.
+      required: [checkInOpensAt, checkInClosesAt, checkOutUntil]
+      properties:
+        checkInOpensAt:
+          type: string
+          format: date-time
+        checkInClosesAt:
+          type: string
+          format: date-time
+        checkOutUntil:
+          type: string
+          format: date-time
+    CorrectedAttendanceRecord:
+      type: object
+      description: MVP-062. A record's current effective values.
+      required:
+        [attendanceRecordId, slotId, status, checkedInAt, checkedOutAt, correctionVersion, correctedAt]
+      properties:
+        attendanceRecordId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/AttendanceStatus"
+        checkedInAt:
+          type: string
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        correctionVersion:
+          type: integer
+          minimum: 0
+        correctedAt:
+          type: [string, "null"]
+          format: date-time
+    AttendanceCorrectionPreview:
+      type: object
+      description: >-
+        MVP-062. A correction's preview. Restricted HR/Operations, tenant administrators only:
+        the explanation is echoed as it will be stored.
+      required:
+        [
+          operation,
+          attendanceRecordId,
+          targetVersion,
+          employee,
+          shift,
+          boundaries,
+          before,
+          after,
+          reasonCode,
+          explanation,
+          exceptionsBefore,
+          exceptionsAfter,
+          warnings,
+          previewedAt,
+          previewDigest,
+        ]
+      properties:
+        operation:
+          $ref: "#/components/schemas/AttendanceCorrectionOperation"
+        attendanceRecordId:
+          type: [string, "null"]
+          format: uuid
+        targetVersion:
+          type: integer
+          minimum: 0
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        shift:
+          $ref: "#/components/schemas/AttendanceShift"
+        boundaries:
+          $ref: "#/components/schemas/AttendanceCorrectionBoundaries"
+        before:
+          oneOf:
+            - $ref: "#/components/schemas/AttendanceCorrectionTimes"
+            - type: "null"
+        after:
+          $ref: "#/components/schemas/AttendanceCorrectionTimes"
+        reasonCode:
+          $ref: "#/components/schemas/AttendanceCorrectionReason"
+        explanation:
+          type: string
+        exceptionsBefore:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceExceptionType"
+        exceptionsAfter:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceExceptionType"
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceCorrectionWarning"
+        previewedAt:
+          type: string
+          format: date-time
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    AttendanceCorrectionReceipt:
+      type: object
+      description: MVP-062. A committed correction's receipt; never the explanation or the administrator.
+      required:
+        [correctionId, operation, correctionVersion, correctedAt, reasonCode, before, after, record]
+      properties:
+        correctionId:
+          type: string
+          format: uuid
+        operation:
+          $ref: "#/components/schemas/AttendanceCorrectionOperation"
+        correctionVersion:
+          type: integer
+          minimum: 1
+        correctedAt:
+          type: string
+          format: date-time
+        reasonCode:
+          $ref: "#/components/schemas/AttendanceCorrectionReason"
+        before:
+          oneOf:
+            - $ref: "#/components/schemas/AttendanceCorrectionTimes"
+            - type: "null"
+        after:
+          $ref: "#/components/schemas/AttendanceCorrectionTimes"
+        record:
+          $ref: "#/components/schemas/CorrectedAttendanceRecord"
+    AttendanceCorrectionHistoryEntry:
+      type: object
+      description: MVP-062. One committed correction; never the administrator's subject.
+      required:
+        [
+          id,
+          version,
+          operation,
+          before,
+          after,
+          reasonCode,
+          explanation,
+          correctedAt,
+          correctedByYou,
+          administratorReference,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        operation:
+          $ref: "#/components/schemas/AttendanceCorrectionOperation"
+        before:
+          oneOf:
+            - $ref: "#/components/schemas/AttendanceCorrectionTimes"
+            - type: "null"
+        after:
+          $ref: "#/components/schemas/AttendanceCorrectionTimes"
+        reasonCode:
+          $ref: "#/components/schemas/AttendanceCorrectionReason"
+        explanation:
+          type: string
+        correctedAt:
+          type: string
+          format: date-time
+        correctedByYou:
+          type: boolean
+        administratorReference:
+          type: string
+          pattern: "^[0-9A-F]{8}$"
+          description: A stable pseudonymous reference to the administrator within the organization.
+    OriginalAttendanceEvent:
+      type: object
+      description: MVP-062. One original attendance event, unchanged.
+      required: [type, recordedAt, recordingMethod]
+      properties:
+        type:
+          type: string
+          enum: [CHECKED_IN, CHECKED_OUT]
+        recordedAt:
+          type: string
+          format: date-time
+        recordingMethod:
+          $ref: "#/components/schemas/AttendanceRecordingMethod"
+    AttendanceCorrectionHistory:
+      type: object
+      description: MVP-062. A record's effective values, original events and corrections, newest first.
+      required: [record, employee, shift, originalEvents, corrections]
+      properties:
+        record:
+          $ref: "#/components/schemas/CorrectedAttendanceRecord"
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        shift:
+          $ref: "#/components/schemas/AttendanceShift"
+        originalEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/OriginalAttendanceEvent"
+        corrections:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceCorrectionHistoryEntry"
     MyAttendancePage:
       type: object
       required: [items, nextCursor, asOfInstant]

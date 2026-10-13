@@ -33,7 +33,7 @@ public class JdbcAttendanceRepository {
       " a.id AS record_id, a.schedule_id AS record_schedule_id, a.slot_id AS record_slot_id,"
           + " a.employee_id AS record_employee_id, a.employment_id AS record_employment_id,"
           + " a.slot_start_at, a.slot_end_at, a.check_in_event_id, a.checked_in_at,"
-          + " a.check_out_event_id, a.checked_out_at";
+          + " a.check_out_event_id, a.checked_out_at, a.correction_version, a.corrected_at";
 
   static final String SHIFT_COLUMNS =
       " l.id AS slot_id, l.schedule_id, s.site_id, s.site_timezone, l.start_local, l.end_local,"
@@ -161,7 +161,7 @@ public class JdbcAttendanceRepository {
   public List<UUID> lockActionableOpen(TenantId tenant, UUID employeeId, Instant at) {
     return jdbc.query(
         "SELECT id FROM people.attendance_record WHERE tenant_id = :tenant"
-            + " AND employee_id = :employee AND check_out_event_id IS NULL"
+            + " AND employee_id = :employee AND checked_out_at IS NULL"
             + " AND check_out_until >= :at ORDER BY id FOR UPDATE",
         new MapSqlParameterSource()
             .addValue("tenant", tenant.value())
@@ -272,7 +272,8 @@ public class JdbcAttendanceRepository {
     insertSupervision(params, supervision);
     return jdbc.update(
         "UPDATE people.attendance_record SET check_out_event_id = :event, checked_out_at = :at"
-            + " WHERE tenant_id = :tenant AND id = :id AND check_out_event_id IS NULL",
+            + " WHERE tenant_id = :tenant AND id = :id AND check_out_event_id IS NULL"
+            + " AND checked_out_at IS NULL",
         params);
   }
 
@@ -393,7 +394,7 @@ public class JdbcAttendanceRepository {
     return jdbc
         .query(
             "SELECT e.id, e.record_id, e.slot_id, e.event_type, e.recorded_at,"
-                + " e.device_offset_minutes, e.received_at, r.check_out_event_id"
+                + " e.device_offset_minutes, e.received_at, r.checked_out_at"
                 + " FROM people.attendance_event e JOIN people.attendance_record r"
                 + " ON r.tenant_id = e.tenant_id AND r.id = e.record_id"
                 + " WHERE e.tenant_id = :tenant AND e.client_event_id = :client"
@@ -411,7 +412,7 @@ public class JdbcAttendanceRepository {
                     rs.getTimestamp("recorded_at").toInstant(),
                     rs.getInt("device_offset_minutes"),
                     rs.getTimestamp("received_at").toInstant(),
-                    rs.getObject("check_out_event_id") == null
+                    rs.getTimestamp("checked_out_at") == null
                         ? Attendance.Status.OPEN
                         : Attendance.Status.COMPLETED))
         .stream()
@@ -451,7 +452,7 @@ public class JdbcAttendanceRepository {
       TenantId tenant, UUID employeeId, Instant from, Instant until) {
     return jdbc.query(
         "SELECT id FROM people.attendance_record WHERE tenant_id = :tenant"
-            + " AND employee_id = :employee AND check_out_event_id IS NULL"
+            + " AND employee_id = :employee AND checked_out_at IS NULL"
             + " AND checked_in_at <= :until AND check_out_until >= :from ORDER BY id FOR UPDATE",
         new MapSqlParameterSource()
             .addValue("tenant", tenant.value())
@@ -524,7 +525,8 @@ public class JdbcAttendanceRepository {
     insertEvent(params);
     return jdbc.update(
         "UPDATE people.attendance_record SET check_out_event_id = :event, checked_out_at = :at"
-            + " WHERE tenant_id = :tenant AND id = :id AND check_out_event_id IS NULL",
+            + " WHERE tenant_id = :tenant AND id = :id AND check_out_event_id IS NULL"
+            + " AND checked_out_at IS NULL",
         params);
   }
 
@@ -581,7 +583,8 @@ public class JdbcAttendanceRepository {
         .execute(
             "SET CONSTRAINTS people.attendance_event_record, people.attendance_event_exact,"
                 + " people.attendance_record_exact, people.attendance_event_supervisor_exact,"
-                + " people.attendance_supervisor_action_exact IMMEDIATE");
+                + " people.attendance_supervisor_action_exact, people.attendance_correction_record,"
+                + " people.attendance_correction_exact IMMEDIATE");
   }
 
   /**
@@ -813,7 +816,7 @@ public class JdbcAttendanceRepository {
             + " AND r.employee_id = c.employee_id)"
             + " AND NOT EXISTS (SELECT 1 FROM people.attendance_record r"
             + " WHERE r.tenant_id = c.tenant_id AND r.employee_id = c.employee_id"
-            + " AND r.check_out_event_id IS NULL AND r.check_out_until >= :at)"
+            + " AND r.checked_out_at IS NULL AND r.check_out_until >= :at)"
             + " AND (SELECT count(*) FROM people.employment e WHERE e.tenant_id = c.tenant_id"
             + " AND e.employee_id = c.employee_id AND"
             + QUALIFIES
@@ -832,7 +835,8 @@ public class JdbcAttendanceRepository {
             + " JOIN people.work_schedule_slot l ON l.tenant_id = a.tenant_id AND l.id = a.slot_id"
             + " JOIN people.work_schedule s ON s.tenant_id = l.tenant_id AND s.id = l.schedule_id"
             + " WHERE a.tenant_id = :tenant AND a.employee_id <> :manager"
-            + " AND a.check_out_event_id IS NULL AND a.check_out_until >= :at"
+            + " AND a.checked_out_at IS NULL AND a.check_out_event_id IS NULL"
+            + " AND a.check_out_until >= :at"
             + " AND a.checked_in_at < :at AND"
             + reports("a.employment_id");
     StringBuilder sql =
@@ -921,6 +925,7 @@ public class JdbcAttendanceRepository {
 
   private static Record record(ResultSet rs) throws SQLException {
     Timestamp out = rs.getTimestamp("checked_out_at");
+    Timestamp corrected = rs.getTimestamp("corrected_at");
     return new Record(
         rs.getObject("record_id", UUID.class),
         rs.getObject("record_schedule_id", UUID.class),
@@ -932,7 +937,9 @@ public class JdbcAttendanceRepository {
         rs.getObject("check_in_event_id", UUID.class),
         rs.getTimestamp("checked_in_at").toInstant(),
         rs.getObject("check_out_event_id", UUID.class),
-        out == null ? null : out.toInstant());
+        out == null ? null : out.toInstant(),
+        rs.getInt("correction_version"),
+        corrected == null ? null : corrected.toInstant());
   }
 
   static Shift shift(ResultSet rs) throws SQLException {

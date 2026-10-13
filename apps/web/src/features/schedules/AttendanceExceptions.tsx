@@ -5,7 +5,9 @@ import { useApi } from '../../app/ApiProvider';
 import { StatusBadge, type StatusTone } from '../../ui/primitives';
 import { formatDate } from '../people/history';
 import { loadAll, useOptions } from '../people/unitOptions';
+import { AttendanceCorrectionDialog } from './AttendanceCorrectionDialog';
 import { formatInstant } from './attendance';
+import { targetOf, type CorrectionTarget } from './attendanceCorrections';
 import {
   DATE_FIELDS,
   DEFAULT_RANGE_DAYS,
@@ -71,6 +73,10 @@ export function AttendanceExceptions({ view, level, labelledBy }: Props) {
   const [announcement, setAnnouncement] = useState('');
   const paging = useRef(false);
   const listRef = useRef<HTMLUListElement>(null);
+  // MVP-062: the correction of one card's record or missing record (tenant administrators only).
+  const [correcting, setCorrecting] = useState<CorrectionTarget | null>(null);
+  const corrected = useRef(false);
+  const opener = useRef<HTMLButtonElement | null>(null);
   const prefix = `${ids}-${view}`;
   const titleId = labelledBy ?? `${prefix}-title`;
   const Title = level === 1 ? 'h1' : 'h2';
@@ -192,7 +198,7 @@ export function AttendanceExceptions({ view, level, labelledBy }: Props) {
       )}
       <p data-testid="attendance-exceptions-disclaimer">{t('attendanceExceptions.disclaimer')}</p>
       <p className="muted" data-testid="attendance-exceptions-corrections">
-        {t('attendanceExceptions.correctionsLater')}
+        {t(`attendanceExceptions.corrections.${view}`)}
       </p>
       <p role="status" className="visually-hidden" data-testid="attendance-exceptions-announcer">
         {announcement}
@@ -440,10 +446,55 @@ export function AttendanceExceptions({ view, level, labelledBy }: Props) {
                   <p className="muted" data-testid="attendance-exception-timezone">
                     {t('attendance.siteTime', { zone })}
                   </p>
+                  {view === 'admin' && targetOf(row) && (
+                    <p>
+                      <button
+                        type="button"
+                        className="button button--secondary"
+                        data-testid="attendance-exception-correct"
+                        aria-label={t('attendanceCorrection.actionFor', {
+                          name,
+                          work: label,
+                          date: day,
+                        })}
+                        onClick={(event) => {
+                          opener.current = event.currentTarget;
+                          corrected.current = false;
+                          setCorrecting(targetOf(row));
+                        }}
+                      >
+                        {t(
+                          row.attendanceRecordId
+                            ? 'attendanceCorrection.correctRecord'
+                            : 'attendanceCorrection.createRecord',
+                        )}
+                      </button>
+                    </p>
+                  )}
                 </li>
               );
             })}
           </ul>
+        )}
+        {view === 'admin' && (
+          <AttendanceCorrectionDialog
+            target={correcting}
+            onCorrected={() => {
+              corrected.current = true;
+            }}
+            onClosed={() => {
+              setCorrecting(null);
+              if (corrected.current) {
+                // The derived exceptions change at once: read the list again.
+                setAnnouncement('');
+                setListing({ kind: 'loading' });
+                setApplied((previous) => ({ ...previous }));
+                document.getElementById(titleId)?.focus();
+              } else {
+                opener.current?.focus();
+              }
+            }}
+          />
         )}
         {listing.kind === 'ready' && listing.nextCursor && (
           <p>

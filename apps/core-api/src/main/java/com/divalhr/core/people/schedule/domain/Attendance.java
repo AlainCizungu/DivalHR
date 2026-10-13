@@ -138,7 +138,8 @@ public final class Attendance {
 
   /**
    * One attendance record (the projection), bound to its immutable shift, employee and qualifying
-   * employment.
+   * employment. Its instants are the effective ones: the events' instants, or after a correction
+   * (MVP-062) the latest correction's values.
    *
    * @param id record
    * @param scheduleId schedule
@@ -147,10 +148,12 @@ public final class Attendance {
    * @param employmentId their qualifying employment
    * @param slotStartAt scheduled start
    * @param slotEndAt scheduled end
-   * @param checkInEventId the check-in event
-   * @param checkedInAt the check-in instant
+   * @param checkInEventId the check-in event, or {@code null} for a record created by a correction
+   * @param checkedInAt the effective check-in instant
    * @param checkOutEventId the check-out event, or {@code null}
-   * @param checkedOutAt the check-out instant, or {@code null}
+   * @param checkedOutAt the effective check-out instant, or {@code null}
+   * @param correctionVersion the number of corrections (0 when uncorrected)
+   * @param correctedAt the latest correction's instant, or {@code null}
    */
   public record Record(
       UUID id,
@@ -163,25 +166,81 @@ public final class Attendance {
       UUID checkInEventId,
       Instant checkedInAt,
       UUID checkOutEventId,
-      Instant checkedOutAt) {
+      Instant checkedOutAt,
+      int correctionVersion,
+      Instant correctedAt) {
 
     /**
-     * The derived status.
+     * An uncorrected record.
+     *
+     * @param id record
+     * @param scheduleId schedule
+     * @param slotId slot
+     * @param employeeId the effective assignee at check-in
+     * @param employmentId their qualifying employment
+     * @param slotStartAt scheduled start
+     * @param slotEndAt scheduled end
+     * @param checkInEventId the check-in event
+     * @param checkedInAt the check-in instant
+     * @param checkOutEventId the check-out event, or {@code null}
+     * @param checkedOutAt the check-out instant, or {@code null}
+     */
+    public Record(
+        UUID id,
+        UUID scheduleId,
+        UUID slotId,
+        UUID employeeId,
+        UUID employmentId,
+        Instant slotStartAt,
+        Instant slotEndAt,
+        UUID checkInEventId,
+        Instant checkedInAt,
+        UUID checkOutEventId,
+        Instant checkedOutAt) {
+      this(
+          id,
+          scheduleId,
+          slotId,
+          employeeId,
+          employmentId,
+          slotStartAt,
+          slotEndAt,
+          checkInEventId,
+          checkedInAt,
+          checkOutEventId,
+          checkedOutAt,
+          0,
+          null);
+    }
+
+    /**
+     * The derived status: the effective check-out (MVP-062).
      *
      * @return OPEN or COMPLETED
      */
     public Status status() {
-      return checkOutEventId == null ? Status.OPEN : Status.COMPLETED;
+      return checkedOutAt == null ? Status.OPEN : Status.COMPLETED;
     }
 
     /**
-     * Whether the record is open and its check-out window still includes the instant.
+     * Whether a check-out event can still complete the record: no effective and no recorded
+     * check-out (a correction may have removed an effective check-out whose event stays).
+     *
+     * @return true when no check-out exists
+     */
+    public boolean acceptsCheckOut() {
+      return checkedOutAt == null && checkOutEventId == null;
+    }
+
+    /**
+     * Whether a check-out event is possible at the instant: none exists yet and the check-out
+     * window still includes it.
      *
      * @param at the server instant
      * @return true when a check-out is possible
      */
     public boolean checkOutAvailable(Instant at) {
-      return status() == Status.OPEN && checkOutOpen(checkedInAt, slotEndAt, at);
+      return acceptsCheckOut() && checkOutOpen(checkedInAt, slotEndAt, at);
     }
 
     /**
@@ -209,20 +268,23 @@ public final class Attendance {
    * The caller's attendance on a shift, as read with the shift.
    *
    * @param recordId record, or {@code null} when not recorded
-   * @param checkedInAt check-in instant, or {@code null}
-   * @param checkedOutAt check-out instant, or {@code null}
-   * @param checkIn how the check-in was recorded, or {@code null}
+   * @param checkedInAt effective check-in instant, or {@code null}
+   * @param checkedOutAt effective check-out instant, or {@code null}
+   * @param checkIn how the check-in was recorded, or {@code null} (none, or created by a
+   *     correction)
    * @param checkOut how the check-out was recorded, or {@code null}
+   * @param correctedAt the latest correction's instant, or {@code null} when uncorrected (MVP-062)
    */
   public record Mark(
       UUID recordId,
       Instant checkedInAt,
       Instant checkedOutAt,
       Recording checkIn,
-      Recording checkOut) {
+      Recording checkOut,
+      Instant correctedAt) {
 
     /** No attendance recorded. */
-    public static final Mark NONE = new Mark(null, null, null, null, null);
+    public static final Mark NONE = new Mark(null, null, null, null, null, null);
 
     /**
      * The status on the shift.

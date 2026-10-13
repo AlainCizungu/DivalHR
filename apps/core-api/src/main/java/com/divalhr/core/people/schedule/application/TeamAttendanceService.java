@@ -414,7 +414,7 @@ public class TeamAttendanceService {
     }
     schedules.lockSchedule(tenant, seen.get().scheduleId());
     Record record = attendance.lockRecord(tenant, command.recordId()).orElseThrow();
-    if (record.status() == Attendance.Status.COMPLETED) {
+    if (!record.acceptsCheckOut()) {
       throw new ApiException(ErrorCode.ATTENDANCE_ALREADY_CHECKED_OUT, Map.of());
     }
     Instant now = now();
