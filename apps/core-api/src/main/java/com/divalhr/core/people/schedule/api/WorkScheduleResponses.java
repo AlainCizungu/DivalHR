@@ -519,6 +519,7 @@ public final class WorkScheduleResponses {
    * @param checkOutRecordingMethod how the check-out was recorded, or {@code null}
    * @param checkOutSupervisorReasonLocale a supervisor's check-out reason language, or {@code null}
    * @param checkOutSupervisorReason a supervisor's check-out reason, or {@code null}
+   * @param correctedAt when the organization last corrected the record, or {@code null} (MVP-062)
    */
   @Schema(name = "MyWorkShiftAttendance")
   public record ShiftAttendance(
@@ -533,7 +534,8 @@ public final class WorkScheduleResponses {
       String checkInSupervisorReason,
       Attendance.Method checkOutRecordingMethod,
       String checkOutSupervisorReasonLocale,
-      String checkOutSupervisorReason) {
+      String checkOutSupervisorReason,
+      @Schema(nullable = true) Instant correctedAt) {
 
     static ShiftAttendance of(OwnShift shift, Instant at) {
       Attendance.Mark mark = shift.attendance();
@@ -546,13 +548,15 @@ public final class WorkScheduleResponses {
           status == Attendance.ShiftStatus.NOT_RECORDED
               && Attendance.checkInOpen(shift.startAt(), shift.endAt(), at),
           status == Attendance.ShiftStatus.OPEN
+              && mark.checkOut() == null
               && Attendance.checkOutOpen(mark.checkedInAt(), shift.endAt(), at),
           mark.checkIn() == null ? null : mark.checkIn().method(),
           mark.checkIn() == null ? null : mark.checkIn().supervisorReasonLocale(),
           mark.checkIn() == null ? null : mark.checkIn().supervisorReason(),
           mark.checkOut() == null ? null : mark.checkOut().method(),
           mark.checkOut() == null ? null : mark.checkOut().supervisorReasonLocale(),
-          mark.checkOut() == null ? null : mark.checkOut().supervisorReason());
+          mark.checkOut() == null ? null : mark.checkOut().supervisorReason(),
+          mark.correctedAt());
     }
 
     /**

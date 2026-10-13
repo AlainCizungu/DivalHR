@@ -2051,6 +2051,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/attendance/records/{attendanceRecordId}/correction-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a correction of an attendance record
+         * @description MVP-062 (REPLACE_TIMES). Evaluates the complete new effective check-in and optional check-out of one attendance record of the organization, with a closed reasonCode and an explanation (10 to 500 characters after trimming; no control character, markup or link). An unknown, foreign, malformed or undisclosable record is 404 ATTENDANCE_CORRECTION_TARGET_NOT_FOUND without params. The values are RFC 3339 instants with an explicit offset and at most six fractional digits (microseconds), never clamped, reordered or converted: the check-in from 2 hours before the scheduled start (inclusive) to the scheduled end (exclusive), the check-out strictly after it and at most 24 hours after the scheduled end, and neither more than 5 minutes after the server's instant (400 VALIDATION_FAILED with RANGE on the field otherwise); values identical to the current ones are 409 ATTENDANCE_CORRECTION_NOT_ALLOWED. The employee, employment, schedule and slot never change; a record of a schedule cancelled or replaced later stays correctable (warning SCHEDULE_NOT_OPERATIONAL). Returns the target (employee ID, number and current name; the site and bilingual shift; the immutable boundaries), the before and after values, the factual exception types before and after at the same server instant (MVP-060C rules), neutral warnings, the server's previewedAt, the targetVersion (the record's correction count) and the previewDigest a commit must present. Writes no correction, event or outbox row: a fail-closed disclosure (audit attendance.correction-preview, metadata view and count only). Shares the work-schedule-write limit. Cache-Control private, no-store.
+         */
+        post: operations["previewAttendanceRecordCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/records/{attendanceRecordId}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an attendance record's correction history
+         * @description MVP-062. One attendance record of the organization: its current effective values (status, check-in, check-out, correctionVersion, correctedAt), its employee (ID, number, current name), its shift, its original events unchanged (type, instant, recording method; none for a record created by a correction) and its append-only corrections, newest first (version, operation, before and after values, reasonCode, explanation, correctedAt, whether the viewing administrator committed it, and a stable pseudonymous administratorReference; never the subject). An unknown, foreign or malformed record is 404 ATTENDANCE_CORRECTION_TARGET_NOT_FOUND. Restricted HR/Operations: a fail-closed disclosure (audit attendance.correction-history). Shares the work-schedule-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listAttendanceRecordCorrections"];
+        put?: never;
+        /**
+         * Commit a previewed correction of an attendance record
+         * @description MVP-062 (REPLACE_TIMES). Commits exactly the reviewed preview: the identical proposal, its targetVersion, its previewDigest and confirm true. Under the tenant's scheduling lock, with the record's employment FOR SHARE, the schedule and the record FOR UPDATE, every fact is evaluated again: a changed record version or any other difference from the reviewed preview is 409 ATTENDANCE_CORRECTION_PREVIEW_STALE, never recomputed and committed; leaving the record open over another open record of the employee is 409 ATTENDANCE_CORRECTION_NOT_ALLOWED. One transaction with the append-only correction (version + 1), the effective record's guarded update, the audit record (attendance.correction-create: schemaVersion, operation, reasonCode, hadCheckOutBefore, hasCheckOutAfter only) and the outbox event (people.attendance.corrected.v1). The original events are never changed. Only the body's shape is checked before the idempotency decision: an exact retry returns the stored 201 with Idempotent-Replayed true, a changed body on the same key is 409 IDEMPOTENCY_KEY_REUSED. The receipt never carries the explanation. Shares the work-schedule-write limits. Cache-Control private, no-store.
+         */
+        post: operations["correctAttendanceRecord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/corrections/missing-record-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview creating a missing attendance record
+         * @description MVP-062 (CREATE_MISSING_RECORD). Evaluates the creation of the missing record of one slot of the organization for its effective assignee (the substitute approved before the scheduled end, otherwise the published assignee), given as employeeId exactly as reviewed: an unknown, foreign or malformed slot, or an employeeId that is not its effective assignee, is the same 404 ATTENDANCE_CORRECTION_TARGET_NOT_FOUND without params. A slot of a schedule cancelled or replaced, an existing record of the slot and employee (correct it instead), or an employee without exactly one qualifying employment is 409 ATTENDANCE_CORRECTION_NOT_ALLOWED. The corrected check-in and optional check-out follow the record correction's time rules (400 VALIDATION_FAILED with RANGE otherwise). Returns the same preview as a record correction, with targetVersion 0 and no before values. Writes nothing but its fail-closed disclosure audit (attendance.correction-preview). Shares the work-schedule-write limit. Cache-Control private, no-store.
+         */
+        post: operations["previewMissingAttendanceCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/corrections/missing-record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit a previewed creation of a missing attendance record
+         * @description MVP-062 (CREATE_MISSING_RECORD). Commits exactly the reviewed preview (targetVersion 0). Under the tenant's scheduling lock, with the employee's employments FOR SHARE and the schedule FOR UPDATE, every fact is evaluated again: a record created meanwhile, a terminal action, a changed effective assignee or employment, or any other difference is 409 ATTENDANCE_CORRECTION_PREVIEW_STALE. One transaction with the append-only correction (version 1), the effective record created by it (correctionVersion 1, no invented SELF, SUPERVISOR or offline event), the audit record (attendance.correction-create) and the outbox event (people.attendance.corrected.v1). Idempotent as a record correction. Shares the work-schedule-write limits. Cache-Control private, no-store.
+         */
+        post: operations["createMissingAttendanceRecord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3465,7 +3549,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -4260,6 +4344,11 @@ export interface components {
             checkOutSupervisorReasonLocale: "en" | "fr" | null;
             /** @description MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never the supervisor's identity. */
             checkOutSupervisorReason: string | null;
+            /**
+             * Format: date-time
+             * @description MVP-062. When the organization last corrected the record; null when uncorrected. The times shown are then the corrected effective times. Never who corrected it, why, or the explanation.
+             */
+            correctedAt: string | null;
         };
         /**
          * @description MVP-060A. NOT_RECORDED: no check-in yet. OPEN: checked in, not checked out. COMPLETED: checked in and out.
@@ -4318,7 +4407,8 @@ export interface components {
             /** @description True only while OPEN and inside the check-out window at asOfInstant. */
             checkOutAvailable: boolean;
             shift: components["schemas"]["AttendanceShift"];
-            checkInRecordingMethod: components["schemas"]["AttendanceRecordingMethod"];
+            /** @description How the original check-in was recorded; null for a record created by the organization's correction (MVP-062). */
+            checkInRecordingMethod: components["schemas"]["AttendanceRecordingMethod"] | null;
             /**
              * @description MVP-060B. The language of a supervisor's check-in reason; null otherwise.
              * @enum {string|null}
@@ -4335,6 +4425,181 @@ export interface components {
             checkOutSupervisorReasonLocale: "en" | "fr" | null;
             /** @description MVP-060B. A supervisor's check-out reason exactly as submitted; null otherwise. Never the supervisor's identity. */
             checkOutSupervisorReason: string | null;
+            /**
+             * Format: date-time
+             * @description MVP-062. When the organization last corrected the record; null when uncorrected. The times shown are then the corrected effective times. Never who corrected it, why, or the explanation.
+             */
+            correctedAt: string | null;
+        };
+        /**
+         * @description MVP-062. CREATE_MISSING_RECORD: the missing record of a slot's effective assignee is created by the correction. REPLACE_TIMES: an existing record's effective check-in and optional check-out are replaced.
+         * @enum {string}
+         */
+        AttendanceCorrectionOperation: "CREATE_MISSING_RECORD" | "REPLACE_TIMES";
+        /**
+         * @description MVP-062. The closed reason code of a correction.
+         * @enum {string}
+         */
+        AttendanceCorrectionReason: "DEVICE_OR_CONNECTIVITY" | "SUPERVISOR_OR_EMPLOYEE_REPORT" | "DATA_ENTRY_ERROR" | "SYSTEM_ERROR" | "OTHER";
+        /**
+         * @description MVP-062. Neutral factual warnings of a preview. CHECK_OUT_REMOVED: the current check-out is removed. NO_CHECK_OUT: the corrected record has no check-out. SCHEDULE_NOT_OPERATIONAL: the record's schedule was cancelled or replaced. ORIGINAL_EVENTS_KEPT: the original events stay unchanged and the record shows the corrected values.
+         * @enum {string}
+         */
+        AttendanceCorrectionWarning: "CHECK_OUT_REMOVED" | "NO_CHECK_OUT" | "SCHEDULE_NOT_OPERATIONAL" | "ORIGINAL_EVENTS_KEPT";
+        /** @description MVP-062. The complete new effective values of a record (REPLACE_TIMES), the reason and the explanation. Tenant, actor, employee, employment, schedule and slot are never fields. VALIDATION_FAILED fields: checkedInAt (REQUIRED, FORMAT, RANGE), checkedOutAt (FORMAT, RANGE), reasonCode (REQUIRED, FORMAT), explanation (REQUIRED, LENGTH, FORMAT), body (UNKNOWN_PROPERTY). */
+        AttendanceCorrectionRequest: {
+            /**
+             * Format: date-time
+             * @description RFC 3339 with an explicit offset; at most six fractional digits.
+             */
+            checkedInAt: string;
+            /**
+             * Format: date-time
+             * @description The corrected check-out, or null or absent for none.
+             */
+            checkedOutAt?: string | null;
+            reasonCode: components["schemas"]["AttendanceCorrectionReason"];
+            /** @description Restricted HR/Operations. Trimmed; 10 to 500 characters; no control or format character, markup or link. Shown to tenant administrators only. */
+            explanation: string;
+        };
+        /** @description MVP-062. A missing record's creation (CREATE_MISSING_RECORD): the slot, its effective assignee as reviewed, the corrected check-in and optional check-out, the reason and the explanation. VALIDATION_FAILED fields as a record correction, plus slotId and employeeId (REQUIRED); a malformed slotId or employeeId is the same 404 ATTENDANCE_CORRECTION_TARGET_NOT_FOUND as an unknown one. */
+        MissingAttendanceCorrectionRequest: {
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            employeeId: string;
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt?: string | null;
+            reasonCode: components["schemas"]["AttendanceCorrectionReason"];
+            explanation: string;
+        };
+        /** @description MVP-062. The commit of a previewed record correction: the identical proposal, the previewed targetVersion, its previewDigest and confirm true. */
+        CommitAttendanceCorrectionRequest: {
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt?: string | null;
+            reasonCode: components["schemas"]["AttendanceCorrectionReason"];
+            explanation: string;
+            targetVersion: number;
+            previewDigest: string;
+            /** @enum {boolean} */
+            confirm: true;
+        };
+        /** @description MVP-062. The commit of a previewed missing record's creation: the identical proposal, targetVersion 0, the previewDigest and confirm true. */
+        CommitMissingAttendanceCorrectionRequest: {
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            employeeId: string;
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt?: string | null;
+            reasonCode: components["schemas"]["AttendanceCorrectionReason"];
+            explanation: string;
+            targetVersion: number;
+            previewDigest: string;
+            /** @enum {boolean} */
+            confirm: true;
+        };
+        /** @description MVP-062. A check-in and an optional check-out. */
+        AttendanceCorrectionTimes: {
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt: string | null;
+        };
+        /** @description MVP-062. The immutable boundaries: a check-in from checkInOpensAt (inclusive) to checkInClosesAt (the scheduled end, exclusive); a check-out no later than checkOutUntil. */
+        AttendanceCorrectionBoundaries: {
+            /** Format: date-time */
+            checkInOpensAt: string;
+            /** Format: date-time */
+            checkInClosesAt: string;
+            /** Format: date-time */
+            checkOutUntil: string;
+        };
+        /** @description MVP-062. A record's current effective values. */
+        CorrectedAttendanceRecord: {
+            /** Format: uuid */
+            attendanceRecordId: string;
+            /** Format: uuid */
+            slotId: string;
+            status: components["schemas"]["AttendanceStatus"];
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt: string | null;
+            correctionVersion: number;
+            /** Format: date-time */
+            correctedAt: string | null;
+        };
+        /** @description MVP-062. A correction's preview. Restricted HR/Operations, tenant administrators only: the explanation is echoed as it will be stored. */
+        AttendanceCorrectionPreview: {
+            operation: components["schemas"]["AttendanceCorrectionOperation"];
+            /** Format: uuid */
+            attendanceRecordId: string | null;
+            targetVersion: number;
+            employee: components["schemas"]["WorkScheduleSubstitutionPerson"];
+            shift: components["schemas"]["AttendanceShift"];
+            boundaries: components["schemas"]["AttendanceCorrectionBoundaries"];
+            before: components["schemas"]["AttendanceCorrectionTimes"] | null;
+            after: components["schemas"]["AttendanceCorrectionTimes"];
+            reasonCode: components["schemas"]["AttendanceCorrectionReason"];
+            explanation: string;
+            exceptionsBefore: components["schemas"]["AttendanceExceptionType"][];
+            exceptionsAfter: components["schemas"]["AttendanceExceptionType"][];
+            warnings: components["schemas"]["AttendanceCorrectionWarning"][];
+            /** Format: date-time */
+            previewedAt: string;
+            previewDigest: string;
+        };
+        /** @description MVP-062. A committed correction's receipt; never the explanation or the administrator. */
+        AttendanceCorrectionReceipt: {
+            /** Format: uuid */
+            correctionId: string;
+            operation: components["schemas"]["AttendanceCorrectionOperation"];
+            correctionVersion: number;
+            /** Format: date-time */
+            correctedAt: string;
+            reasonCode: components["schemas"]["AttendanceCorrectionReason"];
+            before: components["schemas"]["AttendanceCorrectionTimes"] | null;
+            after: components["schemas"]["AttendanceCorrectionTimes"];
+            record: components["schemas"]["CorrectedAttendanceRecord"];
+        };
+        /** @description MVP-062. One committed correction; never the administrator's subject. */
+        AttendanceCorrectionHistoryEntry: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            operation: components["schemas"]["AttendanceCorrectionOperation"];
+            before: components["schemas"]["AttendanceCorrectionTimes"] | null;
+            after: components["schemas"]["AttendanceCorrectionTimes"];
+            reasonCode: components["schemas"]["AttendanceCorrectionReason"];
+            explanation: string;
+            /** Format: date-time */
+            correctedAt: string;
+            correctedByYou: boolean;
+            /** @description A stable pseudonymous reference to the administrator within the organization. */
+            administratorReference: string;
+        };
+        /** @description MVP-062. One original attendance event, unchanged. */
+        OriginalAttendanceEvent: {
+            /** @enum {string} */
+            type: "CHECKED_IN" | "CHECKED_OUT";
+            /** Format: date-time */
+            recordedAt: string;
+            recordingMethod: components["schemas"]["AttendanceRecordingMethod"];
+        };
+        /** @description MVP-062. A record's effective values, original events and corrections, newest first. */
+        AttendanceCorrectionHistory: {
+            record: components["schemas"]["CorrectedAttendanceRecord"];
+            employee: components["schemas"]["WorkScheduleSubstitutionPerson"];
+            shift: components["schemas"]["AttendanceShift"];
+            originalEvents: components["schemas"]["OriginalAttendanceEvent"][];
+            corrections: components["schemas"]["AttendanceCorrectionHistoryEntry"][];
         };
         MyAttendancePage: {
             items: components["schemas"]["MyAttendanceRecord"][];
@@ -9178,6 +9443,185 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewAttendanceRecordCorrection: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Attendance record ID. */
+                attendanceRecordId: components["parameters"]["AttendanceRecordId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listAttendanceRecordCorrections: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Attendance record ID. */
+                attendanceRecordId: components["parameters"]["AttendanceRecordId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionHistory"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    correctAttendanceRecord: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Attendance record ID. */
+                attendanceRecordId: components["parameters"]["AttendanceRecordId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitAttendanceCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Corrected, or the original correction replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewMissingAttendanceCorrection: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MissingAttendanceCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createMissingAttendanceRecord: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitMissingAttendanceCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceCorrectionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
         };
     };

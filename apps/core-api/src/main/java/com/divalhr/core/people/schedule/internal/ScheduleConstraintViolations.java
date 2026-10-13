@@ -47,6 +47,15 @@ public final class ScheduleConstraintViolations {
   /** MVP-061A: one offline event per tenant, employee and client event. */
   public static final String ATTENDANCE_CLIENT_EVENT = "attendance_event_client_event_unique";
 
+  /** MVP-062: a correction names its record's current version and values. */
+  public static final String CORRECTION_SEQUENCE = "attendance_correction_sequence";
+
+  /** MVP-062: a missing record is created for the effective assignee of an operational slot. */
+  public static final String CORRECTION_CREATE = "attendance_correction_create";
+
+  /** MVP-062: one correction per record and version. */
+  public static final String CORRECTION_VERSION = "attendance_correction_version_unique";
+
   private ScheduleConstraintViolations() {}
 
   /**

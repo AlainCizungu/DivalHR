@@ -494,6 +494,21 @@ fieldset.field {
   }
 }
 
+/* MVP-062: an attendance record's correction history in the correction dialog. */
+.correction-history {
+  margin-block: var(--dv-space-3);
+}
+
+.correction-history__list {
+  margin: 0 0 var(--dv-space-3);
+  padding-inline-start: var(--dv-space-4);
+  overflow-wrap: anywhere;
+}
+
+.correction-history__list q {
+  white-space: pre-wrap;
+}
+
 /* MVP-050A: the schedule builder's slots and the employee's shifts. */
 .slot-list,
 .shift-list {

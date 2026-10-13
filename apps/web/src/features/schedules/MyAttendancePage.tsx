@@ -6,6 +6,7 @@ import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate } from '../people/history';
 import { AssistedNote } from './AssistedNote';
+import { CorrectedNote } from './CorrectedNote';
 import { AttendanceExceptions } from './AttendanceExceptions';
 import { AttendanceDialog } from './AttendanceDialog';
 import { OfflineAttendancePanel } from './offline/OfflineAttendancePanel';
@@ -199,6 +200,11 @@ export function MyAttendancePage() {
                 <p lang={language} data-testid="my-attendance-label">
                   <strong>{label}</strong>
                 </p>
+                <CorrectedNote
+                  correctedAt={record.correctedAt}
+                  zone={zone}
+                  testId="my-attendance-corrected"
+                />
                 <dl className="decision-summary">
                   <dt>{t('scheduleSubstitutions.shift.site')}</dt>
                   <dd data-testid="my-attendance-site">

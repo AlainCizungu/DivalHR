@@ -235,3 +235,53 @@ MVP-061B.
   the method or the receipt yet, so the envelope is unchanged.
 - **Rollback.** `db/rollback/V30__rollback.sql` restores V29 exactly only while no offline evidence
   exists.
+
+## Amendment: attendance correction (MVP-062, Issue #126)
+
+A tenant administrator with exact MFA corrects factual attendance evidence after reviewing an
+exception. This amendment fixes what a correction may change, how the evidence stays
+append-only and how a stale or concurrent correction is refused.
+
+- **Events stay evidence; the record becomes the effective value.** `people.attendance_event`
+  rows are never updated or deleted. `people.attendance_record` remains the one projection every
+  reader uses (My attendance, My schedule, exception review, team views): uncorrected, its
+  instants are its events'; corrected, they are the latest correction's after values. The record
+  carries `correction_version` and `corrected_at`; its event references bind event, record and
+  type, no longer the instant.
+- **Two operations only.** `CREATE_MISSING_RECORD` creates the record for a slot of an
+  operational schedule and its effective assignee (the substitute approved before the end,
+  otherwise the published assignee) with exactly one qualifying employment, while no record
+  exists; it invents no SELF, SUPERVISOR or offline event, so the record has no check-in event.
+  `REPLACE_TIMES` replaces the current check-in and optional check-out of one record, which may
+  add, replace or clear the check-out; employee, employment, schedule and slot never change. A
+  recorded record stays correctable after its schedule was cancelled or replaced; a missing
+  record is never created on a terminal schedule.
+- **Unchanged windows.** Corrected values obey this ADR's windows (check-in `[start − 2 h, end)`,
+  check-out strictly after the check-in and at most `end + 24 h`) and are at most 5 minutes after
+  the server instant. No clamping, reordering or conversion. Exceptions (MVP-060C) are derived
+  from the effective values, so a correction changes them at once.
+- **A cleared check-out stays cleared.** Once a record has an effective check-out, or a
+  correction cleared one that had been recorded, no new check-out event is accepted for it: the
+  one-check-out-event rule is unchanged and a further change is another correction. A record
+  corrected while still open, with no check-out event yet, still accepts the employee's or
+  supervisor's single check-out.
+- **Preview, then a stale-safe commit.** The preview resolves the target and returns its
+  version and an opaque digest of the whole proposal and its facts; it writes nothing. The
+  commit takes the scheduling lock, the employments `FOR SHARE`, the schedule and the record
+  `FOR UPDATE`, resolves everything again and compares the digest: any difference is
+  `ATTENDANCE_CORRECTION_PREVIEW_STALE`. Versions are contiguous per record (the database
+  requires the current version plus one and the record's current before values), so two
+  corrections of one version give one correction.
+- **History and visibility.** `people.attendance_correction` is append-only: operation, before
+  and after instants, reason code, explanation, the verified subject, digests and the server
+  instant. Administrators read a record's history newest first with its original events; the
+  employee sees only that the organization corrected the record, when, and the effective times.
+- **Audit and events.** `attendance.correction-create` (metadata: schema version, operation,
+  reason code, check-out presence before and after; the rest only in the digest) and
+  `people.attendance.corrected.v1` (IDs, operation, reason code, presence flags, version,
+  `correctedAt`) commit with the correction. No consumer exists yet.
+- **Rollback.** `db/rollback/V31__rollback.sql` restores V30 exactly only while no correction
+  evidence exists.
+- **Not included.** Employee or manager correction requests, approvals or four-eyes review,
+  attachments, voiding or deleting a record, changing its owner, unscheduled attendance, bulk
+  corrections, policy or tolerance settings, notifications, payroll or timesheet effect.

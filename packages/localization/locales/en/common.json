@@ -444,7 +444,10 @@
     "OFFLINE_ATTENDANCE_OFFSET_MISMATCH": "The time recorded on this device could not be read consistently, so this attendance could not be applied.",
     "OFFLINE_ATTENDANCE_CONFLICT": "This attendance was received later and could not be applied because it conflicts with attendance already recorded for you.",
     "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "This attendance action is not available to you. The list has been refreshed.",
-    "TEAM_ATTENDANCE_MANAGER_REQUIRED": "Team attendance is for managers of direct reports."
+    "TEAM_ATTENDANCE_MANAGER_REQUIRED": "Team attendance is for managers of direct reports.",
+    "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND": "This attendance record or shift is not available for correction.",
+    "ATTENDANCE_CORRECTION_NOT_ALLOWED": "This correction is not possible: a record already exists, the schedule was cancelled or replaced, the employee has no single matching employment, another open record overlaps, or nothing would change.",
+    "ATTENDANCE_CORRECTION_PREVIEW_STALE": "The record changed since the preview. Review the values and preview the correction again."
   },
   "notFound": {
     "title": "Page not found",
@@ -2838,6 +2841,10 @@
     "assisted": {
       "label": "Recorded by a supervisor",
       "reason": "Reason given"
+    },
+    "corrected": {
+      "label": "Corrected by the organization",
+      "detail": "Corrected on {{date}}. The times shown are the corrected times."
     }
   },
   "offlineAttendance": {
@@ -3059,7 +3066,11 @@
       "admin": "Attendance review"
     },
     "disclaimer": "This compares the schedule with the recorded check-ins and check-outs. It is not a pay, absence or disciplinary decision.",
-    "correctionsLater": "Corrections are coming later. For now, an exception cannot be corrected, excused or approved here.",
+    "corrections": {
+      "self": "Only your organization can correct your attendance. A corrected record shows “Corrected by the organization”.",
+      "team": "Only the organization’s administrators can correct attendance. This view does not correct, excuse or approve anything.",
+      "admin": "Correct a record, or create a missing one, from its exception. Every correction is previewed, needs a reason and is kept in the record’s history; the original check-ins and check-outs are never changed."
+    },
     "loading": "Loading exceptions…",
     "retry": "Try again",
     "found_one": "{{count}} exception shown.",
@@ -3120,5 +3131,99 @@
     "description": "Factual attendance exceptions across the organization: shifts with no check-in or check-out recorded, and check-ins or check-outs more than 5 minutes off the schedule. Filter by site, type and dates.",
     "unauthorized": "Only tenant administrators can review attendance.",
     "signInRequired": "Sign in as a tenant administrator to review attendance."
+  },
+  "attendanceCorrection": {
+    "actionFor": "Correct attendance of {{name}} for {{work}} on {{date}}",
+    "correctRecord": "Correct this record",
+    "createRecord": "Create the missing record",
+    "title": {
+      "REPLACE_TIMES": "Correct an attendance record",
+      "CREATE_MISSING_RECORD": "Create a missing attendance record",
+      "done": "Correction saved"
+    },
+    "employee": "Employee: {{name}}",
+    "zone": "Times are in the site’s time zone: {{zone}}.",
+    "loading": "Loading the record…",
+    "unauthorized": "Only tenant administrators with multi-factor authentication can correct attendance.",
+    "validation": "Check the highlighted fields.",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "timeHelp": "Date and time at the site ({{zone}}).",
+    "noCheckOut": "No check-out",
+    "reason": "Reason",
+    "chooseReason": "Choose a reason",
+    "reasons": {
+      "DEVICE_OR_CONNECTIVITY": "Device or connectivity problem",
+      "SUPERVISOR_OR_EMPLOYEE_REPORT": "Reported by a supervisor or the employee",
+      "DATA_ENTRY_ERROR": "Data entry error",
+      "SYSTEM_ERROR": "System error",
+      "OTHER": "Other (described below)"
+    },
+    "explanation": "Explanation",
+    "explanationHelp": "{{min}} to {{max}} characters, no links. Visible to tenant administrators only, never to the employee.",
+    "count": "{{count}} of {{max}} characters",
+    "problems": {
+      "checkedInAt": {
+        "required": "Enter the check-in date and time.",
+        "format": "Enter a valid check-in date and time at the site, inside the shift’s check-in window and not in the future."
+      },
+      "checkedOutAt": {
+        "required": "Enter the check-out date and time, or choose “No check-out”.",
+        "format": "Enter a valid check-out date and time at the site, at most 24 hours after the shift ends and not in the future.",
+        "order": "The check-out must be after the check-in."
+      },
+      "reasonCode": {
+        "required": "Choose a reason.",
+        "format": "Choose one of the listed reasons."
+      },
+      "explanation": {
+        "required": "Enter an explanation.",
+        "length": "The explanation must have {{min}} to {{max}} characters.",
+        "format": "The explanation cannot contain links, markup or control characters."
+      }
+    },
+    "preview": "Preview the correction",
+    "previewing": "Preparing the preview…",
+    "beforeAfter": "Values before and after the correction",
+    "value": "Value",
+    "before": "Before",
+    "after": "After",
+    "none": "None",
+    "noRecord": "No record",
+    "exceptionsBefore": "Exceptions now",
+    "exceptionsAfter": "Exceptions after the correction",
+    "noException": "None",
+    "warnings": {
+      "CHECK_OUT_REMOVED": "The current check-out will be removed.",
+      "NO_CHECK_OUT": "The record will have no check-out.",
+      "SCHEDULE_NOT_OPERATIONAL": "This schedule was cancelled or replaced after the record.",
+      "ORIGINAL_EVENTS_KEPT": "The original check-in and check-out stay unchanged in the history; the record shows the corrected times."
+    },
+    "confirmCheck": "I reviewed this correction and confirm it.",
+    "commit": "Save the correction",
+    "committing": "Saving…",
+    "back": "Change the values",
+    "done": {
+      "REPLACE_TIMES": "The record was corrected (correction {{version}}).",
+      "CREATE_MISSING_RECORD": "The missing record was created (correction {{version}})."
+    },
+    "close": "Close",
+    "current": "Current record",
+    "status": "Status",
+    "originals": "Originally recorded: {{events}}",
+    "event": {
+      "CHECKED_IN": "check-in",
+      "CHECKED_OUT": "check-out"
+    },
+    "history": "Correction history (newest first)",
+    "noHistory": "No correction yet.",
+    "version": "Correction {{version}}",
+    "operation": {
+      "REPLACE_TIMES": "Times replaced",
+      "CREATE_MISSING_RECORD": "Missing record created"
+    },
+    "byYou": "by you",
+    "byAdministrator": "by administrator {{reference}}",
+    "change": "Check-in {{beforeIn}} → {{afterIn}}; check-out {{beforeOut}} → {{afterOut}}"
   }
 }

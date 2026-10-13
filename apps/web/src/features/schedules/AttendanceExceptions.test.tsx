@@ -281,7 +281,7 @@ describe.each(['en', 'fr'] as const)('MVP-060C attendance exceptions (%s)', (loc
       k.disclaimer,
     );
     expect(within(section).getByTestId('attendance-exceptions-corrections')).toHaveTextContent(
-      k.correctionsLater,
+      k.corrections.self,
     );
     // Read-only: no correct, excuse or approve control, and no employee identity in my own view.
     const buttons = within(section)
@@ -391,9 +391,9 @@ describe.each(['en', 'fr'] as const)('MVP-060C attendance exceptions (%s)', (loc
     expect(
       within(cards[0]!).getByRole('heading', { level: 2, name: 'Ana Kalala (E-0042)' }),
     ).toBeVisible();
-    expect(
-      screen.queryByRole('button', { name: /correct|excuse|approve|corrig|justif|approuv/iu }),
-    ).toBeNull();
+    // MVP-062: one correction action per card (never excuse or approve).
+    expect(screen.queryByRole('button', { name: /excuse|approve|justif|approuv/iu })).toBeNull();
+    expect(screen.getAllByTestId('attendance-exception-correct')).toHaveLength(cards.length);
     await expectAccessible(container);
 
     const legal = screen.getByLabelText(k.filters.legalEntity);

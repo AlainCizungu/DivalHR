@@ -288,6 +288,25 @@ export type SyncOfflineAttendanceRequest =
   CoreComponents['schemas']['SyncOfflineAttendanceRequest'];
 export type OfflineAttendanceEventType = CoreComponents['schemas']['OfflineAttendanceEventType'];
 export type OfflineAttendanceSyncResult = CoreComponents['schemas']['OfflineAttendanceSyncResult'];
+/** MVP-062: attendance corrections by tenant administrators. */
+export type AttendanceCorrectionOperation =
+  CoreComponents['schemas']['AttendanceCorrectionOperation'];
+export type AttendanceCorrectionReason = CoreComponents['schemas']['AttendanceCorrectionReason'];
+export type AttendanceCorrectionWarning = CoreComponents['schemas']['AttendanceCorrectionWarning'];
+export type AttendanceCorrectionRequest = CoreComponents['schemas']['AttendanceCorrectionRequest'];
+export type MissingAttendanceCorrectionRequest =
+  CoreComponents['schemas']['MissingAttendanceCorrectionRequest'];
+export type CommitAttendanceCorrectionRequest =
+  CoreComponents['schemas']['CommitAttendanceCorrectionRequest'];
+export type CommitMissingAttendanceCorrectionRequest =
+  CoreComponents['schemas']['CommitMissingAttendanceCorrectionRequest'];
+export type AttendanceCorrectionTimes = CoreComponents['schemas']['AttendanceCorrectionTimes'];
+export type AttendanceCorrectionPreview = CoreComponents['schemas']['AttendanceCorrectionPreview'];
+export type AttendanceCorrectionReceipt = CoreComponents['schemas']['AttendanceCorrectionReceipt'];
+export type CorrectedAttendanceRecord = CoreComponents['schemas']['CorrectedAttendanceRecord'];
+export type AttendanceCorrectionHistory = CoreComponents['schemas']['AttendanceCorrectionHistory'];
+export type AttendanceCorrectionHistoryEntry =
+  CoreComponents['schemas']['AttendanceCorrectionHistoryEntry'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

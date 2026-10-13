@@ -108,17 +108,21 @@ public final class AttendanceResponses {
    * One of the caller's own records.
    *
    * @param id record
-   * @param status OPEN or COMPLETED
-   * @param checkedInAt check-in instant
-   * @param checkedOutAt check-out instant, or {@code null}
-   * @param checkOutAvailable open and inside the check-out window at the page's instant
+   * @param status OPEN or COMPLETED (the effective check-out)
+   * @param checkedInAt effective check-in instant
+   * @param checkedOutAt effective check-out instant, or {@code null}
+   * @param checkOutAvailable open, no check-out recorded, and inside the check-out window at the
+   *     page's instant
    * @param shift its shift
-   * @param checkInRecordingMethod how the check-in was recorded (MVP-060B)
+   * @param checkInRecordingMethod how the original check-in was recorded (MVP-060B), or {@code
+   *     null} for a record created by the organization's correction (MVP-062)
    * @param checkInSupervisorReasonLocale a supervisor's check-in reason language, or {@code null}
    * @param checkInSupervisorReason a supervisor's check-in reason, or {@code null}
    * @param checkOutRecordingMethod how the check-out was recorded, or {@code null}
    * @param checkOutSupervisorReasonLocale a supervisor's check-out reason language, or {@code null}
    * @param checkOutSupervisorReason a supervisor's check-out reason, or {@code null}
+   * @param correctedAt when the organization last corrected the record, or {@code null} (MVP-062:
+   *     never who corrected it, why, or the explanation)
    */
   @Schema(name = "MyAttendanceRecord")
   public record Item(
@@ -133,7 +137,8 @@ public final class AttendanceResponses {
       String checkInSupervisorReason,
       Attendance.Method checkOutRecordingMethod,
       String checkOutSupervisorReasonLocale,
-      String checkOutSupervisorReason) {
+      String checkOutSupervisorReason,
+      @Schema(nullable = true) Instant correctedAt) {
 
     /**
      * The view of a history row.
@@ -145,7 +150,7 @@ public final class AttendanceResponses {
      */
     public static Item of(Attendance.HistoryItem item, UnitView site, Instant at) {
       Attendance.Record record = item.record();
-      Attendance.Recording in = item.checkIn() == null ? Attendance.Recording.SELF : item.checkIn();
+      Attendance.Recording in = item.checkIn();
       Attendance.Recording out = item.checkOut();
       return new Item(
           record.id(),
@@ -154,12 +159,13 @@ public final class AttendanceResponses {
           record.checkedOutAt(),
           record.checkOutAvailable(at),
           ShiftView.of(item.shift(), site),
-          in.method(),
-          in.supervisorReasonLocale(),
-          in.supervisorReason(),
+          in == null ? null : in.method(),
+          in == null ? null : in.supervisorReasonLocale(),
+          in == null ? null : in.supervisorReason(),
           out == null ? null : out.method(),
           out == null ? null : out.supervisorReasonLocale(),
-          out == null ? null : out.supervisorReason());
+          out == null ? null : out.supervisorReason(),
+          record.correctedAt());
     }
 
     /**

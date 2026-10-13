@@ -444,7 +444,10 @@
     "OFFLINE_ATTENDANCE_OFFSET_MISMATCH": "L’heure enregistrée sur cet appareil n’a pas pu être lue de façon cohérente : ce pointage n’a pas pu être appliqué.",
     "OFFLINE_ATTENDANCE_CONFLICT": "Ce pointage a été reçu plus tard et n’a pas pu être appliqué, car il entre en conflit avec un pointage déjà enregistré pour vous.",
     "TEAM_ATTENDANCE_ACTION_NOT_FOUND": "Cette action de présence ne vous est pas disponible. La liste a été actualisée.",
-    "TEAM_ATTENDANCE_MANAGER_REQUIRED": "La présence de l’équipe est réservée aux responsables de collaborateurs directs."
+    "TEAM_ATTENDANCE_MANAGER_REQUIRED": "La présence de l’équipe est réservée aux responsables de collaborateurs directs.",
+    "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND": "Ce pointage ou ce créneau n’est pas disponible pour une correction.",
+    "ATTENDANCE_CORRECTION_NOT_ALLOWED": "Cette correction n’est pas possible : un pointage existe déjà, l’horaire a été annulé ou remplacé, l’employé n’a pas un seul emploi correspondant, un autre pointage ouvert se chevauche, ou rien ne changerait.",
+    "ATTENDANCE_CORRECTION_PREVIEW_STALE": "Le pointage a changé depuis l’aperçu. Vérifiez les valeurs et affichez de nouveau l’aperçu de la correction."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2838,6 +2841,10 @@
     "assisted": {
       "label": "Enregistré par un responsable",
       "reason": "Motif indiqué"
+    },
+    "corrected": {
+      "label": "Corrigé par l’organisation",
+      "detail": "Corrigé le {{date}}. Les heures affichées sont les heures corrigées."
     }
   },
   "offlineAttendance": {
@@ -3059,7 +3066,11 @@
       "admin": "Suivi de la présence"
     },
     "disclaimer": "Il s’agit d’une comparaison entre l’horaire et les arrivées et départs enregistrés. Ce n’est pas une décision de paie, d’absence ni de discipline.",
-    "correctionsLater": "Les corrections arriveront plus tard. Pour l’instant, une anomalie ne peut être ni corrigée, ni justifiée, ni approuvée ici.",
+    "corrections": {
+      "self": "Seule votre organisation peut corriger votre présence. Un pointage corrigé affiche « Corrigé par l’organisation ».",
+      "team": "Seuls les administrateurs de l’organisation peuvent corriger la présence. Cette vue ne corrige, ne justifie ni n’approuve rien.",
+      "admin": "Corrigez un pointage, ou créez un pointage manquant, depuis son anomalie. Chaque correction est prévisualisée, exige un motif et reste dans l’historique du pointage ; les arrivées et départs d’origine ne sont jamais modifiés."
+    },
     "loading": "Chargement des anomalies…",
     "retry": "Réessayer",
     "found_one": "{{count}} anomalie affichée.",
@@ -3120,5 +3131,99 @@
     "description": "Les anomalies de présence factuelles de l’organisation : créneaux sans arrivée ni départ enregistré, et arrivées ou départs à plus de 5 minutes de l’horaire. Filtrez par site, type et dates.",
     "unauthorized": "Seuls les administrateurs de l’organisation peuvent suivre la présence.",
     "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour suivre la présence."
+  },
+  "attendanceCorrection": {
+    "actionFor": "Corriger la présence de {{name}} pour {{work}} le {{date}}",
+    "correctRecord": "Corriger ce pointage",
+    "createRecord": "Créer le pointage manquant",
+    "title": {
+      "REPLACE_TIMES": "Corriger un pointage",
+      "CREATE_MISSING_RECORD": "Créer un pointage manquant",
+      "done": "Correction enregistrée"
+    },
+    "employee": "Employé : {{name}}",
+    "zone": "Les heures sont dans le fuseau horaire du site : {{zone}}.",
+    "loading": "Chargement du pointage…",
+    "unauthorized": "Seuls les administrateurs de l’organisation avec l’authentification multifacteur peuvent corriger la présence.",
+    "validation": "Vérifiez les champs signalés.",
+    "checkIn": "Arrivée",
+    "checkOut": "Départ",
+    "timeHelp": "Date et heure au site ({{zone}}).",
+    "noCheckOut": "Aucun départ",
+    "reason": "Motif",
+    "chooseReason": "Choisissez un motif",
+    "reasons": {
+      "DEVICE_OR_CONNECTIVITY": "Problème d’appareil ou de connexion",
+      "SUPERVISOR_OR_EMPLOYEE_REPORT": "Signalé par un responsable ou l’employé",
+      "DATA_ENTRY_ERROR": "Erreur de saisie",
+      "SYSTEM_ERROR": "Erreur du système",
+      "OTHER": "Autre (précisé ci-dessous)"
+    },
+    "explanation": "Explication",
+    "explanationHelp": "De {{min}} à {{max}} caractères, sans lien. Visible uniquement par les administrateurs de l’organisation, jamais par l’employé.",
+    "count": "{{count}} caractères sur {{max}}",
+    "problems": {
+      "checkedInAt": {
+        "required": "Saisissez la date et l’heure d’arrivée.",
+        "format": "Saisissez une date et une heure d’arrivée valides au site, dans la fenêtre d’arrivée du créneau et pas dans le futur."
+      },
+      "checkedOutAt": {
+        "required": "Saisissez la date et l’heure de départ, ou choisissez « Aucun départ ».",
+        "format": "Saisissez une date et une heure de départ valides au site, au plus 24 heures après la fin du créneau et pas dans le futur.",
+        "order": "Le départ doit être après l’arrivée."
+      },
+      "reasonCode": {
+        "required": "Choisissez un motif.",
+        "format": "Choisissez l’un des motifs proposés."
+      },
+      "explanation": {
+        "required": "Saisissez une explication.",
+        "length": "L’explication doit compter de {{min}} à {{max}} caractères.",
+        "format": "L’explication ne peut contenir ni lien, ni balise, ni caractère de contrôle."
+      }
+    },
+    "preview": "Afficher l’aperçu de la correction",
+    "previewing": "Préparation de l’aperçu…",
+    "beforeAfter": "Valeurs avant et après la correction",
+    "value": "Valeur",
+    "before": "Avant",
+    "after": "Après",
+    "none": "Aucun",
+    "noRecord": "Aucun pointage",
+    "exceptionsBefore": "Anomalies actuelles",
+    "exceptionsAfter": "Anomalies après la correction",
+    "noException": "Aucune",
+    "warnings": {
+      "CHECK_OUT_REMOVED": "Le départ actuel sera supprimé.",
+      "NO_CHECK_OUT": "Le pointage n’aura aucun départ.",
+      "SCHEDULE_NOT_OPERATIONAL": "Cet horaire a été annulé ou remplacé après le pointage.",
+      "ORIGINAL_EVENTS_KEPT": "L’arrivée et le départ d’origine restent inchangés dans l’historique ; le pointage affiche les heures corrigées."
+    },
+    "confirmCheck": "J’ai vérifié cette correction et je la confirme.",
+    "commit": "Enregistrer la correction",
+    "committing": "Enregistrement…",
+    "back": "Modifier les valeurs",
+    "done": {
+      "REPLACE_TIMES": "Le pointage a été corrigé (correction {{version}}).",
+      "CREATE_MISSING_RECORD": "Le pointage manquant a été créé (correction {{version}})."
+    },
+    "close": "Fermer",
+    "current": "Pointage actuel",
+    "status": "Statut",
+    "originals": "Enregistré à l’origine : {{events}}",
+    "event": {
+      "CHECKED_IN": "arrivée",
+      "CHECKED_OUT": "départ"
+    },
+    "history": "Historique des corrections (de la plus récente à la plus ancienne)",
+    "noHistory": "Aucune correction pour l’instant.",
+    "version": "Correction {{version}}",
+    "operation": {
+      "REPLACE_TIMES": "Heures remplacées",
+      "CREATE_MISSING_RECORD": "Pointage manquant créé"
+    },
+    "byYou": "par vous",
+    "byAdministrator": "par l’administrateur {{reference}}",
+    "change": "Arrivée {{beforeIn}} → {{afterIn}} ; départ {{beforeOut}} → {{afterOut}}"
   }
 }

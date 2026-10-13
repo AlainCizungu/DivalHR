@@ -403,7 +403,20 @@ public enum ErrorCode {
    * MVP-061A: another accepted attendance event makes this offline event impossible to apply
    * exactly (never used for authentication, foreign resources or validation).
    */
-  OFFLINE_ATTENDANCE_CONFLICT(HttpStatus.CONFLICT);
+  OFFLINE_ATTENDANCE_CONFLICT(HttpStatus.CONFLICT),
+  /**
+   * MVP-062: the correction's target (a record, or a slot and its effective assignee) is unknown,
+   * foreign, malformed or not disclosable; never distinguishes which.
+   */
+  ATTENDANCE_CORRECTION_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * MVP-062: the target cannot receive this correction now (a record already exists, the schedule
+   * was cancelled or replaced, no single qualifying employment, another open record overlaps, or
+   * nothing would change).
+   */
+  ATTENDANCE_CORRECTION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-062: the target changed since the preview; preview again. */
+  ATTENDANCE_CORRECTION_PREVIEW_STALE(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

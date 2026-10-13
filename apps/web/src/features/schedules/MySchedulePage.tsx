@@ -13,6 +13,7 @@ import { AttendanceDialog } from './AttendanceDialog';
 import { MySubstitutionHistory, type History } from './MySubstitutionHistory';
 import { SubstitutionRequestDialog } from './SubstitutionRequestDialog';
 import { AssistedNote } from './AssistedNote';
+import { CorrectedNote } from './CorrectedNote';
 import { useOfflineAttendance } from './offline/OfflineAttendanceProvider';
 import { formatInstant, receiptMessageKey, type AttendanceAction } from './attendance';
 import { assistedOf } from './teamAttendance';
@@ -460,6 +461,11 @@ function ShiftAttendance({
           {t(`attendance.shiftStatus.${attendance.status}`)}
         </StatusBadge>
       </p>
+      <CorrectedNote
+        correctedAt={attendance.correctedAt}
+        zone={shift.siteTimezone}
+        testId="my-shift-corrected"
+      />
       {attendance.checkedInAt && (
         <p data-testid="my-shift-checked-in">
           {t('attendance.shiftCheckedIn', { time: at(attendance.checkedInAt) })}
