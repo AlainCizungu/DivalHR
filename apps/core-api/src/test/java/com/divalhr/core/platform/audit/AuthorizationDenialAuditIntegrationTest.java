@@ -189,7 +189,14 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-062: attendance corrections.
           "attendance.correction-preview",
           "attendance.correction-create",
-          "attendance.correction-history");
+          "attendance.correction-history",
+          // MVP-070A: weekly draft timesheets.
+          "timesheet.generation-preview",
+          "timesheet.generate",
+          "timesheet.generation-read",
+          "timesheet.refresh-preview",
+          "timesheet.refresh",
+          "timesheet.read");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -230,7 +237,10 @@ class AuthorizationDenialAuditIntegrationTest {
           "attendance.exception-self-list",
           "attendance.exception-team-list",
           // MVP-061A: the employee's own offline attendance synchronization.
-          "attendance.offline-event-sync");
+          "attendance.offline-event-sync",
+          // MVP-070A: the employee's own draft timesheets.
+          "timesheet.self-list",
+          "timesheet.self-read");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -647,8 +657,9 @@ class AuthorizationDenialAuditIntegrationTest {
     }
     assertThat(platform).isEqualTo(new TreeSet<>(PLATFORM_OPERATIONS));
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
-    // MVP-062 added five handlers (two previews, two commits, the history).
-    assertThat(handlers).hasSize(90);
+    // MVP-062 added five handlers (two previews, two commits, the history); MVP-070A six (two
+    // previews, two commands, two reads).
+    assertThat(handlers).hasSize(96);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

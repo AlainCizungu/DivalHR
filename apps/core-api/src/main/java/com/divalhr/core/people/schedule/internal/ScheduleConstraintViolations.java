@@ -56,6 +56,18 @@ public final class ScheduleConstraintViolations {
   /** MVP-062: one correction per record and version. */
   public static final String CORRECTION_VERSION = "attendance_correction_version_unique";
 
+  /** MVP-070A: one generation per tenant, site and week. */
+  public static final String TIMESHEET_GENERATION_WEEK = "timesheet_generation_site_week_unique";
+
+  /** MVP-070A: a revision follows the timesheet's latest one. */
+  public static final String TIMESHEET_REVISION_SEQUENCE = "timesheet_revision_sequence";
+
+  /** MVP-070A: a generation changes only by a refresh. */
+  public static final String TIMESHEET_GENERATION_GUARD = "timesheet_generation_guard";
+
+  /** MVP-070A: a timesheet changes only to its next revision. */
+  public static final String TIMESHEET_GUARD = "timesheet_guard";
+
   private ScheduleConstraintViolations() {}
 
   /**

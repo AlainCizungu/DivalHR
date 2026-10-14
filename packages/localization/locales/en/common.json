@@ -39,7 +39,9 @@
     "mySchedule": "My schedule",
     "myAttendance": "My attendance",
     "myScheduleSubstitutions": "Shift substitutions",
-    "teamAttendance": "Team attendance"
+    "teamAttendance": "Team attendance",
+    "timesheets": "Timesheets",
+    "myTimesheets": "My timesheets"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -447,7 +449,11 @@
     "TEAM_ATTENDANCE_MANAGER_REQUIRED": "Team attendance is for managers of direct reports.",
     "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND": "This attendance record or shift is not available for correction.",
     "ATTENDANCE_CORRECTION_NOT_ALLOWED": "This correction is not possible: a record already exists, the schedule was cancelled or replaced, the employee has no single matching employment, another open record overlaps, or nothing would change.",
-    "ATTENDANCE_CORRECTION_PREVIEW_STALE": "The record changed since the preview. Review the values and preview the correction again."
+    "ATTENDANCE_CORRECTION_PREVIEW_STALE": "The record changed since the preview. Review the values and preview the correction again.",
+    "TIMESHEET_TARGET_NOT_FOUND": "This site, week or timesheet is not available.",
+    "TIMESHEET_GENERATION_NOT_ALLOWED": "No drafts can be generated for this week: no published shift at this site starts in it for an employee with a single matching employment.",
+    "TIMESHEET_GENERATION_LIMIT_EXCEEDED": "This week has too many employees or shifts to process at once (at most 500 drafts and 5,000 shifts). Nothing was changed.",
+    "TIMESHEET_REFRESH_PREVIEW_STALE": "The drafts or their sources changed since the preview. Preview the refresh again."
   },
   "notFound": {
     "title": "Page not found",
@@ -3225,5 +3231,148 @@
     "byYou": "by you",
     "byAdministrator": "by administrator {{reference}}",
     "change": "Check-in {{beforeIn}} → {{afterIn}}; check-out {{beforeOut}} → {{afterOut}}"
+  },
+  "timesheets": {
+    "title": "Timesheets",
+    "description": "Generate weekly draft timesheets for one site from published schedules and recorded attendance, including corrections.",
+    "scope": "Drafts only: nothing here submits, approves, prices or exports time.",
+    "unauthorized": "Only organization administrators can generate timesheets.",
+    "signInRequired": "Sign in as an organization administrator to generate timesheets.",
+    "form": {
+      "label": "Site and week",
+      "legalEntity": "Legal entity",
+      "chooseLegalEntity": "Choose a legal entity",
+      "site": "Site",
+      "chooseSite": "Choose a site",
+      "sitesUnavailable": "Sites could not be loaded. Try again later.",
+      "week": "Week starting (Monday)",
+      "weekHint": "Monday 00:00 to the next Monday 00:00 in the site's time zone. Current or past weeks only.",
+      "preview": "Preview",
+      "previewing": "Previewing…",
+      "problem": {
+        "siteRequired": "Choose a site.",
+        "weekRequired": "Choose a week.",
+        "notMonday": "Choose a Monday.",
+        "range": "Choose the current week or a past week."
+      }
+    },
+    "period": "{{from}} – {{to}}",
+    "zone": "Site time zone: {{zone}}.",
+    "totals": {
+      "drafts": "Drafts",
+      "rows": "Shifts",
+      "ready": "Ready",
+      "blocked": "Blocked",
+      "missing": "Missing attendance",
+      "open": "Open attendance",
+      "changed": "Source changed",
+      "worked": "Worked time",
+      "part": "{{label}}: {{count}}"
+    },
+    "duration": "{{hours}} h {{minutes}} min",
+    "preview": {
+      "title": "Generation preview",
+      "existing": "This week was already generated (version {{version}}). Open its drafts to review or refresh them.",
+      "open": "Open the drafts",
+      "confirmCheck": "I reviewed this preview and want to generate the drafts.",
+      "generate": "Generate drafts",
+      "generating": "Generating…",
+      "blockedNote": "Blocked shifts have no completed attendance yet. They stay in the draft and are never guessed."
+    },
+    "generated_one": "{{count}} draft generated.",
+    "generated_other": "{{count}} drafts generated.",
+    "existingOpened": "This week was already generated. Its drafts are shown.",
+    "generation": {
+      "title": "Drafts for the week",
+      "version": "Version {{version}}",
+      "generatedAt": "Generated {{time}}",
+      "refreshedAt": "Last refreshed {{time}}",
+      "loading": "Loading the drafts…",
+      "label": "Draft timesheets",
+      "status": "Draft",
+      "columns": {
+        "employee": "Employee",
+        "revision": "Revision",
+        "rows": "Shifts",
+        "ready": "Ready",
+        "blocked": "Blocked",
+        "worked": "Worked time",
+        "actions": "Actions"
+      },
+      "view": "View",
+      "viewFor": "View the timesheet of {{name}}",
+      "employee": "{{givenNames}} {{familyName}} ({{number}})"
+    },
+    "refresh": {
+      "action": "Preview refresh",
+      "previewing": "Previewing…",
+      "title": "Refresh preview",
+      "description": "A refresh adds a new revision to each draft whose sources changed. Earlier revisions are kept.",
+      "newDrafts": "New drafts",
+      "changedTimesheets": "Drafts with a new revision",
+      "unchangedTimesheets": "Unchanged drafts",
+      "changedRows": "Changed shifts",
+      "nothing": "Nothing changed since the last revision. Applying only records the refresh.",
+      "confirmCheck": "I reviewed this preview and want to apply the refresh.",
+      "apply": "Apply refresh",
+      "applying": "Applying…",
+      "cancel": "Cancel",
+      "done": "Refresh applied: version {{version}}."
+    },
+    "detail": {
+      "title": "Timesheet of {{name}}",
+      "close": "Close the timesheet",
+      "loading": "Loading the timesheet…",
+      "revision": "Revision {{revision}}",
+      "rowsLabel": "Shifts in this revision",
+      "revisionsLabel": "Revisions",
+      "columns": {
+        "shift": "Shift",
+        "work": "Work",
+        "state": "State",
+        "checkIn": "Check-in",
+        "checkOut": "Check-out",
+        "costCenter": "Cost center",
+        "worked": "Worked time",
+        "revision": "Revision",
+        "version": "Generation version",
+        "createdAt": "Created"
+      },
+      "noCostCenter": "None",
+      "notRecorded": "Not recorded",
+      "corrected": "Corrected (version {{version}})"
+    },
+    "state": {
+      "READY": "Ready",
+      "MISSING_ATTENDANCE": "Missing attendance",
+      "OPEN_ATTENDANCE": "Open attendance",
+      "SOURCE_CHANGED": "Source changed"
+    },
+    "shiftTime": "{{date}}, {{start}} – {{end}}",
+    "validation": "Check the highlighted fields.",
+    "retry": "Try again"
+  },
+  "myTimesheets": {
+    "title": "My timesheets",
+    "description": "Your weekly draft timesheets, generated by your organization from your schedule and recorded attendance.",
+    "notice": "These are drafts. They are not submitted, approved or a pay statement. If something looks wrong, contact your administrator.",
+    "unauthorized": "Only employees can view their timesheets.",
+    "signInRequired": "Sign in to view your timesheets.",
+    "loading": "Loading your timesheets…",
+    "retry": "Try again",
+    "empty": "No timesheet has been generated for you yet.",
+    "label": "My draft timesheets",
+    "more": "Show more timesheets",
+    "loadingMore": "Loading more timesheets…",
+    "week": "Week of {{from}} – {{to}}",
+    "site": "Site",
+    "status": "Draft",
+    "revision": "Revision {{revision}}",
+    "view": "View",
+    "viewFor": "View the timesheet for the week of {{from}}",
+    "close": "Close the timesheet",
+    "detailTitle": "Week of {{from}} – {{to}}",
+    "detailLoading": "Loading the timesheet…",
+    "rowsLabel": "Shifts in this timesheet"
   }
 }

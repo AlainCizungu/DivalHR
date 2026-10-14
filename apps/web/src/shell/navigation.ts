@@ -111,6 +111,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'check',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/timesheets',
+        labelKey: 'nav.timesheets',
+        icon: 'calendar',
+        role: 'tenant-admin',
+      },
     ],
   },
   {
@@ -158,6 +164,7 @@ export const NAVIGATION: NavGroupDef[] = [
       { to: '/me/contracts', labelKey: 'nav.myContracts', icon: 'contract', role: 'employee' },
       { to: '/me/schedule', labelKey: 'nav.mySchedule', icon: 'clock', role: 'employee' },
       { to: '/me/attendance', labelKey: 'nav.myAttendance', icon: 'check', role: 'employee' },
+      { to: '/me/timesheets', labelKey: 'nav.myTimesheets', icon: 'calendar', role: 'employee' },
       {
         to: '/me/team-attendance',
         labelKey: 'nav.teamAttendance',

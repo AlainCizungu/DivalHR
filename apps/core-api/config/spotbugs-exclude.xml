@@ -102,6 +102,8 @@
       <Class name="com.divalhr.core.people.schedule.internal.JdbcAttendanceExceptionRepository"/>
       <Class name="com.divalhr.core.people.schedule.application.AttendanceCorrectionService"/>
       <Class name="com.divalhr.core.people.schedule.internal.JdbcAttendanceCorrectionRepository"/>
+      <Class name="com.divalhr.core.people.schedule.application.TimesheetService"/>
+      <Class name="com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>

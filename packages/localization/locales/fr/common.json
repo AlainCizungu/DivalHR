@@ -39,7 +39,9 @@
     "mySchedule": "Mon horaire",
     "myAttendance": "Ma présence",
     "myScheduleSubstitutions": "Remplacements d’horaire",
-    "teamAttendance": "Présence de l’équipe"
+    "teamAttendance": "Présence de l’équipe",
+    "timesheets": "Feuilles de temps",
+    "myTimesheets": "Mes feuilles de temps"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -447,7 +449,11 @@
     "TEAM_ATTENDANCE_MANAGER_REQUIRED": "La présence de l’équipe est réservée aux responsables de collaborateurs directs.",
     "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND": "Ce pointage ou ce créneau n’est pas disponible pour une correction.",
     "ATTENDANCE_CORRECTION_NOT_ALLOWED": "Cette correction n’est pas possible : un pointage existe déjà, l’horaire a été annulé ou remplacé, l’employé n’a pas un seul emploi correspondant, un autre pointage ouvert se chevauche, ou rien ne changerait.",
-    "ATTENDANCE_CORRECTION_PREVIEW_STALE": "Le pointage a changé depuis l’aperçu. Vérifiez les valeurs et affichez de nouveau l’aperçu de la correction."
+    "ATTENDANCE_CORRECTION_PREVIEW_STALE": "Le pointage a changé depuis l’aperçu. Vérifiez les valeurs et affichez de nouveau l’aperçu de la correction.",
+    "TIMESHEET_TARGET_NOT_FOUND": "Ce site, cette semaine ou cette feuille de temps n’est pas disponible.",
+    "TIMESHEET_GENERATION_NOT_ALLOWED": "Aucun brouillon ne peut être généré pour cette semaine : aucun créneau publié de ce site n’y commence pour un employé ayant un seul emploi correspondant.",
+    "TIMESHEET_GENERATION_LIMIT_EXCEEDED": "Cette semaine compte trop d’employés ou de créneaux pour être traitée en une fois (au plus 500 brouillons et 5 000 créneaux). Rien n’a été modifié.",
+    "TIMESHEET_REFRESH_PREVIEW_STALE": "Les brouillons ou leurs sources ont changé depuis l’aperçu. Prévisualisez de nouveau l’actualisation."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3225,5 +3231,148 @@
     "byYou": "par vous",
     "byAdministrator": "par l’administrateur {{reference}}",
     "change": "Arrivée {{beforeIn}} → {{afterIn}} ; départ {{beforeOut}} → {{afterOut}}"
+  },
+  "timesheets": {
+    "title": "Feuilles de temps",
+    "description": "Générez les brouillons hebdomadaires de feuilles de temps d’un site à partir des horaires publiés et de la présence enregistrée, corrections comprises.",
+    "scope": "Brouillons uniquement : rien ici ne soumet, n’approuve, ne valorise ni n’exporte le temps.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent générer les feuilles de temps.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour générer les feuilles de temps.",
+    "form": {
+      "label": "Site et semaine",
+      "legalEntity": "Entité juridique",
+      "chooseLegalEntity": "Choisissez une entité juridique",
+      "site": "Site",
+      "chooseSite": "Choisissez un site",
+      "sitesUnavailable": "Les sites n’ont pas pu être chargés. Réessayez plus tard.",
+      "week": "Semaine commençant le (lundi)",
+      "weekHint": "Du lundi 00 h 00 au lundi suivant 00 h 00, dans le fuseau horaire du site. Semaine en cours ou semaines passées uniquement.",
+      "preview": "Prévisualiser",
+      "previewing": "Prévisualisation…",
+      "problem": {
+        "siteRequired": "Choisissez un site.",
+        "weekRequired": "Choisissez une semaine.",
+        "notMonday": "Choisissez un lundi.",
+        "range": "Choisissez la semaine en cours ou une semaine passée."
+      }
+    },
+    "period": "{{from}} – {{to}}",
+    "zone": "Fuseau horaire du site : {{zone}}.",
+    "totals": {
+      "drafts": "Brouillons",
+      "rows": "Créneaux",
+      "ready": "Prêts",
+      "blocked": "Bloqués",
+      "missing": "Présence manquante",
+      "open": "Présence ouverte",
+      "changed": "Source modifiée",
+      "worked": "Temps travaillé",
+      "part": "{{label}} : {{count}}"
+    },
+    "duration": "{{hours}} h {{minutes}} min",
+    "preview": {
+      "title": "Aperçu de la génération",
+      "existing": "Cette semaine a déjà été générée (version {{version}}). Ouvrez ses brouillons pour les consulter ou les actualiser.",
+      "open": "Ouvrir les brouillons",
+      "confirmCheck": "J’ai vérifié cet aperçu et je veux générer les brouillons.",
+      "generate": "Générer les brouillons",
+      "generating": "Génération…",
+      "blockedNote": "Les créneaux bloqués n’ont pas encore de présence complète. Ils restent dans le brouillon et ne sont jamais devinés."
+    },
+    "generated_one": "{{count}} brouillon généré.",
+    "generated_other": "{{count}} brouillons générés.",
+    "existingOpened": "Cette semaine avait déjà été générée. Ses brouillons sont affichés.",
+    "generation": {
+      "title": "Brouillons de la semaine",
+      "version": "Version {{version}}",
+      "generatedAt": "Générée le {{time}}",
+      "refreshedAt": "Dernière actualisation le {{time}}",
+      "loading": "Chargement des brouillons…",
+      "label": "Brouillons de feuilles de temps",
+      "status": "Brouillon",
+      "columns": {
+        "employee": "Employé",
+        "revision": "Révision",
+        "rows": "Créneaux",
+        "ready": "Prêts",
+        "blocked": "Bloqués",
+        "worked": "Temps travaillé",
+        "actions": "Actions"
+      },
+      "view": "Consulter",
+      "viewFor": "Consulter la feuille de temps de {{name}}",
+      "employee": "{{givenNames}} {{familyName}} ({{number}})"
+    },
+    "refresh": {
+      "action": "Prévisualiser l’actualisation",
+      "previewing": "Prévisualisation…",
+      "title": "Aperçu de l’actualisation",
+      "description": "Une actualisation ajoute une nouvelle révision à chaque brouillon dont les sources ont changé. Les révisions précédentes sont conservées.",
+      "newDrafts": "Nouveaux brouillons",
+      "changedTimesheets": "Brouillons avec une nouvelle révision",
+      "unchangedTimesheets": "Brouillons inchangés",
+      "changedRows": "Créneaux modifiés",
+      "nothing": "Rien n’a changé depuis la dernière révision. L’application enregistre seulement l’actualisation.",
+      "confirmCheck": "J’ai vérifié cet aperçu et je veux appliquer l’actualisation.",
+      "apply": "Appliquer l’actualisation",
+      "applying": "Application…",
+      "cancel": "Annuler",
+      "done": "Actualisation appliquée : version {{version}}."
+    },
+    "detail": {
+      "title": "Feuille de temps de {{name}}",
+      "close": "Fermer la feuille de temps",
+      "loading": "Chargement de la feuille de temps…",
+      "revision": "Révision {{revision}}",
+      "rowsLabel": "Créneaux de cette révision",
+      "revisionsLabel": "Révisions",
+      "columns": {
+        "shift": "Créneau",
+        "work": "Travail",
+        "state": "État",
+        "checkIn": "Arrivée",
+        "checkOut": "Départ",
+        "costCenter": "Centre de coûts",
+        "worked": "Temps travaillé",
+        "revision": "Révision",
+        "version": "Version de génération",
+        "createdAt": "Créée le"
+      },
+      "noCostCenter": "Aucun",
+      "notRecorded": "Non pointé",
+      "corrected": "Corrigé (version {{version}})"
+    },
+    "state": {
+      "READY": "Prêt",
+      "MISSING_ATTENDANCE": "Présence manquante",
+      "OPEN_ATTENDANCE": "Présence ouverte",
+      "SOURCE_CHANGED": "Source modifiée"
+    },
+    "shiftTime": "{{date}}, {{start}} – {{end}}",
+    "validation": "Vérifiez les champs signalés.",
+    "retry": "Réessayer"
+  },
+  "myTimesheets": {
+    "title": "Mes feuilles de temps",
+    "description": "Vos brouillons hebdomadaires de feuilles de temps, générés par votre organisation à partir de votre horaire et de votre présence enregistrée.",
+    "notice": "Ce sont des brouillons. Ils ne sont ni soumis, ni approuvés, ni un bulletin de paie. Si quelque chose semble inexact, contactez votre administrateur.",
+    "unauthorized": "Seuls les employés peuvent consulter leurs feuilles de temps.",
+    "signInRequired": "Connectez-vous pour consulter vos feuilles de temps.",
+    "loading": "Chargement de vos feuilles de temps…",
+    "retry": "Réessayer",
+    "empty": "Aucune feuille de temps n’a encore été générée pour vous.",
+    "label": "Mes brouillons de feuilles de temps",
+    "more": "Afficher plus de feuilles de temps",
+    "loadingMore": "Chargement d’autres feuilles de temps…",
+    "week": "Semaine du {{from}} au {{to}}",
+    "site": "Site",
+    "status": "Brouillon",
+    "revision": "Révision {{revision}}",
+    "view": "Consulter",
+    "viewFor": "Consulter la feuille de temps de la semaine du {{from}}",
+    "close": "Fermer la feuille de temps",
+    "detailTitle": "Semaine du {{from}} au {{to}}",
+    "detailLoading": "Chargement de la feuille de temps…",
+    "rowsLabel": "Créneaux de cette feuille de temps"
   }
 }
