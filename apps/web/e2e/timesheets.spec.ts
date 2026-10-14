@@ -38,17 +38,17 @@ const SITE = `TS-${stamp}`;
 const DEPARTMENT = `TD-${stamp}`;
 const ANA = `TSA-${stamp}-1`;
 const CLEO = `TSC-${stamp}-2`;
-const ANA_FAMILY = `Kalala${letters}`;
-const CLEO_FAMILY = `Ilunga${letters}`;
+const ANA_FAMILY = `Mbala${letters}`;
+const CLEO_FAMILY = `Tshilombo${letters}`;
 const ANA_EMAIL = `e2e.timesheet.ana.${lower}@example.test`;
 const PASSWORD = `Dev-only-E2E-${stamp}-Tsh!`;
 const SITE_NAME = `Site Feuilles ${stamp}`;
-const FIRST_EN = `Cashier ${letters}`;
-const FIRST_FR = `Caissière ${letters}`;
+const FIRST_EN = `Till shift ${letters}`;
+const FIRST_FR = `Poste de caisse ${letters}`;
 const SECOND_EN = `Shelving ${letters}`;
 const SECOND_FR = `Mise en rayon ${letters}`;
-const CLEO_EN = `Stock count ${letters}`;
-const CLEO_FR = `Inventaire ${letters}`;
+const CLEO_EN = `Stocktake ${letters}`;
+const CLEO_FR = `Comptage du stock ${letters}`;
 const EXPLANATION = 'The badge reader at the gate was offline during this shift.';
 
 let ZONE = 'Africa/Lubumbashi';
@@ -155,7 +155,7 @@ async function accessible(page: Page) {
 
 async function clean(page: Page) {
   const markers = new RegExp(
-    `${stamp}|${ANA_FAMILY}|${CLEO_FAMILY}|Caissi|Cashier|Shelving|rayon|Inventaire|Stock count`,
+    `${stamp}|${ANA_FAMILY}|${CLEO_FAMILY}|Till shift|caisse|Shelving|rayon|Stocktake|Comptage`,
     'iu',
   );
   expect(await storage(page)).not.toMatch(markers);
