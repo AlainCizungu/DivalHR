@@ -235,12 +235,14 @@ A correction requires authorization, reason, before-and-after values, and audit 
 
 ### MVP-070 Approve time
 
-Supervisors can approve hours by project, grant, site, task, or cost center. Delivered in slices:
+Supervisors can approve hours by project, grant, site, task, or cost center. Delivered in this approved sequence:
 
-- **MVP-070A** weekly draft timesheets from schedules and effective attendance (below);
-- **MVP-070B/C** submission and approval of a week's draft (blocked rows resolved first);
-- **MVP-070D** calculations on approved time and exports;
-- **MVP-070E** allocation of approved time to projects, grants and tasks.
+1. **MVP-070A** Generate weekly drafts from schedules and effective attendance (below).
+2. **MVP-070B/C** Employee submission, and manager approval or return.
+3. **MVP-070D** Reopen and reapprove, preserving the approval history.
+4. **MVP-070E** Export approved time for payroll and accounting.
+
+Project, grant and task allocation is not part of this sequence: it remains a future story, to be approved separately.
 
 **MVP-070A (Issue #128). In review.** Weekly draft timesheets (ADR 0018).
 
