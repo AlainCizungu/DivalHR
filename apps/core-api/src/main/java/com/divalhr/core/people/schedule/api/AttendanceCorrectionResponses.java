@@ -243,6 +243,7 @@ public final class AttendanceCorrectionResponses {
    * @param before the values before, or {@code null} for a created record
    * @param after the values after
    * @param record the effective record
+   * @param reopenedTimesheets the approved timesheets this correction reopened (MVP-070D)
    */
   @Schema(name = "AttendanceCorrectionReceipt")
   public record Receipt(
@@ -253,16 +254,19 @@ public final class AttendanceCorrectionResponses {
       Reason reasonCode,
       @Schema(nullable = true) TimesView before,
       TimesView after,
-      CorrectedRecord record) {
+      CorrectedRecord record,
+      int reopenedTimesheets) {
 
     /**
      * The receipt of a correction.
      *
      * @param entry the correction
      * @param record the effective record
+     * @param reopenedTimesheets the approved timesheets it reopened
      * @return the receipt
      */
-    public static Receipt of(AttendanceCorrection.Entry entry, Attendance.Record record) {
+    public static Receipt of(
+        AttendanceCorrection.Entry entry, Attendance.Record record, int reopenedTimesheets) {
       return new Receipt(
           entry.id(),
           entry.operation(),
@@ -271,7 +275,8 @@ public final class AttendanceCorrectionResponses {
           entry.reason(),
           TimesView.of(entry.before()),
           TimesView.of(entry.after()),
-          CorrectedRecord.of(record));
+          CorrectedRecord.of(record),
+          reopenedTimesheets);
     }
 
     /**

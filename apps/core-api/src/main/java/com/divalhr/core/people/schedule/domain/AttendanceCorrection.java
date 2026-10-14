@@ -57,7 +57,12 @@ public final class AttendanceCorrection {
     /** The record's schedule was cancelled or replaced after it was recorded. */
     SCHEDULE_NOT_OPERATIONAL,
     /** The original attendance events are kept unchanged; the record shows the corrected values. */
-    ORIGINAL_EVENTS_KEPT
+    ORIGINAL_EVENTS_KEPT,
+    /**
+     * Approved time covers this shift: a correction that changes it reopens the timesheet for the
+     * organization's refresh and a new approval (MVP-070D).
+     */
+    APPROVED_TIME_MAY_REOPEN
   }
 
   /**

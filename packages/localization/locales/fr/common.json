@@ -3208,7 +3208,8 @@
       "CHECK_OUT_REMOVED": "Le départ actuel sera supprimé.",
       "NO_CHECK_OUT": "Le pointage n’aura aucun départ.",
       "SCHEDULE_NOT_OPERATIONAL": "Cet horaire a été annulé ou remplacé après le pointage.",
-      "ORIGINAL_EVENTS_KEPT": "L’arrivée et le départ d’origine restent inchangés dans l’historique ; le pointage affiche les heures corrigées."
+      "ORIGINAL_EVENTS_KEPT": "L’arrivée et le départ d’origine restent inchangés dans l’historique ; le pointage affiche les heures corrigées.",
+      "APPROVED_TIME_MAY_REOPEN": "Ce poste fait partie d’un temps approuvé. Si la correction modifie la feuille de temps, celle-ci est rouverte : actualisez sa semaine, puis l’employé la soumet de nouveau pour approbation."
     },
     "confirmCheck": "J’ai vérifié cette correction et je la confirme.",
     "commit": "Enregistrer la correction",
@@ -3235,7 +3236,9 @@
     },
     "byYou": "par vous",
     "byAdministrator": "par l’administrateur {{reference}}",
-    "change": "Arrivée {{beforeIn}} → {{afterIn}} ; départ {{beforeOut}} → {{afterOut}}"
+    "change": "Arrivée {{beforeIn}} → {{afterIn}} ; départ {{beforeOut}} → {{afterOut}}",
+    "reopened_one": "{{count}} feuille de temps approuvée a été rouverte. Actualisez sa semaine avant une nouvelle soumission.",
+    "reopened_other": "{{count}} feuilles de temps approuvées ont été rouvertes. Actualisez leurs semaines avant une nouvelle soumission."
   },
   "timesheets": {
     "title": "Feuilles de temps",
@@ -3313,10 +3316,10 @@
       "action": "Prévisualiser l’actualisation",
       "previewing": "Prévisualisation…",
       "title": "Aperçu de l’actualisation",
-      "description": "Une actualisation ajoute une nouvelle révision à chaque brouillon dont les sources ont changé. Les révisions précédentes sont conservées.",
+      "description": "Une actualisation ajoute une nouvelle révision à chaque brouillon dont les sources ont changé et à chaque feuille rouverte. Les révisions précédentes sont conservées. Les feuilles approuvées ne sont jamais modifiées.",
       "newDrafts": "Nouveaux brouillons",
-      "changedTimesheets": "Brouillons avec une nouvelle révision",
-      "unchangedTimesheets": "Brouillons inchangés",
+      "changedTimesheets": "Feuilles de temps avec une nouvelle révision",
+      "unchangedTimesheets": "Feuilles de temps inchangées",
       "changedRows": "Créneaux modifiés",
       "nothing": "Rien n’a changé depuis la dernière révision. L’application enregistre seulement l’actualisation.",
       "confirmCheck": "J’ai vérifié cet aperçu et je veux appliquer l’actualisation.",
@@ -3324,7 +3327,13 @@
       "applying": "Application…",
       "cancel": "Annuler",
       "done": "Actualisation appliquée : version {{version}}.",
-      "locked": "Cette semaine compte des feuilles de temps soumises ou approuvées. Elle ne peut plus être actualisée."
+      "locked": "Cette semaine comporte une feuille de temps soumise. Actualisez-la après la décision du responsable.",
+      "reopenedTimesheets": "Feuilles rouvertes",
+      "lockedTimesheets": "Feuilles approuvées conservées telles quelles",
+      "reopenedNote_one": "{{count}} feuille de temps a été rouverte : la présence a changé après l’approbation. L’actualisation lui donne une nouvelle révision et en refait un brouillon, pour une nouvelle soumission et une nouvelle approbation. Son approbation précédente reste dans son historique.",
+      "reopenedNote_other": "{{count}} feuilles de temps ont été rouvertes : la présence a changé après l’approbation. L’actualisation donne à chacune une nouvelle révision et en refait un brouillon, pour une nouvelle soumission et une nouvelle approbation. Leurs approbations précédentes restent dans leur historique.",
+      "lockedNote_one": "{{count}} feuille approuvée conserve sa révision approuvée : ses sources n’ont pas changé.",
+      "lockedNote_other": "{{count}} feuilles approuvées conservent leur révision approuvée : leurs sources n’ont pas changé."
     },
     "detail": {
       "title": "Feuille de temps de {{name}}",
@@ -3362,7 +3371,8 @@
     "status": {
       "DRAFT": "Brouillon",
       "SUBMITTED": "Soumise",
-      "APPROVED": "Approuvée"
+      "APPROVED": "Approuvée",
+      "REOPENED": "Rouverte"
     },
     "history": {
       "title": "Historique des soumissions",
@@ -3379,9 +3389,15 @@
       "action": {
         "SUBMITTED": "Soumise",
         "RETURNED": "Renvoyée",
-        "APPROVED": "Approuvée"
+        "APPROVED": "Approuvée",
+        "REOPENED": "Rouverte"
       },
       "noReason": "—"
+    },
+    "reopened": {
+      "title": "La présence a changé après l’approbation",
+      "refresh": "Actualisez avant une nouvelle soumission : actualisez cette semaine pour donner une nouvelle révision à la feuille de temps. L’employé la soumet ensuite de nouveau pour approbation.",
+      "refreshed": "Actualisée : l’employé peut soumettre la nouvelle révision au cycle {{cycle}}."
     }
   },
   "myTimesheets": {
@@ -3415,7 +3431,8 @@
         "OPEN_ATTENDANCE": "Un créneau n’a pas de départ.",
         "SOURCE_CHANGED": "Un créneau a changé depuis cette révision.",
         "NO_READY_ROWS": "Aucun créneau n’est prêt.",
-        "APPROVAL_ROUTE_UNAVAILABLE": "Aucun responsable ne peut approuver cette semaine."
+        "APPROVAL_ROUTE_UNAVAILABLE": "Aucun responsable ne peut approuver cette semaine.",
+        "REFRESH_REQUIRED": "Actualisez avant une nouvelle soumission : votre organisation actualise d’abord cette semaine."
       },
       "resolve": "Régularisez ces points avec votre organisation. Une fois votre feuille de temps mise à jour, vous pourrez la soumettre.",
       "submit": "Soumettre la feuille de temps",
@@ -3431,6 +3448,13 @@
       "title": "Renvoyée par votre responsable",
       "reason": "Motif",
       "instruction": "Régularisez les présences avec votre organisation. Une fois la feuille de temps mise à jour, soumettez-la de nouveau."
+    },
+    "reopened": {
+      "title": "La présence a changé après l’approbation",
+      "what": "La présence de cette semaine a été corrigée le {{time}}, après son approbation au cycle {{cycle}}. Un nouvel examen est nécessaire. L’approbation précédente reste dans l’historique ci-dessous.",
+      "refreshTitle": "Actualisez avant une nouvelle soumission.",
+      "refresh": "Votre organisation actualise d’abord cette semaine. Vous pourrez ensuite la vérifier et la soumettre de nouveau.",
+      "refreshed": "La feuille de temps a été actualisée (révision {{revision}}). Vérifiez-la, puis soumettez-la de nouveau au cycle {{cycle}}."
     }
   },
   "timeApprovals": {

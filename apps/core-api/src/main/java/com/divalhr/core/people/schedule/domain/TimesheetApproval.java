@@ -9,11 +9,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * MVP-070B/C (Issue #130, T70BC-1 to T70BC-7; ADR 0019): a weekly timesheet's submission and
- * decision lifecycle. The current state is exactly the state of the latest action: none or {@link
- * Kind#RETURNED} is a {@link Status#DRAFT}, {@link Kind#SUBMITTED} is {@link Status#SUBMITTED},
- * {@link Kind#APPROVED} is {@link Status#APPROVED} (final in this story; reopening is MVP-070D).
- * Only a clean revision is submitted: at least one READY row and no blocking row.
+ * MVP-070B/C (Issue #130, T70BC-1 to T70BC-7; ADR 0019) and MVP-070D (Issue #132, T70D-1; ADR
+ * 0020): a weekly timesheet's submission, decision and reopening lifecycle. The current state is
+ * the state of the latest action: none or {@link Kind#RETURNED} is a {@link Status#DRAFT}, {@link
+ * Kind#SUBMITTED} is {@link Status#SUBMITTED}, {@link Kind#APPROVED} is {@link Status#APPROVED},
+ * {@link Kind#REOPENED} is {@link Status#REOPENED} until the organization's refresh gives the
+ * timesheet its next revision as a {@link Status#DRAFT}. Only a clean revision is submitted: at
+ * least one READY row and no blocking row.
  */
 public final class TimesheetApproval {
 
@@ -31,8 +33,12 @@ public final class TimesheetApproval {
     DRAFT,
     /** Awaiting its routed manager's decision. */
     SUBMITTED,
-    /** Approved: immutable in this story. */
-    APPROVED
+    /** Approved: never changed; a material attendance correction reopens it (MVP-070D). */
+    APPROVED,
+    /**
+     * Approved, then reopened by a correction: the organization refreshes it before resubmission.
+     */
+    REOPENED
   }
 
   /** An append-only action. */
@@ -42,7 +48,9 @@ public final class TimesheetApproval {
     /** The routed manager returned the cycle with a reason: a DRAFT again. */
     RETURNED,
     /** The routed manager approved the cycle. */
-    APPROVED;
+    APPROVED,
+    /** A committed attendance correction materially changed the approved cycle's sources. */
+    REOPENED;
 
     /**
      * The timesheet's state after this action.
@@ -54,6 +62,7 @@ public final class TimesheetApproval {
         case SUBMITTED -> Status.SUBMITTED;
         case APPROVED -> Status.APPROVED;
         case RETURNED -> Status.DRAFT;
+        case REOPENED -> Status.REOPENED;
       };
     }
   }
@@ -69,7 +78,9 @@ public final class TimesheetApproval {
     /** No READY row to submit. */
     NO_READY_ROWS,
     /** No single eligible manager is effective for the week. */
-    APPROVAL_ROUTE_UNAVAILABLE
+    APPROVAL_ROUTE_UNAVAILABLE,
+    /** Reopened after approval: the organization refreshes the week before a new submission. */
+    REFRESH_REQUIRED
   }
 
   /**
@@ -87,9 +98,13 @@ public final class TimesheetApproval {
    * @param totals the revision's totals
    * @param employeeId employee
    * @param employmentId the qualifying employment of the revision's rows
-   * @param managerEmployeeId the routed (submission) or deciding (decision) manager
+   * @param managerEmployeeId the routed (submission), deciding (decision) or approving (reopening)
+   *     manager
    * @param returnReason a return's reason, or {@code null}
    * @param occurredAt instant
+   * @param supersededActionId a reopening's superseded approval, or {@code null}
+   * @param afterSourceDigest a reopening's source digest after the correction, or {@code null}
+   * @param correctionId a reopening's attendance correction, or {@code null}
    */
   public record Action(
       UUID id,
@@ -106,13 +121,108 @@ public final class TimesheetApproval {
       UUID employmentId,
       UUID managerEmployeeId,
       String returnReason,
-      Instant occurredAt) {
+      Instant occurredAt,
+      UUID supersededActionId,
+      String afterSourceDigest,
+      UUID correctionId) {
 
     /** Requires the identity, kind and digest. */
     public Action {
       Objects.requireNonNull(id, "id");
       Objects.requireNonNull(kind, "kind");
       Objects.requireNonNull(sourceDigest, "sourceDigest");
+    }
+
+    /**
+     * A submission or decision (no reopening facts).
+     *
+     * @param id action
+     * @param timesheetId timesheet
+     * @param sequence 1, 2, ... per timesheet
+     * @param kind the action
+     * @param cycle its submission cycle
+     * @param submissionActionId a decision's submission, or {@code null}
+     * @param revision the bound revision
+     * @param generationVersion the generation version when it happened
+     * @param sourceDigest the revision's source digest
+     * @param totals the revision's totals
+     * @param employeeId employee
+     * @param employmentId the qualifying employment of the revision's rows
+     * @param managerEmployeeId the routed (submission) or deciding (decision) manager
+     * @param returnReason a return's reason, or {@code null}
+     * @param occurredAt instant
+     */
+    public Action(
+        UUID id,
+        UUID timesheetId,
+        int sequence,
+        Kind kind,
+        int cycle,
+        UUID submissionActionId,
+        int revision,
+        int generationVersion,
+        String sourceDigest,
+        Totals totals,
+        UUID employeeId,
+        UUID employmentId,
+        UUID managerEmployeeId,
+        String returnReason,
+        Instant occurredAt) {
+      this(
+          id,
+          timesheetId,
+          sequence,
+          kind,
+          cycle,
+          submissionActionId,
+          revision,
+          generationVersion,
+          sourceDigest,
+          totals,
+          employeeId,
+          employmentId,
+          managerEmployeeId,
+          returnReason,
+          occurredAt,
+          null,
+          null,
+          null);
+    }
+
+    /**
+     * The reopening of an approval: its exact evidence, manager and cycle, the source digest after
+     * the correction, the correction and the instant (T70D-3).
+     *
+     * @param approval the superseded approval (the timesheet's latest action)
+     * @param afterSourceDigest the source digest after the correction
+     * @param correctionId the committed attendance correction
+     * @param occurredAt instant
+     * @return the reopening
+     */
+    public static Action reopening(
+        Action approval, String afterSourceDigest, UUID correctionId, Instant occurredAt) {
+      if (approval.kind() != Kind.APPROVED || approval.sourceDigest().equals(afterSourceDigest)) {
+        throw new IllegalArgumentException("only a materially changed approval is reopened");
+      }
+      return new Action(
+          UUID.randomUUID(),
+          approval.timesheetId(),
+          approval.sequence() + 1,
+          Kind.REOPENED,
+          approval.cycle(),
+          null,
+          approval.revision(),
+          approval.generationVersion(),
+          approval.sourceDigest(),
+          approval.totals(),
+          approval.employeeId(),
+          approval.employmentId(),
+          approval.managerEmployeeId(),
+          null,
+          occurredAt,
+          approval.id(),
+          Objects.requireNonNull(afterSourceDigest, "afterSourceDigest"),
+          Objects.requireNonNull(correctionId, "correctionId"));
     }
 
     /**

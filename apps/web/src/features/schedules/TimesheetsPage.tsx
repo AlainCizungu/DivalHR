@@ -651,7 +651,25 @@ export function TimesheetsPage() {
                 </dd>
                 <dt>{t('timesheets.refresh.changedRows')}</dt>
                 <dd data-testid="timesheets-refresh-rows">{refreshPreview.changedRows}</dd>
+                <dt>{t('timesheets.refresh.reopenedTimesheets')}</dt>
+                <dd data-testid="timesheets-refresh-reopened">
+                  {refreshPreview.reopenedTimesheets}
+                </dd>
+                <dt>{t('timesheets.refresh.lockedTimesheets')}</dt>
+                <dd data-testid="timesheets-refresh-locked">{refreshPreview.lockedTimesheets}</dd>
               </dl>
+              {refreshPreview.reopenedTimesheets > 0 && (
+                <p className="card" data-testid="timesheets-refresh-reopened-note">
+                  {t('timesheets.refresh.reopenedNote', {
+                    count: refreshPreview.reopenedTimesheets,
+                  })}
+                </p>
+              )}
+              {refreshPreview.lockedTimesheets > 0 && (
+                <p className="muted" data-testid="timesheets-refresh-locked-note">
+                  {t('timesheets.refresh.lockedNote', { count: refreshPreview.lockedTimesheets })}
+                </p>
+              )}
               <TotalsList totals={refreshPreview.totals} testId="timesheets-refresh-totals" />
               {refreshPreview.newDrafts + refreshPreview.changedTimesheets === 0 && (
                 <p data-testid="timesheets-refresh-nothing">{t('timesheets.refresh.nothing')}</p>
@@ -723,6 +741,17 @@ export function TimesheetsPage() {
               </>
             )}
           </p>
+          {(detail.status === 'REOPENED' ||
+            (detail.status === 'DRAFT' && detail.actions[0]?.action === 'REOPENED')) && (
+            <div className="card" data-testid="timesheets-detail-reopened">
+              <h3>{t('timesheets.reopened.title')}</h3>
+              <p>
+                {detail.status === 'REOPENED'
+                  ? t('timesheets.reopened.refresh')
+                  : t('timesheets.reopened.refreshed', { cycle: detail.submissionCycle + 1 })}
+              </p>
+            </div>
+          )}
           <TotalsList totals={detail.totals} testId="timesheets-detail-totals" />
           <TimesheetRows
             rows={detail.rows}

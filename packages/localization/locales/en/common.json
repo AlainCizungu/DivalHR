@@ -3208,7 +3208,8 @@
       "CHECK_OUT_REMOVED": "The current check-out will be removed.",
       "NO_CHECK_OUT": "The record will have no check-out.",
       "SCHEDULE_NOT_OPERATIONAL": "This schedule was cancelled or replaced after the record.",
-      "ORIGINAL_EVENTS_KEPT": "The original check-in and check-out stay unchanged in the history; the record shows the corrected times."
+      "ORIGINAL_EVENTS_KEPT": "The original check-in and check-out stay unchanged in the history; the record shows the corrected times.",
+      "APPROVED_TIME_MAY_REOPEN": "This shift belongs to approved time. If the correction changes the timesheet, it is reopened: refresh its week, then the employee submits it again for approval."
     },
     "confirmCheck": "I reviewed this correction and confirm it.",
     "commit": "Save the correction",
@@ -3235,7 +3236,9 @@
     },
     "byYou": "by you",
     "byAdministrator": "by administrator {{reference}}",
-    "change": "Check-in {{beforeIn}} → {{afterIn}}; check-out {{beforeOut}} → {{afterOut}}"
+    "change": "Check-in {{beforeIn}} → {{afterIn}}; check-out {{beforeOut}} → {{afterOut}}",
+    "reopened_one": "{{count}} approved timesheet was reopened. Refresh its week before resubmission.",
+    "reopened_other": "{{count}} approved timesheets were reopened. Refresh their weeks before resubmission."
   },
   "timesheets": {
     "title": "Timesheets",
@@ -3313,10 +3316,10 @@
       "action": "Preview refresh",
       "previewing": "Previewing…",
       "title": "Refresh preview",
-      "description": "A refresh adds a new revision to each draft whose sources changed. Earlier revisions are kept.",
+      "description": "A refresh adds a new revision to each draft whose sources changed and to each reopened timesheet. Earlier revisions are kept. Approved timesheets are never changed.",
       "newDrafts": "New drafts",
-      "changedTimesheets": "Drafts with a new revision",
-      "unchangedTimesheets": "Unchanged drafts",
+      "changedTimesheets": "Timesheets with a new revision",
+      "unchangedTimesheets": "Unchanged timesheets",
       "changedRows": "Changed shifts",
       "nothing": "Nothing changed since the last revision. Applying only records the refresh.",
       "confirmCheck": "I reviewed this preview and want to apply the refresh.",
@@ -3324,7 +3327,13 @@
       "applying": "Applying…",
       "cancel": "Cancel",
       "done": "Refresh applied: version {{version}}.",
-      "locked": "This week has submitted or approved timesheets. It can no longer be refreshed."
+      "locked": "This week has a submitted timesheet. Refresh it after the manager’s decision.",
+      "reopenedTimesheets": "Reopened timesheets",
+      "lockedTimesheets": "Approved timesheets kept as they are",
+      "reopenedNote_one": "{{count}} timesheet was reopened: attendance changed after approval. The refresh gives it a new revision and makes it a draft again, for a new submission and approval. Its earlier approval stays in its history.",
+      "reopenedNote_other": "{{count}} timesheets were reopened: attendance changed after approval. The refresh gives each a new revision and makes it a draft again, for a new submission and approval. Their earlier approvals stay in their history.",
+      "lockedNote_one": "{{count}} approved timesheet keeps its approved revision: its sources did not change.",
+      "lockedNote_other": "{{count}} approved timesheets keep their approved revisions: their sources did not change."
     },
     "detail": {
       "title": "Timesheet of {{name}}",
@@ -3362,7 +3371,8 @@
     "status": {
       "DRAFT": "Draft",
       "SUBMITTED": "Submitted",
-      "APPROVED": "Approved"
+      "APPROVED": "Approved",
+      "REOPENED": "Reopened"
     },
     "history": {
       "title": "Submission history",
@@ -3379,9 +3389,15 @@
       "action": {
         "SUBMITTED": "Submitted",
         "RETURNED": "Returned",
-        "APPROVED": "Approved"
+        "APPROVED": "Approved",
+        "REOPENED": "Reopened"
       },
       "noReason": "—"
+    },
+    "reopened": {
+      "title": "Attendance changed after approval",
+      "refresh": "Refresh before resubmission: refresh this week to give the timesheet a new revision. The employee then submits it again for approval.",
+      "refreshed": "Refreshed: the employee can submit the new revision as cycle {{cycle}}."
     }
   },
   "myTimesheets": {
@@ -3415,7 +3431,8 @@
         "OPEN_ATTENDANCE": "A shift has no check-out.",
         "SOURCE_CHANGED": "A shift changed since this revision.",
         "NO_READY_ROWS": "No shift is ready.",
-        "APPROVAL_ROUTE_UNAVAILABLE": "No manager can approve this week."
+        "APPROVAL_ROUTE_UNAVAILABLE": "No manager can approve this week.",
+        "REFRESH_REQUIRED": "Refresh before resubmission: your organization refreshes this week first."
       },
       "resolve": "Resolve these with your organization. Once your timesheet is updated, you can submit it.",
       "submit": "Submit timesheet",
@@ -3431,6 +3448,13 @@
       "title": "Returned by your manager",
       "reason": "Reason",
       "instruction": "Resolve the attendance with your organization. Once the timesheet is updated, submit it again."
+    },
+    "reopened": {
+      "title": "Attendance changed after approval",
+      "what": "Attendance in this week was corrected on {{time}}, after its approval in cycle {{cycle}}. Another review is required. The earlier approval stays in the history below.",
+      "refreshTitle": "Refresh before resubmission.",
+      "refresh": "Your organization refreshes this week first. You can then review it and submit it again.",
+      "refreshed": "The timesheet was refreshed (revision {{revision}}). Review it, then submit it again as cycle {{cycle}}."
     }
   },
   "timeApprovals": {

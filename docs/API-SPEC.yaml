@@ -11744,8 +11744,10 @@ components:
         MVP-062. Neutral factual warnings of a preview. CHECK_OUT_REMOVED: the current check-out is
         removed. NO_CHECK_OUT: the corrected record has no check-out. SCHEDULE_NOT_OPERATIONAL: the
         record's schedule was cancelled or replaced. ORIGINAL_EVENTS_KEPT: the original events stay
-        unchanged and the record shows the corrected values.
-      enum: [CHECK_OUT_REMOVED, NO_CHECK_OUT, SCHEDULE_NOT_OPERATIONAL, ORIGINAL_EVENTS_KEPT]
+        unchanged and the record shows the corrected values. APPROVED_TIME_MAY_REOPEN (MVP-070D):
+        approved time covers the shift; a correction that changes it reopens the timesheet for
+        the organization's refresh and a new approval (this fact is part of the preview digest).
+      enum: [CHECK_OUT_REMOVED, NO_CHECK_OUT, SCHEDULE_NOT_OPERATIONAL, ORIGINAL_EVENTS_KEPT, APPROVED_TIME_MAY_REOPEN]
     AttendanceCorrectionRequest:
       type: object
       additionalProperties: false
@@ -12175,7 +12177,7 @@ components:
           $ref: "#/components/schemas/TimesheetEmployee"
         status:
           type: string
-          enum: [DRAFT, SUBMITTED, APPROVED]
+          enum: [DRAFT, SUBMITTED, APPROVED, REOPENED]
         revision:
           type: integer
           minimum: 1
@@ -12198,8 +12200,12 @@ components:
             $ref: "#/components/schemas/TimesheetDraftItem"
     TimesheetRefreshPreview:
       type: object
-      description: MVP-070A. What a refresh would change now.
-      required: [generationId, version, period, previewDigest, newDrafts, changedTimesheets, unchangedTimesheets, changedRows, totals]
+      description: >-
+        MVP-070A. What a refresh would change now. MVP-070D: refused while any timesheet of the
+        week is SUBMITTED; approved timesheets stay locked and unchanged (lockedTimesheets, counted
+        as unchanged); reopened timesheets always receive their next revision and become drafts
+        (reopenedTimesheets, counted as changed).
+      required: [generationId, version, period, previewDigest, newDrafts, changedTimesheets, unchangedTimesheets, changedRows, totals, reopenedTimesheets, lockedTimesheets]
       properties:
         generationId:
           type: string
@@ -12226,10 +12232,16 @@ components:
           minimum: 0
         totals:
           $ref: "#/components/schemas/TimesheetTotals"
+        reopenedTimesheets:
+          type: integer
+          minimum: 0
+        lockedTimesheets:
+          type: integer
+          minimum: 0
     TimesheetRefreshResult:
       type: object
-      description: MVP-070A. A committed refresh.
-      required: [generation, newDrafts, changedTimesheets, changedRows]
+      description: MVP-070A. A committed refresh (MVP-070D, the reopened timesheets made drafts again).
+      required: [generation, newDrafts, changedTimesheets, changedRows, reopenedTimesheets]
       properties:
         generation:
           $ref: "#/components/schemas/TimesheetGenerationSummary"
@@ -12240,6 +12252,9 @@ components:
           type: integer
           minimum: 0
         changedRows:
+          type: integer
+          minimum: 0
+        reopenedTimesheets:
           type: integer
           minimum: 0
     TimesheetLabels:
@@ -12343,7 +12358,7 @@ components:
           $ref: "#/components/schemas/TimesheetPeriod"
         status:
           type: string
-          enum: [DRAFT, SUBMITTED, APPROVED]
+          enum: [DRAFT, SUBMITTED, APPROVED, REOPENED]
         revision:
           type: integer
           minimum: 1
@@ -12376,7 +12391,7 @@ components:
           $ref: "#/components/schemas/TimesheetPeriod"
         status:
           type: string
-          enum: [DRAFT, SUBMITTED, APPROVED]
+          enum: [DRAFT, SUBMITTED, APPROVED, REOPENED]
         revision:
           type: integer
           minimum: 1
@@ -12438,7 +12453,7 @@ components:
           $ref: "#/components/schemas/TimesheetPeriod"
         status:
           type: string
-          enum: [DRAFT, SUBMITTED, APPROVED]
+          enum: [DRAFT, SUBMITTED, APPROVED, REOPENED]
         revision:
           type: integer
           minimum: 1
@@ -12541,10 +12556,10 @@ components:
           format: uuid
         action:
           type: string
-          enum: [SUBMITTED, RETURNED, APPROVED]
+          enum: [SUBMITTED, RETURNED, APPROVED, REOPENED]
         status:
           type: string
-          enum: [DRAFT, SUBMITTED, APPROVED]
+          enum: [DRAFT, SUBMITTED, APPROVED, REOPENED]
         cycle:
           type: integer
           minimum: 1
@@ -12569,7 +12584,7 @@ components:
           format: uuid
         action:
           type: string
-          enum: [SUBMITTED, RETURNED, APPROVED]
+          enum: [SUBMITTED, RETURNED, APPROVED, REOPENED]
         cycle:
           type: integer
           minimum: 1
@@ -12597,7 +12612,7 @@ components:
       properties:
         action:
           type: string
-          enum: [SUBMITTED, RETURNED, APPROVED]
+          enum: [SUBMITTED, RETURNED, APPROVED, REOPENED]
         cycle:
           type: integer
           minimum: 1
@@ -12625,7 +12640,7 @@ components:
           type: array
           items:
             type: string
-            enum: [MISSING_ATTENDANCE, OPEN_ATTENDANCE, SOURCE_CHANGED, NO_READY_ROWS, APPROVAL_ROUTE_UNAVAILABLE]
+            enum: [MISSING_ATTENDANCE, OPEN_ATTENDANCE, SOURCE_CHANGED, NO_READY_ROWS, APPROVAL_ROUTE_UNAVAILABLE, REFRESH_REQUIRED]
     TimeApprovalEmployee:
       type: object
       description: MVP-070B/C. The submitting employee's number and current name.
@@ -12718,9 +12733,12 @@ components:
             $ref: "#/components/schemas/TimesheetAction"
     AttendanceCorrectionReceipt:
       type: object
-      description: MVP-062. A committed correction's receipt; never the explanation or the administrator.
+      description: >-
+        MVP-062. A committed correction's receipt; never the explanation or the administrator.
+        MVP-070D: reopenedTimesheets counts the approved timesheets the correction materially
+        changed and reopened in the same transaction.
       required:
-        [correctionId, operation, correctionVersion, correctedAt, reasonCode, before, after, record]
+        [correctionId, operation, correctionVersion, correctedAt, reasonCode, before, after, record, reopenedTimesheets]
       properties:
         correctionId:
           type: string
@@ -12743,6 +12761,9 @@ components:
           $ref: "#/components/schemas/AttendanceCorrectionTimes"
         record:
           $ref: "#/components/schemas/CorrectedAttendanceRecord"
+        reopenedTimesheets:
+          type: integer
+          minimum: 0
     AttendanceCorrectionHistoryEntry:
       type: object
       description: MVP-062. One committed correction; never the administrator's subject.

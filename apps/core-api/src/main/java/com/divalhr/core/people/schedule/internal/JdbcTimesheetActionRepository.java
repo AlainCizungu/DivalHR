@@ -23,12 +23,13 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * MVP-070B/C (V33): a timesheet's append-only submission and decision actions, its approval route
- * and the routed manager's queue. Every query names the verified tenant and is driven by a key: a
- * timesheet's history by {@code timesheet_action_sequence_unique}, an action by its primary key,
- * the queue by the manager's reporting lines ({@code employment_assignment_reports}) and then
- * {@code timesheet_submitted}. Runs in the caller's transaction; every write is made under the
- * tenant's manager-graph and scheduling locks with the timesheet locked {@code FOR UPDATE}.
+ * MVP-070B/C (V33) and MVP-070D (V34): a timesheet's append-only submission, decision and reopening
+ * actions, the approved timesheets a correction may reopen, its approval route and the routed
+ * manager's queue. Every query names the verified tenant and is driven by a key: a timesheet's
+ * history by {@code timesheet_action_sequence_unique}, an action by its primary key, the queue by
+ * the manager's reporting lines ({@code employment_assignment_reports}) and then {@code
+ * timesheet_submitted}. Runs in the caller's transaction; every write is made under the tenant's
+ * manager-graph and scheduling locks with the timesheet locked {@code FOR UPDATE}.
  */
 @Repository
 public class JdbcTimesheetActionRepository {
@@ -37,7 +38,8 @@ public class JdbcTimesheetActionRepository {
       "a.id, a.timesheet_id, a.sequence, a.action, a.cycle, a.submission_action_id, a.revision,"
           + " a.generation_version, a.source_digest, a.row_count, a.ready_rows, a.missing_rows,"
           + " a.open_rows, a.changed_rows, a.worked_minutes, a.employee_id, a.employment_id,"
-          + " a.manager_employee_id, a.return_reason, a.occurred_at";
+          + " a.manager_employee_id, a.return_reason, a.occurred_at, a.superseded_action_id,"
+          + " a.after_source_digest, a.correction_id";
 
   private final NamedParameterJdbcTemplate jdbc;
 
@@ -139,10 +141,12 @@ public class JdbcTimesheetActionRepository {
             + " submission_action_id, revision, generation_version, source_digest, row_count,"
             + " ready_rows, missing_rows, open_rows, changed_rows, worked_minutes, employee_id,"
             + " site_id, employment_id, manager_employee_id, actor_subject, return_reason,"
-            + " occurred_at) VALUES (:tenant, :id, :timesheet, :sequence, :action, :cycle,"
+            + " occurred_at, superseded_action_id, after_source_digest, correction_id) VALUES"
+            + " (:tenant, :id, :timesheet, :sequence, :action, :cycle,"
             + " CAST(:submission AS uuid), :revision, :version, :digest, :rows, :ready, :missing,"
             + " :open, :changed, :worked, :employee, :site, :employment, :manager, :subject,"
-            + " CAST(:reason AS text), :at)",
+            + " CAST(:reason AS text), :at, CAST(:superseded AS uuid), CAST(:after AS text),"
+            + " CAST(:correction AS uuid))",
         new MapSqlParameterSource()
             .addValue("tenant", tenant.value())
             .addValue("id", action.id())
@@ -166,7 +170,10 @@ public class JdbcTimesheetActionRepository {
             .addValue("manager", action.managerEmployeeId())
             .addValue("subject", subject)
             .addValue("reason", action.returnReason())
-            .addValue("at", Timestamp.from(action.occurredAt())));
+            .addValue("at", Timestamp.from(action.occurredAt()))
+            .addValue("superseded", action.supersededActionId())
+            .addValue("after", action.afterSourceDigest())
+            .addValue("correction", action.correctionId()));
   }
 
   /**
@@ -190,6 +197,36 @@ public class JdbcTimesheetActionRepository {
             .addValue("cycle", action.cycle())
             .addValue("action", action.id())
             .addValue("from", from.name()));
+  }
+
+  /**
+   * The APPROVED timesheets of an employee whose week contains an instant (a correction's shift
+   * start), in ID order, optionally locked {@code FOR UPDATE} (MVP-070D, T70D-2). Driven by the
+   * employee's timesheets ({@code timesheet_employee_week}), never a scan of the tenant.
+   *
+   * @param tenant verified tenant
+   * @param employeeId employee
+   * @param at the instant
+   * @param lock whether to lock them
+   * @return the headers
+   */
+  public List<Header> approvedCovering(TenantId tenant, UUID employeeId, Instant at, boolean lock) {
+    return jdbc.query(
+        "SELECT t.id, t.generation_id, t.employee_id, t.site_id, t.week_start, t.status,"
+            + " t.submission_cycle, t.current_action_id, t.current_revision, t.row_count,"
+            + " t.ready_rows, t.missing_rows, t.open_rows, t.changed_rows, t.worked_minutes,"
+            + " t.created_at, t.updated_at, g.site_timezone, g.period_start_at, g.period_end_at"
+            + " FROM people.timesheet t JOIN people.timesheet_generation g"
+            + " ON g.tenant_id = t.tenant_id AND g.id = t.generation_id"
+            + " WHERE t.tenant_id = :tenant AND t.employee_id = :employee"
+            + " AND t.status = 'APPROVED' AND g.period_start_at <= :at AND g.period_end_at > :at"
+            + " ORDER BY t.id"
+            + (lock ? " FOR UPDATE OF t" : ""),
+        new MapSqlParameterSource()
+            .addValue("tenant", tenant.value())
+            .addValue("employee", employeeId)
+            .addValue("at", Timestamp.from(at)),
+        (rs, n) -> header(rs));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -326,7 +363,10 @@ public class JdbcTimesheetActionRepository {
         rs.getObject("employment_id", UUID.class),
         rs.getObject("manager_employee_id", UUID.class),
         rs.getString("return_reason"),
-        instant(rs, "occurred_at"));
+        instant(rs, "occurred_at"),
+        rs.getObject("superseded_action_id", UUID.class),
+        rs.getString("after_source_digest"),
+        rs.getObject("correction_id", UUID.class));
   }
 
   private static Header header(ResultSet rs) throws SQLException {

@@ -554,6 +554,11 @@ function CorrectionPanel({
               version: receipt.correctionVersion,
             })}
           </p>
+          {receipt.reopenedTimesheets > 0 && (
+            <p className="card" data-testid="attendance-correction-reopened">
+              {t('attendanceCorrection.reopened', { count: receipt.reopenedTimesheets })}
+            </p>
+          )}
           <BeforeAfter
             before={receipt.before}
             after={receipt.after}

@@ -88,6 +88,12 @@ import tools.jackson.databind.json.JsonMapper;
  * completion. Check-ins, check-outs and terminal actions take the same scheduling lock: every race
  * serializes to one valid outcome.
  *
+ * <p>MVP-070D (T70D-2): in the same transaction and under the same locks, after the correction's
+ * writes, every APPROVED timesheet of the employee whose week contains the shift and whose sources
+ * the correction materially changed is reopened ({@link TimesheetReopening}); the receipt counts
+ * them. The preview warns when approved time covers the shift, and that fact is part of the preview
+ * digest, so a commit after it changed is stale.
+ *
  * <p>The explanation, names, numbers, labels, instants, the subject, the preview digest and the
  * idempotency key never enter audit metadata, events, logs, metrics or errors.
  */
@@ -122,6 +128,7 @@ public class AttendanceCorrectionService {
   private final JdbcAttendanceRepository attendance;
   private final JdbcAttendanceCorrectionRepository corrections;
   private final OrganizationPlacementDirectory directory;
+  private final TimesheetReopening reopening;
   private final BusinessCalendar calendar;
   private final AuditRecorder audit;
   private final OutboxWriter outbox;
@@ -139,6 +146,7 @@ public class AttendanceCorrectionService {
    * @param attendance attendance storage
    * @param corrections correction storage
    * @param directory the tenant module's unit port (site codes and names)
+   * @param reopening approved time a correction reopens (MVP-070D)
    * @param calendar the platform clock (the authoritative instant)
    * @param audit audit recorder
    * @param outbox outbox writer
@@ -154,6 +162,7 @@ public class AttendanceCorrectionService {
       JdbcAttendanceRepository attendance,
       JdbcAttendanceCorrectionRepository corrections,
       OrganizationPlacementDirectory directory,
+      TimesheetReopening reopening,
       BusinessCalendar calendar,
       AuditRecorder audit,
       OutboxWriter outbox,
@@ -167,6 +176,7 @@ public class AttendanceCorrectionService {
     this.attendance = attendance;
     this.corrections = corrections;
     this.directory = directory;
+    this.reopening = reopening;
     this.calendar = calendar;
     this.audit = audit;
     this.outbox = outbox;
@@ -391,6 +401,15 @@ public class AttendanceCorrectionService {
     } catch (DataIntegrityViolationException violated) {
       throw mapped(violated);
     }
+    int reopened;
+    try {
+      // MVP-070D: approved time this correction materially changed is reopened, atomically.
+      reopened =
+          reopening.reopen(
+              caller, entry.id(), target.employee().id(), target.shift().startAt(), now);
+    } catch (DataIntegrityViolationException violated) {
+      throw mapped(violated);
+    }
     Record result = attendance.record(tenant, recordId).orElseThrow();
     recorded(caller, entry, result, commit.previewDigest(), proposal.explanationDigest());
     event(caller, entry, result);
@@ -401,7 +420,7 @@ public class AttendanceCorrectionService {
         .addKeyValue("reasonCode", entry.reason().name())
         .log("attendance_correction_recorded");
     return new IdempotentOperation.Completed<>(
-        Receipt.of(entry, result), result.id(), Outcome.CREATED);
+        Receipt.of(entry, result, reopened), result.id(), Outcome.CREATED);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -549,7 +568,12 @@ public class AttendanceCorrectionService {
     if (record != null && record.checkInEventId() != null) {
       warnings.add(Warning.ORIGINAL_EVENTS_KEPT);
     }
-    String digest = previewDigest(caller, target, proposal, before);
+    boolean approved =
+        reopening.approvedCovers(caller.tenant(), target.employee().id(), shift.startAt());
+    if (approved) {
+      warnings.add(Warning.APPROVED_TIME_MAY_REOPEN);
+    }
+    String digest = previewDigest(caller, target, proposal, before, approved);
     return Preview.of(
         proposal.operation(),
         record == null ? null : record.id(),
@@ -570,14 +594,15 @@ public class AttendanceCorrectionService {
 
   /**
    * The preview digest: the tenant, the administrator, the target's stable bindings and version,
-   * the immutable boundaries, the before and after values, the reason and the explanation's digest.
-   * Never the preview instant, so a commit re-derives it exactly from the same facts.
+   * the immutable boundaries, the before and after values, the reason, the explanation's digest and
+   * whether approved time covers the shift (MVP-070D). Never the preview instant, so a commit
+   * re-derives it exactly from the same facts.
    */
   private static String previewDigest(
-      PeopleCaller caller, Target target, Proposal proposal, Times before) {
+      PeopleCaller caller, Target target, Proposal proposal, Times before, boolean approved) {
     Shift shift = target.shift();
     return Fingerprints.sha256(
-        "DIVALHR-ATTENDANCE-CORRECTION-PREVIEW\nversion=1\ntenant="
+        "DIVALHR-ATTENDANCE-CORRECTION-PREVIEW\nversion=2\ntenant="
             + caller.tenant()
             + "\nsubject="
             + caller.subject()
@@ -613,6 +638,8 @@ public class AttendanceCorrectionService {
             + proposal.reason()
             + "\nexplanation="
             + proposal.explanationDigest()
+            + "\napprovedTime="
+            + approved
             + "\n");
   }
 
@@ -773,7 +800,12 @@ public class AttendanceCorrectionService {
     return switch (constraint) {
       case ScheduleConstraintViolations.CORRECTION_SEQUENCE,
           ScheduleConstraintViolations.CORRECTION_VERSION,
-          ScheduleConstraintViolations.ATTENDANCE_SLOT_EMPLOYEE ->
+          ScheduleConstraintViolations.ATTENDANCE_SLOT_EMPLOYEE,
+          ScheduleConstraintViolations.TIMESHEET_ACTION_SEQUENCE,
+          ScheduleConstraintViolations.TIMESHEET_ACTION_TRANSITION,
+          ScheduleConstraintViolations.TIMESHEET_ACTION_REOPENING,
+          ScheduleConstraintViolations.TIMESHEET_ACTION_REOPENED_CYCLE,
+          ScheduleConstraintViolations.TIMESHEET_GUARD ->
           stale();
       case ScheduleConstraintViolations.CORRECTION_CREATE,
           ScheduleConstraintViolations.ATTENDANCE_ONE_OPEN ->

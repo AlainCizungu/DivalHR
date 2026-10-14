@@ -4702,10 +4702,10 @@ export interface components {
          */
         AttendanceCorrectionReason: "DEVICE_OR_CONNECTIVITY" | "SUPERVISOR_OR_EMPLOYEE_REPORT" | "DATA_ENTRY_ERROR" | "SYSTEM_ERROR" | "OTHER";
         /**
-         * @description MVP-062. Neutral factual warnings of a preview. CHECK_OUT_REMOVED: the current check-out is removed. NO_CHECK_OUT: the corrected record has no check-out. SCHEDULE_NOT_OPERATIONAL: the record's schedule was cancelled or replaced. ORIGINAL_EVENTS_KEPT: the original events stay unchanged and the record shows the corrected values.
+         * @description MVP-062. Neutral factual warnings of a preview. CHECK_OUT_REMOVED: the current check-out is removed. NO_CHECK_OUT: the corrected record has no check-out. SCHEDULE_NOT_OPERATIONAL: the record's schedule was cancelled or replaced. ORIGINAL_EVENTS_KEPT: the original events stay unchanged and the record shows the corrected values. APPROVED_TIME_MAY_REOPEN (MVP-070D): approved time covers the shift; a correction that changes it reopens the timesheet for the organization's refresh and a new approval (this fact is part of the preview digest).
          * @enum {string}
          */
-        AttendanceCorrectionWarning: "CHECK_OUT_REMOVED" | "NO_CHECK_OUT" | "SCHEDULE_NOT_OPERATIONAL" | "ORIGINAL_EVENTS_KEPT";
+        AttendanceCorrectionWarning: "CHECK_OUT_REMOVED" | "NO_CHECK_OUT" | "SCHEDULE_NOT_OPERATIONAL" | "ORIGINAL_EVENTS_KEPT" | "APPROVED_TIME_MAY_REOPEN";
         /** @description MVP-062. The complete new effective values of a record (REPLACE_TIMES), the reason and the explanation. Tenant, actor, employee, employment, schedule and slot are never fields. VALIDATION_FAILED fields: checkedInAt (REQUIRED, FORMAT, RANGE), checkedOutAt (FORMAT, RANGE), reasonCode (REQUIRED, FORMAT), explanation (REQUIRED, LENGTH, FORMAT), body (UNKNOWN_PROPERTY). */
         AttendanceCorrectionRequest: {
             /**
@@ -4921,7 +4921,7 @@ export interface components {
             timesheetId: string;
             employee: components["schemas"]["TimesheetEmployee"];
             /** @enum {string} */
-            status: "DRAFT" | "SUBMITTED" | "APPROVED";
+            status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REOPENED";
             revision: number;
             totals: components["schemas"]["TimesheetTotals"];
             /** Format: date-time */
@@ -4932,7 +4932,7 @@ export interface components {
             generation: components["schemas"]["TimesheetGenerationSummary"];
             timesheets: components["schemas"]["TimesheetDraftItem"][];
         };
-        /** @description MVP-070A. What a refresh would change now. */
+        /** @description MVP-070A. What a refresh would change now. MVP-070D: refused while any timesheet of the week is SUBMITTED; approved timesheets stay locked and unchanged (lockedTimesheets, counted as unchanged); reopened timesheets always receive their next revision and become drafts (reopenedTimesheets, counted as changed). */
         TimesheetRefreshPreview: {
             /** Format: uuid */
             generationId: string;
@@ -4944,13 +4944,16 @@ export interface components {
             unchangedTimesheets: number;
             changedRows: number;
             totals: components["schemas"]["TimesheetTotals"];
+            reopenedTimesheets: number;
+            lockedTimesheets: number;
         };
-        /** @description MVP-070A. A committed refresh. */
+        /** @description MVP-070A. A committed refresh (MVP-070D, the reopened timesheets made drafts again). */
         TimesheetRefreshResult: {
             generation: components["schemas"]["TimesheetGenerationSummary"];
             newDrafts: number;
             changedTimesheets: number;
             changedRows: number;
+            reopenedTimesheets: number;
         };
         TimesheetLabels: {
             en: string;
@@ -5007,7 +5010,7 @@ export interface components {
             employee: components["schemas"]["TimesheetEmployee"];
             period: components["schemas"]["TimesheetPeriod"];
             /** @enum {string} */
-            status: "DRAFT" | "SUBMITTED" | "APPROVED";
+            status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REOPENED";
             revision: number;
             submissionCycle: number;
             totals: components["schemas"]["TimesheetTotals"];
@@ -5021,7 +5024,7 @@ export interface components {
             timesheetId: string;
             period: components["schemas"]["TimesheetPeriod"];
             /** @enum {string} */
-            status: "DRAFT" | "SUBMITTED" | "APPROVED";
+            status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REOPENED";
             revision: number;
             /** @description The latest submission cycle (0 before the first submission). */
             submissionCycle: number;
@@ -5055,7 +5058,7 @@ export interface components {
             timesheetId: string;
             period: components["schemas"]["TimesheetPeriod"];
             /** @enum {string} */
-            status: "DRAFT" | "SUBMITTED" | "APPROVED";
+            status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REOPENED";
             revision: number;
             /** @description The generation's current version, to send with a submission. */
             generationVersion: number;
@@ -5103,9 +5106,9 @@ export interface components {
             /** Format: uuid */
             actionId: string;
             /** @enum {string} */
-            action: "SUBMITTED" | "RETURNED" | "APPROVED";
+            action: "SUBMITTED" | "RETURNED" | "APPROVED" | "REOPENED";
             /** @enum {string} */
-            status: "DRAFT" | "SUBMITTED" | "APPROVED";
+            status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REOPENED";
             cycle: number;
             revision: number;
             generationVersion: number;
@@ -5117,7 +5120,7 @@ export interface components {
             /** Format: uuid */
             actionId: string;
             /** @enum {string} */
-            action: "SUBMITTED" | "RETURNED" | "APPROVED";
+            action: "SUBMITTED" | "RETURNED" | "APPROVED" | "REOPENED";
             cycle: number;
             revision: number;
             generationVersion: number;
@@ -5130,7 +5133,7 @@ export interface components {
         /** @description MVP-070B/C. One submission or decision as the employee sees it; never who decided. */
         MyTimesheetAction: {
             /** @enum {string} */
-            action: "SUBMITTED" | "RETURNED" | "APPROVED";
+            action: "SUBMITTED" | "RETURNED" | "APPROVED" | "REOPENED";
             cycle: number;
             revision: number;
             workedMinutes: number;
@@ -5141,7 +5144,7 @@ export interface components {
         /** @description MVP-070B/C. Whether the draft can be submitted now, and what blocks it: rows to resolve with the organization, no READY row, or no available approval route. Never names a manager. */
         MyTimesheetSubmission: {
             eligible: boolean;
-            blockers: ("MISSING_ATTENDANCE" | "OPEN_ATTENDANCE" | "SOURCE_CHANGED" | "NO_READY_ROWS" | "APPROVAL_ROUTE_UNAVAILABLE")[];
+            blockers: ("MISSING_ATTENDANCE" | "OPEN_ATTENDANCE" | "SOURCE_CHANGED" | "NO_READY_ROWS" | "APPROVAL_ROUTE_UNAVAILABLE" | "REFRESH_REQUIRED")[];
         };
         /** @description MVP-070B/C. The submitting employee's number and current name. */
         TimeApprovalEmployee: {
@@ -5185,7 +5188,7 @@ export interface components {
             rows: components["schemas"]["MyTimesheetRow"][];
             actions: components["schemas"]["TimesheetAction"][];
         };
-        /** @description MVP-062. A committed correction's receipt; never the explanation or the administrator. */
+        /** @description MVP-062. A committed correction's receipt; never the explanation or the administrator. MVP-070D: reopenedTimesheets counts the approved timesheets the correction materially changed and reopened in the same transaction. */
         AttendanceCorrectionReceipt: {
             /** Format: uuid */
             correctionId: string;
@@ -5197,6 +5200,7 @@ export interface components {
             before: components["schemas"]["AttendanceCorrectionTimes"] | null;
             after: components["schemas"]["AttendanceCorrectionTimes"];
             record: components["schemas"]["CorrectedAttendanceRecord"];
+            reopenedTimesheets: number;
         };
         /** @description MVP-062. One committed correction; never the administrator's subject. */
         AttendanceCorrectionHistoryEntry: {

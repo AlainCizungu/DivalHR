@@ -26,11 +26,15 @@ export const STATE_TONES: Record<TimesheetRowState, StatusTone> = {
   SOURCE_CHANGED: 'warning',
 };
 
-/** MVP-070B/C: the timesheet's state; the text carries the meaning, the tone only repeats it. */
+/**
+ * MVP-070B/C and MVP-070D: the timesheet's state; the text carries the meaning, the tone only
+ * repeats it.
+ */
 export const STATUS_TONES: Record<TimesheetStatus, StatusTone> = {
   DRAFT: 'neutral',
   SUBMITTED: 'info',
   APPROVED: 'success',
+  REOPENED: 'warning',
 };
 
 /** MVP-070B/C: what keeps a draft from being submitted, in the server's fixed order. */
@@ -40,6 +44,7 @@ export const BLOCKERS: readonly TimesheetSubmissionBlocker[] = [
   'SOURCE_CHANGED',
   'NO_READY_ROWS',
   'APPROVAL_ROUTE_UNAVAILABLE',
+  'REFRESH_REQUIRED',
 ];
 
 /** MVP-070B/C: the return reason's bounds (the server decides; this only guides). */

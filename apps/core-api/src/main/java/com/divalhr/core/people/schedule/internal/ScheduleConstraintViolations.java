@@ -83,6 +83,13 @@ public final class ScheduleConstraintViolations {
   /** MVP-070B/C: one submission per cycle. */
   public static final String TIMESHEET_ACTION_SUBMISSION = "timesheet_action_submission_unique";
 
+  /** One reopening per superseded approval and resulting digest (V34, MVP-070D). */
+  public static final String TIMESHEET_ACTION_REOPENING = "timesheet_action_reopening_unique";
+
+  /** One reopening per cycle (V34, MVP-070D). */
+  public static final String TIMESHEET_ACTION_REOPENED_CYCLE =
+      "timesheet_action_reopened_cycle_unique";
+
   private ScheduleConstraintViolations() {}
 
   /**

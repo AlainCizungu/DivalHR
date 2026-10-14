@@ -34,6 +34,7 @@ import com.divalhr.core.people.schedule.domain.Timesheet.Row;
 import com.divalhr.core.people.schedule.domain.Timesheet.Totals;
 import com.divalhr.core.people.schedule.domain.TimesheetApproval;
 import com.divalhr.core.people.schedule.domain.TimesheetApproval.Blocker;
+import com.divalhr.core.people.schedule.domain.TimesheetApproval.Status;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetActionRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository.Candidate;
@@ -112,6 +113,11 @@ import tools.jackson.databind.json.JsonMapper;
  * order plus the generation and its drafts {@code FOR UPDATE}, everything is evaluated again and
  * any difference is {@code 409 TIMESHEET_REFRESH_PREVIEW_STALE}. Changed drafts receive a new
  * append-only revision (old revisions stay as evidence); newly included employees receive a draft.
+ *
+ * <p>MVP-070D (T70D-4): a refresh is refused while any timesheet of the week is SUBMITTED. An
+ * APPROVED timesheet is never given a revision: it stays locked and unchanged (its approval stands,
+ * and only a material attendance correction reopens it). A REOPENED timesheet always receives its
+ * next revision and becomes a DRAFT again, ready for the employee's next submission cycle.
  *
  * <p>Names, numbers, labels, attendance instants, the subject and idempotency keys never enter
  * audit metadata, events, logs, metrics or errors.
@@ -342,8 +348,8 @@ public class TimesheetService {
       throw mapped(violated);
     }
     Generation generation = timesheets.generation(tenant, generationId, false).orElseThrow();
-    recorded(caller, GENERATE, generation, written, plan.totals(), now);
-    event(caller, GENERATED_EVENT, generation, written, plan.totals(), now);
+    recorded(caller, GENERATE, generation, written, plan.totals(), now, -1);
+    event(caller, GENERATED_EVENT, generation, written, plan.totals(), now, -1);
     LOG.atInfo()
         .addKeyValue("operation", GENERATE)
         .addKeyValue("outcome", "generated")
@@ -522,8 +528,8 @@ public class TimesheetService {
     }
     Generation after = timesheets.generation(tenant, id, false).orElseThrow();
     Totals totals = change.totals();
-    recorded(caller, REFRESH, after, written, totals, now);
-    event(caller, REFRESHED_EVENT, after, written, totals, now);
+    recorded(caller, REFRESH, after, written, totals, now, change.reopened());
+    event(caller, REFRESHED_EVENT, after, written, totals, now, change.reopened());
     LOG.atInfo()
         .addKeyValue("operation", REFRESH)
         .addKeyValue("outcome", "refreshed")
@@ -535,7 +541,8 @@ public class TimesheetService {
             summary(tenant, after, site),
             change.newDrafts(),
             change.changedTimesheets(),
-            change.changedRows()),
+            change.changedRows(),
+            change.reopened()),
         id,
         Outcome.UPDATED);
   }
@@ -764,9 +771,12 @@ public class TimesheetService {
   /**
    * Whether the employee can submit the timesheet now (MVP-070B/C, T70BC-2, T70BC-3): only a DRAFT,
    * without a blocking row, with a READY row and an approval route; the route is resolved last and
-   * named nowhere.
+   * named nowhere. A REOPENED timesheet waits for the organization's refresh (MVP-070D).
    */
   private SubmissionView submission(TenantId tenant, Header header) {
+    if (header.reopened()) {
+      return new SubmissionView(false, List.of(Blocker.REFRESH_REQUIRED.name()));
+    }
     if (!header.draft()) {
       return new SubmissionView(false, List.of());
     }
@@ -825,16 +835,25 @@ public class TimesheetService {
   private record Written(UUID timesheetId, int revision, String digest) {}
 
   /**
-   * One draft's next state in a refresh.
+   * One timesheet's next state in a refresh.
    *
    * @param employeeId employee
-   * @param header the existing draft, or {@code null} for a new one
-   * @param rows its next rows
+   * @param header the existing timesheet, or {@code null} for a new draft
+   * @param rows its next rows (a locked approved timesheet's current rows)
    * @param changed whether it receives a revision
    * @param changes the changed slots
    */
   private record Next(
-      UUID employeeId, Header header, List<Row> rows, boolean changed, int changes) {}
+      UUID employeeId, Header header, List<Row> rows, boolean changed, int changes) {
+
+    boolean reopened() {
+      return header != null && header.reopened();
+    }
+
+    boolean locked() {
+      return header != null && Status.APPROVED.name().equals(header.status());
+    }
+  }
 
   /** A refresh's evaluation: every draft's next state and the preview digest. */
   private record Change(List<Next> next, Totals totals, String digest) {
@@ -851,6 +870,14 @@ public class TimesheetService {
       return next.stream().mapToInt(Next::changes).sum();
     }
 
+    int reopened() {
+      return (int) next.stream().filter(Next::reopened).count();
+    }
+
+    int locked() {
+      return (int) next.stream().filter(Next::locked).count();
+    }
+
     RefreshPreview preview(Generation generation, UnitView site) {
       int unchanged = (int) next.stream().filter(n -> !n.changed()).count();
       return new RefreshPreview(
@@ -862,7 +889,9 @@ public class TimesheetService {
           changedTimesheets(),
           unchanged,
           changedRows(),
-          TotalsView.of(totals));
+          TotalsView.of(totals),
+          reopened(),
+          locked());
     }
   }
 
@@ -931,11 +960,14 @@ public class TimesheetService {
     return generation;
   }
 
-  /** Every draft's next state: the existing drafts (by employee) and newly included employees. */
+  /**
+   * Every timesheet's next state: the existing ones (by employee) and newly included employees. A
+   * SUBMITTED timesheet refuses the refresh (MVP-070B/C, T70BC-8); an APPROVED one stays locked and
+   * unchanged and a REOPENED one always receives its next revision (MVP-070D, T70D-4).
+   */
   private Change change(TenantId tenant, PeopleCaller caller, Generation generation, boolean lock) {
     List<Member> members = timesheets.members(tenant, generation.id(), lock);
-    if (members.stream().anyMatch(m -> !m.header().draft())) {
-      // MVP-070B/C (T70BC-8): submitted or approved time is never refreshed.
+    if (members.stream().anyMatch(m -> Status.SUBMITTED.name().equals(m.header().status()))) {
       throw new ApiException(ErrorCode.TIMESHEET_GENERATION_NOT_ALLOWED, Map.of());
     }
     Plan plan =
@@ -952,7 +984,7 @@ public class TimesheetService {
     List<Next> next = new ArrayList<>(employees.size());
     Totals totals = Totals.NONE;
     StringBuilder text =
-        new StringBuilder("DIVALHR-TIMESHEET-REFRESH\nversion=1\ntenant=")
+        new StringBuilder("DIVALHR-TIMESHEET-REFRESH\nversion=2\ntenant=")
             .append(tenant)
             .append("\nsubject=")
             .append(caller.subject())
@@ -969,11 +1001,16 @@ public class TimesheetService {
       if (member == null) {
         item = new Next(employee, null, current, true, current.size());
       } else {
-        List<Row> previous =
-            timesheets.rows(tenant, member.header().id(), member.header().revision());
-        List<Row> rows = Timesheet.refreshed(previous, current);
-        int changes = Timesheet.changes(previous, rows);
-        item = new Next(employee, member.header(), rows, changes > 0, changes);
+        Header header = member.header();
+        List<Row> previous = timesheets.rows(tenant, header.id(), header.revision());
+        if (Status.APPROVED.name().equals(header.status())) {
+          // Locked: an approval is never rewritten; only a correction reopens it (T70D-4).
+          item = new Next(employee, header, previous, false, 0);
+        } else {
+          List<Row> rows = Timesheet.refreshed(previous, current);
+          int changes = Timesheet.changes(previous, rows);
+          item = new Next(employee, header, rows, changes > 0 || header.reopened(), changes);
+        }
       }
       next.add(item);
       totals = totals.plus(Totals.of(item.rows()));
@@ -986,6 +1023,8 @@ public class TimesheetService {
           .append(item.header() == null ? "new" : item.header().id())
           .append("|revision=")
           .append(item.header() == null ? 0 : item.header().revision())
+          .append("|status=")
+          .append(item.header() == null ? "new" : item.header().status())
           .append("|next=")
           .append(Timesheet.digest(item.rows()))
           .append('\n');
@@ -1044,7 +1083,8 @@ public class TimesheetService {
       Generation generation,
       List<Written> written,
       Totals totals,
-      Instant now) {
+      Instant now,
+      int reopened) {
     Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("schemaVersion", WorkScheduleService.SCHEMA_VERSION);
     metadata.put("week", generation.period().weekStart().toString());
@@ -1053,6 +1093,10 @@ public class TimesheetService {
     metadata.put("readyCount", totals.ready());
     metadata.put("blockedCount", totals.blocked());
     metadata.put("revisionCount", written.size());
+    if (reopened >= 0) {
+      // MVP-070D: the reopened timesheets this refresh made drafts again (a refresh only).
+      metadata.put("reopenedCount", reopened);
+    }
     Map<String, Object> state = new TreeMap<>();
     state.put("tenantId", caller.tenant().toString());
     state.put("generationId", generation.id().toString());
@@ -1087,7 +1131,8 @@ public class TimesheetService {
       Generation generation,
       List<Written> written,
       Totals totals,
-      Instant now) {
+      Instant now,
+      int reopened) {
     Map<String, Object> data = new LinkedHashMap<>();
     data.put("generationId", generation.id().toString());
     data.put("siteId", generation.period().siteId().toString());
@@ -1099,6 +1144,9 @@ public class TimesheetService {
     data.put("rowCount", totals.rows());
     data.put("readyCount", totals.ready());
     data.put("blockedCount", totals.blocked());
+    if (reopened >= 0) {
+      data.put("reopenedCount", reopened);
+    }
     data.put("occurredAt", now.toString());
     outbox.append(
         new EventEnvelope(

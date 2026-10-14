@@ -172,6 +172,7 @@ const receipt = (overrides: Record<string, unknown> = {}) => ({
     correctionVersion: 1,
     correctedAt: '2099-11-03T06:00:01Z',
   },
+  reopenedTimesheets: 0,
   ...overrides,
 });
 
@@ -479,6 +480,87 @@ describe.each(['en', 'fr'] as const)('MVP-062 attendance corrections (%s)', (loc
     expect(error).toHaveTextContent(c.errors.ATTENDANCE_CORRECTION_PREVIEW_STALE);
     expect(error).not.toHaveTextContent(RECORD);
     expect(within(dialog).getByTestId('attendance-correction-form')).toBeVisible();
+    await expectAccessible(dialog);
+  });
+});
+
+describe.each(['en', 'fr'] as const)('MVP-070D a correction of approved time (%s)', (locale) => {
+  const c = resources[locale].common;
+  const k = c.attendanceCorrection;
+
+  it('warns that approved time may be reopened and reports the reopened timesheet', async () => {
+    stubApi((request) => {
+      if (request.path.startsWith('/attendance/exceptions')) return page([lateRow]);
+      if (
+        request.path === `/attendance/records/${RECORD}/corrections` &&
+        request.method === 'GET'
+      ) {
+        return { status: 200, body: history() };
+      }
+      if (request.path === `/attendance/records/${RECORD}/correction-preview`) {
+        return {
+          status: 200,
+          body: preview({
+            operation: 'REPLACE_TIMES',
+            attendanceRecordId: RECORD,
+            targetVersion: 0,
+            before: {
+              checkedInAt: '2099-11-02T07:12:00.123456Z',
+              checkedOutAt: '2099-11-02T14:40:00Z',
+            },
+            after: {
+              checkedInAt: '2099-11-02T07:00:00Z',
+              checkedOutAt: '2099-11-02T14:40:00Z',
+            },
+            warnings: ['ORIGINAL_EVENTS_KEPT', 'APPROVED_TIME_MAY_REOPEN'],
+          }),
+        };
+      }
+      if (request.path === `/attendance/records/${RECORD}/corrections`) {
+        return {
+          status: 201,
+          body: receipt({
+            operation: 'REPLACE_TIMES',
+            before: {
+              checkedInAt: '2099-11-02T07:12:00.123456Z',
+              checkedOutAt: '2099-11-02T14:40:00Z',
+            },
+            after: {
+              checkedInAt: '2099-11-02T07:00:00Z',
+              checkedOutAt: '2099-11-02T14:40:00Z',
+            },
+            reopenedTimesheets: 1,
+          }),
+        };
+      }
+      return { status: 200, body: { data: [] } };
+    });
+    const user = userEvent.setup();
+    await renderWithSession(
+      <AttendanceReviewPage />,
+      sessionWithRoles(['tenant-admin']),
+      locale,
+      '/admin/attendance-review',
+    );
+    const card = (await screen.findAllByTestId('attendance-exception'))[0]!;
+    await user.click(within(card).getByTestId('attendance-exception-correct'));
+    const dialog = await screen.findByTestId('attendance-correction-dialog');
+    await within(dialog).findByTestId('attendance-correction-current-originals');
+    const checkIn = within(dialog).getByLabelText(k.checkIn);
+    await user.clear(checkIn);
+    await user.type(checkIn, '2099-11-02T08:00');
+    await user.selectOptions(within(dialog).getByLabelText(k.reason), k.reasons.DATA_ENTRY_ERROR);
+    await user.type(within(dialog).getByLabelText(k.explanation), EXPLANATION);
+    await user.click(within(dialog).getByTestId('attendance-correction-preview'));
+    const review = await within(dialog).findByTestId('attendance-correction-review');
+    expect(within(review).getByTestId('attendance-correction-warnings')).toHaveTextContent(
+      k.warnings.APPROVED_TIME_MAY_REOPEN,
+    );
+    await expectAccessible(dialog);
+    await user.click(within(review).getByTestId('attendance-correction-confirm-check'));
+    await user.click(within(review).getByTestId('attendance-correction-commit'));
+    const reopened = await within(dialog).findByTestId('attendance-correction-reopened');
+    expect(reopened).toHaveTextContent(k.reopened_one.replace('{{count}}', '1'));
     await expectAccessible(dialog);
   });
 });
