@@ -41,7 +41,8 @@
     "myScheduleSubstitutions": "Remplacements d’horaire",
     "teamAttendance": "Présence de l’équipe",
     "timesheets": "Feuilles de temps",
-    "myTimesheets": "Mes feuilles de temps"
+    "myTimesheets": "Mes feuilles de temps",
+    "timeApprovals": "Approbations du temps"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -453,7 +454,11 @@
     "TIMESHEET_TARGET_NOT_FOUND": "Ce site, cette semaine ou cette feuille de temps n’est pas disponible.",
     "TIMESHEET_GENERATION_NOT_ALLOWED": "Aucun brouillon ne peut être généré pour cette semaine : aucun créneau publié de ce site n’y commence pour un employé ayant un seul emploi correspondant.",
     "TIMESHEET_GENERATION_LIMIT_EXCEEDED": "Cette semaine compte trop d’employés ou de créneaux pour être traitée en une fois (au plus 500 brouillons et 5 000 créneaux). Rien n’a été modifié.",
-    "TIMESHEET_REFRESH_PREVIEW_STALE": "Les brouillons ou leurs sources ont changé depuis l’aperçu. Prévisualisez de nouveau l’actualisation."
+    "TIMESHEET_REFRESH_PREVIEW_STALE": "Les brouillons ou leurs sources ont changé depuis l’aperçu. Prévisualisez de nouveau l’actualisation.",
+    "TIMESHEET_SUBMISSION_NOT_ALLOWED": "Cette feuille de temps ne peut pas être soumise maintenant. Elle doit être un brouillon avec au moins un créneau prêt et rien à régulariser.",
+    "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE": "Aucun responsable ne peut approuver cette feuille de temps pour cette semaine. Contactez votre organisation.",
+    "TIMESHEET_DECISION_STALE": "Cette feuille de temps a changé depuis son ouverture. Ouvrez-la de nouveau.",
+    "TIMESHEET_DECISION_NOT_ALLOWED": "Cette feuille de temps n’attend plus de décision."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3235,7 +3240,7 @@
   "timesheets": {
     "title": "Feuilles de temps",
     "description": "Générez les brouillons hebdomadaires de feuilles de temps d’un site à partir des horaires publiés et de la présence enregistrée, corrections comprises.",
-    "scope": "Brouillons uniquement : rien ici ne soumet, n’approuve, ne valorise ni n’exporte le temps.",
+    "scope": "Les employés soumettent leurs brouillons et leur responsable les approuve ou les renvoie. Rien ici ne valorise ni n’exporte le temps.",
     "unauthorized": "Seuls les administrateurs de l’organisation peuvent générer les feuilles de temps.",
     "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour générer les feuilles de temps.",
     "form": {
@@ -3297,7 +3302,8 @@
         "ready": "Prêts",
         "blocked": "Bloqués",
         "worked": "Temps travaillé",
-        "actions": "Actions"
+        "actions": "Actions",
+        "status": "Statut"
       },
       "view": "Consulter",
       "viewFor": "Consulter la feuille de temps de {{name}}",
@@ -3317,7 +3323,8 @@
       "apply": "Appliquer l’actualisation",
       "applying": "Application…",
       "cancel": "Annuler",
-      "done": "Actualisation appliquée : version {{version}}."
+      "done": "Actualisation appliquée : version {{version}}.",
+      "locked": "Cette semaine compte des feuilles de temps soumises ou approuvées. Elle ne peut plus être actualisée."
     },
     "detail": {
       "title": "Feuille de temps de {{name}}",
@@ -3340,7 +3347,8 @@
       },
       "noCostCenter": "Aucun",
       "notRecorded": "Non pointé",
-      "corrected": "Corrigé (version {{version}})"
+      "corrected": "Corrigé (version {{version}})",
+      "cycle": "Cycle de soumission {{cycle}}"
     },
     "state": {
       "READY": "Prêt",
@@ -3350,18 +3358,42 @@
     },
     "shiftTime": "{{date}}, {{start}} – {{end}}",
     "validation": "Vérifiez les champs signalés.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "status": {
+      "DRAFT": "Brouillon",
+      "SUBMITTED": "Soumise",
+      "APPROVED": "Approuvée"
+    },
+    "history": {
+      "title": "Historique des soumissions",
+      "label": "Soumissions et décisions, de la plus récente à la plus ancienne",
+      "none": "Pas encore soumise.",
+      "columns": {
+        "action": "Action",
+        "cycle": "Cycle",
+        "revision": "Révision",
+        "when": "Date",
+        "worked": "Temps travaillé",
+        "reason": "Motif du renvoi"
+      },
+      "action": {
+        "SUBMITTED": "Soumise",
+        "RETURNED": "Renvoyée",
+        "APPROVED": "Approuvée"
+      },
+      "noReason": "—"
+    }
   },
   "myTimesheets": {
     "title": "Mes feuilles de temps",
-    "description": "Vos brouillons hebdomadaires de feuilles de temps, générés par votre organisation à partir de votre horaire et de votre présence enregistrée.",
-    "notice": "Ce sont des brouillons. Ils ne sont ni soumis, ni approuvés, ni un bulletin de paie. Si quelque chose semble inexact, contactez votre administrateur.",
+    "description": "Vos feuilles de temps hebdomadaires, générées par votre organisation à partir de votre horaire et de vos présences enregistrées. Soumettez une semaine complète à votre responsable pour approbation.",
+    "notice": "Votre responsable approuve les feuilles de temps que vous soumettez. Une feuille de temps n’est pas un bulletin de paie. Si quelque chose semble incorrect, contactez votre organisation.",
     "unauthorized": "Seuls les employés peuvent consulter leurs feuilles de temps.",
     "signInRequired": "Connectez-vous pour consulter vos feuilles de temps.",
     "loading": "Chargement de vos feuilles de temps…",
     "retry": "Réessayer",
     "empty": "Aucune feuille de temps n’a encore été générée pour vous.",
-    "label": "Mes brouillons de feuilles de temps",
+    "label": "Mes feuilles de temps",
     "more": "Afficher plus de feuilles de temps",
     "loadingMore": "Chargement d’autres feuilles de temps…",
     "week": "Semaine du {{from}} au {{to}}",
@@ -3373,6 +3405,81 @@
     "close": "Fermer la feuille de temps",
     "detailTitle": "Semaine du {{from}} au {{to}}",
     "detailLoading": "Chargement de la feuille de temps…",
-    "rowsLabel": "Créneaux de cette feuille de temps"
+    "rowsLabel": "Créneaux de cette feuille de temps",
+    "submission": {
+      "title": "Soumettre à votre responsable",
+      "eligible": "Cette semaine est complète. Vous pouvez la soumettre à votre responsable pour approbation.",
+      "blockedTitle": "Cette feuille de temps ne peut pas encore être soumise",
+      "blockers": {
+        "MISSING_ATTENDANCE": "Un créneau n’a aucune présence enregistrée.",
+        "OPEN_ATTENDANCE": "Un créneau n’a pas de départ.",
+        "SOURCE_CHANGED": "Un créneau a changé depuis cette révision.",
+        "NO_READY_ROWS": "Aucun créneau n’est prêt.",
+        "APPROVAL_ROUTE_UNAVAILABLE": "Aucun responsable ne peut approuver cette semaine."
+      },
+      "resolve": "Régularisez ces points avec votre organisation. Une fois votre feuille de temps mise à jour, vous pourrez la soumettre.",
+      "submit": "Soumettre la feuille de temps",
+      "confirmCheck": "J’ai vérifié cette feuille de temps et je veux la soumettre à mon responsable.",
+      "confirm": "Soumettre",
+      "submitting": "Soumission…",
+      "cancel": "Annuler",
+      "done": "Feuille de temps soumise (cycle {{cycle}}). En attente de l’examen du responsable."
+    },
+    "awaiting": "En attente de l’examen du responsable. Soumise le {{time}} (cycle {{cycle}}).",
+    "approved": "Approuvée le {{time}} (cycle {{cycle}}).",
+    "returned": {
+      "title": "Renvoyée par votre responsable",
+      "reason": "Motif",
+      "instruction": "Régularisez les présences avec votre organisation. Une fois la feuille de temps mise à jour, soumettez-la de nouveau."
+    }
+  },
+  "timeApprovals": {
+    "title": "Approbations du temps",
+    "description": "Les feuilles de temps hebdomadaires soumises par vos collaborateurs directs. Examinez chacune, puis approuvez-la ou renvoyez-la avec un motif.",
+    "unauthorized": "Seuls les employés peuvent approuver le temps.",
+    "signInRequired": "Connectez-vous pour approuver le temps.",
+    "loading": "Chargement des feuilles de temps à approuver…",
+    "retry": "Réessayer",
+    "empty": "Aucune feuille de temps n’attend votre approbation.",
+    "label": "Feuilles de temps en attente d’approbation",
+    "more": "Afficher plus de feuilles de temps",
+    "loadingMore": "Chargement d’autres feuilles de temps…",
+    "employee": "{{givenNames}} {{familyName}} ({{number}})",
+    "submitted": "Soumise le {{time}}",
+    "cycle": "Cycle {{cycle}}",
+    "rows": "Créneaux",
+    "worked": "Temps travaillé",
+    "site": "Site",
+    "weekLabel": "Semaine",
+    "week": "Semaine du {{from}} au {{to}}",
+    "open": "Examiner",
+    "openFor": "Examiner la feuille de temps de {{name}}",
+    "detailTitle": "Feuille de temps de {{name}}",
+    "detailLoading": "Chargement de la feuille de temps…",
+    "close": "Fermer la feuille de temps",
+    "rowsLabel": "Créneaux soumis",
+    "revision": "Révision {{revision}}",
+    "decision": {
+      "approve": "Approuver",
+      "giveBack": "Renvoyer",
+      "approveTitle": "Approuver cette feuille de temps",
+      "approveCheck": "J’ai examiné cette feuille de temps et je l’approuve.",
+      "confirmApprove": "Confirmer l’approbation",
+      "returnTitle": "Renvoyer cette feuille de temps",
+      "reason": "Motif du renvoi",
+      "reasonHint": "De 10 à 500 caractères. L’employé et les administrateurs le verront. Ni lien ni balisage.",
+      "returnCheck": "Je veux renvoyer cette feuille de temps à l’employé.",
+      "confirmReturn": "Confirmer le renvoi",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler",
+      "approved": "Feuille de temps de {{name}} approuvée.",
+      "returned": "Feuille de temps de {{name}} renvoyée à l’employé.",
+      "problem": {
+        "required": "Saisissez un motif.",
+        "length": "Saisissez de 10 à 500 caractères.",
+        "format": "Retirez les liens, le balisage et les caractères invisibles."
+      }
+    },
+    "validation": "Vérifiez le motif."
   }
 }

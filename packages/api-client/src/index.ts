@@ -330,7 +330,21 @@ export type MyTimesheetItem = CoreComponents['schemas']['MyTimesheetItem'];
 export type MyTimesheetPage = CoreComponents['schemas']['MyTimesheetPage'];
 export type MyTimesheetRow = CoreComponents['schemas']['MyTimesheetRow'];
 export type MyTimesheet = CoreComponents['schemas']['MyTimesheet'];
+export type SubmitTimesheetRequest = CoreComponents['schemas']['SubmitTimesheetRequest'];
+export type ApproveTimesheetRequest = CoreComponents['schemas']['ApproveTimesheetRequest'];
+export type ReturnTimesheetRequest = CoreComponents['schemas']['ReturnTimesheetRequest'];
+export type TimesheetActionReceipt = CoreComponents['schemas']['TimesheetActionReceipt'];
+export type TimesheetAction = CoreComponents['schemas']['TimesheetAction'];
+export type MyTimesheetAction = CoreComponents['schemas']['MyTimesheetAction'];
+export type MyTimesheetSubmission = CoreComponents['schemas']['MyTimesheetSubmission'];
+export type TimeApprovalEmployee = CoreComponents['schemas']['TimeApprovalEmployee'];
+export type TimeApprovalItem = CoreComponents['schemas']['TimeApprovalItem'];
+export type TimeApprovalPage = CoreComponents['schemas']['TimeApprovalPage'];
+export type TimeApprovalDetail = CoreComponents['schemas']['TimeApprovalDetail'];
 export type TimesheetRowState = TimesheetRow['state'];
+export type TimesheetStatus = TimesheetDetail['status'];
+export type TimesheetActionKind = TimesheetAction['action'];
+export type TimesheetSubmissionBlocker = MyTimesheetSubmission['blockers'][number];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

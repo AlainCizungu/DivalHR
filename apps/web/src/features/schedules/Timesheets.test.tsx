@@ -181,8 +181,10 @@ const detail = {
   period,
   status: 'DRAFT',
   revision: 1,
+  submissionCycle: 0,
   totals: totals(),
   rows: [readyRow, missingRow],
+  actions: [],
   revisions: [
     { revision: 1, generationVersion: 1, createdAt: '2099-11-08T11:00:00Z', totals: totals() },
   ],
@@ -550,6 +552,7 @@ describe.each([
                 period,
                 status: 'DRAFT',
                 revision: 1,
+                submissionCycle: 0,
                 totals: totals(),
                 updatedAt: '2099-11-08T11:00:00Z',
               },
@@ -566,8 +569,12 @@ describe.each([
             period,
             status: 'DRAFT',
             revision: 1,
+            generationVersion: 1,
+            submissionCycle: 0,
             totals: totals(),
             updatedAt: '2099-11-08T11:00:00Z',
+            submission: { eligible: false, blockers: ['MISSING_ATTENDANCE'] },
+            actions: [],
             rows: [
               myRow,
               {
@@ -597,7 +604,9 @@ describe.each([
     expect(screen.getByTestId('my-timesheets-notice')).toHaveTextContent(k.notice);
     const cards = await screen.findAllByTestId('my-timesheet');
     expect(cards).toHaveLength(1);
-    expect(within(cards[0]!).getByTestId('my-timesheet-status')).toHaveTextContent(k.status);
+    expect(within(cards[0]!).getByTestId('my-timesheet-status')).toHaveTextContent(
+      c.timesheets.status.DRAFT,
+    );
     expect(within(cards[0]!).getByTestId('my-timesheet-worked')).toHaveTextContent('7 h 59 min');
     expect(within(cards[0]!).getByTestId('my-timesheet-site')).toHaveTextContent('Kinshasa Gombe');
     await expectAccessible(container);

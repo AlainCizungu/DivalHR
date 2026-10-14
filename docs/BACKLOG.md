@@ -244,7 +244,7 @@ Supervisors can approve hours by project, grant, site, task, or cost center. Del
 
 Project, grant and task allocation is not part of this sequence: it remains a future story, to be approved separately.
 
-**MVP-070A (Issue #128). In review.** Weekly draft timesheets (ADR 0018).
+**MVP-070A (Issue #128). Complete (PR #129, merged 2026-10-14; deployed to hr-dev at `4cf7f108e972c17d563f0dad41f4631656f9064e`).** Weekly draft timesheets (ADR 0018).
 
 - **Who and where.** A tenant administrator with exact MFA in « Feuilles de temps » / "Timesheets" under Operations chooses a legal entity, a site and a Monday; employees read their own drafts in « Mes feuilles de temps » / "My timesheets" under My space.
 - **The week.** Monday 00:00 to the next Monday 00:00 in the site's time zone (exact instants, across daylight-saving changes); the site's current week or a past week only.
@@ -253,6 +253,16 @@ Project, grant and task allocation is not part of this sequence: it remains a fu
 - **Generate, then refresh.** A preview, an explicit confirmation and an `Idempotency-Key`; generating an already generated week returns it unchanged. A refresh is previewed (new drafts, drafts with a new revision, changed shifts) and applied only with that exact preview; it appends a revision, never rewrites one.
 - **Evidence.** V32 adds `people.timesheet_generation`, `people.timesheet`, `people.timesheet_revision` and `people.timesheet_row` (append-only revisions and rows); audit `timesheet.generate` and `timesheet.refresh` with bounded counts, events `people.timesheet.generated.v1` and `people.timesheet.refreshed.v1`, disclosure audits on every read.
 - **Not included:** submission, approval, rejection, comments, pay or overtime calculations, breaks, rounding policies, exports, project, grant or task allocation, notifications, deleting drafts, unscheduled time, AI.
+
+**MVP-070B/C (Issue #130). In review.** Submit and approve weekly time (ADR 0019).
+
+- **Lifecycle.** A timesheet is `DRAFT`, `SUBMITTED` or `APPROVED`. The employee submits a draft (`DRAFT → SUBMITTED`); the routed manager approves it (`SUBMITTED → APPROVED`) or returns it with a reason (`SUBMITTED → DRAFT`, recorded as an immutable `RETURNED` action). A returned draft can be refreshed by administrators and resubmitted as the next cycle. No rejection, voiding, deletion or tenant-administrator decision.
+- **Submission.** Only the employee linked to the timesheet, from « Mes feuilles de temps » / "My timesheets", after an explicit confirmation: the current revision and generation version, at least one « Prêt » / "Ready" shift and nothing missing, open or changed. The page lists what blocks a draft and says to resolve it with the organization.
+- **Route.** One manager per weekly timesheet: the employee's manager effective on the week's site-local Sunday under the current employment history, never the employee, with an active employee membership and link. It is resolved again for the queue, every manager read and every decision, so a manager change moves the authority at once. No manager, several, or an unlinked one is `TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE`; nobody is named to the employee.
+- **Decision.** Under My space, « Approbations du temps » / "Time approvals" lists the submitted timesheets routed to the caller, newest first; a timesheet opens its shifts, totals, revision and history. Approval needs an explicit confirmation and no note; it is refused if the sources no longer produce the submitted evidence. A return needs a 10–500 character reason (no markup or link), shown to the employee, tenant administrators and the routed manager only.
+- **Immutability.** Submitted or approved time is never refreshed; approved time never changes (reopening is MVP-070D). Tenant administrators read each timesheet's state and history in « Feuilles de temps » / "Timesheets" but cannot submit, approve or return.
+- **Evidence.** V33 adds the append-only `people.timesheet_action` (`SUBMITTED`, `RETURNED`, `APPROVED`) and the timesheet's state, cycle and current action, with database-enforced transitions; audit `timesheet.submit`, `timesheet.approve` and `timesheet.return` with bounded metadata, events `people.timesheet.submitted.v1`, `approved.v1` and `returned.v1`, disclosure audits on every read.
+- **Not included:** delegation or substitution of the approver, several approvers, project, grant, task or cost-center routing, comments beyond the return reason, attachments or signatures, manual time entry, attendance correction inside approval, reopening approved time (MVP-070D), period locking (MVP-071), export (MVP-070E), pay, overtime, break or rounding rules, notifications, bulk decisions, AI, native mobile.
 
 ### MVP-071 Lock a period
 

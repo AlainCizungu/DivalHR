@@ -427,7 +427,24 @@ public enum ErrorCode {
   /** MVP-070A: the week exceeds the per-request bound of drafts or source rows; nothing written. */
   TIMESHEET_GENERATION_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT),
   /** MVP-070A: the generation or its sources changed since the refresh preview; preview again. */
-  TIMESHEET_REFRESH_PREVIEW_STALE(HttpStatus.CONFLICT);
+  TIMESHEET_REFRESH_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /**
+   * MVP-070B/C: the timesheet is not a submittable draft now (not a DRAFT, a blocking row, or no
+   * READY row).
+   */
+  TIMESHEET_SUBMISSION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /**
+   * MVP-070B/C: no single eligible manager is effective for the week (none, several, the employee,
+   * or without an active employee link), or the employment no longer qualifies; never names anyone.
+   */
+  TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE(HttpStatus.CONFLICT),
+  /**
+   * MVP-070B/C: the revision, generation version, cycle, submission or sources changed since the
+   * timesheet was opened; open it again.
+   */
+  TIMESHEET_DECISION_STALE(HttpStatus.CONFLICT),
+  /** MVP-070B/C: the timesheet is not awaiting a decision (already approved or returned). */
+  TIMESHEET_DECISION_NOT_ALLOWED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

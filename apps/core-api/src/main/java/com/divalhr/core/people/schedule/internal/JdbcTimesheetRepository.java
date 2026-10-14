@@ -40,10 +40,10 @@ public class JdbcTimesheetRepository {
           + " g.version, g.status, g.generated_at, g.refreshed_at";
 
   private static final String TIMESHEET_COLUMNS =
-      "t.id, t.generation_id, t.employee_id, t.site_id, t.week_start, t.status,"
-          + " t.current_revision, t.row_count, t.ready_rows, t.missing_rows, t.open_rows,"
-          + " t.changed_rows, t.worked_minutes, t.created_at, t.updated_at, g.site_timezone,"
-          + " g.period_start_at, g.period_end_at";
+      "t.id, t.generation_id, t.employee_id, t.site_id, t.week_start, t.status, t.submission_cycle,"
+          + " t.current_action_id, t.current_revision, t.row_count, t.ready_rows, t.missing_rows,"
+          + " t.open_rows, t.changed_rows, t.worked_minutes, t.created_at, t.updated_at,"
+          + " g.site_timezone, g.period_start_at, g.period_end_at";
 
   /** A timesheet {@code t} with its generation {@code g} (the week's zone and boundaries). */
   private static final String TIMESHEET_FROM =
@@ -86,6 +86,9 @@ public class JdbcTimesheetRepository {
    * @param generationId generation
    * @param employeeId employee
    * @param period the week, its zone and exact boundaries
+   * @param status {@code DRAFT}, {@code SUBMITTED} or {@code APPROVED} (MVP-070B/C)
+   * @param cycle the latest submission cycle (0 before the first submission)
+   * @param currentActionId the latest action, or {@code null} before the first submission
    * @param revision current revision
    * @param totals current totals
    * @param createdAt first revision instant
@@ -96,10 +99,23 @@ public class JdbcTimesheetRepository {
       UUID generationId,
       UUID employeeId,
       Period period,
+      String status,
+      int cycle,
+      UUID currentActionId,
       int revision,
       Totals totals,
       Instant createdAt,
-      Instant updatedAt) {}
+      Instant updatedAt) {
+
+    /**
+     * Whether the timesheet is a draft (never submitted, or returned).
+     *
+     * @return whether its status is {@code DRAFT}
+     */
+    public boolean draft() {
+      return "DRAFT".equals(status);
+    }
+  }
 
   /**
    * A revision header.
@@ -365,6 +381,26 @@ public class JdbcTimesheetRepository {
   }
 
   /**
+   * A timesheet by ID, locked {@code FOR UPDATE} (submission and decisions, MVP-070B/C).
+   *
+   * @param tenant verified tenant
+   * @param id timesheet
+   * @return the header, or empty for an unknown or foreign one
+   */
+  public Optional<Header> lockTimesheet(TenantId tenant, UUID id) {
+    return jdbc
+        .query(
+            "SELECT "
+                + TIMESHEET_COLUMNS
+                + TIMESHEET_FROM
+                + " WHERE t.tenant_id = :tenant AND t.id = :id FOR UPDATE OF t",
+            new MapSqlParameterSource().addValue("tenant", tenant.value()).addValue("id", id),
+            (rs, n) -> header(rs))
+        .stream()
+        .findFirst();
+  }
+
+  /**
    * One page of an employee's drafts, newest week first, after a keyset position.
    *
    * @param tenant verified tenant
@@ -418,6 +454,25 @@ public class JdbcTimesheetRepository {
                 rs.getInt("generation_version"),
                 totals(rs),
                 instant(rs, "created_at")));
+  }
+
+  /**
+   * A revision's source digest.
+   *
+   * @param tenant verified tenant
+   * @param timesheetId timesheet
+   * @param revision revision
+   * @return the digest
+   */
+  public String revisionDigest(TenantId tenant, UUID timesheetId, int revision) {
+    return jdbc.queryForObject(
+        "SELECT source_digest FROM people.timesheet_revision WHERE tenant_id = :tenant"
+            + " AND timesheet_id = :timesheet AND revision = :revision",
+        new MapSqlParameterSource()
+            .addValue("tenant", tenant.value())
+            .addValue("timesheet", timesheetId)
+            .addValue("revision", revision),
+        String.class);
   }
 
   /**
@@ -598,8 +653,8 @@ public class JdbcTimesheetRepository {
     jdbc.getJdbcTemplate()
         .execute(
             "SET CONSTRAINTS people.timesheet_current, people.timesheet_revision_exact,"
-                + " people.timesheet_row_exact"
-                + " IMMEDIATE");
+                + " people.timesheet_row_exact, people.timesheet_current_action,"
+                + " people.timesheet_action_current IMMEDIATE");
   }
 
   // ------------------------------------------------------------------------------------------
@@ -631,6 +686,9 @@ public class JdbcTimesheetRepository {
             rs.getObject("week_start", LocalDate.class),
             instant(rs, "period_start_at"),
             instant(rs, "period_end_at")),
+        rs.getString("status"),
+        rs.getInt("submission_cycle"),
+        rs.getObject("current_action_id", UUID.class),
         rs.getInt("current_revision"),
         totals(rs),
         instant(rs, "created_at"),

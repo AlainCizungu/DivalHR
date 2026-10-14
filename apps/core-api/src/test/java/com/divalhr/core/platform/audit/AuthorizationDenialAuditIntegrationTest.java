@@ -240,7 +240,13 @@ class AuthorizationDenialAuditIntegrationTest {
           "attendance.offline-event-sync",
           // MVP-070A: the employee's own draft timesheets.
           "timesheet.self-list",
-          "timesheet.self-read");
+          "timesheet.self-read",
+          // MVP-070B/C: the employee's submission and the routed manager's queue and decisions.
+          "timesheet.submit",
+          "timesheet.approval-list",
+          "timesheet.approval-read",
+          "timesheet.approve",
+          "timesheet.return");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

@@ -4,7 +4,9 @@ import com.divalhr.core.people.schedule.domain.Substitution.Person;
 import com.divalhr.core.people.schedule.domain.Timesheet;
 import com.divalhr.core.people.schedule.domain.Timesheet.Row;
 import com.divalhr.core.people.schedule.domain.Timesheet.Totals;
+import com.divalhr.core.people.schedule.domain.TimesheetApproval.Action;
 import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory.UnitView;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -195,7 +197,7 @@ public final class TimesheetResponses {
   public record DraftItem(
       UUID timesheetId,
       EmployeeView employee,
-      @Schema(allowableValues = "DRAFT") String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
       int revision,
       TotalsView totals,
       Instant updatedAt) {}
@@ -367,11 +369,13 @@ public final class TimesheetResponses {
    * @param generationId generation
    * @param employee employee
    * @param period the week
-   * @param status DRAFT
+   * @param status DRAFT, SUBMITTED or APPROVED
    * @param revision current revision
+   * @param submissionCycle the latest submission cycle (0 before the first)
    * @param totals current totals
    * @param rows the current revision's rows
    * @param revisions every revision, newest first
+   * @param actions every submission and decision, newest first
    */
   @Schema(name = "TimesheetDetail")
   public record Detail(
@@ -379,16 +383,19 @@ public final class TimesheetResponses {
       UUID generationId,
       EmployeeView employee,
       Period period,
-      @Schema(allowableValues = "DRAFT") String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
       int revision,
+      int submissionCycle,
       TotalsView totals,
       List<RowView> rows,
-      List<RevisionView> revisions) {
+      List<RevisionView> revisions,
+      List<ActionView> actions) {
 
     /** Copies the lists. */
     public Detail {
       rows = List.copyOf(rows);
       revisions = List.copyOf(revisions);
+      actions = List.copyOf(actions);
     }
   }
 
@@ -397,8 +404,9 @@ public final class TimesheetResponses {
    *
    * @param timesheetId timesheet
    * @param period the week
-   * @param status DRAFT
+   * @param status DRAFT, SUBMITTED or APPROVED
    * @param revision current revision
+   * @param submissionCycle the latest submission cycle (0 before the first)
    * @param totals current totals
    * @param updatedAt latest revision instant
    */
@@ -406,8 +414,9 @@ public final class TimesheetResponses {
   public record MyItem(
       UUID timesheetId,
       Period period,
-      @Schema(allowableValues = "DRAFT") String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
       int revision,
+      int submissionCycle,
       TotalsView totals,
       Instant updatedAt) {}
 
@@ -481,25 +490,287 @@ public final class TimesheetResponses {
    *
    * @param timesheetId timesheet
    * @param period the week
-   * @param status DRAFT
+   * @param status DRAFT, SUBMITTED or APPROVED
    * @param revision current revision
+   * @param generationVersion the generation's current version
+   * @param submissionCycle the latest submission cycle (0 before the first)
    * @param totals current totals
    * @param updatedAt latest revision instant
    * @param rows the current revision's rows
+   * @param submission whether it can be submitted now, and what blocks it
+   * @param actions every submission and decision, newest first
    */
   @Schema(name = "MyTimesheet")
   public record MyDetail(
       UUID timesheetId,
       Period period,
-      @Schema(allowableValues = "DRAFT") String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
       int revision,
+      int generationVersion,
+      int submissionCycle,
       TotalsView totals,
       Instant updatedAt,
-      List<MyRow> rows) {
+      List<MyRow> rows,
+      SubmissionView submission,
+      List<MyActionView> actions) {
 
-    /** Copies the list. */
+    /** Copies the lists. */
     public MyDetail {
       rows = List.copyOf(rows);
+      actions = List.copyOf(actions);
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // MVP-070B/C: submissions and decisions
+  // ------------------------------------------------------------------------------------------
+
+  /**
+   * The immutable action a command appended.
+   *
+   * @param timesheetId timesheet
+   * @param actionId action
+   * @param action SUBMITTED, RETURNED or APPROVED
+   * @param status the timesheet's resulting state
+   * @param cycle the action's cycle
+   * @param revision the bound revision
+   * @param generationVersion the bound generation version
+   * @param occurredAt instant
+   */
+  @Schema(name = "TimesheetActionReceipt")
+  public record ActionReceipt(
+      UUID timesheetId,
+      UUID actionId,
+      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED"}) String action,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
+      int cycle,
+      int revision,
+      int generationVersion,
+      Instant occurredAt) {
+
+    /**
+     * The receipt of an action.
+     *
+     * @param action the action
+     * @return the receipt
+     */
+    public static ActionReceipt of(Action action) {
+      return new ActionReceipt(
+          action.timesheetId(),
+          action.id(),
+          action.kind().name(),
+          action.kind().state().name(),
+          action.cycle(),
+          action.revision(),
+          action.generationVersion(),
+          action.occurredAt());
+    }
+  }
+
+  /**
+   * One action as a tenant administrator or the routed manager sees it: never a subject or a
+   * manager's identity.
+   *
+   * @param actionId action
+   * @param action SUBMITTED, RETURNED or APPROVED
+   * @param cycle cycle
+   * @param revision bound revision
+   * @param generationVersion bound generation version
+   * @param rowCount the revision's rows
+   * @param workedMinutes the revision's worked minutes
+   * @param returnReason a return's reason, or {@code null}
+   * @param occurredAt instant
+   */
+  @Schema(name = "TimesheetAction")
+  public record ActionView(
+      UUID actionId,
+      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED"}) String action,
+      int cycle,
+      int revision,
+      int generationVersion,
+      int rowCount,
+      int workedMinutes,
+      @Schema(nullable = true) String returnReason,
+      Instant occurredAt) {
+
+    /**
+     * The view of an action.
+     *
+     * @param action the action
+     * @return the view
+     */
+    public static ActionView of(Action action) {
+      return new ActionView(
+          action.id(),
+          action.kind().name(),
+          action.cycle(),
+          action.revision(),
+          action.generationVersion(),
+          action.totals().rows(),
+          action.totals().workedMinutes(),
+          action.returnReason(),
+          action.occurredAt());
+    }
+  }
+
+  /**
+   * One action as the employee sees it: never who decided.
+   *
+   * @param action SUBMITTED, RETURNED or APPROVED
+   * @param cycle cycle
+   * @param revision bound revision
+   * @param workedMinutes the revision's worked minutes
+   * @param returnReason a return's reason, or {@code null}
+   * @param occurredAt instant
+   */
+  @Schema(name = "MyTimesheetAction")
+  public record MyActionView(
+      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED"}) String action,
+      int cycle,
+      int revision,
+      int workedMinutes,
+      @Schema(nullable = true) String returnReason,
+      Instant occurredAt) {
+
+    /**
+     * The employee's view of an action.
+     *
+     * @param action the action
+     * @return the view
+     */
+    public static MyActionView of(Action action) {
+      return new MyActionView(
+          action.kind().name(),
+          action.cycle(),
+          action.revision(),
+          action.totals().workedMinutes(),
+          action.returnReason(),
+          action.occurredAt());
+    }
+  }
+
+  /**
+   * Whether the employee can submit the draft now, and what blocks it (never names a manager).
+   *
+   * @param eligible whether a submission would be accepted now
+   * @param blockers what blocks it
+   */
+  @Schema(name = "MyTimesheetSubmission")
+  public record SubmissionView(
+      boolean eligible,
+      @ArraySchema(
+              schema =
+                  @Schema(
+                      allowableValues = {
+                        "MISSING_ATTENDANCE",
+                        "OPEN_ATTENDANCE",
+                        "SOURCE_CHANGED",
+                        "NO_READY_ROWS",
+                        "APPROVAL_ROUTE_UNAVAILABLE"
+                      }))
+          List<String> blockers) {
+
+    /** Copies the list. */
+    public SubmissionView {
+      blockers = List.copyOf(blockers);
+    }
+  }
+
+  /**
+   * The submitting employee as the routed manager sees them.
+   *
+   * @param employeeNumber number
+   * @param givenNames current given names
+   * @param familyName current family name
+   */
+  @Schema(name = "TimeApprovalEmployee")
+  public record ApprovalEmployee(String employeeNumber, String givenNames, String familyName) {
+
+    /**
+     * The manager's view of an employee.
+     *
+     * @param person employee
+     * @return the view
+     */
+    public static ApprovalEmployee of(Person person) {
+      return new ApprovalEmployee(
+          person.employeeNumber(), person.givenNames(), person.familyName());
+    }
+  }
+
+  /**
+   * One submitted timesheet in the routed manager's queue.
+   *
+   * @param timesheetId timesheet
+   * @param employee employee
+   * @param period the week
+   * @param revision submitted revision
+   * @param cycle submission cycle
+   * @param rowCount rows
+   * @param workedMinutes worked minutes
+   * @param submittedAt submission instant
+   */
+  @Schema(name = "TimeApprovalItem")
+  public record ApprovalItem(
+      UUID timesheetId,
+      ApprovalEmployee employee,
+      Period period,
+      int revision,
+      int cycle,
+      int rowCount,
+      int workedMinutes,
+      Instant submittedAt) {}
+
+  /**
+   * One page of the routed manager's queue, newest submission first.
+   *
+   * @param items submitted timesheets
+   * @param nextCursor opaque cursor of the next page, or {@code null}
+   */
+  @Schema(name = "TimeApprovalPage")
+  public record ApprovalPage(List<ApprovalItem> items, @Schema(nullable = true) String nextCursor) {
+
+    /** Copies the list. */
+    public ApprovalPage {
+      items = List.copyOf(items);
+    }
+  }
+
+  /**
+   * A submitted timesheet for its routed manager.
+   *
+   * @param timesheetId timesheet
+   * @param employee employee
+   * @param period the week
+   * @param status SUBMITTED
+   * @param revision submitted revision
+   * @param generationVersion the generation version bound by the submission
+   * @param cycle submission cycle
+   * @param submissionActionId the submission to bind a decision to
+   * @param submittedAt submission instant
+   * @param totals the submitted revision's totals
+   * @param rows the submitted revision's rows
+   * @param actions every submission and decision, newest first
+   */
+  @Schema(name = "TimeApprovalDetail")
+  public record ApprovalDetail(
+      UUID timesheetId,
+      ApprovalEmployee employee,
+      Period period,
+      @Schema(allowableValues = "SUBMITTED") String status,
+      int revision,
+      int generationVersion,
+      int cycle,
+      UUID submissionActionId,
+      Instant submittedAt,
+      TotalsView totals,
+      List<MyRow> rows,
+      List<ActionView> actions) {
+
+    /** Copies the lists. */
+    public ApprovalDetail {
+      rows = List.copyOf(rows);
+      actions = List.copyOf(actions);
     }
   }
 }

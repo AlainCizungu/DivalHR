@@ -68,6 +68,21 @@ public final class ScheduleConstraintViolations {
   /** MVP-070A: a timesheet changes only to its next revision. */
   public static final String TIMESHEET_GUARD = "timesheet_guard";
 
+  /** MVP-070B/C: a generation with submitted or approved time is never refreshed. */
+  public static final String TIMESHEET_GENERATION_LOCKED = "timesheet_generation_locked";
+
+  /** MVP-070B/C: an action follows the timesheet's latest one. */
+  public static final String TIMESHEET_ACTION_SEQUENCE = "timesheet_action_sequence";
+
+  /** MVP-070B/C: an action is legal from the timesheet's current state. */
+  public static final String TIMESHEET_ACTION_TRANSITION = "timesheet_action_transition";
+
+  /** MVP-070B/C: one terminal decision per submitted cycle. */
+  public static final String TIMESHEET_ACTION_DECISION = "timesheet_action_decision_unique";
+
+  /** MVP-070B/C: one submission per cycle. */
+  public static final String TIMESHEET_ACTION_SUBMISSION = "timesheet_action_submission_unique";
+
   private ScheduleConstraintViolations() {}
 
   /**

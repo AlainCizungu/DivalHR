@@ -166,6 +166,12 @@ export const NAVIGATION: NavGroupDef[] = [
       { to: '/me/attendance', labelKey: 'nav.myAttendance', icon: 'check', role: 'employee' },
       { to: '/me/timesheets', labelKey: 'nav.myTimesheets', icon: 'calendar', role: 'employee' },
       {
+        to: '/me/time-approvals',
+        labelKey: 'nav.timeApprovals',
+        icon: 'check',
+        role: 'employee',
+      },
+      {
         to: '/me/team-attendance',
         labelKey: 'nav.teamAttendance',
         icon: 'people',

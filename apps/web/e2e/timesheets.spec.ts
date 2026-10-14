@@ -398,7 +398,7 @@ test.describe.serial('MVP-070A: weekly draft timesheets', () => {
     await signIn(page, USERS.adminA, 'en');
     const form = await chooseWeek(page, 'en');
     await expect(page.getByTestId('timesheets-scope')).toHaveText(
-      'Drafts only: nothing here submits, approves, prices or exports time.',
+      'Employees submit their drafts and their manager approves or returns them. Nothing here prices or exports time.',
     );
     await form.getByRole('button', { name: 'Preview', exact: true }).click();
 
@@ -474,7 +474,7 @@ test.describe.serial('MVP-070A: weekly draft timesheets', () => {
     await primaryNav(own).getByRole('link', { name: 'My timesheets', exact: true }).click();
     await expect(own.getByRole('heading', { level: 1 })).toHaveText('My timesheets');
     await expect(own.getByTestId('my-timesheets-notice')).toHaveText(
-      'These are drafts. They are not submitted, approved or a pay statement. If something looks wrong, contact your administrator.',
+      'Your manager approves the timesheets you submit. A timesheet is not a pay statement. If something looks wrong, contact your organization.',
     );
     const cards = own.getByTestId('my-timesheet');
     await expect(cards).toHaveCount(1);

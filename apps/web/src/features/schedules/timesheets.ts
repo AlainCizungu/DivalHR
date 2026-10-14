@@ -1,4 +1,9 @@
-import type { Problem, TimesheetRowState } from '@divalhr/api-client';
+import type {
+  Problem,
+  TimesheetRowState,
+  TimesheetStatus,
+  TimesheetSubmissionBlocker,
+} from '@divalhr/api-client';
 import type { StatusTone } from '../../ui/primitives';
 
 /**
@@ -20,6 +25,48 @@ export const STATE_TONES: Record<TimesheetRowState, StatusTone> = {
   OPEN_ATTENDANCE: 'info',
   SOURCE_CHANGED: 'warning',
 };
+
+/** MVP-070B/C: the timesheet's state; the text carries the meaning, the tone only repeats it. */
+export const STATUS_TONES: Record<TimesheetStatus, StatusTone> = {
+  DRAFT: 'neutral',
+  SUBMITTED: 'info',
+  APPROVED: 'success',
+};
+
+/** MVP-070B/C: what keeps a draft from being submitted, in the server's fixed order. */
+export const BLOCKERS: readonly TimesheetSubmissionBlocker[] = [
+  'MISSING_ATTENDANCE',
+  'OPEN_ATTENDANCE',
+  'SOURCE_CHANGED',
+  'NO_READY_ROWS',
+  'APPROVAL_ROUTE_UNAVAILABLE',
+];
+
+/** MVP-070B/C: the return reason's bounds (the server decides; this only guides). */
+export const REASON_MIN = 10;
+export const REASON_MAX = 500;
+
+export type ReasonProblem = 'required' | 'length' | 'format';
+
+/**
+ * Problems of a return reason the browser can already tell (trimmed length, a link or markup, a
+ * control or invisible format character); the server checks everything again.
+ */
+export function reasonProblemOf(reason: string): ReasonProblem | null {
+  const trimmed = reason.trim();
+  if (!trimmed) return 'required';
+  let length = 0;
+  for (let i = 0; i < trimmed.length; i += 1) {
+    if ((trimmed.codePointAt(i) ?? 0) > 0xffff) i += 1;
+    length += 1;
+  }
+  if (length < REASON_MIN || length > REASON_MAX) return 'length';
+  if (/[<>]/u.test(trimmed) || /(https?:\/\/|ftp:\/\/|www\.|mailto:)/iu.test(trimmed)) {
+    return 'format';
+  }
+  if (/[\p{Cc}\p{Cf}]/u.test(trimmed)) return 'format';
+  return null;
+}
 
 function two(value: number): string {
   return String(value).padStart(2, '0');
@@ -89,6 +136,8 @@ export interface TimesheetFailure {
     | 'notAllowed'
     | 'limit'
     | 'stale'
+    | 'route'
+    | 'decided'
     | 'forbidden'
     | 'linkRequired'
     | 'rateLimited'
@@ -96,6 +145,8 @@ export interface TimesheetFailure {
     | 'general';
   messageKey: string;
   fields?: WeekField[];
+  /** MVP-070B/C: the return reason was refused. */
+  reason?: boolean;
   correlationId?: string;
 }
 
@@ -109,12 +160,16 @@ const CODES: Record<string, TimesheetFailure['kind']> = {
   TIMESHEET_GENERATION_NOT_ALLOWED: 'notAllowed',
   TIMESHEET_GENERATION_LIMIT_EXCEEDED: 'limit',
   TIMESHEET_REFRESH_PREVIEW_STALE: 'stale',
+  TIMESHEET_SUBMISSION_NOT_ALLOWED: 'notAllowed',
+  TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE: 'route',
+  TIMESHEET_DECISION_STALE: 'stale',
+  TIMESHEET_DECISION_NOT_ALLOWED: 'decided',
   IDEMPOTENCY_KEY_REUSED: 'idempotency',
 };
 
 /** Maps a Problem response; no param outside the field allow-list is ever shown. */
 export function timesheetFailureOf(
-  view: 'admin' | 'self',
+  view: 'admin' | 'self' | 'manager',
   response: Response,
   error: unknown,
 ): TimesheetFailure {
@@ -129,7 +184,12 @@ export function timesheetFailureOf(
     return {
       ...base,
       kind: 'forbidden',
-      messageKey: view === 'admin' ? 'timesheets.unauthorized' : 'myTimesheets.unauthorized',
+      messageKey:
+        view === 'admin'
+          ? 'timesheets.unauthorized'
+          : view === 'manager'
+            ? 'timeApprovals.unauthorized'
+            : 'myTimesheets.unauthorized',
     };
   }
   if (response.status === 429) {
@@ -140,13 +200,18 @@ export function timesheetFailureOf(
   if (code === 'VALIDATION_FAILED') {
     const raw = params.fields;
     const fields = new Set<WeekField>();
+    let reason = false;
     if (Array.isArray(raw)) {
       for (const entry of raw) {
         const name = (entry as { field?: unknown }).field;
         if (typeof name === 'string' && (WEEK_FIELDS as readonly string[]).includes(name)) {
           fields.add(name as WeekField);
         }
+        if (name === 'reason') reason = true;
       }
+    }
+    if (view === 'manager') {
+      return { ...base, kind: 'validation', messageKey: 'timeApprovals.validation', reason };
     }
     return {
       ...base,

@@ -5894,9 +5894,10 @@ paths:
         SOURCE_CHANGED (blocking, without worked time); a draft with no difference keeps its
         revision; a newly included employee receives a new draft. Returns the counts, the totals
         after the refresh, the generation version and the preview digest to send with the commit.
-        The body must name the generation's own site and week (otherwise 404). Writes nothing but
-        its fail-closed disclosure audit (timesheet.refresh-preview). Cache-Control private,
-        no-store.
+        The body must name the generation's own site and week (otherwise 404). A generation with
+        any SUBMITTED or APPROVED timesheet is never refreshed (MVP-070B/C): 409
+        TIMESHEET_GENERATION_NOT_ALLOWED. Writes nothing but its fail-closed disclosure audit
+        (timesheet.refresh-preview). Cache-Control private, no-store.
       tags: [people]
       parameters:
         - name: generationId
@@ -5930,6 +5931,8 @@ paths:
           $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/UnprocessableContent"
         "429":
@@ -5946,7 +5949,9 @@ paths:
         MVP-070A. Commits exactly the reviewed preview: under the tenant's scheduling lock, the
         generation and its drafts FOR UPDATE and the candidates' employments FOR SHARE, everything is
         evaluated again; a changed version or any other difference is 409
-        TIMESHEET_REFRESH_PREVIEW_STALE. One transaction with the generation's next version, the new
+        TIMESHEET_REFRESH_PREVIEW_STALE; a generation with any SUBMITTED or APPROVED timesheet is
+        409 TIMESHEET_GENERATION_NOT_ALLOWED (MVP-070B/C). One transaction with the generation's
+        next version, the new
         append-only revisions (older revisions and rows stay as evidence), new drafts, the audit
         record (timesheet.refresh) and the outbox event (people.timesheet.refreshed.v1). Idempotent.
         No automatic or background refresh. Cache-Control private, no-store.
@@ -5999,13 +6004,16 @@ paths:
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
-      summary: One draft timesheet with its rows and revisions
+      summary: One timesheet with its rows, revisions and approval history
       description: >-
         MVP-070A. The draft's employee, week, current revision and totals, the current revision's
         rows (the slot, schedule, qualifying employment, site and cost center, labels, scheduled
         instants, the effective attendance record and its effective instants and correction
-        version, the state and the worked minutes) and every revision header, newest first. Never
-        the private correction explanation. A malformed, unknown or foreign draft is 404
+        version, the state and the worked minutes) and every revision header, newest first; its
+        current state (DRAFT, SUBMITTED or APPROVED), latest submission cycle and every submission,
+        return (with its reason) and approval, newest first (MVP-070B/C; read-only: a tenant
+        administrator never submits, approves or returns). Never the private correction
+        explanation, a subject or a manager's identity. A malformed, unknown or foreign draft is 404
         TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet.read). Cache-Control
         private, no-store.
       tags: [people]
@@ -6043,11 +6051,12 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
-      summary: List my draft timesheets
+      summary: List my timesheets
       description: >-
         MVP-070A. The drafts of the employee of the caller's current active employee-access link
         (403 EMPLOYEE_LINK_REQUIRED otherwise), newest week first, with the site, week, current
-        revision and totals. Never another employee's draft. A fail-closed disclosure (audit
+        revision, state (DRAFT, SUBMITTED or APPROVED), latest submission cycle and totals. Never
+        another employee's timesheet. A fail-closed disclosure (audit
         timesheet.self-list). The signed cursor is bound to the operation, tenant, link, employee
         and page size. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
       tags: [people]
@@ -6079,12 +6088,15 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
-      summary: One of my draft timesheets
+      summary: One of my timesheets
       description: >-
         MVP-070A. One of the caller's own drafts with its current rows: labels, scheduled instants,
         the effective check-in and check-out, whether the organization corrected them, the state and
         the worked minutes. No schedule, employment, cost center or record identifier, never who
-        generated it or a correction's explanation. Another employee's, a foreign, malformed or
+        generated it or a correction's explanation. MVP-070B/C: the state, the generation version
+        and latest cycle to submit with, whether it can be submitted now and what blocks it, and
+        every submission, return (with its reason) and approval, newest first; never who
+        approves. Another employee's, a foreign, malformed or
         unknown draft is the same 404 TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit
         timesheet.self-read). Cache-Control private, no-store.
       tags: [people]
@@ -6114,6 +6126,281 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/timesheets/{timesheetId}/submissions:
+    post:
+      operationId: submitMyTimesheet
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Submit my clean weekly timesheet to my manager
+      description: >-
+        MVP-070B/C. The employee of the caller's active employee-access link submits one of their
+        own DRAFT timesheets: the reviewed revision and generation version must still be current
+        (otherwise 409 TIMESHEET_DECISION_STALE), the revision must have at least one READY row and
+        no MISSING_ATTENDANCE, OPEN_ATTENDANCE or SOURCE_CHANGED row (otherwise 409
+        TIMESHEET_SUBMISSION_NOT_ALLOWED), and the approval route must resolve to exactly one
+        manager, effective on the site-local Sunday of the week under the current employment
+        history, who is not the employee and holds an active employee membership and link
+        (otherwise 409 TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE, never naming anyone). One transaction
+        with the append-only SUBMITTED action (the next cycle, the revision, its source digest and
+        totals, the generation version, the employment, the routed manager, the verified subject
+        and the instant), the timesheet's SUBMITTED state, the audit record (timesheet.submit) and
+        the outbox event (people.timesheet.submitted.v1). Employee, tenant, actor and route never
+        come from the request. Another employee's, a foreign, malformed or unknown timesheet is the
+        same 404 TIMESHEET_TARGET_NOT_FOUND. Idempotent. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: timesheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitTimesheetRequest"
+      responses:
+        "200":
+          description: Submitted, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetActionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/time-approvals:
+    get:
+      operationId: listMyTimeApprovals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List the submitted timesheets I currently approve
+      description: >-
+        MVP-070B/C. The currently SUBMITTED timesheets whose approval route resolves now, under the
+        current employment history, to the employee of the caller's active employee-access link
+        (403 EMPLOYEE_LINK_REQUIRED otherwise): newest submission first, optionally one site and
+        one site-local week. Each item has the employee's number and current name, the site and
+        week, the revision, cycle, row count, worked total and submission instant. Never a
+        correction explanation or a private supervisor reason. A manager who lost the route sees
+        nothing more; the new effective manager sees it. A fail-closed disclosure (audit
+        timesheet.approval-list). The signed cursor is bound to the operation, tenant, link,
+        employee, filters and page size. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: siteId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: weekStart
+          in: query
+          required: false
+          description: A site-local Monday.
+          schema:
+            type: string
+            format: date
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeApprovalPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/time-approvals/{timesheetId}:
+    get:
+      operationId: getMyTimeApproval
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: One submitted timesheet I currently approve
+      description: >-
+        MVP-070B/C. A currently SUBMITTED timesheet whose route resolves now to the caller's linked
+        employee: the employee's number and name, the week, the revision, generation version and
+        cycle, the submission evidence, the totals, the submitted revision's rows (no identifier,
+        cost center or correction explanation) and the timesheet's submission and decision
+        history, newest first (with earlier return reasons). Anything else (not submitted, another
+        manager's, foreign, malformed or unknown) is the same 404 TIMESHEET_TARGET_NOT_FOUND. A
+        fail-closed disclosure (audit timesheet.approval-read). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: timesheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeApprovalDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/time-approvals/{timesheetId}/approval:
+    post:
+      operationId: approveTimesheet
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Approve a submitted timesheet
+      description: >-
+        MVP-070B/C. The routed manager approves exactly the reviewed submission: the timesheet must
+        be SUBMITTED (otherwise 409 TIMESHEET_DECISION_NOT_ALLOWED); the reviewed revision,
+        generation version, cycle and submission action must still be current and the timesheet's
+        sources, evaluated again under the scheduling lock and the employments FOR SHARE, must
+        still produce exactly the submitted digest and totals (otherwise 409
+        TIMESHEET_DECISION_STALE; never a recomputed value); the route must still resolve to the
+        caller (otherwise the same 404 TIMESHEET_TARGET_NOT_FOUND as anything unknown). One
+        transaction with the append-only APPROVED action, the APPROVED state, the audit record
+        (timesheet.approve) and the outbox event (people.timesheet.approved.v1). No note. A tenant
+        administrator role grants nothing here. Idempotent; a replay is answered only while the
+        caller still holds the route. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: timesheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveTimesheetRequest"
+      responses:
+        "200":
+          description: Approved, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetActionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/time-approvals/{timesheetId}/return:
+    post:
+      operationId: returnTimesheet
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Return a submitted timesheet with a reason
+      description: >-
+        MVP-070B/C. The same authority and freshness as an approval, with a required reason (10 to
+        500 characters after trimming; no control or format character, markup or link; Restricted
+        HR/Operations, visible only to the employee, tenant administrators and the routed manager).
+        One transaction with the append-only RETURNED action of the cycle, the timesheet's DRAFT
+        state (so the administrators' refresh applies again and the employee resubmits as the next
+        cycle), the audit record (timesheet.return) and the outbox event
+        (people.timesheet.returned.v1). The reason never enters audit metadata, events, logs or
+        errors. Idempotent; a replay is answered only while the caller still holds the route.
+        Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: timesheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReturnTimesheetRequest"
+      responses:
+        "200":
+          description: Returned, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetActionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
 components:
@@ -9696,6 +9983,10 @@ components:
         - TIMESHEET_GENERATION_NOT_ALLOWED
         - TIMESHEET_GENERATION_LIMIT_EXCEEDED
         - TIMESHEET_REFRESH_PREVIEW_STALE
+        - TIMESHEET_SUBMISSION_NOT_ALLOWED
+        - TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE
+        - TIMESHEET_DECISION_STALE
+        - TIMESHEET_DECISION_NOT_ALLOWED
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -11874,7 +12165,7 @@ components:
           type: string
     TimesheetDraftItem:
       type: object
-      description: MVP-070A. One draft of a generation.
+      description: MVP-070A/B/C. One timesheet of a generation with its current state.
       required: [timesheetId, employee, status, revision, totals, updatedAt]
       properties:
         timesheetId:
@@ -11884,7 +12175,7 @@ components:
           $ref: "#/components/schemas/TimesheetEmployee"
         status:
           type: string
-          enum: [DRAFT]
+          enum: [DRAFT, SUBMITTED, APPROVED]
         revision:
           type: integer
           minimum: 1
@@ -12037,8 +12328,8 @@ components:
           $ref: "#/components/schemas/TimesheetTotals"
     TimesheetDetail:
       type: object
-      description: MVP-070A. One draft with its current rows and every revision, newest first.
-      required: [timesheetId, generationId, employee, period, status, revision, totals, rows, revisions]
+      description: MVP-070A/B/C. One timesheet with its current state and rows, every revision and every submission and decision (with return reasons), newest first.
+      required: [timesheetId, generationId, employee, period, status, revision, submissionCycle, totals, rows, revisions, actions]
       properties:
         timesheetId:
           type: string
@@ -12052,10 +12343,13 @@ components:
           $ref: "#/components/schemas/TimesheetPeriod"
         status:
           type: string
-          enum: [DRAFT]
+          enum: [DRAFT, SUBMITTED, APPROVED]
         revision:
           type: integer
           minimum: 1
+        submissionCycle:
+          type: integer
+          minimum: 0
         totals:
           $ref: "#/components/schemas/TimesheetTotals"
         rows:
@@ -12066,10 +12360,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimesheetRevision"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimesheetAction"
     MyTimesheetItem:
       type: object
-      description: MVP-070A. One of the employee's own drafts.
-      required: [timesheetId, period, status, revision, totals, updatedAt]
+      description: MVP-070A/B/C. One of the employee's own timesheets with its current state.
+      required: [timesheetId, period, status, revision, submissionCycle, totals, updatedAt]
       properties:
         timesheetId:
           type: string
@@ -12078,10 +12376,14 @@ components:
           $ref: "#/components/schemas/TimesheetPeriod"
         status:
           type: string
-          enum: [DRAFT]
+          enum: [DRAFT, SUBMITTED, APPROVED]
         revision:
           type: integer
           minimum: 1
+        submissionCycle:
+          type: integer
+          minimum: 0
+          description: The latest submission cycle (0 before the first submission).
         totals:
           $ref: "#/components/schemas/TimesheetTotals"
         updatedAt:
@@ -12126,8 +12428,8 @@ components:
           minimum: 0
     MyTimesheet:
       type: object
-      description: MVP-070A. One of the employee's own drafts with its current rows.
-      required: [timesheetId, period, status, revision, totals, updatedAt, rows]
+      description: MVP-070A/B/C. One of the employee's own timesheets with its current state and rows, whether it can be submitted now and its submission and decision history, newest first.
+      required: [timesheetId, period, status, revision, generationVersion, submissionCycle, totals, updatedAt, rows, submission, actions]
       properties:
         timesheetId:
           type: string
@@ -12136,10 +12438,17 @@ components:
           $ref: "#/components/schemas/TimesheetPeriod"
         status:
           type: string
-          enum: [DRAFT]
+          enum: [DRAFT, SUBMITTED, APPROVED]
         revision:
           type: integer
           minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+          description: The generation's current version, to send with a submission.
+        submissionCycle:
+          type: integer
+          minimum: 0
         totals:
           $ref: "#/components/schemas/TimesheetTotals"
         updatedAt:
@@ -12149,6 +12458,264 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MyTimesheetRow"
+        submission:
+          $ref: "#/components/schemas/MyTimesheetSubmission"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyTimesheetAction"
+    SubmitTimesheetRequest:
+      type: object
+      description: MVP-070B/C. Submit the reviewed revision of one's own draft.
+      additionalProperties: false
+      required: [revision, generationVersion, confirm]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+        confirm:
+          type: boolean
+          enum: [true]
+    ApproveTimesheetRequest:
+      type: object
+      description: MVP-070B/C. Approve exactly the reviewed submission. No note is accepted.
+      additionalProperties: false
+      required: [revision, generationVersion, cycle, submissionActionId, confirm]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+        cycle:
+          type: integer
+          minimum: 1
+        submissionActionId:
+          type: string
+          format: uuid
+        confirm:
+          type: boolean
+          enum: [true]
+    ReturnTimesheetRequest:
+      type: object
+      description: MVP-070B/C. Return exactly the reviewed submission with a reason.
+      additionalProperties: false
+      required: [revision, generationVersion, cycle, submissionActionId, reason, confirm]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+        cycle:
+          type: integer
+          minimum: 1
+        submissionActionId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: >-
+            10 to 500 characters after trimming; no control or format character, markup or link.
+            Restricted HR/Operations.
+        confirm:
+          type: boolean
+          enum: [true]
+    TimesheetActionReceipt:
+      type: object
+      description: MVP-070B/C. The immutable action a submission, approval or return appended.
+      required: [timesheetId, actionId, action, status, cycle, revision, generationVersion, occurredAt]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        actionId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [SUBMITTED, RETURNED, APPROVED]
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, APPROVED]
+        cycle:
+          type: integer
+          minimum: 1
+        revision:
+          type: integer
+          minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+        occurredAt:
+          type: string
+          format: date-time
+    TimesheetAction:
+      type: object
+      description: >-
+        MVP-070B/C. One immutable submission or decision as a tenant administrator or the routed
+        manager sees it: never a subject or a manager's identity.
+      required: [actionId, action, cycle, revision, generationVersion, rowCount, workedMinutes, returnReason, occurredAt]
+      properties:
+        actionId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [SUBMITTED, RETURNED, APPROVED]
+        cycle:
+          type: integer
+          minimum: 1
+        revision:
+          type: integer
+          minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+        rowCount:
+          type: integer
+          minimum: 1
+        workedMinutes:
+          type: integer
+          minimum: 0
+        returnReason:
+          type: [string, "null"]
+        occurredAt:
+          type: string
+          format: date-time
+    MyTimesheetAction:
+      type: object
+      description: MVP-070B/C. One submission or decision as the employee sees it; never who decided.
+      required: [action, cycle, revision, workedMinutes, returnReason, occurredAt]
+      properties:
+        action:
+          type: string
+          enum: [SUBMITTED, RETURNED, APPROVED]
+        cycle:
+          type: integer
+          minimum: 1
+        revision:
+          type: integer
+          minimum: 1
+        workedMinutes:
+          type: integer
+          minimum: 0
+        returnReason:
+          type: [string, "null"]
+        occurredAt:
+          type: string
+          format: date-time
+    MyTimesheetSubmission:
+      type: object
+      description: >-
+        MVP-070B/C. Whether the draft can be submitted now, and what blocks it: rows to resolve with
+        the organization, no READY row, or no available approval route. Never names a manager.
+      required: [eligible, blockers]
+      properties:
+        eligible:
+          type: boolean
+        blockers:
+          type: array
+          items:
+            type: string
+            enum: [MISSING_ATTENDANCE, OPEN_ATTENDANCE, SOURCE_CHANGED, NO_READY_ROWS, APPROVAL_ROUTE_UNAVAILABLE]
+    TimeApprovalEmployee:
+      type: object
+      description: MVP-070B/C. The submitting employee's number and current name.
+      required: [employeeNumber, givenNames, familyName]
+      properties:
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    TimeApprovalItem:
+      type: object
+      description: MVP-070B/C. One currently submitted timesheet in the routed manager's queue.
+      required: [timesheetId, employee, period, revision, cycle, rowCount, workedMinutes, submittedAt]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/TimeApprovalEmployee"
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        revision:
+          type: integer
+          minimum: 1
+        cycle:
+          type: integer
+          minimum: 1
+        rowCount:
+          type: integer
+          minimum: 1
+        workedMinutes:
+          type: integer
+          minimum: 0
+        submittedAt:
+          type: string
+          format: date-time
+    TimeApprovalPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeApprovalItem"
+        nextCursor:
+          type: [string, "null"]
+    TimeApprovalDetail:
+      type: object
+      description: >-
+        MVP-070B/C. A submitted timesheet for its routed manager: the submission evidence to bind
+        a decision to, the submitted revision's rows and the history, newest first.
+      required: [timesheetId, employee, period, status, revision, generationVersion, cycle, submissionActionId, submittedAt, totals, rows, actions]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/TimeApprovalEmployee"
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        status:
+          type: string
+          enum: [SUBMITTED]
+        revision:
+          type: integer
+          minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+        cycle:
+          type: integer
+          minimum: 1
+        submissionActionId:
+          type: string
+          format: uuid
+        submittedAt:
+          type: string
+          format: date-time
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyTimesheetRow"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimesheetAction"
     AttendanceCorrectionReceipt:
       type: object
       description: MVP-062. A committed correction's receipt; never the explanation or the administrator.
