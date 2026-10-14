@@ -220,7 +220,7 @@ Queued events synchronize idempotently and preserve device event time and server
 
 A correction requires authorization, reason, before-and-after values, and audit history.
 
-**MVP-062 (Issue #126). In review.** Attendance correction by tenant administrators (ADR 0016 amendment).
+**MVP-062 (Issue #126). Complete (PR #127, merged as `e6804df`); deployed to hr-dev at release `e6804df9d91dc2615eb79b80c30af6ffba4a819a`.** Attendance correction by tenant administrators (ADR 0016 amendment).
 
 - **Who and where.** Only a tenant administrator with exact MFA, from an exception card in « Suivi de la présence » / "Attendance review" under Operations: « Corriger ce pointage » / "Correct this record" for a recorded exception, « Créer le pointage manquant » / "Create the missing record" for « Aucune arrivée enregistrée » / "No check-in recorded". Employees and managers have no correction action.
 - **Two operations.** `CREATE_MISSING_RECORD` creates the record of a slot of an operational schedule for its effective assignee, with a check-in and an optional check-out. `REPLACE_TIMES` replaces a record's check-in and optional check-out, so it can add, replace or clear a check-out; the employee, employment, schedule and slot never change.
@@ -235,7 +235,24 @@ A correction requires authorization, reason, before-and-after values, and audit 
 
 ### MVP-070 Approve time
 
-Supervisors can approve hours by project, grant, site, task, or cost center.
+Supervisors can approve hours by project, grant, site, task, or cost center. Delivered in this approved sequence:
+
+1. **MVP-070A** Generate weekly drafts from schedules and effective attendance (below).
+2. **MVP-070B/C** Employee submission, and manager approval or return.
+3. **MVP-070D** Reopen and reapprove, preserving the approval history.
+4. **MVP-070E** Export approved time for payroll and accounting.
+
+Project, grant and task allocation is not part of this sequence: it remains a future story, to be approved separately.
+
+**MVP-070A (Issue #128). In review.** Weekly draft timesheets (ADR 0018).
+
+- **Who and where.** A tenant administrator with exact MFA in « Feuilles de temps » / "Timesheets" under Operations chooses a legal entity, a site and a Monday; employees read their own drafts in « Mes feuilles de temps » / "My timesheets" under My space.
+- **The week.** Monday 00:00 to the next Monday 00:00 in the site's time zone (exact instants, across daylight-saving changes); the site's current week or a past week only.
+- **Sources.** Every slot that starts in the week in an operational schedule of the site (cancelled and replaced schedules excluded), for its effective assignee (the approved substitute, otherwise the published employee) with exactly one qualifying employment; the effective attendance after MVP-062 corrections; the site and cost center of the placement on the slot's local date.
+- **Drafts and rows.** One DRAFT per employee and week at the site, one row per slot: « Prêt » / "Ready" (completed attendance, worked time in whole minutes, truncated), « Présence manquante » / "Missing attendance", « Présence ouverte » / "Open attendance", « Source modifiée » / "Source changed" (a slot of an earlier revision that is no longer included, kept and blocked). At most 500 drafts and 5,000 rows per command, refused before any write.
+- **Generate, then refresh.** A preview, an explicit confirmation and an `Idempotency-Key`; generating an already generated week returns it unchanged. A refresh is previewed (new drafts, drafts with a new revision, changed shifts) and applied only with that exact preview; it appends a revision, never rewrites one.
+- **Evidence.** V32 adds `people.timesheet_generation`, `people.timesheet`, `people.timesheet_revision` and `people.timesheet_row` (append-only revisions and rows); audit `timesheet.generate` and `timesheet.refresh` with bounded counts, events `people.timesheet.generated.v1` and `people.timesheet.refreshed.v1`, disclosure audits on every read.
+- **Not included:** submission, approval, rejection, comments, pay or overtime calculations, breaks, rounding policies, exports, project, grant or task allocation, notifications, deleting drafts, unscheduled time, AI.
 
 ### MVP-071 Lock a period
 

@@ -5730,6 +5730,392 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /timesheets/generation-preview:
+    post:
+      operationId: previewTimesheetGeneration
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the weekly draft timesheets of one site
+      description: >-
+        MVP-070A. Resolves, in the verified tenant, the site and its site-local week (Monday 00:00
+        to the next Monday 00:00 in the site's IANA time zone; weekStart is the local Monday of the
+        current week or an earlier one, never derived from the browser) and returns the week's exact
+        UTC boundaries, the week's existing generation if any, and what a generation would hold now:
+        one draft per employee who is the effective assignee (the published employee or the approved
+        substitute) of at least one included slot (an operational schedule's slot starting inside
+        the week, with exactly one qualifying employment), and one row per slot from the effective
+        attendance projection (READY, MISSING_ATTENDANCE or OPEN_ATTENDANCE; worked minutes only for
+        READY). At most 500 drafts and 5,000 source rows (422 TIMESHEET_GENERATION_LIMIT_EXCEEDED).
+        A malformed, unknown or foreign site is 404 TIMESHEET_TARGET_NOT_FOUND; a future week is 400
+        VALIDATION_FAILED (weekStart RANGE). Writes nothing but its fail-closed disclosure audit
+        (timesheet.generation-preview). Shares the work-schedule-write limits. Cache-Control
+        private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimesheetPeriodRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetGenerationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheets/generations:
+    post:
+      operationId: generateTimesheets
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Generate the weekly draft timesheets of one site
+      description: >-
+        MVP-070A. Under the tenant's scheduling lock, with the candidates' employments FOR SHARE,
+        the week's included slots are read again and, in one transaction, the generation (version
+        1), one DRAFT per employee, its revision 1 and its rows, the audit record
+        (timesheet.generate) and the outbox event (people.timesheet.generated.v1) are written. The
+        bounds are checked before any write; a week without an included slot is 409
+        TIMESHEET_GENERATION_NOT_ALLOWED. A week that is already generated is returned as it is
+        (outcome EXISTING), never generated twice. Idempotent (an identical replay returns the
+        original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the
+        work-schedule-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateTimesheetsRequest"
+      responses:
+        "200":
+          description: Generated, the existing generation, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetGenerationResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheets/generations/{generationId}:
+    get:
+      operationId: getTimesheetGeneration
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: A generated week with its drafts
+      description: >-
+        MVP-070A. The generation (week, boundaries, version, instants, totals) and every draft (at
+        most 500) with its employee (number and names), current revision and totals, by family
+        name. A malformed, unknown or foreign generation is 404 TIMESHEET_TARGET_NOT_FOUND. A
+        fail-closed disclosure (audit timesheet.generation-read). Shares the work-schedule-read
+        limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetGeneration"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheets/generations/{generationId}/refresh-preview:
+    post:
+      operationId: previewTimesheetRefresh
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a refresh of a generated week
+      description: >-
+        MVP-070A. Evaluates every draft's next revision from the current sources: each included slot
+        with its current facts, and each slot of the current revision that is no longer included as
+        SOURCE_CHANGED (blocking, without worked time); a draft with no difference keeps its
+        revision; a newly included employee receives a new draft. Returns the counts, the totals
+        after the refresh, the generation version and the preview digest to send with the commit.
+        The body must name the generation's own site and week (otherwise 404). Writes nothing but
+        its fail-closed disclosure audit (timesheet.refresh-preview). Cache-Control private,
+        no-store.
+      tags: [people]
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimesheetPeriodRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetRefreshPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheets/generations/{generationId}/refreshes:
+    post:
+      operationId: refreshTimesheets
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Commit a previewed refresh of a generated week
+      description: >-
+        MVP-070A. Commits exactly the reviewed preview: under the tenant's scheduling lock, the
+        generation and its drafts FOR UPDATE and the candidates' employments FOR SHARE, everything is
+        evaluated again; a changed version or any other difference is 409
+        TIMESHEET_REFRESH_PREVIEW_STALE. One transaction with the generation's next version, the new
+        append-only revisions (older revisions and rows stay as evidence), new drafts, the audit
+        record (timesheet.refresh) and the outbox event (people.timesheet.refreshed.v1). Idempotent.
+        No automatic or background refresh. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTimesheetsRequest"
+      responses:
+        "200":
+          description: Refreshed, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetRefreshResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheets/{timesheetId}:
+    get:
+      operationId: getTimesheet
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One draft timesheet with its rows and revisions
+      description: >-
+        MVP-070A. The draft's employee, week, current revision and totals, the current revision's
+        rows (the slot, schedule, qualifying employment, site and cost center, labels, scheduled
+        instants, the effective attendance record and its effective instants and correction
+        version, the state and the worked minutes) and every revision header, newest first. Never
+        the private correction explanation. A malformed, unknown or foreign draft is 404
+        TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet.read). Cache-Control
+        private, no-store.
+      tags: [people]
+      parameters:
+        - name: timesheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/timesheets:
+    get:
+      operationId: listMyTimesheets
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my draft timesheets
+      description: >-
+        MVP-070A. The drafts of the employee of the caller's current active employee-access link
+        (403 EMPLOYEE_LINK_REQUIRED otherwise), newest week first, with the site, week, current
+        revision and totals. Never another employee's draft. A fail-closed disclosure (audit
+        timesheet.self-list). The signed cursor is bound to the operation, tenant, link, employee
+        and page size. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyTimesheetPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/timesheets/{timesheetId}:
+    get:
+      operationId: getMyTimesheet
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: One of my draft timesheets
+      description: >-
+        MVP-070A. One of the caller's own drafts with its current rows: labels, scheduled instants,
+        the effective check-in and check-out, whether the organization corrected them, the state and
+        the worked minutes. No schedule, employment, cost center or record identifier, never who
+        generated it or a correction's explanation. Another employee's, a foreign, malformed or
+        unknown draft is the same 404 TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit
+        timesheet.self-read). Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: timesheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyTimesheet"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     oauth2:
@@ -9306,6 +9692,10 @@ components:
         - ATTENDANCE_CORRECTION_TARGET_NOT_FOUND
         - ATTENDANCE_CORRECTION_NOT_ALLOWED
         - ATTENDANCE_CORRECTION_PREVIEW_STALE
+        - TIMESHEET_TARGET_NOT_FOUND
+        - TIMESHEET_GENERATION_NOT_ALLOWED
+        - TIMESHEET_GENERATION_LIMIT_EXCEEDED
+        - TIMESHEET_REFRESH_PREVIEW_STALE
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -11306,6 +11696,459 @@ components:
         previewDigest:
           type: string
           pattern: "^[0-9a-f]{64}$"
+    TimesheetPeriodRequest:
+      type: object
+      description: MVP-070A. One site and its site-local week.
+      additionalProperties: false
+      required: [siteId, weekStart]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+          description: The site-local Monday of the current week or an earlier one.
+    GenerateTimesheetsRequest:
+      type: object
+      description: MVP-070A. Generate the week's drafts of one site.
+      additionalProperties: false
+      required: [siteId, weekStart, confirm]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+        confirm:
+          type: boolean
+          enum: [true]
+    RefreshTimesheetsRequest:
+      type: object
+      description: MVP-070A. Commit a previewed refresh with the identical site and week.
+      additionalProperties: false
+      required: [siteId, weekStart, version, previewDigest, confirm]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+        version:
+          type: integer
+          minimum: 1
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        confirm:
+          type: boolean
+          enum: [true]
+    TimesheetPeriod:
+      type: object
+      description: MVP-070A. A site-local week with its exact UTC boundaries.
+      required: [siteId, siteCode, siteName, timezone, weekStart, weekEnd, lastDay, periodStartAt, periodEndAt]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        siteCode:
+          type: [string, "null"]
+        siteName:
+          type: [string, "null"]
+        timezone:
+          type: string
+        weekStart:
+          type: string
+          format: date
+        weekEnd:
+          type: string
+          format: date
+          description: The next local Monday (exclusive).
+        lastDay:
+          type: string
+          format: date
+        periodStartAt:
+          type: string
+          format: date-time
+        periodEndAt:
+          type: string
+          format: date-time
+    TimesheetTotals:
+      type: object
+      description: MVP-070A. Row counts by state and the READY rows' worked minutes.
+      required: [rows, readyRows, missingRows, openRows, changedRows, blockedRows, workedMinutes]
+      properties:
+        rows:
+          type: integer
+          minimum: 0
+        readyRows:
+          type: integer
+          minimum: 0
+        missingRows:
+          type: integer
+          minimum: 0
+        openRows:
+          type: integer
+          minimum: 0
+        changedRows:
+          type: integer
+          minimum: 0
+        blockedRows:
+          type: integer
+          minimum: 0
+        workedMinutes:
+          type: integer
+          minimum: 0
+    TimesheetGenerationSummary:
+      type: object
+      description: MVP-070A. A generated week.
+      required: [generationId, period, status, version, generatedAt, refreshedAt, drafts, totals]
+      properties:
+        generationId:
+          type: string
+          format: uuid
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        status:
+          type: string
+          enum: [DRAFT]
+        version:
+          type: integer
+          minimum: 1
+        generatedAt:
+          type: string
+          format: date-time
+        refreshedAt:
+          type: [string, "null"]
+          format: date-time
+        drafts:
+          type: integer
+          minimum: 0
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+    TimesheetGenerationPreview:
+      type: object
+      description: MVP-070A. What a generation would hold now.
+      required: [period, generation, drafts, totals, maxDrafts, maxRows]
+      properties:
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        generation:
+          oneOf:
+            - $ref: "#/components/schemas/TimesheetGenerationSummary"
+            - type: "null"
+        drafts:
+          type: integer
+          minimum: 0
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+        maxDrafts:
+          type: integer
+        maxRows:
+          type: integer
+    TimesheetGenerationResult:
+      type: object
+      description: MVP-070A. A generation command's result.
+      required: [outcome, generation]
+      properties:
+        outcome:
+          type: string
+          enum: [CREATED, EXISTING]
+        generation:
+          $ref: "#/components/schemas/TimesheetGenerationSummary"
+    TimesheetEmployee:
+      type: object
+      description: MVP-070A. An employee as a tenant administrator sees them.
+      required: [id, employeeNumber, givenNames, familyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    TimesheetDraftItem:
+      type: object
+      description: MVP-070A. One draft of a generation.
+      required: [timesheetId, employee, status, revision, totals, updatedAt]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/TimesheetEmployee"
+        status:
+          type: string
+          enum: [DRAFT]
+        revision:
+          type: integer
+          minimum: 1
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+        updatedAt:
+          type: string
+          format: date-time
+    TimesheetGeneration:
+      type: object
+      description: MVP-070A. A generated week with its drafts (at most 500).
+      required: [generation, timesheets]
+      properties:
+        generation:
+          $ref: "#/components/schemas/TimesheetGenerationSummary"
+        timesheets:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/TimesheetDraftItem"
+    TimesheetRefreshPreview:
+      type: object
+      description: MVP-070A. What a refresh would change now.
+      required: [generationId, version, period, previewDigest, newDrafts, changedTimesheets, unchangedTimesheets, changedRows, totals]
+      properties:
+        generationId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        newDrafts:
+          type: integer
+          minimum: 0
+        changedTimesheets:
+          type: integer
+          minimum: 0
+        unchangedTimesheets:
+          type: integer
+          minimum: 0
+        changedRows:
+          type: integer
+          minimum: 0
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+    TimesheetRefreshResult:
+      type: object
+      description: MVP-070A. A committed refresh.
+      required: [generation, newDrafts, changedTimesheets, changedRows]
+      properties:
+        generation:
+          $ref: "#/components/schemas/TimesheetGenerationSummary"
+        newDrafts:
+          type: integer
+          minimum: 0
+        changedTimesheets:
+          type: integer
+          minimum: 0
+        changedRows:
+          type: integer
+          minimum: 0
+    TimesheetLabels:
+      type: object
+      required: [en, fr]
+      properties:
+        en:
+          type: string
+        fr:
+          type: string
+    TimesheetCostCenter:
+      type: object
+      description: MVP-070A. The placement's cost center on the slot's local date.
+      required: [id, code, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: [string, "null"]
+        name:
+          type: [string, "null"]
+    TimesheetRow:
+      type: object
+      description: MVP-070A. One row of a revision as a tenant administrator sees it; never a correction explanation.
+      required: [slotId, scheduleId, employmentId, siteId, costCenter, labels, scheduledStartAt, scheduledEndAt, state, attendanceRecordId, checkedInAt, checkedOutAt, correctionVersion, corrected, workedMinutes]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        scheduleId:
+          type: string
+          format: uuid
+        employmentId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        costCenter:
+          oneOf:
+            - $ref: "#/components/schemas/TimesheetCostCenter"
+            - type: "null"
+        labels:
+          $ref: "#/components/schemas/TimesheetLabels"
+        scheduledStartAt:
+          type: string
+          format: date-time
+        scheduledEndAt:
+          type: string
+          format: date-time
+        state:
+          type: string
+          enum: [READY, MISSING_ATTENDANCE, OPEN_ATTENDANCE, SOURCE_CHANGED]
+        attendanceRecordId:
+          type: [string, "null"]
+          format: uuid
+        checkedInAt:
+          type: [string, "null"]
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        correctionVersion:
+          type: [integer, "null"]
+          minimum: 0
+        corrected:
+          type: boolean
+        workedMinutes:
+          type: [integer, "null"]
+          minimum: 0
+    TimesheetRevision:
+      type: object
+      required: [revision, generationVersion, createdAt, totals]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+        generationVersion:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+    TimesheetDetail:
+      type: object
+      description: MVP-070A. One draft with its current rows and every revision, newest first.
+      required: [timesheetId, generationId, employee, period, status, revision, totals, rows, revisions]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        generationId:
+          type: string
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/TimesheetEmployee"
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        status:
+          type: string
+          enum: [DRAFT]
+        revision:
+          type: integer
+          minimum: 1
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimesheetRow"
+        revisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimesheetRevision"
+    MyTimesheetItem:
+      type: object
+      description: MVP-070A. One of the employee's own drafts.
+      required: [timesheetId, period, status, revision, totals, updatedAt]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        status:
+          type: string
+          enum: [DRAFT]
+        revision:
+          type: integer
+          minimum: 1
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+        updatedAt:
+          type: string
+          format: date-time
+    MyTimesheetPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyTimesheetItem"
+        nextCursor:
+          type: [string, "null"]
+    MyTimesheetRow:
+      type: object
+      description: MVP-070A. One row as the employee sees it; no identifier, never who corrected it or why.
+      required: [labels, scheduledStartAt, scheduledEndAt, state, checkedInAt, checkedOutAt, corrected, workedMinutes]
+      properties:
+        labels:
+          $ref: "#/components/schemas/TimesheetLabels"
+        scheduledStartAt:
+          type: string
+          format: date-time
+        scheduledEndAt:
+          type: string
+          format: date-time
+        state:
+          type: string
+          enum: [READY, MISSING_ATTENDANCE, OPEN_ATTENDANCE, SOURCE_CHANGED]
+        checkedInAt:
+          type: [string, "null"]
+          format: date-time
+        checkedOutAt:
+          type: [string, "null"]
+          format: date-time
+        corrected:
+          type: boolean
+        workedMinutes:
+          type: [integer, "null"]
+          minimum: 0
+    MyTimesheet:
+      type: object
+      description: MVP-070A. One of the employee's own drafts with its current rows.
+      required: [timesheetId, period, status, revision, totals, updatedAt, rows]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        period:
+          $ref: "#/components/schemas/TimesheetPeriod"
+        status:
+          type: string
+          enum: [DRAFT]
+        revision:
+          type: integer
+          minimum: 1
+        totals:
+          $ref: "#/components/schemas/TimesheetTotals"
+        updatedAt:
+          type: string
+          format: date-time
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/MyTimesheetRow"
     AttendanceCorrectionReceipt:
       type: object
       description: MVP-062. A committed correction's receipt; never the explanation or the administrator.

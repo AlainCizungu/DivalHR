@@ -362,6 +362,17 @@ fieldset.field {
   outline-offset: -3px;
 }
 
+/* MVP-070A: timesheet tables wrap between words, never inside one; on narrow screens the table
+   scrolls inside its region instead. */
+.timesheet-table th,
+.timesheet-table td {
+  overflow-wrap: normal;
+}
+
+.timesheet-table .button {
+  white-space: nowrap;
+}
+
 /* MVP-021: multi-line cells of change previews (one period per line). */
 .preformatted {
   white-space: pre-line;

@@ -22,8 +22,10 @@ import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { AttendanceReviewPage } from '../features/schedules/AttendanceReviewPage';
 import { MyAttendancePage } from '../features/schedules/MyAttendancePage';
 import { MySchedulePage } from '../features/schedules/MySchedulePage';
+import { MyTimesheetsPage } from '../features/schedules/MyTimesheetsPage';
 import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/ScheduleSubstitutionApprovalsPage';
 import { TeamAttendancePage } from '../features/schedules/TeamAttendancePage';
+import { TimesheetsPage } from '../features/schedules/TimesheetsPage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
 import { EmployeeDirectoryPage } from '../features/people/EmployeeDirectoryPage';
@@ -169,6 +171,12 @@ export const ROUTES: AppRoute[] = [
     crumbs: [HOME, OPERATIONS, { key: 'nav.attendanceReview' }],
   },
   {
+    path: '/admin/timesheets',
+    element: <TimesheetsPage />,
+    access: tenantAdmin('timesheets.unauthorized', 'timesheets.signInRequired'),
+    crumbs: [HOME, OPERATIONS, { key: 'nav.timesheets' }],
+  },
+  {
     path: '/admin/contract-templates',
     element: <ContractTemplatesPage />,
     access: tenantAdmin('contracts.unauthorized', 'contracts.signInRequired'),
@@ -235,6 +243,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'attendance.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myAttendance' }],
+  },
+  {
+    path: '/me/timesheets',
+    element: <MyTimesheetsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'myTimesheets.unauthorized',
+      signInKey: 'myTimesheets.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myTimesheets' }],
   },
   {
     path: '/me/team-attendance',

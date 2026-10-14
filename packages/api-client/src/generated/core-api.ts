@@ -2135,6 +2135,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/timesheets/generation-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the weekly draft timesheets of one site
+         * @description MVP-070A. Resolves, in the verified tenant, the site and its site-local week (Monday 00:00 to the next Monday 00:00 in the site's IANA time zone; weekStart is the local Monday of the current week or an earlier one, never derived from the browser) and returns the week's exact UTC boundaries, the week's existing generation if any, and what a generation would hold now: one draft per employee who is the effective assignee (the published employee or the approved substitute) of at least one included slot (an operational schedule's slot starting inside the week, with exactly one qualifying employment), and one row per slot from the effective attendance projection (READY, MISSING_ATTENDANCE or OPEN_ATTENDANCE; worked minutes only for READY). At most 500 drafts and 5,000 source rows (422 TIMESHEET_GENERATION_LIMIT_EXCEEDED). A malformed, unknown or foreign site is 404 TIMESHEET_TARGET_NOT_FOUND; a future week is 400 VALIDATION_FAILED (weekStart RANGE). Writes nothing but its fail-closed disclosure audit (timesheet.generation-preview). Shares the work-schedule-write limits. Cache-Control private, no-store.
+         */
+        post: operations["previewTimesheetGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheets/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate the weekly draft timesheets of one site
+         * @description MVP-070A. Under the tenant's scheduling lock, with the candidates' employments FOR SHARE, the week's included slots are read again and, in one transaction, the generation (version 1), one DRAFT per employee, its revision 1 and its rows, the audit record (timesheet.generate) and the outbox event (people.timesheet.generated.v1) are written. The bounds are checked before any write; a week without an included slot is 409 TIMESHEET_GENERATION_NOT_ALLOWED. A week that is already generated is returned as it is (outcome EXISTING), never generated twice. Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the work-schedule-write limits. Cache-Control private, no-store.
+         */
+        post: operations["generateTimesheets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheets/generations/{generationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A generated week with its drafts
+         * @description MVP-070A. The generation (week, boundaries, version, instants, totals) and every draft (at most 500) with its employee (number and names), current revision and totals, by family name. A malformed, unknown or foreign generation is 404 TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet.generation-read). Shares the work-schedule-read limit. Cache-Control private, no-store.
+         */
+        get: operations["getTimesheetGeneration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheets/generations/{generationId}/refresh-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a refresh of a generated week
+         * @description MVP-070A. Evaluates every draft's next revision from the current sources: each included slot with its current facts, and each slot of the current revision that is no longer included as SOURCE_CHANGED (blocking, without worked time); a draft with no difference keeps its revision; a newly included employee receives a new draft. Returns the counts, the totals after the refresh, the generation version and the preview digest to send with the commit. The body must name the generation's own site and week (otherwise 404). Writes nothing but its fail-closed disclosure audit (timesheet.refresh-preview). Cache-Control private, no-store.
+         */
+        post: operations["previewTimesheetRefresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheets/generations/{generationId}/refreshes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit a previewed refresh of a generated week
+         * @description MVP-070A. Commits exactly the reviewed preview: under the tenant's scheduling lock, the generation and its drafts FOR UPDATE and the candidates' employments FOR SHARE, everything is evaluated again; a changed version or any other difference is 409 TIMESHEET_REFRESH_PREVIEW_STALE. One transaction with the generation's next version, the new append-only revisions (older revisions and rows stay as evidence), new drafts, the audit record (timesheet.refresh) and the outbox event (people.timesheet.refreshed.v1). Idempotent. No automatic or background refresh. Cache-Control private, no-store.
+         */
+        post: operations["refreshTimesheets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheets/{timesheetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One draft timesheet with its rows and revisions
+         * @description MVP-070A. The draft's employee, week, current revision and totals, the current revision's rows (the slot, schedule, qualifying employment, site and cost center, labels, scheduled instants, the effective attendance record and its effective instants and correction version, the state and the worked minutes) and every revision header, newest first. Never the private correction explanation. A malformed, unknown or foreign draft is 404 TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet.read). Cache-Control private, no-store.
+         */
+        get: operations["getTimesheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/timesheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my draft timesheets
+         * @description MVP-070A. The drafts of the employee of the caller's current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), newest week first, with the site, week, current revision and totals. Never another employee's draft. A fail-closed disclosure (audit timesheet.self-list). The signed cursor is bound to the operation, tenant, link, employee and page size. Shares the work-schedule-self-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listMyTimesheets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/timesheets/{timesheetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One of my draft timesheets
+         * @description MVP-070A. One of the caller's own drafts with its current rows: labels, scheduled instants, the effective check-in and check-out, whether the organization corrected them, the state and the worked minutes. No schedule, employment, cost center or record identifier, never who generated it or a correction's explanation. Another employee's, a foreign, malformed or unknown draft is the same 404 TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet.self-read). Cache-Control private, no-store.
+         */
+        get: operations["getMyTimesheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3549,7 +3709,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -4555,6 +4715,248 @@ export interface components {
             /** Format: date-time */
             previewedAt: string;
             previewDigest: string;
+        };
+        /** @description MVP-070A. One site and its site-local week. */
+        TimesheetPeriodRequest: {
+            /** Format: uuid */
+            siteId: string;
+            /**
+             * Format: date
+             * @description The site-local Monday of the current week or an earlier one.
+             */
+            weekStart: string;
+        };
+        /** @description MVP-070A. Generate the week's drafts of one site. */
+        GenerateTimesheetsRequest: {
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date */
+            weekStart: string;
+            /** @enum {boolean} */
+            confirm: true;
+        };
+        /** @description MVP-070A. Commit a previewed refresh with the identical site and week. */
+        RefreshTimesheetsRequest: {
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date */
+            weekStart: string;
+            version: number;
+            previewDigest: string;
+            /** @enum {boolean} */
+            confirm: true;
+        };
+        /** @description MVP-070A. A site-local week with its exact UTC boundaries. */
+        TimesheetPeriod: {
+            /** Format: uuid */
+            siteId: string;
+            siteCode: string | null;
+            siteName: string | null;
+            timezone: string;
+            /** Format: date */
+            weekStart: string;
+            /**
+             * Format: date
+             * @description The next local Monday (exclusive).
+             */
+            weekEnd: string;
+            /** Format: date */
+            lastDay: string;
+            /** Format: date-time */
+            periodStartAt: string;
+            /** Format: date-time */
+            periodEndAt: string;
+        };
+        /** @description MVP-070A. Row counts by state and the READY rows' worked minutes. */
+        TimesheetTotals: {
+            rows: number;
+            readyRows: number;
+            missingRows: number;
+            openRows: number;
+            changedRows: number;
+            blockedRows: number;
+            workedMinutes: number;
+        };
+        /** @description MVP-070A. A generated week. */
+        TimesheetGenerationSummary: {
+            /** Format: uuid */
+            generationId: string;
+            period: components["schemas"]["TimesheetPeriod"];
+            /** @enum {string} */
+            status: "DRAFT";
+            version: number;
+            /** Format: date-time */
+            generatedAt: string;
+            /** Format: date-time */
+            refreshedAt: string | null;
+            drafts: number;
+            totals: components["schemas"]["TimesheetTotals"];
+        };
+        /** @description MVP-070A. What a generation would hold now. */
+        TimesheetGenerationPreview: {
+            period: components["schemas"]["TimesheetPeriod"];
+            generation: components["schemas"]["TimesheetGenerationSummary"] | null;
+            drafts: number;
+            totals: components["schemas"]["TimesheetTotals"];
+            maxDrafts: number;
+            maxRows: number;
+        };
+        /** @description MVP-070A. A generation command's result. */
+        TimesheetGenerationResult: {
+            /** @enum {string} */
+            outcome: "CREATED" | "EXISTING";
+            generation: components["schemas"]["TimesheetGenerationSummary"];
+        };
+        /** @description MVP-070A. An employee as a tenant administrator sees them. */
+        TimesheetEmployee: {
+            /** Format: uuid */
+            id: string;
+            employeeNumber: string;
+            givenNames: string;
+            familyName: string;
+        };
+        /** @description MVP-070A. One draft of a generation. */
+        TimesheetDraftItem: {
+            /** Format: uuid */
+            timesheetId: string;
+            employee: components["schemas"]["TimesheetEmployee"];
+            /** @enum {string} */
+            status: "DRAFT";
+            revision: number;
+            totals: components["schemas"]["TimesheetTotals"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description MVP-070A. A generated week with its drafts (at most 500). */
+        TimesheetGeneration: {
+            generation: components["schemas"]["TimesheetGenerationSummary"];
+            timesheets: components["schemas"]["TimesheetDraftItem"][];
+        };
+        /** @description MVP-070A. What a refresh would change now. */
+        TimesheetRefreshPreview: {
+            /** Format: uuid */
+            generationId: string;
+            version: number;
+            period: components["schemas"]["TimesheetPeriod"];
+            previewDigest: string;
+            newDrafts: number;
+            changedTimesheets: number;
+            unchangedTimesheets: number;
+            changedRows: number;
+            totals: components["schemas"]["TimesheetTotals"];
+        };
+        /** @description MVP-070A. A committed refresh. */
+        TimesheetRefreshResult: {
+            generation: components["schemas"]["TimesheetGenerationSummary"];
+            newDrafts: number;
+            changedTimesheets: number;
+            changedRows: number;
+        };
+        TimesheetLabels: {
+            en: string;
+            fr: string;
+        };
+        /** @description MVP-070A. The placement's cost center on the slot's local date. */
+        TimesheetCostCenter: {
+            /** Format: uuid */
+            id: string;
+            code: string | null;
+            name: string | null;
+        };
+        /** @description MVP-070A. One row of a revision as a tenant administrator sees it; never a correction explanation. */
+        TimesheetRow: {
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            employmentId: string;
+            /** Format: uuid */
+            siteId: string;
+            costCenter: components["schemas"]["TimesheetCostCenter"] | null;
+            labels: components["schemas"]["TimesheetLabels"];
+            /** Format: date-time */
+            scheduledStartAt: string;
+            /** Format: date-time */
+            scheduledEndAt: string;
+            /** @enum {string} */
+            state: "READY" | "MISSING_ATTENDANCE" | "OPEN_ATTENDANCE" | "SOURCE_CHANGED";
+            /** Format: uuid */
+            attendanceRecordId: string | null;
+            /** Format: date-time */
+            checkedInAt: string | null;
+            /** Format: date-time */
+            checkedOutAt: string | null;
+            correctionVersion: number | null;
+            corrected: boolean;
+            workedMinutes: number | null;
+        };
+        TimesheetRevision: {
+            revision: number;
+            generationVersion: number;
+            /** Format: date-time */
+            createdAt: string;
+            totals: components["schemas"]["TimesheetTotals"];
+        };
+        /** @description MVP-070A. One draft with its current rows and every revision, newest first. */
+        TimesheetDetail: {
+            /** Format: uuid */
+            timesheetId: string;
+            /** Format: uuid */
+            generationId: string;
+            employee: components["schemas"]["TimesheetEmployee"];
+            period: components["schemas"]["TimesheetPeriod"];
+            /** @enum {string} */
+            status: "DRAFT";
+            revision: number;
+            totals: components["schemas"]["TimesheetTotals"];
+            rows: components["schemas"]["TimesheetRow"][];
+            revisions: components["schemas"]["TimesheetRevision"][];
+        };
+        /** @description MVP-070A. One of the employee's own drafts. */
+        MyTimesheetItem: {
+            /** Format: uuid */
+            timesheetId: string;
+            period: components["schemas"]["TimesheetPeriod"];
+            /** @enum {string} */
+            status: "DRAFT";
+            revision: number;
+            totals: components["schemas"]["TimesheetTotals"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        MyTimesheetPage: {
+            items: components["schemas"]["MyTimesheetItem"][];
+            nextCursor: string | null;
+        };
+        /** @description MVP-070A. One row as the employee sees it; no identifier, never who corrected it or why. */
+        MyTimesheetRow: {
+            labels: components["schemas"]["TimesheetLabels"];
+            /** Format: date-time */
+            scheduledStartAt: string;
+            /** Format: date-time */
+            scheduledEndAt: string;
+            /** @enum {string} */
+            state: "READY" | "MISSING_ATTENDANCE" | "OPEN_ATTENDANCE" | "SOURCE_CHANGED";
+            /** Format: date-time */
+            checkedInAt: string | null;
+            /** Format: date-time */
+            checkedOutAt: string | null;
+            corrected: boolean;
+            workedMinutes: number | null;
+        };
+        /** @description MVP-070A. One of the employee's own drafts with its current rows. */
+        MyTimesheet: {
+            /** Format: uuid */
+            timesheetId: string;
+            period: components["schemas"]["TimesheetPeriod"];
+            /** @enum {string} */
+            status: "DRAFT";
+            revision: number;
+            totals: components["schemas"]["TimesheetTotals"];
+            /** Format: date-time */
+            updatedAt: string;
+            rows: components["schemas"]["MyTimesheetRow"][];
         };
         /** @description MVP-062. A committed correction's receipt; never the explanation or the administrator. */
         AttendanceCorrectionReceipt: {
@@ -9622,6 +10024,280 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewTimesheetGeneration: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetPeriodRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetGenerationPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    generateTimesheets: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateTimesheetsRequest"];
+            };
+        };
+        responses: {
+            /** @description Generated, the existing generation, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetGenerationResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getTimesheetGeneration: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetGeneration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewTimesheetRefresh: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetPeriodRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRefreshPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    refreshTimesheets: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTimesheetsRequest"];
+            };
+        };
+        responses: {
+            /** @description Refreshed, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetRefreshResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getTimesheet: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                timesheetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listMyTimesheets: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTimesheetPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getMyTimesheet: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                timesheetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTimesheet"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
         };
     };

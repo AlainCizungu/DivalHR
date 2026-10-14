@@ -307,6 +307,30 @@ export type CorrectedAttendanceRecord = CoreComponents['schemas']['CorrectedAtte
 export type AttendanceCorrectionHistory = CoreComponents['schemas']['AttendanceCorrectionHistory'];
 export type AttendanceCorrectionHistoryEntry =
   CoreComponents['schemas']['AttendanceCorrectionHistoryEntry'];
+/** MVP-070A: weekly draft timesheets (administrators) and the employee's own drafts. */
+export type TimesheetPeriodRequest = CoreComponents['schemas']['TimesheetPeriodRequest'];
+export type GenerateTimesheetsRequest = CoreComponents['schemas']['GenerateTimesheetsRequest'];
+export type RefreshTimesheetsRequest = CoreComponents['schemas']['RefreshTimesheetsRequest'];
+export type TimesheetPeriod = CoreComponents['schemas']['TimesheetPeriod'];
+export type TimesheetTotals = CoreComponents['schemas']['TimesheetTotals'];
+export type TimesheetGenerationSummary = CoreComponents['schemas']['TimesheetGenerationSummary'];
+export type TimesheetGenerationPreview = CoreComponents['schemas']['TimesheetGenerationPreview'];
+export type TimesheetGenerationResult = CoreComponents['schemas']['TimesheetGenerationResult'];
+export type TimesheetEmployee = CoreComponents['schemas']['TimesheetEmployee'];
+export type TimesheetDraftItem = CoreComponents['schemas']['TimesheetDraftItem'];
+export type TimesheetGeneration = CoreComponents['schemas']['TimesheetGeneration'];
+export type TimesheetRefreshPreview = CoreComponents['schemas']['TimesheetRefreshPreview'];
+export type TimesheetRefreshResult = CoreComponents['schemas']['TimesheetRefreshResult'];
+export type TimesheetLabels = CoreComponents['schemas']['TimesheetLabels'];
+export type TimesheetCostCenter = CoreComponents['schemas']['TimesheetCostCenter'];
+export type TimesheetRow = CoreComponents['schemas']['TimesheetRow'];
+export type TimesheetRevision = CoreComponents['schemas']['TimesheetRevision'];
+export type TimesheetDetail = CoreComponents['schemas']['TimesheetDetail'];
+export type MyTimesheetItem = CoreComponents['schemas']['MyTimesheetItem'];
+export type MyTimesheetPage = CoreComponents['schemas']['MyTimesheetPage'];
+export type MyTimesheetRow = CoreComponents['schemas']['MyTimesheetRow'];
+export type MyTimesheet = CoreComponents['schemas']['MyTimesheet'];
+export type TimesheetRowState = TimesheetRow['state'];
 /**
  * The listTeams parent filter: exactly one of departmentId or costCenterId
  * (x-divalhr-exactly-one-of in docs/API-SPEC.yaml).

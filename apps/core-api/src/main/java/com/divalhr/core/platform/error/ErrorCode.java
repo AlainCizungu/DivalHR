@@ -416,7 +416,18 @@ public enum ErrorCode {
    */
   ATTENDANCE_CORRECTION_NOT_ALLOWED(HttpStatus.CONFLICT),
   /** MVP-062: the target changed since the preview; preview again. */
-  ATTENDANCE_CORRECTION_PREVIEW_STALE(HttpStatus.CONFLICT);
+  ATTENDANCE_CORRECTION_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /**
+   * MVP-070A: the site, generation or timesheet does not exist in the caller's tenant, or is
+   * malformed, foreign or not disclosable; never distinguishes which.
+   */
+  TIMESHEET_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-070A: the week has no included slot to generate a draft for. */
+  TIMESHEET_GENERATION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-070A: the week exceeds the per-request bound of drafts or source rows; nothing written. */
+  TIMESHEET_GENERATION_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-070A: the generation or its sources changed since the refresh preview; preview again. */
+  TIMESHEET_REFRESH_PREVIEW_STALE(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 
