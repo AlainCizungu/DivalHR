@@ -25,6 +25,7 @@ import { MySchedulePage } from '../features/schedules/MySchedulePage';
 import { MyTimesheetsPage } from '../features/schedules/MyTimesheetsPage';
 import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/ScheduleSubstitutionApprovalsPage';
 import { TeamAttendancePage } from '../features/schedules/TeamAttendancePage';
+import { TimeApprovalsPage } from '../features/schedules/TimeApprovalsPage';
 import { TimesheetsPage } from '../features/schedules/TimesheetsPage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
@@ -253,6 +254,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'myTimesheets.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myTimesheets' }],
+  },
+  {
+    path: '/me/time-approvals',
+    element: <TimeApprovalsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'timeApprovals.unauthorized',
+      signInKey: 'timeApprovals.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.timeApprovals' }],
   },
   {
     path: '/me/team-attendance',

@@ -56,6 +56,15 @@ public class EmployeeAccessLinksAdapter implements EmployeeAccessLinks {
   }
 
   @Override
+  public boolean activeEmployee(TenantId tenant, UUID employeeId) {
+    return links
+        .activeLink(tenant, employeeId)
+        .filter(
+            row -> TenantRole.EMPLOYEE.wireName().equals(row.role()) && !row.revocationEffective())
+        .isPresent();
+  }
+
+  @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public UUID scheduleRevocation(TenantId tenant, RevocationRequest request) {
     UUID id = UUID.randomUUID();

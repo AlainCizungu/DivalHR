@@ -27,6 +27,7 @@ const EMPLOYEE = [
   '/me/schedule',
   '/me/attendance',
   '/me/timesheets',
+  '/me/time-approvals',
   '/me/team-attendance',
   '/me/schedule/substitutions',
   '/me/leave',
@@ -85,7 +86,7 @@ describe('navigation and route registry consistency', () => {
     for (const route of listPages) expect(navPaths, route.path).toContain(route.path);
   });
 
-  it('keeps every pre-UI-001 URL, plus the MVP-031A queue, MVP-040A/041A/041B leave pages, MVP-050A schedules, MVP-051 substitutions and MVP-070A timesheets', () => {
+  it('keeps every pre-UI-001 URL, plus the MVP-031A queue, MVP-040A/041A/041B leave pages, MVP-050A schedules, MVP-051 substitutions, MVP-070A timesheets and MVP-070B/C time approvals', () => {
     expect(ROUTES.map((route) => route.path).sort()).toEqual(
       [
         '/',
@@ -112,6 +113,7 @@ describe('navigation and route registry consistency', () => {
         '/me/schedule',
         '/me/attendance',
         '/me/timesheets',
+        '/me/time-approvals',
         '/me/team-attendance',
         '/me/schedule/substitutions',
         '/me/leave',

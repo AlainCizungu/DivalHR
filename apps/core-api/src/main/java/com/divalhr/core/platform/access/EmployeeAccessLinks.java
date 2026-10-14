@@ -104,6 +104,17 @@ public interface EmployeeAccessLinks {
   Optional<SelfLink> linkedEmployee(TenantId tenant, String subject);
 
   /**
+   * Whether the employee holds an active link of an {@code employee} membership whose access is not
+   * revoked (no revocation in effect): the employee can act in self-service now (MVP-070B/C: an
+   * approval route names only such a manager). Never locks.
+   *
+   * @param tenant verified tenant
+   * @param employeeId employee
+   * @return whether the employee is an active, linked employee member
+   */
+  boolean activeEmployee(TenantId tenant, UUID employeeId);
+
+  /**
    * An employee's own active link.
    *
    * @param employeeId the linked employee

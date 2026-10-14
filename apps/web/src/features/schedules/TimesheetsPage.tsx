@@ -15,8 +15,10 @@ import { formatDate } from '../people/history';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { loadAll, useOptions } from '../people/unitOptions';
 import { formatInstant } from './attendance';
+import { TimesheetHistory } from './TimesheetHistory';
 import { TimesheetRows } from './TimesheetRows';
 import {
+  STATUS_TONES,
   TIMESHEET_NETWORK_FAILURE,
   currentMonday,
   durationParts,
@@ -29,6 +31,16 @@ import {
 } from './timesheets';
 
 /** A fresh key per reviewed preview (the platform's key grammar): a retry reuses it. */
+/**
+ * MVP-070B/C: a refresh refused because the week holds submitted or approved time says so (the
+ * same code refuses a generation of an empty week).
+ */
+function refreshFailureOf(failure: TimesheetFailure): TimesheetFailure {
+  return failure.kind === 'notAllowed'
+    ? { ...failure, messageKey: 'timesheets.refresh.locked' }
+    : failure;
+}
+
 function newKey(): string {
   return `web-${crypto.randomUUID()}`;
 }
@@ -257,7 +269,7 @@ export function TimesheetsPage() {
         },
       );
       if (!data) {
-        setFailure(timesheetFailureOf('admin', response, error));
+        setFailure(refreshFailureOf(timesheetFailureOf('admin', response, error)));
         return;
       }
       refreshKey.current = newKey();
@@ -288,8 +300,8 @@ export function TimesheetsPage() {
         },
       );
       if (!data) {
-        const mapped = timesheetFailureOf('admin', response, error);
-        if (mapped.kind === 'stale') setRefreshPreview(null);
+        const mapped = refreshFailureOf(timesheetFailureOf('admin', response, error));
+        if (mapped.kind === 'stale' || mapped.kind === 'notAllowed') setRefreshPreview(null);
         setFailure(mapped);
         return;
       }
@@ -545,6 +557,7 @@ export function TimesheetsPage() {
               <thead>
                 <tr>
                   <th scope="col">{t('timesheets.generation.columns.employee')}</th>
+                  <th scope="col">{t('timesheets.generation.columns.status')}</th>
                   <th scope="col">{t('timesheets.generation.columns.revision')}</th>
                   <th scope="col">{t('timesheets.generation.columns.rows')}</th>
                   <th scope="col">{t('timesheets.generation.columns.ready')}</th>
@@ -557,6 +570,14 @@ export function TimesheetsPage() {
                 {generation.timesheets.map((draft) => (
                   <tr key={draft.timesheetId} data-testid="timesheets-draft">
                     <th scope="row">{name(draft.employee)}</th>
+                    <td>
+                      <StatusBadge
+                        tone={STATUS_TONES[draft.status]}
+                        testId="timesheets-draft-status"
+                      >
+                        {t(`timesheets.status.${draft.status}`)}
+                      </StatusBadge>
+                    </td>
                     <td data-testid="timesheets-draft-revision">{draft.revision}</td>
                     <td>{draft.totals.rows}</td>
                     <td>{draft.totals.readyRows}</td>
@@ -687,10 +708,20 @@ export function TimesheetsPage() {
           </h2>
           <PeriodText period={detail.period} />
           <p>
-            <StatusBadge tone="neutral">{t('timesheets.generation.status')}</StatusBadge>{' '}
+            <StatusBadge tone={STATUS_TONES[detail.status]} testId="timesheets-detail-status">
+              {t(`timesheets.status.${detail.status}`)}
+            </StatusBadge>{' '}
             <span data-testid="timesheets-detail-revision">
               {t('timesheets.detail.revision', { revision: detail.revision })}
             </span>
+            {detail.submissionCycle > 0 && (
+              <>
+                {' '}
+                <span data-testid="timesheets-detail-cycle">
+                  {t('timesheets.detail.cycle', { cycle: detail.submissionCycle })}
+                </span>
+              </>
+            )}
           </p>
           <TotalsList totals={detail.totals} testId="timesheets-detail-totals" />
           <TimesheetRows
@@ -729,6 +760,12 @@ export function TimesheetsPage() {
               </tbody>
             </table>
           </ScrollRegion>
+          <h3>{t('timesheets.history.title')}</h3>
+          <TimesheetHistory
+            actions={detail.actions}
+            zone={detail.period.timezone}
+            testId="timesheets-detail-history"
+          />
           <p>
             <button
               type="button"

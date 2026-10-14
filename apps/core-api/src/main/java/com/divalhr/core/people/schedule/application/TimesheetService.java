@@ -6,6 +6,7 @@ import com.divalhr.core.people.schedule.api.GenerateTimesheetsRequest;
 import com.divalhr.core.people.schedule.api.RefreshTimesheetsRequest;
 import com.divalhr.core.people.schedule.api.TimesheetPeriodRequest;
 import com.divalhr.core.people.schedule.api.TimesheetResponses;
+import com.divalhr.core.people.schedule.api.TimesheetResponses.ActionView;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.Detail;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.DraftItem;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.EmployeeView;
@@ -13,6 +14,7 @@ import com.divalhr.core.people.schedule.api.TimesheetResponses.GenerationPreview
 import com.divalhr.core.people.schedule.api.TimesheetResponses.GenerationResult;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.GenerationSummary;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.GenerationView;
+import com.divalhr.core.people.schedule.api.TimesheetResponses.MyActionView;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.MyDetail;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.MyItem;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.MyPage;
@@ -21,6 +23,7 @@ import com.divalhr.core.people.schedule.api.TimesheetResponses.RefreshPreview;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.RefreshResult;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.RevisionView;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.RowView;
+import com.divalhr.core.people.schedule.api.TimesheetResponses.SubmissionView;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.TotalsView;
 import com.divalhr.core.people.schedule.application.TimesheetCommand.Refresh;
 import com.divalhr.core.people.schedule.application.TimesheetCommand.Target;
@@ -29,6 +32,9 @@ import com.divalhr.core.people.schedule.domain.Timesheet;
 import com.divalhr.core.people.schedule.domain.Timesheet.Period;
 import com.divalhr.core.people.schedule.domain.Timesheet.Row;
 import com.divalhr.core.people.schedule.domain.Timesheet.Totals;
+import com.divalhr.core.people.schedule.domain.TimesheetApproval;
+import com.divalhr.core.people.schedule.domain.TimesheetApproval.Blocker;
+import com.divalhr.core.people.schedule.internal.JdbcTimesheetActionRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository.Candidate;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository.Generation;
@@ -159,6 +165,8 @@ public class TimesheetService {
   private final JdbcWorkScheduleRepository schedules;
   private final JdbcWorkScheduleSubstitutionRepository shifts;
   private final JdbcTimesheetRepository timesheets;
+  private final JdbcTimesheetActionRepository actions;
+  private final TimesheetRouting routing;
   private final OrganizationPlacementDirectory directory;
   private final EmployeeAccessLinks links;
   private final CursorCodec cursors;
@@ -178,6 +186,8 @@ public class TimesheetService {
    * @param schedules schedule storage (the scheduling lock)
    * @param shifts employment locks and identities
    * @param timesheets timesheet storage
+   * @param actions submission and decision storage (MVP-070B/C)
+   * @param routing the approval route (MVP-070B/C)
    * @param directory the tenant module's unit port (site, time zone, cost centers)
    * @param links the identity port (the employee's own link)
    * @param cursors signed cursors
@@ -195,6 +205,8 @@ public class TimesheetService {
       JdbcWorkScheduleRepository schedules,
       JdbcWorkScheduleSubstitutionRepository shifts,
       JdbcTimesheetRepository timesheets,
+      JdbcTimesheetActionRepository actions,
+      TimesheetRouting routing,
       OrganizationPlacementDirectory directory,
       EmployeeAccessLinks links,
       CursorCodec cursors,
@@ -210,6 +222,8 @@ public class TimesheetService {
     this.schedules = schedules;
     this.shifts = shifts;
     this.timesheets = timesheets;
+    this.actions = actions;
+    this.routing = routing;
     this.directory = directory;
     this.links = links;
     this.cursors = cursors;
@@ -373,7 +387,7 @@ public class TimesheetService {
                       new DraftItem(
                           h.id(),
                           EmployeeView.of(member.employee()),
-                          "DRAFT",
+                          h.status(),
                           h.revision(),
                           TotalsView.of(h.totals()),
                           h.updatedAt()));
@@ -585,10 +599,14 @@ public class TimesheetService {
                     READ,
                     "timesheet",
                     views.size(),
-                    "DIVALHR-TIMESHEET-READ\nversion=1\ntimesheet="
+                    "DIVALHR-TIMESHEET-READ\nversion=2\ntimesheet="
                         + id
                         + "\nrevision="
                         + header.revision()
+                        + "\nstatus="
+                        + header.status()
+                        + "\ncycle="
+                        + header.cycle()
                         + "\n");
                 return new Detail(
                     id,
@@ -596,11 +614,13 @@ public class TimesheetService {
                     EmployeeView.of(employee),
                     TimesheetResponses.Period.of(
                         header.period(), site(resolved.get(header.period().siteId()))),
-                    "DRAFT",
+                    header.status(),
                     header.revision(),
+                    header.cycle(),
                     TotalsView.of(header.totals()),
                     views,
-                    revisions);
+                    revisions,
+                    actions.actions(tenant, id).stream().map(ActionView::of).toList());
               });
         });
   }
@@ -668,8 +688,9 @@ public class TimesheetService {
                           h.id(),
                           TimesheetResponses.Period.of(
                               h.period(), site(resolved.get(h.period().siteId()))),
-                          "DRAFT",
+                          h.status(),
                           h.revision(),
+                          h.cycle(),
                           TotalsView.of(h.totals()),
                           h.updatedAt()));
                   text.append("timesheet=").append(h.id()).append('\n');
@@ -704,27 +725,80 @@ public class TimesheetService {
                         .orElseThrow(TimesheetCommand::notFound);
                 List<MyRow> rows =
                     timesheets.rows(tenant, id, header.revision()).stream().map(MyRow::of).toList();
+                Generation generation =
+                    timesheets.generation(tenant, header.generationId(), false).orElseThrow();
+                SubmissionView submission = submission(tenant, header);
+                List<MyActionView> history =
+                    actions.actions(tenant, id).stream().map(MyActionView::of).toList();
                 disclosed(
                     caller,
                     SELF_READ,
                     "my-timesheet",
                     rows.size(),
-                    "DIVALHR-TIMESHEET-SELF-READ\nversion=1\ntimesheet="
+                    "DIVALHR-TIMESHEET-SELF-READ\nversion=2\ntimesheet="
                         + id
                         + "\nrevision="
                         + header.revision()
+                        + "\nstatus="
+                        + header.status()
+                        + "\ncycle="
+                        + header.cycle()
                         + "\n");
                 return new MyDetail(
                     id,
                     TimesheetResponses.Period.of(
                         header.period(), unit(tenant, header.period().siteId())),
-                    "DRAFT",
+                    header.status(),
                     header.revision(),
+                    generation.version(),
+                    header.cycle(),
                     TotalsView.of(header.totals()),
                     header.updatedAt(),
-                    rows);
+                    rows,
+                    submission,
+                    history);
               });
         });
+  }
+
+  /**
+   * Whether the employee can submit the timesheet now (MVP-070B/C, T70BC-2, T70BC-3): only a DRAFT,
+   * without a blocking row, with a READY row and an approval route; the route is resolved last and
+   * named nowhere.
+   */
+  private SubmissionView submission(TenantId tenant, Header header) {
+    if (!header.draft()) {
+      return new SubmissionView(false, List.of());
+    }
+    List<String> blockers = new ArrayList<>();
+    TimesheetApproval.rowBlockers(header.totals()).forEach(b -> blockers.add(b.name()));
+    if (blockers.isEmpty()
+        && routing
+            .employment(tenant, header)
+            .flatMap(employment -> routing.manager(tenant, header, employment))
+            .isEmpty()) {
+      blockers.add(Blocker.APPROVAL_ROUTE_UNAVAILABLE.name());
+    }
+    return new SubmissionView(blockers.isEmpty(), blockers);
+  }
+
+  /**
+   * The timesheet's next rows from the current sources, as a refresh would compute them (MVP-070B/C
+   * decisions compare them with the submitted evidence; nothing is written). With {@code lock} the
+   * caller holds the scheduling lock, and the week's candidates' employments are locked {@code FOR
+   * SHARE} first.
+   *
+   * @param tenant verified tenant
+   * @param header the timesheet
+   * @param lock whether to apply the lock order
+   * @return the next rows
+   */
+  List<Row> nextRows(TenantId tenant, Header header, boolean lock) {
+    Plan plan =
+        lock ? lockedCandidates(tenant, header.period()) : candidates(tenant, header.period());
+    List<Row> previous = timesheets.rows(tenant, header.id(), header.revision());
+    return Timesheet.refreshed(
+        previous, plan.byEmployee().getOrDefault(header.employeeId(), List.of()));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -860,6 +934,10 @@ public class TimesheetService {
   /** Every draft's next state: the existing drafts (by employee) and newly included employees. */
   private Change change(TenantId tenant, PeopleCaller caller, Generation generation, boolean lock) {
     List<Member> members = timesheets.members(tenant, generation.id(), lock);
+    if (members.stream().anyMatch(m -> !m.header().draft())) {
+      // MVP-070B/C (T70BC-8): submitted or approved time is never refreshed.
+      throw new ApiException(ErrorCode.TIMESHEET_GENERATION_NOT_ALLOWED, Map.of());
+    }
     Plan plan =
         lock
             ? lockedCandidates(tenant, generation.period())
@@ -1132,7 +1210,8 @@ public class TimesheetService {
   private static ApiException mapped(DataIntegrityViolationException violated) {
     String constraint = ScheduleConstraintViolations.constraint(violated).orElse("");
     return switch (constraint) {
-      case ScheduleConstraintViolations.TIMESHEET_GENERATION_WEEK ->
+      case ScheduleConstraintViolations.TIMESHEET_GENERATION_WEEK,
+          ScheduleConstraintViolations.TIMESHEET_GENERATION_LOCKED ->
           new ApiException(ErrorCode.TIMESHEET_GENERATION_NOT_ALLOWED, Map.of());
       case ScheduleConstraintViolations.TIMESHEET_REVISION_SEQUENCE,
           ScheduleConstraintViolations.TIMESHEET_GENERATION_GUARD,

@@ -89,7 +89,12 @@ class AccessPortArchitectureTest {
     List<String> declared =
         Stream.of(EmployeeAccessLinks.class.getDeclaredMethods())
             .map(java.lang.reflect.Method::getName)
-            .filter(name -> !name.equals("activeLink") && !name.equals("revocations"))
+            // Reads: never lock, never join (MVP-070B/C adds activeEmployee, a route read).
+            .filter(
+                name ->
+                    !name.equals("activeLink")
+                        && !name.equals("revocations")
+                        && !name.equals("activeEmployee"))
             .toList();
     assertThat(JOINING).containsExactlyInAnyOrderElementsOf(declared);
   }

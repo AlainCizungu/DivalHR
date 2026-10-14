@@ -2,18 +2,20 @@
 
 ## Status
 
-Accepted (Issue #128, architect implementation instructions T70A-1 to T70A-15). Builds on ADR 0007
-(effective-dated employment history), ADR 0014 (site work schedules and the scheduling lock), ADR
-0015 (shift substitutions and effective assignees), ADR 0016 (online attendance) and the MVP-062
-attendance corrections (V31). Pending architecture review of the PR for MVP-070A.
+Accepted (Issue #128, architect implementation instructions T70A-1 to T70A-15). Extended by ADR
+0019 (MVP-070B/C): a timesheet's state is now DRAFT, SUBMITTED or APPROVED, and a generation with
+submitted or approved time is never refreshed. Builds on ADR 0007 (effective-dated employment
+history), ADR 0014 (site work schedules and the scheduling lock), ADR 0015 (shift substitutions and
+effective assignees), ADR 0016 (online attendance) and the MVP-062 attendance corrections (V31).
 
 ## Context
 
 Time approval (MVP-070) starts from a weekly timesheet per employee and site. It must reflect what
 was scheduled and what was effectively recorded, including administrators' corrections, without
 guessing missing attendance, and it must stay reproducible when the sources change after it was
-generated. Submission, approval, pay rules, exports and project or grant allocation come later
-(MVP-070B to 070E); this story only produces evidence-grade drafts.
+generated. Submission and approval (MVP-070B/C, ADR 0019), reopening (MVP-070D) and export
+(MVP-070E) come later; pay rules and project, grant or task allocation are not part of this
+sequence. This story only produces evidence-grade drafts.
 
 ## Decision
 
