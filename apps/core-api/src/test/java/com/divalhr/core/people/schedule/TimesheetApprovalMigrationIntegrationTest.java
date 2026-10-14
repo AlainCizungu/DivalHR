@@ -1014,8 +1014,7 @@ class TimesheetApprovalMigrationIntegrationTest {
                     "\n",
                     named.queryForList(
                         "EXPLAIN "
-                            + com.divalhr.core.people.schedule.internal
-                                .JdbcTimesheetActionRepository.queueSql(
+                            + com.divalhr.core.people.schedule.internal.TimesheetQueueStatement.sql(
                                 filtered, filtered, filtered),
                         params,
                         String.class));
