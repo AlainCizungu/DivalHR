@@ -7,7 +7,8 @@ import { StatusBadge } from '../../ui/primitives';
 import {
   AI_EXAMPLES,
   AI_GUARANTEES,
-  AVAILABLE_MODULES,
+  AVAILABLE_NOW,
+  COMING_NEXT,
   CONTACT_EMAIL,
   demoMailto,
   FINANCE_STEPS,
@@ -29,8 +30,10 @@ import {
 
 /**
  * UI-002 (Issue #63): the content of the public landing page. Static copy only: no figures,
- * people, customers or metrics (UI2-4). Planned capabilities are labelled "Coming later"
- * (UI2-1); integrations and payout rails are planned (UI2-2, UI2-5).
+ * people, customers or metrics (UI2-4). Planned capabilities are labelled "Coming next"
+ * (UI2-1, UI-004 U4-1); integrations and payout rails are planned (UI2-2, UI2-5). UI-004 (Issue
+ * #136): "Available now" and "Coming next" lists, the current navigation in the preview and the
+ * approved-time-to-payroll message; DivalHR never claims to calculate payroll or move money.
  */
 
 function AvailabilityBadge({ status }: { status: Availability }) {
@@ -248,19 +251,35 @@ export default function LandingContent() {
               </li>
             ))}
           </ul>
-          <div className="landing-today" data-testid="landing-today">
-            <h3>{t('landing.modules.todayTitle')}</h3>
-            <ul>
-              {AVAILABLE_MODULES.map((module) => (
-                <li key={module.id} data-module={module.id}>
-                  <Icon name={module.icon} />
-                  <span>
-                    <b>{t(`landing.modules.items.${module.id}.title`)}</b>
-                    {t(`landing.modules.items.${module.id}.description`)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <div className="landing-states">
+            <div className="landing-today" data-testid="landing-today">
+              <h3>
+                <Icon name="check" />
+                {t('landing.modules.todayTitle')}
+              </h3>
+              <ul>
+                {AVAILABLE_NOW.map((id) => (
+                  <li key={id} data-module={id}>
+                    <Icon name="check" />
+                    <span>{t(`landing.modules.now.${id}`)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="landing-today landing-today--next" data-testid="landing-next">
+              <h3>
+                <Icon name="clock" />
+                {t('landing.modules.nextTitle')}
+              </h3>
+              <ul>
+                {COMING_NEXT.map((id) => (
+                  <li key={id} data-module={id}>
+                    <Icon name="clock" />
+                    <span>{t(`landing.modules.next.${id}`)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <p className="landing-legend">{t('landing.modules.legend')}</p>
         </div>
@@ -280,6 +299,12 @@ export default function LandingContent() {
             </div>
             <h2 id="landing-payroll-title">{t('landing.payroll.title')}</h2>
             <p className="landing-lead">{t('landing.payroll.body')}</p>
+            <p className="landing-approved" data-testid="landing-approved-time">
+              <StatusBadge tone="success" icon="check">
+                {t('landing.modules.available')}
+              </StatusBadge>
+              <span>{t('landing.payroll.approvedMessage')}</span>
+            </p>
             <ul className="landing-rails" aria-label={t('landing.payroll.railsLabel')}>
               {RAILS.map((rail) => (
                 <li key={rail} lang="en">

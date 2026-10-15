@@ -3,7 +3,7 @@ import type { IconName } from '../../ui/Icon';
 /**
  * UI-002 (Issue #63, UI2-1, UI2-2): the single typed catalogue behind the public landing page.
  * Availability is reviewed against the product: a module is `available` only when signed-in users
- * can use it today. Everything else is `later` and is shown as "Coming later" / « À venir ».
+ * can use it today. Everything else is `later` and is shown as "Coming next" / « Prochainement » (UI-004).
  */
 export type Availability = 'available' | 'later';
 
@@ -34,15 +34,46 @@ export const MODULES: readonly ModuleEntry[] = [
   // Native iOS and Android applications are roadmap items.
   { id: 'mobile', icon: 'phone', status: 'later', vision: true },
   // Shipped capabilities shown in addition to the vision modules (MVP-002, MVP-030, MVP-011/012,
-  // MVP-050A/B). Work scheduling is listed here, not as a thirteenth vision module (UI3-2).
+  // MVP-050A/B, MVP-060A to MVP-062, MVP-070A to MVP-070E). Work scheduling, attendance and time
+  // are listed here, never as a thirteenth vision module (UI3-2, UI4-1).
   { id: 'organization', icon: 'structure', status: 'available', vision: false },
   { id: 'scheduling', icon: 'rotation', status: 'available', vision: false },
+  { id: 'attendance', icon: 'clock', status: 'available', vision: false },
+  { id: 'time', icon: 'check', status: 'available', vision: false },
   { id: 'contracts', icon: 'contract', status: 'available', vision: false },
   { id: 'access', icon: 'shield', status: 'available', vision: false },
 ];
 
 export const VISION_MODULES = MODULES.filter((module) => module.vision);
 export const AVAILABLE_MODULES = MODULES.filter((module) => module.status === 'available');
+
+/**
+ * UI-004 (Issue #136, U4-1): the two truthful states of the product, in the owner's approved
+ * wording and order. "Available now" names only what signed-in users can do through MVP-070E;
+ * "Coming next" names what is on the roadmap and not built. Both are plain text with no date.
+ */
+export const AVAILABLE_NOW = [
+  'employees',
+  'leave',
+  'scheduling',
+  'attendance',
+  'exceptions',
+  'timesheets',
+  'approvals',
+  'reopening',
+  'exports',
+  'languages',
+  'security',
+] as const;
+
+export const COMING_NEXT = [
+  'periodLocking',
+  'payroll',
+  'statutory',
+  'disbursement',
+  'loans',
+  'platform',
+] as const;
 
 /**
  * Integration entries. A brand entry with a `logo` shows the locally served mark from
@@ -151,22 +182,27 @@ export const FINANCE_STEPS: readonly StepDef[] = [
   { key: 'repayment', icon: 'payroll' },
 ];
 
-/** UI-003 (UI3-3): the illustrative administrator home shows the shipped work areas. */
+/**
+ * UI-003 (UI3-3), refreshed by UI-004 (U4-2): the illustrative administrator home shows the
+ * shipped work areas as the application's navigation names them (People and Operations).
+ */
 export const PREVIEW_NAV: readonly StepDef[] = [
   { key: 'home', icon: 'home' },
   { key: 'employees', icon: 'people' },
   { key: 'leave', icon: 'calendar' },
   { key: 'schedules', icon: 'rotation' },
-  { key: 'contracts', icon: 'contract' },
+  { key: 'attendance', icon: 'clock' },
+  { key: 'timesheets', icon: 'check' },
+  { key: 'exports', icon: 'payroll' },
 ];
 
-export const PREVIEW_ACTIONS = ['import', 'reviewLeave', 'openSchedules'] as const;
+export const PREVIEW_ACTIONS = ['import', 'reviewLeave', 'openTimesheets', 'exportTime'] as const;
 
 export const PREVIEW_CARDS: readonly StepDef[] = [
   { key: 'employees', icon: 'people' },
-  { key: 'leave', icon: 'calendar' },
-  { key: 'schedules', icon: 'rotation' },
-  { key: 'contracts', icon: 'contract' },
+  { key: 'attendance', icon: 'clock' },
+  { key: 'timesheets', icon: 'check' },
+  { key: 'exports', icon: 'payroll' },
 ];
 
 export const AI_GUARANTEES = ['sources', 'authorization', 'approval'] as const;

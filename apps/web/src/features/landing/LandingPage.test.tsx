@@ -12,6 +12,8 @@ import { HomePage } from '../home/HomePage';
 import attribution from '../../../../../docs/BRAND-ASSETS.md?raw';
 import {
   AVAILABLE_MODULES,
+  AVAILABLE_NOW,
+  COMING_NEXT,
   CONTACT_EMAIL,
   INTEGRATION_GROUPS,
   MODULES,
@@ -64,14 +66,39 @@ const ALLOWED_NUMBERS = new Set(['2026', '20022', '365', '30']);
 describe('catalogue (UI2-1, UI2-2)', () => {
   it('keeps the twelve vision modules in order, with statuses reviewed against the product', () => {
     expect(VISION_MODULES.map((module) => module.id)).toEqual(APPROVED_VISION);
-    // UI-003 (UI3-1): exactly what is live; scheduling is shipped, not a thirteenth vision module.
+    // UI-003 (UI3-1), UI-004 (U4-1): exactly what is live; scheduling, attendance and time are
+    // shipped capabilities, never a thirteenth vision module.
     expect(AVAILABLE_MODULES.map((module) => module.id)).toEqual([
       'employees',
       'leave',
       'organization',
       'scheduling',
+      'attendance',
+      'time',
       'contracts',
       'access',
+    ]);
+    // U4-1: the owner's two states, in the approved wording order.
+    expect(AVAILABLE_NOW).toEqual([
+      'employees',
+      'leave',
+      'scheduling',
+      'attendance',
+      'exceptions',
+      'timesheets',
+      'approvals',
+      'reopening',
+      'exports',
+      'languages',
+      'security',
+    ]);
+    expect(COMING_NEXT).toEqual([
+      'periodLocking',
+      'payroll',
+      'statutory',
+      'disbursement',
+      'loans',
+      'platform',
     ]);
     expect(
       VISION_MODULES.filter((module) => module.status === 'available').map((m) => m.id),
@@ -151,7 +178,7 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     expect(container.textContent).not.toMatch(/\blanding\.[a-z]/u);
   });
 
-  it('labels every vision module Available now or Coming later from the catalogue', async () => {
+  it('labels every vision module Available now or Coming next from the catalogue', async () => {
     await renderLanding(locale);
     const modules = screen.getByTestId('landing-modules');
     const cards = modules.querySelectorAll('li[data-status]');
@@ -166,10 +193,51 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
       expect(available.length + later.length).toBe(1);
       expect(available.length).toBe(status === 'available' ? 1 : 0);
     }
+    // U4-1: the two states as plain lists, each item from the catalogue, no control and no date.
     const today = screen.getByTestId('landing-today');
+    expect(today).toHaveTextContent(strings.landing.modules.todayTitle);
     expect(
       [...today.querySelectorAll('li')].map((item) => item.getAttribute('data-module')),
-    ).toEqual(AVAILABLE_MODULES.map((module) => module.id));
+    ).toEqual([...AVAILABLE_NOW]);
+    for (const id of AVAILABLE_NOW) {
+      expect(today).toHaveTextContent(strings.landing.modules.now[id]);
+    }
+    const next = screen.getByTestId('landing-next');
+    expect(next).toHaveTextContent(strings.landing.modules.nextTitle);
+    expect(
+      [...next.querySelectorAll('li')].map((item) => item.getAttribute('data-module')),
+    ).toEqual([...COMING_NEXT]);
+    for (const id of COMING_NEXT) {
+      expect(next).toHaveTextContent(strings.landing.modules.next[id]);
+    }
+    expect(today.querySelectorAll('a, button')).toHaveLength(0);
+    expect(next.querySelectorAll('a, button')).toHaveLength(0);
+    expect(`${today.textContent}${next.textContent}`).not.toMatch(/\d/u);
+  });
+
+  it('says that approved time is exported without pretending payroll is calculated (U4-2)', async () => {
+    await renderLanding(locale);
+    const message = screen.getByTestId('landing-approved-time');
+    expect(message).toHaveTextContent(strings.landing.payroll.approvedMessage);
+    expect(message).toHaveTextContent(strings.landing.modules.available);
+    expect(strings.landing.payroll.approvedMessage).toBe(
+      locale === 'en'
+        ? 'Export approved time for payroll and accounting—without pretending payroll has already been calculated.'
+        : 'Exportez le temps approuvé vers la paie et la comptabilité, sans prétendre que la paie a déjà été calculée.',
+    );
+    // The payout story, finance flow and AI keep their "Coming next" badge and disclaimers.
+    for (const id of ['landing-payroll-title', 'landing-finance-title', 'landing-ai-title']) {
+      const heading = document.getElementById(id) as HTMLElement;
+      expect(
+        within(heading.parentElement as HTMLElement).getByText(strings.landing.modules.later),
+      ).toBeInTheDocument();
+    }
+    expect(screen.getByTestId('landing-payout-note')).toHaveTextContent(
+      strings.landing.payroll.note,
+    );
+    // U4-1: no text claims that DivalHR calculates payroll, moves money or lends today.
+    const now = AVAILABLE_NOW.map((id) => strings.landing.modules.now[id]).join(' ');
+    expect(now).not.toMatch(/calcul|payout|versement|disburse|loan|prêt|credit|crédit/iu);
   });
 
   it('marks Leave available, lists Work scheduling today and keeps the rest planned (UI-003)', async () => {
@@ -181,32 +249,43 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     for (const id of ['payroll', 'loans', 'benefits', 'integrations', 'ai', 'mobile']) {
       expect(within(card(id)).getByText(strings.landing.modules.later)).toBeInTheDocument();
     }
-    // Scheduling is in "In DivalHR today", never among the twelve vision cards.
-    expect(modules.querySelector('li[data-status][data-module="scheduling"]')).toBeNull();
+    // Scheduling, attendance and time are in "Available now", never among the twelve vision cards.
+    for (const id of ['scheduling', 'attendance', 'time']) {
+      expect(modules.querySelector(`li[data-status][data-module="${id}"]`)).toBeNull();
+    }
     const today = screen.getByTestId('landing-today');
-    const scheduling = today.querySelector('li[data-module="scheduling"]') as HTMLElement;
-    expect(scheduling).toHaveTextContent(strings.landing.modules.items.scheduling.title);
-    expect(scheduling).toHaveTextContent(strings.landing.modules.items.scheduling.description);
-    // No unbuilt leave capability is claimed (UI3-1, UI3-2).
-    const leave = `${strings.landing.modules.items.leave.description} ${strings.landing.platform.steps.operations.description} ${strings.landing.outcomes.items.employees.description}`;
-    expect(leave).not.toMatch(/balance|solde|calendar|calendrier|attendance|présence/iu);
+    expect(today.querySelector('li[data-module="scheduling"]')).toHaveTextContent(
+      strings.landing.modules.now.scheduling,
+    );
+    // No unbuilt leave capability is claimed (UI3-1, UI3-2, U4-1): no balance or calendar.
+    const leave = `${strings.landing.modules.items.leave.description} ${strings.landing.modules.now.leave} ${strings.landing.outcomes.items.employees.description}`;
+    expect(leave).not.toMatch(/balance|solde|calendar|calendrier/iu);
   });
 
-  it('shows the shipped work areas in the illustrative preview (UI3-3)', async () => {
+  it('shows the current navigation and workflows in the illustrative preview (UI3-3, U4-2)', async () => {
     await renderLanding(locale);
     const preview = screen.getByTestId('landing-preview');
     const p = strings.landing.preview;
+    // The preview's navigation uses the application's own labels (nav.*), so it cannot drift.
+    expect(p.nav.schedules).toBe(strings.nav.workSchedules);
+    expect(p.nav.attendance).toBe(strings.nav.attendanceReview);
+    expect(p.nav.timesheets).toBe(strings.nav.timesheets);
+    expect(p.nav.exports).toBe(strings.nav.timeExports);
     for (const text of [
       p.nav.employees,
       p.nav.leave,
       p.nav.schedules,
-      p.nav.contracts,
+      p.nav.attendance,
+      p.nav.timesheets,
+      p.nav.exports,
       p.actions.import,
       p.actions.reviewLeave,
-      p.actions.openSchedules,
-      p.cards.leave.title,
-      p.cards.schedules.title,
-      p.cards.contracts.title,
+      p.actions.openTimesheets,
+      p.actions.exportTime,
+      p.cards.attendance.title,
+      p.cards.timesheets.title,
+      p.cards.exports.title,
+      p.cards.exports.description,
     ]) {
       expect(preview).toHaveTextContent(text);
     }

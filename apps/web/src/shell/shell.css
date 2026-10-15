@@ -664,6 +664,16 @@
   color: var(--dv-color-text-muted);
 }
 
+/* UI-004: delivered items use the same tile with a solid border and the success accent. */
+.roadmap--delivered .roadmap__item {
+  border: 1px solid var(--dv-color-border);
+  background: var(--dv-color-bg);
+}
+
+.roadmap--delivered .roadmap__item > .icon {
+  color: var(--dv-color-success);
+}
+
 .roadmap__title {
   margin: 0;
   font-weight: 600;

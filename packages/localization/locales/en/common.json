@@ -132,22 +132,28 @@
     "tenant": {
       "eyebrow": "Organization workspace",
       "title": "Organization administration",
-      "description": "Manage your people, leave and work schedules, set up your organization and contracts, and control who has access.",
+      "description": "Run your people and daily operations—employees, leave, schedules, attendance, timesheets and approved-time exports—and control your organization and who has access.",
       "quickActions": "Quick actions",
       "actions": {
         "importEmployees": "Import employees",
         "reviewLeave": "Review leave requests",
         "openSchedules": "Open work schedules",
-        "inviteUser": "Invite a user"
+        "reviewAttendance": "Review attendance",
+        "openTimesheets": "Open timesheets",
+        "exportTime": "Export approved time"
       },
       "groups": {
         "people": {
-          "title": "People and operations",
-          "description": "Employees, leave and work schedules."
+          "title": "People and leave",
+          "description": "Employees, organization and leave management."
+        },
+        "operations": {
+          "title": "Operations and time",
+          "description": "Schedules, attendance, timesheets and approved-time exports."
         },
         "governance": {
-          "title": "Organization and governance",
-          "description": "Structure, contracts, users and access."
+          "title": "Contracts and access",
+          "description": "Contracts, users and access."
         }
       },
       "cards": {
@@ -164,8 +170,8 @@
           "description": "Decide the leave requests routed to organization administrators."
         },
         "workSchedules": {
-          "title": "Work schedules",
-          "description": "Publish site schedules, assign employees and see uncovered slots."
+          "title": "Schedules",
+          "description": "Publish site schedules, assign employees, see uncovered slots and decide shift substitutions."
         },
         "hierarchy": {
           "title": "Organization structure",
@@ -182,6 +188,18 @@
         "accessReview": {
           "title": "Access review",
           "description": "See who can access what, and from which assignment."
+        },
+        "attendanceReview": {
+          "title": "Attendance review",
+          "description": "Review attendance exceptions and record append-only corrections."
+        },
+        "timesheets": {
+          "title": "Timesheets",
+          "description": "Generate and refresh each site’s weekly timesheets and follow their submission, approval, return and reopening."
+        },
+        "timeExports": {
+          "title": "Time exports",
+          "description": "Export a site’s approved weekly time as a CSV file with a manifest for payroll and accounting. Approved time only; no pay is calculated."
         }
       },
       "attention": {
@@ -194,18 +212,37 @@
         "loading": "Loading the count…",
         "failed": "The count could not be loaded.",
         "open": "View contract expirations"
+      },
+      "progress": {
+        "title": "Recent platform progress",
+        "description": "Delivered recently and available to your organization now.",
+        "items": {
+          "attendance": {
+            "title": "Attendance",
+            "description": "Online check-in and check-out, supervisor-assisted and offline attendance, exceptions review and append-only corrections."
+          },
+          "approvals": {
+            "title": "Timesheet approvals and reopening",
+            "description": "Weekly timesheets generated from schedules and attendance, submitted by employees, approved or returned by their manager, and reopened when a correction changes approved time."
+          },
+          "exports": {
+            "title": "Approved-time exports",
+            "description": "Immutable CSV exports of a site’s approved week with a verifiable manifest, ready for payroll and accounting. DivalHR does not calculate pay."
+          }
+        }
       }
     },
     "employee": {
       "eyebrow": "Employee space",
       "title": "My space",
-      "description": "Your leave, your shifts and your contracts in one place.",
+      "description": "Your schedule, your leave, your attendance and your timesheets in one place.",
       "myWork": "My work",
       "cards": {
         "leave": "Request leave, follow your requests and see each decision.",
-        "schedule": "See your shifts in progress and upcoming, each in its site’s local time.",
-        "attendance": "Check in and out of your scheduled shifts and see your attendance history.",
-        "contracts": "Read the contracts your organization has issued to you and confirm that you received them."
+        "schedule": "See your shifts in progress and upcoming, each in its site’s local time, and ask for a substitute when you cannot work one.",
+        "attendance": "Check in and out of your scheduled shifts, online or offline, and see your attendance history.",
+        "contracts": "Read the contracts your organization has issued to you and confirm that you received them.",
+        "timesheets": "Review your weekly timesheets, submit them to your manager and follow each approval, return or reopening."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -225,21 +262,21 @@
     }
   },
   "roadmap": {
-    "title": "Coming later",
+    "title": "Coming next",
     "description": "On the DivalHR roadmap. Not available yet.",
-    "badge": "Coming later",
+    "badge": "Coming next",
     "items": {
-      "attendance": {
-        "title": "Attendance and timesheets",
-        "description": "Online and offline time capture."
+      "periodLocking": {
+        "title": "Timesheet period locking",
+        "description": "Lock approved periods; reopening needs privileged approval."
       },
       "payrollInputs": {
-        "title": "Payroll inputs",
-        "description": "Prepare and export payroll inputs."
+        "title": "Payroll preparation and calculations",
+        "description": "Pay calculated from approved time, with statutory deductions and reporting."
       },
-      "expenses": {
-        "title": "Expenses and allowances",
-        "description": "Claims, allowances and reimbursements."
+      "disbursement": {
+        "title": "Salary disbursement",
+        "description": "Bank and mobile-money payment instructions prepared from approved payroll."
       },
       "myDocuments": {
         "title": "Documents",
@@ -251,7 +288,7 @@
       },
       "payslips": {
         "title": "Payroll and payslips",
-        "description": "Access your payslips."
+        "description": "Access your payslips once payroll is calculated."
       }
     }
   },
@@ -2205,7 +2242,7 @@
     "sectionsLabel": "Page sections",
     "nav": {
       "platform": "Platform",
-      "payroll": "Payroll & payouts",
+      "payroll": "Approved time & payouts",
       "integrations": "Integrations",
       "why": "Why DivalHR"
     },
@@ -2217,7 +2254,7 @@
       "eyebrow": "The workforce operating platform for Africa",
       "line1": "Run your people.",
       "line2": "Power your operations.",
-      "intro": "DivalHR brings HR, field operations, payroll preparation, employee financial access and trustworthy AI together in one connected platform—built for how African organizations actually work.",
+      "intro": "DivalHR is the workforce and operations platform for African organizations: employee records, leave, work schedules, attendance and approved weekly time in one connected system—ready to hand to payroll and accounting, with payroll calculation and payouts coming next.",
       "signIn": "Sign in to DivalHR",
       "note": "Already a customer? Sign in securely."
     },
@@ -2229,30 +2266,33 @@
         "home": "Home",
         "employees": "Employees",
         "leave": "Leave",
-        "schedules": "Work schedules",
-        "contracts": "Contracts"
+        "schedules": "Schedules",
+        "attendance": "Attendance review",
+        "timesheets": "Timesheets",
+        "exports": "Time exports"
       },
       "actions": {
         "import": "Import employees",
         "reviewLeave": "Review leave",
-        "openSchedules": "Open work schedules"
+        "openTimesheets": "Open timesheets",
+        "exportTime": "Export approved time"
       },
       "cards": {
         "employees": {
           "title": "Employees",
           "description": "Records and employment history"
         },
-        "leave": {
-          "title": "Leave",
-          "description": "Policies, requests and approvals"
+        "attendance": {
+          "title": "Attendance review",
+          "description": "Exceptions and corrections"
         },
-        "schedules": {
-          "title": "Work schedules",
-          "description": "Site shifts and uncovered slots"
+        "timesheets": {
+          "title": "Timesheets",
+          "description": "Generated, submitted, approved"
         },
-        "contracts": {
-          "title": "Contract templates",
-          "description": "Bilingual contracts"
+        "exports": {
+          "title": "Time exports",
+          "description": "Approved time only. No pay calculated."
         }
       }
     },
@@ -2267,7 +2307,7 @@
     "platform": {
       "kicker": "One operational system",
       "title": "From employee record to real-world action.",
-      "body": "Stop stitching together spreadsheets, payroll files and disconnected apps. DivalHR gives every team one reliable view of the workforce—and the tools to act on it.",
+      "body": "Stop stitching together spreadsheets, attendance sheets and disconnected apps. DivalHR gives every team one reliable view of the workforce—from the employee record to the approved time that payroll starts from.",
       "steps": {
         "people": {
           "title": "People core",
@@ -2275,11 +2315,11 @@
         },
         "operations": {
           "title": "Daily operations",
-          "description": "Sites, leave approvals and work schedules."
+          "description": "Sites, leave approvals, work schedules, attendance and weekly timesheets."
         },
         "pay": {
-          "title": "Pay + benefits",
-          "description": "Approved pay inputs, payouts and partner benefits."
+          "title": "Time to pay",
+          "description": "Approved time exported for payroll and accounting today; payroll calculation, payouts and partner benefits next."
         },
         "intelligence": {
           "title": "Intelligence",
@@ -2290,11 +2330,11 @@
     "modules": {
       "kicker": "The DivalHR platform",
       "title": "Everything your workforce needs. One connected platform.",
-      "body": "Start with the modules you need today. Add more as they arrive and as your organization grows.",
+      "body": "Start with what is available now. Add the next capabilities as they arrive and as your organization grows.",
       "available": "Available now",
-      "later": "Coming later",
-      "legend": "“Available now” modules are in the product today. “Coming later” modules are on the roadmap and are not yet available.",
-      "todayTitle": "In DivalHR today",
+      "later": "Coming next",
+      "legend": "“Available now” capabilities are in the product today. “Coming next” capabilities are on the roadmap and are not yet available.",
+      "todayTitle": "Available now",
       "items": {
         "employees": {
           "title": "Employee Management",
@@ -2350,7 +2390,7 @@
         },
         "scheduling": {
           "title": "Work scheduling",
-          "description": "Publish site schedules, assign employees, see uncovered slots, show employees their shifts, and cancel or replace an entirely future schedule."
+          "description": "Publish site schedules, assign employees, see uncovered slots, show employees their shifts, replace or cancel a future schedule, and substitute a shift."
         },
         "contracts": {
           "title": "Contracts",
@@ -2359,21 +2399,51 @@
         "access": {
           "title": "Access and security",
           "description": "Invitations, roles, secure sign-in and access review."
+        },
+        "attendance": {
+          "title": "Attendance",
+          "description": "Online check-in and check-out, supervisor-assisted and offline attendance, exceptions review and append-only corrections."
+        },
+        "time": {
+          "title": "Timesheets and approved time",
+          "description": "Weekly timesheets generated from schedules and attendance, submitted by employees, approved or returned by managers, reopened after corrections, and exported as CSV with a manifest."
         }
+      },
+      "nextTitle": "Coming next",
+      "now": {
+        "employees": "Employee records and organizational structure",
+        "leave": "Leave requests, approvals and lifecycle controls",
+        "scheduling": "Work schedules and shift substitution",
+        "attendance": "Online, supervisor-assisted and offline attendance",
+        "exceptions": "Attendance exceptions and append-only corrections",
+        "timesheets": "Weekly timesheet generation",
+        "approvals": "Employee submission and manager approval or return",
+        "reopening": "Reopening and reapproval after source changes",
+        "exports": "Approved-time CSV and manifest exports for payroll and accounting preparation",
+        "languages": "English and French",
+        "security": "Secure tenant isolation and privileged multi-factor sign-in"
+      },
+      "next": {
+        "periodLocking": "Timesheet period locking",
+        "payroll": "Payroll preparation and calculations",
+        "statutory": "Statutory deductions and reporting",
+        "disbursement": "Bank and mobile-money salary disbursement",
+        "loans": "Loans and salary advances through approved partners",
+        "platform": "Benefits, performance, documents, analytics, automation, integrations and native mobile apps"
       }
     },
     "payroll": {
-      "kicker": "From payroll to payout",
-      "title": "Pay every employee through the right local rail.",
-      "body": "After payroll is reviewed and approved, DivalHR prepares payment instructions for mobile wallets, bank accounts or a controlled bank file—then brings the results back for reconciliation.",
+      "kicker": "From approved time to payout",
+      "title": "Hand payroll the time you have already approved.",
+      "body": "Today, DivalHR exports each site’s approved weekly time as a CSV file with a verifiable manifest for your payroll and accounting tools. Payroll calculation, payment instructions for mobile wallets, bank accounts or a controlled bank file, and reconciliation come next.",
       "steps": {
         "approved": {
-          "title": "Approved payroll",
-          "description": "Pay inputs reviewed and approved by your team."
+          "title": "Approved time",
+          "description": "Weekly timesheets approved by managers, exported as CSV with a manifest."
         },
         "instructions": {
-          "title": "Payment instructions",
-          "description": "Prepared securely for each employee’s chosen rail."
+          "title": "Payroll and payment instructions",
+          "description": "Pay calculated and instructions prepared for each employee’s chosen rail."
         },
         "rails": {
           "title": "Mobile money or bank",
@@ -2387,7 +2457,8 @@
       "railsLabel": "Planned payment rails",
       "bankAccount": "Bank account",
       "bankFile": "Bank file",
-      "note": "Payments are executed by your bank or a licensed payment provider. DivalHR prepares and tracks instructions; it does not hold employee funds. Payouts and payment rails are planned and coming later."
+      "note": "Payments are executed by your bank or a licensed payment provider. DivalHR prepares and tracks instructions; it does not hold employee funds. Payouts and payment rails are planned and coming later.",
+      "approvedMessage": "Export approved time for payroll and accounting—without pretending payroll has already been calculated."
     },
     "integrations": {
       "kicker": "Connected ecosystem",
@@ -2480,15 +2551,15 @@
         },
         "operations": {
           "title": "Operations",
-          "description": "Sites, work schedules and leave approvals in one view."
+          "description": "Sites, work schedules, attendance and timesheet approvals in one view."
         },
         "finance": {
           "title": "Finance",
-          "description": "Traceable pay inputs and cleaner exports."
+          "description": "Approved-time exports with a verifiable manifest today; payroll calculation next."
         },
         "employees": {
           "title": "Employees",
-          "description": "Contracts, leave and assigned shifts today; pay and benefits later."
+          "description": "Contracts, leave, shifts, attendance and timesheets today; pay and benefits next."
         }
       }
     },
