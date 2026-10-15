@@ -169,12 +169,14 @@ const CODES: Record<string, TimesheetFailure['kind']> = {
   TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE: 'route',
   TIMESHEET_DECISION_STALE: 'stale',
   TIMESHEET_DECISION_NOT_ALLOWED: 'decided',
+  TIMESHEET_EXPORT_EMPTY: 'notAllowed',
+  TIMESHEET_EXPORT_PREVIEW_STALE: 'stale',
   IDEMPOTENCY_KEY_REUSED: 'idempotency',
 };
 
 /** Maps a Problem response; no param outside the field allow-list is ever shown. */
 export function timesheetFailureOf(
-  view: 'admin' | 'self' | 'manager',
+  view: 'admin' | 'self' | 'manager' | 'exports',
   response: Response,
   error: unknown,
 ): TimesheetFailure {
@@ -192,9 +194,11 @@ export function timesheetFailureOf(
       messageKey:
         view === 'admin'
           ? 'timesheets.unauthorized'
-          : view === 'manager'
-            ? 'timeApprovals.unauthorized'
-            : 'myTimesheets.unauthorized',
+          : view === 'exports'
+            ? 'timeExports.unauthorized'
+            : view === 'manager'
+              ? 'timeApprovals.unauthorized'
+              : 'myTimesheets.unauthorized',
     };
   }
   if (response.status === 429) {

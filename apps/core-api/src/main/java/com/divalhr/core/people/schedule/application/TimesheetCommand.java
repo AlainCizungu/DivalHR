@@ -161,7 +161,7 @@ public final class TimesheetCommand {
 
   // ------------------------------------------------------------------------------------------
 
-  private static Target target(TimesheetPeriodRequest request, FieldErrors errors) {
+  static Target target(TimesheetPeriodRequest request, FieldErrors errors) {
     if (request == null) {
       errors.add("body", Constraint.REQUIRED);
       errors.throwIfAny();
@@ -204,13 +204,13 @@ public final class TimesheetCommand {
     return target;
   }
 
-  private static void confirm(Object raw, FieldErrors errors) {
+  static void confirm(Object raw, FieldErrors errors) {
     if (!Boolean.TRUE.equals(raw)) {
       errors.add("confirm", Constraint.REQUIRED);
     }
   }
 
-  private static void key(String idempotencyKey, FieldErrors errors) {
+  static void key(String idempotencyKey, FieldErrors errors) {
     if (idempotencyKey == null || idempotencyKey.isBlank()) {
       errors.add(IdempotencyKeys.HEADER, Constraint.REQUIRED);
     } else if (!IdempotencyKeys.isWellFormed(idempotencyKey)) {

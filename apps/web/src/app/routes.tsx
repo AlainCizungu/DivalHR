@@ -26,6 +26,7 @@ import { MyTimesheetsPage } from '../features/schedules/MyTimesheetsPage';
 import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/ScheduleSubstitutionApprovalsPage';
 import { TeamAttendancePage } from '../features/schedules/TeamAttendancePage';
 import { TimeApprovalsPage } from '../features/schedules/TimeApprovalsPage';
+import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
 import { TimesheetsPage } from '../features/schedules/TimesheetsPage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
 import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPage';
@@ -176,6 +177,12 @@ export const ROUTES: AppRoute[] = [
     element: <TimesheetsPage />,
     access: tenantAdmin('timesheets.unauthorized', 'timesheets.signInRequired'),
     crumbs: [HOME, OPERATIONS, { key: 'nav.timesheets' }],
+  },
+  {
+    path: '/admin/time-exports',
+    element: <TimeExportsPage />,
+    access: tenantAdmin('timeExports.unauthorized', 'timeExports.signInRequired'),
+    crumbs: [HOME, OPERATIONS, { key: 'nav.timeExports' }],
   },
   {
     path: '/admin/contract-templates',

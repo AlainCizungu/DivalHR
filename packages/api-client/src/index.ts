@@ -341,6 +341,18 @@ export type TimeApprovalEmployee = CoreComponents['schemas']['TimeApprovalEmploy
 export type TimeApprovalItem = CoreComponents['schemas']['TimeApprovalItem'];
 export type TimeApprovalPage = CoreComponents['schemas']['TimeApprovalPage'];
 export type TimeApprovalDetail = CoreComponents['schemas']['TimeApprovalDetail'];
+// MVP-070E: approved-time exports.
+export type TimesheetExportPreviewRequest =
+  CoreComponents['schemas']['TimesheetExportPreviewRequest'];
+export type CreateTimesheetExportRequest =
+  CoreComponents['schemas']['CreateTimesheetExportRequest'];
+export type TimesheetExportScope = CoreComponents['schemas']['TimesheetExportScope'];
+export type TimesheetExportCounts = CoreComponents['schemas']['TimesheetExportCounts'];
+export type TimesheetExportExclusions = CoreComponents['schemas']['TimesheetExportExclusions'];
+export type TimesheetExportPreview = CoreComponents['schemas']['TimesheetExportPreview'];
+export type TimesheetExport = CoreComponents['schemas']['TimesheetExport'];
+export type TimesheetExportResult = CoreComponents['schemas']['TimesheetExportResult'];
+export type TimesheetExportPage = CoreComponents['schemas']['TimesheetExportPage'];
 export type TimesheetRowState = TimesheetRow['state'];
 export type TimesheetStatus = TimesheetDetail['status'];
 export type TimesheetActionKind = TimesheetAction['action'];

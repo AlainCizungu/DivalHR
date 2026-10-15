@@ -74,6 +74,7 @@ describe('signed-in frame', () => {
         en.nav.workSchedules,
         en.nav.attendanceReview,
         en.nav.timesheets,
+        en.nav.timeExports,
         en.nav.hierarchy,
         en.nav.contractTemplates,
         en.nav.contractExpirations,

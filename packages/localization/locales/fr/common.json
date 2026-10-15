@@ -41,6 +41,7 @@
     "myScheduleSubstitutions": "Remplacements d’horaire",
     "teamAttendance": "Présence de l’équipe",
     "timesheets": "Feuilles de temps",
+    "timeExports": "Exports de temps",
     "myTimesheets": "Mes feuilles de temps",
     "timeApprovals": "Approbations du temps"
   },
@@ -458,7 +459,9 @@
     "TIMESHEET_SUBMISSION_NOT_ALLOWED": "Cette feuille de temps ne peut pas être soumise maintenant. Elle doit être un brouillon avec au moins un créneau prêt et rien à régulariser.",
     "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE": "Aucun responsable ne peut approuver cette feuille de temps pour cette semaine. Contactez votre organisation.",
     "TIMESHEET_DECISION_STALE": "Cette feuille de temps a changé depuis son ouverture. Ouvrez-la de nouveau.",
-    "TIMESHEET_DECISION_NOT_ALLOWED": "Cette feuille de temps n’attend plus de décision."
+    "TIMESHEET_DECISION_NOT_ALLOWED": "Cette feuille de temps n’attend plus de décision.",
+    "TIMESHEET_EXPORT_EMPTY": "Cette semaine n’a aucune feuille de temps approuvée à exporter.",
+    "TIMESHEET_EXPORT_PREVIEW_STALE": "Le temps approuvé a changé depuis l’aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau l’export."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3398,6 +3401,73 @@
       "title": "La présence a changé après l’approbation",
       "refresh": "Actualisez avant une nouvelle soumission : actualisez cette semaine pour donner une nouvelle révision à la feuille de temps. L’employé la soumet ensuite de nouveau pour approbation.",
       "refreshed": "Actualisée : l’employé peut soumettre la nouvelle révision au cycle {{cycle}}."
+    }
+  },
+  "timeExports": {
+    "title": "Exports de temps",
+    "description": "Exportez le temps approuvé de la semaine générée d’un site dans un fichier CSV pour la paie ou la comptabilité, avec un manifeste pour le vérifier.",
+    "notice": "Temps approuvé uniquement. Cet export ne calcule pas la paie.",
+    "unauthorized": "Seul un administrateur de l’organisation avec authentification multifacteur peut exporter le temps approuvé.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour exporter le temps approuvé.",
+    "form": {
+      "label": "Entité juridique, site et semaine",
+      "legalEntityRequired": "Choisissez une entité juridique.",
+      "weekHint": "Le lundi d’une semaine générée, dans le fuseau horaire du site."
+    },
+    "preview": {
+      "title": "Aperçu de l’export",
+      "version": "Version de génération {{version}}",
+      "eligible": "Temps approuvé à exporter",
+      "excluded": "Non exporté",
+      "excludedNote": "Seules les feuilles de temps dont l’état actuel est Approuvée sont exportées. Les brouillons (y compris les feuilles renvoyées), les feuilles soumises et rouvertes, ainsi que toute approbation antérieure, sont exclus.",
+      "empty": "Cette semaine n’a aucune feuille de temps approuvée à exporter.",
+      "existing": "Un export de ce même temps approuvé existe déjà. Le créer de nouveau ouvre cet export.",
+      "expires": "Cet aperçu est valable jusqu’à {{time}}.",
+      "confirmCheck": "J’ai vérifié cet aperçu et je veux créer l’export.",
+      "create": "Créer l’export",
+      "creating": "Création…",
+      "notGenerated": "Cette semaine n’a pas été générée pour ce site, ou le site n’appartient pas à l’entité juridique."
+    },
+    "counts": {
+      "timesheets": "Feuilles de temps approuvées",
+      "employees": "Employés",
+      "rows": "Lignes",
+      "worked": "Temps travaillé"
+    },
+    "excluded": {
+      "draft": "Brouillons",
+      "submitted": "Soumises",
+      "reopened": "Rouvertes"
+    },
+    "created": "Export créé.",
+    "existing": "Un export identique existait déjà ; il est affiché ci-dessous.",
+    "status": {
+      "READY": "Prêt"
+    },
+    "detail": {
+      "title": "Export",
+      "id": "Identifiant de l’export",
+      "version": "Version de génération",
+      "created": "Créé le",
+      "digest": "SHA-256 du CSV",
+      "verify": "Chaque téléchargement donne les mêmes octets ; le SHA-256 du CSV correspond au manifeste. Les corrections ultérieures ne modifient jamais cet export.",
+      "csv": "Télécharger le CSV",
+      "manifest": "Télécharger le manifeste",
+      "csvDownloaded": "CSV téléchargé.",
+      "manifestDownloaded": "Manifeste téléchargé."
+    },
+    "history": {
+      "title": "Historique des exports",
+      "table": "Exports, du plus récent au plus ancien",
+      "empty": "Aucun export pour le moment.",
+      "unavailable": "L’historique des exports n’a pas pu être chargé.",
+      "week": "Semaine",
+      "site": "Site",
+      "created": "Créé le",
+      "actions": "Actions",
+      "open": "Consulter",
+      "openFor": "Consulter l’export de la semaine du {{week}} créé le {{time}}",
+      "more": "Afficher plus"
     }
   },
   "myTimesheets": {

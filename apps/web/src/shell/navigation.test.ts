@@ -16,6 +16,7 @@ const TENANT = [
   '/admin/work-schedules',
   '/admin/attendance-review',
   '/admin/timesheets',
+  '/admin/time-exports',
   '/admin/hierarchy',
   '/admin/contract-templates',
   '/admin/contract-expirations',
@@ -86,7 +87,7 @@ describe('navigation and route registry consistency', () => {
     for (const route of listPages) expect(navPaths, route.path).toContain(route.path);
   });
 
-  it('keeps every pre-UI-001 URL, plus the MVP-031A queue, MVP-040A/041A/041B leave pages, MVP-050A schedules, MVP-051 substitutions, MVP-070A timesheets and MVP-070B/C time approvals', () => {
+  it('keeps every pre-UI-001 URL, plus the MVP-031A queue, MVP-040A/041A/041B leave pages, MVP-050A schedules, MVP-051 substitutions, MVP-070A timesheets, MVP-070B/C time approvals and MVP-070E time exports', () => {
     expect(ROUTES.map((route) => route.path).sort()).toEqual(
       [
         '/',
@@ -109,6 +110,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/work-schedules',
         '/admin/attendance-review',
         '/admin/timesheets',
+        '/admin/time-exports',
         '/me/contracts',
         '/me/schedule',
         '/me/attendance',

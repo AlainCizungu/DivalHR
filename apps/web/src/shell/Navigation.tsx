@@ -10,6 +10,15 @@ import type { NavGroupDef } from './navigation';
  * the accessibility tree). In rail mode the label stays in the link as visually hidden text and a
  * decorative tooltip repeats it on hover and focus.
  */
+/**
+ * Places a link's rail tooltip beside it. The tooltip is fixed so the scrolling rail never clips it,
+ * so its vertical position comes from the link's position in the viewport.
+ */
+function placeTooltip(event: { currentTarget: HTMLElement }) {
+  const box = event.currentTarget.getBoundingClientRect();
+  event.currentTarget.style.setProperty('--nav-tooltip-top', `${box.top + box.height / 2}px`);
+}
+
 export function NavigationList({
   groups,
   activePath,
@@ -35,6 +44,8 @@ export function NavigationList({
                   to={item.to}
                   aria-current={item.to === activePath ? 'page' : undefined}
                   onClick={onNavigate}
+                  onMouseEnter={placeTooltip}
+                  onFocus={placeTooltip}
                 >
                   <Icon name={item.icon} />
                   <span className="nav-link__label">{label}</span>

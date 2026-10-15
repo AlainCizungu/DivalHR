@@ -117,6 +117,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'calendar',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/time-exports',
+        labelKey: 'nav.timeExports',
+        icon: 'payroll',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

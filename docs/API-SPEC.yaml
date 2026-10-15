@@ -6045,6 +6045,298 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /timesheet-exports/preview:
+    post:
+      operationId: previewTimesheetExport
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the approved-time export of one site's generated week
+      description: >-
+        MVP-070E. Evaluates the legal entity's site and generated week (the site must belong to the
+        legal entity; a malformed, unknown or foreign legal entity or site, or a week that is not
+        generated, is 404 TIMESHEET_TARGET_NOT_FOUND). Eligible are the timesheets whose current
+        state is APPROVED and whose current action is that approval, at its revision and cycle;
+        DRAFT (including returned), SUBMITTED and REOPENED timesheets and every superseded approval
+        are excluded and counted by state. Returns the eligible timesheet, employee and row counts,
+        the total worked minutes, the exclusions, the generation version, the export of identical
+        evidence if one exists, a preview digest and its expiry (the end of the next 15-minute
+        window). No name or employee number. An empty preview is allowed (the creation is then 409
+        TIMESHEET_EXPORT_EMPTY). Writes nothing but its fail-closed disclosure audit
+        (timesheet-export.preview). Shares the work-schedule-write limit. Cache-Control private,
+        no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimesheetExportPreviewRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetExportPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheet-exports:
+    post:
+      operationId: createTimesheetExport
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create the immutable export of a reviewed preview
+      description: >-
+        MVP-070E. Under the tenant's scheduling lock (taken first by every timesheet command), the
+        eligibility is evaluated again; a preview digest that no longer matches the evidence, or an
+        expired preview, is 409 TIMESHEET_EXPORT_PREVIEW_STALE; no eligible timesheet is 409
+        TIMESHEET_EXPORT_EMPTY. The export of identical evidence for the site and week is returned
+        as it is (outcome EXISTING); otherwise one transaction writes the immutable READY header,
+        one immutable row per exported timesheet row (bound by the database to the timesheet's
+        current APPROVED revision, action and cycle), the audit record (timesheet-export.create) and
+        the outbox event (people.timesheet-export.created.v1); a failure of any of them writes
+        nothing. Exports are never edited, replaced, voided or deleted; later corrections and
+        reopenings affect only future exports. Idempotent (an identical replay returns the
+        original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the
+        work-schedule-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTimesheetExportRequest"
+      responses:
+        "200":
+          description: Created, the existing export of identical evidence, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetExportResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    get:
+      operationId: listTimesheetExports
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the tenant's approved-time exports
+      description: >-
+        MVP-070E. The tenant's exports, newest first, optionally of one site and one week (a
+        malformed filter is 400). Each item carries the manifest's facts: the scope, the generation
+        version, the counts and total worked minutes, the CSV SHA-256 and the creation instant;
+        never the creator. The signed cursor is bound to the operation, tenant, filters and page
+        size. A fail-closed disclosure (audit timesheet-export.list). Shares the
+        work-schedule-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: siteId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: weekStart
+          in: query
+          required: false
+          description: A site-local Monday.
+          schema:
+            type: string
+            format: date
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetExportPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheet-exports/{exportId}:
+    get:
+      operationId: getTimesheetExport
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One approved-time export
+      description: >-
+        MVP-070E. The export's manifest facts. A malformed, unknown or foreign export is 404
+        TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet-export.read). Shares
+        the work-schedule-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/TimesheetExportId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetExport"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheet-exports/{exportId}/csv:
+    get:
+      operationId: downloadTimesheetExportCsv
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download an export's CSV
+      description: >-
+        MVP-070E. UTF-8 without a byte-order mark, comma-delimited, every cell quoted (RFC 4180)
+        and neutralized against formulas, CRLF line ends, with the fixed English header
+        schema_version, export_id, legal_entity_id, site_id, site_timezone, week_start, week_end
+        (the next Monday, exclusive), employee_id, employee_number, employment_id, cost_center_id,
+        work_date, shift_id, timesheet_id, timesheet_revision, approval_action_id, approval_cycle,
+        worked_minutes; one row per exported timesheet row, ordered by employee number, local work
+        date and shift ID. No name, address, label, explanation, reason, subject, attendance
+        instant, rate, amount or payment data. Rendered from the stored export: every download has
+        the same bytes, and its SHA-256 must equal the manifest's (otherwise 500, nothing
+        returned). The download audit (timesheet-export.download) commits before any byte is
+        returned. A malformed, unknown or foreign export is 404 TIMESHEET_TARGET_NOT_FOUND.
+        Attachment, Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/TimesheetExportId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The CSV
+          headers:
+            Content-Disposition:
+              description: attachment; filename="divalhr-time-export-<weekStart>-<exportId>.csv"
+              schema:
+                type: string
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /timesheet-exports/{exportId}/manifest:
+    get:
+      operationId: downloadTimesheetExportManifest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download an export's manifest
+      description: >-
+        MVP-070E. Canonical JSON (fixed key order): the export and schema identifiers, the status
+        READY, the CSV columns, the scope with the exact week boundaries, the generation, its
+        version, the counts and total worked minutes, the CSV SHA-256 and the creation instant.
+        Never the creator, a name or an address. Every download has the same bytes. The download
+        audit (timesheet-export.download) commits before any byte is returned. A malformed,
+        unknown or foreign export is 404 TIMESHEET_TARGET_NOT_FOUND. Attachment, Cache-Control
+        private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/TimesheetExportId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The manifest
+          headers:
+            Content-Disposition:
+              description: attachment; filename="divalhr-time-export-<weekStart>-<exportId>.manifest.json"
+              schema:
+                type: string
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /me/timesheets:
     get:
       operationId: listMyTimesheets
@@ -6700,6 +6992,13 @@ components:
       schema:
         type: string
         maxLength: 512
+    TimesheetExportId:
+      name: exportId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     EmployeeImportId:
       name: importId
       in: path
@@ -9987,6 +10286,8 @@ components:
         - TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE
         - TIMESHEET_DECISION_STALE
         - TIMESHEET_DECISION_NOT_ALLOWED
+        - TIMESHEET_EXPORT_EMPTY
+        - TIMESHEET_EXPORT_PREVIEW_STALE
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -12038,6 +12339,193 @@ components:
         confirm:
           type: boolean
           enum: [true]
+    TimesheetExportPreviewRequest:
+      type: object
+      description: MVP-070E. One legal entity, one of its sites and one generated site-local week.
+      additionalProperties: false
+      required: [legalEntityId, siteId, weekStart]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+          description: The site-local Monday of a generated week.
+    CreateTimesheetExportRequest:
+      type: object
+      description: MVP-070E. Create the export of a reviewed preview.
+      additionalProperties: false
+      required: [legalEntityId, siteId, weekStart, previewDigest, confirm]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The reviewed preview's digest, exactly as returned.
+        confirm:
+          type: boolean
+          const: true
+    TimesheetExportScope:
+      type: object
+      description: >-
+        MVP-070E. The exported scope: the legal entity, its site and the generated week with its
+        time zone and exact UTC boundaries as generated.
+      required: [legalEntityId, legalEntityCode, legalEntityName, siteId, siteCode, siteName, timezone, weekStart, weekEnd, lastDay, periodStartAt, periodEndAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        legalEntityCode:
+          type: [string, "null"]
+        legalEntityName:
+          type: [string, "null"]
+        siteId:
+          type: string
+          format: uuid
+        siteCode:
+          type: [string, "null"]
+        siteName:
+          type: [string, "null"]
+        timezone:
+          type: string
+        weekStart:
+          type: string
+          format: date
+        weekEnd:
+          type: string
+          format: date
+          description: The next local Monday (exclusive).
+        lastDay:
+          type: string
+          format: date
+        periodStartAt:
+          type: string
+          format: date-time
+        periodEndAt:
+          type: string
+          format: date-time
+    TimesheetExportCounts:
+      type: object
+      description: MVP-070E. Approved timesheets, employees, rows and the total worked minutes.
+      required: [timesheets, employees, rows, workedMinutes]
+      properties:
+        timesheets:
+          type: integer
+          minimum: 0
+        employees:
+          type: integer
+          minimum: 0
+        rows:
+          type: integer
+          minimum: 0
+        workedMinutes:
+          type: integer
+          minimum: 0
+    TimesheetExportExclusions:
+      type: object
+      description: MVP-070E. The week's timesheets that are not exported, by state.
+      required: [draft, submitted, reopened]
+      properties:
+        draft:
+          type: integer
+          minimum: 0
+        submitted:
+          type: integer
+          minimum: 0
+        reopened:
+          type: integer
+          minimum: 0
+    TimesheetExportPreview:
+      type: object
+      description: MVP-070E. What an export of the scope would hold now; no name or employee number.
+      required: [scope, generationId, generationVersion, eligible, excluded, previewDigest, expiresAt, existingExportId]
+      properties:
+        scope:
+          $ref: "#/components/schemas/TimesheetExportScope"
+        generationId:
+          type: string
+          format: uuid
+        generationVersion:
+          type: integer
+          minimum: 1
+        eligible:
+          $ref: "#/components/schemas/TimesheetExportCounts"
+        excluded:
+          $ref: "#/components/schemas/TimesheetExportExclusions"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        existingExportId:
+          type: [string, "null"]
+          format: uuid
+          description: The export of identical evidence, if one exists (creating returns it).
+    TimesheetExport:
+      type: object
+      description: >-
+        MVP-070E. An immutable export: the manifest's facts. Never the creator, a name or an
+        employee number.
+      required: [exportId, status, schemaVersion, scope, generationId, generationVersion, counts, csvSha256, createdAt]
+      properties:
+        exportId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [READY]
+        schemaVersion:
+          type: integer
+          enum: [1]
+        scope:
+          $ref: "#/components/schemas/TimesheetExportScope"
+        generationId:
+          type: string
+          format: uuid
+        generationVersion:
+          type: integer
+          minimum: 1
+        counts:
+          $ref: "#/components/schemas/TimesheetExportCounts"
+        csvSha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        createdAt:
+          type: string
+          format: date-time
+    TimesheetExportResult:
+      type: object
+      description: MVP-070E. A new export, or the existing export of identical evidence.
+      required: [outcome, export]
+      properties:
+        outcome:
+          type: string
+          enum: [CREATED, EXISTING]
+        export:
+          $ref: "#/components/schemas/TimesheetExport"
+    TimesheetExportPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimesheetExport"
+        nextCursor:
+          type: [string, "null"]
     TimesheetPeriod:
       type: object
       description: MVP-070A. A site-local week with its exact UTC boundaries.
