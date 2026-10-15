@@ -11,6 +11,7 @@ import {
   primaryNav,
   signIn,
   sql,
+  subjectLock,
   typeSecret,
 } from './support';
 
@@ -493,9 +494,13 @@ function history(scope: Locator) {
   return scope.getByTestId('timesheet-action');
 }
 
+let releaseSubject: () => void = () => undefined;
+
 test.describe.serial('MVP-070D: reopen and reapprove approved time', () => {
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(600_000);
+    // The other spec writing as tenant B's administrator never runs at the same time.
+    releaseSubject = await subjectLock(USERS.adminB[0]);
     ZONE = chooseZone();
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -618,6 +623,10 @@ test.describe.serial('MVP-070D: reopen and reapprove approved time', () => {
     await context.close();
     await approvedOverApi(browser, ANA_EMAIL, anaSheet);
     await approvedOverApi(browser, CLEO_EMAIL, cleoSheet);
+  });
+
+  test.afterAll(() => {
+    releaseSubject();
   });
 
   test('a correction reopens Ana’s approved week, which is refreshed, resubmitted and approved again, in English', async ({

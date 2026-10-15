@@ -19,6 +19,7 @@ import {
   primaryNav,
   signIn,
   sql,
+  subjectLock,
   typeSecret,
 } from './support';
 
@@ -450,9 +451,13 @@ const HEADER =
   'employee_id,employee_number,employment_id,cost_center_id,work_date,shift_id,timesheet_id,' +
   'timesheet_revision,approval_action_id,approval_cycle,worked_minutes';
 
+let releaseSubject: () => void = () => undefined;
+
 test.describe.serial('MVP-070E: export approved time', () => {
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(600_000);
+    // The other spec writing as tenant B's administrator never runs at the same time.
+    releaseSubject = await subjectLock(USERS.adminB[0]);
     ZONE = chooseZone();
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -575,6 +580,10 @@ test.describe.serial('MVP-070E: export approved time', () => {
     await context.close();
     await approvedOverApi(browser, ANA_EMAIL, anaSheet);
     await approvedOverApi(browser, CLEO_EMAIL, cleoSheet);
+  });
+
+  test.afterAll(() => {
+    releaseSubject();
   });
 
   test('the approved week is previewed, exported, found in the history and downloaded, in English', async ({
