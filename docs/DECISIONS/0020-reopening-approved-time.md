@@ -2,8 +2,9 @@
 
 ## Status
 
-Proposed with the MVP-070D pull request (Issue #132, architect specification T70D-1 to T70D-12);
-pending architecture review. Narrow successor of ADR 0019 (weekly time submission and approval),
+Accepted (MVP-070D, Issue #132, T70D-1 to T70D-12; PR #133, deployed to hr-dev at
+`87b26481af2f5cb9ea77672c8dcd507905d92c55`). Only the current approval of a timesheet is ever
+exported (ADR 0021, MVP-070E). Narrow successor of ADR 0019 (weekly time submission and approval),
 which stays in force for submission, routing, decisions and their evidence. Builds on ADR 0016
 (attendance corrections, MVP-062) and ADR 0018 (weekly draft timesheets and their refresh).
 

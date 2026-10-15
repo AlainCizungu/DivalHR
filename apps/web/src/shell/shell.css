@@ -203,8 +203,17 @@
   padding-inline: 0;
 }
 
+/* The rail scrolls when its links exceed the viewport's height; tooltips are fixed, so the scroller
+   never clips them, and the rail paints above the page so they are never covered. */
+.sidebar[data-collapsed='true'] .sidebar__inner {
+  z-index: 4;
+}
+
+/* The rail scrolls when its links exceed the viewport's height; tooltips are fixed, so the scroller
+   never clips them. */
 .sidebar[data-collapsed='true'] .sidebar__nav {
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .sidebar[data-collapsed='true'] .nav-group {
@@ -219,9 +228,9 @@
 
 .sidebar[data-collapsed='true'] .nav-link:hover .nav-link__tooltip,
 .sidebar[data-collapsed='true'] .nav-link:focus-visible .nav-link__tooltip {
-  position: absolute;
-  top: 50%;
-  left: calc(100% + var(--dv-space-3));
+  position: fixed;
+  top: var(--nav-tooltip-top);
+  left: calc(var(--dv-sidebar-rail) + var(--dv-space-3));
   z-index: 5;
   display: block;
   padding: 0.35rem 0.6rem;

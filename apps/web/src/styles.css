@@ -589,3 +589,9 @@ fieldset.field {
   margin: 0 0 var(--dv-space-1);
   overflow-wrap: anywhere;
 }
+
+/* MVP-070E: a digest or identifier breaks anywhere at 320 px. */
+.break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}

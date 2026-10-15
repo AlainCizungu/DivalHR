@@ -41,6 +41,7 @@
     "myScheduleSubstitutions": "Shift substitutions",
     "teamAttendance": "Team attendance",
     "timesheets": "Timesheets",
+    "timeExports": "Time exports",
     "myTimesheets": "My timesheets",
     "timeApprovals": "Time approvals"
   },
@@ -458,7 +459,9 @@
     "TIMESHEET_SUBMISSION_NOT_ALLOWED": "This timesheet can’t be submitted now. It must be a draft with at least one ready shift and nothing left to resolve.",
     "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE": "No manager can approve this timesheet for this week. Contact your organization.",
     "TIMESHEET_DECISION_STALE": "This timesheet changed since you opened it. Open it again.",
-    "TIMESHEET_DECISION_NOT_ALLOWED": "This timesheet is no longer awaiting a decision."
+    "TIMESHEET_DECISION_NOT_ALLOWED": "This timesheet is no longer awaiting a decision.",
+    "TIMESHEET_EXPORT_EMPTY": "This week has no approved timesheet to export.",
+    "TIMESHEET_EXPORT_PREVIEW_STALE": "The approved time changed since the preview, or the preview expired. Preview the export again."
   },
   "notFound": {
     "title": "Page not found",
@@ -3398,6 +3401,73 @@
       "title": "Attendance changed after approval",
       "refresh": "Refresh before resubmission: refresh this week to give the timesheet a new revision. The employee then submits it again for approval.",
       "refreshed": "Refreshed: the employee can submit the new revision as cycle {{cycle}}."
+    }
+  },
+  "timeExports": {
+    "title": "Time exports",
+    "description": "Export the approved time of one site's generated week as a CSV file for payroll or accounting, with a manifest to verify it.",
+    "notice": "Approved time only. This export does not calculate pay.",
+    "unauthorized": "Only a tenant administrator with multi-factor authentication can export approved time.",
+    "signInRequired": "Sign in as a tenant administrator to export approved time.",
+    "form": {
+      "label": "Legal entity, site and week",
+      "legalEntityRequired": "Choose a legal entity.",
+      "weekHint": "The Monday of a generated week, in the site's time zone."
+    },
+    "preview": {
+      "title": "Export preview",
+      "version": "Generation version {{version}}",
+      "eligible": "Approved time to export",
+      "excluded": "Not exported",
+      "excludedNote": "Only timesheets whose current state is Approved are exported. Drafts (including returned timesheets), submitted and reopened timesheets, and every earlier approval, are left out.",
+      "empty": "This week has no approved timesheet to export.",
+      "existing": "An export of exactly this approved time already exists. Creating it again opens that export.",
+      "expires": "This preview is valid until {{time}}.",
+      "confirmCheck": "I reviewed this preview and want to create the export.",
+      "create": "Create export",
+      "creating": "Creating…",
+      "notGenerated": "This week has not been generated for this site, or the site does not belong to the legal entity."
+    },
+    "counts": {
+      "timesheets": "Approved timesheets",
+      "employees": "Employees",
+      "rows": "Rows",
+      "worked": "Worked time"
+    },
+    "excluded": {
+      "draft": "Drafts",
+      "submitted": "Submitted",
+      "reopened": "Reopened"
+    },
+    "created": "Export created.",
+    "existing": "An identical export already existed; it is shown below.",
+    "status": {
+      "READY": "Ready"
+    },
+    "detail": {
+      "title": "Export",
+      "id": "Export ID",
+      "version": "Generation version",
+      "created": "Created",
+      "digest": "CSV SHA-256",
+      "verify": "Each download has the same bytes; the CSV's SHA-256 matches the manifest. Later corrections never change this export.",
+      "csv": "Download CSV",
+      "manifest": "Download manifest",
+      "csvDownloaded": "CSV downloaded.",
+      "manifestDownloaded": "Manifest downloaded."
+    },
+    "history": {
+      "title": "Export history",
+      "table": "Exports, newest first",
+      "empty": "No export yet.",
+      "unavailable": "The export history could not be loaded.",
+      "week": "Week",
+      "site": "Site",
+      "created": "Created",
+      "actions": "Actions",
+      "open": "View",
+      "openFor": "View the export of the week of {{week}} created {{time}}",
+      "more": "Show more"
     }
   },
   "myTimesheets": {

@@ -444,7 +444,17 @@ public enum ErrorCode {
    */
   TIMESHEET_DECISION_STALE(HttpStatus.CONFLICT),
   /** MVP-070B/C: the timesheet is not awaiting a decision (already approved or returned). */
-  TIMESHEET_DECISION_NOT_ALLOWED(HttpStatus.CONFLICT);
+  TIMESHEET_DECISION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /**
+   * MVP-070E: the generated week has no timesheet whose current state is APPROVED; nothing to
+   * export.
+   */
+  TIMESHEET_EXPORT_EMPTY(HttpStatus.CONFLICT),
+  /**
+   * MVP-070E: the eligible approvals or their evidence changed since the export preview, or the
+   * preview expired; preview again.
+   */
+  TIMESHEET_EXPORT_PREVIEW_STALE(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

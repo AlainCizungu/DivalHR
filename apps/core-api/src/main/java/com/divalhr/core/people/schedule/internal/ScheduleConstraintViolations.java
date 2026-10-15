@@ -90,6 +90,18 @@ public final class ScheduleConstraintViolations {
   public static final String TIMESHEET_ACTION_REOPENED_CYCLE =
       "timesheet_action_reopened_cycle_unique";
 
+  /** One export per site, week and eligible evidence (V35, MVP-070E). */
+  public static final String TIMESHEET_EXPORT_EVIDENCE = "timesheet_export_evidence_unique";
+
+  /** An export binds the current generation of its site and legal entity (V35, MVP-070E). */
+  public static final String TIMESHEET_EXPORT_BIND = "timesheet_export_bind";
+
+  /** An export row binds the current approved revision of its timesheet (V35, MVP-070E). */
+  public static final String TIMESHEET_EXPORT_ROW_BINDING = "timesheet_export_row_binding";
+
+  /** An export holds exactly its counted rows in CSV order (V35, MVP-070E). */
+  public static final String TIMESHEET_EXPORT_EXACT = "timesheet_export_exact";
+
   private ScheduleConstraintViolations() {}
 
   /**

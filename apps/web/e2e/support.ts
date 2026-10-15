@@ -222,6 +222,63 @@ export async function freshCode(page: Page, user: string, secret: string): Promi
 }
 
 /**
+ * MVP-070E: the spec files that write as the same privileged seed user share that subject's
+ * per-minute write limits (`work-schedule-write`: 20 per subject per minute, never raised), so two
+ * parallel feature workers running two of them at once make a correct 429 land on a user action
+ * of the other file. Such a file takes this lock in `beforeAll` and releases it in `afterAll`:
+ * the files run one after the other, and the next one starts only when the previous holder's
+ * writes are a full minute old. The lock is a directory in the temporary directory (as the TOTP
+ * period file above); a holder that died frees it. Nothing waits on the rate limit itself.
+ */
+export async function subjectLock(user: string): Promise<() => void> {
+  const dir = join(tmpdir(), `divalhr-e2e-subject-${user}.lock`);
+  const released = `${dir}.released`;
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const alive = (pid: number) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const deadline = Date.now() + 15 * 60_000;
+  for (;;) {
+    try {
+      mkdirSync(dir);
+      writeFileSync(join(dir, 'pid'), String(process.pid));
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    }
+    let holder = Number.NaN;
+    try {
+      holder = Number(readFileSync(join(dir, 'pid'), 'utf8'));
+    } catch {
+      // The holder has not written its pid yet.
+    }
+    if (Number.isInteger(holder) && !alive(holder)) {
+      rmSync(dir, { recursive: true, force: true });
+      continue;
+    }
+    if (Date.now() > deadline) throw new Error(`the ${user} subject lock was never released`);
+    await sleep(1000);
+  }
+  let last = 0;
+  try {
+    last = Number(readFileSync(released, 'utf8'));
+  } catch {
+    // No earlier holder in this run.
+  }
+  const wait = last + 61_000 - Date.now();
+  if (wait > 0) await sleep(wait);
+  return () => {
+    writeFileSync(released, String(Date.now()));
+    rmSync(dir, { recursive: true, force: true });
+  };
+}
+
+/**
  * Types a secret (a password or a one-time code) without passing it through a Playwright step
  * argument: `fill` and `type` show their value in step titles, which reach the HTML report.
  */

@@ -196,7 +196,13 @@ class AuthorizationDenialAuditIntegrationTest {
           "timesheet.generation-read",
           "timesheet.refresh-preview",
           "timesheet.refresh",
-          "timesheet.read");
+          "timesheet.read",
+          // MVP-070E: approved-time exports.
+          "timesheet-export.preview",
+          "timesheet-export.create",
+          "timesheet-export.list",
+          "timesheet-export.read",
+          "timesheet-export.download");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -665,7 +671,8 @@ class AuthorizationDenialAuditIntegrationTest {
     assertThat(tenantScoped).isEqualTo(new TreeSet<>(TENANT_OPERATIONS));
     // MVP-062 added five handlers (two previews, two commits, the history); MVP-070A six (two
     // previews, two commands, two reads).
-    assertThat(handlers).hasSize(96);
+    // MVP-070E six more (a preview, a creation, the history, a read and two downloads).
+    assertThat(handlers).hasSize(102);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

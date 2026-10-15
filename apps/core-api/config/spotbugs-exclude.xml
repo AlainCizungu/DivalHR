@@ -109,6 +109,9 @@
       <Class name="com.divalhr.core.people.schedule.application.TimesheetRouting"/>
       <Class name="com.divalhr.core.people.schedule.application.TimesheetReopening"/>
       <Class name="com.divalhr.core.people.schedule.api.TimesheetApprovalController"/>
+      <Class name="com.divalhr.core.people.schedule.application.TimesheetExportService"/>
+      <Class name="com.divalhr.core.people.schedule.internal.JdbcTimesheetExportRepository"/>
+      <Class name="com.divalhr.core.people.schedule.api.TimesheetExportController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>
