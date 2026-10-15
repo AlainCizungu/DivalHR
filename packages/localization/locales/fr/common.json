@@ -132,22 +132,26 @@
     "tenant": {
       "eyebrow": "Espace de l’organisation",
       "title": "Administration de l’organisation",
-      "description": "Gérez votre personnel, les congés et les horaires, configurez votre organisation et vos contrats, et contrôlez qui a accès à quoi.",
+      "description": "Pilotez vos effectifs et vos opérations quotidiennes — employés, congés, horaires, présences, feuilles de temps et exports du temps approuvé — et contrôlez votre organisation et ses accès.",
       "quickActions": "Actions rapides",
       "actions": {
         "importEmployees": "Importer des employés",
         "reviewLeave": "Examiner les demandes de congé",
-        "openSchedules": "Ouvrir les horaires",
-        "inviteUser": "Inviter un utilisateur"
+        "openTimesheets": "Ouvrir les feuilles de temps",
+        "exportTime": "Exporter le temps approuvé"
       },
       "groups": {
         "people": {
-          "title": "Personnel et opérations",
-          "description": "Employés, congés et horaires."
+          "title": "Personnel et congés",
+          "description": "Employés, organisation et gestion des congés."
+        },
+        "operations": {
+          "title": "Opérations et temps",
+          "description": "Horaires, présences, feuilles de temps et exports du temps approuvé."
         },
         "governance": {
-          "title": "Organisation et gouvernance",
-          "description": "Structure, contrats, utilisateurs et accès."
+          "title": "Contrats et accès",
+          "description": "Contrats, utilisateurs et accès."
         }
       },
       "cards": {
@@ -165,7 +169,7 @@
         },
         "workSchedules": {
           "title": "Horaires",
-          "description": "Publiez les horaires des sites, affectez les employés et repérez les créneaux non couverts."
+          "description": "Publiez les horaires des sites, affectez les employés, repérez les créneaux non couverts et décidez des remplacements de créneau."
         },
         "hierarchy": {
           "title": "Structure organisationnelle",
@@ -182,6 +186,18 @@
         "accessReview": {
           "title": "Revue des accès",
           "description": "Voyez qui a accès à quoi, et par quelle affectation."
+        },
+        "attendanceReview": {
+          "title": "Suivi de la présence",
+          "description": "Examinez les exceptions de présence et enregistrez des corrections en ajout seul."
+        },
+        "timesheets": {
+          "title": "Feuilles de temps",
+          "description": "Générez et actualisez les feuilles de temps hebdomadaires de chaque site et suivez leur soumission, approbation, renvoi et réouverture."
+        },
+        "timeExports": {
+          "title": "Exports de temps",
+          "description": "Exportez le temps hebdomadaire approuvé d’un site dans un fichier CSV avec manifeste pour la paie et la comptabilité. Temps approuvé uniquement ; aucune paie n’est calculée."
         }
       },
       "attention": {
@@ -194,18 +210,37 @@
         "loading": "Chargement du nombre…",
         "failed": "Impossible de charger le nombre.",
         "open": "Voir les échéances des contrats"
+      },
+      "progress": {
+        "title": "Progrès récents de la plateforme",
+        "description": "Livré récemment et disponible pour votre organisation dès maintenant.",
+        "items": {
+          "attendance": {
+            "title": "Présences",
+            "description": "Pointage en ligne, présence assistée par un superviseur et hors connexion, revue des exceptions et corrections en ajout seul."
+          },
+          "approvals": {
+            "title": "Approbations et réouverture des feuilles de temps",
+            "description": "Feuilles de temps hebdomadaires générées à partir des horaires et des présences, soumises par les employés, approuvées ou renvoyées par leur responsable, et rouvertes lorsqu’une correction modifie du temps approuvé."
+          },
+          "exports": {
+            "title": "Exports du temps approuvé",
+            "description": "Exports CSV immuables de la semaine approuvée d’un site avec un manifeste vérifiable, prêts pour la paie et la comptabilité. DivalHR ne calcule pas la paie."
+          }
+        }
       }
     },
     "employee": {
       "eyebrow": "Espace employé",
       "title": "Mon espace",
-      "description": "Vos congés, vos créneaux et vos contrats au même endroit.",
+      "description": "Votre horaire, vos congés, vos présences et vos feuilles de temps au même endroit.",
       "myWork": "Mon travail",
       "cards": {
         "leave": "Demandez un congé, suivez vos demandes et consultez chaque décision.",
-        "schedule": "Consultez vos créneaux en cours et à venir, chacun à l’heure locale de son site.",
-        "attendance": "Pointez votre arrivée et votre départ sur vos créneaux et consultez votre historique de présence.",
-        "contracts": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus."
+        "schedule": "Consultez vos créneaux en cours et à venir, chacun à l’heure locale de son site, et demandez un remplaçant quand vous ne pouvez pas assurer un créneau.",
+        "attendance": "Pointez votre arrivée et votre départ sur vos créneaux, en ligne ou hors connexion, et consultez votre historique de présence.",
+        "contracts": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus.",
+        "timesheets": "Vérifiez vos feuilles de temps hebdomadaires, soumettez-les à votre responsable et suivez chaque approbation, renvoi ou réouverture."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -225,21 +260,21 @@
     }
   },
   "roadmap": {
-    "title": "À venir",
+    "title": "Prochainement",
     "description": "Prévu dans la feuille de route DivalHR. Pas encore disponible.",
-    "badge": "À venir",
+    "badge": "Prochainement",
     "items": {
-      "attendance": {
-        "title": "Présences et feuilles de temps",
-        "description": "Pointage en ligne et hors ligne."
+      "periodLocking": {
+        "title": "Verrouillage des périodes de feuilles de temps",
+        "description": "Verrouillez les périodes approuvées ; leur réouverture exige une approbation privilégiée."
       },
       "payrollInputs": {
-        "title": "Éléments de paie",
-        "description": "Préparation et export des éléments de paie."
+        "title": "Préparation et calculs de la paie",
+        "description": "Paie calculée à partir du temps approuvé, avec retenues légales et déclarations."
       },
-      "expenses": {
-        "title": "Frais et indemnités",
-        "description": "Notes de frais, indemnités et remboursements."
+      "disbursement": {
+        "title": "Versement des salaires",
+        "description": "Instructions de paiement par banque et mobile money préparées à partir de la paie validée."
       },
       "myDocuments": {
         "title": "Documents",
@@ -251,7 +286,7 @@
       },
       "payslips": {
         "title": "Paie et bulletins",
-        "description": "Accédez à vos bulletins de paie."
+        "description": "Accédez à vos bulletins une fois la paie calculée."
       }
     }
   },
@@ -2205,7 +2240,7 @@
     "sectionsLabel": "Sections de la page",
     "nav": {
       "platform": "Plateforme",
-      "payroll": "Paie et versements",
+      "payroll": "Temps approuvé et versements",
       "integrations": "Intégrations",
       "why": "Pourquoi DivalHR"
     },
@@ -2217,7 +2252,7 @@
       "eyebrow": "La plateforme de gestion des effectifs pour l’Afrique",
       "line1": "Gérez vos talents.",
       "line2": "Pilotez vos opérations.",
-      "intro": "DivalHR réunit RH, opérations terrain, préparation de la paie, accès financier des employés et IA de confiance dans une seule plateforme—conçue pour la réalité des organisations africaines.",
+      "intro": "DivalHR est la plateforme de gestion des effectifs et des opérations des organisations africaines : dossiers employés, congés, horaires, présences et temps hebdomadaire approuvé dans un seul système connecté, prêt à être transmis à la paie et à la comptabilité ; le calcul de la paie et les versements arrivent prochainement.",
       "signIn": "Se connecter à DivalHR",
       "note": "Déjà client ? Connectez-vous en toute sécurité."
     },
@@ -2230,29 +2265,32 @@
         "employees": "Employés",
         "leave": "Congés",
         "schedules": "Horaires",
-        "contracts": "Contrats"
+        "attendance": "Suivi de la présence",
+        "timesheets": "Feuilles de temps",
+        "exports": "Exports de temps"
       },
       "actions": {
         "import": "Importer des employés",
         "reviewLeave": "Examiner les congés",
-        "openSchedules": "Ouvrir les horaires"
+        "openTimesheets": "Ouvrir les feuilles de temps",
+        "exportTime": "Exporter le temps approuvé"
       },
       "cards": {
         "employees": {
           "title": "Employés",
           "description": "Dossiers et historique d’emploi"
         },
-        "leave": {
-          "title": "Congés",
-          "description": "Politiques, demandes et approbations"
+        "attendance": {
+          "title": "Suivi de la présence",
+          "description": "Exceptions et corrections"
         },
-        "schedules": {
-          "title": "Horaires",
-          "description": "Créneaux des sites et créneaux non couverts"
+        "timesheets": {
+          "title": "Feuilles de temps",
+          "description": "Générées, soumises, approuvées"
         },
-        "contracts": {
-          "title": "Modèles de contrat",
-          "description": "Contrats bilingues"
+        "exports": {
+          "title": "Exports de temps",
+          "description": "Temps approuvé uniquement. Aucune paie calculée."
         }
       }
     },
@@ -2267,7 +2305,7 @@
     "platform": {
       "kicker": "Un seul système opérationnel",
       "title": "Du dossier employé à l’action sur le terrain.",
-      "body": "Ne dépendez plus de feuilles de calcul, de fichiers de paie et d’applications isolées. DivalHR offre à chaque équipe une vue fiable des effectifs et les outils pour agir.",
+      "body": "Ne dépendez plus de feuilles de calcul, de feuilles de présence et d’applications isolées. DivalHR offre à chaque équipe une vue fiable des effectifs, du dossier employé jusqu’au temps approuvé dont part la paie.",
       "steps": {
         "people": {
           "title": "Socle RH",
@@ -2275,11 +2313,11 @@
         },
         "operations": {
           "title": "Opérations",
-          "description": "Sites, approbations de congé et horaires de travail."
+          "description": "Sites, approbations de congé, horaires de travail, présences et feuilles de temps hebdomadaires."
         },
         "pay": {
-          "title": "Paie + avantages",
-          "description": "Éléments de paie validés, versements et avantages partenaires."
+          "title": "Du temps à la paie",
+          "description": "Temps approuvé exporté vers la paie et la comptabilité dès aujourd’hui ; calcul de la paie, versements et avantages partenaires prochainement."
         },
         "intelligence": {
           "title": "Intelligence",
@@ -2290,11 +2328,11 @@
     "modules": {
       "kicker": "La plateforme DivalHR",
       "title": "Tout ce dont vos équipes ont besoin. Une seule plateforme.",
-      "body": "Commencez avec les modules utiles aujourd’hui. Ajoutez-en à mesure qu’ils arrivent et que votre organisation grandit.",
-      "available": "Disponible",
-      "later": "À venir",
-      "legend": "Les modules « Disponible » sont déjà dans le produit. Les modules « À venir » sont prévus et ne sont pas encore disponibles.",
-      "todayTitle": "Dans DivalHR aujourd’hui",
+      "body": "Commencez avec ce qui est disponible maintenant. Ajoutez les prochaines fonctionnalités à mesure qu’elles arrivent et que votre organisation grandit.",
+      "available": "Disponible maintenant",
+      "later": "Prochainement",
+      "legend": "Les fonctionnalités « Disponible maintenant » sont déjà dans le produit. Les fonctionnalités « Prochainement » sont dans la feuille de route et ne sont pas encore disponibles.",
+      "todayTitle": "Disponible maintenant",
       "items": {
         "employees": {
           "title": "Gestion des employés",
@@ -2350,7 +2388,7 @@
         },
         "scheduling": {
           "title": "Planification du travail",
-          "description": "Publiez les horaires de chaque site, affectez les employés, repérez les créneaux non couverts, montrez à chaque employé ses créneaux, et annulez ou remplacez un horaire entièrement futur."
+          "description": "Publiez les horaires des sites, affectez les employés, repérez les créneaux non couverts, montrez à chacun ses créneaux, remplacez ou annulez un horaire futur, et organisez les remplacements de créneau."
         },
         "contracts": {
           "title": "Contrats",
@@ -2359,21 +2397,51 @@
         "access": {
           "title": "Accès et sécurité",
           "description": "Invitations, rôles, connexion sécurisée et revue des accès."
+        },
+        "attendance": {
+          "title": "Présences",
+          "description": "Pointage en ligne, présence assistée par un superviseur et hors connexion, revue des exceptions et corrections en ajout seul."
+        },
+        "time": {
+          "title": "Feuilles de temps et temps approuvé",
+          "description": "Feuilles de temps hebdomadaires générées à partir des horaires et des présences, soumises par les employés, approuvées ou renvoyées par les responsables, rouvertes après correction et exportées en CSV avec un manifeste."
         }
+      },
+      "nextTitle": "Prochainement",
+      "now": {
+        "employees": "Dossiers employés et structure organisationnelle",
+        "leave": "Demandes de congé, approbations et contrôles du cycle de vie",
+        "scheduling": "Horaires de travail et remplacements de créneau",
+        "attendance": "Présence en ligne, assistée par un superviseur et hors connexion",
+        "exceptions": "Exceptions de présence et corrections en ajout seul",
+        "timesheets": "Génération des feuilles de temps hebdomadaires",
+        "approvals": "Soumission par l’employé et approbation ou renvoi par le responsable",
+        "reopening": "Réouverture et nouvelle approbation après un changement des sources",
+        "exports": "Exports CSV du temps approuvé avec manifeste, pour préparer la paie et la comptabilité",
+        "languages": "Anglais et français",
+        "security": "Isolation sécurisée des organisations et connexion privilégiée à facteurs multiples"
+      },
+      "next": {
+        "periodLocking": "Verrouillage des périodes de feuilles de temps",
+        "payroll": "Préparation et calculs de la paie",
+        "statutory": "Retenues légales et déclarations",
+        "disbursement": "Versement des salaires par banque et mobile money",
+        "loans": "Prêts et avances sur salaire via des partenaires agréés",
+        "platform": "Avantages sociaux, performance, documents, analytique, automatisation, intégrations et applications mobiles natives"
       }
     },
     "payroll": {
-      "kicker": "De la paie au versement",
-      "title": "Payez chaque employé par le canal local adapté.",
-      "body": "Après validation de la paie, DivalHR prépare les instructions de paiement vers les portefeuilles mobiles, les comptes bancaires ou un fichier bancaire contrôlé, puis centralise les résultats pour le rapprochement.",
+      "kicker": "Du temps approuvé au versement",
+      "title": "Transmettez à la paie le temps que vous avez déjà approuvé.",
+      "body": "Dès aujourd’hui, DivalHR exporte le temps hebdomadaire approuvé de chaque site dans un fichier CSV accompagné d’un manifeste vérifiable, pour vos outils de paie et de comptabilité. Le calcul de la paie, les instructions de paiement vers les portefeuilles mobiles, les comptes bancaires ou un fichier bancaire contrôlé, et le rapprochement arrivent prochainement.",
       "steps": {
         "approved": {
-          "title": "Paie validée",
-          "description": "Éléments de paie vérifiés et validés par votre équipe."
+          "title": "Temps approuvé",
+          "description": "Feuilles de temps hebdomadaires approuvées par les responsables, exportées en CSV avec un manifeste."
         },
         "instructions": {
-          "title": "Instructions de paiement",
-          "description": "Préparées de façon sécurisée pour le canal de chaque employé."
+          "title": "Paie et instructions de paiement",
+          "description": "Paie calculée et instructions préparées pour le canal de chaque employé."
         },
         "rails": {
           "title": "Mobile money ou banque",
@@ -2387,7 +2455,8 @@
       "railsLabel": "Canaux de paiement prévus",
       "bankAccount": "Compte bancaire",
       "bankFile": "Fichier bancaire",
-      "note": "Les paiements sont exécutés par votre banque ou un prestataire de paiement agréé. DivalHR prépare et suit les instructions ; elle ne détient pas les fonds des employés. Les versements et canaux de paiement sont prévus et à venir."
+      "note": "Les paiements sont exécutés par votre banque ou un prestataire de paiement agréé. DivalHR prépare et suit les instructions ; elle ne détient pas les fonds des employés. Les versements et canaux de paiement sont prévus et à venir.",
+      "approvedMessage": "Exportez le temps approuvé vers la paie et la comptabilité, sans prétendre que la paie a déjà été calculée."
     },
     "integrations": {
       "kicker": "Écosystème connecté",
@@ -2480,15 +2549,15 @@
         },
         "operations": {
           "title": "Opérations",
-          "description": "Sites, horaires et approbations de congé dans une seule vue."
+          "description": "Sites, horaires, présences et approbations des feuilles de temps dans une seule vue."
         },
         "finance": {
           "title": "Finance",
-          "description": "Éléments de paie traçables et exports plus fiables."
+          "description": "Exports du temps approuvé avec manifeste vérifiable dès aujourd’hui ; calcul de la paie prochainement."
         },
         "employees": {
           "title": "Employés",
-          "description": "Contrats, congés et créneaux attribués dès aujourd’hui ; paie et avantages plus tard."
+          "description": "Contrats, congés, créneaux, présences et feuilles de temps dès aujourd’hui ; paie et avantages prochainement."
         }
       }
     },

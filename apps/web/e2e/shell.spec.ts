@@ -142,7 +142,7 @@ test.describe('desktop', () => {
       'Mes congés',
       'Approbations de congé',
     ]);
-    await expect(page.getByTestId('roadmap')).toContainText('À venir');
+    await expect(page.getByTestId('roadmap')).toContainText('Prochainement');
     await expect(page.getByTestId('roadmap').locator('a, button')).toHaveCount(0);
     await expectAccessible(page);
     await chooseLocale(page, 'English');

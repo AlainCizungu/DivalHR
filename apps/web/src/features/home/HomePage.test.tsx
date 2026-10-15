@@ -69,15 +69,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** UI-004 (U4-3): the three groups of the operations launchpad, each a navigation destination. */
 const TENANT_DESTINATIONS = {
   people: [
     ['employees', '/admin/people'],
+    ['hierarchy', '/admin/hierarchy'],
     ['leavePolicies', '/admin/leave-policies'],
     ['leaveApprovals', '/admin/leave-approvals'],
+  ],
+  operations: [
     ['workSchedules', '/admin/work-schedules'],
+    ['attendanceReview', '/admin/attendance-review'],
+    ['timesheets', '/admin/timesheets'],
+    ['timeExports', '/admin/time-exports'],
   ],
   governance: [
-    ['hierarchy', '/admin/hierarchy'],
     ['contractTemplates', '/admin/contract-templates'],
     ['users', '/admin/users'],
     ['accessReview', '/admin/access'],
@@ -92,9 +98,12 @@ const groupLinks = (testId: string) =>
 describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
   const c = resources[locale].common;
 
-  it('gives an organization administrator quick actions, two groups and the roadmap', async () => {
+  it('gives an organization administrator quick actions, three groups, the progress panel and the roadmap', async () => {
     const { container } = await renderHome(sessionWithRoles(['tenant-admin']), locale);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(c.home.tenant.title);
+    expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveTextContent(
+      c.home.tenant.description,
+    );
     const quick = screen.getByTestId('quick-actions');
     expect(
       within(quick)
@@ -103,10 +112,10 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     ).toEqual([
       [c.home.tenant.actions.importEmployees, '/admin/people/import'],
       [c.home.tenant.actions.reviewLeave, '/admin/leave-approvals'],
-      [c.home.tenant.actions.openSchedules, '/admin/work-schedules'],
-      [c.home.tenant.actions.inviteUser, '/admin/users'],
+      [c.home.tenant.actions.openTimesheets, '/admin/timesheets'],
+      [c.home.tenant.actions.exportTime, '/admin/time-exports'],
     ]);
-    for (const group of ['people', 'governance'] as const) {
+    for (const group of ['people', 'operations', 'governance'] as const) {
       const section = screen.getByTestId(`home-group-${group}`);
       expect(within(section).getByRole('heading', { level: 2 })).toHaveTextContent(
         c.home.tenant.groups[group].title,
@@ -115,17 +124,42 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
         TENANT_DESTINATIONS[group].map(([id, to]) => [c.home.tenant.cards[id].title, to]),
       );
     }
-    // The live card stays; shipped capabilities left the roadmap (UI3-4).
+    // U4-3: every card is a navigation destination of the route registry; the home says what it
+    // does without any total, status or alert, and the time-exports card carries the no-pay fact.
+    expect(screen.getByTestId('home-card-time-exports')).toHaveTextContent(
+      c.home.tenant.cards.timeExports.description,
+    );
+    // U4-3: "Recent platform progress" is static text labelled Available now, never a control.
+    const progress = screen.getByTestId('home-progress');
+    expect(within(progress).getByRole('heading', { level: 2 })).toHaveTextContent(
+      c.home.tenant.progress.title,
+    );
+    const delivered = within(progress).getAllByRole('listitem');
+    expect(delivered).toHaveLength(3);
+    for (const [index, id] of (['attendance', 'approvals', 'exports'] as const).entries()) {
+      expect(delivered[index]).toHaveTextContent(c.home.tenant.progress.items[id].title);
+      expect(delivered[index]).toHaveTextContent(c.home.tenant.progress.items[id].description);
+      expect(delivered[index]).toHaveTextContent(c.landing.modules.available);
+    }
+    expect(progress.querySelectorAll('a, button, [role]')).toHaveLength(0);
+    expect(progress).not.toHaveTextContent(/\d/);
+    // The live card stays; shipped capabilities left the roadmap (UI3-4, U4-1).
     expect(screen.getByTestId('home-contract-attention')).toBeInTheDocument();
     const roadmap = screen.getByTestId('roadmap');
     expect(within(roadmap).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(roadmap).getByRole('heading', { level: 2 })).toHaveTextContent(c.roadmap.title);
     for (const title of [
-      c.roadmap.items.attendance.title,
+      c.roadmap.items.periodLocking.title,
       c.roadmap.items.payrollInputs.title,
-      c.roadmap.items.expenses.title,
+      c.roadmap.items.disbursement.title,
     ]) {
       expect(roadmap).toHaveTextContent(title);
     }
+    for (const item of within(roadmap).getAllByRole('listitem')) {
+      expect(item).toHaveTextContent(c.roadmap.badge);
+    }
+    expect(roadmap).not.toHaveTextContent(c.nav.attendanceReview);
+    expect(roadmap).not.toHaveTextContent(c.nav.timesheets);
     // No employee destination for an administrator who is not an employee (UI3-6).
     expect(screen.queryByTestId('home-my-work')).toBeNull();
     expect(screen.queryByTestId('home-leave-approvals')).toBeNull();
@@ -144,11 +178,32 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
       c.home.employee.myWork,
     );
     expect(groupLinks('home-my-work')).toEqual([
-      [c.nav.myLeave, '/me/leave'],
       [c.nav.mySchedule, '/me/schedule'],
+      [c.nav.myLeave, '/me/leave'],
       [c.nav.myAttendance, '/me/attendance'],
+      [c.nav.myTimesheets, '/me/timesheets'],
       [c.nav.myContracts, '/me/contracts'],
     ]);
+    // U4-4: short bilingual descriptions name offline attendance and timesheet submission only
+    // where the employee can use them, and never an administrator's capability.
+    expect(screen.getByTestId('home-card-my-attendance')).toHaveTextContent(
+      c.home.employee.cards.attendance,
+    );
+    expect(screen.getByTestId('home-card-my-timesheets')).toHaveTextContent(
+      c.home.employee.cards.timesheets,
+    );
+    expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveTextContent(
+      c.home.employee.description,
+    );
+    expect(screen.queryByTestId('home-progress')).toBeNull();
+    for (const text of [
+      c.nav.timeExports,
+      c.nav.attendanceReview,
+      c.nav.timesheets,
+      c.home.tenant.cards.timeExports.description,
+    ]) {
+      expect(container).not.toHaveTextContent(text);
+    }
     const approvals = screen.getByTestId('home-leave-approvals');
     expect(within(approvals).getByRole('heading', { level: 2 })).toHaveTextContent(
       c.home.employee.approvals.title,
@@ -218,7 +273,7 @@ describe('role homes', () => {
     expectNoFigures(container);
   });
 
-  it('renders "Coming later" modules as text, never as controls (D7)', async () => {
+  it('renders "Coming next" modules as text, never as controls (D7)', async () => {
     for (const roles of [['tenant-admin'], ['employee']] as const) {
       const { unmount } = await renderHome(sessionWithRoles([...roles]));
       const roadmap = screen.getByTestId('roadmap');

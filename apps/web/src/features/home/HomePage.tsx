@@ -20,7 +20,8 @@ import { EMPLOYEE_ROADMAP, TENANT_ADMIN_ROADMAP, type RoadmapItem } from './road
 
 /**
  * UI-001 role homes, refreshed by UI-003 (Issue #103) with the shipped leave and scheduling
- * destinations. Static entry points only: no counts, totals, alerts or activity (D10, UI3-7), with
+ * destinations and by UI-004 (Issue #136) with attendance, timesheets and approved-time exports
+ * (an operations launchpad with a static "Recent platform progress" panel; still no figures). Static entry points only: no counts, totals, alerts or activity (D10, UI3-7), with
  * two approved exceptions: the organization administrator's live "Contracts needing attention"
  * card (MVP-031A, C3b) and the manager's conditional "Team attendance to record" card (MVP-060B,
  * B60B-8, shown only while the caller's queue is not empty, without a count). Each section appears for the role that can open its destinations; users with
@@ -116,12 +117,16 @@ function PlatformSection() {
   );
 }
 
-/** UI-003 (UI3-4): the organization administrator's quick actions, the first one primary. */
+/**
+ * UI-003 (UI3-4), UI-004 (U4-3): the administrator's four quick actions, the first one primary.
+ * Four keep one row on a desktop (a second row would sit under the open account menu, where a
+ * partially covered link fails the touch-target check); every other destination is a card below.
+ */
 const QUICK_ACTIONS: { to: string; icon: IconName; key: string }[] = [
   { to: '/admin/people/import', icon: 'import', key: 'importEmployees' },
   { to: '/admin/leave-approvals', icon: 'calendar', key: 'reviewLeave' },
-  { to: '/admin/work-schedules', icon: 'rotation', key: 'openSchedules' },
-  { to: '/admin/users', icon: 'invite', key: 'inviteUser' },
+  { to: '/admin/timesheets', icon: 'check', key: 'openTimesheets' },
+  { to: '/admin/time-exports', icon: 'payroll', key: 'exportTime' },
 ];
 
 function tenantCard(id: string, to: string, icon: IconName, testId: string): CardDef {
@@ -134,21 +139,37 @@ function tenantCard(id: string, to: string, icon: IconName, testId: string): Car
   };
 }
 
-/** UI-003 (UI3-4): two groups, each card a destination the tenant administrator can open. */
-const TENANT_GROUPS: { id: 'people' | 'governance'; cards: CardDef[] }[] = [
+/**
+ * UI-003 (UI3-4), UI-004 (U4-3): three groups, each card a destination the tenant administrator
+ * can open through existing navigation; descriptive text and links only, never a total.
+ */
+const TENANT_GROUPS: { id: 'people' | 'operations' | 'governance'; cards: CardDef[] }[] = [
   {
     id: 'people',
     cards: [
       tenantCard('employees', '/admin/people', 'people', 'home-card-employees'),
+      tenantCard('hierarchy', '/admin/hierarchy', 'structure', 'home-card-hierarchy'),
       tenantCard('leavePolicies', '/admin/leave-policies', 'calendar', 'home-card-leave-policies'),
       tenantCard('leaveApprovals', '/admin/leave-approvals', 'check', 'home-card-leave-approvals'),
+    ],
+  },
+  {
+    id: 'operations',
+    cards: [
       tenantCard('workSchedules', '/admin/work-schedules', 'rotation', 'home-card-work-schedules'),
+      tenantCard(
+        'attendanceReview',
+        '/admin/attendance-review',
+        'clock',
+        'home-card-attendance-review',
+      ),
+      tenantCard('timesheets', '/admin/timesheets', 'check', 'home-card-timesheets'),
+      tenantCard('timeExports', '/admin/time-exports', 'payroll', 'home-card-time-exports'),
     ],
   },
   {
     id: 'governance',
     cards: [
-      tenantCard('hierarchy', '/admin/hierarchy', 'structure', 'home-card-hierarchy'),
       tenantCard(
         'contractTemplates',
         '/admin/contract-templates',
@@ -160,6 +181,42 @@ const TENANT_GROUPS: { id: 'people' | 'governance'; cards: CardDef[] }[] = [
     ],
   },
 ];
+
+/** UI-004 (U4-3): what was delivered recently; static text with no count, status or alert. */
+const PROGRESS: { id: string; icon: IconName }[] = [
+  { id: 'attendance', icon: 'clock' },
+  { id: 'approvals', icon: 'check' },
+  { id: 'exports', icon: 'payroll' },
+];
+
+function ProgressPanel() {
+  const { t } = useTranslation();
+  const id = useId();
+  return (
+    <section className="home-section" aria-labelledby={id} data-testid="home-progress">
+      <div className="home-section__header">
+        <h2 id={id}>{t('home.tenant.progress.title')}</h2>
+        <p>{t('home.tenant.progress.description')}</p>
+      </div>
+      <ul className="roadmap roadmap--delivered">
+        {PROGRESS.map((item) => (
+          <li key={item.id} className="roadmap__item">
+            <Icon name={item.icon} />
+            <div>
+              <p className="roadmap__title">{t(`home.tenant.progress.items.${item.id}.title`)}</p>
+              <p className="roadmap__description">
+                {t(`home.tenant.progress.items.${item.id}.description`)}
+              </p>
+              <StatusBadge tone="success" icon="check">
+                {t('landing.modules.available')}
+              </StatusBadge>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function TenantGroup({ group }: { group: (typeof TENANT_GROUPS)[number] }) {
   const { t } = useTranslation();
@@ -202,19 +259,16 @@ function TenantAdminSections() {
       {TENANT_GROUPS.map((group) => (
         <TenantGroup key={group.id} group={group} />
       ))}
+      <ProgressPanel />
     </>
   );
 }
 
-/** UI-003 (UI3-5): the employee's own destinations; each page loads its own data when opened. */
+/**
+ * UI-003 (UI3-5), UI-004 (U4-4): the employee's own destinations, in the order of a working
+ * week (schedule, leave, attendance, timesheets, contracts); each page loads its own data.
+ */
 const EMPLOYEE_CARDS: CardDef[] = [
-  {
-    to: '/me/leave',
-    icon: 'calendar',
-    titleKey: 'nav.myLeave',
-    descriptionKey: 'home.employee.cards.leave',
-    testId: 'home-card-my-leave',
-  },
   {
     to: '/me/schedule',
     icon: 'rotation',
@@ -223,11 +277,25 @@ const EMPLOYEE_CARDS: CardDef[] = [
     testId: 'home-card-my-schedule',
   },
   {
+    to: '/me/leave',
+    icon: 'calendar',
+    titleKey: 'nav.myLeave',
+    descriptionKey: 'home.employee.cards.leave',
+    testId: 'home-card-my-leave',
+  },
+  {
     to: '/me/attendance',
     icon: 'clock',
     titleKey: 'nav.myAttendance',
     descriptionKey: 'home.employee.cards.attendance',
     testId: 'home-card-my-attendance',
+  },
+  {
+    to: '/me/timesheets',
+    icon: 'check',
+    titleKey: 'nav.myTimesheets',
+    descriptionKey: 'home.employee.cards.timesheets',
+    testId: 'home-card-my-timesheets',
   },
   {
     to: '/me/contracts',
