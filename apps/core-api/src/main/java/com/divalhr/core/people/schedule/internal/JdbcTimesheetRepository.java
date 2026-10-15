@@ -115,6 +115,15 @@ public class JdbcTimesheetRepository {
     public boolean draft() {
       return "DRAFT".equals(status);
     }
+
+    /**
+     * Whether the timesheet was reopened and awaits the organization's refresh (MVP-070D).
+     *
+     * @return whether its status is {@code REOPENED}
+     */
+    public boolean reopened() {
+      return "REOPENED".equals(status);
+    }
   }
 
   /**
@@ -551,7 +560,8 @@ public class JdbcTimesheetRepository {
   }
 
   /**
-   * Moves a draft to its next revision with that revision's totals.
+   * Moves a draft, or a reopened timesheet (MVP-070D), to its next revision with that revision's
+   * totals; it is a DRAFT afterwards.
    *
    * @param tenant verified tenant
    * @param id timesheet
@@ -562,7 +572,8 @@ public class JdbcTimesheetRepository {
    */
   public int advance(TenantId tenant, UUID id, int fromRevision, Totals totals, Instant at) {
     return jdbc.update(
-        "UPDATE people.timesheet SET current_revision = current_revision + 1, row_count = :rows,"
+        "UPDATE people.timesheet SET current_revision = current_revision + 1, status = 'DRAFT',"
+            + " row_count = :rows,"
             + " ready_rows = :ready, missing_rows = :missing, open_rows = :open,"
             + " changed_rows = :changed, worked_minutes = :worked, updated_at = :at"
             + " WHERE tenant_id = :tenant AND id = :id AND current_revision = :revision",

@@ -2,8 +2,10 @@
 
 ## Status
 
-Proposed with the MVP-070B/C pull request (Issue #130, architect implementation instructions
-T70BC-1 to T70BC-15); pending architecture review. Extends ADR 0018 (weekly draft timesheets).
+Accepted (MVP-070B/C, Issue #130, T70BC-1 to T70BC-15; PR #131, deployed to hr-dev at
+`7050d1748595654f51182d0dbd7e9e51b947654d`). Its finality of approved time is narrowed by ADR 0020
+(MVP-070D): a material attendance correction reopens an approval without changing it. Extends ADR
+0018 (weekly draft timesheets).
 Builds on ADR 0007 (effective-dated employment history and the manager graph), ADR 0008/0009
 (employee access links and lock order) and ADR 0015 (manager decisions resolved again at decision
 time).

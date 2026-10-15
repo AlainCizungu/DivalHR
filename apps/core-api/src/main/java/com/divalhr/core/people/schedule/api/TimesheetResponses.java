@@ -197,7 +197,7 @@ public final class TimesheetResponses {
   public record DraftItem(
       UUID timesheetId,
       EmployeeView employee,
-      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED", "REOPENED"}) String status,
       int revision,
       TotalsView totals,
       Instant updatedAt) {}
@@ -225,10 +225,14 @@ public final class TimesheetResponses {
    * @param period the week
    * @param previewDigest the digest to send with the commit
    * @param newDrafts drafts it would create
-   * @param changedTimesheets drafts that would receive a new revision
-   * @param unchangedTimesheets drafts that would keep their revision
+   * @param changedTimesheets timesheets that would receive a new revision (reopened ones included)
+   * @param unchangedTimesheets timesheets that would keep their revision (locked approved ones
+   *     included)
    * @param changedRows rows added, removed or changed
-   * @param totals every draft's totals after the refresh
+   * @param totals every timesheet's totals after the refresh
+   * @param reopenedTimesheets reopened timesheets that would receive their next revision and become
+   *     drafts (MVP-070D)
+   * @param lockedTimesheets approved timesheets whose sources are unchanged: kept as they are
    */
   @Schema(name = "TimesheetRefreshPreview")
   public record RefreshPreview(
@@ -240,19 +244,26 @@ public final class TimesheetResponses {
       int changedTimesheets,
       int unchangedTimesheets,
       int changedRows,
-      TotalsView totals) {}
+      TotalsView totals,
+      int reopenedTimesheets,
+      int lockedTimesheets) {}
 
   /**
    * A committed refresh.
    *
    * @param generation the generation after the refresh
    * @param newDrafts drafts created
-   * @param changedTimesheets drafts that received a new revision
+   * @param changedTimesheets timesheets that received a new revision (reopened ones included)
    * @param changedRows rows added, removed or changed
+   * @param reopenedTimesheets reopened timesheets that received their next revision (MVP-070D)
    */
   @Schema(name = "TimesheetRefreshResult")
   public record RefreshResult(
-      GenerationSummary generation, int newDrafts, int changedTimesheets, int changedRows) {}
+      GenerationSummary generation,
+      int newDrafts,
+      int changedTimesheets,
+      int changedRows,
+      int reopenedTimesheets) {}
 
   /**
    * Bilingual labels.
@@ -383,7 +394,7 @@ public final class TimesheetResponses {
       UUID generationId,
       EmployeeView employee,
       Period period,
-      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED", "REOPENED"}) String status,
       int revision,
       int submissionCycle,
       TotalsView totals,
@@ -414,7 +425,7 @@ public final class TimesheetResponses {
   public record MyItem(
       UUID timesheetId,
       Period period,
-      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED", "REOPENED"}) String status,
       int revision,
       int submissionCycle,
       TotalsView totals,
@@ -504,7 +515,7 @@ public final class TimesheetResponses {
   public record MyDetail(
       UUID timesheetId,
       Period period,
-      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED", "REOPENED"}) String status,
       int revision,
       int generationVersion,
       int submissionCycle,
@@ -541,8 +552,8 @@ public final class TimesheetResponses {
   public record ActionReceipt(
       UUID timesheetId,
       UUID actionId,
-      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED"}) String action,
-      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED"}) String status,
+      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED", "REOPENED"}) String action,
+      @Schema(allowableValues = {"DRAFT", "SUBMITTED", "APPROVED", "REOPENED"}) String status,
       int cycle,
       int revision,
       int generationVersion,
@@ -584,7 +595,7 @@ public final class TimesheetResponses {
   @Schema(name = "TimesheetAction")
   public record ActionView(
       UUID actionId,
-      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED"}) String action,
+      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED", "REOPENED"}) String action,
       int cycle,
       int revision,
       int generationVersion,
@@ -625,7 +636,7 @@ public final class TimesheetResponses {
    */
   @Schema(name = "MyTimesheetAction")
   public record MyActionView(
-      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED"}) String action,
+      @Schema(allowableValues = {"SUBMITTED", "RETURNED", "APPROVED", "REOPENED"}) String action,
       int cycle,
       int revision,
       int workedMinutes,
@@ -666,7 +677,8 @@ public final class TimesheetResponses {
                         "OPEN_ATTENDANCE",
                         "SOURCE_CHANGED",
                         "NO_READY_ROWS",
-                        "APPROVAL_ROUTE_UNAVAILABLE"
+                        "APPROVAL_ROUTE_UNAVAILABLE",
+                        "REFRESH_REQUIRED"
                       }))
           List<String> blockers) {
 

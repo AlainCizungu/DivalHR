@@ -345,6 +345,36 @@ export function MyTimesheetsPage() {
                   })}
                 </p>
               )}
+              {(opened.timesheet.status === 'REOPENED' ||
+                (opened.timesheet.status === 'DRAFT' && last?.action === 'REOPENED')) &&
+                last && (
+                  <div className="card" data-testid="my-timesheet-reopened">
+                    <h3>{t('myTimesheets.reopened.title')}</h3>
+                    <p>
+                      {t('myTimesheets.reopened.what', {
+                        time: formatInstant(
+                          language,
+                          last.occurredAt,
+                          opened.timesheet.period.timezone,
+                        ),
+                        cycle: last.cycle,
+                      })}
+                    </p>
+                    {opened.timesheet.status === 'REOPENED' ? (
+                      <p data-testid="my-timesheet-reopened-next">
+                        <strong>{t('myTimesheets.reopened.refreshTitle')}</strong>{' '}
+                        {t('myTimesheets.reopened.refresh')}
+                      </p>
+                    ) : (
+                      <p data-testid="my-timesheet-reopened-next">
+                        {t('myTimesheets.reopened.refreshed', {
+                          revision: opened.timesheet.revision,
+                          cycle: opened.timesheet.submissionCycle + 1,
+                        })}
+                      </p>
+                    )}
+                  </div>
+                )}
               {opened.timesheet.status === 'DRAFT' && last?.action === 'RETURNED' && (
                 <div className="card" data-testid="my-timesheet-returned">
                   <h3>{t('myTimesheets.returned.title')}</h3>

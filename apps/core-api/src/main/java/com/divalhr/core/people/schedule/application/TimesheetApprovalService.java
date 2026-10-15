@@ -560,10 +560,7 @@ public class TimesheetApprovalService {
       throw TimesheetCommand.notFound();
     }
     Action current = actions.action(tenant, header.currentActionId()).orElseThrow();
-    Action submission =
-        current.kind() == Kind.SUBMITTED
-            ? current
-            : actions.action(tenant, current.submissionActionId()).orElseThrow();
+    Action submission = submissionOf(tenant, current);
     // The route is resolved now, from the current employment history (T70BC-3, T70BC-6).
     shifts.shareEmployments(
         tenant,
@@ -645,6 +642,7 @@ public class TimesheetApprovalService {
           case SUBMITTED -> SUBMIT;
           case APPROVED -> APPROVE;
           case RETURNED -> RETURN;
+          case REOPENED -> throw new IllegalStateException("a reopening is a correction's");
         };
     recorded(caller, operation, header, action, reasonDigest);
     event(caller, header, action);
@@ -729,6 +727,7 @@ public class TimesheetApprovalService {
           case SUBMITTED -> SUBMITTED_EVENT;
           case APPROVED -> APPROVED_EVENT;
           case RETURNED -> RETURNED_EVENT;
+          case REOPENED -> throw new IllegalStateException("a reopening is a correction's");
         };
     outbox.append(
         new EventEnvelope(
@@ -792,6 +791,19 @@ public class TimesheetApprovalService {
       throw TimesheetCommand.notFound();
     }
     return submission;
+  }
+
+  /**
+   * The submission of the cycle an action belongs to: itself, a decision's submission, or the
+   * submission of the approval a reopening superseded (MVP-070D).
+   */
+  private Action submissionOf(TenantId tenant, Action current) {
+    return switch (current.kind()) {
+      case SUBMITTED -> current;
+      case APPROVED, RETURNED -> actions.action(tenant, current.submissionActionId()).orElseThrow();
+      case REOPENED ->
+          submissionOf(tenant, actions.action(tenant, current.supersededActionId()).orElseThrow());
+    };
   }
 
   private int sequence(TenantId tenant, Header header) {
