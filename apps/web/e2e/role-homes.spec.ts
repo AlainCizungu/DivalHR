@@ -144,8 +144,6 @@ test.describe('organization administrator home', () => {
     for (const [name, path] of [
       ['Import employees', '/admin/people/import'],
       ['Review leave requests', '/admin/leave-approvals'],
-      ['Open work schedules', '/admin/work-schedules'],
-      ['Review attendance', '/admin/attendance-review'],
       ['Open timesheets', '/admin/timesheets'],
       ['Export approved time', '/admin/time-exports'],
     ] as const) {

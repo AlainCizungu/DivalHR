@@ -112,8 +112,6 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     ).toEqual([
       [c.home.tenant.actions.importEmployees, '/admin/people/import'],
       [c.home.tenant.actions.reviewLeave, '/admin/leave-approvals'],
-      [c.home.tenant.actions.openSchedules, '/admin/work-schedules'],
-      [c.home.tenant.actions.reviewAttendance, '/admin/attendance-review'],
       [c.home.tenant.actions.openTimesheets, '/admin/timesheets'],
       [c.home.tenant.actions.exportTime, '/admin/time-exports'],
     ]);

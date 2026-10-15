@@ -137,8 +137,6 @@
       "actions": {
         "importEmployees": "Importer des employés",
         "reviewLeave": "Examiner les demandes de congé",
-        "openSchedules": "Ouvrir les horaires",
-        "reviewAttendance": "Ouvrir le suivi de la présence",
         "openTimesheets": "Ouvrir les feuilles de temps",
         "exportTime": "Exporter le temps approuvé"
       },

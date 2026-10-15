@@ -137,8 +137,6 @@
       "actions": {
         "importEmployees": "Import employees",
         "reviewLeave": "Review leave requests",
-        "openSchedules": "Open work schedules",
-        "reviewAttendance": "Review attendance",
         "openTimesheets": "Open timesheets",
         "exportTime": "Export approved time"
       },

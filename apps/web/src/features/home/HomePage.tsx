@@ -117,12 +117,14 @@ function PlatformSection() {
   );
 }
 
-/** UI-003 (UI3-4), UI-004 (U4-3): the administrator's quick actions, the first one primary. */
+/**
+ * UI-003 (UI3-4), UI-004 (U4-3): the administrator's four quick actions, the first one primary.
+ * Four keep one row on a desktop (a second row would sit under the open account menu, where a
+ * partially covered link fails the touch-target check); every other destination is a card below.
+ */
 const QUICK_ACTIONS: { to: string; icon: IconName; key: string }[] = [
   { to: '/admin/people/import', icon: 'import', key: 'importEmployees' },
   { to: '/admin/leave-approvals', icon: 'calendar', key: 'reviewLeave' },
-  { to: '/admin/work-schedules', icon: 'rotation', key: 'openSchedules' },
-  { to: '/admin/attendance-review', icon: 'clock', key: 'reviewAttendance' },
   { to: '/admin/timesheets', icon: 'check', key: 'openTimesheets' },
   { to: '/admin/time-exports', icon: 'payroll', key: 'exportTime' },
 ];
