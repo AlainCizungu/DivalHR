@@ -10,6 +10,7 @@ import {
   primaryNav,
   signIn,
   sql,
+  subjectLock,
   typeSecret,
 } from './support';
 
@@ -186,7 +187,19 @@ async function fillSlot(
   }
 }
 
+let releaseSubject: () => void = () => undefined;
+
 test.describe.serial('MVP-050A and MVP-050B: site work schedules', () => {
+  test.beforeAll(async () => {
+    test.setTimeout(600_000);
+    // The other spec files writing as tenant A's administrator never run at the same time.
+    releaseSubject = await subjectLock(USERS.adminA[0]);
+  });
+
+  test.afterAll(() => {
+    releaseSubject();
+  });
+
   test('setup: a new site, two placed employees with linked access', async ({ page, browser }) => {
     test.setTimeout(300_000);
     const bearer = await signIn(page, USERS.adminA, 'fr');
