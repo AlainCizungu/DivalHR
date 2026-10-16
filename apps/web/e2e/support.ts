@@ -225,7 +225,9 @@ export async function freshCode(page: Page, user: string, secret: string): Promi
  * MVP-070E: the spec files that write as the same privileged seed user share that subject's
  * per-minute write limits (`work-schedule-write`: 20 per subject per minute, never raised), so two
  * parallel feature workers running two of them at once make a correct 429 land on a user action
- * of the other file. Such a file takes this lock in `beforeAll` and releases it in `afterAll`:
+ * of the other file. Such a file takes this lock in `beforeAll` and releases it in `afterAll`
+ * (tenant B's administrator: time-exports, timesheet-reopening; tenant A's: attendance-corrections,
+ * time-approvals, timesheets, work-schedules):
  * the files run one after the other, and the next one starts only when the previous holder's
  * writes are a full minute old. The lock is a directory in the temporary directory (as the TOTP
  * period file above); a holder that died frees it. Nothing waits on the rate limit itself.

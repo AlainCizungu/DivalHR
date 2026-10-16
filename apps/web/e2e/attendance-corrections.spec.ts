@@ -13,6 +13,7 @@ import {
   primaryNav,
   signIn,
   sql,
+  subjectLock,
   typeSecret,
 } from './support';
 
@@ -237,9 +238,13 @@ function cardsOf(scope: Locator, family: string): Locator {
   return scope.getByTestId('attendance-exception').filter({ hasText: family });
 }
 
+let releaseSubject: () => void = () => undefined;
+
 test.describe.serial('MVP-062: attendance corrections', () => {
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(420_000);
+    // The other spec files writing as tenant A's administrator never run at the same time.
+    releaseSubject = await subjectLock(USERS.adminA[0]);
     ZONE = chooseZone();
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -354,6 +359,10 @@ test.describe.serial('MVP-062: attendance corrections', () => {
     });
     expect(checkIn.status()).toBe(201);
     await anaContext.close();
+  });
+
+  test.afterAll(() => {
+    releaseSubject();
   });
 
   test('the administrator adds Ana’s missing check-out; Ana sees the corrected status, in English', async ({

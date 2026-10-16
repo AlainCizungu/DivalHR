@@ -34,7 +34,7 @@ test('landing page, English desktop and French mobile', async ({ page }) => {
     .or(page.getByRole('button', { name: 'Français', exact: true }))
     .first()
     .click();
-  await expect(page.getByTestId('landing-today')).toContainText('Planification du travail');
+  await expect(page.getByTestId('landing-today')).toContainText('Horaires de travail');
   await shot(page, 'ui003-2-landing-mobile-fr');
 });
 

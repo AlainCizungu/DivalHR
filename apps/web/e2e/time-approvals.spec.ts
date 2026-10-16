@@ -12,6 +12,7 @@ import {
   primaryNav,
   signIn,
   sql,
+  subjectLock,
   typeSecret,
 } from './support';
 
@@ -361,9 +362,13 @@ async function openApprovals(page: Page, language: 'en' | 'fr', family: string):
   return card;
 }
 
+let releaseSubject: () => void = () => undefined;
+
 test.describe.serial('MVP-070B/C: submit and approve weekly time', () => {
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(480_000);
+    // The other spec files writing as tenant A's administrator never run at the same time.
+    releaseSubject = await subjectLock(USERS.adminA[0]);
     ZONE = chooseZone();
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -488,6 +493,10 @@ test.describe.serial('MVP-070B/C: submit and approve weekly time', () => {
     await inviteAndLink(page, browser, bearer, CLEO_EMAIL, employeeId(CLEO), 'cleo');
     await inviteAndLink(page, browser, bearer, MIA_EMAIL, employeeId(MIA), 'mia');
     await context.close();
+  });
+
+  test.afterAll(() => {
+    releaseSubject();
   });
 
   test('Ana submits her clean week and her manager approves it, in English', async ({

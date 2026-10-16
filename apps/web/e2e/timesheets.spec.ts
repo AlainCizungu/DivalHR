@@ -12,6 +12,7 @@ import {
   primaryNav,
   signIn,
   sql,
+  subjectLock,
   typeSecret,
 } from './support';
 
@@ -279,9 +280,13 @@ function draftOf(scope: Locator, family: string): Locator {
   return scope.getByTestId('timesheets-draft').filter({ hasText: family });
 }
 
+let releaseSubject: () => void = () => undefined;
+
 test.describe.serial('MVP-070A: weekly draft timesheets', () => {
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(420_000);
+    // The other spec files writing as tenant A's administrator never run at the same time.
+    releaseSubject = await subjectLock(USERS.adminA[0]);
     ZONE = chooseZone();
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -388,6 +393,10 @@ test.describe.serial('MVP-070A: weekly draft timesheets', () => {
     await createMissing(page, bearer, FIRST_EN, ANA, 'first');
     await inviteAndLink(page, browser, bearer, ANA_EMAIL, employeeId(ANA), 'ana');
     await context.close();
+  });
+
+  test.afterAll(() => {
+    releaseSubject();
   });
 
   test('the administrator generates the week; Ana sees only her own draft, in English', async ({
