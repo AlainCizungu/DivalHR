@@ -202,7 +202,13 @@ class AuthorizationDenialAuditIntegrationTest {
           "timesheet-export.create",
           "timesheet-export.list",
           "timesheet-export.read",
-          "timesheet-export.download");
+          "timesheet-export.download",
+          // MVP-071: period locks.
+          "timesheet-period.lock-preview",
+          "timesheet-period.lock",
+          "timesheet-period.unlock-preview",
+          "timesheet-period.unlock",
+          "timesheet-period.history");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -672,7 +678,8 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-062 added five handlers (two previews, two commits, the history); MVP-070A six (two
     // previews, two commands, two reads).
     // MVP-070E six more (a preview, a creation, the history, a read and two downloads).
-    assertThat(handlers).hasSize(102);
+    // MVP-071 five more (two previews, a lock, an unlock, the history).
+    assertThat(handlers).hasSize(107);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

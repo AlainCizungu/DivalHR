@@ -102,6 +102,30 @@ public final class ScheduleConstraintViolations {
   /** An export holds exactly its counted rows in CSV order (V35, MVP-070E). */
   public static final String TIMESHEET_EXPORT_EXACT = "timesheet_export_exact";
 
+  /** Locks and unlocks of a generation alternate and follow the latest one (V36, MVP-071). */
+  public static final String TIMESHEET_PERIOD_ACTION_SEQUENCE = "timesheet_period_action_sequence";
+
+  /** A period action binds its generation's exact scope and current version (V36, MVP-071). */
+  public static final String TIMESHEET_PERIOD_ACTION_SCOPE = "timesheet_period_action_scope";
+
+  /** A lock binds a fully approved generation with exactly its counts (V36, MVP-071). */
+  public static final String TIMESHEET_PERIOD_ACTION_APPROVED = "timesheet_period_action_approved";
+
+  /** An unlock reverses the current lock and carries its evidence (V36, MVP-071). */
+  public static final String TIMESHEET_PERIOD_ACTION_UNLOCK = "timesheet_period_action_unlock";
+
+  /** The lock projection shows its action and changes only by its next transition (V36). */
+  public static final String TIMESHEET_PERIOD_LOCK_GUARD = "timesheet_period_lock_guard";
+
+  /** The lock projection shows the latest period action at commit (V36, MVP-071). */
+  public static final String TIMESHEET_PERIOD_LOCK_CURRENT = "timesheet_period_lock_current";
+
+  /**
+   * A timesheet, action, refresh or correction of a locked period is refused by the database (V36,
+   * MVP-071): the application's guard should have refused first.
+   */
+  public static final String TIMESHEET_PERIOD_LOCKED = "timesheet_period_locked";
+
   private ScheduleConstraintViolations() {}
 
   /**

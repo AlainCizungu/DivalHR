@@ -6337,6 +6337,274 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /timesheet-periods/lock-preview:
+    post:
+      operationId: previewTimesheetPeriodLock
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the lock of one site's generated week
+      description: >-
+        MVP-071. Evaluates whether the legal entity's site and generated week can be locked as
+        payroll-source evidence (the site must belong to the legal entity; a malformed, unknown or
+        foreign legal entity or site, or a week that is not generated, is 404
+        TIMESHEET_TARGET_NOT_FOUND). Ready when the generation holds at least one timesheet, every
+        timesheet is APPROVED by its current action at its current revision, cycle and the current
+        generation version, and the week is not locked already; otherwise the stable blockers
+        (EMPTY, NOT_ALL_APPROVED, APPROVAL_NOT_CURRENT, ALREADY_LOCKED) are named. Returns the scope
+        with its exact boundaries, the generation version, the current lock state and version, the
+        counts (timesheets, employees, rows, total worked minutes), the timesheets by state, whether
+        the same approved evidence was exported (MVP-070E) as a boolean only, a preview digest and
+        its expiry (the end of the next 15-minute window). No name or employee number. Writes nothing
+        but its fail-closed disclosure audit (timesheet-period.lock-preview). Shares the
+        work-schedule-write limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimesheetPeriodScopeRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetPeriodLockPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheet-periods/locks:
+    post:
+      operationId: lockTimesheetPeriod
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Lock a reviewed week
+      description: >-
+        MVP-071. Under the tenant's scheduling lock (taken first by every timesheet command and
+        attendance correction), the generation, its lock projection and every timesheet are locked
+        and the readiness is evaluated again. A generation or lock version that differs from the
+        reviewed one, an expired preview or a preview digest that no longer matches the approval
+        evidence is 409 TIMESHEET_PERIOD_PREVIEW_STALE; a week that is not ready is 409
+        TIMESHEET_PERIOD_NOT_READY. A week that is already locked and whose preview named its
+        current lock is returned unchanged (outcome UNCHANGED). Otherwise one transaction appends
+        the immutable LOCKED period action (the exact scope, generation version, approval evidence
+        digest, counts and total, bound by the database to a fully approved current generation),
+        moves the lock projection to LOCKED at the next version, writes the audit record
+        (timesheet-period.lock) and the outbox event (people.timesheet-period.locked.v1); a failure
+        of any of them writes nothing. While locked, attendance corrections of the week's shifts,
+        refreshes and every timesheet transition are 409 TIMESHEET_PERIOD_LOCKED; reads and
+        existing exports are unaffected. Idempotent (an identical replay returns the original; a
+        changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the
+        work-schedule-write limits. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LockTimesheetPeriodRequest"
+      responses:
+        "200":
+          description: Locked, unchanged, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetPeriodResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheet-periods/unlock-preview:
+    post:
+      operationId: previewTimesheetPeriodUnlock
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the unlock of a locked week with its reason
+      description: >-
+        MVP-071. Validates the closed reason code and the explanation (10 to 500 Unicode characters
+        after trimming; no markup, link, control or format character; Restricted HR/Operations data,
+        stored only with the UNLOCKED action and never returned), resolves the locked week (a week
+        that is not locked is 409 TIMESHEET_PERIOD_NOT_LOCKED) and returns the scope, the current
+        lock state and its LOCKED action, the reason, the warnings (EXPORTS_UNCHANGED: earlier
+        exports stay as they are; APPROVALS_UNCHANGED: unlocking alone changes no timesheet), a
+        preview digest bound to the current lock, the reason and the explanation's digest, and its
+        expiry. Writes nothing but its fail-closed disclosure audit (timesheet-period.unlock-preview).
+        Shares the work-schedule-write limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimesheetPeriodUnlockPreviewRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetPeriodUnlockPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheet-periods/unlocks:
+    post:
+      operationId: unlockTimesheetPeriod
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Unlock a locked week after its reviewed preview
+      description: >-
+        MVP-071. Under the tenant's scheduling lock, the generation and its lock projection are
+        locked again. A lock version or current LOCKED action that differs from the reviewed one,
+        an expired preview, or a preview digest that does not match the current lock, the reason
+        and the identical canonical explanation is 409 TIMESHEET_PERIOD_PREVIEW_STALE; a week that
+        is not locked is 409 TIMESHEET_PERIOD_NOT_LOCKED. Otherwise one transaction appends the
+        immutable UNLOCKED period action (the reversed lock, its evidence and counts, the reason and
+        the explanation), moves the projection to OPEN at the next version, writes the audit record
+        (timesheet-period.unlock; the explanation only as a digest inside the state digest) and the
+        outbox event (people.timesheet-period.unlocked.v1, never the explanation); a failure of any
+        of them writes nothing. Unlocking alone changes no timesheet and no export: a later
+        attendance correction reopens only the affected timesheets (MVP-070D). Idempotent (an
+        identical replay returns the original; a changed payload with the same key is 409
+        IDEMPOTENCY_KEY_REUSED). Shares the work-schedule-write limits. Cache-Control private,
+        no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnlockTimesheetPeriodRequest"
+      responses:
+        "200":
+          description: Unlocked, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetPeriodResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /timesheet-periods/{generationId}:
+    get:
+      operationId: getTimesheetPeriodHistory
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: A generated week's lock state and immutable history
+      description: >-
+        MVP-071. The generation's scope, version, current lock state and every LOCKED and UNLOCKED
+        action, newest first: the sequence, the bound generation version, the counts and total, the
+        evidence digest, the reversed lock and the unlock reason code; never the explanation, a
+        name, an employee number or the actor. A malformed, unknown or foreign generation is 404
+        TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet-period.history).
+        Shares the work-schedule-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimesheetPeriodHistory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /me/timesheets:
     get:
       operationId: listMyTimesheets
@@ -10288,6 +10556,10 @@ components:
         - TIMESHEET_DECISION_NOT_ALLOWED
         - TIMESHEET_EXPORT_EMPTY
         - TIMESHEET_EXPORT_PREVIEW_STALE
+        - TIMESHEET_PERIOD_NOT_READY
+        - TIMESHEET_PERIOD_LOCKED
+        - TIMESHEET_PERIOD_NOT_LOCKED
+        - TIMESHEET_PERIOD_PREVIEW_STALE
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -12526,6 +12798,344 @@ components:
             $ref: "#/components/schemas/TimesheetExport"
         nextCursor:
           type: [string, "null"]
+    TimesheetPeriodScopeRequest:
+      type: object
+      description: MVP-071. One legal entity, one of its sites and one generated site-local week.
+      additionalProperties: false
+      required: [legalEntityId, siteId, weekStart]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+          description: The site-local Monday of a generated week.
+    LockTimesheetPeriodRequest:
+      type: object
+      description: MVP-071. Lock a reviewed week.
+      additionalProperties: false
+      required: [legalEntityId, siteId, weekStart, generationVersion, lockVersion, previewDigest, confirm]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+        generationVersion:
+          type: integer
+          minimum: 1
+          description: The generation version the preview showed.
+        lockVersion:
+          type: integer
+          minimum: 0
+          description: The lock version the preview showed (0 before the first lock).
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The reviewed preview's digest, exactly as returned.
+        confirm:
+          type: boolean
+          const: true
+    TimesheetPeriodUnlockPreviewRequest:
+      type: object
+      description: MVP-071. Preview the unlock of a locked week with its reason.
+      additionalProperties: false
+      required: [legalEntityId, siteId, weekStart, reasonCode, explanation]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+        reasonCode:
+          $ref: "#/components/schemas/TimesheetPeriodUnlockReason"
+        explanation:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: >-
+            10 to 500 Unicode characters after trimming; no markup, link, control or format
+            character. Restricted HR/Operations data: stored with the UNLOCKED action, never
+            returned, logged or published.
+    UnlockTimesheetPeriodRequest:
+      type: object
+      description: MVP-071. Unlock a locked week after its reviewed preview.
+      additionalProperties: false
+      required: [legalEntityId, siteId, weekStart, reasonCode, explanation, lockVersion, lockActionId, previewDigest, confirm]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+        reasonCode:
+          $ref: "#/components/schemas/TimesheetPeriodUnlockReason"
+        explanation:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: The identical explanation the preview validated.
+        lockVersion:
+          type: integer
+          minimum: 1
+          description: The current lock version the preview showed.
+        lockActionId:
+          type: string
+          format: uuid
+          description: The current LOCKED action the preview showed.
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        confirm:
+          type: boolean
+          const: true
+    TimesheetPeriodUnlockReason:
+      type: string
+      description: MVP-071. The closed unlock reasons.
+      enum: [ATTENDANCE_CORRECTION_REQUIRED, TIMESHEET_EVIDENCE_ERROR, ORGANIZATION_REQUEST, OTHER]
+    TimesheetPeriodLockState:
+      type: object
+      description: >-
+        MVP-071. The current lock state of a generated week: OPEN or LOCKED, the number of lock and
+        unlock transitions so far (0 before the first lock), the current action and instant.
+      required: [state, version, currentActionId, updatedAt]
+      properties:
+        state:
+          type: string
+          enum: [OPEN, LOCKED]
+        version:
+          type: integer
+          minimum: 0
+        currentActionId:
+          type: [string, "null"]
+          format: uuid
+        updatedAt:
+          type: [string, "null"]
+          format: date-time
+    TimesheetPeriodScope:
+      type: object
+      description: >-
+        MVP-071. The locked scope: the legal entity, its site and the generated week with its time
+        zone and exact UTC boundaries as generated.
+      required: [legalEntityId, legalEntityCode, legalEntityName, siteId, siteCode, siteName, timezone, weekStart, weekEnd, lastDay, periodStartAt, periodEndAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        legalEntityCode:
+          type: [string, "null"]
+        legalEntityName:
+          type: [string, "null"]
+        siteId:
+          type: string
+          format: uuid
+        siteCode:
+          type: [string, "null"]
+        siteName:
+          type: [string, "null"]
+        timezone:
+          type: string
+        weekStart:
+          type: string
+          format: date
+        weekEnd:
+          type: string
+          format: date
+          description: The next local Monday (exclusive).
+        lastDay:
+          type: string
+          format: date
+        periodStartAt:
+          type: string
+          format: date-time
+        periodEndAt:
+          type: string
+          format: date-time
+    TimesheetPeriodStates:
+      type: object
+      description: MVP-071. The week's timesheets by state.
+      required: [draft, submitted, approved, reopened]
+      properties:
+        draft:
+          type: integer
+          minimum: 0
+        submitted:
+          type: integer
+          minimum: 0
+        approved:
+          type: integer
+          minimum: 0
+        reopened:
+          type: integer
+          minimum: 0
+    TimesheetPeriodCounts:
+      type: object
+      description: MVP-071. Timesheets, employees, rows and the total worked minutes a lock binds.
+      required: [timesheets, employees, rows, workedMinutes]
+      properties:
+        timesheets:
+          type: integer
+          minimum: 0
+        employees:
+          type: integer
+          minimum: 0
+        rows:
+          type: integer
+          minimum: 0
+        workedMinutes:
+          type: integer
+          minimum: 0
+    TimesheetPeriodLockPreview:
+      type: object
+      description: MVP-071. Whether the week is ready to lock and what a lock would bind now.
+      required: [scope, generationId, generationVersion, lock, counts, states, ready, blockers, exported, previewDigest, expiresAt]
+      properties:
+        scope:
+          $ref: "#/components/schemas/TimesheetPeriodScope"
+        generationId:
+          type: string
+          format: uuid
+        generationVersion:
+          type: integer
+          minimum: 1
+        lock:
+          $ref: "#/components/schemas/TimesheetPeriodLockState"
+        counts:
+          $ref: "#/components/schemas/TimesheetPeriodCounts"
+        states:
+          $ref: "#/components/schemas/TimesheetPeriodStates"
+        ready:
+          type: boolean
+        blockers:
+          type: array
+          description: Why the week cannot be locked now; empty when it can.
+          items:
+            type: string
+            enum: [EMPTY, NOT_ALL_APPROVED, APPROVAL_NOT_CURRENT, ALREADY_LOCKED]
+        exported:
+          type: boolean
+          description: Whether the same approved evidence was exported (MVP-070E).
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+    TimesheetPeriodAction:
+      type: object
+      description: >-
+        MVP-071. One immutable lock or unlock: never the explanation, a name, an employee number or
+        the actor.
+      required: [actionId, sequence, action, generationVersion, counts, evidenceDigest, lockedActionId, unlockReason, occurredAt]
+      properties:
+        actionId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          description: The lock version after the transition.
+        action:
+          type: string
+          enum: [LOCKED, UNLOCKED]
+        generationVersion:
+          type: integer
+          minimum: 1
+        counts:
+          $ref: "#/components/schemas/TimesheetPeriodCounts"
+        evidenceDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        lockedActionId:
+          type: [string, "null"]
+          format: uuid
+          description: For an unlock, the reversed lock.
+        unlockReason:
+          oneOf:
+            - $ref: "#/components/schemas/TimesheetPeriodUnlockReason"
+            - type: "null"
+        occurredAt:
+          type: string
+          format: date-time
+    TimesheetPeriodResult:
+      type: object
+      description: MVP-071. A lock, an unlock, or the unchanged current lock.
+      required: [outcome, scope, generationId, lock, action]
+      properties:
+        outcome:
+          type: string
+          enum: [LOCKED, UNLOCKED, UNCHANGED]
+        scope:
+          $ref: "#/components/schemas/TimesheetPeriodScope"
+        generationId:
+          type: string
+          format: uuid
+        lock:
+          $ref: "#/components/schemas/TimesheetPeriodLockState"
+        action:
+          $ref: "#/components/schemas/TimesheetPeriodAction"
+    TimesheetPeriodUnlockPreview:
+      type: object
+      description: MVP-071. What an unlock would do; the explanation is never returned.
+      required: [scope, generationId, lock, currentLock, reasonCode, warnings, previewDigest, expiresAt]
+      properties:
+        scope:
+          $ref: "#/components/schemas/TimesheetPeriodScope"
+        generationId:
+          type: string
+          format: uuid
+        lock:
+          $ref: "#/components/schemas/TimesheetPeriodLockState"
+        currentLock:
+          $ref: "#/components/schemas/TimesheetPeriodAction"
+        reasonCode:
+          $ref: "#/components/schemas/TimesheetPeriodUnlockReason"
+        warnings:
+          type: array
+          items:
+            type: string
+            enum: [EXPORTS_UNCHANGED, APPROVALS_UNCHANGED]
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+    TimesheetPeriodHistory:
+      type: object
+      description: MVP-071. A generated week's lock state and every lock and unlock, newest first.
+      required: [scope, generationId, generationVersion, lock, actions]
+      properties:
+        scope:
+          $ref: "#/components/schemas/TimesheetPeriodScope"
+        generationId:
+          type: string
+          format: uuid
+        generationVersion:
+          type: integer
+          minimum: 1
+        lock:
+          $ref: "#/components/schemas/TimesheetPeriodLockState"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimesheetPeriodAction"
     TimesheetPeriod:
       type: object
       description: MVP-070A. A site-local week with its exact UTC boundaries.
@@ -12585,7 +13195,7 @@ components:
     TimesheetGenerationSummary:
       type: object
       description: MVP-070A. A generated week.
-      required: [generationId, period, status, version, generatedAt, refreshedAt, drafts, totals]
+      required: [generationId, period, status, version, generatedAt, refreshedAt, drafts, totals, periodLock]
       properties:
         generationId:
           type: string
@@ -12609,6 +13219,8 @@ components:
           minimum: 0
         totals:
           $ref: "#/components/schemas/TimesheetTotals"
+        periodLock:
+          $ref: "#/components/schemas/TimesheetPeriodLockState"
     TimesheetGenerationPreview:
       type: object
       description: MVP-070A. What a generation would hold now.
@@ -12932,7 +13544,7 @@ components:
     MyTimesheet:
       type: object
       description: MVP-070A/B/C. One of the employee's own timesheets with its current state and rows, whether it can be submitted now and its submission and decision history, newest first.
-      required: [timesheetId, period, status, revision, generationVersion, submissionCycle, totals, updatedAt, rows, submission, actions]
+      required: [timesheetId, period, status, revision, generationVersion, submissionCycle, totals, updatedAt, rows, submission, actions, periodLocked]
       properties:
         timesheetId:
           type: string
@@ -12967,6 +13579,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MyTimesheetAction"
+        periodLocked:
+          type: boolean
+          description: >-
+            MVP-071. Whether the week is locked for payroll preparation: the state only, never who
+            locked it or why.
     SubmitTimesheetRequest:
       type: object
       description: MVP-070B/C. Submit the reviewed revision of one's own draft.
@@ -13182,7 +13799,7 @@ components:
       description: >-
         MVP-070B/C. A submitted timesheet for its routed manager: the submission evidence to bind
         a decision to, the submitted revision's rows and the history, newest first.
-      required: [timesheetId, employee, period, status, revision, generationVersion, cycle, submissionActionId, submittedAt, totals, rows, actions]
+      required: [timesheetId, employee, period, status, revision, generationVersion, cycle, submissionActionId, submittedAt, totals, rows, actions, periodLocked]
       properties:
         timesheetId:
           type: string
@@ -13219,6 +13836,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimesheetAction"
+        periodLocked:
+          type: boolean
+          description: MVP-071. Whether the week is locked for payroll preparation (the state only).
     AttendanceCorrectionReceipt:
       type: object
       description: >-

@@ -122,6 +122,7 @@ const summary = (overrides: Record<string, unknown> = {}) => ({
   refreshedAt: null,
   drafts: 1,
   totals: totals(),
+  periodLock: { state: 'OPEN', version: 0, currentActionId: null, updatedAt: null },
   ...overrides,
 });
 
