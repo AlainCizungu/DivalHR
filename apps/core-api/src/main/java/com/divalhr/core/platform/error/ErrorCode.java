@@ -454,7 +454,24 @@ public enum ErrorCode {
    * MVP-070E: the eligible approvals or their evidence changed since the export preview, or the
    * preview expired; preview again.
    */
-  TIMESHEET_EXPORT_PREVIEW_STALE(HttpStatus.CONFLICT);
+  TIMESHEET_EXPORT_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /**
+   * MVP-071: the generated week cannot be locked now (no timesheet, a timesheet that is not
+   * currently APPROVED, or inconsistent evidence); the preview names the blockers.
+   */
+  TIMESHEET_PERIOD_NOT_READY(HttpStatus.CONFLICT),
+  /**
+   * MVP-071: the generated week is locked; corrections of its shifts, refreshes and every timesheet
+   * transition are refused until a tenant administrator unlocks it.
+   */
+  TIMESHEET_PERIOD_LOCKED(HttpStatus.CONFLICT),
+  /** MVP-071: the generated week is not locked; there is nothing to unlock. */
+  TIMESHEET_PERIOD_NOT_LOCKED(HttpStatus.CONFLICT),
+  /**
+   * MVP-071: the approvals, the generation or lock version, or the unlock reason changed since the
+   * lock or unlock preview, or the preview expired; preview again.
+   */
+  TIMESHEET_PERIOD_PREVIEW_STALE(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

@@ -5,6 +5,7 @@ import com.divalhr.core.people.application.PeopleCaller;
 import com.divalhr.core.people.schedule.api.GenerateTimesheetsRequest;
 import com.divalhr.core.people.schedule.api.RefreshTimesheetsRequest;
 import com.divalhr.core.people.schedule.api.TimesheetPeriodRequest;
+import com.divalhr.core.people.schedule.api.TimesheetPeriodResponses.LockStateView;
 import com.divalhr.core.people.schedule.api.TimesheetResponses;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.ActionView;
 import com.divalhr.core.people.schedule.api.TimesheetResponses.Detail;
@@ -35,7 +36,9 @@ import com.divalhr.core.people.schedule.domain.Timesheet.Totals;
 import com.divalhr.core.people.schedule.domain.TimesheetApproval;
 import com.divalhr.core.people.schedule.domain.TimesheetApproval.Blocker;
 import com.divalhr.core.people.schedule.domain.TimesheetApproval.Status;
+import com.divalhr.core.people.schedule.domain.TimesheetPeriod.LockState;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetActionRepository;
+import com.divalhr.core.people.schedule.internal.JdbcTimesheetPeriodRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository.Candidate;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository.Generation;
@@ -173,6 +176,8 @@ public class TimesheetService {
   private final JdbcTimesheetRepository timesheets;
   private final JdbcTimesheetActionRepository actions;
   private final TimesheetRouting routing;
+  private final JdbcTimesheetPeriodRepository periods;
+  private final TimesheetPeriodGuard periodGuard;
   private final OrganizationPlacementDirectory directory;
   private final EmployeeAccessLinks links;
   private final CursorCodec cursors;
@@ -194,6 +199,8 @@ public class TimesheetService {
    * @param timesheets timesheet storage
    * @param actions submission and decision storage (MVP-070B/C)
    * @param routing the approval route (MVP-070B/C)
+   * @param periods period lock storage (the lock state of a week, MVP-071)
+   * @param periodGuard the locked-period guard (MVP-071)
    * @param directory the tenant module's unit port (site, time zone, cost centers)
    * @param links the identity port (the employee's own link)
    * @param cursors signed cursors
@@ -213,6 +220,8 @@ public class TimesheetService {
       JdbcTimesheetRepository timesheets,
       JdbcTimesheetActionRepository actions,
       TimesheetRouting routing,
+      JdbcTimesheetPeriodRepository periods,
+      TimesheetPeriodGuard periodGuard,
       OrganizationPlacementDirectory directory,
       EmployeeAccessLinks links,
       CursorCodec cursors,
@@ -230,6 +239,8 @@ public class TimesheetService {
     this.timesheets = timesheets;
     this.actions = actions;
     this.routing = routing;
+    this.periods = periods;
+    this.periodGuard = periodGuard;
     this.directory = directory;
     this.links = links;
     this.cursors = cursors;
@@ -401,7 +412,9 @@ public class TimesheetService {
                 }
                 disclosed(
                     caller, GENERATION_READ, "timesheet-generation", items.size(), text.toString());
-                return new GenerationView(summary(generation, site, members), items);
+                return new GenerationView(
+                    summary(generation, site, members, periods.lockState(tenant, id, false)),
+                    items);
               });
         });
   }
@@ -481,6 +494,7 @@ public class TimesheetService {
     TenantId tenant = caller.tenant();
     schedules.lock(tenant);
     Generation generation = matching(tenant, id, refresh.target(), true);
+    periodGuard.requireOpen(tenant, generation.id()); // MVP-071: a locked week is not refreshed
     if (generation.version() != refresh.version()) {
       throw stale();
     }
@@ -763,7 +777,8 @@ public class TimesheetService {
                     header.updatedAt(),
                     rows,
                     submission,
-                    history);
+                    history,
+                    periods.lockState(tenant, header.generationId(), false).locked());
               });
         });
   }
@@ -1056,11 +1071,15 @@ public class TimesheetService {
   // ------------------------------------------------------------------------------------------
 
   private GenerationSummary summary(TenantId tenant, Generation generation, UnitView site) {
-    return summary(generation, site, timesheets.members(tenant, generation.id(), false));
+    return summary(
+        generation,
+        site,
+        timesheets.members(tenant, generation.id(), false),
+        periods.lockState(tenant, generation.id(), false));
   }
 
   private static GenerationSummary summary(
-      Generation generation, UnitView site, List<Member> members) {
+      Generation generation, UnitView site, List<Member> members, LockState lock) {
     Totals totals = Totals.NONE;
     for (Member member : members) {
       totals = totals.plus(member.header().totals());
@@ -1073,7 +1092,8 @@ public class TimesheetService {
         generation.generatedAt(),
         generation.refreshedAt(),
         members.size(),
-        TotalsView.of(totals));
+        TotalsView.of(totals),
+        LockStateView.of(lock));
   }
 
   /** The audit record: bounded metadata; identifiers and boundaries only in the digest. */

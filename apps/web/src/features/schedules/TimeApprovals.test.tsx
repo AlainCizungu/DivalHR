@@ -599,6 +599,7 @@ describe.each([
         refreshedAt: null,
         drafts: 1,
         totals: clean,
+        periodLock: { state: 'OPEN', version: 0, currentActionId: null, updatedAt: null },
       },
       timesheets: [
         {

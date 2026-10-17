@@ -317,7 +317,20 @@ export function MyTimesheetsPage() {
                   {t(`timesheets.status.${opened.timesheet.status}`)}
                 </StatusBadge>{' '}
                 <span>{t('myTimesheets.revision', { revision: opened.timesheet.revision })}</span>
+                {opened.timesheet.periodLocked && (
+                  <>
+                    {' '}
+                    <StatusBadge tone="info" icon="shield" testId="my-timesheet-period-locked">
+                      {t('timesheetPeriod.badge')}
+                    </StatusBadge>
+                  </>
+                )}
               </p>
+              {opened.timesheet.periodLocked && (
+                <p className="muted" data-testid="my-timesheet-period-locked-hint">
+                  {t('timesheetPeriod.badgeHint')}
+                </p>
+              )}
               <p className="muted">
                 {t('timesheets.zone', { zone: opened.timesheet.period.timezone })}
               </p>

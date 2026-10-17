@@ -353,6 +353,24 @@ export type TimesheetExportPreview = CoreComponents['schemas']['TimesheetExportP
 export type TimesheetExport = CoreComponents['schemas']['TimesheetExport'];
 export type TimesheetExportResult = CoreComponents['schemas']['TimesheetExportResult'];
 export type TimesheetExportPage = CoreComponents['schemas']['TimesheetExportPage'];
+// MVP-071: period locks.
+export type TimesheetPeriodScopeRequest = CoreComponents['schemas']['TimesheetPeriodScopeRequest'];
+export type LockTimesheetPeriodRequest = CoreComponents['schemas']['LockTimesheetPeriodRequest'];
+export type TimesheetPeriodUnlockPreviewRequest =
+  CoreComponents['schemas']['TimesheetPeriodUnlockPreviewRequest'];
+export type UnlockTimesheetPeriodRequest =
+  CoreComponents['schemas']['UnlockTimesheetPeriodRequest'];
+export type TimesheetPeriodUnlockReason = CoreComponents['schemas']['TimesheetPeriodUnlockReason'];
+export type TimesheetPeriodLockState = CoreComponents['schemas']['TimesheetPeriodLockState'];
+export type TimesheetPeriodScope = CoreComponents['schemas']['TimesheetPeriodScope'];
+export type TimesheetPeriodStates = CoreComponents['schemas']['TimesheetPeriodStates'];
+export type TimesheetPeriodCounts = CoreComponents['schemas']['TimesheetPeriodCounts'];
+export type TimesheetPeriodLockPreview = CoreComponents['schemas']['TimesheetPeriodLockPreview'];
+export type TimesheetPeriodAction = CoreComponents['schemas']['TimesheetPeriodAction'];
+export type TimesheetPeriodResult = CoreComponents['schemas']['TimesheetPeriodResult'];
+export type TimesheetPeriodUnlockPreview =
+  CoreComponents['schemas']['TimesheetPeriodUnlockPreview'];
+export type TimesheetPeriodHistory = CoreComponents['schemas']['TimesheetPeriodHistory'];
 export type TimesheetRowState = TimesheetRow['state'];
 export type TimesheetStatus = TimesheetDetail['status'];
 export type TimesheetActionKind = TimesheetAction['action'];

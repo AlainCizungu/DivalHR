@@ -27,6 +27,7 @@ import com.divalhr.core.people.schedule.domain.TimesheetApproval.Kind;
 import com.divalhr.core.people.schedule.domain.TimesheetApproval.Status;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetActionRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetActionRepository.QueueItem;
+import com.divalhr.core.people.schedule.internal.JdbcTimesheetPeriodRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository.Generation;
 import com.divalhr.core.people.schedule.internal.JdbcTimesheetRepository.Header;
@@ -145,6 +146,8 @@ public class TimesheetApprovalService {
   private final JdbcTimesheetActionRepository actions;
   private final TimesheetService drafts;
   private final TimesheetRouting routing;
+  private final JdbcTimesheetPeriodRepository periods;
+  private final TimesheetPeriodGuard periodGuard;
   private final OrganizationPlacementDirectory directory;
   private final EmployeeAccessLinks links;
   private final CursorCodec cursors;
@@ -166,6 +169,8 @@ public class TimesheetApprovalService {
    * @param actions submission and decision storage
    * @param drafts the draft timesheets (a decision's sources evaluated again)
    * @param routing the approval route
+   * @param periods period lock storage (the lock state of a week, MVP-071)
+   * @param periodGuard the locked-period guard (MVP-071)
    * @param directory the tenant module's unit port (site names)
    * @param links the identity port (the caller's own link)
    * @param cursors signed cursors
@@ -185,6 +190,8 @@ public class TimesheetApprovalService {
       JdbcTimesheetActionRepository actions,
       TimesheetService drafts,
       TimesheetRouting routing,
+      JdbcTimesheetPeriodRepository periods,
+      TimesheetPeriodGuard periodGuard,
       OrganizationPlacementDirectory directory,
       EmployeeAccessLinks links,
       CursorCodec cursors,
@@ -202,6 +209,8 @@ public class TimesheetApprovalService {
     this.actions = actions;
     this.drafts = drafts;
     this.routing = routing;
+    this.periods = periods;
+    this.periodGuard = periodGuard;
     this.directory = directory;
     this.links = links;
     this.cursors = cursors;
@@ -268,6 +277,7 @@ public class TimesheetApprovalService {
             .lockTimesheet(tenant, command.timesheetId())
             .filter(h -> h.employeeId().equals(link.employeeId()))
             .orElseThrow(TimesheetCommand::notFound);
+    periodGuard.requireOpen(tenant, header.generationId()); // MVP-071
     if (!header.draft()) {
       throw new ApiException(ErrorCode.TIMESHEET_SUBMISSION_NOT_ALLOWED, Map.of());
     }
@@ -453,7 +463,8 @@ public class TimesheetApprovalService {
                     submission.occurredAt(),
                     TotalsView.of(header.totals()),
                     rows,
-                    history);
+                    history,
+                    periods.lockState(tenant, header.generationId(), false).locked());
               });
         });
   }
@@ -573,6 +584,7 @@ public class TimesheetApprovalService {
             .manager(tenant, header, submission.employmentId())
             .filter(link.employeeId()::equals)
             .orElseThrow(TimesheetCommand::notFound);
+    periodGuard.requireOpen(tenant, header.generationId()); // MVP-071
     if (!Status.SUBMITTED.name().equals(header.status())) {
       throw new ApiException(ErrorCode.TIMESHEET_DECISION_NOT_ALLOWED, Map.of());
     }

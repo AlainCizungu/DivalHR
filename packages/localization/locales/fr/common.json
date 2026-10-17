@@ -496,7 +496,11 @@
     "TIMESHEET_DECISION_STALE": "Cette feuille de temps a changé depuis son ouverture. Ouvrez-la de nouveau.",
     "TIMESHEET_DECISION_NOT_ALLOWED": "Cette feuille de temps n’attend plus de décision.",
     "TIMESHEET_EXPORT_EMPTY": "Cette semaine n’a aucune feuille de temps approuvée à exporter.",
-    "TIMESHEET_EXPORT_PREVIEW_STALE": "Le temps approuvé a changé depuis l’aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau l’export."
+    "TIMESHEET_EXPORT_PREVIEW_STALE": "Le temps approuvé a changé depuis l’aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau l’export.",
+    "TIMESHEET_PERIOD_NOT_READY": "Cette semaine ne peut pas encore être verrouillée : chaque feuille de temps doit être approuvée. Prévisualisez de nouveau le verrouillage.",
+    "TIMESHEET_PERIOD_LOCKED": "Cette semaine est verrouillée pour la préparation de la paie. Déverrouillez-la d’abord.",
+    "TIMESHEET_PERIOD_NOT_LOCKED": "Cette semaine n’est pas verrouillée.",
+    "TIMESHEET_PERIOD_PREVIEW_STALE": "La semaine a changé depuis cet aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3471,6 +3475,103 @@
       "refresh": "Actualisez avant une nouvelle soumission : actualisez cette semaine pour donner une nouvelle révision à la feuille de temps. L’employé la soumet ensuite de nouveau pour approbation.",
       "refreshed": "Actualisée : l’employé peut soumettre la nouvelle révision au cycle {{cycle}}."
     }
+  },
+  "timesheetPeriod": {
+    "title": "Verrouillage de la période",
+    "description": "Verrouillez la semaine une fois chaque feuille de temps approuvée : son temps approuvé devient une preuve stable pour la paie. Tant qu’elle est verrouillée, aucune correction, actualisation, soumission, approbation ou réouverture ne la touche.",
+    "state": {
+      "OPEN": "Non verrouillée",
+      "LOCKED": "Période verrouillée"
+    },
+    "lockedFor": "Verrouillée pour la préparation de la paie",
+    "receipt": "Verrou {{version}} · depuis le {{time}}",
+    "receiptCounts": "{{timesheets}} feuilles approuvées, {{employees}} employés, {{rows}} quarts, {{worked}}.",
+    "lock": {
+      "action": "Verrouiller la période",
+      "previewing": "Vérification…",
+      "title": "Aperçu du verrouillage",
+      "ready": "Chaque feuille de temps de cette semaine est approuvée. Le verrou fige exactement cette preuve.",
+      "notReady": "Cette semaine ne peut pas encore être verrouillée.",
+      "blocker": {
+        "EMPTY": "La semaine n’a aucune feuille de temps.",
+        "NOT_ALL_APPROVED": "Au moins une feuille est encore un brouillon, soumise ou rouverte.",
+        "APPROVAL_NOT_CURRENT": "Une approbation n’est plus courante ; actualisez, soumettez et approuvez de nouveau la semaine.",
+        "ALREADY_LOCKED": "La semaine est déjà verrouillée."
+      },
+      "exported": "Cette preuve approuvée a déjà été exportée.",
+      "notExported": "Cette preuve approuvée n’a pas encore été exportée. Le verrouillage ne crée aucun export.",
+      "confirmCheck": "J’ai vérifié cet aperçu et je veux verrouiller la période.",
+      "confirm": "Confirmer le verrouillage",
+      "confirming": "Verrouillage…",
+      "cancel": "Annuler",
+      "done": "Période verrouillée.",
+      "unchanged": "La période était déjà verrouillée par ce verrou."
+    },
+    "unlock": {
+      "action": "Déverrouiller la période",
+      "title": "Déverrouiller la période",
+      "description": "Le déverrouillage rouvre la semaine aux corrections, actualisations et approbations. Indiquez le motif : il est conservé avec l’enregistrement du déverrouillage.",
+      "reason": "Motif",
+      "chooseReason": "Choisissez un motif",
+      "explanation": "Explication",
+      "explanationHint": "De 10 à 500 caractères. Ni lien ni balise. Donnée RH restreinte : ne nommez que le nécessaire.",
+      "problem": {
+        "reasonRequired": "Choisissez un motif.",
+        "required": "Donnez une explication.",
+        "length": "Utilisez de 10 à 500 caractères.",
+        "format": "Retirez les liens, balises et caractères de contrôle."
+      },
+      "preview": "Prévisualiser le déverrouillage",
+      "previewing": "Vérification…",
+      "previewTitle": "Aperçu du déverrouillage",
+      "currentLock": "Verrou actuel",
+      "warning": {
+        "EXPORTS_UNCHANGED": "Le déverrouillage ne modifie pas les exports antérieurs",
+        "APPROVALS_UNCHANGED": "Les feuilles approuvées restent approuvées jusqu’à ce qu’une correction les rouvre"
+      },
+      "confirmCheck": "J’ai vérifié cet aperçu et je veux déverrouiller la période.",
+      "confirm": "Confirmer le déverrouillage",
+      "confirming": "Déverrouillage…",
+      "cancel": "Annuler",
+      "done": "Période déverrouillée."
+    },
+    "reason": {
+      "ATTENDANCE_CORRECTION_REQUIRED": "Correction de présence nécessaire",
+      "TIMESHEET_EVIDENCE_ERROR": "Erreur dans la preuve de la feuille de temps",
+      "ORGANIZATION_REQUEST": "Demande de l’organisation",
+      "OTHER": "Autre"
+    },
+    "counts": {
+      "timesheets": "Feuilles de temps",
+      "approved": "Approuvées",
+      "draft": "Brouillons",
+      "submitted": "Soumises",
+      "reopened": "Rouvertes",
+      "employees": "Employés",
+      "rows": "Quarts",
+      "worked": "Temps travaillé"
+    },
+    "history": {
+      "title": "Historique des verrous",
+      "label": "Verrouillages et déverrouillages, du plus récent au plus ancien",
+      "none": "Cette semaine n’a jamais été verrouillée.",
+      "columns": {
+        "action": "Action",
+        "version": "Version du verrou",
+        "when": "Quand",
+        "timesheets": "Feuilles de temps",
+        "worked": "Temps travaillé",
+        "reason": "Motif"
+      },
+      "action": {
+        "LOCKED": "Période verrouillée",
+        "UNLOCKED": "Période déverrouillée"
+      },
+      "noReason": "—"
+    },
+    "badge": "Période verrouillée",
+    "badgeHint": "Verrouillée pour la préparation de la paie. Cette semaine ne peut pas changer tant qu’un administrateur ne la déverrouille pas.",
+    "refreshLocked": "La semaine est verrouillée pour la préparation de la paie ; déverrouillez-la avant de l’actualiser."
   },
   "timeExports": {
     "title": "Exports de temps",

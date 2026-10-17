@@ -129,6 +129,7 @@ public class AttendanceCorrectionService {
   private final JdbcAttendanceCorrectionRepository corrections;
   private final OrganizationPlacementDirectory directory;
   private final TimesheetReopening reopening;
+  private final TimesheetPeriodGuard periodGuard;
   private final BusinessCalendar calendar;
   private final AuditRecorder audit;
   private final OutboxWriter outbox;
@@ -147,6 +148,7 @@ public class AttendanceCorrectionService {
    * @param corrections correction storage
    * @param directory the tenant module's unit port (site codes and names)
    * @param reopening approved time a correction reopens (MVP-070D)
+   * @param periodGuard the locked-period guard (MVP-071)
    * @param calendar the platform clock (the authoritative instant)
    * @param audit audit recorder
    * @param outbox outbox writer
@@ -163,6 +165,7 @@ public class AttendanceCorrectionService {
       JdbcAttendanceCorrectionRepository corrections,
       OrganizationPlacementDirectory directory,
       TimesheetReopening reopening,
+      TimesheetPeriodGuard periodGuard,
       BusinessCalendar calendar,
       AuditRecorder audit,
       OutboxWriter outbox,
@@ -177,6 +180,7 @@ public class AttendanceCorrectionService {
     this.corrections = corrections;
     this.directory = directory;
     this.reopening = reopening;
+    this.periodGuard = periodGuard;
     this.calendar = calendar;
     this.audit = audit;
     this.outbox = outbox;
@@ -320,6 +324,8 @@ public class AttendanceCorrectionService {
     Proposal proposal = commit.proposal();
     schedules.lock(tenant);
     Target seen = resolveAgain(tenant, proposal);
+    // MVP-071: a shift of a locked week is not corrected (the preview stays readable).
+    periodGuard.requireOpenWeek(tenant, seen.shift().siteId(), seen.shift().startAt());
     shifts.shareEmployments(
         tenant,
         seen.employmentId() == null ? List.of() : List.of(seen.employmentId()),

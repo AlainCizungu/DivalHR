@@ -2359,6 +2359,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/timesheet-periods/lock-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the lock of one site's generated week
+         * @description MVP-071. Evaluates whether the legal entity's site and generated week can be locked as payroll-source evidence (the site must belong to the legal entity; a malformed, unknown or foreign legal entity or site, or a week that is not generated, is 404 TIMESHEET_TARGET_NOT_FOUND). Ready when the generation holds at least one timesheet, every timesheet is APPROVED by its current action at its current revision, cycle and the current generation version, and the week is not locked already; otherwise the stable blockers (EMPTY, NOT_ALL_APPROVED, APPROVAL_NOT_CURRENT, ALREADY_LOCKED) are named. Returns the scope with its exact boundaries, the generation version, the current lock state and version, the counts (timesheets, employees, rows, total worked minutes), the timesheets by state, whether the same approved evidence was exported (MVP-070E) as a boolean only, a preview digest and its expiry (the end of the next 15-minute window). No name or employee number. Writes nothing but its fail-closed disclosure audit (timesheet-period.lock-preview). Shares the work-schedule-write limit. Cache-Control private, no-store.
+         */
+        post: operations["previewTimesheetPeriodLock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheet-periods/locks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lock a reviewed week
+         * @description MVP-071. Under the tenant's scheduling lock (taken first by every timesheet command and attendance correction), the generation, its lock projection and every timesheet are locked and the readiness is evaluated again. A generation or lock version that differs from the reviewed one, an expired preview or a preview digest that no longer matches the approval evidence is 409 TIMESHEET_PERIOD_PREVIEW_STALE; a week that is not ready is 409 TIMESHEET_PERIOD_NOT_READY. A week that is already locked and whose preview named its current lock is returned unchanged (outcome UNCHANGED). Otherwise one transaction appends the immutable LOCKED period action (the exact scope, generation version, approval evidence digest, counts and total, bound by the database to a fully approved current generation), moves the lock projection to LOCKED at the next version, writes the audit record (timesheet-period.lock) and the outbox event (people.timesheet-period.locked.v1); a failure of any of them writes nothing. While locked, attendance corrections of the week's shifts, refreshes and every timesheet transition are 409 TIMESHEET_PERIOD_LOCKED; reads and existing exports are unaffected. Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the work-schedule-write limits. Cache-Control private, no-store.
+         */
+        post: operations["lockTimesheetPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheet-periods/unlock-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the unlock of a locked week with its reason
+         * @description MVP-071. Validates the closed reason code and the explanation (10 to 500 Unicode characters after trimming; no markup, link, control or format character; Restricted HR/Operations data, stored only with the UNLOCKED action and never returned), resolves the locked week (a week that is not locked is 409 TIMESHEET_PERIOD_NOT_LOCKED) and returns the scope, the current lock state and its LOCKED action, the reason, the warnings (EXPORTS_UNCHANGED: earlier exports stay as they are; APPROVALS_UNCHANGED: unlocking alone changes no timesheet), a preview digest bound to the current lock, the reason and the explanation's digest, and its expiry. Writes nothing but its fail-closed disclosure audit (timesheet-period.unlock-preview). Shares the work-schedule-write limit. Cache-Control private, no-store.
+         */
+        post: operations["previewTimesheetPeriodUnlock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheet-periods/unlocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unlock a locked week after its reviewed preview
+         * @description MVP-071. Under the tenant's scheduling lock, the generation and its lock projection are locked again. A lock version or current LOCKED action that differs from the reviewed one, an expired preview, or a preview digest that does not match the current lock, the reason and the identical canonical explanation is 409 TIMESHEET_PERIOD_PREVIEW_STALE; a week that is not locked is 409 TIMESHEET_PERIOD_NOT_LOCKED. Otherwise one transaction appends the immutable UNLOCKED period action (the reversed lock, its evidence and counts, the reason and the explanation), moves the projection to OPEN at the next version, writes the audit record (timesheet-period.unlock; the explanation only as a digest inside the state digest) and the outbox event (people.timesheet-period.unlocked.v1, never the explanation); a failure of any of them writes nothing. Unlocking alone changes no timesheet and no export: a later attendance correction reopens only the affected timesheets (MVP-070D). Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the work-schedule-write limits. Cache-Control private, no-store.
+         */
+        post: operations["unlockTimesheetPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/timesheet-periods/{generationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A generated week's lock state and immutable history
+         * @description MVP-071. The generation's scope, version, current lock state and every LOCKED and UNLOCKED action, newest first: the sequence, the bound generation version, the counts and total, the evidence digest, the reversed lock and the unlock reason code; never the explanation, a name, an employee number or the actor. A malformed, unknown or foreign generation is 404 TIMESHEET_TARGET_NOT_FOUND. A fail-closed disclosure (audit timesheet-period.history). Shares the work-schedule-read limit. Cache-Control private, no-store.
+         */
+        get: operations["getTimesheetPeriodHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/timesheets": {
         parameters: {
             query?: never;
@@ -3913,7 +4013,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -5057,6 +5157,193 @@ export interface components {
             items: components["schemas"]["TimesheetExport"][];
             nextCursor: string | null;
         };
+        /** @description MVP-071. One legal entity, one of its sites and one generated site-local week. */
+        TimesheetPeriodScopeRequest: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            siteId: string;
+            /**
+             * Format: date
+             * @description The site-local Monday of a generated week.
+             */
+            weekStart: string;
+        };
+        /** @description MVP-071. Lock a reviewed week. */
+        LockTimesheetPeriodRequest: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date */
+            weekStart: string;
+            /** @description The generation version the preview showed. */
+            generationVersion: number;
+            /** @description The lock version the preview showed (0 before the first lock). */
+            lockVersion: number;
+            /** @description The reviewed preview's digest, exactly as returned. */
+            previewDigest: string;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-071. Preview the unlock of a locked week with its reason. */
+        TimesheetPeriodUnlockPreviewRequest: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date */
+            weekStart: string;
+            reasonCode: components["schemas"]["TimesheetPeriodUnlockReason"];
+            /** @description 10 to 500 Unicode characters after trimming; no markup, link, control or format character. Restricted HR/Operations data: stored with the UNLOCKED action, never returned, logged or published. */
+            explanation: string;
+        };
+        /** @description MVP-071. Unlock a locked week after its reviewed preview. */
+        UnlockTimesheetPeriodRequest: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: date */
+            weekStart: string;
+            reasonCode: components["schemas"]["TimesheetPeriodUnlockReason"];
+            /** @description The identical explanation the preview validated. */
+            explanation: string;
+            /** @description The current lock version the preview showed. */
+            lockVersion: number;
+            /**
+             * Format: uuid
+             * @description The current LOCKED action the preview showed.
+             */
+            lockActionId: string;
+            previewDigest: string;
+            /** @constant */
+            confirm: true;
+        };
+        /**
+         * @description MVP-071. The closed unlock reasons.
+         * @enum {string}
+         */
+        TimesheetPeriodUnlockReason: "ATTENDANCE_CORRECTION_REQUIRED" | "TIMESHEET_EVIDENCE_ERROR" | "ORGANIZATION_REQUEST" | "OTHER";
+        /** @description MVP-071. The current lock state of a generated week: OPEN or LOCKED, the number of lock and unlock transitions so far (0 before the first lock), the current action and instant. */
+        TimesheetPeriodLockState: {
+            /** @enum {string} */
+            state: "OPEN" | "LOCKED";
+            version: number;
+            /** Format: uuid */
+            currentActionId: string | null;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        /** @description MVP-071. The locked scope: the legal entity, its site and the generated week with its time zone and exact UTC boundaries as generated. */
+        TimesheetPeriodScope: {
+            /** Format: uuid */
+            legalEntityId: string;
+            legalEntityCode: string | null;
+            legalEntityName: string | null;
+            /** Format: uuid */
+            siteId: string;
+            siteCode: string | null;
+            siteName: string | null;
+            timezone: string;
+            /** Format: date */
+            weekStart: string;
+            /**
+             * Format: date
+             * @description The next local Monday (exclusive).
+             */
+            weekEnd: string;
+            /** Format: date */
+            lastDay: string;
+            /** Format: date-time */
+            periodStartAt: string;
+            /** Format: date-time */
+            periodEndAt: string;
+        };
+        /** @description MVP-071. The week's timesheets by state. */
+        TimesheetPeriodStates: {
+            draft: number;
+            submitted: number;
+            approved: number;
+            reopened: number;
+        };
+        /** @description MVP-071. Timesheets, employees, rows and the total worked minutes a lock binds. */
+        TimesheetPeriodCounts: {
+            timesheets: number;
+            employees: number;
+            rows: number;
+            workedMinutes: number;
+        };
+        /** @description MVP-071. Whether the week is ready to lock and what a lock would bind now. */
+        TimesheetPeriodLockPreview: {
+            scope: components["schemas"]["TimesheetPeriodScope"];
+            /** Format: uuid */
+            generationId: string;
+            generationVersion: number;
+            lock: components["schemas"]["TimesheetPeriodLockState"];
+            counts: components["schemas"]["TimesheetPeriodCounts"];
+            states: components["schemas"]["TimesheetPeriodStates"];
+            ready: boolean;
+            /** @description Why the week cannot be locked now; empty when it can. */
+            blockers: ("EMPTY" | "NOT_ALL_APPROVED" | "APPROVAL_NOT_CURRENT" | "ALREADY_LOCKED")[];
+            /** @description Whether the same approved evidence was exported (MVP-070E). */
+            exported: boolean;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        /** @description MVP-071. One immutable lock or unlock: never the explanation, a name, an employee number or the actor. */
+        TimesheetPeriodAction: {
+            /** Format: uuid */
+            actionId: string;
+            /** @description The lock version after the transition. */
+            sequence: number;
+            /** @enum {string} */
+            action: "LOCKED" | "UNLOCKED";
+            generationVersion: number;
+            counts: components["schemas"]["TimesheetPeriodCounts"];
+            evidenceDigest: string;
+            /**
+             * Format: uuid
+             * @description For an unlock, the reversed lock.
+             */
+            lockedActionId: string | null;
+            unlockReason: components["schemas"]["TimesheetPeriodUnlockReason"] | null;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        /** @description MVP-071. A lock, an unlock, or the unchanged current lock. */
+        TimesheetPeriodResult: {
+            /** @enum {string} */
+            outcome: "LOCKED" | "UNLOCKED" | "UNCHANGED";
+            scope: components["schemas"]["TimesheetPeriodScope"];
+            /** Format: uuid */
+            generationId: string;
+            lock: components["schemas"]["TimesheetPeriodLockState"];
+            action: components["schemas"]["TimesheetPeriodAction"];
+        };
+        /** @description MVP-071. What an unlock would do; the explanation is never returned. */
+        TimesheetPeriodUnlockPreview: {
+            scope: components["schemas"]["TimesheetPeriodScope"];
+            /** Format: uuid */
+            generationId: string;
+            lock: components["schemas"]["TimesheetPeriodLockState"];
+            currentLock: components["schemas"]["TimesheetPeriodAction"];
+            reasonCode: components["schemas"]["TimesheetPeriodUnlockReason"];
+            warnings: ("EXPORTS_UNCHANGED" | "APPROVALS_UNCHANGED")[];
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        /** @description MVP-071. A generated week's lock state and every lock and unlock, newest first. */
+        TimesheetPeriodHistory: {
+            scope: components["schemas"]["TimesheetPeriodScope"];
+            /** Format: uuid */
+            generationId: string;
+            generationVersion: number;
+            lock: components["schemas"]["TimesheetPeriodLockState"];
+            actions: components["schemas"]["TimesheetPeriodAction"][];
+        };
         /** @description MVP-070A. A site-local week with its exact UTC boundaries. */
         TimesheetPeriod: {
             /** Format: uuid */
@@ -5102,6 +5389,7 @@ export interface components {
             refreshedAt: string | null;
             drafts: number;
             totals: components["schemas"]["TimesheetTotals"];
+            periodLock: components["schemas"]["TimesheetPeriodLockState"];
         };
         /** @description MVP-070A. What a generation would hold now. */
         TimesheetGenerationPreview: {
@@ -5280,6 +5568,8 @@ export interface components {
             rows: components["schemas"]["MyTimesheetRow"][];
             submission: components["schemas"]["MyTimesheetSubmission"];
             actions: components["schemas"]["MyTimesheetAction"][];
+            /** @description MVP-071. Whether the week is locked for payroll preparation: the state only, never who locked it or why. */
+            periodLocked: boolean;
         };
         /** @description MVP-070B/C. Submit the reviewed revision of one's own draft. */
         SubmitTimesheetRequest: {
@@ -5398,6 +5688,8 @@ export interface components {
             totals: components["schemas"]["TimesheetTotals"];
             rows: components["schemas"]["MyTimesheetRow"][];
             actions: components["schemas"]["TimesheetAction"][];
+            /** @description MVP-071. Whether the week is locked for payroll preparation (the state only). */
+            periodLocked: boolean;
         };
         /** @description MVP-062. A committed correction's receipt; never the explanation or the administrator. MVP-070D: reopenedTimesheets counts the approved timesheets the correction materially changed and reopened in the same transaction. */
         AttendanceCorrectionReceipt: {
@@ -10878,6 +11170,182 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewTimesheetPeriodLock: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetPeriodScopeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetPeriodLockPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    lockTimesheetPeriod: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LockTimesheetPeriodRequest"];
+            };
+        };
+        responses: {
+            /** @description Locked, unchanged, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetPeriodResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewTimesheetPeriodUnlock: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetPeriodUnlockPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetPeriodUnlockPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    unlockTimesheetPeriod: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnlockTimesheetPeriodRequest"];
+            };
+        };
+        responses: {
+            /** @description Unlocked, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetPeriodResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getTimesheetPeriodHistory: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetPeriodHistory"];
                 };
             };
             400: components["responses"]["BadRequest"];

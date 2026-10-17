@@ -118,6 +118,7 @@ public final class TimesheetResponses {
    * @param refreshedAt latest refresh, or {@code null}
    * @param drafts number of drafts
    * @param totals current totals of every draft
+   * @param periodLock the week's lock state (MVP-071)
    */
   @Schema(name = "TimesheetGenerationSummary")
   public record GenerationSummary(
@@ -128,7 +129,8 @@ public final class TimesheetResponses {
       Instant generatedAt,
       Instant refreshedAt,
       int drafts,
-      TotalsView totals) {}
+      TotalsView totals,
+      TimesheetPeriodResponses.LockStateView periodLock) {}
 
   /**
    * What a generation would hold now.
@@ -510,6 +512,8 @@ public final class TimesheetResponses {
    * @param rows the current revision's rows
    * @param submission whether it can be submitted now, and what blocks it
    * @param actions every submission and decision, newest first
+   * @param periodLocked whether the week is locked for payroll preparation (MVP-071): the state
+   *     only, never who locked it or why
    */
   @Schema(name = "MyTimesheet")
   public record MyDetail(
@@ -523,7 +527,8 @@ public final class TimesheetResponses {
       Instant updatedAt,
       List<MyRow> rows,
       SubmissionView submission,
-      List<MyActionView> actions) {
+      List<MyActionView> actions,
+      boolean periodLocked) {
 
     /** Copies the lists. */
     public MyDetail {
@@ -763,6 +768,8 @@ public final class TimesheetResponses {
    * @param totals the submitted revision's totals
    * @param rows the submitted revision's rows
    * @param actions every submission and decision, newest first
+   * @param periodLocked whether the week is locked for payroll preparation (MVP-071): the state
+   *     only (a submitted timesheet's week is never locked, so this is {@code false} today)
    */
   @Schema(name = "TimeApprovalDetail")
   public record ApprovalDetail(
@@ -777,7 +784,8 @@ public final class TimesheetResponses {
       Instant submittedAt,
       TotalsView totals,
       List<MyRow> rows,
-      List<ActionView> actions) {
+      List<ActionView> actions,
+      boolean periodLocked) {
 
     /** Copies the lists. */
     public ApprovalDetail {

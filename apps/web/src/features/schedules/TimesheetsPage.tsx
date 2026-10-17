@@ -16,6 +16,7 @@ import { ScrollRegion } from '../people/ScrollRegion';
 import { loadAll, useOptions } from '../people/unitOptions';
 import { formatInstant } from './attendance';
 import { TimesheetHistory } from './TimesheetHistory';
+import { TimesheetPeriodLock } from './TimesheetPeriodLock';
 import { TimesheetRows } from './TimesheetRows';
 import {
   STATUS_TONES,
@@ -30,10 +31,9 @@ import {
   type WeekProblem,
 } from './timesheets';
 
-/** A fresh key per reviewed preview (the platform's key grammar): a retry reuses it. */
 /**
  * MVP-070B/C: a refresh refused because the week holds submitted or approved time says so (the
- * same code refuses a generation of an empty week).
+ * same code refuses a generation of an empty week). MVP-071: a locked week keeps its own message.
  */
 function refreshFailureOf(failure: TimesheetFailure): TimesheetFailure {
   return failure.kind === 'notAllowed'
@@ -41,6 +41,7 @@ function refreshFailureOf(failure: TimesheetFailure): TimesheetFailure {
     : failure;
 }
 
+/** A fresh key per reviewed preview (the platform's key grammar): a retry reuses it. */
 function newKey(): string {
   return `web-${crypto.randomUUID()}`;
 }
@@ -135,8 +136,10 @@ export function PeriodText({ period }: { period: TimesheetPeriod }) {
  * and blocked rows, worked time) and generates the week's DRAFT timesheets after an explicit
  * confirmation; a week already generated opens its drafts. Each draft opens its rows and revisions.
  * A refresh is previewed (new drafts, drafts with a new revision, changed shifts) and applied only
- * with that exact preview: a stale one is refused and previewed again. Nothing here submits,
- * approves, prices or exports time; nothing is kept in browser storage or put in a URL.
+ * with that exact preview: a stale one is refused and previewed again. MVP-071: the week's period
+ * lock (state, lock and unlock with their previews, history) sits with its drafts, and a locked week
+ * is not refreshed. Nothing here submits, approves, prices or exports time; nothing is kept in
+ * browser storage or put in a URL.
  */
 export function TimesheetsPage() {
   const { t, i18n } = useTranslation();
@@ -621,13 +624,28 @@ export function TimesheetsPage() {
               <button
                 type="button"
                 className="button button--secondary"
-                disabled={busy}
+                disabled={busy || generation.generation.periodLock.state === 'LOCKED'}
+                aria-describedby={
+                  generation.generation.periodLock.state === 'LOCKED'
+                    ? `${ids}-refresh-locked`
+                    : undefined
+                }
                 ref={refreshOpener}
                 data-testid="timesheets-refresh-preview"
                 onClick={onRefreshPreview}
               >
                 {busy ? t('timesheets.refresh.previewing') : t('timesheets.refresh.action')}
               </button>
+              {generation.generation.periodLock.state === 'LOCKED' && (
+                <span
+                  id={`${ids}-refresh-locked`}
+                  className="muted"
+                  data-testid="timesheets-refresh-locked-period"
+                >
+                  {' '}
+                  {t('timesheetPeriod.refreshLocked')}
+                </span>
+              )}
             </p>
           )}
           {refreshPreview && (
@@ -712,6 +730,22 @@ export function TimesheetsPage() {
               </div>
             </section>
           )}
+          <TimesheetPeriodLock
+            legalEntityId={legalEntityId}
+            generation={generation.generation}
+            disabled={busy}
+            onTransition={async () => {
+              setRefreshPreview(null);
+              const { data } = await core.GET('/timesheets/generations/{generationId}', {
+                params: { path: { generationId: generation.generation.generationId } },
+                cache: 'no-store',
+              });
+              if (data) {
+                setGeneration(data);
+                setDetail(null);
+              }
+            }}
+          />
         </section>
       )}
 
