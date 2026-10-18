@@ -809,6 +809,11 @@ test.describe.serial('MVP-071: lock and unlock an approved week', () => {
     const context = await browser.newContext({ locale: 'fr-FR' });
     const admin = await context.newPage();
     const bearer = await signIn(admin, USERS.adminB, 'fr');
+    // The administrator's writes (previews included) share the work-schedule-write budget, 20 per
+    // subject per minute, never raised for tests: on a fast host the setup's and the English
+    // journey's writes land in one minute, and this journey's correction, lock preview and refresh
+    // preview would be the ones refused. A full window passes before its first write.
+    await admin.waitForTimeout(61_000);
     // The same correction now commits and reopens only Cléo's approved week (MVP-070D).
     const commit = await correctCleo(admin, bearer, 'fix-cleo-open');
     expect(commit.status()).toBe(201);
