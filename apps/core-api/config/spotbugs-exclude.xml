@@ -112,6 +112,10 @@
       <Class name="com.divalhr.core.people.schedule.application.TimesheetExportService"/>
       <Class name="com.divalhr.core.people.schedule.internal.JdbcTimesheetExportRepository"/>
       <Class name="com.divalhr.core.people.schedule.api.TimesheetExportController"/>
+      <Class name="com.divalhr.core.people.schedule.application.TimesheetPeriodService"/>
+      <Class name="com.divalhr.core.people.schedule.application.TimesheetPeriodGuard"/>
+      <Class name="com.divalhr.core.people.schedule.internal.JdbcTimesheetPeriodRepository"/>
+      <Class name="com.divalhr.core.people.schedule.api.TimesheetPeriodController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>
