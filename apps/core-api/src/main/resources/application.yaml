@@ -139,6 +139,9 @@ divalhr:
       work-schedule-substitution-write: ${DIVALHR_WORK_SCHEDULE_SUBSTITUTION_WRITE_REQUESTS_PER_MINUTE:10}
       # MVP-060A: attendance check-ins and check-outs.
       attendance-write: ${DIVALHR_ATTENDANCE_WRITE_REQUESTS_PER_MINUTE:10}
+      # MVP-090A: payroll inputs (previews and generations share the write bucket).
+      payroll-input-read: ${DIVALHR_PAYROLL_INPUT_READ_REQUESTS_PER_MINUTE:60}
+      payroll-input-write: ${DIVALHR_PAYROLL_INPUT_WRITE_REQUESTS_PER_MINUTE:20}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -173,6 +176,9 @@ divalhr:
       # MVP-060A: a shift change can bring many check-ins at once.
       attendance-write:
         requests: ${DIVALHR_ATTENDANCE_TENANT_WRITES:600}
+        window: 10m
+      payroll-input-write:
+        requests: ${DIVALHR_PAYROLL_INPUT_TENANT_WRITES:100}
         window: 10m
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).

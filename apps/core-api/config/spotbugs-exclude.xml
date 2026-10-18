@@ -116,6 +116,11 @@
       <Class name="com.divalhr.core.people.schedule.application.TimesheetPeriodGuard"/>
       <Class name="com.divalhr.core.people.schedule.internal.JdbcTimesheetPeriodRepository"/>
       <Class name="com.divalhr.core.people.schedule.api.TimesheetPeriodController"/>
+      <Class name="com.divalhr.core.people.schedule.application.ScheduleLockedApprovedTime"/>
+      <Class name="com.divalhr.core.people.schedule.internal.JdbcLockedApprovedTimeRepository"/>
+      <Class name="com.divalhr.core.payroll.application.PayrollInputService"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPayrollInputRepository"/>
+      <Class name="com.divalhr.core.payroll.api.PayrollInputController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>

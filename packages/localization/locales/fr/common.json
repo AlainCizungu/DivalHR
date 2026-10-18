@@ -30,7 +30,8 @@
       "documents": "Documents",
       "access": "Accès et sécurité",
       "mySpace": "Mon espace",
-      "operations": "Opérations"
+      "operations": "Opérations",
+      "payroll": "Paie"
     },
     "leaveRoutingExceptions": "Exceptions d’acheminement des congés",
     "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés",
@@ -43,7 +44,8 @@
     "timesheets": "Feuilles de temps",
     "timeExports": "Exports de temps",
     "myTimesheets": "Mes feuilles de temps",
-    "timeApprovals": "Approbations du temps"
+    "timeApprovals": "Approbations du temps",
+    "payrollPreparation": "Préparation de la paie"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -198,6 +200,10 @@
         "timeExports": {
           "title": "Exports de temps",
           "description": "Exportez le temps hebdomadaire approuvé d’un site dans un fichier CSV avec manifeste pour la paie et la comptabilité. Temps approuvé uniquement ; aucune paie n’est calculée."
+        },
+        "payrollPreparation": {
+          "title": "Préparation de la paie",
+          "description": "Générez, pour une entité juridique et une période, des données de préparation de la paie traçables à partir des semaines approuvées et verrouillées. Données de préparation uniquement ; aucune paie n’est calculée."
         }
       },
       "attention": {
@@ -500,7 +506,11 @@
     "TIMESHEET_PERIOD_NOT_READY": "Cette semaine ne peut pas encore être verrouillée : chaque feuille de temps doit être approuvée. Prévisualisez de nouveau le verrouillage.",
     "TIMESHEET_PERIOD_LOCKED": "Cette semaine est verrouillée pour la préparation de la paie. Déverrouillez-la d’abord.",
     "TIMESHEET_PERIOD_NOT_LOCKED": "Cette semaine n’est pas verrouillée.",
-    "TIMESHEET_PERIOD_PREVIEW_STALE": "La semaine a changé depuis cet aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau."
+    "TIMESHEET_PERIOD_PREVIEW_STALE": "La semaine a changé depuis cet aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau.",
+    "PAYROLL_INPUT_TARGET_NOT_FOUND": "Cette entité juridique ou cette génération de données de paie est introuvable.",
+    "PAYROLL_INPUT_NOT_READY": "Cette période ne peut pas encore être générée : chaque semaine comportant du temps travaillé doit être générée et verrouillée, et sa preuve inchangée. Prévisualisez de nouveau.",
+    "PAYROLL_INPUT_PREVIEW_STALE": "La preuve verrouillée a changé depuis cet aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau.",
+    "PAYROLL_INPUT_RUN_EXISTS": "Des données de préparation de la paie existent déjà pour cette entité juridique et cette période avec une preuve différente. Les données générées ne sont jamais remplacées."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3745,5 +3755,132 @@
       }
     },
     "validation": "Vérifiez le motif."
+  },
+  "payrollPreparation": {
+    "title": "Préparation de la paie",
+    "description": "Générez, pour une entité juridique et une période, des données de préparation de la paie traçables à partir des semaines approuvées et verrouillées : identifiants, dates, nombres et minutes approuvées uniquement.",
+    "notice": "Données de préparation uniquement. DivalHR n’a calculé ni salaire brut, ni retenues, ni impôts, ni salaire net, ni paiement.",
+    "unauthorized": "Seul un administrateur de l’organisation avec authentification multifacteur peut préparer les données de paie.",
+    "signInRequired": "Connectez-vous comme administrateur de l’organisation pour préparer les données de paie.",
+    "validation": "Vérifiez l’entité juridique et la période.",
+    "generated": "Données de préparation de la paie générées.",
+    "existing": "Des données identiques existaient déjà pour cette période ; elles sont affichées ci-dessous.",
+    "form": {
+      "label": "Entité juridique et période",
+      "entitiesUnavailable": "Les entités juridiques n’ont pas pu être chargées. Réessayez plus tard.",
+      "periodStart": "Premier jour",
+      "periodEnd": "Dernier jour",
+      "periodHint": "Dates incluses, dans le fuseau horaire de votre organisation ; 31 jours au plus, se terminant au plus tard aujourd’hui.",
+      "problem": {
+        "legalEntityId": {
+          "required": "Choisissez une entité juridique.",
+          "server": "Cette entité juridique n’est pas valide."
+        },
+        "periodStart": {
+          "required": "Choisissez le premier jour.",
+          "server": "Choisissez un premier jour à partir de 2026."
+        },
+        "periodEnd": {
+          "required": "Choisissez le dernier jour.",
+          "order": "Le dernier jour ne peut pas précéder le premier.",
+          "length": "La période ne peut pas dépasser 31 jours.",
+          "server": "Choisissez un dernier jour au plus tard aujourd’hui, à 31 jours au plus du premier."
+        }
+      }
+    },
+    "scope": {
+      "unknownEntity": "Entité juridique",
+      "zone": "Fuseau horaire de l’organisation : {{zone}}."
+    },
+    "preview": {
+      "title": "Aperçu des données de préparation",
+      "weeks": "Semaines couvertes",
+      "eligible": "Temps approuvé verrouillé dans la période",
+      "excluded": "Non retenu",
+      "ready": "Chaque semaine comportant du temps travaillé dans cette période est verrouillée et inchangée. Les données peuvent être générées.",
+      "existingUnchanged": "Des données de préparation existent déjà pour cette période avec exactement cette preuve. Générer de nouveau les affiche.",
+      "existingChanged": "Des données de préparation existent déjà pour cette période avec une preuve différente. Les données générées ne sont jamais remplacées ; une version de remplacement viendra à une étape ultérieure.",
+      "expires": "Cet aperçu est valable jusqu’au {{time}}.",
+      "confirmCheck": "J’ai vérifié cet aperçu et je veux générer les données de préparation de la paie.",
+      "generate": "Générer les données de préparation",
+      "generating": "Génération…",
+      "blocked": "Cette période ne peut pas être générée",
+      "blockedHint": "Rien n’est généré tant que chaque blocage n’est pas levé en amont (générer, approuver et verrouiller les semaines, ou les corriger et les reverrouiller). Des données partielles ne sont jamais produites."
+    },
+    "weeks": {
+      "table": "Semaines touchées par la période, par site",
+      "none": "Aucun site de cette entité juridique n’a de temps planifié ou généré dans cette période.",
+      "site": "Site",
+      "week": "Semaine du",
+      "status": "État",
+      "versions": "Versions",
+      "versionText": "Génération {{generation}} · verrou {{lock}}"
+    },
+    "weekStatus": {
+      "LOCKED": "Verrouillée",
+      "NOT_GENERATED": "Non générée",
+      "NOT_LOCKED": "Non verrouillée",
+      "EVIDENCE_CHANGED": "Preuve modifiée",
+      "EMPTY": "Aucune feuille de temps"
+    },
+    "counts": {
+      "employees": "Employés",
+      "timesheets": "Feuilles de temps",
+      "rows": "Lignes",
+      "worked": "Temps approuvé"
+    },
+    "excluded": {
+      "none": "Rien n’est écarté.",
+      "ROW_OUTSIDE_PERIOD_one": "{{count}} ligne approuvée se situe hors de la période (semaine coupée par la période).",
+      "ROW_OUTSIDE_PERIOD_other": "{{count}} lignes approuvées se situent hors de la période (semaines coupées par la période).",
+      "TIMESHEET_WITHOUT_TIME_one": "{{count}} feuille de temps approuvée n’a aucune ligne dans la période.",
+      "TIMESHEET_WITHOUT_TIME_other": "{{count}} feuilles de temps approuvées n’ont aucune ligne dans la période."
+    },
+    "blockers": {
+      "none": "Aucun blocage.",
+      "WEEK_NOT_GENERATED_one": "{{count}} semaine avec du travail planifié n’a pas été générée.",
+      "WEEK_NOT_GENERATED_other": "{{count}} semaines avec du travail planifié n’ont pas été générées.",
+      "WEEK_NOT_LOCKED_one": "{{count}} semaine générée n’est pas verrouillée.",
+      "WEEK_NOT_LOCKED_other": "{{count}} semaines générées ne sont pas verrouillées.",
+      "EVIDENCE_CHANGED_one": "{{count}} semaine verrouillée ne correspond plus à la preuve de son verrou.",
+      "EVIDENCE_CHANGED_other": "{{count}} semaines verrouillées ne correspondent plus à la preuve de leur verrou.",
+      "ATTRIBUTION_AMBIGUOUS_one": "{{count}} ligne ne peut pas être attribuée à cette entité juridique.",
+      "ATTRIBUTION_AMBIGUOUS_other": "{{count}} lignes ne peuvent pas être attribuées à cette entité juridique.",
+      "NO_APPROVED_TIME_one": "Aucun temps approuvé verrouillé ne se situe dans cette période.",
+      "NO_APPROVED_TIME_other": "Aucun temps approuvé verrouillé ne se situe dans cette période."
+    },
+    "status": {
+      "GENERATED": "Générées"
+    },
+    "detail": {
+      "title": "Données de préparation de la paie",
+      "id": "Identifiant",
+      "version": "Version",
+      "generated": "Générées le",
+      "weeks": "Semaines verrouillées",
+      "digest": "Empreinte de la preuve",
+      "sourceWeeks": "Semaines sources",
+      "employees": "Données par employé",
+      "immutable": "Les données générées ne sont jamais modifiées ni supprimées. Les corrections ultérieures en amont ne les changent jamais ; une version de remplacement viendra à une étape ultérieure."
+    },
+    "employees": {
+      "table": "Données par employé",
+      "employee": "Identifiant de l’employé",
+      "employment": "Identifiant de l’emploi",
+      "dates": "Dates couvertes"
+    },
+    "history": {
+      "title": "Données de préparation générées",
+      "table": "Données de préparation, les plus récentes d’abord",
+      "empty": "Aucune donnée de préparation pour l’instant.",
+      "unavailable": "L’historique n’a pas pu être chargé.",
+      "period": "Période",
+      "legalEntity": "Entité juridique",
+      "generated": "Générées le",
+      "actions": "Actions",
+      "open": "Consulter",
+      "openFor": "Consulter les données de préparation du {{from}} au {{to}}",
+      "more": "Afficher plus"
+    }
   }
 }

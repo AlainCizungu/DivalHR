@@ -14,6 +14,8 @@ tags:
     description: Employees and their employment (MVP-020)
   - name: documents
     description: Contract templates, issued contracts and acknowledgements (MVP-030)
+  - name: payroll
+    description: Payroll preparation from locked approved time (MVP-090A)
 servers:
   - url: https://api.divalhr.com/api/v1
 security:
@@ -6605,6 +6607,207 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs/preview:
+    post:
+      operationId: previewPayrollInputs
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the time-based payroll inputs of a legal entity and period
+      description: >-
+        MVP-090A. For one legal entity and one inclusive date range (business-zone dates; one to 31
+        days, not before 2026-01-01, ending no later than today in the business zone, else 400
+        VALIDATION_FAILED): every site-local week of the legal entity's sites that the period
+        touches and that matters (generated, or holding scheduled work), each with its lock status
+        (LOCKED, NOT_GENERATED, NOT_LOCKED, EVIDENCE_CHANGED or EMPTY); the eligible counts and
+        approved worked minutes of the rows within the period from LOCKED weeks whose current
+        timesheets and approvals still match their lock evidence; the exclusions with stable codes
+        (ROW_OUTSIDE_PERIOD, TIMESHEET_WITHOUT_TIME); the blockers with stable codes
+        (WEEK_NOT_GENERATED, WEEK_NOT_LOCKED, EVIDENCE_CHANGED, ATTRIBUTION_AMBIGUOUS,
+        NO_APPROVED_TIME; any blocker fails the whole period closed, never a partial run); the
+        source versions digest; a preview digest valid while the evidence, versions and readiness
+        are identical and until expiresAt (15 to 30 minutes); and the existing run of this legal
+        entity and period, if any, with whether its evidence is unchanged. Payroll inputs only:
+        nothing here calculates pay. No name, employee number, subject or amount. A malformed,
+        unknown or foreign legal entity is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. A fail-closed
+        disclosure (audit payroll-input.preview). Shares the payroll-input-write limit.
+        Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollInputPreviewRequest"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs:
+    post:
+      operationId: generatePayrollInputs
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Generate the immutable payroll inputs of a reviewed preview
+      description: >-
+        MVP-090A. Under the tenant's scheduling lock (taken first by every timesheet command, so no
+        lock, unlock, correction, refresh or approval interleaves), the period is evaluated again;
+        a preview digest or source versions digest that no longer matches the evidence, or an
+        expired preview, is 409 PAYROLL_INPUT_PREVIEW_STALE; a period that is not ready (a week
+        that matters is not generated or not locked, a locked week whose evidence changed, a row
+        that cannot be attributed to the legal entity, no approved time) is 409
+        PAYROLL_INPUT_NOT_READY. A run of this legal entity and period that already exists with
+        identical evidence is returned as it is (outcome EXISTING); with different evidence it is
+        409 PAYROLL_INPUT_RUN_EXISTS (generated evidence is never replaced; a superseding version
+        is a later story). Otherwise one transaction writes the immutable run, its source weeks
+        (generation, version, LOCKED action, lock version, lock evidence digest), one employee row
+        per employee and employment, one source row per approved timesheet row within the period
+        (bound to its timesheet, revision, current APPROVED action, cycle and lock action), the
+        audit record (payroll-input.generate) and the outbox event
+        (payroll.payroll-input.generated.v1); the database proves at commit that the run, its
+        weeks and its employees count exactly their rows and that every row lies in the period; a
+        failure of any of them writes nothing. Idempotent (an identical replay returns the
+        original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the
+        payroll-input-write limits. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GeneratePayrollInputsRequest"
+      responses:
+        "200":
+          description: Generated, the existing run of identical evidence, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    get:
+      operationId: listPayrollInputRuns
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the tenant's payroll-input runs
+      description: >-
+        MVP-090A. The tenant's runs, newest first, optionally of one legal entity (a malformed
+        filter is 400). Each item carries the run's facts: the scope, the counts and approved
+        worked minutes, the exclusions, the evidence digest and the generation instant; never the
+        actor, a name or an employee number. The signed cursor is bound to the operation, tenant,
+        filter and page size. A fail-closed disclosure (audit payroll-input.list). Shares the
+        payroll-input-read limit. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - name: legalEntityId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputRunPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs/{runId}:
+    get:
+      operationId: getPayrollInputRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One payroll-input run with its source weeks and employee inputs
+      description: >-
+        MVP-090A. The run's facts, the locked weeks it was built from (site, week, generation and
+        version, LOCKED action and lock version, lock evidence digest, counts) and one row per
+        employee and employment (identifiers, covered dates, counts and approved worked minutes);
+        never a name, an employee number, the actor or an amount. A malformed, unknown or foreign
+        run is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. A fail-closed disclosure (audit
+        payroll-input.read). Shares the payroll-input-read limit. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputRunId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputRunDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /me/timesheets:
     get:
       operationId: listMyTimesheets
@@ -7264,6 +7467,14 @@ components:
       name: exportId
       in: path
       required: true
+      schema:
+        type: string
+        format: uuid
+    PayrollInputRunId:
+      name: runId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND.
       schema:
         type: string
         format: uuid
@@ -10560,6 +10771,10 @@ components:
         - TIMESHEET_PERIOD_LOCKED
         - TIMESHEET_PERIOD_NOT_LOCKED
         - TIMESHEET_PERIOD_PREVIEW_STALE
+        - PAYROLL_INPUT_TARGET_NOT_FOUND
+        - PAYROLL_INPUT_NOT_READY
+        - PAYROLL_INPUT_PREVIEW_STALE
+        - PAYROLL_INPUT_RUN_EXISTS
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -13136,6 +13351,297 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimesheetPeriodAction"
+    PayrollInputPreviewRequest:
+      type: object
+      description: >-
+        MVP-090A. One legal entity and one inclusive period of business-zone dates (one to 31 days,
+        not before 2026-01-01, ending no later than today).
+      additionalProperties: false
+      required: [legalEntityId, periodStart, periodEnd]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+    GeneratePayrollInputsRequest:
+      type: object
+      description: MVP-090A. Generate the payroll inputs of a reviewed preview.
+      additionalProperties: false
+      required: [legalEntityId, periodStart, periodEnd, previewDigest, sourceVersionsDigest, confirm]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The reviewed preview's digest, exactly as returned.
+        sourceVersionsDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The digest of the source versions the preview showed, exactly as returned.
+        confirm:
+          type: boolean
+          const: true
+    PayrollInputScope:
+      type: object
+      description: MVP-090A. The legal entity and the inclusive period, in the business time zone.
+      required: [legalEntityId, legalEntityCode, legalEntityName, periodStart, periodEnd, businessTimezone]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        legalEntityCode:
+          type: [string, "null"]
+        legalEntityName:
+          type: [string, "null"]
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        businessTimezone:
+          type: string
+    PayrollInputCounts:
+      type: object
+      description: MVP-090A. Timesheets, employees (employee and employment pairs), rows and approved worked minutes.
+      required: [timesheets, employees, rows, workedMinutes]
+      properties:
+        timesheets:
+          type: integer
+          minimum: 0
+        employees:
+          type: integer
+          minimum: 0
+        rows:
+          type: integer
+          minimum: 0
+        workedMinutes:
+          type: integer
+          minimum: 0
+    PayrollInputCodeCount:
+      type: object
+      description: MVP-090A. One stable code with its count.
+      required: [code, count]
+      properties:
+        code:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+    PayrollInputWeek:
+      type: object
+      description: MVP-090A. One site-local week the period touches, with its lock status.
+      required: [siteId, siteCode, siteName, weekStart, timezone, status, generationId, generationVersion, lockActionId, lockVersion, counts]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        siteCode:
+          type: [string, "null"]
+        siteName:
+          type: [string, "null"]
+        weekStart:
+          type: string
+          format: date
+        timezone:
+          type: string
+        status:
+          type: string
+          enum: [LOCKED, NOT_GENERATED, NOT_LOCKED, EVIDENCE_CHANGED, EMPTY]
+        generationId:
+          type: [string, "null"]
+          format: uuid
+        generationVersion:
+          type: [integer, "null"]
+          minimum: 1
+        lockActionId:
+          type: [string, "null"]
+          format: uuid
+        lockVersion:
+          type: [integer, "null"]
+          minimum: 1
+        counts:
+          oneOf:
+            - $ref: "#/components/schemas/PayrollInputCounts"
+            - type: "null"
+    PayrollInputPreview:
+      type: object
+      description: >-
+        MVP-090A. What a run of the scope would hold now: payroll inputs only, never calculated pay;
+        no name or employee number.
+      required: [scope, weeks, eligible, excluded, blockers, ready, sourceVersionsDigest, previewDigest, expiresAt, existingRunId, existingRunUnchanged]
+      properties:
+        scope:
+          $ref: "#/components/schemas/PayrollInputScope"
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputWeek"
+        eligible:
+          $ref: "#/components/schemas/PayrollInputCounts"
+        excluded:
+          type: array
+          description: ROW_OUTSIDE_PERIOD and TIMESHEET_WITHOUT_TIME, each with its count.
+          items:
+            $ref: "#/components/schemas/PayrollInputCodeCount"
+        blockers:
+          type: array
+          description: >-
+            WEEK_NOT_GENERATED, WEEK_NOT_LOCKED, EVIDENCE_CHANGED, ATTRIBUTION_AMBIGUOUS or
+            NO_APPROVED_TIME with their counts; empty when the period is ready.
+          items:
+            $ref: "#/components/schemas/PayrollInputCodeCount"
+        ready:
+          type: boolean
+        sourceVersionsDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        existingRunId:
+          type: [string, "null"]
+          format: uuid
+        existingRunUnchanged:
+          type: [boolean, "null"]
+    PayrollInputRun:
+      type: object
+      description: MVP-090A. An immutable payroll-input run (identifiers, dates, counts and minutes only).
+      required: [runId, version, status, schemaVersion, scope, weekCount, counts, excluded, evidenceDigest, generatedAt]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [GENERATED]
+        schemaVersion:
+          type: integer
+          enum: [1]
+        scope:
+          $ref: "#/components/schemas/PayrollInputScope"
+        weekCount:
+          type: integer
+          minimum: 1
+        counts:
+          $ref: "#/components/schemas/PayrollInputCounts"
+        excluded:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputCodeCount"
+        evidenceDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        generatedAt:
+          type: string
+          format: date-time
+    PayrollInputSourceWeek:
+      type: object
+      description: MVP-090A. One locked week a run was built from.
+      required: [siteId, siteCode, siteName, weekStart, timezone, generationId, generationVersion, lockActionId, lockVersion, lockEvidenceDigest, counts]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        siteCode:
+          type: [string, "null"]
+        siteName:
+          type: [string, "null"]
+        weekStart:
+          type: string
+          format: date
+        timezone:
+          type: string
+        generationId:
+          type: string
+          format: uuid
+        generationVersion:
+          type: integer
+          minimum: 1
+        lockActionId:
+          type: string
+          format: uuid
+        lockVersion:
+          type: integer
+          minimum: 1
+        lockEvidenceDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        counts:
+          $ref: "#/components/schemas/PayrollInputCounts"
+    PayrollInputEmployee:
+      type: object
+      description: MVP-090A. One employee and employment's inputs (identifiers, dates, counts and minutes, never a name).
+      required: [employeeId, employmentId, firstWorkDate, lastWorkDate, counts]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employmentId:
+          type: string
+          format: uuid
+        firstWorkDate:
+          type: string
+          format: date
+        lastWorkDate:
+          type: string
+          format: date
+        counts:
+          $ref: "#/components/schemas/PayrollInputCounts"
+    PayrollInputRunDetail:
+      type: object
+      description: MVP-090A. One run with its source weeks and employee inputs.
+      required: [run, weeks, employees]
+      properties:
+        run:
+          $ref: "#/components/schemas/PayrollInputRun"
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputSourceWeek"
+        employees:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputEmployee"
+    PayrollInputResult:
+      type: object
+      description: MVP-090A. A new run, or the existing run of identical evidence.
+      required: [outcome, run]
+      properties:
+        outcome:
+          type: string
+          enum: [GENERATED, EXISTING]
+        run:
+          $ref: "#/components/schemas/PayrollInputRun"
+    PayrollInputRunPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputRun"
+        nextCursor:
+          type: [string, "null"]
     TimesheetPeriod:
       type: object
       description: MVP-070A. A site-local week with its exact UTC boundaries.

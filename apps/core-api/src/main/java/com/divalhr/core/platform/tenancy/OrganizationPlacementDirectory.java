@@ -1,6 +1,7 @@
 package com.divalhr.core.platform.tenancy;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -33,6 +34,16 @@ public interface OrganizationPlacementDirectory {
    * @return the units found, by ID
    */
   Map<UUID, UnitView> resolveIds(TenantId tenant, Set<UUID> ids);
+
+  /**
+   * The sites of a legal entity (MVP-090A: the sites a payroll period covers).
+   *
+   * @param tenant verified tenant
+   * @param legalEntityId legal entity
+   * @return the sites with their zones and effective dates, or empty for an unknown or foreign
+   *     legal entity
+   */
+  List<UnitView> sitesOf(TenantId tenant, UUID legalEntityId);
 
   /** Kinds of organizational unit a placement references. */
   enum UnitKind {

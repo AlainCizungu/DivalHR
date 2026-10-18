@@ -30,7 +30,8 @@
       "documents": "Documents",
       "access": "Access and security",
       "mySpace": "My space",
-      "operations": "Operations"
+      "operations": "Operations",
+      "payroll": "Payroll"
     },
     "leaveRoutingExceptions": "Leave routing exceptions",
     "leaveApprovalSubstitutes": "Leave approval substitutes",
@@ -43,7 +44,8 @@
     "timesheets": "Timesheets",
     "timeExports": "Time exports",
     "myTimesheets": "My timesheets",
-    "timeApprovals": "Time approvals"
+    "timeApprovals": "Time approvals",
+    "payrollPreparation": "Payroll preparation"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -198,6 +200,10 @@
         "timeExports": {
           "title": "Time exports",
           "description": "Export a site’s approved weekly time as a CSV file with a manifest for payroll and accounting. Approved time only; no pay is calculated."
+        },
+        "payrollPreparation": {
+          "title": "Payroll preparation",
+          "description": "Generate traceable, time-based payroll inputs for one legal entity and period from locked approved weeks. Payroll inputs only; no pay is calculated."
         }
       },
       "attention": {
@@ -500,7 +506,11 @@
     "TIMESHEET_PERIOD_NOT_READY": "This week cannot be locked yet: every timesheet must be approved. Preview the lock again.",
     "TIMESHEET_PERIOD_LOCKED": "This week is locked for payroll preparation. Unlock it first.",
     "TIMESHEET_PERIOD_NOT_LOCKED": "This week is not locked.",
-    "TIMESHEET_PERIOD_PREVIEW_STALE": "The week changed since this preview, or the preview expired. Preview again."
+    "TIMESHEET_PERIOD_PREVIEW_STALE": "The week changed since this preview, or the preview expired. Preview again.",
+    "PAYROLL_INPUT_TARGET_NOT_FOUND": "This legal entity or payroll-input run was not found.",
+    "PAYROLL_INPUT_NOT_READY": "This period cannot be generated yet: every week with worked time must be generated and locked, and its evidence unchanged. Preview again.",
+    "PAYROLL_INPUT_PREVIEW_STALE": "The locked evidence changed since this preview, or the preview expired. Preview again.",
+    "PAYROLL_INPUT_RUN_EXISTS": "Payroll inputs already exist for this legal entity and period with different evidence. Generated inputs are never replaced."
   },
   "notFound": {
     "title": "Page not found",
@@ -3745,5 +3755,132 @@
       }
     },
     "validation": "Check the reason."
+  },
+  "payrollPreparation": {
+    "title": "Payroll preparation",
+    "description": "Generate traceable, time-based payroll inputs for one legal entity and one period from locked approved weeks: identifiers, dates, counts and approved worked minutes only.",
+    "notice": "Payroll inputs only. DivalHR has not calculated gross pay, deductions, tax, net pay or payment.",
+    "unauthorized": "Only a tenant administrator with multi-factor authentication can prepare payroll inputs.",
+    "signInRequired": "Sign in as a tenant administrator to prepare payroll inputs.",
+    "validation": "Check the legal entity and the period.",
+    "generated": "Payroll inputs generated.",
+    "existing": "Identical payroll inputs already existed for this period; they are shown below.",
+    "form": {
+      "label": "Legal entity and period",
+      "entitiesUnavailable": "Legal entities could not be loaded. Try again later.",
+      "periodStart": "First day",
+      "periodEnd": "Last day",
+      "periodHint": "Inclusive dates in your organization’s business time zone; up to 31 days, ending no later than today.",
+      "problem": {
+        "legalEntityId": {
+          "required": "Choose a legal entity.",
+          "server": "This legal entity is not valid."
+        },
+        "periodStart": {
+          "required": "Choose the first day.",
+          "server": "Choose a first day from 2026 on."
+        },
+        "periodEnd": {
+          "required": "Choose the last day.",
+          "order": "The last day must not be before the first day.",
+          "length": "The period must not exceed 31 days.",
+          "server": "Choose a last day no later than today, within 31 days of the first day."
+        }
+      }
+    },
+    "scope": {
+      "unknownEntity": "Legal entity",
+      "zone": "Business time zone: {{zone}}."
+    },
+    "preview": {
+      "title": "Payroll inputs preview",
+      "weeks": "Weeks covered",
+      "eligible": "Locked approved time in the period",
+      "excluded": "Left out",
+      "ready": "Every week with worked time in this period is locked and unchanged. The inputs can be generated.",
+      "existingUnchanged": "Payroll inputs already exist for this period with exactly this evidence. Generating again shows them.",
+      "existingChanged": "Payroll inputs already exist for this period with different evidence. Generated inputs are never replaced; a superseding version will be a later step.",
+      "expires": "This preview is valid until {{time}}.",
+      "confirmCheck": "I reviewed this preview and want to generate the payroll inputs.",
+      "generate": "Generate payroll inputs",
+      "generating": "Generating…",
+      "blocked": "This period cannot be generated",
+      "blockedHint": "Nothing is generated until every blocker is resolved upstream (generate, approve and lock the weeks, or correct and relock them). Partial inputs are never produced."
+    },
+    "weeks": {
+      "table": "Weeks the period touches, by site",
+      "none": "No site of this legal entity has scheduled or generated time in this period.",
+      "site": "Site",
+      "week": "Week of",
+      "status": "Status",
+      "versions": "Versions",
+      "versionText": "Generation {{generation}} · lock {{lock}}"
+    },
+    "weekStatus": {
+      "LOCKED": "Locked",
+      "NOT_GENERATED": "Not generated",
+      "NOT_LOCKED": "Not locked",
+      "EVIDENCE_CHANGED": "Evidence changed",
+      "EMPTY": "No timesheet"
+    },
+    "counts": {
+      "employees": "Employees",
+      "timesheets": "Timesheets",
+      "rows": "Rows",
+      "worked": "Approved worked time"
+    },
+    "excluded": {
+      "none": "Nothing left out.",
+      "ROW_OUTSIDE_PERIOD_one": "{{count}} approved row lies outside the period (a week cut by the period).",
+      "ROW_OUTSIDE_PERIOD_other": "{{count}} approved rows lie outside the period (weeks cut by the period).",
+      "TIMESHEET_WITHOUT_TIME_one": "{{count}} approved timesheet has no row in the period.",
+      "TIMESHEET_WITHOUT_TIME_other": "{{count}} approved timesheets have no row in the period."
+    },
+    "blockers": {
+      "none": "No blocker.",
+      "WEEK_NOT_GENERATED_one": "{{count}} week with scheduled work has not been generated.",
+      "WEEK_NOT_GENERATED_other": "{{count}} weeks with scheduled work have not been generated.",
+      "WEEK_NOT_LOCKED_one": "{{count}} generated week is not locked.",
+      "WEEK_NOT_LOCKED_other": "{{count}} generated weeks are not locked.",
+      "EVIDENCE_CHANGED_one": "{{count}} locked week no longer matches its lock evidence.",
+      "EVIDENCE_CHANGED_other": "{{count}} locked weeks no longer match their lock evidence.",
+      "ATTRIBUTION_AMBIGUOUS_one": "{{count}} row cannot be attributed to this legal entity.",
+      "ATTRIBUTION_AMBIGUOUS_other": "{{count}} rows cannot be attributed to this legal entity.",
+      "NO_APPROVED_TIME_one": "No locked approved time lies in this period.",
+      "NO_APPROVED_TIME_other": "No locked approved time lies in this period."
+    },
+    "status": {
+      "GENERATED": "Generated"
+    },
+    "detail": {
+      "title": "Payroll inputs",
+      "id": "Run ID",
+      "version": "Version",
+      "generated": "Generated at",
+      "weeks": "Locked weeks",
+      "digest": "Evidence digest",
+      "sourceWeeks": "Source weeks",
+      "employees": "Employee inputs",
+      "immutable": "Generated inputs are never edited or deleted. Later corrections upstream never change them; a superseding version will be a later step."
+    },
+    "employees": {
+      "table": "Employee inputs, by employee",
+      "employee": "Employee ID",
+      "employment": "Employment ID",
+      "dates": "Covered dates"
+    },
+    "history": {
+      "title": "Generated payroll inputs",
+      "table": "Payroll inputs, newest first",
+      "empty": "No payroll inputs yet.",
+      "unavailable": "The history could not be loaded.",
+      "period": "Period",
+      "legalEntity": "Legal entity",
+      "generated": "Generated at",
+      "actions": "Actions",
+      "open": "View",
+      "openFor": "View the payroll inputs of {{from}} – {{to}}",
+      "more": "Show more"
+    }
   }
 }

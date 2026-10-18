@@ -17,6 +17,7 @@ export interface NavGroupDef {
     | 'platform'
     | 'people'
     | 'operations'
+    | 'payroll'
     | 'organization'
     | 'documents'
     | 'access'
@@ -120,6 +121,18 @@ export const NAVIGATION: NavGroupDef[] = [
       {
         to: '/admin/time-exports',
         labelKey: 'nav.timeExports',
+        icon: 'payroll',
+        role: 'tenant-admin',
+      },
+    ],
+  },
+  {
+    id: 'payroll',
+    labelKey: 'nav.groups.payroll',
+    items: [
+      {
+        to: '/admin/payroll-preparation',
+        labelKey: 'nav.payrollPreparation',
         icon: 'payroll',
         role: 'tenant-admin',
       },

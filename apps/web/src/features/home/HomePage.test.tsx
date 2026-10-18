@@ -82,6 +82,7 @@ const TENANT_DESTINATIONS = {
     ['attendanceReview', '/admin/attendance-review'],
     ['timesheets', '/admin/timesheets'],
     ['timeExports', '/admin/time-exports'],
+    ['payrollPreparation', '/admin/payroll-preparation'],
   ],
   governance: [
     ['contractTemplates', '/admin/contract-templates'],
@@ -198,9 +199,11 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     expect(screen.queryByTestId('home-progress')).toBeNull();
     for (const text of [
       c.nav.timeExports,
+      c.nav.payrollPreparation,
       c.nav.attendanceReview,
       c.nav.timesheets,
       c.home.tenant.cards.timeExports.description,
+      c.home.tenant.cards.payrollPreparation.description,
     ]) {
       expect(container).not.toHaveTextContent(text);
     }

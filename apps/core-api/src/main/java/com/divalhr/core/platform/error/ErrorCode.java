@@ -471,7 +471,28 @@ public enum ErrorCode {
    * MVP-071: the approvals, the generation or lock version, or the unlock reason changed since the
    * lock or unlock preview, or the preview expired; preview again.
    */
-  TIMESHEET_PERIOD_PREVIEW_STALE(HttpStatus.CONFLICT);
+  TIMESHEET_PERIOD_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /**
+   * MVP-090A: the legal entity, period or payroll-input run is unknown, malformed or outside the
+   * caller's tenant (one safe 404, nothing disclosed).
+   */
+  PAYROLL_INPUT_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * MVP-090A: the period cannot be generated now: a week that matters is not generated or not
+   * locked, a locked week's evidence changed, an employee row cannot be attributed to the legal
+   * entity, or no approved time lies in the period; the preview names the blockers.
+   */
+  PAYROLL_INPUT_NOT_READY(HttpStatus.CONFLICT),
+  /**
+   * MVP-090A: the locked evidence or its source versions changed since the preview, or the preview
+   * expired; preview again.
+   */
+  PAYROLL_INPUT_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /**
+   * MVP-090A: a payroll-input run of this legal entity and period already exists with different
+   * evidence; generated evidence is never replaced (a superseding version is a later story).
+   */
+  PAYROLL_INPUT_RUN_EXISTS(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

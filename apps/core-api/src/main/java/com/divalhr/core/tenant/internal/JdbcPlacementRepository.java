@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -160,6 +161,38 @@ public class JdbcPlacementRepository {
             })
         .list();
     return units;
+  }
+
+  /**
+   * The sites of a legal entity, by code (MVP-090A: the payroll period's covered sites).
+   *
+   * @param tenant verified tenant
+   * @param legalEntityId legal entity
+   * @return the sites, or empty for an unknown or foreign legal entity
+   */
+  public List<UnitView> sitesOf(TenantId tenant, UUID legalEntityId) {
+    return jdbc.sql(
+            "SELECT 'SITE' AS kind, id, code, name, effective_from, effective_to, legal_entity_id"
+                + " AS le, NULL::uuid AS site, NULL::uuid AS dept, NULL::uuid AS cc, timezone AS tz"
+                + " FROM tenant.site WHERE tenant_id = :tenant AND legal_entity_id = :legalEntity"
+                + " ORDER BY code")
+        .param("tenant", tenant.value())
+        .param("legalEntity", legalEntityId)
+        .query(
+            (ResultSet rs, int row) ->
+                new UnitView(
+                    rs.getObject("id", UUID.class),
+                    UnitKind.valueOf(rs.getString("kind")),
+                    rs.getString("code"),
+                    rs.getString("name"),
+                    rs.getObject("effective_from", LocalDate.class),
+                    rs.getObject("effective_to", LocalDate.class),
+                    rs.getObject("le", UUID.class),
+                    rs.getObject("site", UUID.class),
+                    rs.getObject("dept", UUID.class),
+                    rs.getObject("cc", UUID.class),
+                    rs.getString("tz")))
+        .list();
   }
 
   private Map<String, PlacementUnit> query(TenantId tenant, Set<String> codes, String sql) {

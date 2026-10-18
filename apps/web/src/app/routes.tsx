@@ -26,6 +26,7 @@ import { MyTimesheetsPage } from '../features/schedules/MyTimesheetsPage';
 import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/ScheduleSubstitutionApprovalsPage';
 import { TeamAttendancePage } from '../features/schedules/TeamAttendancePage';
 import { TimeApprovalsPage } from '../features/schedules/TimeApprovalsPage';
+import { PayrollPreparationPage } from '../features/payroll/PayrollPreparationPage';
 import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
 import { TimesheetsPage } from '../features/schedules/TimesheetsPage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
@@ -65,6 +66,7 @@ const PEOPLE: CrumbDef = { key: 'nav.groups.people' };
 const ORGANIZATION: CrumbDef = { key: 'nav.groups.organization' };
 const DOCUMENTS: CrumbDef = { key: 'nav.groups.documents' };
 const OPERATIONS: CrumbDef = { key: 'nav.groups.operations' };
+const PAYROLL: CrumbDef = { key: 'nav.groups.payroll' };
 const ACCESS: CrumbDef = { key: 'nav.groups.access' };
 const PLATFORM: CrumbDef = { key: 'nav.groups.platform' };
 const MY_SPACE: CrumbDef = { key: 'nav.groups.mySpace' };
@@ -183,6 +185,12 @@ export const ROUTES: AppRoute[] = [
     element: <TimeExportsPage />,
     access: tenantAdmin('timeExports.unauthorized', 'timeExports.signInRequired'),
     crumbs: [HOME, OPERATIONS, { key: 'nav.timeExports' }],
+  },
+  {
+    path: '/admin/payroll-preparation',
+    element: <PayrollPreparationPage />,
+    access: tenantAdmin('payrollPreparation.unauthorized', 'payrollPreparation.signInRequired'),
+    crumbs: [HOME, PAYROLL, { key: 'nav.payrollPreparation' }],
   },
   {
     path: '/admin/contract-templates',
