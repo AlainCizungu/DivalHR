@@ -375,7 +375,20 @@ export function TimeApprovalsPage() {
                 </StatusBadge>{' '}
                 <span>{t('timeApprovals.revision', { revision: opened.timesheet.revision })}</span>{' '}
                 <span>{t('timeApprovals.cycle', { cycle: opened.timesheet.cycle })}</span>
+                {opened.timesheet.periodLocked && (
+                  <>
+                    {' '}
+                    <StatusBadge tone="info" icon="shield" testId="time-approval-period-locked">
+                      {t('timesheetPeriod.badge')}
+                    </StatusBadge>
+                  </>
+                )}
               </p>
+              {opened.timesheet.periodLocked && (
+                <p className="muted" data-testid="time-approval-period-locked-hint">
+                  {t('timesheetPeriod.badgeHint')}
+                </p>
+              )}
               <p className="muted">
                 {t('timeApprovals.submitted', {
                   time: formatInstant(

@@ -1,5 +1,6 @@
 import type {
   Problem,
+  TimesheetPeriodUnlockReason,
   TimesheetRowState,
   TimesheetStatus,
   TimesheetSubmissionBlocker,
@@ -47,7 +48,18 @@ export const BLOCKERS: readonly TimesheetSubmissionBlocker[] = [
   'REFRESH_REQUIRED',
 ];
 
-/** MVP-070B/C: the return reason's bounds (the server decides; this only guides). */
+/** MVP-071: the closed unlock reasons, in the server's fixed order. */
+export const UNLOCK_REASONS: readonly TimesheetPeriodUnlockReason[] = [
+  'ATTENDANCE_CORRECTION_REQUIRED',
+  'TIMESHEET_EVIDENCE_ERROR',
+  'ORGANIZATION_REQUEST',
+  'OTHER',
+];
+
+/**
+ * MVP-070B/C: the return reason's bounds (the server decides; this only guides). MVP-071's unlock
+ * explanation follows the same grammar.
+ */
 export const REASON_MIN = 10;
 export const REASON_MAX = 500;
 
@@ -141,6 +153,7 @@ export interface TimesheetFailure {
     | 'notAllowed'
     | 'limit'
     | 'stale'
+    | 'locked'
     | 'route'
     | 'decided'
     | 'forbidden'
@@ -150,7 +163,7 @@ export interface TimesheetFailure {
     | 'general';
   messageKey: string;
   fields?: WeekField[];
-  /** MVP-070B/C: the return reason was refused. */
+  /** MVP-070B/C: the return reason was refused (MVP-071: the unlock reason or explanation). */
   reason?: boolean;
   correlationId?: string;
 }
@@ -171,6 +184,10 @@ const CODES: Record<string, TimesheetFailure['kind']> = {
   TIMESHEET_DECISION_NOT_ALLOWED: 'decided',
   TIMESHEET_EXPORT_EMPTY: 'notAllowed',
   TIMESHEET_EXPORT_PREVIEW_STALE: 'stale',
+  TIMESHEET_PERIOD_NOT_READY: 'notAllowed',
+  TIMESHEET_PERIOD_LOCKED: 'locked',
+  TIMESHEET_PERIOD_NOT_LOCKED: 'notAllowed',
+  TIMESHEET_PERIOD_PREVIEW_STALE: 'stale',
   IDEMPOTENCY_KEY_REUSED: 'idempotency',
 };
 
@@ -216,7 +233,7 @@ export function timesheetFailureOf(
         if (typeof name === 'string' && (WEEK_FIELDS as readonly string[]).includes(name)) {
           fields.add(name as WeekField);
         }
-        if (name === 'reason') reason = true;
+        if (name === 'reason' || name === 'reasonCode' || name === 'explanation') reason = true;
       }
     }
     if (view === 'manager') {
@@ -227,6 +244,7 @@ export function timesheetFailureOf(
       kind: 'validation',
       messageKey: 'timesheets.validation',
       fields: WEEK_FIELDS.filter((field) => fields.has(field)),
+      reason,
     };
   }
   return { ...base, kind: 'general', messageKey: 'errors.generic' };

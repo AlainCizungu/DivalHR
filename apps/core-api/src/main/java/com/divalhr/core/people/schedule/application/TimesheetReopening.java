@@ -65,6 +65,7 @@ public class TimesheetReopening {
   private final JdbcTimesheetRepository timesheets;
   private final JdbcTimesheetActionRepository actions;
   private final TimesheetService drafts;
+  private final TimesheetPeriodGuard periodGuard;
   private final AuditRecorder audit;
   private final OutboxWriter outbox;
   private final OperationMetrics metrics;
@@ -76,6 +77,7 @@ public class TimesheetReopening {
    * @param timesheets timesheet storage
    * @param actions action storage
    * @param drafts the draft timesheets (the sources evaluated again)
+   * @param periodGuard the locked-period guard (MVP-071)
    * @param audit audit recorder
    * @param outbox outbox writer
    * @param metrics operation metrics
@@ -85,6 +87,7 @@ public class TimesheetReopening {
       JdbcTimesheetRepository timesheets,
       JdbcTimesheetActionRepository actions,
       TimesheetService drafts,
+      TimesheetPeriodGuard periodGuard,
       AuditRecorder audit,
       OutboxWriter outbox,
       OperationMetrics metrics,
@@ -92,6 +95,7 @@ public class TimesheetReopening {
     this.timesheets = timesheets;
     this.actions = actions;
     this.drafts = drafts;
+    this.periodGuard = periodGuard;
     this.audit = audit;
     this.outbox = outbox;
     this.metrics = metrics;
@@ -128,6 +132,8 @@ public class TimesheetReopening {
     List<Header> approved = actions.approvedCovering(tenant, employeeId, shiftStart, true);
     int reopened = 0;
     for (Header header : approved) {
+      // MVP-071: the correction guard refused the locked week first; never reopen through a lock.
+      periodGuard.requireOpen(tenant, header.generationId());
       Action approval =
           actions
               .action(tenant, header.currentActionId())

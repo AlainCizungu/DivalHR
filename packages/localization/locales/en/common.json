@@ -496,7 +496,11 @@
     "TIMESHEET_DECISION_STALE": "This timesheet changed since you opened it. Open it again.",
     "TIMESHEET_DECISION_NOT_ALLOWED": "This timesheet is no longer awaiting a decision.",
     "TIMESHEET_EXPORT_EMPTY": "This week has no approved timesheet to export.",
-    "TIMESHEET_EXPORT_PREVIEW_STALE": "The approved time changed since the preview, or the preview expired. Preview the export again."
+    "TIMESHEET_EXPORT_PREVIEW_STALE": "The approved time changed since the preview, or the preview expired. Preview the export again.",
+    "TIMESHEET_PERIOD_NOT_READY": "This week cannot be locked yet: every timesheet must be approved. Preview the lock again.",
+    "TIMESHEET_PERIOD_LOCKED": "This week is locked for payroll preparation. Unlock it first.",
+    "TIMESHEET_PERIOD_NOT_LOCKED": "This week is not locked.",
+    "TIMESHEET_PERIOD_PREVIEW_STALE": "The week changed since this preview, or the preview expired. Preview again."
   },
   "notFound": {
     "title": "Page not found",
@@ -3471,6 +3475,103 @@
       "refresh": "Refresh before resubmission: refresh this week to give the timesheet a new revision. The employee then submits it again for approval.",
       "refreshed": "Refreshed: the employee can submit the new revision as cycle {{cycle}}."
     }
+  },
+  "timesheetPeriod": {
+    "title": "Period lock",
+    "description": "Lock the week once every timesheet is approved: its approved time becomes stable payroll-source evidence. While locked, no correction, refresh, submission, approval or reopening touches it.",
+    "state": {
+      "OPEN": "Not locked",
+      "LOCKED": "Period locked"
+    },
+    "lockedFor": "Locked for payroll preparation",
+    "receipt": "Lock {{version}} · since {{time}}",
+    "receiptCounts": "{{timesheets}} approved timesheets, {{employees}} employees, {{rows}} shifts, {{worked}}.",
+    "lock": {
+      "action": "Lock period",
+      "previewing": "Checking…",
+      "title": "Lock preview",
+      "ready": "Every timesheet of this week is approved. The lock binds exactly this evidence.",
+      "notReady": "This week cannot be locked yet.",
+      "blocker": {
+        "EMPTY": "The week has no timesheet.",
+        "NOT_ALL_APPROVED": "At least one timesheet is still a draft, submitted or reopened.",
+        "APPROVAL_NOT_CURRENT": "An approval is no longer current; refresh, resubmit and approve the week again.",
+        "ALREADY_LOCKED": "The week is already locked."
+      },
+      "exported": "This approved evidence was already exported.",
+      "notExported": "This approved evidence has not been exported yet. Locking does not create an export.",
+      "confirmCheck": "I reviewed this preview and want to lock the period.",
+      "confirm": "Confirm lock",
+      "confirming": "Locking…",
+      "cancel": "Cancel",
+      "done": "Period locked.",
+      "unchanged": "The period was already locked by this lock."
+    },
+    "unlock": {
+      "action": "Unlock period",
+      "title": "Unlock period",
+      "description": "Unlocking reopens the week to corrections, refreshes and approvals. Give the reason: it is kept with the unlock record.",
+      "reason": "Reason",
+      "chooseReason": "Choose a reason",
+      "explanation": "Explanation",
+      "explanationHint": "10 to 500 characters. No link or markup. Restricted HR data: name only what is needed.",
+      "problem": {
+        "reasonRequired": "Choose a reason.",
+        "required": "Give an explanation.",
+        "length": "Use 10 to 500 characters.",
+        "format": "Remove links, markup and control characters."
+      },
+      "preview": "Preview unlock",
+      "previewing": "Checking…",
+      "previewTitle": "Unlock preview",
+      "currentLock": "Current lock",
+      "warning": {
+        "EXPORTS_UNCHANGED": "Unlocking does not change earlier exports",
+        "APPROVALS_UNCHANGED": "Approved timesheets stay approved until a correction reopens them"
+      },
+      "confirmCheck": "I reviewed this preview and want to unlock the period.",
+      "confirm": "Confirm unlock",
+      "confirming": "Unlocking…",
+      "cancel": "Cancel",
+      "done": "Period unlocked."
+    },
+    "reason": {
+      "ATTENDANCE_CORRECTION_REQUIRED": "Attendance correction required",
+      "TIMESHEET_EVIDENCE_ERROR": "Timesheet evidence error",
+      "ORGANIZATION_REQUEST": "Organization request",
+      "OTHER": "Other"
+    },
+    "counts": {
+      "timesheets": "Timesheets",
+      "approved": "Approved",
+      "draft": "Drafts",
+      "submitted": "Submitted",
+      "reopened": "Reopened",
+      "employees": "Employees",
+      "rows": "Shifts",
+      "worked": "Worked time"
+    },
+    "history": {
+      "title": "Lock history",
+      "label": "Locks and unlocks, newest first",
+      "none": "This week has never been locked.",
+      "columns": {
+        "action": "Action",
+        "version": "Lock version",
+        "when": "When",
+        "timesheets": "Timesheets",
+        "worked": "Worked time",
+        "reason": "Reason"
+      },
+      "action": {
+        "LOCKED": "Period locked",
+        "UNLOCKED": "Period unlocked"
+      },
+      "noReason": "—"
+    },
+    "badge": "Period locked",
+    "badgeHint": "Locked for payroll preparation. This week cannot change until an administrator unlocks it.",
+    "refreshLocked": "The week is locked for payroll preparation; unlock it before refreshing."
   },
   "timeExports": {
     "title": "Time exports",
