@@ -112,6 +112,13 @@ public final class LockedWeeks {
       Map<String, String> records,
       Map<String, Instant[]> shifts) {
 
+    /** Keeps immutable copies of the maps. */
+    public Week {
+      sheets = Map.copyOf(sheets);
+      records = Map.copyOf(records);
+      shifts = Map.copyOf(shifts);
+    }
+
     /** The Sunday. */
     public LocalDate sunday() {
       return monday.plusDays(6);

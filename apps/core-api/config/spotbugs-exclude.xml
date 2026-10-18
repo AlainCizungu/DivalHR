@@ -125,6 +125,11 @@
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>
   </Match>
+  <!-- A shared test fixture holds the test's injected MockMvc, JdbcTemplate and clock by design. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Class name="com.divalhr.core.people.schedule.LockedWeeks"/>
+  </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->
   <Match>
     <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>

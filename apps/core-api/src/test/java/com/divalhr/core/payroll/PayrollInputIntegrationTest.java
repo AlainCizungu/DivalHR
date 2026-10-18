@@ -533,7 +533,7 @@ class PayrollInputIntegrationTest {
     LockedWeeks other = weeks();
     LockedWeeks f = weeks();
     LocalDate monday = f.nextMonday();
-    Week week = f.locked(monday);
+    f.locked(monday);
     String admin = f.admin();
     Map<String, Object> period = scope(f.legalEntity(), monday, monday.plusDays(6));
     JsonNode preview = f.expect(preview(admin, period), 200);
