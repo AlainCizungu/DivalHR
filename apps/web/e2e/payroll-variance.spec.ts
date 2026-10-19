@@ -362,9 +362,11 @@ test.describe.serial('MVP-091: review payroll-input variance', () => {
     await row.getByTestId('payroll-prep-item-variance').click();
 
     const review = admin.getByTestId('payroll-variance');
-    await expect(review.getByRole('heading', { level: 2 })).toHaveText('Payroll variance review');
+    await expect(review.getByRole('heading', { level: 2 })).toHaveText(
+      'Worked-time input differences',
+    );
     await expect(review.getByTestId('payroll-variance-notice')).toHaveText(
-      'Worked-time inputs only. These differences are not pay, tax, deduction or payment differences.',
+      'Worked-time inputs only. Monthly salary is not calculated from these minutes. These differences do not automatically change pay, tax, deductions or payment.',
     );
     // The default is the only eligible earlier run; the defaults are in the fields.
     const lines = review.getByTestId('payroll-variance-line');
@@ -396,6 +398,7 @@ test.describe.serial('MVP-091: review payroll-input variance', () => {
     // Material first, then the largest absolute difference: new (+4 h), changed (+3 h), missing
     // (−2 h), then the changed one below the defaults and the unchanged one.
     await expect(lines.nth(0)).toHaveAttribute('data-classification', 'NEW');
+    await expect(lines.nth(0)).toContainText('Present only in current inputs');
     await expect(lines.nth(0)).toContainText(E5);
     await expect(lines.nth(0).getByTestId('payroll-variance-line-delta')).toHaveText('+4 h 0 min');
     await expect(lines.nth(0).getByTestId('payroll-variance-line-percent')).toHaveText('—');
@@ -405,6 +408,7 @@ test.describe.serial('MVP-091: review payroll-input variance', () => {
     await expect(lines.nth(1).getByTestId('payroll-variance-line-delta')).toHaveText('+3 h 0 min');
     await expect(lines.nth(1).getByTestId('payroll-variance-line-percent')).toHaveText('+30%');
     await expect(lines.nth(2)).toHaveAttribute('data-classification', 'MISSING');
+    await expect(lines.nth(2)).toContainText('Present only in comparison inputs');
     await expect(lines.nth(2)).toContainText(E4);
     await expect(lines.nth(2).getByTestId('payroll-variance-line-delta')).toHaveText('−2 h 0 min');
     await expect(lines.nth(2).getByTestId('payroll-variance-line-percent')).toHaveText('−100%');
@@ -508,7 +512,7 @@ test.describe.serial('MVP-091: review payroll-input variance', () => {
         'Aucune génération antérieure de cette entité juridique, de même durée, ne se termine avant cette période : il n’y a encore rien à comparer.',
       );
       await expect(admin.getByTestId('payroll-variance-notice')).toHaveText(
-        'Données de temps travaillé uniquement. Ces écarts ne sont pas des écarts de salaire, d’impôt, de retenue ou de paiement.',
+        'Données de temps travaillé uniquement. Le salaire mensuel n’est pas calculé à partir de ces minutes. Ces écarts ne modifient pas automatiquement le salaire, les impôts, les retenues ou le paiement.',
       );
       await expect(admin.getByTestId('payroll-variance-totals')).toHaveCount(0);
       await expect(admin.getByTestId('payroll-variance-form')).toHaveCount(0);
@@ -524,7 +528,7 @@ test.describe.serial('MVP-091: review payroll-input variance', () => {
       .click();
     const review = admin.getByTestId('payroll-variance');
     await expect(review.getByRole('heading', { level: 2 })).toHaveText(
-      'Examen des écarts de la paie',
+      'Écarts de données de temps travaillé',
     );
     const lines = review.getByTestId('payroll-variance-line');
     await expect(lines).toHaveCount(3);
@@ -543,10 +547,10 @@ test.describe.serial('MVP-091: review payroll-input variance', () => {
     await expect(review.getByTestId('payroll-variance-total-material')).toHaveText('2');
     await expect(lines.nth(0)).toHaveAttribute('data-classification', 'MISSING');
     await expect(lines.nth(0)).toContainText(E7);
-    await expect(lines.nth(0)).toContainText('Absent');
+    await expect(lines.nth(0)).toContainText('Présent uniquement dans les données de comparaison');
     await expect(lines.nth(1)).toHaveAttribute('data-classification', 'NEW');
     await expect(lines.nth(1)).toContainText(E8);
-    await expect(lines.nth(1)).toContainText('Nouveau');
+    await expect(lines.nth(1)).toContainText('Présent uniquement dans les données courantes');
     await expect(lines.nth(2)).toHaveAttribute('data-classification', 'CHANGED');
     await expect(lines.nth(2)).toContainText(E6);
     await expect(lines.nth(2)).toHaveAttribute('data-material', 'false');

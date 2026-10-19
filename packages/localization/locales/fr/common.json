@@ -3884,10 +3884,10 @@
       "more": "Afficher plus"
     },
     "variance": {
-      "open": "Examiner les écarts",
-      "openFor": "Examiner les écarts des données de paie du {{from}} au {{to}}",
-      "title": "Examen des écarts de la paie",
-      "notice": "Données de temps travaillé uniquement. Ces écarts ne sont pas des écarts de salaire, d’impôt, de retenue ou de paiement.",
+      "open": "Examiner les écarts de temps travaillé",
+      "openFor": "Examiner les écarts de temps travaillé du {{from}} au {{to}}",
+      "title": "Écarts de données de temps travaillé",
+      "notice": "Données de temps travaillé uniquement. Le salaire mensuel n’est pas calculé à partir de ces minutes. Ces écarts ne modifient pas automatiquement le salaire, les impôts, les retenues ou le paiement.",
       "close": "Fermer l’examen",
       "loading": "Chargement de l’examen…",
       "periods": {
@@ -3902,7 +3902,7 @@
       },
       "thresholds": {
         "legend": "Seuils d’importance",
-        "hint": "Les seuils ne font que filtrer cet examen ; rien n’est enregistré. Un employé nouveau ou absent est toujours important.",
+        "hint": "Les seuils ne font que filtrer cet examen ; rien n’est enregistré. Un employé présent dans une seule des deux séries de données est toujours important.",
         "absolute": "Écart en minutes",
         "absoluteHint": "Minutes entières, de 0 à 10 080 (120 par défaut).",
         "percentage": "Écart en pourcentage",
@@ -3919,14 +3919,14 @@
         "label": "Afficher",
         "ALL": "Tous les employés",
         "MATERIAL": "Écarts importants",
-        "NEW": "Nouveaux",
-        "MISSING": "Absents",
+        "NEW": "Présent uniquement dans les données courantes",
+        "MISSING": "Présent uniquement dans les données de comparaison",
         "CHANGED": "Modifiés",
         "UNCHANGED": "Inchangés"
       },
       "classification": {
-        "NEW": "Nouveau",
-        "MISSING": "Absent",
+        "NEW": "Présent uniquement dans les données courantes",
+        "MISSING": "Présent uniquement dans les données de comparaison",
         "CHANGED": "Modifié",
         "UNCHANGED": "Inchangé"
       },
@@ -3937,8 +3937,8 @@
         "currentMinutes": "Temps travaillé, période courante",
         "comparisonMinutes": "Temps travaillé, période de comparaison",
         "delta": "Écart de temps travaillé",
-        "new": "Employés nouveaux",
-        "missing": "Employés absents",
+        "new": "Employés présents uniquement dans les données courantes",
+        "missing": "Employés présents uniquement dans les données de comparaison",
         "changed": "Employés modifiés",
         "unchanged": "Employés inchangés",
         "material": "Écarts importants"

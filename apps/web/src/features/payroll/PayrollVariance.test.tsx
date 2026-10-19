@@ -240,14 +240,38 @@ describe('payroll variance rules in the browser', () => {
         }),
       ),
     ).toMatchObject({ kind: 'validation', fields: ['percentageThreshold'] });
-    expect(en.payrollPreparation.variance.notice).toBe(
-      'Worked-time inputs only. These differences are not pay, tax, deduction or payment differences.',
+    const v = { en: en.payrollPreparation.variance, fr: fr.payrollPreparation.variance };
+    expect(v.en.notice).toBe(
+      'Worked-time inputs only. Monthly salary is not calculated from these minutes. These differences do not automatically change pay, tax, deductions or payment.',
     );
-    expect(fr.payrollPreparation.variance.notice).toBe(
-      'Données de temps travaillé uniquement. Ces écarts ne sont pas des écarts de salaire, d’impôt, de retenue ou de paiement.',
+    expect(v.fr.notice).toBe(
+      'Données de temps travaillé uniquement. Le salaire mensuel n’est pas calculé à partir de ces minutes. Ces écarts ne modifient pas automatiquement le salaire, les impôts, les retenues ou le paiement.',
     );
-    expect(en.payrollPreparation.variance.open).toBe('Review variance');
-    expect(fr.payrollPreparation.variance.open).toBe('Examiner les écarts');
+    // The snapshot wording: never an employment status. The API codes NEW and MISSING are unchanged.
+    expect(v.en.classification.NEW).toBe('Present only in current inputs');
+    expect(v.en.classification.MISSING).toBe('Present only in comparison inputs');
+    expect(v.fr.classification.NEW).toBe('Présent uniquement dans les données courantes');
+    expect(v.fr.classification.MISSING).toBe('Présent uniquement dans les données de comparaison');
+    expect(v.en.view.NEW).toBe(v.en.classification.NEW);
+    expect(v.en.view.MISSING).toBe(v.en.classification.MISSING);
+    expect(v.fr.view.NEW).toBe(v.fr.classification.NEW);
+    expect(v.fr.view.MISSING).toBe(v.fr.classification.MISSING);
+    expect(v.en.totals.new).toBe('Employees present only in current inputs');
+    expect(v.en.totals.missing).toBe('Employees present only in comparison inputs');
+    expect(v.fr.totals.new).toBe('Employés présents uniquement dans les données courantes');
+    expect(v.fr.totals.missing).toBe(
+      'Employés présents uniquement dans les données de comparaison',
+    );
+    expect(v.en.open).toBe('Review worked-time input differences');
+    expect(v.fr.open).toBe('Examiner les écarts de temps travaillé');
+    expect(v.en.title).toBe('Worked-time input differences');
+    expect(v.fr.title).toBe('Écarts de données de temps travaillé');
+    // No user-facing label may read as an employment status or a pay variance.
+    for (const text of [v.en, v.fr].flatMap((o) => JSON.stringify(o))) {
+      expect(text).not.toMatch(
+        /New employees|Missing employees|Employés nouveaux|Employés absents/u,
+      );
+    }
   });
 });
 
@@ -340,6 +364,12 @@ describe.each([
     const rows = screen.getAllByTestId('payroll-variance-line');
     expect(rows[0]).toHaveAttribute('data-classification', 'NEW');
     expect(within(rows[0] as HTMLElement).getByText(k.classification.NEW)).toBeVisible();
+    expect(screen.getByTestId('payroll-variance-total-new').parentElement).toHaveTextContent(
+      k.totals.new,
+    );
+    expect(screen.getByTestId('payroll-variance-total-missing').parentElement).toHaveTextContent(
+      k.totals.missing,
+    );
     expect(within(rows[0] as HTMLElement).getByText(E1)).toBeVisible();
     expect(
       within(rows[0] as HTMLElement).getByTestId('payroll-variance-line-delta'),

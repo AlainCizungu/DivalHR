@@ -37,7 +37,7 @@ const TONES: Record<PayrollVarianceLine['classification'], StatusTone> = {
 };
 
 /**
- * MVP-091: « Examiner les écarts » / "Review variance" for one generated payroll-input run. The
+ * MVP-091: « Examiner les écarts de temps travaillé » / "Review worked-time input differences" for one generated payroll-input run. The
  * administrator compares it with an eligible earlier run of the same legal entity (the newest by
  * default), sets two review thresholds and a filter, and reads the server's employee-by-employee
  * worked-time differences. The thresholds only filter this review: nothing is saved. Worked-time
@@ -400,7 +400,10 @@ export function PayrollVarianceReview({
             </button>
           </p>
           <h3>{t('payrollPreparation.variance.totals.title')}</h3>
-          <dl className="decision-summary" data-testid="payroll-variance-totals">
+          <dl
+            className="decision-summary decision-summary--wrapping"
+            data-testid="payroll-variance-totals"
+          >
             <dt>{t('payrollPreparation.variance.totals.currentEmployees')}</dt>
             <dd data-testid="payroll-variance-total-current-employees">
               {review.totals.currentEmployees}

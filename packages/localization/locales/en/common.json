@@ -3884,10 +3884,10 @@
       "more": "Show more"
     },
     "variance": {
-      "open": "Review variance",
-      "openFor": "Review the variance of the payroll inputs of {{from}} – {{to}}",
-      "title": "Payroll variance review",
-      "notice": "Worked-time inputs only. These differences are not pay, tax, deduction or payment differences.",
+      "open": "Review worked-time input differences",
+      "openFor": "Review the worked-time input differences for {{from}} – {{to}}",
+      "title": "Worked-time input differences",
+      "notice": "Worked-time inputs only. Monthly salary is not calculated from these minutes. These differences do not automatically change pay, tax, deductions or payment.",
       "close": "Close the review",
       "loading": "Loading the review…",
       "periods": {
@@ -3902,7 +3902,7 @@
       },
       "thresholds": {
         "legend": "Materiality thresholds",
-        "hint": "Thresholds only filter this review; nothing is saved. A new or missing employee is always material.",
+        "hint": "Thresholds only filter this review; nothing is saved. An employee present in only one of the two sets of inputs is always material.",
         "absolute": "Difference in minutes",
         "absoluteHint": "Whole minutes, 0 to 10,080 (default 120).",
         "percentage": "Difference in percent",
@@ -3919,14 +3919,14 @@
         "label": "Show",
         "ALL": "All employees",
         "MATERIAL": "Material differences",
-        "NEW": "New",
-        "MISSING": "Missing",
+        "NEW": "Present only in current inputs",
+        "MISSING": "Present only in comparison inputs",
         "CHANGED": "Changed",
         "UNCHANGED": "Unchanged"
       },
       "classification": {
-        "NEW": "New",
-        "MISSING": "Missing",
+        "NEW": "Present only in current inputs",
+        "MISSING": "Present only in comparison inputs",
         "CHANGED": "Changed",
         "UNCHANGED": "Unchanged"
       },
@@ -3937,8 +3937,8 @@
         "currentMinutes": "Worked time, current period",
         "comparisonMinutes": "Worked time, comparison period",
         "delta": "Difference in worked time",
-        "new": "New employees",
-        "missing": "Missing employees",
+        "new": "Employees present only in current inputs",
+        "missing": "Employees present only in comparison inputs",
         "changed": "Changed employees",
         "unchanged": "Unchanged employees",
         "material": "Material differences"
