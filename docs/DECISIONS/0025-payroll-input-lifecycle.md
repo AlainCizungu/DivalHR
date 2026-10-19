@@ -19,6 +19,8 @@ pay, overtime, deduction or payment figure.
   `input_export` and `input_export_row` reference V37 keys only and use V37's append-only guards
   (`payroll.input_immutable`, `payroll.input_no_truncate`). No column holds a rate, a salary, an
   amount or a note.
+  An export's `lock_id` and `run_id` are bound by one composite foreign key to the lock's
+  identity key, so direct SQL cannot pair one run's export with another run's lock (R150-1).
 - **Versions.** Version N+1 of the same tenant, legal entity and period is a new V37 run plus a
   supersession of exactly version N with a reason code (`UPSTREAM_CORRECTION`,
   `UPSTREAM_REAPPROVAL`, `SCOPE_CORRECTION`, `OTHER`). `OTHER` alone carries a bounded plain-text

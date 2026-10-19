@@ -381,6 +381,13 @@ class PayrollLifecycleMigrationIntegrationTest {
 
   private static UUID lock(Connection c, World w, Shape s, int version, String digest)
       throws SQLException {
+    return lockIn(c, w, s, MONDAY, MONDAY.plusDays(6), version, digest);
+  }
+
+  /** A lock of a run whose scope is the given period. */
+  private static UUID lockIn(
+      Connection c, World w, Shape s, LocalDate start, LocalDate end, int version, String digest)
+      throws SQLException {
     UUID id = UUID.randomUUID();
     exec(
         c,
@@ -391,8 +398,8 @@ class PayrollLifecycleMigrationIntegrationTest {
         id,
         s.run(),
         w.entity(),
-        MONDAY,
-        MONDAY.plusDays(6),
+        start,
+        end,
         version,
         digest,
         AT);
@@ -614,6 +621,31 @@ class PayrollLifecycleMigrationIntegrationTest {
                 UUID header = exportHeader(c, w, shape(v1), lock.get(), 1, 2, 30);
                 exportRows(c, w, shape(v1), header, "r.line", "r.worked_minutes", "");
               });
+          // Provenance: an export's lock_id is the lock row of its own run. Two locked runs (two
+          // scopes) each satisfy both single-column foreign keys with the other's lock id; only the
+          // composite key refuses the crossed pairing, in either direction.
+          AtomicReference<Shape> other = new AtomicReference<>();
+          AtomicReference<UUID> otherLock = new AtomicReference<>();
+          committed(
+              db,
+              c -> {
+                other.set(consistent(c, w, MONDAY, MONDAY.plusDays(13)));
+                otherLock.set(lockIn(c, w, shape(other), MONDAY, MONDAY.plusDays(13), 1, DIGEST));
+              });
+          refused(
+              db,
+              "payroll_input_export_lock_id",
+              c -> {
+                UUID header = exportHeader(c, w, shape(v2), otherLock.get(), 2, 2, 30);
+                exportRows(c, w, shape(v2), header, "r.line", "r.worked_minutes", "");
+              });
+          refused(
+              db,
+              "payroll_input_export_lock_id",
+              c -> {
+                UUID header = exportHeader(c, w, shape(other), lock.get(), 1, 2, 30);
+                exportRows(c, w, shape(other), header, "r.line", "r.worked_minutes", "");
+              });
           refused(
               db,
               "payroll_input_export_exact",
@@ -706,7 +738,7 @@ class PayrollLifecycleMigrationIntegrationTest {
                 c -> exec(c, "TRUNCATE payroll." + table[0] + " CASCADE"));
           }
           assertThat(count(db, "SELECT count(*) FROM payroll.input_run_supersession")).isEqualTo(1);
-          assertThat(count(db, "SELECT count(*) FROM payroll.input_run_lock")).isEqualTo(1);
+          assertThat(count(db, "SELECT count(*) FROM payroll.input_run_lock")).isEqualTo(2);
           assertThat(count(db, "SELECT count(*) FROM payroll.input_export")).isEqualTo(1);
           assertThat(count(db, "SELECT count(*) FROM payroll.input_export_row")).isEqualTo(2);
         });

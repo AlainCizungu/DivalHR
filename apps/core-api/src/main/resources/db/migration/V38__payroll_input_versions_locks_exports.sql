@@ -138,6 +138,9 @@ CREATE TABLE payroll.input_run_lock (
     CONSTRAINT payroll_input_lock_pkey PRIMARY KEY (tenant_id, id),
     -- At most one current lock action for a run; nothing unlocks a run in this MVP.
     CONSTRAINT payroll_input_lock_one UNIQUE (tenant_id, run_id),
+    -- The lock's identity as a key: lets an export prove that its lock_id and its run_id name the
+    -- same lock row, not two different locks that each satisfy a foreign key alone.
+    CONSTRAINT payroll_input_lock_identity UNIQUE (tenant_id, id, run_id),
     CONSTRAINT payroll_input_lock_run
         FOREIGN KEY (tenant_id, run_id) REFERENCES payroll.input_run (tenant_id, id),
     CONSTRAINT payroll_input_lock_action CHECK (action = 'LOCKED' AND lock_version = 1),
@@ -201,8 +204,11 @@ CREATE TABLE payroll.input_export (
     CONSTRAINT payroll_input_export_one UNIQUE (tenant_id, run_id),
     CONSTRAINT payroll_input_export_lock
         FOREIGN KEY (tenant_id, run_id) REFERENCES payroll.input_run_lock (tenant_id, run_id),
+    -- Provenance: the lock_id is the lock row of this very run (one composite key, so direct SQL
+    -- cannot pair run A's export with run B's lock).
     CONSTRAINT payroll_input_export_lock_id
-        FOREIGN KEY (tenant_id, lock_id) REFERENCES payroll.input_run_lock (tenant_id, id),
+        FOREIGN KEY (tenant_id, lock_id, run_id)
+        REFERENCES payroll.input_run_lock (tenant_id, id, run_id),
     CONSTRAINT payroll_input_export_schema CHECK (schema_version = 1),
     CONSTRAINT payroll_input_export_counts
         CHECK (employee_count >= 1 AND row_count >= employee_count AND worked_minutes >= 0),
