@@ -510,7 +510,8 @@
     "PAYROLL_INPUT_TARGET_NOT_FOUND": "Cette entité juridique ou cette génération de données de paie est introuvable.",
     "PAYROLL_INPUT_NOT_READY": "Cette période ne peut pas encore être générée : chaque semaine comportant du temps travaillé doit être générée et verrouillée, et sa preuve inchangée. Prévisualisez de nouveau.",
     "PAYROLL_INPUT_PREVIEW_STALE": "La preuve verrouillée a changé depuis cet aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau.",
-    "PAYROLL_INPUT_RUN_EXISTS": "Des données de préparation de la paie existent déjà pour cette entité juridique et cette période avec une preuve différente. Les données générées ne sont jamais remplacées."
+    "PAYROLL_INPUT_RUN_EXISTS": "Des données de préparation de la paie existent déjà pour cette entité juridique et cette période avec une preuve différente. Les données générées ne sont jamais remplacées.",
+    "PAYROLL_VARIANCE_TARGET_NOT_FOUND": "Cette génération de données de paie est introuvable, ou elle ne peut pas être comparée à celle choisie."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3881,6 +3882,93 @@
       "open": "Consulter",
       "openFor": "Consulter les données de préparation du {{from}} au {{to}}",
       "more": "Afficher plus"
+    },
+    "variance": {
+      "open": "Examiner les écarts de temps travaillé",
+      "openFor": "Examiner les écarts de temps travaillé du {{from}} au {{to}}",
+      "title": "Écarts de données de temps travaillé",
+      "notice": "Données de temps travaillé uniquement. Le salaire mensuel n’est pas calculé à partir de ces minutes. Ces écarts ne modifient pas automatiquement le salaire, les impôts, les retenues ou le paiement.",
+      "close": "Fermer l’examen",
+      "loading": "Chargement de l’examen…",
+      "periods": {
+        "current": "Période courante",
+        "comparison": "Période de comparaison"
+      },
+      "empty": "Aucune génération antérieure de cette entité juridique, de même durée, ne se termine avant cette période : il n’y a encore rien à comparer.",
+      "comparison": {
+        "label": "Comparer avec",
+        "hint": "La génération antérieure admissible la plus récente est sélectionnée par défaut. Seules sont proposées les générations de cette entité juridique, de même durée en jours, qui se terminent avant cette période.",
+        "option": "Du {{from}} au {{to}}, générée le {{generated}}"
+      },
+      "thresholds": {
+        "legend": "Seuils d’importance",
+        "hint": "Les seuils ne font que filtrer cet examen ; rien n’est enregistré. Un employé présent dans une seule des deux séries de données est toujours important.",
+        "absolute": "Écart en minutes",
+        "absoluteHint": "Minutes entières, de 0 à 10 080 (120 par défaut).",
+        "percentage": "Écart en pourcentage",
+        "percentageHint": "Pourcentage entier du temps de comparaison, de 0 à 100 (20 par défaut).",
+        "apply": "Mettre à jour l’examen",
+        "applying": "Mise à jour…",
+        "problem": {
+          "absoluteMinuteThreshold": "Saisissez un nombre entier de minutes de 0 à 10 080.",
+          "percentageThreshold": "Saisissez un pourcentage entier de 0 à 100.",
+          "server": "Vérifiez les seuils et le filtre."
+        }
+      },
+      "view": {
+        "label": "Afficher",
+        "ALL": "Tous les employés",
+        "MATERIAL": "Écarts importants",
+        "NEW": "Présent uniquement dans les données courantes",
+        "MISSING": "Présent uniquement dans les données de comparaison",
+        "CHANGED": "Modifiés",
+        "UNCHANGED": "Inchangés"
+      },
+      "classification": {
+        "NEW": "Présent uniquement dans les données courantes",
+        "MISSING": "Présent uniquement dans les données de comparaison",
+        "CHANGED": "Modifié",
+        "UNCHANGED": "Inchangé"
+      },
+      "totals": {
+        "title": "Totaux pour tous les employés",
+        "currentEmployees": "Employés, période courante",
+        "comparisonEmployees": "Employés, période de comparaison",
+        "currentMinutes": "Temps travaillé, période courante",
+        "comparisonMinutes": "Temps travaillé, période de comparaison",
+        "delta": "Écart de temps travaillé",
+        "new": "Employés présents uniquement dans les données courantes",
+        "missing": "Employés présents uniquement dans les données de comparaison",
+        "changed": "Employés modifiés",
+        "unchanged": "Employés inchangés",
+        "material": "Écarts importants"
+      },
+      "table": {
+        "caption": "Écarts de temps travaillé par employé",
+        "employee": "Identifiant de l’employé",
+        "employments": "Identifiants d’emploi (courant / comparaison)",
+        "classification": "Classement",
+        "current": "Courant",
+        "comparison": "Comparaison",
+        "delta": "Écart",
+        "percent": "Écart en %",
+        "material": "Important",
+        "rows": "Lignes (courant / comparaison)",
+        "timesheets": "Feuilles de temps (courant / comparaison)",
+        "materialYes": "Important",
+        "materialNo": "Non important",
+        "noPercent": "—",
+        "absent": "—"
+      },
+      "matching_one": "{{count}} employé correspond à ce filtre.",
+      "matching_other": "{{count}} employés correspondent à ce filtre.",
+      "none": "Aucun employé ne correspond à ce filtre.",
+      "more": "Afficher plus",
+      "openRun": {
+        "current": "Ouvrir les données de paie de la période courante",
+        "comparison": "Ouvrir les données de paie de la période de comparaison"
+      },
+      "unavailable": "L’examen n’a pas pu être chargé."
     }
   }
 }

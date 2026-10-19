@@ -492,6 +492,16 @@ fieldset.field {
   margin: 0 0 var(--dv-space-4);
 }
 
+/* MVP-091: long translated labels (for example the French snapshot wording) may wrap instead of
+   widening the page at 200 % zoom. */
+.decision-summary--wrapping {
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+}
+
+.decision-summary--wrapping dt {
+  overflow-wrap: anywhere;
+}
+
 .decision-reason blockquote,
 .request-reason {
   margin: var(--dv-space-1) 0 0;

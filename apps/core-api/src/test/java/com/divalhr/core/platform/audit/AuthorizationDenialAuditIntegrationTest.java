@@ -213,7 +213,10 @@ class AuthorizationDenialAuditIntegrationTest {
           "payroll-input.preview",
           "payroll-input.generate",
           "payroll-input.list",
-          "payroll-input.read");
+          "payroll-input.read",
+          // MVP-091: payroll-input variance review.
+          "payroll-variance.candidates",
+          "payroll-variance.review");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -685,7 +688,7 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-070E six more (a preview, a creation, the history, a read and two downloads).
     // MVP-071 five more (two previews, a lock, an unlock, the history).
     // MVP-090A four more (a preview, a generation, the history, a read).
-    assertThat(handlers).hasSize(111);
+    assertThat(handlers).hasSize(113);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

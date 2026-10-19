@@ -121,6 +121,8 @@
       <Class name="com.divalhr.core.payroll.application.PayrollInputService"/>
       <Class name="com.divalhr.core.payroll.internal.JdbcPayrollInputRepository"/>
       <Class name="com.divalhr.core.payroll.api.PayrollInputController"/>
+      <Class name="com.divalhr.core.payroll.application.PayrollVarianceService"/>
+      <Class name="com.divalhr.core.payroll.api.PayrollVarianceController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>

@@ -9,6 +9,7 @@ import com.divalhr.core.payroll.domain.PayrollInputs.Scope;
 import com.divalhr.core.payroll.domain.PayrollInputs.SourceRow;
 import com.divalhr.core.payroll.domain.PayrollInputs.SourceWeek;
 import com.divalhr.core.payroll.domain.PayrollInputs.Totals;
+import com.divalhr.core.payroll.domain.PayrollVariance;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -125,6 +126,34 @@ public class JdbcPayrollInputRepository {
     }
     sql.append(" ORDER BY r.generated_at DESC, r.id DESC LIMIT :limit");
     return jdbc.query(sql.toString(), params, (rs, n) -> run(rs));
+  }
+
+  /**
+   * The runs of the same tenant and legal entity that end before the current run begins and cover
+   * the same inclusive number of days, newest period first (MVP-091). The comparison is eligible
+   * only through {@link PayrollVariance#eligible}; this query only narrows it.
+   *
+   * @param tenant verified tenant
+   * @param current the current run
+   * @param limit rows to read
+   * @return the candidate runs
+   */
+  public List<Run> comparable(TenantId tenant, Run current, int limit) {
+    return jdbc.query(
+        "SELECT "
+            + RUN_COLUMNS
+            + " FROM payroll.input_run r WHERE r.tenant_id = :tenant AND r.legal_entity_id ="
+            + " :legalEntity AND r.id <> :id AND r.period_end < :start AND (r.period_end -"
+            + " r.period_start) = :span ORDER BY r.period_end DESC, r.generated_at DESC, r.id DESC"
+            + " LIMIT :limit",
+        new MapSqlParameterSource()
+            .addValue("tenant", tenant.value())
+            .addValue("legalEntity", current.scope().legalEntityId())
+            .addValue("id", current.id())
+            .addValue("start", current.scope().periodStart())
+            .addValue("span", (int) (PayrollVariance.days(current) - 1))
+            .addValue("limit", limit),
+        (rs, n) -> run(rs));
   }
 
   /**
