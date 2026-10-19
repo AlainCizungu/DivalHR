@@ -513,3 +513,7 @@ ADR 0023, V37, additive to V36; the first objects of the `payroll` schema, owned
 - A PayInput references its source record and approval status.
 - Financial DataDisclosure references a specific Consent, partner, purpose, field set, and expiration.
 - AI outputs retain references to the authorized records or governed metrics used.
+
+## MVP-091: payroll variance review
+
+No schema change. The review is computed on read from the immutable V37 `payroll.input_run` and `payroll.input_employee` rows (the existing repository gains a candidate query); nothing is stored. No migration, so no rollback consideration.

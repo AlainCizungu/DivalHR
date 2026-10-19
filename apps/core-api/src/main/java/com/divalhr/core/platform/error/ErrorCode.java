@@ -492,7 +492,13 @@ public enum ErrorCode {
    * MVP-090A: a payroll-input run of this legal entity and period already exists with different
    * evidence; generated evidence is never replaced (a superseding version is a later story).
    */
-  PAYROLL_INPUT_RUN_EXISTS(HttpStatus.CONFLICT);
+  PAYROLL_INPUT_RUN_EXISTS(HttpStatus.CONFLICT),
+  /**
+   * MVP-091: the current or comparison payroll-input run is unknown, malformed, outside the
+   * caller's tenant or not comparable (another legal entity, not ending before the current period,
+   * another length), or no eligible comparison run exists (one safe 404, nothing disclosed).
+   */
+  PAYROLL_VARIANCE_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND);
 
   private final HttpStatus status;
 

@@ -197,7 +197,8 @@
         "PAYROLL_INPUT_TARGET_NOT_FOUND",
         "PAYROLL_INPUT_NOT_READY",
         "PAYROLL_INPUT_PREVIEW_STALE",
-        "PAYROLL_INPUT_RUN_EXISTS"
+        "PAYROLL_INPUT_RUN_EXISTS",
+        "PAYROLL_VARIANCE_TARGET_NOT_FOUND"
       ]
     },
     "params": { "type": "object" },

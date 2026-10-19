@@ -510,7 +510,8 @@
     "PAYROLL_INPUT_TARGET_NOT_FOUND": "This legal entity or payroll-input run was not found.",
     "PAYROLL_INPUT_NOT_READY": "This period cannot be generated yet: every week with worked time must be generated and locked, and its evidence unchanged. Preview again.",
     "PAYROLL_INPUT_PREVIEW_STALE": "The locked evidence changed since this preview, or the preview expired. Preview again.",
-    "PAYROLL_INPUT_RUN_EXISTS": "Payroll inputs already exist for this legal entity and period with different evidence. Generated inputs are never replaced."
+    "PAYROLL_INPUT_RUN_EXISTS": "Payroll inputs already exist for this legal entity and period with different evidence. Generated inputs are never replaced.",
+    "PAYROLL_VARIANCE_TARGET_NOT_FOUND": "This payroll-input run was not found, or it cannot be compared with the one chosen."
   },
   "notFound": {
     "title": "Page not found",
@@ -3881,6 +3882,93 @@
       "open": "View",
       "openFor": "View the payroll inputs of {{from}} – {{to}}",
       "more": "Show more"
+    },
+    "variance": {
+      "open": "Review variance",
+      "openFor": "Review the variance of the payroll inputs of {{from}} – {{to}}",
+      "title": "Payroll variance review",
+      "notice": "Worked-time inputs only. These differences are not pay, tax, deduction or payment differences.",
+      "close": "Close the review",
+      "loading": "Loading the review…",
+      "periods": {
+        "current": "Current period",
+        "comparison": "Comparison period"
+      },
+      "empty": "No earlier run of this legal entity with the same number of days ends before this period, so there is nothing to compare with yet.",
+      "comparison": {
+        "label": "Compare with",
+        "hint": "The newest eligible earlier run is selected by default. Only runs of this legal entity with the same number of days that end before this period are offered.",
+        "option": "{{from}} – {{to}}, generated {{generated}}"
+      },
+      "thresholds": {
+        "legend": "Materiality thresholds",
+        "hint": "Thresholds only filter this review; nothing is saved. A new or missing employee is always material.",
+        "absolute": "Difference in minutes",
+        "absoluteHint": "Whole minutes, 0 to 10,080 (default 120).",
+        "percentage": "Difference in percent",
+        "percentageHint": "Whole percent of the comparison time, 0 to 100 (default 20).",
+        "apply": "Update the review",
+        "applying": "Updating…",
+        "problem": {
+          "absoluteMinuteThreshold": "Enter a whole number of minutes from 0 to 10,080.",
+          "percentageThreshold": "Enter a whole percentage from 0 to 100.",
+          "server": "Check the thresholds and the filter."
+        }
+      },
+      "view": {
+        "label": "Show",
+        "ALL": "All employees",
+        "MATERIAL": "Material differences",
+        "NEW": "New",
+        "MISSING": "Missing",
+        "CHANGED": "Changed",
+        "UNCHANGED": "Unchanged"
+      },
+      "classification": {
+        "NEW": "New",
+        "MISSING": "Missing",
+        "CHANGED": "Changed",
+        "UNCHANGED": "Unchanged"
+      },
+      "totals": {
+        "title": "Totals for all employees",
+        "currentEmployees": "Employees, current period",
+        "comparisonEmployees": "Employees, comparison period",
+        "currentMinutes": "Worked time, current period",
+        "comparisonMinutes": "Worked time, comparison period",
+        "delta": "Difference in worked time",
+        "new": "New employees",
+        "missing": "Missing employees",
+        "changed": "Changed employees",
+        "unchanged": "Unchanged employees",
+        "material": "Material differences"
+      },
+      "table": {
+        "caption": "Worked-time differences by employee",
+        "employee": "Employee ID",
+        "employments": "Employment IDs (current / comparison)",
+        "classification": "Classification",
+        "current": "Current",
+        "comparison": "Comparison",
+        "delta": "Difference",
+        "percent": "Difference in %",
+        "material": "Material",
+        "rows": "Rows (current / comparison)",
+        "timesheets": "Timesheets (current / comparison)",
+        "materialYes": "Material",
+        "materialNo": "Not material",
+        "noPercent": "—",
+        "absent": "—"
+      },
+      "matching_one": "{{count}} employee matches this filter.",
+      "matching_other": "{{count}} employees match this filter.",
+      "none": "No employee matches this filter.",
+      "more": "Show more",
+      "openRun": {
+        "current": "Open the current period’s payroll inputs",
+        "comparison": "Open the comparison period’s payroll inputs"
+      },
+      "unavailable": "The review could not be loaded."
     }
   }
 }

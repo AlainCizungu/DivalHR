@@ -13,6 +13,7 @@ import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { formatDate } from '../people/history';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { loadAll, useOptions } from '../people/unitOptions';
+import { PayrollVarianceReview } from './PayrollVarianceReview';
 import { formatInstant } from '../schedules/attendance';
 import { durationParts } from '../schedules/timesheets';
 import {
@@ -236,6 +237,8 @@ export function PayrollPreparationPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [historyFailed, setHistoryFailed] = useState(false);
   const [detail, setDetail] = useState<PayrollInputRunDetail | null>(null);
+  // MVP-091: the run under variance review (component state only; never stored or in a URL).
+  const [varianceRun, setVarianceRun] = useState<string | null>(null);
   const previewHeading = useRef<HTMLHeadingElement>(null);
   const detailHeading = useRef<HTMLHeadingElement>(null);
 
@@ -666,7 +669,31 @@ export function PayrollPreparationPage() {
             </table>
           </ScrollRegion>
           <p className="muted">{t('payrollPreparation.detail.immutable')}</p>
+          <p>
+            <button
+              type="button"
+              className="button button--secondary"
+              disabled={busy}
+              data-testid="payroll-prep-review-variance"
+              onClick={() => {
+                setVarianceRun(detail.run.runId);
+              }}
+            >
+              {t('payrollPreparation.variance.open')}
+            </button>
+          </p>
         </section>
+      )}
+
+      {varianceRun && (
+        <PayrollVarianceReview
+          key={varianceRun}
+          runId={varianceRun}
+          onOpenRun={open}
+          onClose={() => {
+            setVarianceRun(null);
+          }}
+        />
       )}
 
       <section
@@ -700,7 +727,11 @@ export function PayrollPreparationPage() {
               </thead>
               <tbody>
                 {history.map((item) => (
-                  <tr key={item.runId} data-testid="payroll-prep-item">
+                  <tr
+                    key={item.runId}
+                    data-testid="payroll-prep-item"
+                    data-period-start={item.scope.periodStart}
+                  >
                     <td>
                       {t('timesheets.period', {
                         from: formatDate(i18n.language, item.scope.periodStart),
@@ -735,6 +766,21 @@ export function PayrollPreparationPage() {
                         }}
                       >
                         {t('payrollPreparation.history.open')}
+                      </button>{' '}
+                      <button
+                        type="button"
+                        className="button button--secondary"
+                        disabled={busy}
+                        aria-label={t('payrollPreparation.variance.openFor', {
+                          from: formatDate(i18n.language, item.scope.periodStart),
+                          to: formatDate(i18n.language, item.scope.periodEnd),
+                        })}
+                        data-testid="payroll-prep-item-variance"
+                        onClick={() => {
+                          setVarianceRun(item.runId);
+                        }}
+                      >
+                        {t('payrollPreparation.variance.open')}
                       </button>
                     </td>
                   </tr>
