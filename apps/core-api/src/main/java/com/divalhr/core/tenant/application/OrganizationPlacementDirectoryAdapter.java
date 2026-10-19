@@ -3,6 +3,7 @@ package com.divalhr.core.tenant.application;
 import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory;
 import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.tenant.internal.JdbcPlacementRepository;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -38,5 +39,10 @@ public class OrganizationPlacementDirectoryAdapter implements OrganizationPlacem
   @Override
   public Map<UUID, UnitView> resolveIds(TenantId tenant, Set<UUID> ids) {
     return placements.byIds(tenant, ids);
+  }
+
+  @Override
+  public List<UnitView> sitesOf(TenantId tenant, UUID legalEntityId) {
+    return placements.sitesOf(tenant, legalEntityId);
   }
 }

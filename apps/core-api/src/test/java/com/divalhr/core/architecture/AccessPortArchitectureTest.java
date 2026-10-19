@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.divalhr.core.platform.access.EmployeeAccessLinks;
 import com.divalhr.core.platform.access.EmploymentContractFacts;
+import com.divalhr.core.platform.access.LockedApprovedTime;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -75,6 +76,25 @@ class AccessPortArchitectureTest {
           .haveName("lockForContract")
           .should(JOIN_THE_CALLER);
 
+  @ArchTest
+  static final ArchRule payrollPortLockJoinsTheCoordinatorsTransaction =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .implement(LockedApprovedTime.class)
+          .and()
+          .haveName("lockForPayrollInputs")
+          .should(JOIN_THE_CALLER);
+
+  @Test
+  void thePayrollPortReadsAndLocksOnlyThroughItsDeclaredMethods() {
+    assertThat(
+            Stream.of(LockedApprovedTime.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactlyInAnyOrder("lockForPayrollInputs", "weeks", "approvedRows");
+  }
+
   @Test
   void theContractPortLocksOnlyThroughItsJoiningMethod() {
     assertThat(
@@ -108,6 +128,8 @@ class AccessPortArchitectureTest {
 
   private static final Pattern DOCUMENTS_TABLE =
       Pattern.compile("\\bdocuments\\.(contract[a-z_]*)\\b");
+  private static final Pattern ANY_PEOPLE_TABLE = Pattern.compile("\\bpeople\\.[a-z_]+\\b");
+  private static final Pattern PAYROLL_TABLE = Pattern.compile("\\bpayroll\\.[a-z_]+\\b");
 
   @Test
   void neitherModuleQueriesTheOthersTables() throws IOException {
@@ -119,6 +141,13 @@ class AccessPortArchitectureTest {
     scan(root.resolve("documents"), PEOPLE_TABLE, offenders);
     scan(root.resolve("people"), DOCUMENTS_TABLE, offenders);
     scan(root.resolve("identity"), DOCUMENTS_TABLE, offenders);
+    // MVP-090A: payroll reads people's locked approved time through its port only, and nobody
+    // reads payroll's tables.
+    scan(root.resolve("payroll"), ANY_PEOPLE_TABLE, offenders);
+    scan(root.resolve("people"), PAYROLL_TABLE, offenders);
+    scan(root.resolve("identity"), PAYROLL_TABLE, offenders);
+    scan(root.resolve("documents"), PAYROLL_TABLE, offenders);
+    scan(root.resolve("tenant"), PAYROLL_TABLE, offenders);
     assertThat(offenders).isEmpty();
   }
 

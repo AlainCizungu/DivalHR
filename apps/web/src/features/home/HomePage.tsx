@@ -165,6 +165,12 @@ const TENANT_GROUPS: { id: 'people' | 'operations' | 'governance'; cards: CardDe
       ),
       tenantCard('timesheets', '/admin/timesheets', 'check', 'home-card-timesheets'),
       tenantCard('timeExports', '/admin/time-exports', 'payroll', 'home-card-time-exports'),
+      tenantCard(
+        'payrollPreparation',
+        '/admin/payroll-preparation',
+        'payroll',
+        'home-card-payroll-preparation',
+      ),
     ],
   },
   {

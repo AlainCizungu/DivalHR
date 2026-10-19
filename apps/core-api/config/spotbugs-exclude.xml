@@ -116,9 +116,19 @@
       <Class name="com.divalhr.core.people.schedule.application.TimesheetPeriodGuard"/>
       <Class name="com.divalhr.core.people.schedule.internal.JdbcTimesheetPeriodRepository"/>
       <Class name="com.divalhr.core.people.schedule.api.TimesheetPeriodController"/>
+      <Class name="com.divalhr.core.people.schedule.application.ScheduleLockedApprovedTime"/>
+      <Class name="com.divalhr.core.people.schedule.internal.JdbcLockedApprovedTimeRepository"/>
+      <Class name="com.divalhr.core.payroll.application.PayrollInputService"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPayrollInputRepository"/>
+      <Class name="com.divalhr.core.payroll.api.PayrollInputController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>
+  </Match>
+  <!-- A shared test fixture holds the test's injected MockMvc, JdbcTemplate and clock by design. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Class name="com.divalhr.core.people.schedule.LockedWeeks"/>
   </Match>
   <!-- Test fixtures build JSON with text blocks; platform line separators are irrelevant there. -->
   <Match>

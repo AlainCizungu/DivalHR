@@ -371,6 +371,21 @@ export type TimesheetPeriodResult = CoreComponents['schemas']['TimesheetPeriodRe
 export type TimesheetPeriodUnlockPreview =
   CoreComponents['schemas']['TimesheetPeriodUnlockPreview'];
 export type TimesheetPeriodHistory = CoreComponents['schemas']['TimesheetPeriodHistory'];
+// MVP-090A: payroll inputs.
+export type PayrollInputPreviewRequest = CoreComponents['schemas']['PayrollInputPreviewRequest'];
+export type GeneratePayrollInputsRequest =
+  CoreComponents['schemas']['GeneratePayrollInputsRequest'];
+export type PayrollInputScope = CoreComponents['schemas']['PayrollInputScope'];
+export type PayrollInputCounts = CoreComponents['schemas']['PayrollInputCounts'];
+export type PayrollInputCodeCount = CoreComponents['schemas']['PayrollInputCodeCount'];
+export type PayrollInputWeek = CoreComponents['schemas']['PayrollInputWeek'];
+export type PayrollInputPreview = CoreComponents['schemas']['PayrollInputPreview'];
+export type PayrollInputRun = CoreComponents['schemas']['PayrollInputRun'];
+export type PayrollInputSourceWeek = CoreComponents['schemas']['PayrollInputSourceWeek'];
+export type PayrollInputEmployee = CoreComponents['schemas']['PayrollInputEmployee'];
+export type PayrollInputRunDetail = CoreComponents['schemas']['PayrollInputRunDetail'];
+export type PayrollInputResult = CoreComponents['schemas']['PayrollInputResult'];
+export type PayrollInputRunPage = CoreComponents['schemas']['PayrollInputRunPage'];
 export type TimesheetRowState = TimesheetRow['state'];
 export type TimesheetStatus = TimesheetDetail['status'];
 export type TimesheetActionKind = TimesheetAction['action'];

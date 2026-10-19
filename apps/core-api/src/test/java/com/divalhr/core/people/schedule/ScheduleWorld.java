@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * own employee memberships, placement changes, separations, and schedule proposals, previews and
  * publications.
  */
-final class ScheduleWorld {
+public final class ScheduleWorld {
 
   static final ObjectMapper JSON = new ObjectMapper();
   static final String SCHEDULES = "/api/v1/work-schedules";
@@ -54,7 +54,8 @@ final class ScheduleWorld {
   private String hiringAdmin;
 
   /** An employee linked to their own membership. */
-  record Person(UUID employee, String bearer, String subject, UUID membership, String number) {}
+  public record Person(
+      UUID employee, String bearer, String subject, UUID membership, String number) {}
 
   ScheduleWorld(MockMvc mvc, JdbcTemplate jdbc, EmailLookup lookups) throws Exception {
     this.mvc = mvc;

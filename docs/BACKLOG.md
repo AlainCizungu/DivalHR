@@ -285,7 +285,7 @@ Project, grant and task allocation is not part of this sequence: it remains a fu
 
 Approved periods can be locked; reopening requires privileged approval and audit.
 
-**Issue #139. In review.** Lock and unlock approved timesheet periods (ADR 0022).
+**Issue #139. Merged into `main` (PR #140).** Lock and unlock approved timesheet periods (ADR 0022).
 
 - **Who and where.** A tenant administrator with exact MFA, on « Feuilles de temps » / "Timesheets" at the site/week generation: « Verrouiller la période » / "Lock period" after a readiness preview and an explicit confirmation; « Déverrouiller la période » / "Unlock period" with a closed reason and an explanation after its preview and warning; the immutable lock history, newest first; the relock after a correction, refresh, resubmission and reapproval cycle. Employees and routed managers see a neutral « Période verrouillée » / "Period locked" badge only where they already read the timesheet.
 - **Period and lifecycle.** The generation is the period: `OPEN → LOCKED → OPEN → LOCKED …` by immutable `LOCKED` and `UNLOCKED` actions numbered by lock version; a projection holds the current state. No monthly, cross-site or arbitrary-date period.
@@ -308,7 +308,18 @@ A worker can submit CDF or USD expenses, attach a receipt, and follow approval s
 
 ### MVP-090 Generate pay inputs
 
-Approved attendance, time, leave, allowances, and deductions produce traceable payroll inputs.
+Approved attendance, time, leave, allowances, and deductions produce traceable payroll inputs. Delivered in increments of one combined payroll release; MVP-090A is the first.
+
+#### MVP-090A Generate traceable time-based payroll inputs
+
+**Issue #141. In review.** Time-based payroll inputs from locked approved weeks (ADR 0023).
+
+- **Who and where.** A tenant administrator with exact MFA, on « Préparation de la paie » / "Payroll preparation" under « Paie » / "Payroll": one legal entity and one inclusive period (1 to 31 days from 2026-01-01, ending no later than today) in the organization's business time zone; « Prévisualiser » / "Preview", then an explicit confirmation and « Générer les données de préparation » / "Generate payroll inputs"; the immutable result and the history, newest first. Every screen states « Données de préparation uniquement. DivalHR n’a calculé ni salaire brut, ni retenues, ni impôts, ni salaire net, ni paiement. » / "Payroll inputs only. DivalHR has not calculated gross pay, deductions, tax, net pay or payment."
+- **Preview.** Every week the period touches at a site of the legal entity (a generated week, or a week with published operational shifts) with its status (`LOCKED`, `NOT_GENERATED`, `NOT_LOCKED`, `EVIDENCE_CHANGED`, `EMPTY`), generation and lock versions; the eligible employees, timesheets, rows and approved minutes; exclusions with stable codes (`ROW_OUTSIDE_PERIOD` for weeks cut by the period, `TIMESHEET_WITHOUT_TIME`); blockers with stable codes (`WEEK_NOT_GENERATED`, `WEEK_NOT_LOCKED`, `EVIDENCE_CHANGED`, `ATTRIBUTION_AMBIGUOUS`, `NO_APPROVED_TIME`); the source-versions digest, the canonical preview digest and its expiry (15 to 30 minutes); the existing run of the same period, unchanged or not. Never a name, an employee number or a pay amount.
+- **Fail closed.** A period with any blocker is never generated, not even partially: `409 PAYROLL_INPUT_NOT_READY`. A generation needs the unexpired preview digest, the current source-versions digest, the confirmation and an `Idempotency-Key`; it re-evaluates the evidence under the tenant's scheduling lock in the same transaction, so a lock, unlock, refresh, correction or approval in between is `409 PAYROLL_INPUT_PREVIEW_STALE`. An identical command replays the original; a run of the same period with the same evidence is returned (`EXISTING`); one with different evidence is `409 PAYROLL_INPUT_RUN_EXISTS` (superseding versions are a later increment). Unknown, foreign or malformed legal entities are `404 PAYROLL_INPUT_TARGET_NOT_FOUND`.
+- **Evidence.** V37 adds the immutable `payroll.input_run`, `payroll.input_source_week`, `payroll.input_employee` and `payroll.input_source_row`: each row traceable to the employee and employment, the legal entity, the dates, the generation and lock action and versions, the approval action, revision and cycle, the timesheet, the shift, the site and cost center, the approved minutes and the lock's evidence digest; counts proven equal to the rows at commit; never updated, deleted or truncated. Audit `payroll-input.generate` (bounded metadata) and disclosure audits of previews, history and reads; event `payroll.payroll-input.generated.v1`; a refusing rollback.
+- **Boundary.** The payroll module reads people's locked approved time only through the platform port `LockedApprovedTime` (people's schedule adapter), never people's tables.
+- **Not included:** compensation, rates, gross or net pay, taxes, deductions, allowances, leave valuation, variance review (MVP-091), exports or payroll-provider files (MVP-092), superseding runs, scheduled generation, payroll officer roles, notifications, AI, native mobile.
 
 ### MVP-091 Review payroll variance
 
