@@ -109,6 +109,15 @@ const run = (runId: string, start: string, end: string, generatedAt: string) => 
   ],
   evidenceDigest: EVIDENCE,
   generatedAt,
+  lifecycle: {
+    state: 'OPEN',
+    latest: true,
+    supersedesRunId: null,
+    reasonCode: null,
+    lockActionId: null,
+    lockedAt: null,
+    exportId: null,
+  },
 });
 
 const current = run(CURRENT, '2026-03-16', '2026-03-29', '2026-03-30T11:05:00Z');

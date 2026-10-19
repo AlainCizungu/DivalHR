@@ -6,6 +6,7 @@ import com.divalhr.core.payroll.domain.PayrollInputs.EmployeeInput;
 import com.divalhr.core.payroll.domain.PayrollInputs.Exclusion;
 import com.divalhr.core.payroll.domain.PayrollInputs.Run;
 import com.divalhr.core.payroll.domain.PayrollInputs.SourceWeek;
+import com.divalhr.core.payroll.domain.PayrollLifecycle;
 import com.divalhr.core.platform.access.LockedApprovedTime.Week;
 import com.divalhr.core.platform.tenancy.OrganizationPlacementDirectory.UnitView;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -220,6 +221,7 @@ public final class PayrollInputResponses {
    * @param excluded exclusion code to count
    * @param evidenceDigest the source evidence digest
    * @param generatedAt instant
+   * @param lifecycle the version chain link, the OPEN or LOCKED state and the export (MVP-092)
    */
   @Schema(name = "PayrollInputRun")
   public record Summary(
@@ -232,7 +234,8 @@ public final class PayrollInputResponses {
       Counts counts,
       List<CodeCount> excluded,
       String evidenceDigest,
-      Instant generatedAt) {
+      Instant generatedAt,
+      Lifecycle lifecycle) {
 
     /** Copies the list. */
     public Summary {
@@ -244,9 +247,10 @@ public final class PayrollInputResponses {
      *
      * @param run the run
      * @param legalEntity the legal entity, or {@code null}
+     * @param state the run's lifecycle state
      * @return the view
      */
-    public static Summary of(Run run, UnitView legalEntity) {
+    public static Summary of(Run run, UnitView legalEntity, PayrollLifecycle.State state) {
       return new Summary(
           run.id(),
           run.version(),
@@ -257,7 +261,56 @@ public final class PayrollInputResponses {
           Counts.of(run.totals()),
           exclusions(run.exclusions()),
           run.evidenceDigest(),
-          run.generatedAt());
+          run.generatedAt(),
+          Lifecycle.of(state));
+    }
+  }
+
+  /**
+   * Where a run stands in its version chain (MVP-092). The explanation of a supersession is shown
+   * only in the version chain, never here.
+   *
+   * @param state OPEN, or LOCKED (final; never unlocked in this MVP)
+   * @param latest whether no later version exists
+   * @param supersedesRunId the run this one replaces, or {@code null} for version 1
+   * @param reasonCode why it replaces it, or {@code null}
+   * @param lockActionId the LOCKED action, or {@code null} while OPEN
+   * @param lockedAt when it was locked, or {@code null}
+   * @param exportId the run's worked-time export, or {@code null}
+   */
+  @Schema(name = "PayrollInputLifecycle")
+  public record Lifecycle(
+      @Schema(allowableValues = {"OPEN", "LOCKED"}) String state,
+      boolean latest,
+      @Schema(nullable = true) UUID supersedesRunId,
+      @Schema(
+              nullable = true,
+              allowableValues = {
+                "UPSTREAM_CORRECTION",
+                "UPSTREAM_REAPPROVAL",
+                "SCOPE_CORRECTION",
+                "OTHER"
+              })
+          String reasonCode,
+      @Schema(nullable = true) UUID lockActionId,
+      @Schema(nullable = true) Instant lockedAt,
+      @Schema(nullable = true) UUID exportId) {
+
+    /**
+     * The view of a state.
+     *
+     * @param state the state
+     * @return the view
+     */
+    public static Lifecycle of(PayrollLifecycle.State state) {
+      return new Lifecycle(
+          state.locked() ? "LOCKED" : "OPEN",
+          state.latest(),
+          state.supersedesRunId(),
+          state.reason() == null ? null : state.reason().name(),
+          state.lock() == null ? null : state.lock().id(),
+          state.lock() == null ? null : state.lock().lockedAt(),
+          state.exportId());
     }
   }
 

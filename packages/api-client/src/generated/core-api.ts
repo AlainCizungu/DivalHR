@@ -2494,7 +2494,7 @@ export interface paths {
         put?: never;
         /**
          * Generate the immutable payroll inputs of a reviewed preview
-         * @description MVP-090A. Under the tenant's scheduling lock (taken first by every timesheet command, so no lock, unlock, correction, refresh or approval interleaves), the period is evaluated again; a preview digest or source versions digest that no longer matches the evidence, or an expired preview, is 409 PAYROLL_INPUT_PREVIEW_STALE; a period that is not ready (a week that matters is not generated or not locked, a locked week whose evidence changed, a row that cannot be attributed to the legal entity, no approved time) is 409 PAYROLL_INPUT_NOT_READY. A run of this legal entity and period that already exists with identical evidence is returned as it is (outcome EXISTING); with different evidence it is 409 PAYROLL_INPUT_RUN_EXISTS (generated evidence is never replaced; a superseding version is a later story). Otherwise one transaction writes the immutable run, its source weeks (generation, version, LOCKED action, lock version, lock evidence digest), one employee row per employee and employment, one source row per approved timesheet row within the period (bound to its timesheet, revision, current APPROVED action, cycle and lock action), the audit record (payroll-input.generate) and the outbox event (payroll.payroll-input.generated.v1); the database proves at commit that the run, its weeks and its employees count exactly their rows and that every row lies in the period; a failure of any of them writes nothing. Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the payroll-input-write limits. Cache-Control private, no-store.
+         * @description MVP-090A. Under the tenant's scheduling lock (taken first by every timesheet command, so no lock, unlock, correction, refresh or approval interleaves), the period is evaluated again; a preview digest or source versions digest that no longer matches the evidence, or an expired preview, is 409 PAYROLL_INPUT_PREVIEW_STALE; a period that is not ready (a week that matters is not generated or not locked, a locked week whose evidence changed, a row that cannot be attributed to the legal entity, no approved time) is 409 PAYROLL_INPUT_NOT_READY. A run of this legal entity and period that already exists with identical evidence is returned as it is (outcome EXISTING); with different evidence it is 409 PAYROLL_INPUT_RUN_EXISTS (generated evidence is never replaced; a replacement is a new version created with supersedePayrollInputRun, MVP-092). The latest version is the one compared. Otherwise one transaction writes the immutable run, its source weeks (generation, version, LOCKED action, lock version, lock evidence digest), one employee row per employee and employment, one source row per approved timesheet row within the period (bound to its timesheet, revision, current APPROVED action, cycle and lock action), the audit record (payroll-input.generate) and the outbox event (payroll.payroll-input.generated.v1); the database proves at commit that the run, its weeks and its employees count exactly their rows and that every row lies in the period; a failure of any of them writes nothing. Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Shares the payroll-input-write limits. Cache-Control private, no-store.
          */
         post: operations["generatePayrollInputs"];
         delete?: never;
@@ -2517,6 +2517,106 @@ export interface paths {
         get: operations["getPayrollInputRun"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-inputs/{runId}/supersede-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a replacement version of a payroll-input run
+         * @description MVP-092. Under the tenant's scheduling lock, what a replacement version of the run would hold now: the weeks, the rows the new version would carry and the stable blockers (NOT_LATEST_VERSION, ALREADY_LOCKED, NO_CHANGED_EVIDENCE when the upstream evidence is identical, and the generation blockers WEEK_NOT_GENERATED, WEEK_NOT_LOCKED, EVIDENCE_CHANGED, ATTRIBUTION_AMBIGUOUS, NO_APPROVED_TIME). A supersede action is offered only when the upstream evidence changed. The preview digest is bound to the run, its state, the evidence and the expiry (15 to 30 minutes). Nothing is written but the disclosure audit (payroll-input.supersede-preview). Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. A malformed, unknown or foreign run is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. Shares the payroll-input-write limit. Cache-Control private, no-store.
+         */
+        post: operations["previewSupersedePayrollInputRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-inputs/{runId}/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the next immutable version of a payroll-input run
+         * @description MVP-092. Under the tenant's scheduling lock the upstream evidence is evaluated again. A run that is not the latest version is 409 PAYROLL_INPUT_NOT_LATEST; a locked run is 409 PAYROLL_INPUT_RUN_LOCKED (a locked run is final); a digest that no longer matches or an expired preview is 409 PAYROLL_INPUT_PREVIEW_STALE; a version that is not ready, or whose evidence is identical to the run's, is 409 PAYROLL_INPUT_NOT_READY. reasonCode is UPSTREAM_CORRECTION, UPSTREAM_REAPPROVAL, SCOPE_CORRECTION or OTHER; OTHER requires a bounded plain-text explanation (1 to 200 characters; no link, markup, address or long number) and no other reason carries one. One transaction writes version N+1 (source weeks, employee inputs and rows), its supersession of exactly version N, the audit record (payroll-input.supersede) and the outbox event (payroll.payroll-input.superseded.v1); the database proves the gap-free chain at commit. Nothing is deleted, edited, invalidated or hidden. Events and audit metadata carry identifiers, dates, versions, the reason code and bounded counts only: never the explanation, a digest or a key. Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Shares the payroll-input-write limits. Cache-Control private, no-store.
+         */
+        post: operations["supersedePayrollInputRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-inputs/{runId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The whole version chain of a payroll-input run
+         * @description MVP-092. Every version of the run's legal entity and period, oldest first, from any one of them: each version's facts, its OPEN or LOCKED state, the run it replaces with the reason code, and, for the reason OTHER only, the bounded explanation (shown to tenant administrators here and nowhere else). Nothing is hidden: replaced versions stay readable. A malformed, unknown or foreign run is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. A fail-closed disclosure (audit payroll-input.versions). Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Shares the payroll-input-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listPayrollInputRunVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-inputs/{runId}/lock-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the final lock of a payroll-input run
+         * @description MVP-092. Under the tenant's scheduling lock, what locking the run would make final: the run and version, the period, the source weeks, the employee and row counts, the worked-minute band, the earlier version it supersedes and the stable blockers NOT_LATEST_VERSION, ALREADY_LOCKED, UPSTREAM_EVIDENCE_CHANGED, SOURCE_PERIOD_NOT_LOCKED and NO_EXPORTABLE_ROWS. The preview digest is bound to the run, its state, the upstream evidence and the expiry (15 to 30 minutes). Nothing is written but the disclosure audit (payroll-input.lock-preview). Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. A malformed, unknown or foreign run is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. Shares the payroll-input-write limit. Cache-Control private, no-store.
+         */
+        post: operations["previewLockPayrollInputRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-inputs/{runId}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lock a payroll-input run (final)
+         * @description MVP-092. Only the latest version can be locked (409 PAYROLL_INPUT_NOT_LATEST otherwise); a locked run stays locked (409 PAYROLL_INPUT_RUN_LOCKED): nothing unlocks a run in this MVP and a locked run is never superseded. Under the tenant's scheduling lock the upstream evidence is evaluated again: an unexpired matching preview digest is required (409 PAYROLL_INPUT_PREVIEW_STALE otherwise) and every source week must still be locked with the evidence the run recorded (409 PAYROLL_INPUT_NOT_READY otherwise). One transaction appends the LOCKED action, the audit record (payroll-input.lock) and the outbox event (payroll.payroll-input.locked.v1); concurrent locks yield exactly one lock. Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Shares the payroll-input-write limits. Cache-Control private, no-store.
+         */
+        post: operations["lockPayrollInputRun"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2555,6 +2655,90 @@ export interface paths {
          * @description MVP-091. Compares the worked-minute inputs of a current run with a comparison run of the same legal entity, employee by employee (matched by the immutable employee ID; the run's employments are listed, never merged across runs). Without comparisonRunId the newest eligible run is used. NEW (only in the current run) and MISSING (only in the comparison run) are always material; a CHANGED employee is material when the absolute minute delta reaches absoluteMinuteThreshold (default 120) or, when the comparison minutes are greater than zero, when the absolute percentage reaches percentageThreshold (default 20), in exact integer arithmetic; an UNCHANGED employee is never material. Percentages are signed basis points, present only when the comparison minutes are greater than zero. The totals cover every employee whatever the view and reconcile exactly to the lines. Lines are ordered material first, then by largest absolute minute delta, then employee ID. The signed cursor is bound to the operation, tenant, both runs, thresholds, view and page size. An unknown, foreign, malformed or incompatible run, or no eligible comparison run, is 404 PAYROLL_VARIANCE_TARGET_NOT_FOUND; invalid thresholds, view or limit are 400 with the field only. Worked-time inputs only: no pay, tax, deduction or payment is calculated. Read-only: no payroll evidence is written, nothing is stored and no event is emitted. A fail-closed disclosure (audit payroll-variance.review). Shares the payroll-input-read limit. Cache-Control private, no-store.
          */
         get: operations["reviewPayrollVariance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-input-exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tenant's worked-time exports
+         * @description MVP-092. The tenant's exports, newest first, optionally of one legal entity (a malformed filter is 400). Each item carries the export's facts and the SHA-256 of its CSV bytes. The signed cursor is bound to the operation, tenant, filter and page size. A fail-closed disclosure (audit payroll-input-export.list). Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Shares the payroll-input-read limit. Cache-Control private, no-store.
+         */
+        get: operations["listPayrollInputExports"];
+        put?: never;
+        /**
+         * Create the worked-time export of a locked payroll-input run
+         * @description MVP-092. Only a locked run can be exported (409 PAYROLL_INPUT_NOT_LOCKED); a run above the row limit (50,000) is 409 PAYROLL_INPUT_EXPORT_TOO_LARGE and is never truncated. There is one logical export per locked run: an identical command, or another administrator's, returns the existing export (outcome EXISTING). One transaction writes the immutable export and one row per source row of the run in the deterministic order (employee ID, employment ID, work date, site ID, then source row), the audit record (payroll-input-export.create) and the outbox event (payroll.payroll-input-export.created.v1); the database proves at commit that the rows are all and only the run's source rows and that counts and minutes reconcile. Worked-time inputs for payroll preparation: this is not a payroll, salary, payment or bank file. Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Idempotent (an identical replay returns the original; a changed payload with the same key is 409 IDEMPOTENCY_KEY_REUSED). A malformed, unknown or foreign run is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. Shares the payroll-input-write limits. Cache-Control private, no-store.
+         */
+        post: operations["createPayrollInputExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-input-exports/{exportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One worked-time export
+         * @description MVP-092. The export's facts: the run and version, the lock, the scope, the counts, the worked-minute band, the SHA-256 of the CSV bytes and the creation instant. A malformed, unknown or foreign export is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. A fail-closed disclosure (audit payroll-input-export.read). Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Shares the payroll-input-read limit. Cache-Control private, no-store.
+         */
+        get: operations["getPayrollInputExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-input-exports/{exportId}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download an export's CSV
+         * @description MVP-092. UTF-8 without a byte-order mark, comma-delimited, every cell quoted (RFC 4180) and neutralized against formulas, CRLF line ends, with the fixed English header employee_id, employment_id, legal_entity_id, site_id, cost_center_id, work_date, approved_worked_minutes, timesheet_id, timesheet_revision, approval_action_id, approval_cycle, source_week_start, source_generation_id, source_generation_version, source_lock_action_id, source_lock_version, payroll_input_run_id, payroll_input_run_version; one row per source row of the locked run, ordered by employee ID, employment ID, work date, site ID and source row. No name, employee number, e-mail, subject, salary, rate, amount, national ID, bank detail or free text. Rebuilt from the stored export: every download has the same bytes, and its SHA-256 must equal the stored one and the manifest's (otherwise 500, nothing returned). The download audit (payroll-input-export.download) commits before any byte is returned. A malformed, unknown or foreign export is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Attachment, Cache-Control private, no-store.
+         */
+        get: operations["downloadPayrollInputExportCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payroll-input-exports/{exportId}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download an export's manifest
+         * @description MVP-092. The canonical JSON manifest (fixed key order, UTF-8): schema version, export and run identity, tenant and legal-entity IDs, the period, the run version, the lock action and version, the columns, the row and employee counts, the worked minutes and band, the creation instant, the SHA-256 of the exact CSV bytes and the fixed notices in English and French. No name, subject, creator or amount. The download audit (payroll-input-export.download) commits before any byte is returned. A malformed, unknown or foreign export is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment. Attachment, Cache-Control private, no-store.
+         */
+        get: operations["downloadPayrollInputExportManifest"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4117,7 +4301,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -5549,6 +5733,7 @@ export interface components {
             evidenceDigest: string;
             /** Format: date-time */
             generatedAt: string;
+            lifecycle: components["schemas"]["PayrollInputLifecycle"];
         };
         /** @description MVP-090A. One locked week a run was built from. */
         PayrollInputSourceWeek: {
@@ -5594,6 +5779,127 @@ export interface components {
         };
         PayrollInputRunPage: {
             items: components["schemas"]["PayrollInputRun"][];
+            nextCursor: string | null;
+        };
+        /** @description MVP-092. Where a run stands in its version chain: OPEN, or LOCKED (final; never unlocked in this MVP), the run it replaces and why, the LOCKED action and the run's worked-time export. */
+        PayrollInputLifecycle: {
+            /** @enum {string} */
+            state: "OPEN" | "LOCKED";
+            latest: boolean;
+            /** Format: uuid */
+            supersedesRunId: string | null;
+            /** @enum {string|null} */
+            reasonCode: "UPSTREAM_CORRECTION" | "UPSTREAM_REAPPROVAL" | "SCOPE_CORRECTION" | "OTHER" | null;
+            /** Format: uuid */
+            lockActionId: string | null;
+            /** Format: date-time */
+            lockedAt: string | null;
+            /** Format: uuid */
+            exportId: string | null;
+        };
+        /** @description MVP-092. Replace the latest, open version of a run after corrected upstream evidence. explanation is required for OTHER (1 to 200 characters of plain text: no link, markup, address or long number) and absent for every other reason. */
+        SupersedePayrollInputRunRequest: {
+            /** @enum {string} */
+            reasonCode: "UPSTREAM_CORRECTION" | "UPSTREAM_REAPPROVAL" | "SCOPE_CORRECTION" | "OTHER";
+            explanation?: string;
+            /** @description The reviewed preview's digest, exactly as returned. */
+            previewDigest: string;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-092. Lock the reviewed latest version of a run (final). */
+        LockPayrollInputRunRequest: {
+            /** @description The reviewed lock preview's digest, exactly as returned. */
+            previewDigest: string;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-092. Create the worked-time export of a locked run. */
+        CreatePayrollInputExportRequest: {
+            /** Format: uuid */
+            runId: string;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-092. What a replacement version would hold now. Nothing is written by a preview. */
+        PayrollInputSupersedePreview: {
+            current: components["schemas"]["PayrollInputRun"];
+            weeks: components["schemas"]["PayrollInputWeek"][];
+            eligible: components["schemas"]["PayrollInputCounts"];
+            blockers: ("NOT_LATEST_VERSION" | "ALREADY_LOCKED" | "NO_CHANGED_EVIDENCE" | "WEEK_NOT_GENERATED" | "WEEK_NOT_LOCKED" | "EVIDENCE_CHANGED" | "ATTRIBUTION_AMBIGUOUS" | "NO_APPROVED_TIME")[];
+            ready: boolean;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        /** @description MVP-092. The new version that replaced its predecessor. */
+        PayrollInputSupersedeResult: {
+            /** @enum {string} */
+            outcome: "SUPERSEDED";
+            run: components["schemas"]["PayrollInputRun"];
+            /** Format: uuid */
+            supersedesRunId: string;
+        };
+        /** @description MVP-092. What locking a run would make final: the run and version, the source weeks, the counts, the worked-minute band, the earlier version it supersedes and the blockers. */
+        PayrollInputLockPreview: {
+            run: components["schemas"]["PayrollInputRun"];
+            weeks: components["schemas"]["PayrollInputSourceWeek"][];
+            counts: components["schemas"]["PayrollInputCounts"];
+            workedMinuteBand: string;
+            /** Format: uuid */
+            supersedesRunId: string | null;
+            supersedesVersion: number | null;
+            blockers: ("NOT_LATEST_VERSION" | "ALREADY_LOCKED" | "UPSTREAM_EVIDENCE_CHANGED" | "SOURCE_PERIOD_NOT_LOCKED" | "NO_EXPORTABLE_ROWS")[];
+            ready: boolean;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        /** @description MVP-092. A locked run. */
+        PayrollInputLockResult: {
+            /** @enum {string} */
+            outcome: "LOCKED";
+            run: components["schemas"]["PayrollInputRun"];
+        };
+        /** @description MVP-092. One version of the chain. */
+        PayrollInputVersion: {
+            run: components["schemas"]["PayrollInputRun"];
+            /** @description The bounded plain-text explanation of the reason OTHER; shown to tenant administrators only. */
+            explanation: string | null;
+        };
+        /** @description MVP-092. The whole chain of one legal entity and period, oldest first. Nothing is hidden. */
+        PayrollInputVersions: {
+            items: components["schemas"]["PayrollInputVersion"][];
+        };
+        /** @description MVP-092. An immutable worked-time export of a locked run (facts only; the bytes are the downloads). Worked-time inputs for payroll preparation: not a payroll, salary, payment or bank file. */
+        PayrollInputExport: {
+            /** Format: uuid */
+            exportId: string;
+            /** @enum {integer} */
+            schemaVersion: 1;
+            /** Format: uuid */
+            runId: string;
+            runVersion: number;
+            scope: components["schemas"]["PayrollInputScope"];
+            /** Format: uuid */
+            lockActionId: string;
+            lockVersion: number;
+            employees: number;
+            rows: number;
+            workedMinutes: number;
+            workedMinuteBand: string;
+            csvSha256: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description MVP-092. A new export, or the run's existing one. */
+        PayrollInputExportResult: {
+            /** @enum {string} */
+            outcome: "CREATED" | "EXISTING";
+            export: components["schemas"]["PayrollInputExport"];
+        };
+        PayrollInputExportPage: {
+            items: components["schemas"]["PayrollInputExport"][];
             nextCursor: string | null;
         };
         /**
@@ -6575,6 +6881,8 @@ export interface components {
         /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
         Cursor: string;
         TimesheetExportId: string;
+        /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+        PayrollInputExportId: string;
         /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
         PayrollInputRunId: string;
         /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_VARIANCE_TARGET_NOT_FOUND. */
@@ -11817,6 +12125,184 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    previewSupersedePayrollInputRun: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                runId: components["parameters"]["PayrollInputRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputSupersedePreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    supersedePayrollInputRun: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                runId: components["parameters"]["PayrollInputRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupersedePayrollInputRunRequest"];
+            };
+        };
+        responses: {
+            /** @description The new version, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputSupersedeResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listPayrollInputRunVersions: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                runId: components["parameters"]["PayrollInputRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The chain */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputVersions"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    previewLockPayrollInputRun: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                runId: components["parameters"]["PayrollInputRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputLockPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    lockPayrollInputRun: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                runId: components["parameters"]["PayrollInputRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LockPayrollInputRunRequest"];
+            };
+        };
+        responses: {
+            /** @description The locked run, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputLockResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
     listPayrollVarianceCandidates: {
         parameters: {
             query?: never;
@@ -11889,6 +12375,180 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listPayrollInputExports: {
+        parameters: {
+            query?: {
+                legalEntityId?: string;
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputExportPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createPayrollInputExport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePayrollInputExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Created, the existing export, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputExportResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getPayrollInputExport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                exportId: components["parameters"]["PayrollInputExportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollInputExport"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    downloadPayrollInputExportCsv: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                exportId: components["parameters"]["PayrollInputExportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV */
+            200: {
+                headers: {
+                    /** @description attachment; filename="divalhr-worked-time-inputs-<legalEntityId>-<periodStart>-<periodEnd>-v<version>.csv" */
+                    "Content-Disposition"?: string;
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    downloadPayrollInputExportManifest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
+                exportId: components["parameters"]["PayrollInputExportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The manifest */
+            200: {
+                headers: {
+                    /** @description attachment; filename="divalhr-worked-time-inputs-<legalEntityId>-<periodStart>-<periodEnd>-v<version>.manifest.json" */
+                    "Content-Disposition"?: string;
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
         };
     };
     listMyTimesheets: {

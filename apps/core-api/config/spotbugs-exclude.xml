@@ -123,6 +123,10 @@
       <Class name="com.divalhr.core.payroll.api.PayrollInputController"/>
       <Class name="com.divalhr.core.payroll.application.PayrollVarianceService"/>
       <Class name="com.divalhr.core.payroll.api.PayrollVarianceController"/>
+      <Class name="com.divalhr.core.payroll.application.PayrollLifecycleService"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPayrollLifecycleRepository"/>
+      <Class name="com.divalhr.core.payroll.api.PayrollLifecycleController"/>
+      <Class name="com.divalhr.core.payroll.api.PayrollInputExportController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
     </Or>
@@ -140,5 +144,11 @@
       <Class name="com.divalhr.core.support.Organizations"/>
       <Class name="com.divalhr.core.support.Hierarchy"/>
     </Or>
+  </Match>
+  <!-- The migration test composes its INSERT ... SELECT from its own constant fragments (the line and
+       minute expressions of a deliberately wrong export); no external value reaches the statement. -->
+  <Match>
+    <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
+    <Class name="com.divalhr.core.payroll.PayrollLifecycleMigrationIntegrationTest"/>
   </Match>
 </FindBugsFilter>

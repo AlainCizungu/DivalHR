@@ -166,6 +166,15 @@ const run = (generatedAt = '2026-03-16T11:05:00Z') => ({
   ],
   evidenceDigest: EVIDENCE,
   generatedAt,
+  lifecycle: {
+    state: 'OPEN',
+    latest: true,
+    supersedesRunId: null,
+    reasonCode: null,
+    lockActionId: null,
+    lockedAt: null,
+    exportId: null,
+  },
 });
 
 const detail = () => ({

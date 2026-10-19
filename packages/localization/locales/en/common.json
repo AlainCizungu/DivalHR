@@ -511,7 +511,11 @@
     "PAYROLL_INPUT_NOT_READY": "This period cannot be generated yet: every week with worked time must be generated and locked, and its evidence unchanged. Preview again.",
     "PAYROLL_INPUT_PREVIEW_STALE": "The locked evidence changed since this preview, or the preview expired. Preview again.",
     "PAYROLL_INPUT_RUN_EXISTS": "Payroll inputs already exist for this legal entity and period with different evidence. Generated inputs are never replaced.",
-    "PAYROLL_VARIANCE_TARGET_NOT_FOUND": "This payroll-input run was not found, or it cannot be compared with the one chosen."
+    "PAYROLL_VARIANCE_TARGET_NOT_FOUND": "This payroll-input run was not found, or it cannot be compared with the one chosen.",
+    "PAYROLL_INPUT_NOT_LATEST": "A newer version of these payroll inputs exists. Only the latest version can be superseded or locked.",
+    "PAYROLL_INPUT_RUN_LOCKED": "This version is locked and final. It cannot be replaced or changed.",
+    "PAYROLL_INPUT_NOT_LOCKED": "Only a locked version can be exported. Lock the version first.",
+    "PAYROLL_INPUT_EXPORT_TOO_LARGE": "This export exceeds the supported size. Contact support."
   },
   "notFound": {
     "title": "Page not found",
@@ -3800,7 +3804,7 @@
       "excluded": "Left out",
       "ready": "Every week with worked time in this period is locked and unchanged. The inputs can be generated.",
       "existingUnchanged": "Payroll inputs already exist for this period with exactly this evidence. Generating again shows them.",
-      "existingChanged": "Payroll inputs already exist for this period with different evidence. Generated inputs are never replaced; a superseding version will be a later step.",
+      "existingChanged": "Payroll inputs already exist for this period with different evidence. Generated inputs are never replaced or edited; open the existing inputs to create a new version.",
       "expires": "This preview is valid until {{time}}.",
       "confirmCheck": "I reviewed this preview and want to generate the payroll inputs.",
       "generate": "Generate payroll inputs",
@@ -3862,7 +3866,7 @@
       "digest": "Evidence digest",
       "sourceWeeks": "Source weeks",
       "employees": "Employee inputs",
-      "immutable": "Generated inputs are never edited or deleted. Later corrections upstream never change them; a superseding version will be a later step."
+      "immutable": "Generated inputs are never edited or deleted. Later corrections upstream never change them; a new version replaces them only through the version flow below."
     },
     "employees": {
       "table": "Employee inputs, by employee",
@@ -3969,6 +3973,111 @@
         "comparison": "Open the comparison period’s payroll inputs"
       },
       "unavailable": "The review could not be loaded."
+    },
+    "salaryNotice": "Worked-time inputs only. Monthly salary is not calculated from these minutes. This export does not calculate or authorize pay, tax, deductions or payment.",
+    "lifecycle": {
+      "title": "Versions, final lock and export",
+      "state": {
+        "OPEN": "Open",
+        "LOCKED": "Locked"
+      },
+      "latest": "This is the latest version.",
+      "notLatest": "This is not the latest version. Only the latest version can be superseded or locked.",
+      "openLatest": "View the latest version (version {{version}})",
+      "checking": "Checking…",
+      "acting": "Saving…",
+      "immutable": "Versions are never edited, deleted, hidden or invalidated. A locked version is final: it is never replaced and never unlocked.",
+      "reason": {
+        "UPSTREAM_CORRECTION": "Corrected upstream evidence",
+        "UPSTREAM_REAPPROVAL": "Upstream time approved again",
+        "SCOPE_CORRECTION": "Scope correction",
+        "OTHER": "Other reason"
+      },
+      "versions": {
+        "title": "Version chain",
+        "table": "Versions of these payroll inputs, oldest first",
+        "loading": "Loading the versions…",
+        "unavailable": "The versions could not be loaded.",
+        "item": "Version {{version}}",
+        "latestTag": "latest",
+        "replaces": "Replaces",
+        "replacesVersion": "Version {{version}}",
+        "explanation": "Explanation: {{text}}",
+        "shown": "Shown",
+        "openFor": "View version {{version}}"
+      },
+      "supersede": {
+        "title": "Replace with a new version",
+        "hint": "When the locked time upstream was corrected or approved again, the inputs can be replaced by a new version. The earlier version stays readable and unchanged. The action is offered only when the upstream evidence has changed.",
+        "check": "Check the upstream evidence",
+        "previewTitle": "Replacement version preview",
+        "noChange": "The upstream evidence is identical to this version. There is nothing to replace.",
+        "blocked": "A replacement version cannot be created now.",
+        "changed": "The upstream evidence changed. The new version would hold {{rows}} rows for {{employees}} employees: {{time}} of approved worked time.",
+        "reasonLabel": "Reason",
+        "explanationLabel": "Explanation",
+        "explanationHint": "Plain text, up to {{max}} characters: no link, markup, address or long number, and no personal data.",
+        "problem": {
+          "required": "Explain the reason in a few plain words.",
+          "length": "The explanation must not exceed 200 characters."
+        },
+        "validation": "Check the reason and the explanation: plain text only, without link, markup, address or long number.",
+        "confirmCheck": "I reviewed this preview and want to create the new version.",
+        "action": "Create the new version",
+        "done": "Version {{version}} created. Earlier versions remain unchanged."
+      },
+      "lock": {
+        "title": "Final lock",
+        "hint": "Locking makes this version final so that its worked-time export can be created. A locked version is never changed, replaced or unlocked.",
+        "check": "Preview the final lock",
+        "previewTitle": "Final lock preview, version {{version}}",
+        "supersedes": "This version supersedes version {{version}}.",
+        "blocked": "This version cannot be locked now.",
+        "final": "Locking is final in this release: nothing unlocks a version.",
+        "confirmCheck": "I reviewed this preview and want to lock this version.",
+        "action": "Lock this version",
+        "locked": "Locked at {{time}}.",
+        "done": "Version {{version}} is locked. It is final and cannot be changed or unlocked."
+      },
+      "blocker": {
+        "NOT_LATEST_VERSION": "A newer version exists. Only the latest version can be superseded or locked.",
+        "ALREADY_LOCKED": "This version is already locked.",
+        "NO_CHANGED_EVIDENCE": "The upstream evidence is identical to this version.",
+        "WEEK_NOT_GENERATED": "A week with scheduled work has not been generated.",
+        "WEEK_NOT_LOCKED": "A generated week is not locked.",
+        "EVIDENCE_CHANGED": "A locked week no longer matches its lock evidence.",
+        "ATTRIBUTION_AMBIGUOUS": "A row cannot be attributed to this legal entity.",
+        "NO_APPROVED_TIME": "No locked approved time lies in this period.",
+        "UPSTREAM_EVIDENCE_CHANGED": "The upstream evidence changed since this version was generated. Create a new version first.",
+        "SOURCE_PERIOD_NOT_LOCKED": "A source week is no longer locked.",
+        "NO_EXPORTABLE_ROWS": "This version has no row to export."
+      }
+    },
+    "export": {
+      "title": "Worked-time inputs for payroll preparation: export",
+      "hint": "Creates one immutable CSV of worked-time inputs for payroll preparation and its integrity manifest. Identifiers, dates and approved worked minutes only: no name, no pay figure.",
+      "confirmCheck": "I want to create the worked-time export of this locked version.",
+      "create": "Create the export",
+      "creating": "Creating…",
+      "created": "Worked-time export created.",
+      "existing": "This locked version already had its worked-time export.",
+      "exists": "The worked-time export of this version exists. Download it from the exports below."
+    },
+    "exports": {
+      "title": "Worked-time exports",
+      "hint": "Each export is the CSV of worked-time inputs for payroll preparation of one locked version, with a manifest that carries the SHA-256 of the exact CSV. These files are not a payroll, salary, payment or bank file.",
+      "table": "Worked-time exports, newest first",
+      "loading": "Loading the exports…",
+      "unavailable": "The exports could not be loaded.",
+      "empty": "No worked-time export yet.",
+      "sha": "CSV SHA-256",
+      "created": "Created at",
+      "csv": "Download the CSV",
+      "manifest": "Download the manifest",
+      "csvFor": "Download the CSV of {{from}} – {{to}}",
+      "manifestFor": "Download the manifest of {{from}} – {{to}}",
+      "csvDownloaded": "The worked-time CSV was downloaded.",
+      "manifestDownloaded": "The integrity manifest was downloaded."
     }
   }
 }

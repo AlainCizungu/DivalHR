@@ -517,3 +517,13 @@ ADR 0023, V37, additive to V36; the first objects of the `payroll` schema, owned
 ## MVP-091: payroll variance review
 
 No schema change. The review is computed on read from the immutable V37 `payroll.input_run` and `payroll.input_employee` rows (the existing repository gains a candidate query); nothing is stored. No migration, so no rollback consideration.
+
+## MVP-092: payroll-input versions, lock and export (V38)
+
+Additive to V37 (no V37 object is altered). All tables are append-only (V37's `input_immutable` and `input_no_truncate` guards) and carry identifiers, dates, versions, counts and approved worked minutes only; no rate, salary, amount or note.
+
+- `payroll.input_run_supersession` (tenant, run, supersedes_run, reason_code, explanation, created_at, created_by): one row per run of version 2 or more; a run is superseded at most once; the explanation exists only for `OTHER` (bounded plain text); a deferred trigger proves a gap-free chain (same tenant, legal entity and period; version = previous + 1).
+- `payroll.input_run_lock` (tenant, id, run, legal entity, period, run_version, action `LOCKED`, lock_version 1, evidence_digest, locked_at, locked_by): at most one per run; only the latest version of a scope; a locked run cannot be superseded.
+- `payroll.input_export` and `payroll.input_export_row`: one export per locked run (unique key), rows equal to the run's source rows in the CSV order, counts and minutes proven at commit; `csv_sha256` is the SHA-256 of the exact CSV bytes.
+- `payroll.input_scope_lock(tenant, entity, start, end)` takes a transaction advisory lock for the scope.
+- Rollback: `db/rollback/V38__rollback.sql` refuses while any V38 evidence exists.

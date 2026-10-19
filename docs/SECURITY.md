@@ -593,6 +593,18 @@ A tenant administrator with exact MFA compares two immutable MVP-090A runs (Issu
 - **Limits.** The existing `payroll-input-read` bucket (60 per subject per minute); no new bucket and no limit weakened. At most 50 candidates are considered.
 - **Privacy.** Responses carry employee and employment IDs and minutes, never names, numbers, emails or subjects. Audit `payroll-variance.candidates` and `payroll-variance.review` store schema version, period dates, thresholds, filter, view, page, bounded count and minute bands; identifiers and exact totals only inside the canonical state digest. No outbox event. Logs (`divalhr.payroll-variance`) and metrics carry bands only. Nothing in browser storage or a URL.
 
+### Payroll-input versions, lock and export (MVP-092)
+
+A tenant administrator with exact MFA supersedes, locks and exports payroll-input runs (Issue #149; ADR 0025). The artifact is worked-time inputs for payroll preparation: it never calculates or authorizes pay, tax, deductions or payment.
+
+- **Authority.** `@TenantAdminOperation`, tenant from the verified JWT only. An unknown, foreign or malformed run or export is the same `404 PAYROLL_INPUT_TARGET_NOT_FOUND`.
+- **Order and atomicity.** Every command takes the tenant scheduling lock first (the one every timesheet command takes), then the scope advisory lock, re-evaluates the upstream evidence, and writes the row, the audit record and the outbox event in one transaction. A concurrent pair yields exactly one valid transition.
+- **Immutability.** V38 tables are append-only; a locked run is never superseded or unlocked; an export is never edited or voided; the stored CSV hash is verified before every download.
+- **Idempotency and freshness.** `Idempotency-Key` on supersede, lock and export creation; preview digests bound to purpose, run, state, evidence, blockers and a 15 to 30 minute expiry (`409 PAYROLL_INPUT_PREVIEW_STALE`).
+- **Privacy.** CSV and manifest carry identifiers, dates, versions and minutes only. Audit (`payroll-input.supersede`, `payroll-input.lock`, `payroll-input-export.create`, `payroll-input-export.download`, plus disclosure audits of previews, versions and lists) and events (`payroll.payroll-input.superseded.v1`, `payroll.payroll-input.locked.v1`, `payroll.payroll-input-export.created.v1`) carry identifiers, dates, versions, the reason code and bounded counts: never the explanation, a digest, a key, a cursor, a name or an email. Downloads send `Cache-Control: private, no-store` and a file name built from approved scope, dates and version.
+- **Limits.** Writes share `payroll-input-write` (subject and tenant), reads and downloads `payroll-input-read`; at most 50,000 rows per export.
+- **Rolling back V38.** Roll back the application first. `db/rollback/V38__rollback.sql` refuses while any supersession, lock, export, export row or run of version 2 or more exists ("V38 rollback refused: payroll-input version, lock or export evidence exists"); there is no override and V36 and V37 rollback SQL is never run by hand. If a deployment check fails, use the runbook rollback (pre-deploy dumps).
+
 ## Privileged multifactor authentication (MVP-011)
 
 Every interactive holder of `platform-admin` or `tenant-admin` completes TOTP, and the Core API enforces it independently. SMS and email codes are never a privileged factor; passkeys are a future, stronger option.

@@ -4,7 +4,9 @@ import java.util.Optional;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
-/** The V37 constraints the payroll module maps to stable conflicts; no database text leaves. */
+/**
+ * The V37 and V38 constraints the payroll module maps to stable conflicts; no database text leaves.
+ */
 public final class PayrollConstraintViolations {
 
   /** One run per legal entity, period and version. */
@@ -12,6 +14,33 @@ public final class PayrollConstraintViolations {
 
   /** The deferred exactness of a run. */
   public static final String RUN_EXACT = "payroll_input_run_exact";
+
+  /** V38: a version replaces exactly the previous, latest version of its scope. */
+  public static final String SUPERSESSION_VALID = "payroll_input_supersession_valid";
+
+  /** V38: a locked run is never superseded. */
+  public static final String SUPERSESSION_LOCKED = "payroll_input_supersession_locked";
+
+  /** V38: a run is superseded at most once. */
+  public static final String SUPERSESSION_ONCE = "payroll_input_supersession_once";
+
+  /** V38: the lock records exactly the run. */
+  public static final String LOCK_VALID = "payroll_input_lock_valid";
+
+  /** V38: only the latest version is locked. */
+  public static final String LOCK_LATEST = "payroll_input_lock_latest";
+
+  /** V38: one lock per run. */
+  public static final String LOCK_ONE = "payroll_input_lock_one";
+
+  /** V38: one export per locked run. */
+  public static final String EXPORT_ONE = "payroll_input_export_one";
+
+  /** V38: the export reproduces exactly its run. */
+  public static final String EXPORT_EXACT = "payroll_input_export_exact";
+
+  /** V38: a version above 1 supersedes exactly the previous version. */
+  public static final String RUN_CHAIN = "payroll_input_run_chain";
 
   private PayrollConstraintViolations() {}
 

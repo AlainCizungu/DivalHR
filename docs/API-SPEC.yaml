@@ -6679,8 +6679,8 @@ paths:
         that cannot be attributed to the legal entity, no approved time) is 409
         PAYROLL_INPUT_NOT_READY. A run of this legal entity and period that already exists with
         identical evidence is returned as it is (outcome EXISTING); with different evidence it is
-        409 PAYROLL_INPUT_RUN_EXISTS (generated evidence is never replaced; a superseding version
-        is a later story). Otherwise one transaction writes the immutable run, its source weeks
+        409 PAYROLL_INPUT_RUN_EXISTS (generated evidence is never replaced; a replacement is a new
+        version created with supersedePayrollInputRun, MVP-092). The latest version is the one compared. Otherwise one transaction writes the immutable run, its source weeks
         (generation, version, LOCKED action, lock version, lock evidence digest), one employee row
         per employee and employment, one source row per approved timesheet row within the period
         (bound to its timesheet, revision, current APPROVED action, cycle and lock action), the
@@ -6806,6 +6806,256 @@ paths:
           $ref: "#/components/responses/PrivilegedForbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs/{runId}/supersede-preview:
+    post:
+      operationId: previewSupersedePayrollInputRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a replacement version of a payroll-input run
+      description: >-
+        MVP-092. Under the tenant's scheduling lock, what a replacement version of the run would
+        hold now: the weeks, the rows the new version would carry and the stable blockers
+        (NOT_LATEST_VERSION, ALREADY_LOCKED, NO_CHANGED_EVIDENCE when the upstream evidence is
+        identical, and the generation blockers WEEK_NOT_GENERATED, WEEK_NOT_LOCKED,
+        EVIDENCE_CHANGED, ATTRIBUTION_AMBIGUOUS, NO_APPROVED_TIME). A supersede action is
+        offered only when the upstream evidence changed. The preview digest is bound to the run,
+        its state, the evidence and the expiry (15 to 30 minutes). Nothing is written but the
+        disclosure audit (payroll-input.supersede-preview). Worked-time inputs only. Monthly
+        salary is not calculated from these minutes. This export does not calculate or authorize
+        pay, tax, deductions or payment. A malformed, unknown or foreign run is 404
+        PAYROLL_INPUT_TARGET_NOT_FOUND. Shares the payroll-input-write limit. Cache-Control
+        private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputRunId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputSupersedePreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs/{runId}/supersede:
+    post:
+      operationId: supersedePayrollInputRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create the next immutable version of a payroll-input run
+      description: >-
+        MVP-092. Under the tenant's scheduling lock the upstream evidence is evaluated again. A
+        run that is not the latest version is 409 PAYROLL_INPUT_NOT_LATEST; a locked run is 409
+        PAYROLL_INPUT_RUN_LOCKED (a locked run is final); a digest that no longer matches or an
+        expired preview is 409 PAYROLL_INPUT_PREVIEW_STALE; a version that is not ready, or
+        whose evidence is identical to the run's, is 409 PAYROLL_INPUT_NOT_READY. reasonCode is
+        UPSTREAM_CORRECTION, UPSTREAM_REAPPROVAL, SCOPE_CORRECTION or OTHER; OTHER requires a
+        bounded plain-text explanation (1 to 200 characters; no link, markup, address or long
+        number) and no other reason carries one. One transaction writes version N+1 (source
+        weeks, employee inputs and rows), its supersession of exactly version N, the audit
+        record (payroll-input.supersede) and the outbox event (payroll.payroll-input.superseded.v1); the database proves the gap-free chain at commit. Nothing is
+        deleted, edited, invalidated or hidden. Events and audit metadata carry identifiers,
+        dates, versions, the reason code and bounded counts only: never the explanation, a
+        digest or a key. Idempotent (an identical replay returns the original; a changed payload
+        with the same key is 409 IDEMPOTENCY_KEY_REUSED). Worked-time inputs only. Monthly
+        salary is not calculated from these minutes. This export does not calculate or authorize
+        pay, tax, deductions or payment. Shares the payroll-input-write limits. Cache-Control
+        private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputRunId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupersedePayrollInputRunRequest"
+      responses:
+        "200":
+          description: The new version, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputSupersedeResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs/{runId}/versions:
+    get:
+      operationId: listPayrollInputRunVersions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: The whole version chain of a payroll-input run
+      description: >-
+        MVP-092. Every version of the run's legal entity and period, oldest first, from any one
+        of them: each version's facts, its OPEN or LOCKED state, the run it replaces with the
+        reason code, and, for the reason OTHER only, the bounded explanation (shown to tenant
+        administrators here and nowhere else). Nothing is hidden: replaced versions stay
+        readable. A malformed, unknown or foreign run is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. A
+        fail-closed disclosure (audit payroll-input.versions). Worked-time inputs only. Monthly
+        salary is not calculated from these minutes. This export does not calculate or authorize
+        pay, tax, deductions or payment. Shares the payroll-input-read limit. Cache-Control
+        private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputRunId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The chain
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputVersions"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs/{runId}/lock-preview:
+    post:
+      operationId: previewLockPayrollInputRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the final lock of a payroll-input run
+      description: >-
+        MVP-092. Under the tenant's scheduling lock, what locking the run would make final: the
+        run and version, the period, the source weeks, the employee and row counts, the worked-minute band, the earlier version it supersedes and the stable blockers
+        NOT_LATEST_VERSION, ALREADY_LOCKED, UPSTREAM_EVIDENCE_CHANGED, SOURCE_PERIOD_NOT_LOCKED
+        and NO_EXPORTABLE_ROWS. The preview digest is bound to the run, its state, the upstream
+        evidence and the expiry (15 to 30 minutes). Nothing is written but the disclosure audit
+        (payroll-input.lock-preview). Worked-time inputs only. Monthly salary is not calculated
+        from these minutes. This export does not calculate or authorize pay, tax, deductions or
+        payment. A malformed, unknown or foreign run is 404 PAYROLL_INPUT_TARGET_NOT_FOUND.
+        Shares the payroll-input-write limit. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputRunId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputLockPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-inputs/{runId}/lock:
+    post:
+      operationId: lockPayrollInputRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Lock a payroll-input run (final)
+      description: >-
+        MVP-092. Only the latest version can be locked (409 PAYROLL_INPUT_NOT_LATEST otherwise);
+        a locked run stays locked (409 PAYROLL_INPUT_RUN_LOCKED): nothing unlocks a run in this
+        MVP and a locked run is never superseded. Under the tenant's scheduling lock the
+        upstream evidence is evaluated again: an unexpired matching preview digest is required
+        (409 PAYROLL_INPUT_PREVIEW_STALE otherwise) and every source week must still be locked
+        with the evidence the run recorded (409 PAYROLL_INPUT_NOT_READY otherwise). One
+        transaction appends the LOCKED action, the audit record (payroll-input.lock) and the
+        outbox event (payroll.payroll-input.locked.v1); concurrent locks yield exactly one lock.
+        Idempotent (an identical replay returns the original; a changed payload with the same
+        key is 409 IDEMPOTENCY_KEY_REUSED). Worked-time inputs only. Monthly salary is not
+        calculated from these minutes. This export does not calculate or authorize pay, tax,
+        deductions or payment. Shares the payroll-input-write limits. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputRunId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LockPayrollInputRunRequest"
+      responses:
+        "200":
+          description: The locked run, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputLockResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
         "429":
           $ref: "#/components/responses/TooManyRequests"
   /payroll-inputs/{runId}/variance-candidates:
@@ -6936,6 +7186,251 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /payroll-input-exports:
+    post:
+      operationId: createPayrollInputExport
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create the worked-time export of a locked payroll-input run
+      description: >-
+        MVP-092. Only a locked run can be exported (409 PAYROLL_INPUT_NOT_LOCKED); a run above
+        the row limit (50,000) is 409 PAYROLL_INPUT_EXPORT_TOO_LARGE and is never truncated.
+        There is one logical export per locked run: an identical command, or another
+        administrator's, returns the existing export (outcome EXISTING). One transaction writes
+        the immutable export and one row per source row of the run in the deterministic order
+        (employee ID, employment ID, work date, site ID, then source row), the audit record
+        (payroll-input-export.create) and the outbox event (payroll.payroll-input-export.created.v1); the database proves at commit that the rows are all and only the
+        run's source rows and that counts and minutes reconcile. Worked-time inputs for payroll
+        preparation: this is not a payroll, salary, payment or bank file. Worked-time inputs
+        only. Monthly salary is not calculated from these minutes. This export does not
+        calculate or authorize pay, tax, deductions or payment. Idempotent (an identical replay
+        returns the original; a changed payload with the same key is 409
+        IDEMPOTENCY_KEY_REUSED). A malformed, unknown or foreign run is 404
+        PAYROLL_INPUT_TARGET_NOT_FOUND. Shares the payroll-input-write limits. Cache-Control
+        private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePayrollInputExportRequest"
+      responses:
+        "200":
+          description: Created, the existing export, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputExportResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    get:
+      operationId: listPayrollInputExports
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the tenant's worked-time exports
+      description: >-
+        MVP-092. The tenant's exports, newest first, optionally of one legal entity (a malformed
+        filter is 400). Each item carries the export's facts and the SHA-256 of its CSV bytes. The
+        signed cursor is bound to the operation, tenant, filter and page size. A fail-closed
+        disclosure (audit payroll-input-export.list). Worked-time inputs only. Monthly salary is
+        not calculated from these minutes. This export does not calculate or authorize pay, tax,
+        deductions or payment. Shares the payroll-input-read limit. Cache-Control private,
+        no-store.
+      tags: [payroll]
+      parameters:
+        - name: legalEntityId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputExportPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-input-exports/{exportId}:
+    get:
+      operationId: getPayrollInputExport
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One worked-time export
+      description: >-
+        MVP-092. The export's facts: the run and version, the lock, the scope, the counts, the
+        worked-minute band, the SHA-256 of the CSV bytes and the creation instant. A malformed,
+        unknown or foreign export is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. A fail-closed
+        disclosure (audit payroll-input-export.read). Worked-time inputs only. Monthly salary is
+        not calculated from these minutes. This export does not calculate or authorize pay, tax,
+        deductions or payment. Shares the payroll-input-read limit. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputExportId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollInputExport"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /payroll-input-exports/{exportId}/csv:
+    get:
+      operationId: downloadPayrollInputExportCsv
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download an export's CSV
+      description: >-
+        MVP-092. UTF-8 without a byte-order mark, comma-delimited, every cell quoted (RFC 4180)
+        and neutralized against formulas, CRLF line ends, with the fixed English header
+        employee_id, employment_id, legal_entity_id, site_id, cost_center_id, work_date,
+        approved_worked_minutes, timesheet_id, timesheet_revision, approval_action_id,
+        approval_cycle, source_week_start, source_generation_id, source_generation_version,
+        source_lock_action_id, source_lock_version, payroll_input_run_id,
+        payroll_input_run_version; one row per source row of the locked run, ordered by employee
+        ID, employment ID, work date, site ID and source row. No name, employee number, e-mail,
+        subject, salary, rate, amount, national ID, bank detail or free text. Rebuilt from the
+        stored export: every download has the same bytes, and its SHA-256 must equal the stored
+        one and the manifest's (otherwise 500, nothing returned). The download audit (payroll-input-export.download) commits before any byte is returned. A malformed, unknown or
+        foreign export is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. Worked-time inputs only. Monthly
+        salary is not calculated from these minutes. This export does not calculate or authorize
+        pay, tax, deductions or payment. Attachment, Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputExportId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The CSV
+          headers:
+            Content-Disposition:
+              description: attachment; filename="divalhr-worked-time-inputs-<legalEntityId>-<periodStart>-<periodEnd>-v<version>.csv"
+              schema:
+                type: string
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /payroll-input-exports/{exportId}/manifest:
+    get:
+      operationId: downloadPayrollInputExportManifest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download an export's manifest
+      description: >-
+        MVP-092. The canonical JSON manifest (fixed key order, UTF-8): schema version, export
+        and run identity, tenant and legal-entity IDs, the period, the run version, the lock
+        action and version, the columns, the row and employee counts, the worked minutes and
+        band, the creation instant, the SHA-256 of the exact CSV bytes and the fixed notices in
+        English and French. No name, subject, creator or amount. The download audit (payroll-input-export.download) commits before any byte is returned. A malformed, unknown or
+        foreign export is 404 PAYROLL_INPUT_TARGET_NOT_FOUND. Worked-time inputs only. Monthly
+        salary is not calculated from these minutes. This export does not calculate or authorize
+        pay, tax, deductions or payment. Attachment, Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollInputExportId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The manifest
+          headers:
+            Content-Disposition:
+              description: attachment; filename="divalhr-worked-time-inputs-<legalEntityId>-<periodStart>-<periodEnd>-v<version>.manifest.json"
+              schema:
+                type: string
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /me/timesheets:
     get:
       operationId: listMyTimesheets
@@ -7595,6 +8090,14 @@ components:
       name: exportId
       in: path
       required: true
+      schema:
+        type: string
+        format: uuid
+    PayrollInputExportId:
+      name: exportId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND.
       schema:
         type: string
         format: uuid
@@ -10911,6 +11414,10 @@ components:
         - PAYROLL_INPUT_NOT_READY
         - PAYROLL_INPUT_PREVIEW_STALE
         - PAYROLL_INPUT_RUN_EXISTS
+        - PAYROLL_INPUT_NOT_LATEST
+        - PAYROLL_INPUT_RUN_LOCKED
+        - PAYROLL_INPUT_NOT_LOCKED
+        - PAYROLL_INPUT_EXPORT_TOO_LARGE
         - PAYROLL_VARIANCE_TARGET_NOT_FOUND
     LeaveUnit:
       type: string
@@ -13660,7 +14167,7 @@ components:
     PayrollInputRun:
       type: object
       description: MVP-090A. An immutable payroll-input run (identifiers, dates, counts and minutes only).
-      required: [runId, version, status, schemaVersion, scope, weekCount, counts, excluded, evidenceDigest, generatedAt]
+      required: [runId, version, status, schemaVersion, scope, weekCount, counts, excluded, evidenceDigest, generatedAt, lifecycle]
       properties:
         runId:
           type: string
@@ -13691,6 +14198,8 @@ components:
         generatedAt:
           type: string
           format: date-time
+        lifecycle:
+          $ref: "#/components/schemas/PayrollInputLifecycle"
     PayrollInputSourceWeek:
       type: object
       description: MVP-090A. One locked week a run was built from.
@@ -13777,6 +14286,262 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PayrollInputRun"
+        nextCursor:
+          type: [string, "null"]
+    PayrollInputLifecycle:
+      type: object
+      description: >-
+        MVP-092. Where a run stands in its version chain: OPEN, or LOCKED (final; never unlocked in
+        this MVP), the run it replaces and why, the LOCKED action and the run's worked-time export.
+      required: [state, latest, supersedesRunId, reasonCode, lockActionId, lockedAt, exportId]
+      properties:
+        state:
+          type: string
+          enum: [OPEN, LOCKED]
+        latest:
+          type: boolean
+        supersedesRunId:
+          type: [string, "null"]
+          format: uuid
+        reasonCode:
+          type: [string, "null"]
+          enum: [UPSTREAM_CORRECTION, UPSTREAM_REAPPROVAL, SCOPE_CORRECTION, OTHER, null]
+        lockActionId:
+          type: [string, "null"]
+          format: uuid
+        lockedAt:
+          type: [string, "null"]
+          format: date-time
+        exportId:
+          type: [string, "null"]
+          format: uuid
+    SupersedePayrollInputRunRequest:
+      type: object
+      description: >-
+        MVP-092. Replace the latest, open version of a run after corrected upstream evidence.
+        explanation is required for OTHER (1 to 200 characters of plain text: no link, markup,
+        address or long number) and absent for every other reason.
+      additionalProperties: false
+      required: [reasonCode, previewDigest, confirm]
+      properties:
+        reasonCode:
+          type: string
+          enum: [UPSTREAM_CORRECTION, UPSTREAM_REAPPROVAL, SCOPE_CORRECTION, OTHER]
+        explanation:
+          type: string
+          minLength: 1
+          maxLength: 200
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The reviewed preview's digest, exactly as returned.
+        confirm:
+          type: boolean
+          const: true
+    LockPayrollInputRunRequest:
+      type: object
+      description: MVP-092. Lock the reviewed latest version of a run (final).
+      additionalProperties: false
+      required: [previewDigest, confirm]
+      properties:
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The reviewed lock preview's digest, exactly as returned.
+        confirm:
+          type: boolean
+          const: true
+    CreatePayrollInputExportRequest:
+      type: object
+      description: MVP-092. Create the worked-time export of a locked run.
+      additionalProperties: false
+      required: [runId, confirm]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        confirm:
+          type: boolean
+          const: true
+    PayrollInputSupersedePreview:
+      type: object
+      description: MVP-092. What a replacement version would hold now. Nothing is written by a preview.
+      required: [current, weeks, eligible, blockers, ready, previewDigest, expiresAt]
+      properties:
+        current:
+          $ref: "#/components/schemas/PayrollInputRun"
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputWeek"
+        eligible:
+          $ref: "#/components/schemas/PayrollInputCounts"
+        blockers:
+          type: array
+          items:
+            type: string
+            enum:
+              - NOT_LATEST_VERSION
+              - ALREADY_LOCKED
+              - NO_CHANGED_EVIDENCE
+              - WEEK_NOT_GENERATED
+              - WEEK_NOT_LOCKED
+              - EVIDENCE_CHANGED
+              - ATTRIBUTION_AMBIGUOUS
+              - NO_APPROVED_TIME
+        ready:
+          type: boolean
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+    PayrollInputSupersedeResult:
+      type: object
+      description: MVP-092. The new version that replaced its predecessor.
+      required: [outcome, run, supersedesRunId]
+      properties:
+        outcome:
+          type: string
+          enum: [SUPERSEDED]
+        run:
+          $ref: "#/components/schemas/PayrollInputRun"
+        supersedesRunId:
+          type: string
+          format: uuid
+    PayrollInputLockPreview:
+      type: object
+      description: >-
+        MVP-092. What locking a run would make final: the run and version, the source weeks, the
+        counts, the worked-minute band, the earlier version it supersedes and the blockers.
+      required: [run, weeks, counts, workedMinuteBand, supersedesRunId, supersedesVersion, blockers, ready, previewDigest, expiresAt]
+      properties:
+        run:
+          $ref: "#/components/schemas/PayrollInputRun"
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputSourceWeek"
+        counts:
+          $ref: "#/components/schemas/PayrollInputCounts"
+        workedMinuteBand:
+          type: string
+        supersedesRunId:
+          type: [string, "null"]
+          format: uuid
+        supersedesVersion:
+          type: [integer, "null"]
+        blockers:
+          type: array
+          items:
+            type: string
+            enum:
+              - NOT_LATEST_VERSION
+              - ALREADY_LOCKED
+              - UPSTREAM_EVIDENCE_CHANGED
+              - SOURCE_PERIOD_NOT_LOCKED
+              - NO_EXPORTABLE_ROWS
+        ready:
+          type: boolean
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+    PayrollInputLockResult:
+      type: object
+      description: MVP-092. A locked run.
+      required: [outcome, run]
+      properties:
+        outcome:
+          type: string
+          enum: [LOCKED]
+        run:
+          $ref: "#/components/schemas/PayrollInputRun"
+    PayrollInputVersion:
+      type: object
+      description: MVP-092. One version of the chain.
+      required: [run, explanation]
+      properties:
+        run:
+          $ref: "#/components/schemas/PayrollInputRun"
+        explanation:
+          type: [string, "null"]
+          description: The bounded plain-text explanation of the reason OTHER; shown to tenant administrators only.
+    PayrollInputVersions:
+      type: object
+      description: MVP-092. The whole chain of one legal entity and period, oldest first. Nothing is hidden.
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputVersion"
+    PayrollInputExport:
+      type: object
+      description: >-
+        MVP-092. An immutable worked-time export of a locked run (facts only; the bytes are the
+        downloads). Worked-time inputs for payroll preparation: not a payroll, salary, payment or
+        bank file.
+      required: [exportId, schemaVersion, runId, runVersion, scope, lockActionId, lockVersion, employees, rows, workedMinutes, workedMinuteBand, csvSha256, createdAt]
+      properties:
+        exportId:
+          type: string
+          format: uuid
+        schemaVersion:
+          type: integer
+          enum: [1]
+        runId:
+          type: string
+          format: uuid
+        runVersion:
+          type: integer
+          minimum: 1
+        scope:
+          $ref: "#/components/schemas/PayrollInputScope"
+        lockActionId:
+          type: string
+          format: uuid
+        lockVersion:
+          type: integer
+          minimum: 1
+        employees:
+          type: integer
+          minimum: 1
+        rows:
+          type: integer
+          minimum: 1
+        workedMinutes:
+          type: integer
+          minimum: 0
+        workedMinuteBand:
+          type: string
+        csvSha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        createdAt:
+          type: string
+          format: date-time
+    PayrollInputExportResult:
+      type: object
+      description: MVP-092. A new export, or the run's existing one.
+      required: [outcome, export]
+      properties:
+        outcome:
+          type: string
+          enum: [CREATED, EXISTING]
+        export:
+          $ref: "#/components/schemas/PayrollInputExport"
+    PayrollInputExportPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollInputExport"
         nextCursor:
           type: [string, "null"]
     PayrollVarianceView:

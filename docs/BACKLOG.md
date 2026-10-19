@@ -333,7 +333,15 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-092 Export payroll inputs
 
-Authorized users can export a locked, versioned payroll-input file.
+**Issue #149. In review.** Authorized users can export a locked, versioned payroll-input file (ADR 0025).
+
+- **Who and where.** A tenant administrator with exact MFA, inside « Préparation de la paie » / "Payroll preparation": the version chain, the supersede flow, the final lock and the worked-time export of a run, and a history of exports with CSV and manifest downloads.
+- **Versions.** Replacement version N+1 with `supersedesRunId` and a reason (`UPSTREAM_CORRECTION`, `UPSTREAM_REAPPROVAL`, `SCOPE_CORRECTION`, `OTHER`; `OTHER` needs a bounded plain-text explanation); offered only when the upstream evidence changed; preview digest, confirmation and `Idempotency-Key`. Nothing is deleted, edited, invalidated or hidden.
+- **Lock.** OPEN then final LOCKED (no unlock); only the latest version; blockers `NOT_LATEST_VERSION`, `ALREADY_LOCKED`, `UPSTREAM_EVIDENCE_CHANGED`, `SOURCE_PERIOD_NOT_LOCKED`, `NO_EXPORTABLE_ROWS`.
+- **Export.** One immutable export per locked run: deterministic UTF-8 CRLF CSV (18 identifier, date and minute columns) and a canonical manifest with the CSV's SHA-256; no personal or financial data.
+- **Monthly salary.** Worked minutes never calculate or change salary, overtime, deductions or payment; the fixed bilingual notice is on every preview, lock, result, history and download area.
+- **Data and events.** V38 (V37 untouched) with a refusing rollback; audits `payroll-input.supersede`, `payroll-input.lock`, `payroll-input-export.create`, `payroll-input-export.download`; events `payroll.payroll-input.superseded.v1`, `payroll.payroll-input.locked.v1`, `payroll.payroll-input-export.created.v1`.
+- **Not included:** compensation, calculations, taxes, payslips, payment files, unlocking, voiding exports, notifications, AI.
 
 ## Epic 11 Dashboards and AI
 
