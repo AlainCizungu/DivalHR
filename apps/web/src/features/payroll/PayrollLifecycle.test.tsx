@@ -450,8 +450,8 @@ describe.each([
     await waitFor(() => {
       expect(saved).toHaveLength(2);
     });
-    expect(saved[0]).toBe(`divalhr-worked-time-inputs-${EXPORT}.csv`);
-    expect(saved[1]).toBe(`divalhr-worked-time-inputs-${EXPORT}.manifest.json`);
+    expect(saved[0]).toBe(`divalhr-worked-time-inputs-${LEGAL}-${START}-${END}-v2.csv`);
+    expect(saved[1]).toBe(`divalhr-worked-time-inputs-${LEGAL}-${START}-${END}-v2.manifest.json`);
     expect(screen.getByTestId('payroll-prep-announcer')).toHaveTextContent(
       k.exports.manifestDownloaded,
     );

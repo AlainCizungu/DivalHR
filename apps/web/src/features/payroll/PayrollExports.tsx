@@ -129,7 +129,7 @@ export function PayrollExports({
         data,
         attachmentName(
           response.headers.get('Content-Disposition'),
-          `divalhr-worked-time-inputs-${item.exportId}.${kind === 'csv' ? 'csv' : 'manifest.json'}`,
+          `divalhr-worked-time-inputs-${item.scope.legalEntityId}-${item.scope.periodStart}-${item.scope.periodEnd}-v${String(item.runVersion)}.${kind === 'csv' ? 'csv' : 'manifest.json'}`,
         ),
       );
       announce(
