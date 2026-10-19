@@ -214,6 +214,10 @@ public class PayrollInputService {
               () -> {
                 TenantId tenant = caller.tenant();
                 Resolved resolved = resolve(tenant, target);
+                // R142-1: the tenant's scheduling lock, as the generation takes it, so the weeks,
+                // lock states, approvals and existing run are read from one committed state: no
+                // lock, unlock, correction, refresh or approval interleaves with the evaluation.
+                approvedTime.lockForPayrollInputs(tenant);
                 Evaluation evaluation = evaluate(tenant, resolved);
                 Instant expiresAt = expiry(now());
                 String versions = versionsDigest(evaluation);

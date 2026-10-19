@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.divalhr.core.identity.application.EmailLookup;
 import com.divalhr.core.people.schedule.LockedWeeks;
 import com.divalhr.core.people.schedule.LockedWeeks.Week;
+import com.divalhr.core.platform.access.LockedApprovedTime;
+import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
@@ -32,12 +34,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * MVP-090A (Issue #141, acceptance criterion 7) against real PostgreSQL: two concurrent generation
  * attempts of the same period by two administrators (different keys) produce one logical run, one
  * audit record and one event; a generation racing an unlock of one of its weeks either generates
- * from the locked evidence or is refused as stale, never a partial run.
+ * from the locked evidence or is refused as stale, never a partial run; a preview waits for the
+ * tenant's scheduling lock (R142-1), so it never assembles its evidence from mixed states.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)
@@ -47,6 +52,8 @@ class PayrollInputConcurrencyIntegrationTest {
   @Autowired private JdbcTemplate jdbc;
   @Autowired private EmailLookup lookups;
   @Autowired private SettableClock clock;
+  @Autowired private LockedApprovedTime approvedTime;
+  @Autowired private PlatformTransactionManager transactions;
 
   @AfterEach
   void reset() {
@@ -160,6 +167,68 @@ class PayrollInputConcurrencyIntegrationTest {
                       + " k.tenant_id = ? AND a.action = 'LOCKED' AND a.sequence = 1",
                   f.tenant()))
           .isEqualTo(1);
+    }
+  }
+
+  @Test
+  void aPreviewWaitsForTheTenantsSchedulingLockAndThenReadsOneCommittedState() throws Exception {
+    LockedWeeks f = new LockedWeeks(mvc, jdbc, lookups, clock);
+    LocalDate monday = f.nextMonday();
+    Week week = f.locked(monday);
+    Map<String, Object> period = scope(f.legalEntity(), monday, monday.plusDays(6));
+    String admin = f.admin();
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    CountDownLatch held = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    TransactionTemplate holder = new TransactionTemplate(transactions);
+    try {
+      // Another command of the tenant (a lock, unlock, correction, refresh or approval) holds the
+      // scheduling lock in its own transaction.
+      Future<?> holding =
+          pool.submit(
+              () ->
+                  holder.executeWithoutResult(
+                      status -> {
+                        approvedTime.lockForPayrollInputs(new TenantId(f.tenant()));
+                        held.countDown();
+                        try {
+                          release.await(60, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                          Thread.currentThread().interrupt();
+                        }
+                      }));
+      assertThat(held.await(30, TimeUnit.SECONDS)).isTrue();
+      ExecutorService previewing = Executors.newSingleThreadExecutor();
+      try {
+        Future<MockHttpServletResponse> preview =
+            previewing.submit(() -> f.call(preview(admin, period)));
+        // The preview is blocked on the advisory lock: a backend is waiting for it, and the
+        // response does not arrive while the lock is held.
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (count("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND NOT granted")
+            == 0) {
+          assertThat(System.nanoTime())
+              .as("the preview never waited for the lock")
+              .isLessThan(deadline);
+          assertThat(preview.isDone()).as("the preview did not wait for the lock").isFalse();
+          Thread.sleep(50);
+        }
+        assertThat(preview.isDone()).isFalse();
+        release.countDown();
+        holding.get(30, TimeUnit.SECONDS);
+        MockHttpServletResponse response = preview.get(60, TimeUnit.SECONDS);
+        assertThat(response.getStatus()).isEqualTo(200);
+        JsonNode body = JSON.readTree(response.getContentAsString());
+        assertThat(body.get("ready").asBoolean()).isTrue();
+        assertThat(body.get("weeks").get(0).get("generationId").asText())
+            .isEqualTo(week.generationId());
+      } finally {
+        release.countDown();
+        previewing.shutdownNow();
+      }
+    } finally {
+      release.countDown();
+      pool.shutdownNow();
     }
   }
 }
