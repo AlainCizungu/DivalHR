@@ -40,6 +40,14 @@ async function expectNoHorizontalScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+/** R150-4: every home-card heading link is at least 24 px tall (WCAG 2.2 target size), at any scroll. */
+async function expectCardLinksBigEnough(page: Page) {
+  const heights = await page
+    .locator('.link-card__title a')
+    .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().height));
+  for (const height of heights) expect(height).toBeGreaterThanOrEqual(24);
+}
+
 async function reflows(page: Page) {
   for (const viewport of [
     { width: 320, height: 720 },
@@ -49,6 +57,7 @@ async function reflows(page: Page) {
   ]) {
     await page.setViewportSize(viewport);
     await expectNoHorizontalScroll(page);
+    await expectCardLinksBigEnough(page);
     await expectAccessible(page);
   }
   await page.setViewportSize({ width: 1280, height: 800 });
