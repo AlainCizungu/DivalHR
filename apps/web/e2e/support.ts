@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { reportTargetSize } from './axe-diagnostics.ts';
+import { logLine, reportTargetSize } from './axe-diagnostics.ts';
 import { retryOn429 } from './rate-limit.ts';
 import { readState, ssoDir } from './sso-state.ts';
 
@@ -414,10 +414,17 @@ export async function expectAccessible(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze();
-  // R150-2: a failing `target-size` check names its element in an attached artifact before the
-  // assertion below throws. Nothing happens when that rule reports nothing.
-  await reportTargetSize(page, results.violations, (name, body, contentType) =>
-    test.info().attach(name, { body, contentType }),
-  );
+  // R150-2: a failing `target-size` check names its element before the assertion below throws:
+  // a JSON file attached by path (the `list` reporter drops body-only attachments) and the same
+  // JSON on one marked stdout line, which the verification log keeps. Nothing happens when that
+  // rule reports nothing.
+  await reportTargetSize(page, results.violations, async (name, body, contentType) => {
+    const info = test.info();
+    const file = info.outputPath(`${name}.json`);
+    mkdirSync(info.outputDir, { recursive: true });
+    writeFileSync(file, body);
+    await info.attach(name, { path: file, contentType });
+    console.log(logLine(body));
+  });
   expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 }

@@ -1,6 +1,8 @@
 // R150-2: what a failing `target-size` accessibility check leaves behind. The check failed in the
 // browser suite without naming the element, so the shared `expectAccessible` helper now attaches
-// one JSON artifact to the failing test, before its assertion throws. Nothing is produced when no
+// one JSON artifact to the failing test (a file under the test's output folder, attached by path,
+// because the `list` reporter of the AWS runs drops body-only attachments), and prints the same
+// JSON on one marked stdout line so the verification log keeps it, before its assertion throws. Nothing is produced when no
 // `target-size` violation is reported, the axe rules are unchanged, and nothing here retries,
 // waits, suppresses or excludes anything.
 //
@@ -57,6 +59,12 @@ export interface PageLike {
   url(): string;
   viewportSize(): { width: number; height: number } | null;
   evaluate<R, A>(pageFunction: (arg: A) => R, arg: A): Promise<R>;
+}
+
+/** One-line marker for the run's stdout (the `list` reporter prints it; verification logs keep it). */
+export const LOG_MARKER = 'R150-2 target-size-diagnostic';
+export function logLine(body: string): string {
+  return `${LOG_MARKER} ${JSON.stringify(JSON.parse(body))}`;
 }
 
 export type Attach = (name: string, body: string, contentType: string) => Promise<void>;

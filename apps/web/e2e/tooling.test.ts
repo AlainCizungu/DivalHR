@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url';
 import {
   ARTIFACT_NAME,
   inPage,
+  LOG_MARKER,
+  logLine,
   pathOf,
   redact,
   reportTargetSize,
@@ -624,6 +626,14 @@ void describe('target-size diagnostics (R150-2)', () => {
     assert.equal(artifact.path, '/admin/people');
   });
 
+  void it('prints the artifact as one marked line the verification log keeps', async () => {
+    const { entry, artifact } = await single(fakePage(), [violation('target-size')]);
+    const line = logLine(entry.body);
+    assert.ok(line.startsWith(`${LOG_MARKER} {`));
+    assert.ok(!line.includes('\n'));
+    assert.deepEqual(JSON.parse(line.slice(LOG_MARKER.length + 1)), artifact);
+  });
+
   void it('redacts text and reduces URLs to their path', () => {
     assert.equal(redact('write to a.b@c.example now'), 'write to [email] now');
     assert.equal(redact('see /admin/x?a=1#f here'), 'see /admin/x here');
@@ -644,5 +654,9 @@ void describe('target-size diagnostics (R150-2)', () => {
       'expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);',
     );
     assert.ok(report > 0 && assertion > report, 'the artifact is attached before the assertion');
+    // The AWS runs use the `list` reporter, which drops body-only attachments: attach by path.
+    assert.ok(body.includes('info.attach(name, { path: file, contentType })'));
+    assert.ok(!body.includes('{ body, contentType }'));
+    assert.ok(body.includes('console.log(logLine(body))'));
   });
 });
