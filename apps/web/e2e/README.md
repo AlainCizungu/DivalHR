@@ -36,6 +36,10 @@ The saved SSO state is a session credential.
 
 Traces, screenshots, videos and failure page snapshots stay off (MVP-011).
 
+## Target-size failures (R150-2)
+
+When `expectAccessible` (axe, rules unchanged) reports `target-size`, it first attaches `target-size-diagnostic` (JSON, in `test-results/`) to the failing test and then asserts as before. The artifact has the path (no query or fragment), viewport, language, the raw axe `target-size` violation, and per node: the selector, HTML, impact, failure summary, the resolved element (tag, role, accessible name, classes, box, focus and hover) and the nearest interactive neighbours with their gaps in pixels. Page text is shortened and redacted (e-mail addresses, token-shaped and long opaque strings, long numbers, query strings); no request, header, cookie, storage or token is read. Nothing is produced, and the page is not touched, when `target-size` is not reported. `e2e/axe-diagnostics.ts` holds the code; `e2e/tooling.test.ts` covers it without a browser.
+
 ## Tooling tests
 
 `node --test e2e/tooling.test.ts` (part of `pnpm --filter @divalhr/web test`) covers the state validation, file modes, cleanup after a passing and a failing run, the hygiene findings and the runner's exit aggregation, without a browser or a stack.

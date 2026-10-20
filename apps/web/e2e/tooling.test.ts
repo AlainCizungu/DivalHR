@@ -17,6 +17,16 @@ import { deflateRawSync } from 'node:zlib';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import {
+  ARTIFACT_NAME,
+  inPage,
+  pathOf,
+  redact,
+  reportTargetSize,
+  SCHEMA,
+  type PageContext,
+  type PageLike,
+} from './axe-diagnostics.ts';
 import { TOTP_SEEDS, totp } from './credentials.ts';
 import globalSetup from './global-setup.ts';
 import { check, scanText, seedCodes, textsOf } from './hygiene.ts';
@@ -437,5 +447,202 @@ void describe('invitation acceptance 429 rule', () => {
     assert.equal(retryAfterSeconds('1.2'), 2);
     assert.equal(retryAfterSeconds('5'), 5);
     assert.equal(retryAfterSeconds('3600'), 61);
+  });
+});
+
+// R150-2: what a failing `target-size` accessibility check leaves behind.
+void describe('target-size diagnostics (R150-2)', () => {
+  type Violation = Parameters<typeof reportTargetSize>[1][number];
+  const node = (html: string, target = '#two') => ({
+    any: [
+      {
+        id: 'target-size',
+        data: { minSize: 24, width: 12, height: 12 },
+        relatedNodes: [{ html: '<button>OK</button>', target: ['button'] }],
+        impact: 'serious',
+        message: 'Target has insufficient size',
+      },
+    ],
+    all: [],
+    none: [],
+    impact: 'serious',
+    html,
+    target: [target],
+    failureSummary: 'Fix any of the following:\n  Target has insufficient size',
+  });
+  const violation = (id: string, html = '<a id="two">Home</a>'): Violation =>
+    ({
+      id,
+      impact: 'serious',
+      tags: ['wcag22aa'],
+      description: 'd',
+      help: `help ${id}`,
+      helpUrl: 'https://example.invalid/rule',
+      nodes: [node(html)],
+    }) as unknown as Violation;
+  const element = (name: string) => ({
+    tag: 'a',
+    role: 'link',
+    name,
+    classes: 'nav-link',
+    testId: null,
+    box: { x: 10.04, y: 20, width: 12, height: 12 },
+    focused: false,
+    hovered: true,
+  });
+  const context: PageContext = {
+    nodes: [{ element: element('Home'), neighbours: [{ ...element('Team'), distance: 3.26 }] }],
+    focus: element('Home'),
+    hover: null,
+  };
+  const fakePage = (
+    options: { url?: string; fail?: boolean } = {},
+  ): PageLike & { calls: number } => {
+    const page = {
+      calls: 0,
+      url: () => options.url ?? 'http://localhost:5173/admin/home?code=abc#frag',
+      viewportSize: () => ({ width: 320, height: 720 }),
+      evaluate: (fn: unknown) => {
+        page.calls += 1;
+        if (options.fail) return Promise.reject(new TypeError('page closed'));
+        return Promise.resolve(fn === inPage ? context : 'fr');
+      },
+    };
+    return page as unknown as PageLike & { calls: number };
+  };
+  interface Artifact {
+    schema: string;
+    path: string;
+    viewport: { width: number; height: number };
+    language: string;
+    collection: string;
+    violations: { id: string; nodes: { any: { data: { minSize: number } }[] }[] }[];
+    nodes: {
+      target: string[];
+      impact: string;
+      failureSummary: string;
+      element: { role: string; box: { x: number } } | null;
+      neighbours: { distance: number }[];
+    }[];
+    focus: { name: string } | null;
+    hover: unknown;
+  }
+  const collect = async (page: PageLike, violations: Violation[]) => {
+    const attached: { name: string; body: string; contentType: string }[] = [];
+    await reportTargetSize(page, violations, (name, body, contentType) => {
+      attached.push({ name, body, contentType });
+      return Promise.resolve();
+    });
+    return attached;
+  };
+  /** The single artifact a failing check attaches: its attachment and the parsed JSON. */
+  const single = async (page: PageLike, violations: Violation[]) => {
+    const attached = await collect(page, violations);
+    assert.equal(attached.length, 1);
+    const entry = attached[0];
+    return { entry, artifact: JSON.parse(entry.body) as Artifact };
+  };
+
+  void it('attaches one artifact for a target-size violation, with the element and its neighbours', async () => {
+    const { entry, artifact } = await single(fakePage(), [violation('target-size')]);
+    assert.equal(entry.name, ARTIFACT_NAME);
+    assert.equal(entry.contentType, 'application/json');
+    assert.equal(artifact.schema, SCHEMA);
+    assert.equal(artifact.path, '/admin/home');
+    assert.deepEqual(artifact.viewport, { width: 320, height: 720 });
+    assert.equal(artifact.language, 'fr');
+    assert.equal(artifact.collection, 'ok');
+    assert.equal(artifact.violations.length, 1);
+    assert.equal(artifact.violations[0].nodes[0].any[0].data.minSize, 24);
+    const [first] = artifact.nodes;
+    assert.deepEqual(first.target, ['#two']);
+    assert.equal(first.impact, 'serious');
+    assert.match(first.failureSummary, /insufficient size/u);
+    assert.ok(first.element);
+    assert.equal(first.element.role, 'link');
+    assert.equal(first.element.box.x, 10);
+    assert.equal(first.neighbours[0].distance, 3.3);
+    assert.equal(artifact.focus?.name, 'Home');
+    assert.equal(artifact.hover, null);
+  });
+
+  void it('keeps only the target-size violations in the artifact', async () => {
+    const { artifact } = await single(fakePage(), [
+      violation('color-contrast'),
+      violation('target-size'),
+    ]);
+    assert.deepEqual(
+      artifact.violations.map((item) => item.id),
+      ['target-size'],
+    );
+  });
+
+  void it('produces nothing, and does not touch the page, when there is no violation', async () => {
+    const page = fakePage();
+    assert.deepEqual(await collect(page, []), []);
+    assert.equal(page.calls, 0);
+  });
+
+  void it('produces nothing for other axe violations, which keep failing as before', async () => {
+    const page = fakePage();
+    assert.deepEqual(await collect(page, [violation('color-contrast'), violation('label')]), []);
+    assert.equal(page.calls, 0);
+  });
+
+  void it('still attaches an artifact, and never throws, when the page cannot be read', async () => {
+    const { artifact } = await single(fakePage({ fail: true }), [violation('target-size')]);
+    assert.equal(artifact.collection, 'TypeError');
+    assert.equal(artifact.nodes[0].element, null);
+    assert.deepEqual(artifact.nodes[0].neighbours, []);
+  });
+
+  void it('records no request, authentication or personal data', async () => {
+    const jwt = ['eyJ' + b64url('{"alg":"none"}'), b64url('{"sub":"someone"}'), 'signature'].join(
+      '.',
+    );
+    const html = `<a href="/admin/people?cursor=${'c'.repeat(40)}&email=ana@example.test#top" data-x="${jwt}">Ana ana@example.test 0123456789 Bearer ${'t'.repeat(30)}</a>`;
+    const { entry, artifact } = await single(
+      fakePage({ url: `http://localhost:5173/admin/people?code=1&state=2&session_state=3#x` }),
+      [violation('target-size', html)],
+    );
+    const body = entry.body;
+    const forbiddenKey =
+      /"(?:authorization|cookie|set-cookie|headers?|token|access_token|id_token|refresh_token|password|secret|query|search|hash|storage|session_state|state|code|body|postData)"\s*:/iu;
+    assert.doesNotMatch(body, forbiddenKey);
+    for (const leaked of [
+      jwt,
+      'ana@example.test',
+      '0123456789',
+      'cursor=',
+      'code=1',
+      'session_state',
+      'c'.repeat(40),
+      't'.repeat(30),
+    ]) {
+      assert.ok(!body.includes(leaked), `leaked: ${leaked.slice(0, 12)}`);
+    }
+    assert.equal(artifact.path, '/admin/people');
+  });
+
+  void it('redacts text and reduces URLs to their path', () => {
+    assert.equal(redact('write to a.b@c.example now'), 'write to [email] now');
+    assert.equal(redact('see /admin/x?a=1#f here'), 'see /admin/x here');
+    assert.equal(redact('id 123456789'), 'id [number]');
+    assert.equal(redact('Home'), 'Home');
+    assert.equal(pathOf('https://hr.example.invalid/a/b?q=1#z'), '/a/b');
+    assert.equal(pathOf('not a url'), '/not%20a%20url');
+  });
+
+  void it('is called before the assertion in expectAccessible, with the rule set unchanged', () => {
+    const source = readFileSync(new URL('./support.ts', import.meta.url), 'utf8');
+    const start = source.indexOf('export async function expectAccessible');
+    const body = source.slice(start, source.indexOf('\n}\n', start));
+    assert.ok(body.includes(".withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])"));
+    assert.ok(!/withRules|disableRules|exclude|include\(|retries|waitFor|screenshot/u.test(body));
+    const report = body.indexOf('await reportTargetSize(');
+    const assertion = body.indexOf(
+      'expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);',
+    );
+    assert.ok(report > 0 && assertion > report, 'the artifact is attached before the assertion');
   });
 });
