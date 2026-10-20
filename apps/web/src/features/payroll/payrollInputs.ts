@@ -81,6 +81,10 @@ export interface PayrollFailure {
     | 'notReady'
     | 'stale'
     | 'exists'
+    | 'notLatest'
+    | 'locked'
+    | 'notLocked'
+    | 'tooLarge'
     | 'forbidden'
     | 'rateLimited'
     | 'idempotency'
@@ -100,6 +104,10 @@ const CODES: Record<string, PayrollFailure['kind']> = {
   PAYROLL_INPUT_NOT_READY: 'notReady',
   PAYROLL_INPUT_PREVIEW_STALE: 'stale',
   PAYROLL_INPUT_RUN_EXISTS: 'exists',
+  PAYROLL_INPUT_NOT_LATEST: 'notLatest',
+  PAYROLL_INPUT_RUN_LOCKED: 'locked',
+  PAYROLL_INPUT_NOT_LOCKED: 'notLocked',
+  PAYROLL_INPUT_EXPORT_TOO_LARGE: 'tooLarge',
   IDEMPOTENCY_KEY_REUSED: 'idempotency',
 };
 
@@ -136,4 +144,44 @@ export function payrollFailureOf(response: Response, error: unknown): PayrollFai
     };
   }
   return { ...base, kind: 'general', messageKey: 'errors.generic' };
+}
+
+/**
+ * MVP-092: the reasons a superseding version can carry. OTHER alone needs a bounded plain-text
+ * explanation; the server decides everything else (no link, markup, address or long number).
+ */
+export const SUPERSEDE_REASONS = [
+  'UPSTREAM_CORRECTION',
+  'UPSTREAM_REAPPROVAL',
+  'SCOPE_CORRECTION',
+  'OTHER',
+] as const;
+export type SupersedeReason = (typeof SUPERSEDE_REASONS)[number];
+
+/** The longest explanation (characters), as the contract states. */
+export const MAX_EXPLANATION = 200;
+
+/** The explanation problem the browser can see before sending (the server is the authority). */
+export function explanationProblemOf(
+  reason: SupersedeReason,
+  explanation: string,
+): 'required' | 'length' | null {
+  if (reason !== 'OTHER') return null;
+  if (explanation.trim().length === 0) return 'required';
+  return explanation.length > MAX_EXPLANATION ? 'length' : null;
+}
+
+/** The lifecycle tones; the text (OPEN or LOCKED) carries the meaning. */
+export const LIFECYCLE_TONES: Record<'OPEN' | 'LOCKED', StatusTone> = {
+  OPEN: 'warning',
+  LOCKED: 'success',
+};
+
+/**
+ * A safe attachment name: the server's approved name when it matches the approved grammar,
+ * otherwise the fallback built from identifiers. Nothing else is ever used as a file name.
+ */
+export function attachmentName(header: string | null, fallback: string): string {
+  const match = /filename="([A-Za-z0-9._-]{1,200})"/u.exec(header ?? '');
+  return match?.[1] ?? fallback;
 }

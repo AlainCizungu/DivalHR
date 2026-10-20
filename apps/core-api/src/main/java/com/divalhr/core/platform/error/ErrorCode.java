@@ -494,6 +494,20 @@ public enum ErrorCode {
    */
   PAYROLL_INPUT_RUN_EXISTS(HttpStatus.CONFLICT),
   /**
+   * MVP-092: the payroll-input run is not the latest version of its legal entity and period (a
+   * later version exists); only the latest version can be superseded or locked.
+   */
+  PAYROLL_INPUT_NOT_LATEST(HttpStatus.CONFLICT),
+  /**
+   * MVP-092: the payroll-input run is already locked; a locked run is final and is never superseded
+   * or locked again.
+   */
+  PAYROLL_INPUT_RUN_LOCKED(HttpStatus.CONFLICT),
+  /** MVP-092: only a locked payroll-input run can be exported as worked-time inputs. */
+  PAYROLL_INPUT_NOT_LOCKED(HttpStatus.CONFLICT),
+  /** MVP-092: the run holds more rows than one export can carry; nothing is truncated. */
+  PAYROLL_INPUT_EXPORT_TOO_LARGE(HttpStatus.CONFLICT),
+  /**
    * MVP-091: the current or comparison payroll-input run is unknown, malformed, outside the
    * caller's tenant or not comparable (another legal entity, not ending before the current period,
    * another length), or no eligible comparison run exists (one safe 404, nothing disclosed).

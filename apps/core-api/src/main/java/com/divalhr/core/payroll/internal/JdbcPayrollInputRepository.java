@@ -52,13 +52,14 @@ public class JdbcPayrollInputRepository {
   }
 
   /**
-   * The run of a legal entity and period at version 1, if any.
+   * The latest version of a legal entity's run of a period, if any (MVP-092: a replacement version
+   * supersedes the earlier ones; earlier versions stay immutable evidence).
    *
    * @param tenant verified tenant
    * @param legalEntityId legal entity
    * @param periodStart first date
    * @param periodEnd last date
-   * @return the run
+   * @return the latest run
    */
   public Optional<Run> byPeriod(
       TenantId tenant, UUID legalEntityId, LocalDate periodStart, LocalDate periodEnd) {
@@ -67,8 +68,8 @@ public class JdbcPayrollInputRepository {
             "SELECT "
                 + RUN_COLUMNS
                 + " FROM payroll.input_run r WHERE r.tenant_id = :tenant AND r.legal_entity_id ="
-                + " :legalEntity AND r.period_start = :start AND r.period_end = :end AND r.version"
-                + " = 1",
+                + " :legalEntity AND r.period_start = :start AND r.period_end = :end ORDER BY"
+                + " r.version DESC LIMIT 1",
             new MapSqlParameterSource()
                 .addValue("tenant", tenant.value())
                 .addValue("legalEntity", legalEntityId)
@@ -77,6 +78,28 @@ public class JdbcPayrollInputRepository {
             (rs, n) -> run(rs))
         .stream()
         .findFirst();
+  }
+
+  /**
+   * Every version of the scope of a run, oldest first (MVP-092: the complete, gap-free chain).
+   *
+   * @param tenant verified tenant
+   * @param run any version of the scope
+   * @return the versions
+   */
+  public List<Run> versions(TenantId tenant, Run run) {
+    return jdbc.query(
+        "SELECT "
+            + RUN_COLUMNS
+            + " FROM payroll.input_run r WHERE r.tenant_id = :tenant AND r.legal_entity_id ="
+            + " :legalEntity AND r.period_start = :start AND r.period_end = :end ORDER BY"
+            + " r.version",
+        new MapSqlParameterSource()
+            .addValue("tenant", tenant.value())
+            .addValue("legalEntity", run.scope().legalEntityId())
+            .addValue("start", run.scope().periodStart())
+            .addValue("end", run.scope().periodEnd()),
+        (rs, n) -> run(rs));
   }
 
   /**
@@ -342,7 +365,10 @@ public class JdbcPayrollInputRepository {
    * mapped like any constraint instead of failing at commit.
    */
   public void checkConsistent() {
-    jdbc.getJdbcTemplate().execute("SET CONSTRAINTS payroll.payroll_input_run_exact IMMEDIATE");
+    jdbc.getJdbcTemplate()
+        .execute(
+            "SET CONSTRAINTS payroll.payroll_input_run_exact, payroll.payroll_input_run_chain"
+                + " IMMEDIATE");
   }
 
   private static Run run(ResultSet rs) throws SQLException {

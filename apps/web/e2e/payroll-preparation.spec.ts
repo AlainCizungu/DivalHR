@@ -907,7 +907,11 @@ test.describe.serial('MVP-090A: generate time-based payroll inputs', () => {
     );
     await noPerson(detail);
     const runId = (await detail.getByTestId('payroll-prep-detail-id').textContent()) ?? '';
-    const items = admin.getByTestId('payroll-prep-history').getByTestId('payroll-prep-item');
+    // Only this journey's own entities: other specs of the tenant also generate payroll inputs.
+    const items = admin
+      .getByTestId('payroll-prep-history')
+      .getByTestId('payroll-prep-item')
+      .filter({ hasText: stamp });
     await expect(items).toHaveCount(2);
     await expect(items.nth(0)).toContainText(`${ENTITY_TWO_NAME} (${ENTITY_TWO})`);
     await expect(items.nth(1)).toContainText(`${ENTITY_ONE_NAME} (${ENTITY_ONE})`);

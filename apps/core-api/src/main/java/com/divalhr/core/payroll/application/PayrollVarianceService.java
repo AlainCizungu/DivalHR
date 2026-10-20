@@ -14,6 +14,7 @@ import com.divalhr.core.payroll.domain.PayrollVariance.Line;
 import com.divalhr.core.payroll.domain.PayrollVariance.Thresholds;
 import com.divalhr.core.payroll.domain.PayrollVariance.View;
 import com.divalhr.core.payroll.internal.JdbcPayrollInputRepository;
+import com.divalhr.core.payroll.internal.JdbcPayrollLifecycleRepository;
 import com.divalhr.core.platform.audit.AuditEvent;
 import com.divalhr.core.platform.audit.AuditRecorder;
 import com.divalhr.core.platform.error.ApiException;
@@ -87,6 +88,7 @@ public class PayrollVarianceService {
   private static final int MAX_LIMIT = 100;
 
   private final JdbcPayrollInputRepository runs;
+  private final JdbcPayrollLifecycleRepository lifecycle;
   private final OrganizationPlacementDirectory units;
   private final CursorCodec cursors;
   private final Clock clock;
@@ -98,6 +100,7 @@ public class PayrollVarianceService {
    * Creates the service.
    *
    * @param runs run storage
+   * @param lifecycle lifecycle storage (the state shown with every run)
    * @param units the tenant module's unit port (legal entity)
    * @param cursors signed cursors
    * @param clock the platform clock
@@ -107,6 +110,7 @@ public class PayrollVarianceService {
    */
   public PayrollVarianceService(
       JdbcPayrollInputRepository runs,
+      JdbcPayrollLifecycleRepository lifecycle,
       OrganizationPlacementDirectory units,
       CursorCodec cursors,
       Clock clock,
@@ -114,6 +118,7 @@ public class PayrollVarianceService {
       OperationMetrics metrics,
       PlatformTransactionManager transactionManager) {
     this.runs = runs;
+    this.lifecycle = lifecycle;
     this.units = units;
     this.cursors = cursors;
     this.clock = clock;
@@ -140,7 +145,8 @@ public class PayrollVarianceService {
                 Run current = runs.run(tenant, id).orElseThrow(PayrollVarianceService::notFound);
                 List<Run> eligible = eligible(tenant, current);
                 UnitView entity = legalEntity(tenant, current);
-                List<Summary> items = eligible.stream().map(r -> Summary.of(r, entity)).toList();
+                List<Summary> items =
+                    eligible.stream().map(r -> summary(tenant, r, entity)).toList();
                 Map<String, Object> metadata = base("candidates", "first");
                 metadata.put("currentPeriodStart", current.scope().periodStart().toString());
                 metadata.put("currentPeriodEnd", current.scope().periodEnd().toString());
@@ -155,7 +161,7 @@ public class PayrollVarianceService {
                         + items.size()
                         + "\n");
                 return new Candidates(
-                    Summary.of(current, entity),
+                    summary(tenant, current, entity),
                     items,
                     eligible.isEmpty() ? null : eligible.get(0).id());
               });
@@ -236,8 +242,8 @@ public class PayrollVarianceService {
                 UnitView entity = legalEntity(tenant, current);
                 Review review =
                     new Review(
-                        Summary.of(current, entity),
-                        Summary.of(comparison, entity),
+                        summary(tenant, current, entity),
+                        summary(tenant, comparison, entity),
                         explicit == null,
                         Review.thresholds(thresholds),
                         view.name(),
@@ -474,5 +480,12 @@ public class PayrollVarianceService {
     template.setTimeout((int) TRANSACTION_TIMEOUT.toSeconds());
     T result = template.execute(status -> work.get());
     return Objects.requireNonNull(result, "read transaction returned nothing");
+  }
+
+  private Summary summary(TenantId tenant, Run run, UnitView entity) {
+    return Summary.of(
+        run,
+        entity,
+        lifecycle.state(tenant, run.id()).orElseThrow(PayrollVarianceService::notFound));
   }
 }

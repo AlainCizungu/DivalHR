@@ -511,7 +511,11 @@
     "PAYROLL_INPUT_NOT_READY": "Cette période ne peut pas encore être générée : chaque semaine comportant du temps travaillé doit être générée et verrouillée, et sa preuve inchangée. Prévisualisez de nouveau.",
     "PAYROLL_INPUT_PREVIEW_STALE": "La preuve verrouillée a changé depuis cet aperçu, ou l’aperçu a expiré. Prévisualisez de nouveau.",
     "PAYROLL_INPUT_RUN_EXISTS": "Des données de préparation de la paie existent déjà pour cette entité juridique et cette période avec une preuve différente. Les données générées ne sont jamais remplacées.",
-    "PAYROLL_VARIANCE_TARGET_NOT_FOUND": "Cette génération de données de paie est introuvable, ou elle ne peut pas être comparée à celle choisie."
+    "PAYROLL_VARIANCE_TARGET_NOT_FOUND": "Cette génération de données de paie est introuvable, ou elle ne peut pas être comparée à celle choisie.",
+    "PAYROLL_INPUT_NOT_LATEST": "Une version plus récente de ces données existe. Seule la dernière version peut être remplacée ou verrouillée.",
+    "PAYROLL_INPUT_RUN_LOCKED": "Cette version est verrouillée et définitive. Elle ne peut être ni remplacée ni modifiée.",
+    "PAYROLL_INPUT_NOT_LOCKED": "Seule une version verrouillée peut être exportée. Verrouillez d’abord la version.",
+    "PAYROLL_INPUT_EXPORT_TOO_LARGE": "Cet export dépasse la taille prise en charge. Contactez le support."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3800,7 +3804,7 @@
       "excluded": "Non retenu",
       "ready": "Chaque semaine comportant du temps travaillé dans cette période est verrouillée et inchangée. Les données peuvent être générées.",
       "existingUnchanged": "Des données de préparation existent déjà pour cette période avec exactement cette preuve. Générer de nouveau les affiche.",
-      "existingChanged": "Des données de préparation existent déjà pour cette période avec une preuve différente. Les données générées ne sont jamais remplacées ; une version de remplacement viendra à une étape ultérieure.",
+      "existingChanged": "Des données de préparation existent déjà pour cette période avec une preuve différente. Les données générées ne sont jamais remplacées ni modifiées ; ouvrez les données existantes pour créer une nouvelle version.",
       "expires": "Cet aperçu est valable jusqu’au {{time}}.",
       "confirmCheck": "J’ai vérifié cet aperçu et je veux générer les données de préparation de la paie.",
       "generate": "Générer les données de préparation",
@@ -3862,7 +3866,7 @@
       "digest": "Empreinte de la preuve",
       "sourceWeeks": "Semaines sources",
       "employees": "Données par employé",
-      "immutable": "Les données générées ne sont jamais modifiées ni supprimées. Les corrections ultérieures en amont ne les changent jamais ; une version de remplacement viendra à une étape ultérieure."
+      "immutable": "Les données générées ne sont jamais modifiées ni supprimées. Les corrections ultérieures en amont ne les changent jamais ; une nouvelle version ne les remplace que par le parcours de version ci-dessous."
     },
     "employees": {
       "table": "Données par employé",
@@ -3969,6 +3973,111 @@
         "comparison": "Ouvrir les données de paie de la période de comparaison"
       },
       "unavailable": "L’examen n’a pas pu être chargé."
+    },
+    "salaryNotice": "Données de temps travaillé uniquement. Le salaire mensuel n’est pas calculé à partir de ces minutes. Cet export ne calcule ni n’autorise le salaire, les impôts, les retenues ou le paiement.",
+    "lifecycle": {
+      "title": "Versions, verrouillage final et export",
+      "state": {
+        "OPEN": "Ouverte",
+        "LOCKED": "Verrouillée"
+      },
+      "latest": "Ceci est la dernière version.",
+      "notLatest": "Ceci n’est pas la dernière version. Seule la dernière version peut être remplacée ou verrouillée.",
+      "openLatest": "Consulter la dernière version (version {{version}})",
+      "checking": "Vérification…",
+      "acting": "Enregistrement…",
+      "immutable": "Les versions ne sont jamais modifiées, supprimées, masquées ni invalidées. Une version verrouillée est définitive : elle n’est jamais remplacée ni déverrouillée.",
+      "reason": {
+        "UPSTREAM_CORRECTION": "Preuve en amont corrigée",
+        "UPSTREAM_REAPPROVAL": "Temps en amont approuvé à nouveau",
+        "SCOPE_CORRECTION": "Correction du périmètre",
+        "OTHER": "Autre motif"
+      },
+      "versions": {
+        "title": "Chaîne des versions",
+        "table": "Versions de ces données de temps travaillé, de la plus ancienne à la plus récente",
+        "loading": "Chargement des versions…",
+        "unavailable": "Impossible de charger les versions.",
+        "item": "Version {{version}}",
+        "latestTag": "dernière",
+        "replaces": "Remplace",
+        "replacesVersion": "Version {{version}}",
+        "explanation": "Explication : {{text}}",
+        "shown": "Affichée",
+        "openFor": "Consulter la version {{version}}"
+      },
+      "supersede": {
+        "title": "Remplacer par une nouvelle version",
+        "hint": "Lorsque le temps verrouillé en amont a été corrigé ou approuvé à nouveau, les données peuvent être remplacées par une nouvelle version. La version précédente reste consultable et inchangée. L’action n’est proposée que si la preuve en amont a changé.",
+        "check": "Vérifier la preuve en amont",
+        "previewTitle": "Aperçu de la version de remplacement",
+        "noChange": "La preuve en amont est identique à cette version. Il n’y a rien à remplacer.",
+        "blocked": "Une version de remplacement ne peut pas être créée pour le moment.",
+        "changed": "La preuve en amont a changé. La nouvelle version contiendrait {{rows}} lignes pour {{employees}} employés : {{time}} de temps travaillé approuvé.",
+        "reasonLabel": "Motif",
+        "explanationLabel": "Explication",
+        "explanationHint": "Texte simple, {{max}} caractères au plus : ni lien, ni balisage, ni adresse, ni long nombre, ni donnée personnelle.",
+        "problem": {
+          "required": "Expliquez le motif en quelques mots simples.",
+          "length": "L’explication ne doit pas dépasser 200 caractères."
+        },
+        "validation": "Vérifiez le motif et l’explication : texte simple uniquement, sans lien, balisage, adresse ni long nombre.",
+        "confirmCheck": "J’ai examiné cet aperçu et je souhaite créer la nouvelle version.",
+        "action": "Créer la nouvelle version",
+        "done": "Version {{version}} créée. Les versions précédentes restent inchangées."
+      },
+      "lock": {
+        "title": "Verrouillage final",
+        "hint": "Le verrouillage rend cette version définitive afin de pouvoir créer son export de temps travaillé. Une version verrouillée n’est jamais modifiée, remplacée ni déverrouillée.",
+        "check": "Aperçu du verrouillage final",
+        "previewTitle": "Aperçu du verrouillage final, version {{version}}",
+        "supersedes": "Cette version remplace la version {{version}}.",
+        "blocked": "Cette version ne peut pas être verrouillée pour le moment.",
+        "final": "Le verrouillage est définitif dans cette version : rien ne déverrouille une version.",
+        "confirmCheck": "J’ai examiné cet aperçu et je souhaite verrouiller cette version.",
+        "action": "Verrouiller cette version",
+        "locked": "Verrouillée le {{time}}.",
+        "done": "La version {{version}} est verrouillée. Elle est définitive et ne peut être ni modifiée ni déverrouillée."
+      },
+      "blocker": {
+        "NOT_LATEST_VERSION": "Une version plus récente existe. Seule la dernière version peut être remplacée ou verrouillée.",
+        "ALREADY_LOCKED": "Cette version est déjà verrouillée.",
+        "NO_CHANGED_EVIDENCE": "La preuve en amont est identique à cette version.",
+        "WEEK_NOT_GENERATED": "Une semaine avec du travail planifié n’a pas été générée.",
+        "WEEK_NOT_LOCKED": "Une semaine générée n’est pas verrouillée.",
+        "EVIDENCE_CHANGED": "Une semaine verrouillée ne correspond plus à sa preuve de verrouillage.",
+        "ATTRIBUTION_AMBIGUOUS": "Une ligne ne peut pas être attribuée à cette entité juridique.",
+        "NO_APPROVED_TIME": "Aucun temps approuvé verrouillé dans cette période.",
+        "UPSTREAM_EVIDENCE_CHANGED": "La preuve en amont a changé depuis la génération de cette version. Créez d’abord une nouvelle version.",
+        "SOURCE_PERIOD_NOT_LOCKED": "Une semaine source n’est plus verrouillée.",
+        "NO_EXPORTABLE_ROWS": "Cette version ne contient aucune ligne à exporter."
+      }
+    },
+    "export": {
+      "title": "Données de temps travaillé pour la préparation de la paie : export",
+      "hint": "Crée un fichier CSV immuable de données de temps travaillé pour la préparation de la paie et son manifeste d’intégrité. Identifiants, dates et minutes travaillées approuvées uniquement : aucun nom, aucun montant.",
+      "confirmCheck": "Je souhaite créer l’export de temps travaillé de cette version verrouillée.",
+      "create": "Créer l’export",
+      "creating": "Création…",
+      "created": "Export de temps travaillé créé.",
+      "existing": "Cette version verrouillée avait déjà son export de temps travaillé.",
+      "exists": "L’export de temps travaillé de cette version existe. Téléchargez-le dans les exports ci-dessous."
+    },
+    "exports": {
+      "title": "Exports de temps travaillé",
+      "hint": "Chaque export est le fichier CSV des données de temps travaillé pour la préparation de la paie d’une version verrouillée, avec un manifeste qui porte le SHA-256 du CSV exact. Ces fichiers ne sont ni un fichier de paie, ni un fichier de salaire, de paiement ou de banque.",
+      "table": "Exports de temps travaillé, du plus récent au plus ancien",
+      "loading": "Chargement des exports…",
+      "unavailable": "Impossible de charger les exports.",
+      "empty": "Aucun export de temps travaillé pour le moment.",
+      "sha": "SHA-256 du CSV",
+      "created": "Créé le",
+      "csv": "Télécharger le CSV",
+      "manifest": "Télécharger le manifeste",
+      "csvFor": "Télécharger le CSV du {{from}} au {{to}}",
+      "manifestFor": "Télécharger le manifeste du {{from}} au {{to}}",
+      "csvDownloaded": "Le CSV de temps travaillé a été téléchargé.",
+      "manifestDownloaded": "Le manifeste d’intégrité a été téléchargé."
     }
   }
 }

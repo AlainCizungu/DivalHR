@@ -20,7 +20,9 @@ import com.divalhr.core.payroll.domain.PayrollInputs.Evaluation;
 import com.divalhr.core.payroll.domain.PayrollInputs.Run;
 import com.divalhr.core.payroll.domain.PayrollInputs.Scope;
 import com.divalhr.core.payroll.domain.PayrollInputs.SourceWeek;
+import com.divalhr.core.payroll.domain.PayrollLifecycle;
 import com.divalhr.core.payroll.internal.JdbcPayrollInputRepository;
+import com.divalhr.core.payroll.internal.JdbcPayrollLifecycleRepository;
 import com.divalhr.core.payroll.internal.PayrollConstraintViolations;
 import com.divalhr.core.platform.access.LockedApprovedTime;
 import com.divalhr.core.platform.access.LockedApprovedTime.ApprovedRow;
@@ -141,6 +143,7 @@ public class PayrollInputService {
   private final IdempotentOperation operations;
   private final LockedApprovedTime approvedTime;
   private final JdbcPayrollInputRepository runs;
+  private final JdbcPayrollLifecycleRepository lifecycle;
   private final OrganizationPlacementDirectory units;
   private final OrganizationDirectory organizations;
   private final CursorCodec cursors;
@@ -157,6 +160,7 @@ public class PayrollInputService {
    * @param operations shared idempotent command flow
    * @param approvedTime the people module's locked-approved-time port
    * @param runs run storage
+   * @param lifecycle lifecycle storage (the version chain, the lock, the export)
    * @param units the tenant module's unit port (legal entity, sites)
    * @param organizations the tenant module's organization port (business time zone)
    * @param cursors signed cursors
@@ -171,6 +175,7 @@ public class PayrollInputService {
       IdempotentOperation operations,
       LockedApprovedTime approvedTime,
       JdbcPayrollInputRepository runs,
+      JdbcPayrollLifecycleRepository lifecycle,
       OrganizationPlacementDirectory units,
       OrganizationDirectory organizations,
       CursorCodec cursors,
@@ -183,6 +188,7 @@ public class PayrollInputService {
     this.operations = operations;
     this.approvedTime = approvedTime;
     this.runs = runs;
+    this.lifecycle = lifecycle;
     this.units = units;
     this.organizations = organizations;
     this.cursors = cursors;
@@ -318,8 +324,10 @@ public class PayrollInputService {
       if (!run.evidenceDigest().equals(evaluation.evidenceDigest())) {
         throw new ApiException(ErrorCode.PAYROLL_INPUT_RUN_EXISTS, Map.of());
       }
+      PayrollLifecycle.State state =
+          lifecycle.state(tenant, run.id()).orElseThrow(PayrollInputCommand::notFound);
       return new IdempotentOperation.Completed<>(
-          new Result("EXISTING", Summary.of(run, resolved.legalEntity())),
+          new Result("EXISTING", Summary.of(run, resolved.legalEntity(), state)),
           run.id(),
           Outcome.UNCHANGED);
     }
@@ -348,7 +356,13 @@ public class PayrollInputService {
         .addKeyValue("weeks", PayrollInputs.countBand(run.weekCount()))
         .log("payroll_input_generated");
     return new IdempotentOperation.Completed<>(
-        new Result("GENERATED", Summary.of(run, resolved.legalEntity())),
+        new Result(
+            "GENERATED",
+            Summary.of(
+                run,
+                resolved.legalEntity(),
+                new PayrollLifecycle.State(
+                    run.id(), run.version(), null, null, null, null, true, null))),
         run.id(),
         Outcome.CREATED);
   }
@@ -410,6 +424,8 @@ public class PayrollInputService {
                 shown.forEach(r -> ids.add(r.scope().legalEntityId()));
                 Map<UUID, UnitView> resolved =
                     ids.isEmpty() ? Map.of() : units.resolveIds(tenant, ids);
+                Map<UUID, PayrollLifecycle.State> states =
+                    lifecycle.states(tenant, shown.stream().map(Run::id).toList());
                 StringBuilder text = new StringBuilder("DIVALHR-PAYROLL-INPUT-LIST\nversion=1\n");
                 List<Summary> items =
                     shown.stream()
@@ -420,7 +436,8 @@ public class PayrollInputService {
                                   r,
                                   kind(
                                       resolved.get(r.scope().legalEntityId()),
-                                      UnitKind.LEGAL_ENTITY));
+                                      UnitKind.LEGAL_ENTITY),
+                                  states.get(r.id()));
                             })
                         .toList();
                 disclosed(caller, LIST, "payroll-input-runs", items.size(), text.toString());
@@ -460,7 +477,10 @@ public class PayrollInputService {
                 return new Detail(
                     Summary.of(
                         run,
-                        kind(resolved.get(run.scope().legalEntityId()), UnitKind.LEGAL_ENTITY)),
+                        kind(resolved.get(run.scope().legalEntityId()), UnitKind.LEGAL_ENTITY),
+                        lifecycle
+                            .state(tenant, run.id())
+                            .orElseThrow(PayrollInputCommand::notFound)),
                     weeks.stream()
                         .map(
                             w ->
@@ -476,11 +496,11 @@ public class PayrollInputService {
   // ------------------------------------------------------------------------------------------
 
   /** The verified legal entity, its sites and the business time zone. */
-  private record Resolved(
+  record Resolved(
       Target target, UnitView legalEntity, Map<UUID, UnitView> sites, String timezone) {}
 
   /** The legal entity and its sites, or the one safe 404. */
-  private Resolved resolve(TenantId tenant, Target target) {
+  Resolved resolve(TenantId tenant, Target target) {
     UnitView legalEntity =
         kind(
             units.resolveIds(tenant, Set.of(target.legalEntityId())).get(target.legalEntityId()),
@@ -514,7 +534,7 @@ public class PayrollInputService {
   }
 
   /** The evaluation of the scope now. */
-  private Evaluation evaluate(TenantId tenant, Resolved resolved) {
+  Evaluation evaluate(TenantId tenant, Resolved resolved) {
     Target target = resolved.target();
     Scope scope =
         new Scope(
@@ -540,7 +560,7 @@ public class PayrollInputService {
   }
 
   /** The digest of the source versions the preview showed. */
-  private static String versionsDigest(Evaluation evaluation) {
+  static String versionsDigest(Evaluation evaluation) {
     return Fingerprints.sha256(
         "DIVALHR-PAYROLL-INPUT-SOURCES\nversion=1\n" + evaluation.sourceVersions());
   }
@@ -660,7 +680,7 @@ public class PayrollInputService {
   }
 
   /** The fail-closed disclosure audit: the view and count; identifiers only in the digest. */
-  private void disclosed(PayrollCaller caller, String action, String view, int count, String text) {
+  void disclosed(PayrollCaller caller, String action, String view, int count, String text) {
     Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("schemaVersion", PayrollInputs.SCHEMA_VERSION);
     metadata.put("view", view);
@@ -685,7 +705,7 @@ public class PayrollInputService {
   // Shared
   // ------------------------------------------------------------------------------------------
 
-  private static UnitView kind(UnitView view, UnitKind kind) {
+  static UnitView kind(UnitView view, UnitKind kind) {
     return view != null && view.kind() == kind ? view : null;
   }
 
@@ -715,7 +735,7 @@ public class PayrollInputService {
     return DEFAULT_LIMIT;
   }
 
-  private Instant now() {
+  Instant now() {
     return clock.instant().truncatedTo(ChronoUnit.MICROS);
   }
 
@@ -729,7 +749,7 @@ public class PayrollInputService {
     return LocalDate.ofInstant(clock.instant(), ZoneId.of(zone));
   }
 
-  private static ApiException stale() {
+  static ApiException stale() {
     return new ApiException(ErrorCode.PAYROLL_INPUT_PREVIEW_STALE, Map.of());
   }
 
@@ -745,7 +765,7 @@ public class PayrollInputService {
   }
 
   /** A command's log: the operation and a bounded outcome only. */
-  private <T> T command(String operation, Supplier<T> work) {
+  <T> T command(String operation, Supplier<T> work) {
     try {
       return work.get();
     } catch (ApiException refused) {
@@ -758,7 +778,7 @@ public class PayrollInputService {
   }
 
   /** Records a read or preview outcome; rejections log only their code. */
-  private <T> T observed(String operation, Supplier<T> work) {
+  <T> T observed(String operation, Supplier<T> work) {
     try {
       T result = work.get();
       metrics.record(operation, Outcome.LISTED);
@@ -792,7 +812,7 @@ public class PayrollInputService {
   }
 
   /** A bounded read transaction; the result is returned only after it committed. */
-  private <T> T read(Supplier<T> work) {
+  <T> T read(Supplier<T> work) {
     TransactionTemplate template = new TransactionTemplate(transactionManager);
     template.setTimeout((int) TRANSACTION_TIMEOUT.toSeconds());
     T result = template.execute(status -> work.get());

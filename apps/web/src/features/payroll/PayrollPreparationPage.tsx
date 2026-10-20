@@ -13,7 +13,10 @@ import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { formatDate } from '../people/history';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { loadAll, useOptions } from '../people/unitOptions';
+import { PayrollExports } from './PayrollExports';
+import { LifecycleBadge, PayrollLifecyclePanel } from './PayrollLifecyclePanel';
 import { PayrollVarianceReview } from './PayrollVarianceReview';
+import { SalaryNotice } from './SalaryNotice';
 import { formatInstant } from '../schedules/attendance';
 import { durationParts } from '../schedules/timesheets';
 import {
@@ -237,6 +240,8 @@ export function PayrollPreparationPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [historyFailed, setHistoryFailed] = useState(false);
   const [detail, setDetail] = useState<PayrollInputRunDetail | null>(null);
+  // MVP-092: bumped whenever the exports list must be reloaded.
+  const [exportsRefresh, setExportsRefresh] = useState(0);
   // MVP-091: the run under variance review (component state only; never stored or in a URL).
   const [varianceRun, setVarianceRun] = useState<string | null>(null);
   const previewHeading = useRef<HTMLHeadingElement>(null);
@@ -318,6 +323,20 @@ export function PayrollPreparationPage() {
 
   const open = (runId: string) => {
     void run(() => loadDetail(runId));
+  };
+
+  /** MVP-092: a new version or a lock changes the history, the run and (after an export) the exports. */
+  const openAndRefresh = (runId: string) => {
+    void run(async () => {
+      await loadHistory(null);
+      await loadDetail(runId);
+    });
+  };
+
+  const changed = async (runId: string) => {
+    await loadHistory(null);
+    await loadDetail(runId);
+    setExportsRefresh((value) => value + 1);
   };
 
   const onPreview = (event: SyntheticEvent<HTMLFormElement>) => {
@@ -504,6 +523,7 @@ export function PayrollPreparationPage() {
           <h2 id={`${ids}-preview-title`} ref={previewHeading} tabIndex={-1}>
             {t('payrollPreparation.preview.title')}
           </h2>
+          <SalaryNotice testId="payroll-prep-preview-notice" />
           <ScopeText scope={preview.scope} />
           <h3>{t('payrollPreparation.preview.weeks')}</h3>
           {preview.weeks.length === 0 ? (
@@ -593,8 +613,10 @@ export function PayrollPreparationPage() {
             {t('payrollPreparation.detail.title')}
           </h2>
           <p>
-            <StatusBadge tone="success">{t('payrollPreparation.status.GENERATED')}</StatusBadge>
+            <StatusBadge tone="success">{t('payrollPreparation.status.GENERATED')}</StatusBadge>{' '}
+            <LifecycleBadge run={detail.run} />
           </p>
+          <SalaryNotice testId="payroll-prep-detail-notice" />
           <ScopeText scope={detail.run.scope} />
           <dl className="decision-summary">
             <dt>{t('payrollPreparation.detail.id')}</dt>
@@ -669,6 +691,13 @@ export function PayrollPreparationPage() {
             </table>
           </ScrollRegion>
           <p className="muted">{t('payrollPreparation.detail.immutable')}</p>
+          <PayrollLifecyclePanel
+            key={`${detail.run.runId}-${detail.run.lifecycle.state}-${String(detail.run.lifecycle.latest)}-${detail.run.lifecycle.exportId ?? ''}`}
+            run={detail.run}
+            onOpenRun={openAndRefresh}
+            onChanged={changed}
+            announce={setAnnouncement}
+          />
           <p>
             <button
               type="button"
@@ -702,6 +731,7 @@ export function PayrollPreparationPage() {
         data-testid="payroll-prep-history"
       >
         <h2 id={`${ids}-history-title`}>{t('payrollPreparation.history.title')}</h2>
+        <SalaryNotice testId="payroll-prep-history-notice" />
         {historyFailed && (
           <p className="field__error" role="alert">
             {t('payrollPreparation.history.unavailable')}
@@ -719,6 +749,8 @@ export function PayrollPreparationPage() {
                 <tr>
                   <th scope="col">{t('payrollPreparation.history.period')}</th>
                   <th scope="col">{t('payrollPreparation.history.legalEntity')}</th>
+                  <th scope="col">{t('payrollPreparation.detail.version')}</th>
+                  <th scope="col">{t('payrollPreparation.weeks.status')}</th>
                   <th scope="col">{t('payrollPreparation.counts.employees')}</th>
                   <th scope="col">{t('payrollPreparation.counts.worked')}</th>
                   <th scope="col">{t('payrollPreparation.history.generated')}</th>
@@ -731,6 +763,8 @@ export function PayrollPreparationPage() {
                     key={item.runId}
                     data-testid="payroll-prep-item"
                     data-period-start={item.scope.periodStart}
+                    data-version={item.version}
+                    data-state={item.lifecycle.state}
                   >
                     <td>
                       {t('timesheets.period', {
@@ -745,6 +779,10 @@ export function PayrollPreparationPage() {
                             code: item.scope.legalEntityCode,
                           })
                         : t('payrollPreparation.scope.unknownEntity')}
+                    </td>
+                    <td>{item.version}</td>
+                    <td>
+                      <LifecycleBadge run={item} />
                     </td>
                     <td data-testid="payroll-prep-item-employees">{item.counts.employees}</td>
                     <td>{t('timesheets.duration', durationParts(item.counts.workedMinutes))}</td>
@@ -805,6 +843,8 @@ export function PayrollPreparationPage() {
           </p>
         )}
       </section>
+
+      <PayrollExports refresh={exportsRefresh} announce={setAnnouncement} />
     </section>
   );
 }

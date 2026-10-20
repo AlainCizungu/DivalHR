@@ -386,6 +386,22 @@ export type PayrollInputEmployee = CoreComponents['schemas']['PayrollInputEmploy
 export type PayrollInputRunDetail = CoreComponents['schemas']['PayrollInputRunDetail'];
 export type PayrollInputResult = CoreComponents['schemas']['PayrollInputResult'];
 export type PayrollInputRunPage = CoreComponents['schemas']['PayrollInputRunPage'];
+export type PayrollInputLifecycle = CoreComponents['schemas']['PayrollInputLifecycle'];
+export type SupersedePayrollInputRunRequest =
+  CoreComponents['schemas']['SupersedePayrollInputRunRequest'];
+export type LockPayrollInputRunRequest = CoreComponents['schemas']['LockPayrollInputRunRequest'];
+export type CreatePayrollInputExportRequest =
+  CoreComponents['schemas']['CreatePayrollInputExportRequest'];
+export type PayrollInputSupersedePreview =
+  CoreComponents['schemas']['PayrollInputSupersedePreview'];
+export type PayrollInputSupersedeResult = CoreComponents['schemas']['PayrollInputSupersedeResult'];
+export type PayrollInputLockPreview = CoreComponents['schemas']['PayrollInputLockPreview'];
+export type PayrollInputLockResult = CoreComponents['schemas']['PayrollInputLockResult'];
+export type PayrollInputVersion = CoreComponents['schemas']['PayrollInputVersion'];
+export type PayrollInputVersions = CoreComponents['schemas']['PayrollInputVersions'];
+export type PayrollInputExport = CoreComponents['schemas']['PayrollInputExport'];
+export type PayrollInputExportResult = CoreComponents['schemas']['PayrollInputExportResult'];
+export type PayrollInputExportPage = CoreComponents['schemas']['PayrollInputExportPage'];
 export type PayrollVarianceView = CoreComponents['schemas']['PayrollVarianceView'];
 export type PayrollVarianceCandidates = CoreComponents['schemas']['PayrollVarianceCandidates'];
 export type PayrollVarianceThresholds = CoreComponents['schemas']['PayrollVarianceThresholds'];

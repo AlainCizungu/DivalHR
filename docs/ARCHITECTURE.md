@@ -98,6 +98,8 @@ Events are published through a transactional outbox. Consumers must be idempoten
 
 - Payroll variance review (MVP-091, ADR 0024) lives in the same payroll module and is a pure read: it compares two V37 runs by employee ID in `PayrollVariance` (domain), served by `PayrollVarianceService` and `PayrollVarianceController`; no table, event or port is added.
 
+- Payroll-input versions, the final lock and the worked-time export (MVP-092, ADR 0025) extend the payroll module: `PayrollLifecycle` (domain: blockers, CSV, manifest, notices), `JdbcPayrollLifecycleRepository`, `PayrollLifecycleService` and two controllers; V38 adds append-only tables referencing V37 keys only. Every command takes the tenant scheduling lock first, then a scope advisory lock; lock, audit and outbox commit atomically.
+
 ## Offline architecture
 
 Essential attendance, roster, task, and expense workflows use a secure local queue. Synchronization preserves device event time and server receipt time, uses idempotent requests, and sends uncertain conflicts to human review.
