@@ -1502,5 +1502,13 @@
     "fr": {
       "divalhrMfaEnrollmentRequired": "Votre rôle exige une application d’authentification, et aucune n’est encore configurée pour votre compte. Demandez à votre administrateur de vous envoyer un lien de configuration."
     }
+  },
+  "clientScopeMappings": {
+    "divalhr-ai-service": [
+      {
+        "client": "divalhr-core-ai",
+        "roles": ["generate-operational-summary"]
+      }
+    ]
   }
 }

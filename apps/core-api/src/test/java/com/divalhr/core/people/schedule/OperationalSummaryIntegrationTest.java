@@ -353,15 +353,16 @@ class OperationalSummaryIntegrationTest {
     org.mockito.Mockito.clearInvocations(
         (AuditRecorder) AopTestUtils.getUltimateTargetObject(audit));
 
-    when(ai.generate(any())).thenThrow(new AiServiceUnavailableException("timeout"));
+    org.mockito.Mockito.doThrow(new AiServiceUnavailableException("timeout"))
+        .when(ai)
+        .generate(any());
     JsonNode unavailable =
         w.problem(generate(w.admin, ADMIN, EN), 503, "OPERATIONAL_SUMMARY_UNAVAILABLE");
     assertThat(unavailable.has("highlights")).isFalse();
     assertThat(unavailable.has("params") ? unavailable.get("params").size() : 0).isZero();
 
     // An answer that selects a fact it was not given, or states another number, is refused too.
-    when(ai.generate(any()))
-        .thenAnswer(
+    org.mockito.Mockito.doAnswer(
             call -> {
               Request request = call.getArgument(0);
               var answer = OperationalSummaryStub.answer(request, "MODEL");
@@ -383,7 +384,9 @@ class OperationalSummaryIntegrationTest {
                   answer.headlineText(),
                   tampered,
                   answer.limitations());
-            });
+            })
+        .when(ai)
+        .generate(any());
     w.problem(generate(w.admin, ADMIN, EN), 503, "OPERATIONAL_SUMMARY_UNAVAILABLE");
 
     verify(audit, never()).record(any());

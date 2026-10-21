@@ -395,7 +395,20 @@ class DevelopmentRealmBoundaryTest {
     assertThat(clients).containsExactly("divalhr-provisioning");
     assertThat(texts(serviceAccount.path("clientRoles").path("divalhr-provisioning")))
         .containsExactly("provision-invitations");
-    assertThat(realm.has("clientScopeMappings")).isFalse();
+    // The only scope mapping is the AI client's one capability role (MVP-101): with a restricted
+    // scope a client role reaches the token only when it is mapped, and nothing is mapped for the
+    // provisioner.
+    assertThat(realm.path("clientScopeMappings").size()).isEqualTo(1);
+    assertThat(realm.path("clientScopeMappings").has("divalhr-ai-service")).isTrue();
+    assertThat(realm.path("clientScopeMappings").path("divalhr-ai-service")).hasSize(1);
+    assertThat(
+            realm
+                .path("clientScopeMappings")
+                .path("divalhr-ai-service")
+                .get(0)
+                .path("client")
+                .asText())
+        .isEqualTo("divalhr-core-ai");
     assertThat(realm.path("adminPermissionsEnabled").asBoolean(false)).isFalse();
     for (JsonNode client : realm.path("clients")) {
       assertThat(client.path("clientId").asText()).isNotEqualTo("admin-permissions");
