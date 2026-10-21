@@ -48,18 +48,42 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JdbcAttendanceExceptionRepository {
 
-  private static final String TOLERANCE =
+  /** The late and early tolerance as an SQL interval: one definition for every attendance view. */
+  static final String TOLERANCE =
       "make_interval(mins => " + AttendanceExceptions.TOLERANCE.toMinutes() + ")";
 
-  /** A schedule's period is at most 31 dates, so its slots start at most 30 dates after it. */
-  private static final int SCHEDULE_SPAN_DAYS = 30;
+  /**
+   * The slot's effective assignee {@code tg.employee_id} (aliases {@code l}): the approved
+   * substitute when the substitution was approved before the slot's end, otherwise the published
+   * assignee. Shared by the missing check-in rule (MVP-060C) and the operational status (MVP-100).
+   */
+  static final String EFFECTIVE_ASSIGNEE =
+      " CROSS JOIN LATERAL (SELECT COALESCE((SELECT d.replacement_employee_id FROM"
+          + " people.work_schedule_substitution_decision d WHERE d.tenant_id = l.tenant_id"
+          + " AND d.slot_id = l.id AND d.outcome = 'APPROVED' AND d.decided_at < l.end_at),"
+          + " l.assigned_employee_id) AS employee_id) tg";
 
-  private static final String REPORTEES =
+  /**
+   * The schedule {@code s} has no cancellation or replacement at or before {@code :asOf}: the
+   * schedule is operational at the instant.
+   */
+  static final String NOT_TERMINAL_AT_AS_OF =
+      " AND NOT EXISTS (SELECT 1 FROM people.work_schedule_cancellation c"
+          + " WHERE c.tenant_id = s.tenant_id AND c.schedule_id = s.id"
+          + " AND c.cancelled_at <= :asOf)"
+          + " AND NOT EXISTS (SELECT 1 FROM people.work_schedule_replacement r"
+          + " WHERE r.tenant_id = s.tenant_id AND r.schedule_id = s.id"
+          + " AND r.replaced_at <= :asOf)";
+
+  /** A schedule's period is at most 31 dates, so its slots start at most 30 dates after it. */
+  static final int SCHEDULE_SPAN_DAYS = 30;
+
+  static final String REPORTEES =
       "(SELECT ma.employee_id FROM people.employment_assignment ma WHERE ma.tenant_id = :tenant"
           + " AND ma.kind = 'MANAGER' AND ma.superseded_by_change_id IS NULL"
           + " AND ma.manager_employee_id = :manager)";
 
-  private static final String SLOT_JOIN =
+  static final String SLOT_JOIN =
       " JOIN people.work_schedule s ON s.tenant_id = l.tenant_id AND s.id = l.schedule_id";
 
   private final NamedParameterJdbcTemplate jdbc;
@@ -252,7 +276,7 @@ public class JdbcAttendanceExceptionRepository {
    * work_schedule_slot_position}); the fence ({@code OFFSET 0}) keeps the planner from reading the
    * tenant's whole slot history instead.
    */
-  private static String tenantSlots(Tenant view) {
+  static String tenantSlots(Tenant view) {
     return "(SELECT l2.* FROM people.work_schedule s2 CROSS JOIN LATERAL"
         + " (SELECT l3.* FROM people.work_schedule_slot l3 WHERE l3.tenant_id = s2.tenant_id"
         + " AND l3.schedule_id = s2.id OFFSET 0) l2 WHERE s2.tenant_id = :tenant"
@@ -320,7 +344,7 @@ public class JdbcAttendanceExceptionRepository {
    * work_schedule_substitution_decision_one_approval}), each source driven by its own index; for
    * the tenant, its slots.
    */
-  private static String candidates(Scope scope) {
+  static String candidates(Scope scope) {
     String who =
         switch (scope) {
           case Self self -> "= :employee";
@@ -351,19 +375,12 @@ public class JdbcAttendanceExceptionRepository {
                 + " FROM "
                 + candidates(scope)
                 + SLOT_JOIN
-                + " CROSS JOIN LATERAL (SELECT COALESCE((SELECT d.replacement_employee_id FROM"
-                + " people.work_schedule_substitution_decision d WHERE d.tenant_id = l.tenant_id"
-                + " AND d.slot_id = l.id AND d.outcome = 'APPROVED' AND d.decided_at < l.end_at),"
-                + " l.assigned_employee_id) AS employee_id) tg WHERE l.tenant_id = :tenant AND"
+                + EFFECTIVE_ASSIGNEE
+                + " WHERE l.tenant_id = :tenant AND"
                 + " l.assigned_employee_id IS NOT NULL AND l.end_at <= :asOf AND l.start_at >= :lo"
                 + " AND l.start_at < :hi"
                 + dates(filter)
-                + " AND NOT EXISTS (SELECT 1 FROM people.work_schedule_cancellation c"
-                + " WHERE c.tenant_id = s.tenant_id AND c.schedule_id = s.id"
-                + " AND c.cancelled_at <= :asOf)"
-                + " AND NOT EXISTS (SELECT 1 FROM people.work_schedule_replacement r"
-                + " WHERE r.tenant_id = s.tenant_id AND r.schedule_id = s.id"
-                + " AND r.replaced_at <= :asOf)"
+                + NOT_TERMINAL_AT_AS_OF
                 + " AND NOT EXISTS (SELECT 1 FROM people.attendance_record x"
                 + " WHERE x.tenant_id = l.tenant_id AND x.slot_id = l.id"
                 + " AND x.employee_id = tg.employee_id AND x.checked_in_at <= :asOf)");

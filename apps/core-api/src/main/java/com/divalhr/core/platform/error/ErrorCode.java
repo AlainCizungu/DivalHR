@@ -512,7 +512,12 @@ public enum ErrorCode {
    * caller's tenant or not comparable (another legal entity, not ending before the current period,
    * another length), or no eligible comparison run exists (one safe 404, nothing disclosed).
    */
-  PAYROLL_VARIANCE_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND);
+  PAYROLL_VARIANCE_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * MVP-100: the operational-status filter (a site or a legal entity) is unknown, foreign,
+   * malformed or of another kind; the same answer for each.
+   */
+  OPERATIONAL_STATUS_SCOPE_NOT_FOUND(HttpStatus.NOT_FOUND);
 
   private final HttpStatus status;
 

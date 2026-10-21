@@ -283,6 +283,15 @@ export type AttendanceException = CoreComponents['schemas']['AttendanceException
 export type AttendanceExceptionPage = CoreComponents['schemas']['AttendanceExceptionPage'];
 export type TeamAttendanceException = CoreComponents['schemas']['TeamAttendanceException'];
 export type TeamAttendanceExceptionPage = CoreComponents['schemas']['TeamAttendanceExceptionPage'];
+/** MVP-100: today's operational status (administrator and manager views, one response shape). */
+export type OperationalStatus = CoreComponents['schemas']['OperationalStatus'];
+export type OperationalStatusNotCheckedIn =
+  CoreComponents['schemas']['OperationalStatusNotCheckedIn'];
+export type OperationalStatusShift = CoreComponents['schemas']['OperationalStatusShift'];
+export type OperationalStatusOverdueLeave =
+  CoreComponents['schemas']['OperationalStatusOverdueLeave'];
+export type OperationalStatusOverdueTimesheet =
+  CoreComponents['schemas']['OperationalStatusOverdueTimesheet'];
 /** MVP-061A: synchronization of one attendance event captured offline (consumed by MVP-061B). */
 export type SyncOfflineAttendanceRequest =
   CoreComponents['schemas']['SyncOfflineAttendanceRequest'];

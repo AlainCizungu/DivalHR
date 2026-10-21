@@ -20,6 +20,10 @@ import { LeaveApprovalSubstitutesPage } from '../features/leave/LeaveApprovalSub
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { AttendanceReviewPage } from '../features/schedules/AttendanceReviewPage';
+import {
+  OperationsStatusPage,
+  TeamOperationsPage,
+} from '../features/operations/OperationsStatusPage';
 import { MyAttendancePage } from '../features/schedules/MyAttendancePage';
 import { MySchedulePage } from '../features/schedules/MySchedulePage';
 import { MyTimesheetsPage } from '../features/schedules/MyTimesheetsPage';
@@ -169,6 +173,12 @@ export const ROUTES: AppRoute[] = [
     crumbs: [HOME, OPERATIONS, { key: 'nav.workSchedules' }],
   },
   {
+    path: '/admin/operations',
+    element: <OperationsStatusPage />,
+    access: tenantAdmin('operationsStatus.unauthorized', 'operationsStatus.signInRequired'),
+    crumbs: [HOME, OPERATIONS, { key: 'nav.operationsStatus' }],
+  },
+  {
     path: '/admin/attendance-review',
     element: <AttendanceReviewPage />,
     access: tenantAdmin('attendanceReview.unauthorized', 'attendanceReview.signInRequired'),
@@ -279,6 +289,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'timeApprovals.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.timeApprovals' }],
+  },
+  {
+    path: '/me/team-operations',
+    element: <TeamOperationsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'teamOperations.unauthorized',
+      signInKey: 'teamOperations.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.teamOperations' }],
   },
   {
     path: '/me/team-attendance',

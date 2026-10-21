@@ -202,7 +202,8 @@
         "PAYROLL_INPUT_RUN_LOCKED",
         "PAYROLL_INPUT_NOT_LOCKED",
         "PAYROLL_INPUT_EXPORT_TOO_LARGE",
-        "PAYROLL_VARIANCE_TARGET_NOT_FOUND"
+        "PAYROLL_VARIANCE_TARGET_NOT_FOUND",
+        "OPERATIONAL_STATUS_SCOPE_NOT_FOUND"
       ]
     },
     "params": { "type": "object" },

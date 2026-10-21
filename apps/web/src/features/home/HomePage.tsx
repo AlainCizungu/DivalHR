@@ -157,6 +157,7 @@ const TENANT_GROUPS: { id: 'people' | 'operations' | 'governance'; cards: CardDe
     id: 'operations',
     cards: [
       tenantCard('workSchedules', '/admin/work-schedules', 'rotation', 'home-card-work-schedules'),
+      tenantCard('operationsStatus', '/admin/operations', 'pulse', 'home-card-operations-status'),
       tenantCard(
         'attendanceReview',
         '/admin/attendance-review',
@@ -302,6 +303,13 @@ const EMPLOYEE_CARDS: CardDef[] = [
     titleKey: 'nav.myTimesheets',
     descriptionKey: 'home.employee.cards.timesheets',
     testId: 'home-card-my-timesheets',
+  },
+  {
+    to: '/me/team-operations',
+    icon: 'pulse',
+    titleKey: 'nav.teamOperations',
+    descriptionKey: 'home.employee.cards.teamOperations',
+    testId: 'home-card-team-operations',
   },
   {
     to: '/me/contracts',

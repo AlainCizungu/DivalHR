@@ -107,6 +107,12 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'tenant-admin',
       },
       {
+        to: '/admin/operations',
+        labelKey: 'nav.operationsStatus',
+        icon: 'pulse',
+        role: 'tenant-admin',
+      },
+      {
         to: '/admin/attendance-review',
         labelKey: 'nav.attendanceReview',
         icon: 'check',
@@ -188,6 +194,12 @@ export const NAVIGATION: NavGroupDef[] = [
         to: '/me/time-approvals',
         labelKey: 'nav.timeApprovals',
         icon: 'check',
+        role: 'employee',
+      },
+      {
+        to: '/me/team-operations',
+        labelKey: 'nav.teamOperations',
+        icon: 'pulse',
         role: 'employee',
       },
       {

@@ -347,7 +347,14 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-100 View operational status
 
-Authorized leaders see scheduled workers, presence, lateness, absence, uncovered shifts, and overdue approvals within their scope.
+**Issue #154. In review.** Authorized leaders see scheduled shifts, check-ins, lateness, shifts not checked in, uncovered shifts and overdue approvals within their scope (ADR 0026, amendments A100-1 to A100-8).
+
+- **Who and where.** A tenant administrator with exact MFA under « Opérations » / "Operations": « Opérations du jour » / "Today's operations" (`/admin/operations`), optionally filtered by legal entity and site. A manager under « Mon espace » / "My space": « Opérations de l’équipe » / "Team operations" (`/me/team-operations`), for the employees she manages, never herself. Read-only; no migration, V38 is still the last.
+- **Counting unit.** Effective assigned shift occurrences, not people: « Quarts planifiés » / "Scheduled shifts" is the total; Expected, Not checked in (« Aucun pointage d’arrivée »), Present and Completed partition it; Late (checked in more than 5 minutes after the start) is a labelled subset. Uncovered shifts (administrator only) are counted apart.
+- **Boundaries.** A shift with no check-in is Expected until strictly more than 30 minutes after its start; exactly 30 is Expected. Leave is overdue only after strictly more than 48 hours and a timesheet after strictly more than 72 hours; the exact instant is within threshold. The thresholds are printed on the page.
+- **One instant.** `asOfInstant` is server-owned; each site evaluates "today" in its stored time zone, and the totals are the sum of those site-local days.
+- **API.** `GET /api/v1/operations/status` and `GET /api/v1/me/team-operations/status`; fixed aggregates plus capped top-20 detail lists with an explicit `truncated` flag; no cursor; `Cache-Control: private, no-store`; a safe `404 OPERATIONAL_STATUS_SCOPE_NOT_FOUND` for an unknown, foreign or wrong-kind filter.
+- **Not included:** history or trends, stored snapshots, a new administrator approval queue, absence, leave, pay or disciplinary conclusions, notifications, AI (MVP-101 may use these metrics as a governed source).
 
 ### MVP-101 Generate grounded daily summary
 
