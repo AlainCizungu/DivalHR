@@ -30,7 +30,7 @@ export const SUMMARY_ROUTES: Record<StatusView, Record<SummaryRouteId, string>> 
 /** The route of a source identifier, or null for an identifier this build does not know. */
 export function summaryRouteOf(view: StatusView, routeId: string): string | null {
   const routes: Record<string, string> = SUMMARY_ROUTES[view];
-  return Object.prototype.hasOwnProperty.call(routes, routeId) ? routes[routeId] : null;
+  return Object.prototype.hasOwnProperty.call(routes, routeId) ? (routes[routeId] ?? null) : null;
 }
 
 /** The request body: the language and nothing else. */
