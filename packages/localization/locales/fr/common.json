@@ -45,7 +45,9 @@
     "timeExports": "Exports de temps",
     "myTimesheets": "Mes feuilles de temps",
     "timeApprovals": "Approbations du temps",
-    "payrollPreparation": "Préparation de la paie"
+    "payrollPreparation": "Préparation de la paie",
+    "operationsStatus": "Opérations du jour",
+    "teamOperations": "Opérations de l’équipe"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -204,6 +206,10 @@
         "payrollPreparation": {
           "title": "Préparation de la paie",
           "description": "Générez, pour une entité juridique et une période, des données de préparation de la paie traçables à partir des semaines approuvées et verrouillées. Données de préparation uniquement ; aucune paie n’est calculée."
+        },
+        "operationsStatus": {
+          "title": "Opérations du jour",
+          "description": "Quarts planifiés, pointages, couverture et approbations en attente du jour pour toute l’organisation, avec l’heure de lecture."
         }
       },
       "attention": {
@@ -246,7 +252,8 @@
         "schedule": "Consultez vos créneaux en cours et à venir, chacun à l’heure locale de son site, et demandez un remplaçant quand vous ne pouvez pas assurer un créneau.",
         "attendance": "Pointez votre arrivée et votre départ sur vos créneaux, en ligne ou hors connexion, et consultez votre historique de présence.",
         "contracts": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus.",
-        "timesheets": "Vérifiez vos feuilles de temps hebdomadaires, soumettez-les à votre responsable et suivez chaque approbation, renvoi ou réouverture."
+        "timesheets": "Vérifiez vos feuilles de temps hebdomadaires, soumettez-les à votre responsable et suivez chaque approbation, renvoi ou réouverture.",
+        "teamOperations": "Si vous gérez des employés, consultez les quarts, les pointages et les approbations en attente du jour pour votre équipe."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -515,7 +522,8 @@
     "PAYROLL_INPUT_NOT_LATEST": "Une version plus récente de ces données existe. Seule la dernière version peut être remplacée ou verrouillée.",
     "PAYROLL_INPUT_RUN_LOCKED": "Cette version est verrouillée et définitive. Elle ne peut être ni remplacée ni modifiée.",
     "PAYROLL_INPUT_NOT_LOCKED": "Seule une version verrouillée peut être exportée. Verrouillez d’abord la version.",
-    "PAYROLL_INPUT_EXPORT_TOO_LARGE": "Cet export dépasse la taille prise en charge. Contactez le support."
+    "PAYROLL_INPUT_EXPORT_TOO_LARGE": "Cet export dépasse la taille prise en charge. Contactez le support.",
+    "OPERATIONAL_STATUS_SCOPE_NOT_FOUND": "Cette entité juridique ou ce site n’est pas disponible pour les opérations du jour."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3233,6 +3241,87 @@
     "description": "Les anomalies de présence factuelles de l’organisation : créneaux sans arrivée ni départ enregistré, et arrivées ou départs à plus de 5 minutes de l’horaire. Filtrez par site, type et dates.",
     "unauthorized": "Seuls les administrateurs de l’organisation peuvent suivre la présence.",
     "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour suivre la présence."
+  },
+  "operationsStatus": {
+    "title": "Opérations du jour",
+    "description": "Quarts planifiés, pointages, couverture et approbations en attente du jour pour toute l’organisation, lus à un même instant. Filtrez par entité juridique et par site.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent consulter les opérations de l’organisation.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour consulter les opérations de l’organisation.",
+    "disclaimer": "Faits issus uniquement des horaires et des pointages enregistrés. Cette vue ne tire aucune conclusion sur la paie, les congés ou la discipline et ne qualifie aucun employé.",
+    "loading": "Chargement des opérations du jour…",
+    "retry": "Réessayer",
+    "refresh": "Actualiser",
+    "asOf": "Données à {{time}} (votre fuseau horaire : {{zone}}). Le « jour » de chaque site suit son propre fuseau horaire.",
+    "updated": "Actualisé à {{time}}.",
+    "filters": {
+      "label": "Filtrer les opérations du jour",
+      "legalEntity": "Entité juridique",
+      "anyLegalEntity": "Toutes les entités juridiques",
+      "site": "Site",
+      "anySite": "Tous les sites de l’entité juridique",
+      "apply": "Appliquer les filtres",
+      "reset": "Effacer les filtres",
+      "unavailable": "Impossible de charger les entités juridiques ou les sites."
+    },
+    "shifts": {
+      "title": "Quarts planifiés",
+      "explanation": "Chaque chiffre compte des quarts, pas des personnes : un employé qui a deux quarts compte deux fois. Attendus, Aucun pointage d’arrivée, Présents et Terminés totalisent les quarts planifiés. Un quart sans pointage d’arrivée reste Attendu jusqu’à plus de {{grace}} minutes après son début.",
+      "scheduled": "Quarts planifiés",
+      "expected": "Attendus",
+      "notCheckedIn": "Aucun pointage d’arrivée",
+      "present": "Présents",
+      "completed": "Terminés",
+      "uncovered": "Quarts non couverts (sans personne affectée)",
+      "late_one": "En retard (sous-ensemble) : {{value}} quart pointé plus de {{minutes}} minutes après son début. Il est aussi compté parmi les Présents ou les Terminés.",
+      "late_other": "En retard (sous-ensemble) : {{value}} quarts pointés plus de {{minutes}} minutes après leur début. Ils sont aussi comptés parmi les Présents ou les Terminés."
+    },
+    "approvals": {
+      "title": "Approbations en attente",
+      "scope": {
+        "admin": "Nombre de toutes les demandes de congé en attente et de toutes les feuilles de temps soumises de l’organisation, selon le filtre actuel. Ils sont affichés à titre de visibilité : vous n’êtes pas présenté comme l’approbateur et les décisions restent à l’approbateur désigné.",
+        "team": "Demandes de congé qui vous sont adressées et feuilles de temps qui vous sont soumises par les employés que vous gérez."
+      },
+      "leave": "Demandes de congé",
+      "timesheets": "Feuilles de temps",
+      "pending": "{{value}} en attente",
+      "within": "{{value}} dans le seuil",
+      "overdue": "{{value}} au-delà du seuil",
+      "thresholds": "« Au-delà du seuil » signifie en attente depuis plus de {{leave}} heures (demandes de congé) ou plus de {{timesheets}} heures (feuilles de temps). Une attente d’exactement cette durée reste dans le seuil."
+    },
+    "details": {
+      "notCheckedIn": "Quarts sans pointage d’arrivée",
+      "uncovered": "Quarts non couverts",
+      "overdueLeave": "Demandes de congé au-delà du seuil",
+      "overdueTimesheets": "Feuilles de temps au-delà du seuil",
+      "none": "Aucun.",
+      "truncated": "Seuls les {{limit}} premiers sont affichés ; les chiffres ci-dessus les comptent tous.",
+      "minutesSince_one": "{{count}} minute depuis le début prévu",
+      "minutesSince_other": "{{count}} minutes depuis le début prévu",
+      "waiting_one": "En attente depuis {{count}} heure, soumise {{since}}",
+      "waiting_other": "En attente depuis {{count}} heures, soumise {{since}}",
+      "week": "Semaine du {{date}} · {{site}}"
+    },
+    "drill": {
+      "label": "Ouvrir les écrans détaillés",
+      "admin": {
+        "attendance": "Examiner les anomalies de présence",
+        "schedules": "Ouvrir les horaires de travail",
+        "leave": "Ouvrir les approbations de congé",
+        "timesheets": "Ouvrir les feuilles de temps"
+      },
+      "team": {
+        "attendance": "Ouvrir la présence de l’équipe",
+        "schedules": "Ouvrir mon horaire",
+        "leave": "Ouvrir les approbations de congé",
+        "timesheets": "Ouvrir les approbations de temps"
+      }
+    }
+  },
+  "teamOperations": {
+    "title": "Opérations de l’équipe",
+    "description": "Quarts planifiés, pointages et approbations en attente du jour pour les employés que vous gérez, lus à un même instant. Jamais les vôtres.",
+    "unauthorized": "Seuls les employés peuvent consulter les opérations de leur équipe.",
+    "signInRequired": "Connectez-vous pour consulter les opérations de votre équipe."
   },
   "attendanceCorrection": {
     "actionFor": "Corriger la présence de {{name}} pour {{work}} le {{date}}",

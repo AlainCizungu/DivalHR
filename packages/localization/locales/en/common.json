@@ -45,7 +45,9 @@
     "timeExports": "Time exports",
     "myTimesheets": "My timesheets",
     "timeApprovals": "Time approvals",
-    "payrollPreparation": "Payroll preparation"
+    "payrollPreparation": "Payroll preparation",
+    "operationsStatus": "Today’s operations",
+    "teamOperations": "Team operations"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -204,6 +206,10 @@
         "payrollPreparation": {
           "title": "Payroll preparation",
           "description": "Generate traceable, time-based payroll inputs for one legal entity and period from locked approved weeks. Payroll inputs only; no pay is calculated."
+        },
+        "operationsStatus": {
+          "title": "Today’s operations",
+          "description": "Today’s scheduled shifts, check-ins, coverage and waiting approvals across the organization, with their time of reading."
         }
       },
       "attention": {
@@ -246,7 +252,8 @@
         "schedule": "See your shifts in progress and upcoming, each in its site’s local time, and ask for a substitute when you cannot work one.",
         "attendance": "Check in and out of your scheduled shifts, online or offline, and see your attendance history.",
         "contracts": "Read the contracts your organization has issued to you and confirm that you received them.",
-        "timesheets": "Review your weekly timesheets, submit them to your manager and follow each approval, return or reopening."
+        "timesheets": "Review your weekly timesheets, submit them to your manager and follow each approval, return or reopening.",
+        "teamOperations": "If you manage employees, see today’s shifts, check-ins and waiting approvals for your team."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -515,7 +522,8 @@
     "PAYROLL_INPUT_NOT_LATEST": "A newer version of these payroll inputs exists. Only the latest version can be superseded or locked.",
     "PAYROLL_INPUT_RUN_LOCKED": "This version is locked and final. It cannot be replaced or changed.",
     "PAYROLL_INPUT_NOT_LOCKED": "Only a locked version can be exported. Lock the version first.",
-    "PAYROLL_INPUT_EXPORT_TOO_LARGE": "This export exceeds the supported size. Contact support."
+    "PAYROLL_INPUT_EXPORT_TOO_LARGE": "This export exceeds the supported size. Contact support.",
+    "OPERATIONAL_STATUS_SCOPE_NOT_FOUND": "This legal entity or site is not available for today’s operations."
   },
   "notFound": {
     "title": "Page not found",
@@ -3233,6 +3241,87 @@
     "description": "Factual attendance exceptions across the organization: shifts with no check-in or check-out recorded, and check-ins or check-outs more than 5 minutes off the schedule. Filter by site, type and dates.",
     "unauthorized": "Only tenant administrators can review attendance.",
     "signInRequired": "Sign in as a tenant administrator to review attendance."
+  },
+  "operationsStatus": {
+    "title": "Today’s operations",
+    "description": "Today’s scheduled shifts, check-ins, coverage and waiting approvals across the organization, read at one moment. Filter by legal entity and site.",
+    "unauthorized": "Only tenant administrators can see the organization’s operations.",
+    "signInRequired": "Sign in as a tenant administrator to see the organization’s operations.",
+    "disclaimer": "Facts from schedules and recorded check-ins only. This view draws no conclusion about pay, leave or discipline and qualifies no employee.",
+    "loading": "Loading today’s operations…",
+    "retry": "Try again",
+    "refresh": "Refresh",
+    "asOf": "As of {{time}} (your time zone: {{zone}}). Each site’s “today” follows its own time zone.",
+    "updated": "Updated as of {{time}}.",
+    "filters": {
+      "label": "Filter today’s operations",
+      "legalEntity": "Legal entity",
+      "anyLegalEntity": "All legal entities",
+      "site": "Site",
+      "anySite": "All sites of the legal entity",
+      "apply": "Apply filters",
+      "reset": "Clear filters",
+      "unavailable": "The legal entities or sites could not be loaded."
+    },
+    "shifts": {
+      "title": "Scheduled shifts",
+      "explanation": "Each figure counts shifts, not people: an employee with two shifts counts twice. Expected, Not checked in, Present and Completed add up to Scheduled shifts. A shift with no check-in stays Expected until more than {{grace}} minutes after its start.",
+      "scheduled": "Scheduled shifts",
+      "expected": "Expected",
+      "notCheckedIn": "Not checked in",
+      "present": "Present",
+      "completed": "Completed",
+      "uncovered": "Uncovered shifts (no assignee)",
+      "late_one": "Late (a subset): {{value}} shift checked in more than {{minutes}} minutes after its start. It is also counted as Present or Completed.",
+      "late_other": "Late (a subset): {{value}} shifts checked in more than {{minutes}} minutes after their start. They are also counted as Present or Completed."
+    },
+    "approvals": {
+      "title": "Waiting approvals",
+      "scope": {
+        "admin": "Counts of every pending leave request and submitted timesheet in the organization, within the current filter. They are shown for visibility: you are not shown as the approver, and decisions stay with the routed approver.",
+        "team": "Leave requests routed to you and timesheets submitted to you by the employees you manage."
+      },
+      "leave": "Leave requests",
+      "timesheets": "Timesheets",
+      "pending": "{{value}} waiting",
+      "within": "{{value}} within threshold",
+      "overdue": "{{value}} overdue",
+      "thresholds": "Overdue means waiting for more than {{leave}} hours (leave requests) or more than {{timesheets}} hours (timesheets). Waiting exactly that long is still within threshold."
+    },
+    "details": {
+      "notCheckedIn": "Shifts not checked in",
+      "uncovered": "Uncovered shifts",
+      "overdueLeave": "Overdue leave requests",
+      "overdueTimesheets": "Overdue timesheets",
+      "none": "None.",
+      "truncated": "Showing the first {{limit}} only; the figures above count them all.",
+      "minutesSince_one": "{{count}} minute since the scheduled start",
+      "minutesSince_other": "{{count}} minutes since the scheduled start",
+      "waiting_one": "Waiting {{count}} hour, submitted {{since}}",
+      "waiting_other": "Waiting {{count}} hours, submitted {{since}}",
+      "week": "Week of {{date}} · {{site}}"
+    },
+    "drill": {
+      "label": "Open the detailed screens",
+      "admin": {
+        "attendance": "Review attendance exceptions",
+        "schedules": "Open work schedules",
+        "leave": "Open leave approvals",
+        "timesheets": "Open timesheets"
+      },
+      "team": {
+        "attendance": "Open team attendance",
+        "schedules": "Open my schedule",
+        "leave": "Open leave approvals",
+        "timesheets": "Open time approvals"
+      }
+    }
+  },
+  "teamOperations": {
+    "title": "Team operations",
+    "description": "Today’s scheduled shifts, check-ins and waiting approvals for the employees you manage, read at one moment. Never your own.",
+    "unauthorized": "Only employees can see their team’s operations.",
+    "signInRequired": "Sign in to see your team’s operations."
   },
   "attendanceCorrection": {
     "actionFor": "Correct attendance of {{name}} for {{work}} on {{date}}",

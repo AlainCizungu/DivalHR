@@ -5470,6 +5470,102 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /operations/status:
+    get:
+      operationId: getOperationalStatus
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read the organization's operational status of today
+      description: >-
+        MVP-100 (ADR 0026). Today's operational status of the organization, optionally of one site
+        and/or one legal entity; a malformed, unknown, foreign or wrong-kind siteId or legalEntityId
+        is 404 OPERATIONAL_STATUS_SCOPE_NOT_FOUND without params. Derived read-only at one
+        server-owned asOfInstant from the immutable schedules, terminal evidence, approved
+        substitutions, attendance records, pending leave requests and submitted timesheets; nothing
+        is stored. "Today" is evaluated in each site's stored time zone (shifts starting on that
+        local date, and shifts still in progress that began the previous local date). The workforce
+        values count effective assigned shift occurrences, not people, and expected + notCheckedIn
+        + present + completed = scheduled is an exclusive partition; late is a subset. A shift with
+        no check-in is expected until strictly more than 30 minutes after its scheduled start
+        (exactly 30 minutes is still expected) and notCheckedIn after; a check-in strictly more
+        than 5 minutes after the start is late (exactly 5 minutes is not). coverage.uncovered
+        counts operational slots without an effective assignee (the approved substitute when
+        approved before the slot's end, otherwise the published assignee); slots of schedules
+        cancelled or replaced by asOfInstant are excluded. The legal-entity filter uses the
+        effective-dated placement of the effective assignee on the shift's date (an uncovered slot
+        follows the legal entity of its site), and of the employment of a leave request or
+        timesheet on its reference date. Pending leave requests of the organization (any route)
+        and submitted timesheets are overdue only when strictly older than 48 and 72 hours. The
+        administrator is not shown as the routed approver and receives no person details for
+        approvals. Detail lists hold at most 20 rows, ordered deterministically, with an explicit
+        truncated flag; the counts are independent of them. Facts only: no absence, leave, pay or
+        disciplinary conclusion. Restricted HR/Operations: a fail-closed disclosure (audit
+        operations.status-admin-view). Shares the work-schedule-read limit. Cache-Control private,
+        no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/OperationalStatusSite"
+        - $ref: "#/components/parameters/OperationalStatusLegalEntity"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationalStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/team-operations/status:
+    get:
+      operationId: getTeamOperationalStatus
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read my team's operational status of today
+      description: >-
+        MVP-100 (ADR 0026). Today's operational status of the employees whose qualifying
+        employment has an active, non-superseded MANAGER line naming the employee of the caller's
+        current active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise) on the
+        reference date (the shift's site-local start date, the leave request's first day, the
+        timesheet week's Sunday under the routed-manager rule); never the caller's own. A caller
+        who manages nobody gets zeros. The response has the shape and the rules of the
+        organization's status except that coverage is null (an uncovered shift has no employee and
+        so no reporting line), the uncovered list is null, and the detail lists additionally hold
+        the manager's own reports' overdue leave requests (route MANAGER) and overdue timesheets.
+        Leave substitutes and substitution approvals grant nothing. Restricted HR/Operations: a
+        fail-closed disclosure (audit operations.status-team-view). Shares the
+        work-schedule-read limit. Cache-Control private, no-store.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationalStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /attendance/records/{attendanceRecordId}/correction-preview:
     post:
       operationId: previewAttendanceRecordCorrection
@@ -8338,6 +8434,20 @@ components:
       name: siteId
       in: query
       description: Only exceptions of shifts at this site of the organization (active or historical).
+      schema:
+        type: string
+        format: uuid
+    OperationalStatusSite:
+      name: siteId
+      in: query
+      description: Only the shifts, leave and timesheets of this site of the organization.
+      schema:
+        type: string
+        format: uuid
+    OperationalStatusLegalEntity:
+      name: legalEntityId
+      in: query
+      description: Only the figures of this legal entity of the organization (effective-dated placement).
       schema:
         type: string
         format: uuid
@@ -11419,6 +11529,7 @@ components:
         - PAYROLL_INPUT_NOT_LOCKED
         - PAYROLL_INPUT_EXPORT_TOO_LARGE
         - PAYROLL_VARIANCE_TARGET_NOT_FOUND
+        - OPERATIONAL_STATUS_SCOPE_NOT_FOUND
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -15926,6 +16037,261 @@ components:
           type: string
           format: date-time
           description: The server-owned instant of the view, the same on every page.
+    OperationalStatus:
+      type: object
+      description: >-
+        MVP-100 (ADR 0026). Today's operational status at one server-owned instant. Shift values
+        count effective assigned shift occurrences, not people.
+      required: [asOfInstant, thresholds, shifts, coverage, approvals, details]
+      properties:
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server-owned instant every figure describes.
+        thresholds:
+          $ref: "#/components/schemas/OperationalStatusThresholds"
+        shifts:
+          $ref: "#/components/schemas/OperationalStatusShifts"
+        coverage:
+          description: Uncovered slots; null for a manager (an uncovered slot has no reporting line).
+          oneOf:
+            - $ref: "#/components/schemas/OperationalStatusCoverage"
+            - type: "null"
+        approvals:
+          $ref: "#/components/schemas/OperationalStatusApprovals"
+        details:
+          $ref: "#/components/schemas/OperationalStatusDetails"
+    OperationalStatusThresholds:
+      type: object
+      description: The fixed rules the figures follow; shown on screen.
+      required:
+        [lateMinutes, notCheckedInGraceMinutes, leaveOverdueHours, timesheetOverdueHours, detailLimit]
+      properties:
+        lateMinutes:
+          type: integer
+          description: A check-in strictly more than this after the start is late.
+        notCheckedInGraceMinutes:
+          type: integer
+          description: >-
+            With no check-in, up to and including this after the start is expected; strictly more
+            is not checked in.
+        leaveOverdueHours:
+          type: integer
+          description: Pending leave strictly older than this is overdue.
+        timesheetOverdueHours:
+          type: integer
+          description: A submitted timesheet strictly older than this is overdue.
+        detailLimit:
+          type: integer
+          description: The most rows of any detail list.
+    OperationalStatusShifts:
+      type: object
+      description: >-
+        Effective assigned shift occurrences of today. expected + notCheckedIn + present +
+        completed = scheduled (an exclusive partition); late is a subset that may overlap present
+        and completed.
+      required: [scheduled, expected, notCheckedIn, present, completed, late]
+      properties:
+        scheduled:
+          type: integer
+          minimum: 0
+        expected:
+          type: integer
+          minimum: 0
+        notCheckedIn:
+          type: integer
+          minimum: 0
+        present:
+          type: integer
+          minimum: 0
+        completed:
+          type: integer
+          minimum: 0
+        late:
+          type: integer
+          minimum: 0
+    OperationalStatusCoverage:
+      type: object
+      required: [uncovered]
+      properties:
+        uncovered:
+          type: integer
+          minimum: 0
+          description: Operational slots of today without an effective assignee.
+    OperationalStatusWaiting:
+      type: object
+      description: Approvals waiting; overdue only when strictly older than the fixed threshold.
+      required: [pending, overdue]
+      properties:
+        pending:
+          type: integer
+          minimum: 0
+        overdue:
+          type: integer
+          minimum: 0
+    OperationalStatusApprovals:
+      type: object
+      required: [leave, timesheets]
+      properties:
+        leave:
+          $ref: "#/components/schemas/OperationalStatusWaiting"
+        timesheets:
+          $ref: "#/components/schemas/OperationalStatusWaiting"
+    OperationalStatusShift:
+      type: object
+      description: A shift of today (facts of the slot only).
+      required: [scheduleId, slotId, site, siteTimezone, start, end, startAt, endAt, overnight, labels]
+      properties:
+        scheduleId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        siteTimezone:
+          type: string
+        start:
+          type: string
+        end:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        overnight:
+          type: boolean
+        labels:
+          $ref: "#/components/schemas/WorkScheduleLabels"
+    OperationalStatusNotCheckedIn:
+      type: object
+      description: A shift whose effective assignee has no check-in after the grace.
+      required: [employee, shift, minutesSinceStart]
+      properties:
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        shift:
+          $ref: "#/components/schemas/OperationalStatusShift"
+        minutesSinceStart:
+          type: integer
+          format: int64
+          description: Whole minutes since the scheduled start.
+    OperationalStatusOverdueLeave:
+      type: object
+      description: A manager's overdue leave request (route MANAGER).
+      required: [requestId, employee, submittedAt, ageHours]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        submittedAt:
+          type: string
+          format: date-time
+        ageHours:
+          type: integer
+          format: int64
+    OperationalStatusOverdueTimesheet:
+      type: object
+      description: A manager's overdue timesheet.
+      required: [timesheetId, employee, site, weekStart, submittedAt, ageHours]
+      properties:
+        timesheetId:
+          type: string
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/WorkScheduleSubstitutionPerson"
+        site:
+          $ref: "#/components/schemas/WorkScheduleSite"
+        weekStart:
+          type: string
+          format: date
+        submittedAt:
+          type: string
+          format: date-time
+        ageHours:
+          type: integer
+          format: int64
+    OperationalStatusNotCheckedInDetails:
+      type: object
+      description: Shifts not checked in, oldest start first, then slot, then employee.
+      required: [items, truncated]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/OperationalStatusNotCheckedIn"
+        truncated:
+          type: boolean
+          description: Whether more rows exist than the 20 listed.
+    OperationalStatusUncoveredDetails:
+      type: object
+      description: Uncovered shifts, oldest start first, then slot; shift facts only.
+      required: [items, truncated]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/OperationalStatusShift"
+        truncated:
+          type: boolean
+          description: Whether more rows exist than the 20 listed.
+    OperationalStatusOverdueLeaveDetails:
+      type: object
+      description: Oldest submission first, then request.
+      required: [items, truncated]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/OperationalStatusOverdueLeave"
+        truncated:
+          type: boolean
+          description: Whether more rows exist than the 20 listed.
+    OperationalStatusOverdueTimesheetDetails:
+      type: object
+      description: Oldest submission first, then timesheet.
+      required: [items, truncated]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/OperationalStatusOverdueTimesheet"
+        truncated:
+          type: boolean
+          description: Whether more rows exist than the 20 listed.
+    OperationalStatusDetails:
+      type: object
+      description: >-
+        Capped detail lists. A list is null where the caller has no equivalent disclosure
+        authority or the notion does not exist for the scope.
+      required: [notCheckedIn, uncovered, overdueLeave, overdueTimesheets]
+      properties:
+        notCheckedIn:
+          $ref: "#/components/schemas/OperationalStatusNotCheckedInDetails"
+        uncovered:
+          description: Administrator only.
+          oneOf:
+            - $ref: "#/components/schemas/OperationalStatusUncoveredDetails"
+            - type: "null"
+        overdueLeave:
+          description: Manager only.
+          oneOf:
+            - $ref: "#/components/schemas/OperationalStatusOverdueLeaveDetails"
+            - type: "null"
+        overdueTimesheets:
+          description: Manager only.
+          oneOf:
+            - $ref: "#/components/schemas/OperationalStatusOverdueTimesheetDetails"
+            - type: "null"
     TeamAttendanceActionPage:
       type: object
       required: [items, nextCursor, asOfInstant]

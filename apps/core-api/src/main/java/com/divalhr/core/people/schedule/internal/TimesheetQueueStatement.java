@@ -25,6 +25,38 @@ public final class TimesheetQueueStatement {
           + " AND ma.effective_from <= t.week_start + 6"
           + " AND (ma.effective_to IS NULL OR ma.effective_to >= t.week_start + 6)";
 
+  /**
+   * The manager's reports (named parameters {@code :tenant}, {@code :manager}); the timesheets of
+   * the queue and of the operational status (MVP-100, ADR 0026) are those of these employees.
+   */
+  public static final String REPORTS_CTE =
+      "WITH reports AS MATERIALIZED (SELECT DISTINCT ma.employee_id"
+          + " FROM people.employment_assignment ma WHERE ma.tenant_id = :tenant"
+          + " AND ma.kind = 'MANAGER' AND ma.superseded_by_change_id IS NULL"
+          + " AND ma.manager_employee_id = :manager)";
+
+  /**
+   * The route predicate (aliases {@code t} for the timesheet, {@code a} for its current action;
+   * parameter {@code :manager}): the submission's employment is effective on the week's Sunday and
+   * the employee's employments effective then have exactly one manager, the caller. One definition
+   * for the queue and for the operational status.
+   */
+  public static final String ROUTED_TO_MANAGER =
+      " AND EXISTS (SELECT 1 FROM people.employment e WHERE e.id = a.employment_id AND"
+          + EMPLOYED_ON_SUNDAY
+          + ") AND EXISTS (SELECT 1 FROM people.employment e"
+          + " JOIN people.employment_assignment ma ON"
+          + MANAGES_ON_SUNDAY
+          + " WHERE"
+          + EMPLOYED_ON_SUNDAY
+          + " AND ma.manager_employee_id = :manager)"
+          + " AND NOT EXISTS (SELECT 1 FROM people.employment e"
+          + " JOIN people.employment_assignment ma ON"
+          + MANAGES_ON_SUNDAY
+          + " WHERE"
+          + EMPLOYED_ON_SUNDAY
+          + " AND ma.manager_employee_id <> :manager)";
+
   private TimesheetQueueStatement() {}
 
   /**
@@ -48,10 +80,7 @@ public final class TimesheetQueueStatement {
     if (after) {
       filters.append(" AND (a.occurred_at, a.id) < (:afterAt, :afterId)");
     }
-    return "WITH reports AS MATERIALIZED (SELECT DISTINCT ma.employee_id"
-        + " FROM people.employment_assignment ma WHERE ma.tenant_id = :tenant"
-        + " AND ma.kind = 'MANAGER' AND ma.superseded_by_change_id IS NULL"
-        + " AND ma.manager_employee_id = :manager)"
+    return REPORTS_CTE
         + " SELECT t.id, t.generation_id, t.employee_id, t.site_id, t.week_start, t.status,"
         + " t.submission_cycle, t.current_action_id, t.current_revision, t.row_count,"
         + " t.ready_rows, t.missing_rows, t.open_rows, t.changed_rows, t.worked_minutes,"
@@ -67,20 +96,7 @@ public final class TimesheetQueueStatement {
         + " JOIN people.employee p ON p.tenant_id = t.tenant_id AND p.id = t.employee_id"
         + " WHERE t.employee_id <> :manager"
         + filters
-        + " AND EXISTS (SELECT 1 FROM people.employment e WHERE e.id = a.employment_id AND"
-        + EMPLOYED_ON_SUNDAY
-        + ") AND EXISTS (SELECT 1 FROM people.employment e"
-        + " JOIN people.employment_assignment ma ON"
-        + MANAGES_ON_SUNDAY
-        + " WHERE"
-        + EMPLOYED_ON_SUNDAY
-        + " AND ma.manager_employee_id = :manager)"
-        + " AND NOT EXISTS (SELECT 1 FROM people.employment e"
-        + " JOIN people.employment_assignment ma ON"
-        + MANAGES_ON_SUNDAY
-        + " WHERE"
-        + EMPLOYED_ON_SUNDAY
-        + " AND ma.manager_employee_id <> :manager)"
+        + ROUTED_TO_MANAGER
         + " ORDER BY a.occurred_at DESC, a.id DESC LIMIT :limit";
   }
 }

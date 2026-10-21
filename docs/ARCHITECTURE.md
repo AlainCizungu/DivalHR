@@ -99,6 +99,7 @@ Events are published through a transactional outbox. Consumers must be idempoten
 - Payroll variance review (MVP-091, ADR 0024) lives in the same payroll module and is a pure read: it compares two V37 runs by employee ID in `PayrollVariance` (domain), served by `PayrollVarianceService` and `PayrollVarianceController`; no table, event or port is added.
 
 - Payroll-input versions, the final lock and the worked-time export (MVP-092, ADR 0025) extend the payroll module: `PayrollLifecycle` (domain: blockers, CSV, manifest, notices), `JdbcPayrollLifecycleRepository`, `PayrollLifecycleService` and two controllers; V38 adds append-only tables referencing V37 keys only. Every command takes the tenant scheduling lock first, then a scope advisory lock; lock, audit and outbox commit atomically.
+- Operational status (MVP-100, ADR 0026) is a pure read inside `people.schedule` (the ArchUnit boundaries forbid a new package depending on schedules and leave): `OperationalStatus` (domain: thresholds, scope, counts), `JdbcOperationalStatusRepository`, `OperationalStatusService` and `OperationalStatusController`. It reuses the MVP-060C shared SQL (effective assignee, terminal schedules, team predicate) and the MVP-070B routing predicate; no table, event or port is added.
 
 ## Offline architecture
 

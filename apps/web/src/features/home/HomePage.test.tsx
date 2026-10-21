@@ -79,6 +79,7 @@ const TENANT_DESTINATIONS = {
   ],
   operations: [
     ['workSchedules', '/admin/work-schedules'],
+    ['operationsStatus', '/admin/operations'],
     ['attendanceReview', '/admin/attendance-review'],
     ['timesheets', '/admin/timesheets'],
     ['timeExports', '/admin/time-exports'],
@@ -183,6 +184,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
       [c.nav.myLeave, '/me/leave'],
       [c.nav.myAttendance, '/me/attendance'],
       [c.nav.myTimesheets, '/me/timesheets'],
+      [c.nav.teamOperations, '/me/team-operations'],
       [c.nav.myContracts, '/me/contracts'],
     ]);
     // U4-4: short bilingual descriptions name offline attendance and timesheet submission only
@@ -201,6 +203,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
       c.nav.timeExports,
       c.nav.payrollPreparation,
       c.nav.attendanceReview,
+      c.nav.operationsStatus,
       c.nav.timesheets,
       c.home.tenant.cards.timeExports.description,
       c.home.tenant.cards.payrollPreparation.description,
