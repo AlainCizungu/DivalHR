@@ -363,10 +363,6 @@ async function setup(browser: Browser) {
     slotId: slotId(LATE_EN),
   });
   expect(checkIn.status()).toBe(201);
-  const record = ((await checkIn.json()) as { attendanceRecordId: string }).attendanceRecordId;
-  expect(
-    (await post(anaPage, anaBearer, `/me/attendance/${record}/check-out`, 'out')).status(),
-  ).toBe(200);
   await anaContext.close();
 }
 

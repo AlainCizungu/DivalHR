@@ -54,6 +54,7 @@ test.describe('desktop', () => {
       'Leave routing exceptions',
       'Leave approval substitutes',
       'Schedules',
+      'Today’s operations',
       'Attendance review',
       'Timesheets',
       'Time exports',
@@ -138,6 +139,7 @@ test.describe('desktop', () => {
       'Ma présence',
       'Mes feuilles de temps',
       'Approbations du temps',
+      'Opérations de l’équipe',
       'Présence de l’équipe',
       'Remplacements d’horaire',
       'Mes congés',
@@ -197,7 +199,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(17);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(18);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

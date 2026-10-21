@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -387,13 +388,14 @@ class OperationalStatusIntegrationTest {
   }
 
   private Instant instantsOfDay(ScheduleWorld w, LocalDate d) {
-    return jdbc.queryForObject(
-            "SELECT min(l.start_at) FROM people.work_schedule_slot l JOIN people.work_schedule s"
-                + " ON s.tenant_id = l.tenant_id AND s.id = l.schedule_id WHERE l.tenant_id = ?"
-                + " AND s.first_date = ?",
-            java.sql.Timestamp.class,
-            w.tenant(),
-            d)
+    return Objects.requireNonNull(
+            jdbc.queryForObject(
+                "SELECT min(l.start_at) FROM people.work_schedule_slot l JOIN people.work_schedule"
+                    + " s ON s.tenant_id = l.tenant_id AND s.id = l.schedule_id WHERE l.tenant_id ="
+                    + " ? AND s.first_date = ?",
+                java.sql.Timestamp.class,
+                w.tenant(),
+                d))
         .toInstant();
   }
 
@@ -487,10 +489,11 @@ class OperationalStatusIntegrationTest {
     }
     String schedule = w.published(proposal(w.site(), d, d, slots));
     Instant last =
-        jdbc.queryForObject(
-                "SELECT max(start_at) FROM people.work_schedule_slot WHERE tenant_id = ?",
-                java.sql.Timestamp.class,
-                w.tenant())
+        Objects.requireNonNull(
+                jdbc.queryForObject(
+                    "SELECT max(start_at) FROM people.work_schedule_slot WHERE tenant_id = ?",
+                    java.sql.Timestamp.class,
+                    w.tenant()))
             .toInstant();
     assertThat(slotIds(w, schedule)).hasSize(43);
     clock.set(last.plus(Duration.ofHours(2)));
