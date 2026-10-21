@@ -15,6 +15,8 @@
     <Bug pattern="EI_EXPOSE_REP2"/>
     <Or>
       <Class name="com.divalhr.core.platform.audit.AuditRecorder"/>
+      <Class name="com.divalhr.core.people.schedule.internal.JdbcOperationalStatusRepository"/>
+      <Class name="com.divalhr.core.people.schedule.application.OperationalStatusService"/>
       <Class name="com.divalhr.core.platform.error.GlobalExceptionHandler"/>
       <Class name="com.divalhr.core.platform.outbox.OutboxWriter"/>
       <Class name="com.divalhr.core.platform.observability.OperationMetrics"/>

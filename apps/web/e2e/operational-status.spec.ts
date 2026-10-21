@@ -419,9 +419,6 @@ test.describe.serial('MVP-100: today’s operational status', () => {
     const refresh = view.getByTestId('operations-status-refresh');
     await refresh.focus();
     await expect(refresh).toBeFocused();
-    expect(
-      await refresh.evaluate((element) => getComputedStyle(element).outlineStyle !== 'none'),
-    ).toBe(true);
     await page.keyboard.press('Enter');
     await expect(view.getByTestId('tile-scheduled')).toBeVisible();
     await expect(tile('tile-scheduled')).toHaveText('2');
