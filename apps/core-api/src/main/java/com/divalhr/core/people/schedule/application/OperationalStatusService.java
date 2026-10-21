@@ -118,7 +118,13 @@ public class OperationalStatusService {
   }
 
   /** The status together with the site units its shifts name. */
-  public record View(Status status, Map<UUID, UnitView> sites) {}
+  public record View(Status status, Map<UUID, UnitView> sites) {
+
+    /** Copies the sites. */
+    public View {
+      sites = Map.copyOf(sites);
+    }
+  }
 
   /**
    * The status of the caller's team.

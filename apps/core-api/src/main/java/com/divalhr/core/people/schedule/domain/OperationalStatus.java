@@ -56,7 +56,13 @@ public final class OperationalStatus {
    *     reference an uncovered shift, which has no employee, has to a legal entity
    */
   public record Organization(UUID siteId, UUID legalEntityId, Set<UUID> legalEntitySites)
-      implements Scope {}
+      implements Scope {
+
+    /** Copies the sites. */
+    public Organization {
+      legalEntitySites = Set.copyOf(legalEntitySites);
+    }
+  }
 
   /**
    * The employees whose qualifying employment names the manager on the reference date; never the
@@ -142,6 +148,11 @@ public final class OperationalStatus {
    * @param <T> row type
    */
   public record Detail<T>(List<T> items, boolean truncated) {
+
+    /** Copies the items. */
+    public Detail {
+      items = List.copyOf(items);
+    }
 
     /**
      * A list from at most {@code DETAIL_LIMIT + 1} rows read.
