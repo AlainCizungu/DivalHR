@@ -523,7 +523,9 @@
     "PAYROLL_INPUT_RUN_LOCKED": "This version is locked and final. It cannot be replaced or changed.",
     "PAYROLL_INPUT_NOT_LOCKED": "Only a locked version can be exported. Lock the version first.",
     "PAYROLL_INPUT_EXPORT_TOO_LARGE": "This export exceeds the supported size. Contact support.",
-    "OPERATIONAL_STATUS_SCOPE_NOT_FOUND": "This legal entity or site is not available for today’s operations."
+    "OPERATIONAL_STATUS_SCOPE_NOT_FOUND": "This legal entity or site is not available for today’s operations.",
+    "OPERATIONAL_SUMMARY_UNAVAILABLE": "The briefing is not available right now. The figures below are unaffected; try again later.",
+    "OPERATIONAL_SUMMARY_SOURCE_INVALID": "The briefing could not be produced from the current figures. The figures below are unaffected."
   },
   "notFound": {
     "title": "Page not found",
@@ -4168,5 +4170,25 @@
       "csvDownloaded": "The worked-time CSV was downloaded.",
       "manifestDownloaded": "The integrity manifest was downloaded."
     }
+  },
+  "operationalSummary": {
+    "title": "Daily briefing",
+    "description": "A short written summary of the figures below, generated on request. It repeats only the recorded counts shown on this screen and keeps nothing.",
+    "generate": "Generate briefing",
+    "regenerate": "Generate again",
+    "loading": "Preparing the briefing…",
+    "ready": "The briefing is ready.",
+    "asOf": "Counts as of {{time}} (your time zone: {{zone}}).",
+    "mode": {
+      "MODEL": "Selection assisted by AI; wording from reviewed templates.",
+      "FALLBACK": "Selected by the standard priority rules; wording from reviewed templates."
+    },
+    "source": {
+      "ATTENDANCE": "Review attendance",
+      "SCHEDULES": "Review schedules",
+      "LEAVE_APPROVALS": "Review leave approvals",
+      "TIMESHEETS": "Review timesheets"
+    },
+    "sourceCounts": "Based on {{scheduled}} scheduled shifts, {{notCheckedIn}} not checked in, {{pendingLeave}} leave requests and {{pendingTimesheets}} timesheets waiting."
   }
 }

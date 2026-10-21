@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.divalhr.com/schemas/operational-summary-plan.schema.json",
+  "title": "Operational summary plan (planner output)",
+  "description": "MVP-101 (D101-6). The strict JSON a planner (deterministic or model) may return: one closed headline code and at most five unique supplied fact ids. No free-text field exists.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["headlineCode", "factIds"],
+  "properties": {
+    "headlineCode": {
+      "enum": [
+        "OPERATIONS_WITHIN_RANGE",
+        "ATTENDANCE_NEEDS_ATTENTION",
+        "COVERAGE_NEEDS_ATTENTION",
+        "APPROVALS_NEED_ATTENTION",
+        "SEVERAL_AREAS_NEED_ATTENTION"
+      ]
+    },
+    "factIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^f[1-9][0-9]?$"
+      }
+    }
+  }
+}

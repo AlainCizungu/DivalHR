@@ -1,0 +1,159 @@
+{
+  "evaluationVersion": "operational-summary-eval-v1",
+  "types": {
+    "NOT_CHECKED_IN": {
+      "en": {
+        "0": "0 shifts have no check-in recorded more than 30 minutes after their start.",
+        "1": "1 shift has no check-in recorded more than 30 minutes after its start.",
+        "2": "2 shifts have no check-in recorded more than 30 minutes after their start.",
+        "5": "5 shifts have no check-in recorded more than 30 minutes after their start."
+      },
+      "fr": {
+        "0": "0 quart n’a aucun pointage d’arrivée enregistré plus de 30 minutes après son début.",
+        "1": "1 quart n’a aucun pointage d’arrivée enregistré plus de 30 minutes après son début.",
+        "2": "2 quarts n’ont aucun pointage d’arrivée enregistré plus de 30 minutes après leur début.",
+        "5": "5 quarts n’ont aucun pointage d’arrivée enregistré plus de 30 minutes après leur début."
+      }
+    },
+    "UNCOVERED_SHIFTS": {
+      "en": {
+        "0": "0 shifts have no assigned worker.",
+        "1": "1 shift has no assigned worker.",
+        "2": "2 shifts have no assigned worker.",
+        "5": "5 shifts have no assigned worker."
+      },
+      "fr": {
+        "0": "0 quart n’a aucune personne affectée.",
+        "1": "1 quart n’a aucune personne affectée.",
+        "2": "2 quarts n’ont aucune personne affectée.",
+        "5": "5 quarts n’ont aucune personne affectée."
+      }
+    },
+    "OVERDUE_LEAVE": {
+      "en": {
+        "0": "0 leave requests have been pending for more than 48 hours.",
+        "1": "1 leave request has been pending for more than 48 hours.",
+        "2": "2 leave requests have been pending for more than 48 hours.",
+        "5": "5 leave requests have been pending for more than 48 hours."
+      },
+      "fr": {
+        "0": "0 demande de congé est en attente depuis plus de 48 heures.",
+        "1": "1 demande de congé est en attente depuis plus de 48 heures.",
+        "2": "2 demandes de congé sont en attente depuis plus de 48 heures.",
+        "5": "5 demandes de congé sont en attente depuis plus de 48 heures."
+      }
+    },
+    "OVERDUE_TIMESHEETS": {
+      "en": {
+        "0": "0 timesheets have been submitted for more than 72 hours without a decision.",
+        "1": "1 timesheet has been submitted for more than 72 hours without a decision.",
+        "2": "2 timesheets have been submitted for more than 72 hours without a decision.",
+        "5": "5 timesheets have been submitted for more than 72 hours without a decision."
+      },
+      "fr": {
+        "0": "0 feuille de temps est soumise depuis plus de 72 heures sans décision.",
+        "1": "1 feuille de temps est soumise depuis plus de 72 heures sans décision.",
+        "2": "2 feuilles de temps sont soumises depuis plus de 72 heures sans décision.",
+        "5": "5 feuilles de temps sont soumises depuis plus de 72 heures sans décision."
+      }
+    },
+    "LATE_CHECK_INS": {
+      "en": {
+        "0": "0 check-ins were recorded more than 5 minutes after the shift start.",
+        "1": "1 check-in was recorded more than 5 minutes after the shift start.",
+        "2": "2 check-ins were recorded more than 5 minutes after the shift start.",
+        "5": "5 check-ins were recorded more than 5 minutes after the shift start."
+      },
+      "fr": {
+        "0": "0 pointage d’arrivée a été enregistré plus de 5 minutes après le début du quart.",
+        "1": "1 pointage d’arrivée a été enregistré plus de 5 minutes après le début du quart.",
+        "2": "2 pointages d’arrivée ont été enregistrés plus de 5 minutes après le début du quart.",
+        "5": "5 pointages d’arrivée ont été enregistrés plus de 5 minutes après le début du quart."
+      }
+    },
+    "PENDING_LEAVE": {
+      "en": {
+        "0": "0 leave requests are pending, within the 48-hour threshold.",
+        "1": "1 leave request is pending, within the 48-hour threshold.",
+        "2": "2 leave requests are pending, within the 48-hour threshold.",
+        "5": "5 leave requests are pending, within the 48-hour threshold."
+      },
+      "fr": {
+        "0": "0 demande de congé est en attente, dans le seuil de 48 heures.",
+        "1": "1 demande de congé est en attente, dans le seuil de 48 heures.",
+        "2": "2 demandes de congé sont en attente, dans le seuil de 48 heures.",
+        "5": "5 demandes de congé sont en attente, dans le seuil de 48 heures."
+      }
+    },
+    "PENDING_TIMESHEETS": {
+      "en": {
+        "0": "0 timesheets are pending, within the 72-hour threshold.",
+        "1": "1 timesheet is pending, within the 72-hour threshold.",
+        "2": "2 timesheets are pending, within the 72-hour threshold.",
+        "5": "5 timesheets are pending, within the 72-hour threshold."
+      },
+      "fr": {
+        "0": "0 feuille de temps est en attente, dans le seuil de 72 heures.",
+        "1": "1 feuille de temps est en attente, dans le seuil de 72 heures.",
+        "2": "2 feuilles de temps sont en attente, dans le seuil de 72 heures.",
+        "5": "5 feuilles de temps sont en attente, dans le seuil de 72 heures."
+      }
+    },
+    "EXPECTED_SHIFTS": {
+      "en": {
+        "0": "0 shifts are awaiting a check-in within the first 30 minutes after their start.",
+        "1": "1 shift is awaiting a check-in within the first 30 minutes after its start.",
+        "2": "2 shifts are awaiting a check-in within the first 30 minutes after their start.",
+        "5": "5 shifts are awaiting a check-in within the first 30 minutes after their start."
+      },
+      "fr": {
+        "0": "0 quart attend un pointage d’arrivée dans les 30 premières minutes après son début.",
+        "1": "1 quart attend un pointage d’arrivée dans les 30 premières minutes après son début.",
+        "2": "2 quarts attendent un pointage d’arrivée dans les 30 premières minutes après leur début.",
+        "5": "5 quarts attendent un pointage d’arrivée dans les 30 premières minutes après leur début."
+      }
+    },
+    "PRESENT_SHIFTS": {
+      "en": {
+        "0": "0 shifts are in progress with a check-in recorded.",
+        "1": "1 shift is in progress with a check-in recorded.",
+        "2": "2 shifts are in progress with a check-in recorded.",
+        "5": "5 shifts are in progress with a check-in recorded."
+      },
+      "fr": {
+        "0": "0 quart est en cours avec un pointage d’arrivée enregistré.",
+        "1": "1 quart est en cours avec un pointage d’arrivée enregistré.",
+        "2": "2 quarts sont en cours avec un pointage d’arrivée enregistré.",
+        "5": "5 quarts sont en cours avec un pointage d’arrivée enregistré."
+      }
+    },
+    "COMPLETED_SHIFTS": {
+      "en": {
+        "0": "0 shifts are completed with check-in and check-out recorded.",
+        "1": "1 shift is completed with check-in and check-out recorded.",
+        "2": "2 shifts are completed with check-in and check-out recorded.",
+        "5": "5 shifts are completed with check-in and check-out recorded."
+      },
+      "fr": {
+        "0": "0 quart est terminé avec pointages d’arrivée et de départ enregistrés.",
+        "1": "1 quart est terminé avec pointages d’arrivée et de départ enregistrés.",
+        "2": "2 quarts sont terminés avec pointages d’arrivée et de départ enregistrés.",
+        "5": "5 quarts sont terminés avec pointages d’arrivée et de départ enregistrés."
+      }
+    },
+    "SCHEDULED_SHIFTS": {
+      "en": {
+        "0": "No shifts are scheduled today in this scope.",
+        "1": "1 shift is scheduled today in this scope.",
+        "2": "2 shifts are scheduled today in this scope.",
+        "5": "5 shifts are scheduled today in this scope."
+      },
+      "fr": {
+        "0": "Aucun quart n’est planifié aujourd’hui dans ce périmètre.",
+        "1": "1 quart est planifié aujourd’hui dans ce périmètre.",
+        "2": "2 quarts sont planifiés aujourd’hui dans ce périmètre.",
+        "5": "5 quarts sont planifiés aujourd’hui dans ce périmètre."
+      }
+    }
+  }
+}

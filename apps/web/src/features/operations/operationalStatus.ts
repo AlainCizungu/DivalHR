@@ -29,7 +29,7 @@ export function statusQueryOf(
 
 /** A refused or failed status, reduced to stable codes. */
 export interface StatusFailure {
-  kind: 'linkRequired' | 'forbidden' | 'rateLimited' | 'scopeNotFound' | 'general';
+  kind: 'linkRequired' | 'forbidden' | 'rateLimited' | 'scopeNotFound' | 'unavailable' | 'general';
   messageKey: string;
   correlationId?: string;
 }
@@ -68,6 +68,9 @@ export function statusFailureOf(
       kind: 'scopeNotFound',
       messageKey: 'errors.OPERATIONAL_STATUS_SCOPE_NOT_FOUND',
     };
+  }
+  if (code === 'OPERATIONAL_SUMMARY_UNAVAILABLE' || code === 'OPERATIONAL_SUMMARY_SOURCE_INVALID') {
+    return { ...base, kind: 'unavailable', messageKey: `errors.${code}` };
   }
   return { ...base, kind: 'general', messageKey: 'errors.generic' };
 }

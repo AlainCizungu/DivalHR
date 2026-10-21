@@ -1,0 +1,114 @@
+openapi: 3.1.0
+info:
+  title: DivalHR AI Service (internal, Core only)
+  version: 0.1.0
+  description: >-
+    MVP-101 (ADR 0027, D101-4, D101-5). The service-to-service operation the Core API calls to
+    generate a grounded operational summary. The browser never calls it: it is not routed by the
+    public proxy and CORS is not an authorization control. The caller presents a Keycloak
+    client-credentials token whose audience is divalhr-ai-service, whose authorized party is the
+    dedicated Core AI client and which holds the capability generate-operational-summary; the
+    service validates issuer, signature, audience, client and capability BEFORE it parses the
+    body. The body is the closed operational-summary input: no free text, no identifier, no name.
+servers:
+  - url: /api/v1
+    description: Relative to the AI Service origin on the internal network
+security:
+  - coreServiceToken: [generate-operational-summary]
+tags:
+  - name: internal
+    description: Core to AI service only
+paths:
+  /internal/operational-summary:
+    post:
+      operationId: generateOperationalSummary
+      x-divalhr-lifecycle: implemented
+      summary: Generate a grounded operational summary from a governed snapshot
+      description: >-
+        Selects and orders at most five of the supplied fact ids (deterministic planner or an
+        approved structured-output model planner), then renders the briefing from reviewed bilingual
+        templates. A provider failure of any class is answered by the deterministic planner
+        (generationMode FALLBACK) within the same request; the response never names a provider or
+        a model. Nothing is stored and nothing is logged beyond bounded telemetry.
+      tags: [internal]
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Core's correlation id; never sent to a model provider.
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9._-]{8,64}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/operational-summary-input.schema.json'
+      responses:
+        '200':
+          description: A rendered, validated briefing
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/operational-summary-output.schema.json'
+        '400':
+          description: The body does not satisfy the closed input contract (unknown field, free text, bad enum)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblem'
+        '401':
+          description: Missing, expired or invalid service token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblem'
+        '403':
+          description: Wrong audience, wrong client or missing capability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblem'
+        '422':
+          description: The snapshot violates the MVP-100 invariants (fails closed, no partial briefing)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblem'
+        '503':
+          description: The planner and the renderer could not produce a valid briefing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblem'
+components:
+  securitySchemes:
+    coreServiceToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Keycloak client-credentials access token: iss = the configured realm issuer, aud contains
+        divalhr-ai-service, azp = the dedicated Core AI client, resource_access of the service
+        account holds generate-operational-summary on divalhr-ai-service.
+  schemas:
+    InternalProblem:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum:
+            - SERVICE_TOKEN_REQUIRED
+            - SERVICE_TOKEN_INVALID
+            - SERVICE_CAPABILITY_DENIED
+            - SUMMARY_INPUT_INVALID
+            - SUMMARY_SNAPSHOT_INVALID
+            - SUMMARY_UNAVAILABLE

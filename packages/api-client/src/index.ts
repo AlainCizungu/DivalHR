@@ -292,6 +292,11 @@ export type OperationalStatusOverdueLeave =
   CoreComponents['schemas']['OperationalStatusOverdueLeave'];
 export type OperationalStatusOverdueTimesheet =
   CoreComponents['schemas']['OperationalStatusOverdueTimesheet'];
+/** MVP-101: the grounded daily briefing (administrator and manager views, one response shape). */
+export type GenerateOperationalSummaryRequest =
+  CoreComponents['schemas']['GenerateOperationalSummaryRequest'];
+export type OperationalSummary = CoreComponents['schemas']['OperationalSummary'];
+export type OperationalSummaryHighlight = CoreComponents['schemas']['OperationalSummaryHighlight'];
 /** MVP-061A: synchronization of one attendance event captured offline (consumed by MVP-061B). */
 export type SyncOfflineAttendanceRequest =
   CoreComponents['schemas']['SyncOfflineAttendanceRequest'];

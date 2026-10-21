@@ -72,6 +72,12 @@ only**. The `divalhr-dev` realm therefore sets `"sslRequired": "none"`.
   It holds **no admin permission**: its service account has only the client role
   `divalhr-provisioning/provision-invitations`, and an audience mapper adds `divalhr-provisioning`
   to its tokens. Fine-grained admin permissions are off (`adminPermissionsEnabled: false`).
+- MVP-101: confidential client `divalhr-core-ai` (client credentials only, secret
+  `dev-only-core-ai-secret-2026` = `DIVALHR_AI_SERVICE_CLIENT_SECRET` in `.env.example`) whose service
+  account holds only the client role `divalhr-ai-service/generate-operational-summary`; its tokens
+  carry the audience `divalhr-ai-service` and live 120 s. The AI service accepts no other caller. The
+  hr-dev test realm deliberately does not define it: there the briefing answers 503 until a later,
+  separately approved change provisions it.
 - The Core API calls only the extension `divalhr-provisioning`
   (`/realms/divalhr-dev/divalhr-provisioning/v1/invitations/{invitationId}/identity`), which creates
   each user directly inside one role group (`divalhr-role-employee` or

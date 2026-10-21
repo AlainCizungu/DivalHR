@@ -1,0 +1,121 @@
+{
+  "evaluationVersion": "operational-summary-eval-v1",
+  "base": "many-critical-over-cap",
+  "note": "Candidate planner outputs for the base case (facts f1..f10). 'valid' must be accepted; every 'invalid*' entry must be rejected and answered by the deterministic planner.",
+  "entries": [
+    {
+      "id": "valid-deterministic",
+      "expect": "valid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"]
+      }
+    },
+    {
+      "id": "valid-critical-reordered",
+      "expect": "valid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f2", "f1", "f4", "f3", "f5"]
+      }
+    },
+    {
+      "id": "valid-lower-priority-substitution",
+      "expect": "valid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f6"]
+      }
+    },
+    {
+      "id": "valid-fewer-than-cap",
+      "expect": "valid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4"]
+      }
+    },
+    {
+      "id": "unknown-fact-id",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f99"]
+      }
+    },
+    {
+      "id": "duplicate-fact-id",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f1", "f2", "f3", "f4"]
+      }
+    },
+    {
+      "id": "too-many-ids",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f5", "f6"]
+      }
+    },
+    {
+      "id": "mandatory-fact-missing",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f5", "f6"]
+      }
+    },
+    {
+      "id": "lower-priority-before-mandatory",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f5", "f1", "f2", "f3", "f4"]
+      }
+    },
+    {
+      "id": "unknown-headline",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "ALL_GOOD",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"]
+      }
+    },
+    {
+      "id": "headline-inconsistent-with-facts",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "OPERATIONS_WITHIN_RANGE",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"]
+      }
+    },
+    {
+      "id": "extra-property",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"],
+        "comment": "ok"
+      }
+    },
+    {
+      "id": "free-text-field",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"],
+        "summary": "Several employees were absent"
+      }
+    },
+    {
+      "id": "no-fact-ids",
+      "expect": "invalid",
+      "plan": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": []
+      }
+    }
+  ]
+}

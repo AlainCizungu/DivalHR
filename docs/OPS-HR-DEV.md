@@ -179,3 +179,10 @@ Every finished run, failed or not, gets a record:
 * Keycloak and the identity origin share `hr-dev.dival.ai`; a dedicated identity origin remains a production requirement (D1).
 * The operator account has no second factor of its own; it is reachable only through SSH from the owner's address.
 * Certificates come from Let's Encrypt for `hr-dev.dival.ai` only.
+
+## MVP-101 briefing in the test environment
+
+This change does not provision the `divalhr-core-ai` Keycloak client or an AI service in hr-dev. The
+two briefing endpoints answer `503 OPERATIONAL_SUMMARY_UNAVAILABLE` there and no request leaves
+Core. Provisioning (a realm client with a rendered secret, the AI service container with the
+service-auth issuer and JWKS URL) needs a separately approved ops change.

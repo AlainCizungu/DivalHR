@@ -21,6 +21,7 @@ import {
   type StatusFilters,
   type StatusView,
 } from './operationalStatus';
+import { OperationalSummaryPanel } from './OperationalSummaryPanel';
 
 type Loaded =
   | { kind: 'loading' }
@@ -207,6 +208,8 @@ export function OperationalStatusView({ view }: Props) {
           </div>
         </form>
       )}
+
+      <OperationalSummaryPanel view={view} filters={applied} />
 
       <div aria-busy={loaded.kind === 'loading'}>
         {loaded.kind === 'loading' && <p role="status">{t('operationsStatus.loading')}</p>}

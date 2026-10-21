@@ -1,0 +1,354 @@
+{
+  "evaluationVersion": "operational-summary-eval-v1",
+  "templateVersion": "ops-summary-1",
+  "cases": {
+    "normal-no-shifts": {
+      "en": {
+        "headline": "Recorded operations are within the expected range.",
+        "highlights": ["No shifts are scheduled today in this scope."],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les opérations enregistrées sont dans la plage attendue.",
+        "highlights": ["Aucun quart n’est planifié aujourd’hui dans ce périmètre."],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "normal-busy-day": {
+      "en": {
+        "headline": "Recorded operations are within the expected range.",
+        "highlights": [
+          "7 shifts are in progress with a check-in recorded.",
+          "5 shifts are completed with check-in and check-out recorded.",
+          "12 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les opérations enregistrées sont dans la plage attendue.",
+        "highlights": [
+          "7 quarts sont en cours avec un pointage d’arrivée enregistré.",
+          "5 quarts sont terminés avec pointages d’arrivée et de départ enregistrés.",
+          "12 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "one-not-checked-in": {
+      "en": {
+        "headline": "Attendance records need attention.",
+        "highlights": [
+          "1 shift has no check-in recorded more than 30 minutes after its start.",
+          "2 shifts are in progress with a check-in recorded.",
+          "1 shift is completed with check-in and check-out recorded.",
+          "4 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les pointages enregistrés nécessitent de l’attention.",
+        "highlights": [
+          "1 quart n’a aucun pointage d’arrivée enregistré plus de 30 minutes après son début.",
+          "2 quarts sont en cours avec un pointage d’arrivée enregistré.",
+          "1 quart est terminé avec pointages d’arrivée et de départ enregistrés.",
+          "4 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "uncovered-coverage": {
+      "en": {
+        "headline": "Shift coverage needs attention.",
+        "highlights": [
+          "3 shifts have no assigned worker.",
+          "5 shifts are in progress with a check-in recorded.",
+          "5 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "La couverture des quarts nécessite de l’attention.",
+        "highlights": [
+          "3 quarts n’ont aucune personne affectée.",
+          "5 quarts sont en cours avec un pointage d’arrivée enregistré.",
+          "5 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "overdue-leave": {
+      "en": {
+        "headline": "Approvals need attention.",
+        "highlights": [
+          "2 leave requests have been pending for more than 48 hours.",
+          "2 leave requests are pending, within the 48-hour threshold.",
+          "3 shifts are in progress with a check-in recorded.",
+          "3 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les approbations nécessitent de l’attention.",
+        "highlights": [
+          "2 demandes de congé sont en attente depuis plus de 48 heures.",
+          "2 demandes de congé sont en attente, dans le seuil de 48 heures.",
+          "3 quarts sont en cours avec un pointage d’arrivée enregistré.",
+          "3 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "overdue-timesheet": {
+      "en": {
+        "headline": "Approvals need attention.",
+        "highlights": [
+          "1 timesheet has been submitted for more than 72 hours without a decision.",
+          "No shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les approbations nécessitent de l’attention.",
+        "highlights": [
+          "1 feuille de temps est soumise depuis plus de 72 heures sans décision.",
+          "Aucun quart n’est planifié aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "late-only": {
+      "en": {
+        "headline": "Attendance records need attention.",
+        "highlights": [
+          "2 check-ins were recorded more than 5 minutes after the shift start.",
+          "4 shifts are in progress with a check-in recorded.",
+          "2 shifts are completed with check-in and check-out recorded.",
+          "6 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les pointages enregistrés nécessitent de l’attention.",
+        "highlights": [
+          "2 pointages d’arrivée ont été enregistrés plus de 5 minutes après le début du quart.",
+          "4 quarts sont en cours avec un pointage d’arrivée enregistré.",
+          "2 quarts sont terminés avec pointages d’arrivée et de départ enregistrés.",
+          "6 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "many-critical-over-cap": {
+      "en": {
+        "headline": "Several areas need attention.",
+        "highlights": [
+          "4 shifts have no check-in recorded more than 30 minutes after their start.",
+          "11 shifts have no assigned worker.",
+          "3 leave requests have been pending for more than 48 hours.",
+          "5 timesheets have been submitted for more than 72 hours without a decision.",
+          "5 check-ins were recorded more than 5 minutes after the shift start."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Plusieurs domaines nécessitent de l’attention.",
+        "highlights": [
+          "4 quarts n’ont aucun pointage d’arrivée enregistré plus de 30 minutes après leur début.",
+          "11 quarts n’ont aucune personne affectée.",
+          "3 demandes de congé sont en attente depuis plus de 48 heures.",
+          "5 feuilles de temps sont soumises depuis plus de 72 heures sans décision.",
+          "5 pointages d’arrivée ont été enregistrés plus de 5 minutes après le début du quart."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "manager-scope": {
+      "en": {
+        "headline": "Attendance records need attention.",
+        "highlights": [
+          "1 shift has no check-in recorded more than 30 minutes after its start.",
+          "1 check-in was recorded more than 5 minutes after the shift start.",
+          "1 leave request is pending, within the 48-hour threshold.",
+          "1 shift is in progress with a check-in recorded.",
+          "2 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les pointages enregistrés nécessitent de l’attention.",
+        "highlights": [
+          "1 quart n’a aucun pointage d’arrivée enregistré plus de 30 minutes après son début.",
+          "1 pointage d’arrivée a été enregistré plus de 5 minutes après le début du quart.",
+          "1 demande de congé est en attente, dans le seuil de 48 heures.",
+          "1 quart est en cours avec un pointage d’arrivée enregistré.",
+          "2 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "administrator-filters": {
+      "en": {
+        "headline": "Several areas need attention.",
+        "highlights": [
+          "1 shift has no check-in recorded more than 30 minutes after its start.",
+          "1 shift has no assigned worker.",
+          "1 check-in was recorded more than 5 minutes after the shift start.",
+          "1 shift is in progress with a check-in recorded.",
+          "2 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Plusieurs domaines nécessitent de l’attention.",
+        "highlights": [
+          "1 quart n’a aucun pointage d’arrivée enregistré plus de 30 minutes après son début.",
+          "1 quart n’a aucune personne affectée.",
+          "1 pointage d’arrivée a été enregistré plus de 5 minutes après le début du quart.",
+          "1 quart est en cours avec un pointage d’arrivée enregistré.",
+          "2 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "severity-boundaries": {
+      "en": {
+        "headline": "Several areas need attention.",
+        "highlights": [
+          "2 shifts have no check-in recorded more than 30 minutes after their start.",
+          "3 shifts have no assigned worker.",
+          "10 timesheets have been submitted for more than 72 hours without a decision.",
+          "9 leave requests have been pending for more than 48 hours.",
+          "9 check-ins were recorded more than 5 minutes after the shift start."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Plusieurs domaines nécessitent de l’attention.",
+        "highlights": [
+          "2 quarts n’ont aucun pointage d’arrivée enregistré plus de 30 minutes après leur début.",
+          "3 quarts n’ont aucune personne affectée.",
+          "10 feuilles de temps sont soumises depuis plus de 72 heures sans décision.",
+          "9 demandes de congé sont en attente depuis plus de 48 heures.",
+          "9 pointages d’arrivée ont été enregistrés plus de 5 minutes après le début du quart."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    },
+    "pending-equals-overdue-and-expected-only": {
+      "en": {
+        "headline": "Approvals need attention.",
+        "highlights": [
+          "3 leave requests have been pending for more than 48 hours.",
+          "2 shifts are awaiting a check-in within the first 30 minutes after their start.",
+          "2 shifts are scheduled today in this scope."
+        ],
+        "limitations": [
+          "This briefing describes recorded operational facts only.",
+          "It is not a leave, pay, disciplinary or legal conclusion.",
+          "Review the linked source records before acting."
+        ]
+      },
+      "fr": {
+        "headline": "Les approbations nécessitent de l’attention.",
+        "highlights": [
+          "3 demandes de congé sont en attente depuis plus de 48 heures.",
+          "2 quarts attendent un pointage d’arrivée dans les 30 premières minutes après leur début.",
+          "2 quarts sont planifiés aujourd’hui dans ce périmètre."
+        ],
+        "limitations": [
+          "Ce résumé décrit uniquement des faits opérationnels enregistrés.",
+          "Il ne constitue pas une conclusion en matière de congé, de paie, de discipline ou de droit.",
+          "Consultez les dossiers sources liés avant d’agir."
+        ]
+      }
+    }
+  }
+}

@@ -347,7 +347,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-100 View operational status
 
-**Issue #154. In review.** Authorized leaders see scheduled shifts, check-ins, lateness, shifts not checked in, uncovered shifts and overdue approvals within their scope (ADR 0026, amendments A100-1 to A100-8).
+**Issue #154. Complete; merged and deployed (merge commit 538c1b3).** Authorized leaders see scheduled shifts, check-ins, lateness, shifts not checked in, uncovered shifts and overdue approvals within their scope (ADR 0026, amendments A100-1 to A100-8).
 
 - **Who and where.** A tenant administrator with exact MFA under « Opérations » / "Operations": « Opérations du jour » / "Today's operations" (`/admin/operations`), optionally filtered by legal entity and site. A manager under « Mon espace » / "My space": « Opérations de l’équipe » / "Team operations" (`/me/team-operations`), for the employees she manages, never herself. Read-only; no migration, V38 is still the last.
 - **Counting unit.** Effective assigned shift occurrences, not people: « Quarts planifiés » / "Scheduled shifts" is the total; Expected, Not checked in (« Aucun pointage d’arrivée »), Present and Completed partition it; Late (checked in more than 5 minutes after the start) is a labelled subset. Uncovered shifts (administrator only) are counted apart.
@@ -359,6 +359,13 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 ### MVP-101 Generate grounded daily summary
 
 Dival AI produces a French or English summary using governed metrics and links to authorized source views.
+
+**Issue #156. In review (not merged, not deployed).** ADR 0027, decisions D101-1 to D101-16.
+
+- **Who and where.** A « Synthèse du jour » / "Daily briefing" panel on « Opérations du jour » (tenant administrator, exact MFA) and « Opérations de l’équipe » (manager), generated on request in the display language.
+- **API.** `POST /api/v1/operations/status-summary` and `POST /api/v1/me/team-operations/status-summary`, body `{language}` only; no migration, no stored briefing or prompt.
+- **Grounding.** Only aggregate counts and fixed thresholds reach the AI service; a planner picks a headline code and fact ids; reviewed templates write every sentence; Core re-validates. Deterministic fallback on any provider problem.
+- **Not included:** free-text questions, history, notifications, per-employee content, conclusions about leave, pay, absence or discipline.
 
 ## Epic 12 Integrations
 

@@ -763,3 +763,16 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - Audit events verified
 - Privacy notice and retention configuration approved
 - Incident runbooks exercised
+
+### Grounded operational summary (MVP-101)
+
+- **Operations.** `operations.status-summary-admin` (`POST /api/v1/operations/status-summary`,
+  `@TenantAdminOperation`, exact MFA) and `operations.status-summary-team`
+  (`POST /api/v1/me/team-operations/status-summary`, `@EmployeeSelfOperation`, active employee
+  link); both are in the denial-audit inventory. Own subject and tenant limits (`operational-summary`).
+- **Audit.** Fail-closed `ai.operational-summary-admin` and `ai.operational-summary-team` with bounded
+  metadata (no name, identifier, count list or text).
+- **Service authentication.** Client `divalhr-core-ai`, audience `divalhr-ai-service`, role
+  `generate-operational-summary`; configuration `DIVALHR_AI_SERVICE_*` (Core) and
+  `DIVALHR_AI_SERVICE_AUTH_*` (AI service). Missing configuration means 503, never an unauthenticated call.
+- **Data minimization.** See `docs/security/MVP-101-AI-DATA-FLOW.md`.

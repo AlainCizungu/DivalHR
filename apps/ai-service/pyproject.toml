@@ -1,7 +1,7 @@
 [project]
 name = "divalhr-ai-service"
 version = "0.1.0"
-description = "DivalHR AI and workers service shell (Sprint 0: no model or provider integration)."
+description = "DivalHR AI service: the governed operational-summary capability (MVP-101) behind an authenticated Core-only boundary."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -9,11 +9,13 @@ dependencies = [
     "uvicorn==0.54.0",
     "pydantic-settings==2.15.0",
     "structlog==26.1.0",
+    "httpx2==2.13.1",
+    "pyjwt==2.15.1",
+    "cryptography==50.0.2",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx2==2.13.1",
     "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
@@ -40,6 +42,9 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]  # assertions and fake credentials are expected in tests
+# Reviewed bilingual wording uses the typographic apostrophe and long literal sentences.
+"src/divalhr_ai/summary/templates.py" = ["RUF001", "E501"]
+"tests/test_summary_*.py" = ["S101", "S105", "S106", "RUF001", "E501"]
 
 [tool.mypy]
 strict = true

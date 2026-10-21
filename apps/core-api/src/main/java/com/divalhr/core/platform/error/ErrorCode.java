@@ -517,7 +517,16 @@ public enum ErrorCode {
    * MVP-100: the operational-status filter (a site or a legal entity) is unknown, foreign,
    * malformed or of another kind; the same answer for each.
    */
-  OPERATIONAL_STATUS_SCOPE_NOT_FOUND(HttpStatus.NOT_FOUND);
+  OPERATIONAL_STATUS_SCOPE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-101: the requested briefing language is not exactly {@code en} or {@code fr}. */
+  OPERATIONAL_SUMMARY_LANGUAGE_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-101: the governed snapshot violated an MVP-100 invariant, so no briefing was requested. */
+  OPERATIONAL_SUMMARY_SOURCE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR),
+  /**
+   * MVP-101: no valid briefing could be produced (service authentication, the AI service, or its
+   * answer failed); nothing partial is returned.
+   */
+  OPERATIONAL_SUMMARY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
 
   private final HttpStatus status;
 
