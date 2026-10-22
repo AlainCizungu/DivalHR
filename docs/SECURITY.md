@@ -776,3 +776,7 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
   `generate-operational-summary`; configuration `DIVALHR_AI_SERVICE_*` (Core) and
   `DIVALHR_AI_SERVICE_AUTH_*` (AI service). Missing configuration means 503, never an unauthenticated call.
 - **Data minimization.** See `docs/security/MVP-101-AI-DATA-FLOW.md`.
+- **hr-dev (R157-1).** The client secret is generated on the instance, held in root-only files
+  (`secrets/ops/ai-service-client-secret`, `secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET`), and
+  verified after every deployment by `ai-capability-check.sh`; no external model provider or key is
+  configured and the internal AI operation is not publicly routed.

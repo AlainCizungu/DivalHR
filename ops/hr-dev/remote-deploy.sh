@@ -72,6 +72,11 @@ hr_log "release $SHA unpacked"
 if [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_EMAIL_LOOKUP_KEY" ]; then
   [ "$FIRST_RUN" = 1 ] || hr_die "secrets are missing; the first deployment needs --first-run"
   "$REL/ops/hr-dev/init-secrets.sh" || hr_die "init-secrets failed"
+elif [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET" ]; then
+  # R157-1: an existing environment gains the AI client secret. init-secrets.sh never overwrites
+  # a file, so only the missing values are created.
+  hr_log "adding the AI service client secret"
+  "$REL/ops/hr-dev/init-secrets.sh" || hr_die "init-secrets failed"
 fi
 hr_prepare_data "$REL"
 hr_export_tls
@@ -102,8 +107,10 @@ install_units() {
 hr_log "starting $SHA"
 if hr_compose "$SHA" up -d --wait --wait-timeout 600 --remove-orphans \
   && "$REL/ops/hr-dev/keycloak-admin-setup.sh" \
+  && "$REL/ops/hr-dev/keycloak-ai-client.sh" \
   && "$REL/ops/hr-dev/http-checks.sh" \
   && "$REL/ops/hr-dev/backchannel-check.sh" "$SHA" \
+  && "$REL/ops/hr-dev/ai-capability-check.sh" "$SHA" \
   && install_units; then
   if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$SHA" ]; then
     printf '%s\n' "$PREVIOUS" > "$HR_DEV_DATA/state/previous-release"

@@ -73,8 +73,9 @@ the model an authority over any fact, name or conclusion.
   notification.
 - Core depends on the AI service for this endpoint only; unavailability degrades one panel and
   never the status.
-- The test environment (hr-dev) does not define the `divalhr-core-ai` client in this change; there
-  the endpoints answer 503 until a separately approved change provisions it and the AI service.
+- The test environment (hr-dev) runs the deterministic planner only (R157-1): the
+  `divalhr-core-ai` client is provisioned by the deployment, its secret lives in root-only files, and
+  no external provider or API key exists there. A model provider remains a separately approved change.
 
 ## Not included
 

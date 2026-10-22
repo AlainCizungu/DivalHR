@@ -46,6 +46,10 @@ put "$S/core/DIVALHR_CURSOR_SIGNING_KEY" 10001 random
 put "$S/core/DIVALHR_EMAIL_LOOKUP_KEY" 10001 random
 put "$S/ops/provisioner-secret" 0 random
 put "$S/core/DIVALHR_KEYCLOAK_PROVISIONER_SECRET" 10001 same_as "$S/ops/provisioner-secret"
+# R157-1 (MVP-101): secret of the Keycloak client divalhr-core-ai, the Core API's only credential
+# for the AI service. The AI service itself holds no secret; the browser never receives this one.
+put "$S/ops/ai-service-client-secret" 0 random
+put "$S/core/DIVALHR_AI_SERVICE_CLIENT_SECRET" 10001 same_as "$S/ops/ai-service-client-secret"
 
 # Keycloak (container uid 1000): keycloak.conf with the database password and the one-time
 # bootstrap administrator password (removed by the runbook once the permanent admin exists).
