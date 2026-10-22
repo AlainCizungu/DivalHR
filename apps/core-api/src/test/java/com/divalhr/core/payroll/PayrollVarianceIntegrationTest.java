@@ -493,7 +493,9 @@ class PayrollVarianceIntegrationTest {
       JsonNode field = problem.get("params").get("fields").get(0);
       assertThat(field.get("field").asText() + ":" + field.get("constraint").asText())
           .isEqualTo(entry.getValue());
-      assertThat(response.getContentAsString())
+      // The rejected value is not echoed in the problem parameters (the random correlation id,
+      // which can end in any digit, is deliberately not part of this check).
+      assertThat(problem.get("params").toString())
           .doesNotContain(entry.getKey().substring(entry.getKey().indexOf('=') + 1) + "\"");
     }
     // The bounds themselves are valid.
