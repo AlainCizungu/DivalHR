@@ -5,11 +5,11 @@ description = "DivalHR AI service: the governed operational-summary capability (
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastapi==0.142.2",
+    "fastapi==0.146.0",
     "uvicorn==0.54.0",
-    "pydantic-settings==2.15.0",
+    "pydantic-settings==2.16.0",
     "structlog==26.1.0",
-    "httpx2==2.13.1",
+    "httpx2==2.14.0",
     "pyjwt==2.15.1",
     "cryptography==50.0.2",
 ]
@@ -20,7 +20,7 @@ dev = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
     "pyyaml==6.0.3",
-    "ruff==0.16.10",
+    "ruff==0.17.1",
     "types-PyYAML==6.0.12.20260906",
 ]
 
