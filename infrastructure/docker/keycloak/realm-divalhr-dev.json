@@ -67,6 +67,14 @@
           "composite": false,
           "clientRole": true
         }
+      ],
+      "divalhr-ai-service": [
+        {
+          "name": "generate-operational-summary",
+          "description": "The only right of divalhr-core-ai: request a grounded operational summary plan (MVP-101).",
+          "composite": false,
+          "clientRole": true
+        }
       ]
     }
   },
@@ -168,6 +176,59 @@
       "clientId": "divalhr-provisioning",
       "name": "DivalHR provisioning extension capability (Issue #31)",
       "description": "Audience and capability role of the divalhr-provisioning Keycloak extension. No flow is enabled; it never authenticates.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "clientAuthenticatorType": "client-secret",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": false,
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false"
+      }
+    },
+    {
+      "clientId": "divalhr-core-ai",
+      "name": "DivalHR Core API to AI service (MVP-101, DEVELOPMENT ONLY secret)",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "dev-only-core-ai-secret-2026",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": false,
+      "attributes": {
+        "access.token.lifespan": "120",
+        "oauth2.device.authorization.grant.enabled": "false"
+      },
+      "defaultClientScopes": ["service_account", "basic", "roles"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "divalhr-ai-service-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "divalhr-ai-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "divalhr-ai-service",
+      "name": "DivalHR AI service capability (MVP-101)",
+      "description": "Audience and capability role of the AI service. No flow is enabled; it never authenticates.",
       "enabled": true,
       "publicClient": false,
       "bearerOnly": false,
@@ -318,6 +379,14 @@
       "serviceAccountClientId": "divalhr-core-provisioner",
       "clientRoles": {
         "divalhr-provisioning": ["provision-invitations"]
+      }
+    },
+    {
+      "username": "service-account-divalhr-core-ai",
+      "enabled": true,
+      "serviceAccountClientId": "divalhr-core-ai",
+      "clientRoles": {
+        "divalhr-ai-service": ["generate-operational-summary"]
       }
     }
   ],
@@ -1433,5 +1502,13 @@
     "fr": {
       "divalhrMfaEnrollmentRequired": "Votre rôle exige une application d’authentification, et aucune n’est encore configurée pour votre compte. Demandez à votre administrateur de vous envoyer un lien de configuration."
     }
+  },
+  "clientScopeMappings": {
+    "divalhr-ai-service": [
+      {
+        "client": "divalhr-core-ai",
+        "roles": ["generate-operational-summary"]
+      }
+    ]
   }
 }

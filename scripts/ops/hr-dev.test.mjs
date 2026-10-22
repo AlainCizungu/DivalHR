@@ -2,7 +2,9 @@
 // Runs with `pnpm ops:test` (Node's test runner); needs bash, python3 and flock (Linux CI and the
 // AWS instance; the lock and watchdog tests are skipped where flock is missing).
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import { createServer } from 'node:http';
+import { mkdirSync } from 'node:fs';
 import {
   chmodSync,
   mkdtempSync,
@@ -872,4 +874,247 @@ test('#68: the follower reads only complete lines of the remote log, then the ex
   writeFileSync(join(dir, 'deploy.log'), 'one\n\nthree\npartial line\n');
   writeFileSync(join(dir, 'exit'), '0\n');
   assert.equal(poll(), 'one\n\nthree\npartial line\n@@EXIT 0\n');
+});
+
+// --- R157-1 (MVP-101): the deterministic summary capability --------------------------------------
+test('R157-1: compose enables the deterministic capability with no secret and no external model', () => {
+  const core = compose.slice(compose.indexOf('\n  core-api:'), compose.indexOf('\n  ai-service:'));
+  const ai = compose.slice(compose.indexOf('\n  ai-service:'), compose.indexOf('\n  web:'));
+  assert.match(core, /DIVALHR_AI_SERVICE_URL: http:\/\/ai-service:8090/);
+  assert.match(
+    core,
+    /DIVALHR_AI_SERVICE_TOKEN_URL: http:\/\/idp-internal:8081\/identity\/realms\/divalhr-test\//,
+  );
+  assert.match(core, /DIVALHR_AI_SERVICE_CLIENT_ID: divalhr-core-ai/);
+  assert.match(ai, /DIVALHR_AI_SUMMARY_PROVIDER_MODE: deterministic/);
+  assert.match(
+    ai,
+    /DIVALHR_AI_SERVICE_AUTH_ISSUER: \$\{HR_DEV_ORIGIN:\?\}\/identity\/realms\/divalhr-test/,
+  );
+  assert.match(ai, /DIVALHR_AI_SERVICE_AUTH_JWKS_URL: http:\/\/idp-internal:8081\//);
+  // The client secret is a file read through Spring's configtree, never an environment value; the
+  // AI service holds no secret and no provider configuration at all.
+  const live = compose
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+  assert.doesNotMatch(live, /DIVALHR_AI_SERVICE_CLIENT_SECRET/);
+  assert.doesNotMatch(
+    ai.replace(/^\s*#.*$/gm, ''),
+    /PROVIDER_(BASE_URL|MODEL|API_KEY)|API_KEY|SECRET|openai/i,
+  );
+  assert.doesNotMatch(compose, /dev-only/i);
+  const init = source('init-secrets.sh');
+  assert.match(init, /put "\$S\/ops\/ai-service-client-secret" 0 random/);
+  assert.match(
+    init,
+    /put "\$S\/core\/DIVALHR_AI_SERVICE_CLIENT_SECRET" 10001 same_as "\$S\/ops\/ai-service-client-secret"/,
+  );
+  assert.match(
+    read('apps/core-api/src/main/resources/application.yaml'),
+    /\$\{DIVALHR_AI_SERVICE_CLIENT_SECRET:\}/,
+  );
+});
+
+test('R157-1: the deployment provisions the client, then proves it, and nothing public reaches the AI operation', () => {
+  const remote = source('remote-deploy.sh');
+  const order = [
+    'keycloak-admin-setup.sh',
+    'keycloak-ai-client.sh',
+    'http-checks.sh',
+    'backchannel-check.sh',
+    'ai-capability-check.sh',
+    'install_units;',
+  ].map((name) => remote.indexOf(name, remote.indexOf('hr_compose "$SHA" up')));
+  assert.ok(
+    order.every((at) => at > 0),
+    'every step is part of the checks',
+  );
+  assert.deepEqual(
+    [...order].sort((a, b) => a - b),
+    order,
+    'provision before the checks that use it',
+  );
+  assert.match(
+    remote,
+    /DIVALHR_AI_SERVICE_CLIENT_SECRET/,
+    'an existing environment gains the secret',
+  );
+  for (const name of ['keycloak-ai-client.sh']) {
+    assert.match(source(name), /divalhr_lock "/);
+    assert.match(source(name), /hr_require_root/);
+  }
+  assert.match(source('http-checks.sh'), /\/ai\/api\/v1\/internal\/operational-summary/);
+  const caddy = read('infrastructure/hr-dev/caddy/Caddyfile');
+  assert.match(caddy, /handle \/ai\/api\/v1\/system\/\*/);
+  assert.doesNotMatch(caddy, /internal\/operational-summary/);
+  for (const name of ['keycloak_ai_client.py', 'ai_capability_check.py']) {
+    for (const line of readFileSync(join(OPS, name), 'utf8')
+      .split('\n')
+      .filter((l) => l.includes('print('))) {
+      assert.doesNotMatch(line, /secret\b|\{token|token\)|password/i, line);
+    }
+  }
+});
+
+/** A fake Keycloak admin API for the realm: in-memory clients, roles and mappings. */
+async function fakeKeycloak() {
+  const state = { clients: [], roles: [], mapped: [], scoped: [], log: [], bodies: [] };
+  const server = createServer((req, res) => {
+    let raw = '';
+    req.on('data', (chunk) => (raw += chunk));
+    req.on('end', () => {
+      const url = new URL(req.url, 'http://x');
+      const path = url.pathname;
+      const json = raw && req.headers['content-type']?.includes('json') ? JSON.parse(raw) : null;
+      state.log.push(`${req.method} ${path}`);
+      if (json) state.bodies.push(raw);
+      const send = (code, body) => {
+        res.writeHead(code, { 'Content-Type': 'application/json' });
+        res.end(body === undefined ? '' : JSON.stringify(body));
+      };
+      const base = '/admin/realms/divalhr-test';
+      let m;
+      if (path === '/realms/master/protocol/openid-connect/token')
+        return send(200, { access_token: 'op-token' });
+      if (path === `${base}/clients` && req.method === 'GET') {
+        return send(
+          200,
+          state.clients.filter((c) => c.clientId === url.searchParams.get('clientId')),
+        );
+      }
+      if (path === `${base}/clients` && req.method === 'POST') {
+        state.clients.push({ ...json, id: `id-${json.clientId}` });
+        return send(201);
+      }
+      if ((m = path.match(new RegExp(`^${base}/clients/([^/]+)$`))) && req.method === 'PUT') {
+        const at = state.clients.findIndex((c) => c.id === m[1]);
+        state.clients[at] = { ...state.clients[at], ...json };
+        return send(204);
+      }
+      if ((m = path.match(new RegExp(`^${base}/clients/([^/]+)/roles(?:/([^/]+))?$`)))) {
+        if (req.method === 'POST') {
+          state.roles.push({ ...json, id: `r-${json.name}` });
+          return send(201);
+        }
+        const role = state.roles.find((r) => r.name === m[2]);
+        return role ? send(200, role) : send(404, { error: 'nf' });
+      }
+      if ((m = path.match(new RegExp(`^${base}/clients/([^/]+)/service-account-user$`))))
+        return send(200, { id: `sa-${m[1]}` });
+      if ((m = path.match(new RegExp(`^${base}/users/([^/]+)/role-mappings/clients/([^/]+)$`)))) {
+        if (req.method === 'POST') {
+          state.mapped.push(...json);
+          return send(204);
+        }
+        return send(200, state.mapped);
+      }
+      if ((m = path.match(new RegExp(`^${base}/users/([^/]+)/role-mappings$`)))) {
+        return send(200, {
+          clientMappings: state.mapped.length
+            ? { 'divalhr-ai-service': { mappings: state.mapped } }
+            : {},
+        });
+      }
+      if (
+        (m = path.match(new RegExp(`^${base}/clients/([^/]+)/scope-mappings/clients/([^/]+)$`)))
+      ) {
+        if (req.method === 'POST') {
+          state.scoped.push(...json);
+          return send(204);
+        }
+        return send(200, state.scoped);
+      }
+      return send(404, { error: 'unexpected' });
+    });
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  return { state, server, base: `http://127.0.0.1:${server.address().port}` };
+}
+
+const runAsync = (command, args) =>
+  new Promise((resolve) => {
+    const child = spawn(command, args, { encoding: 'utf8' });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (d) => (stdout += d));
+    child.stderr.on('data', (d) => (stderr += d));
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+
+function aiSecrets(secret) {
+  const dir = tmp();
+  mkdirSync(join(dir, 'ops'), { recursive: true });
+  writeFileSync(
+    join(dir, 'ops/kc-admin.env'),
+    'KC_ADMIN_USER=op\nKC_ADMIN_PASSWORD=op-password-value\n',
+  );
+  if (secret !== null) writeFileSync(join(dir, 'ops/ai-service-client-secret'), `${secret}\n`);
+  return dir;
+}
+
+test('R157-1: keycloak_ai_client.py provisions the client idempotently and never prints the secret', async () => {
+  const secret = ['Zk3pQ9vLm2', 'XcTr8WnB5y', 'Hd7GsJf1Aa', 'Eu4Io6'].join('');
+  const fake = await fakeKeycloak();
+  try {
+    const dir = aiSecrets(secret);
+    const first = await runAsync('python3', [join(OPS, 'keycloak_ai_client.py'), fake.base, dir]);
+    assert.equal(first.status, 0, first.stdout + first.stderr);
+    assert.match(first.stdout, /capability client: created/);
+    assert.match(first.stdout, /caller client: created/);
+    assert.match(first.stdout, /capability role: created/);
+    assert.match(first.stdout, /service account role: granted/);
+    assert.match(first.stdout, /scope mapping: added/);
+    assert.match(first.stdout, /capability: verified/);
+    assert.doesNotMatch(first.stdout + first.stderr, new RegExp(secret));
+    const caller = fake.state.clients.find((c) => c.clientId === 'divalhr-core-ai');
+    assert.equal(caller.secret, secret, 'the secret reaches Keycloak in the request body');
+    assert.equal(caller.publicClient, false);
+    assert.equal(caller.serviceAccountsEnabled, true);
+    assert.equal(caller.standardFlowEnabled, false);
+    assert.equal(caller.directAccessGrantsEnabled, false);
+    assert.equal(caller.fullScopeAllowed, false);
+    assert.equal(caller.attributes['access.token.lifespan'], '120');
+    assert.deepEqual(
+      caller.protocolMappers.map((mapper) => mapper.config['included.custom.audience']),
+      ['divalhr-ai-service'],
+    );
+    assert.equal(
+      fake.state.clients.find((c) => c.clientId === 'divalhr-ai-service').serviceAccountsEnabled,
+      false,
+    );
+
+    const second = await runAsync('python3', [join(OPS, 'keycloak_ai_client.py'), fake.base, dir]);
+    assert.equal(second.status, 0, second.stdout + second.stderr);
+    assert.match(second.stdout, /caller client: reconciled/);
+    assert.match(second.stdout, /capability role: present/);
+    assert.match(second.stdout, /service account role: present/);
+    assert.match(second.stdout, /scope mapping: present/);
+    assert.equal(fake.state.clients.length, 2);
+    assert.equal(fake.state.mapped.length, 1);
+    assert.equal(fake.state.scoped.length, 1);
+    assert.doesNotMatch(second.stdout + second.stderr, new RegExp(secret));
+  } finally {
+    fake.server.close();
+  }
+});
+
+test('R157-1: keycloak_ai_client.py refuses a missing, short or development secret before any request', async () => {
+  const fake = await fakeKeycloak();
+  try {
+    for (const secret of [null, 'short-secret', `dev-only-${'x'.repeat(40)}`]) {
+      const dir = aiSecrets(secret);
+      const result = await runAsync('python3', [
+        join(OPS, 'keycloak_ai_client.py'),
+        fake.base,
+        dir,
+      ]);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /^STOP: /m);
+      if (secret) assert.doesNotMatch(result.stdout + result.stderr, new RegExp(secret));
+    }
+    assert.deepEqual(fake.state.log, [], 'nothing was sent to Keycloak');
+  } finally {
+    fake.server.close();
+  }
 });

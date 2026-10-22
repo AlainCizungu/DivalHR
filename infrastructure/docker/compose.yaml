@@ -101,6 +101,11 @@ services:
       DIVALHR_WEB_BASE_URL: http://localhost:${WEB_PORT:-5173}
       DIVALHR_KEYCLOAK_ADMIN_URL: http://keycloak:8080
       DIVALHR_KEYCLOAK_PROVISIONER_SECRET: ${DIVALHR_KEYCLOAK_PROVISIONER_SECRET:?set in .env / .env.example}
+      # MVP-101: the internal AI service and the Keycloak client that authenticates Core to it.
+      DIVALHR_AI_SERVICE_URL: http://ai-service:8090
+      DIVALHR_AI_SERVICE_TOKEN_URL: http://keycloak:8080/realms/divalhr-dev/protocol/openid-connect/token
+      DIVALHR_AI_SERVICE_CLIENT_ID: divalhr-core-ai
+      DIVALHR_AI_SERVICE_CLIENT_SECRET: ${DIVALHR_AI_SERVICE_CLIENT_SECRET:?set in .env / .env.example}
       DIVALHR_MAIL_HOST: mailpit
       DIVALHR_MAIL_PORT: '1025'
       DIVALHR_MAIL_FROM: ${DIVALHR_MAIL_FROM:?set in .env / .env.example}
@@ -139,6 +144,10 @@ services:
     image: divalhr/ai-service:dev
     environment:
       DIVALHR_AI_ENVIRONMENT: development
+      # MVP-101: deterministic planner (no provider, no key); only Core's service token is accepted.
+      DIVALHR_AI_SUMMARY_PROVIDER_MODE: deterministic
+      DIVALHR_AI_SERVICE_AUTH_ISSUER: http://localhost:${KEYCLOAK_PORT:-8180}/realms/divalhr-dev
+      DIVALHR_AI_SERVICE_AUTH_JWKS_URL: http://keycloak:8080/realms/divalhr-dev/protocol/openid-connect/certs
       DIVALHR_AI_CORS_ALLOWED_ORIGINS: http://localhost:${WEB_PORT:-5173}
     ports:
       - '${AI_SERVICE_PORT:-8090}:8090'

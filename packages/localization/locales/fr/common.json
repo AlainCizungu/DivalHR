@@ -523,7 +523,9 @@
     "PAYROLL_INPUT_RUN_LOCKED": "Cette version est verrouillée et définitive. Elle ne peut être ni remplacée ni modifiée.",
     "PAYROLL_INPUT_NOT_LOCKED": "Seule une version verrouillée peut être exportée. Verrouillez d’abord la version.",
     "PAYROLL_INPUT_EXPORT_TOO_LARGE": "Cet export dépasse la taille prise en charge. Contactez le support.",
-    "OPERATIONAL_STATUS_SCOPE_NOT_FOUND": "Cette entité juridique ou ce site n’est pas disponible pour les opérations du jour."
+    "OPERATIONAL_STATUS_SCOPE_NOT_FOUND": "Cette entité juridique ou ce site n’est pas disponible pour les opérations du jour.",
+    "OPERATIONAL_SUMMARY_UNAVAILABLE": "La synthèse n’est pas disponible pour le moment. Les chiffres ci-dessous ne sont pas touchés ; réessayez plus tard.",
+    "OPERATIONAL_SUMMARY_SOURCE_INVALID": "La synthèse n’a pas pu être produite à partir des chiffres actuels. Les chiffres ci-dessous ne sont pas touchés."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -4168,5 +4170,25 @@
       "csvDownloaded": "Le CSV de temps travaillé a été téléchargé.",
       "manifestDownloaded": "Le manifeste d’intégrité a été téléchargé."
     }
+  },
+  "operationalSummary": {
+    "title": "Synthèse du jour",
+    "description": "Un court résumé rédigé des chiffres ci-dessous, généré à la demande. Il ne reprend que les décomptes enregistrés affichés sur cet écran et ne conserve rien.",
+    "generate": "Générer la synthèse",
+    "regenerate": "Générer à nouveau",
+    "loading": "Préparation de la synthèse…",
+    "ready": "La synthèse est prête.",
+    "asOf": "Décomptes au {{time}} (votre fuseau horaire : {{zone}}).",
+    "mode": {
+      "MODEL": "Sélection assistée par l’IA ; rédaction issue de modèles relus.",
+      "FALLBACK": "Sélection selon les règles de priorité standard ; rédaction issue de modèles relus."
+    },
+    "source": {
+      "ATTENDANCE": "Consulter les présences",
+      "SCHEDULES": "Consulter les horaires",
+      "LEAVE_APPROVALS": "Consulter les approbations de congés",
+      "TIMESHEETS": "Consulter les feuilles de temps"
+    },
+    "sourceCounts": "Fondée sur {{scheduled}} quarts planifiés, {{notCheckedIn}} sans pointage, {{pendingLeave}} demandes de congé et {{pendingTimesheets}} feuilles de temps en attente."
   }
 }

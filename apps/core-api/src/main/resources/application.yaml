@@ -142,6 +142,8 @@ divalhr:
       # MVP-090A: payroll inputs (previews and generations share the write bucket).
       payroll-input-read: ${DIVALHR_PAYROLL_INPUT_READ_REQUESTS_PER_MINUTE:60}
       payroll-input-write: ${DIVALHR_PAYROLL_INPUT_WRITE_REQUESTS_PER_MINUTE:20}
+      # MVP-101: the grounded daily briefing (a deliberate, user-initiated AI call).
+      operational-summary: ${DIVALHR_OPERATIONAL_SUMMARY_REQUESTS_PER_MINUTE:6}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -179,6 +181,10 @@ divalhr:
         window: 10m
       payroll-input-write:
         requests: ${DIVALHR_PAYROLL_INPUT_TENANT_WRITES:100}
+        window: 10m
+      # MVP-101: bounds the cost of the grounded daily briefing across a tenant.
+      operational-summary:
+        requests: ${DIVALHR_OPERATIONAL_SUMMARY_TENANT_REQUESTS:120}
         window: 10m
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).
@@ -242,6 +248,16 @@ divalhr:
     client-id: ${DIVALHR_KEYCLOAK_PROVISIONER_CLIENT_ID:divalhr-core-provisioner}
     # Required (fail closed); dev-only- values are rejected outside development.
     client-secret: ${DIVALHR_KEYCLOAK_PROVISIONER_SECRET:}
+  # MVP-101 (ADR 0027): the internal AI service and the Keycloak client that authenticates Core to
+  # it. Nothing has a secret default; when unset the briefing endpoints answer 503
+  # OPERATIONAL_SUMMARY_UNAVAILABLE and no request leaves Core. When any value is set, all are
+  # required; HTTPS is required outside development and test, and a dev-only- secret is refused
+  # outside development.
+  ai-service:
+    base-url: ${DIVALHR_AI_SERVICE_URL:}
+    token-url: ${DIVALHR_AI_SERVICE_TOKEN_URL:}
+    client-id: ${DIVALHR_AI_SERVICE_CLIENT_ID:divalhr-core-ai}
+    client-secret: ${DIVALHR_AI_SERVICE_CLIENT_SECRET:}
   mail:
     host: ${DIVALHR_MAIL_HOST:}
     port: ${DIVALHR_MAIL_PORT:587}

@@ -1,0 +1,1034 @@
+{
+  "evaluationVersion": "operational-summary-eval-v1",
+  "note": "Synthetic aggregate snapshots only. 'input' is the English request; the same snapshot is evaluated with language 'fr'.",
+  "cases": [
+    {
+      "id": "normal-no-shifts",
+      "description": "All-zero day: nothing scheduled",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 0,
+          "expected": 0,
+          "notCheckedIn": 0,
+          "present": 0,
+          "completed": 0,
+          "late": 0
+        },
+        "coverage": {
+          "uncovered": 0
+        },
+        "approvals": {
+          "leave": {
+            "pending": 0,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 0,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "OPERATIONS_WITHIN_RANGE",
+        "factIds": ["f1"],
+        "selectedTypes": ["SCHEDULED_SHIFTS"],
+        "mandatoryFactIds": []
+      }
+    },
+    {
+      "id": "normal-busy-day",
+      "description": "Everything in progress or completed, no attention fact",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 12,
+          "expected": 0,
+          "notCheckedIn": 0,
+          "present": 7,
+          "completed": 5,
+          "late": 0
+        },
+        "coverage": {
+          "uncovered": 0
+        },
+        "approvals": {
+          "leave": {
+            "pending": 0,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "PRESENT_SHIFTS",
+            "value": 7,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f2",
+            "type": "COMPLETED_SHIFTS",
+            "value": 5,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f3",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 12,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "OPERATIONS_WITHIN_RANGE",
+        "factIds": ["f1", "f2", "f3"],
+        "selectedTypes": ["PRESENT_SHIFTS", "COMPLETED_SHIFTS", "SCHEDULED_SHIFTS"],
+        "mandatoryFactIds": []
+      }
+    },
+    {
+      "id": "one-not-checked-in",
+      "description": "One shift with no check-in",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 4,
+          "expected": 0,
+          "notCheckedIn": 1,
+          "present": 2,
+          "completed": 1,
+          "late": 0
+        },
+        "coverage": {
+          "uncovered": 0
+        },
+        "approvals": {
+          "leave": {
+            "pending": 0,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "NOT_CHECKED_IN",
+            "value": 1,
+            "thresholdValue": 30,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f2",
+            "type": "PRESENT_SHIFTS",
+            "value": 2,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f3",
+            "type": "COMPLETED_SHIFTS",
+            "value": 1,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f4",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 4,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "ATTENDANCE_NEEDS_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4"],
+        "selectedTypes": [
+          "NOT_CHECKED_IN",
+          "PRESENT_SHIFTS",
+          "COMPLETED_SHIFTS",
+          "SCHEDULED_SHIFTS"
+        ],
+        "mandatoryFactIds": ["f1"]
+      }
+    },
+    {
+      "id": "uncovered-coverage",
+      "description": "Three uncovered shifts",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 5,
+          "expected": 0,
+          "notCheckedIn": 0,
+          "present": 5,
+          "completed": 0,
+          "late": 0
+        },
+        "coverage": {
+          "uncovered": 3
+        },
+        "approvals": {
+          "leave": {
+            "pending": 0,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "UNCOVERED_SHIFTS",
+            "value": 3,
+            "thresholdValue": null,
+            "severity": "MEDIUM",
+            "routeId": "SCHEDULES"
+          },
+          {
+            "factId": "f2",
+            "type": "PRESENT_SHIFTS",
+            "value": 5,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f3",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 5,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "COVERAGE_NEEDS_ATTENTION",
+        "factIds": ["f1", "f2", "f3"],
+        "selectedTypes": ["UNCOVERED_SHIFTS", "PRESENT_SHIFTS", "SCHEDULED_SHIFTS"],
+        "mandatoryFactIds": ["f1"]
+      }
+    },
+    {
+      "id": "overdue-leave",
+      "description": "Two overdue and two pending leave requests",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 3,
+          "expected": 0,
+          "notCheckedIn": 0,
+          "present": 3,
+          "completed": 0,
+          "late": 0
+        },
+        "coverage": {
+          "uncovered": 0
+        },
+        "approvals": {
+          "leave": {
+            "pending": 4,
+            "overdue": 2
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "OVERDUE_LEAVE",
+            "value": 2,
+            "thresholdValue": 48,
+            "severity": "LOW",
+            "routeId": "LEAVE_APPROVALS"
+          },
+          {
+            "factId": "f2",
+            "type": "PENDING_LEAVE",
+            "value": 2,
+            "thresholdValue": 48,
+            "severity": "LOW",
+            "routeId": "LEAVE_APPROVALS"
+          },
+          {
+            "factId": "f3",
+            "type": "PRESENT_SHIFTS",
+            "value": 3,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f4",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 3,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "APPROVALS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4"],
+        "selectedTypes": ["OVERDUE_LEAVE", "PENDING_LEAVE", "PRESENT_SHIFTS", "SCHEDULED_SHIFTS"],
+        "mandatoryFactIds": ["f1"]
+      }
+    },
+    {
+      "id": "overdue-timesheet",
+      "description": "One overdue timesheet and nothing else",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 0,
+          "expected": 0,
+          "notCheckedIn": 0,
+          "present": 0,
+          "completed": 0,
+          "late": 0
+        },
+        "coverage": {
+          "uncovered": 0
+        },
+        "approvals": {
+          "leave": {
+            "pending": 0,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 1,
+            "overdue": 1
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "OVERDUE_TIMESHEETS",
+            "value": 1,
+            "thresholdValue": 72,
+            "severity": "LOW",
+            "routeId": "TIMESHEETS"
+          },
+          {
+            "factId": "f2",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 0,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "APPROVALS_NEED_ATTENTION",
+        "factIds": ["f1", "f2"],
+        "selectedTypes": ["OVERDUE_TIMESHEETS", "SCHEDULED_SHIFTS"],
+        "mandatoryFactIds": ["f1"]
+      }
+    },
+    {
+      "id": "late-only",
+      "description": "Two late check-ins and nothing else",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 6,
+          "expected": 0,
+          "notCheckedIn": 0,
+          "present": 4,
+          "completed": 2,
+          "late": 2
+        },
+        "coverage": {
+          "uncovered": 0
+        },
+        "approvals": {
+          "leave": {
+            "pending": 0,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "LATE_CHECK_INS",
+            "value": 2,
+            "thresholdValue": 5,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f2",
+            "type": "PRESENT_SHIFTS",
+            "value": 4,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f3",
+            "type": "COMPLETED_SHIFTS",
+            "value": 2,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f4",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 6,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "ATTENDANCE_NEEDS_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4"],
+        "selectedTypes": [
+          "LATE_CHECK_INS",
+          "PRESENT_SHIFTS",
+          "COMPLETED_SHIFTS",
+          "SCHEDULED_SHIFTS"
+        ],
+        "mandatoryFactIds": []
+      }
+    },
+    {
+      "id": "many-critical-over-cap",
+      "description": "Every attention area at once: eleven facts, five selected",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 40,
+          "expected": 3,
+          "notCheckedIn": 4,
+          "present": 20,
+          "completed": 13,
+          "late": 5
+        },
+        "coverage": {
+          "uncovered": 11
+        },
+        "approvals": {
+          "leave": {
+            "pending": 9,
+            "overdue": 3
+          },
+          "timesheets": {
+            "pending": 5,
+            "overdue": 5
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "NOT_CHECKED_IN",
+            "value": 4,
+            "thresholdValue": 30,
+            "severity": "MEDIUM",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f2",
+            "type": "UNCOVERED_SHIFTS",
+            "value": 11,
+            "thresholdValue": null,
+            "severity": "HIGH",
+            "routeId": "SCHEDULES"
+          },
+          {
+            "factId": "f3",
+            "type": "OVERDUE_LEAVE",
+            "value": 3,
+            "thresholdValue": 48,
+            "severity": "MEDIUM",
+            "routeId": "LEAVE_APPROVALS"
+          },
+          {
+            "factId": "f4",
+            "type": "OVERDUE_TIMESHEETS",
+            "value": 5,
+            "thresholdValue": 72,
+            "severity": "MEDIUM",
+            "routeId": "TIMESHEETS"
+          },
+          {
+            "factId": "f5",
+            "type": "LATE_CHECK_INS",
+            "value": 5,
+            "thresholdValue": 5,
+            "severity": "MEDIUM",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f6",
+            "type": "PENDING_LEAVE",
+            "value": 6,
+            "thresholdValue": 48,
+            "severity": "MEDIUM",
+            "routeId": "LEAVE_APPROVALS"
+          },
+          {
+            "factId": "f7",
+            "type": "EXPECTED_SHIFTS",
+            "value": 3,
+            "thresholdValue": 30,
+            "severity": "MEDIUM",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f8",
+            "type": "PRESENT_SHIFTS",
+            "value": 20,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f9",
+            "type": "COMPLETED_SHIFTS",
+            "value": 13,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f10",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 40,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"],
+        "selectedTypes": [
+          "NOT_CHECKED_IN",
+          "UNCOVERED_SHIFTS",
+          "OVERDUE_LEAVE",
+          "OVERDUE_TIMESHEETS",
+          "LATE_CHECK_INS"
+        ],
+        "mandatoryFactIds": ["f1", "f2", "f3", "f4"]
+      }
+    },
+    {
+      "id": "manager-scope",
+      "description": "Manager scope: no coverage notion",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "TEAM",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 2,
+          "expected": 0,
+          "notCheckedIn": 1,
+          "present": 1,
+          "completed": 0,
+          "late": 1
+        },
+        "coverage": null,
+        "approvals": {
+          "leave": {
+            "pending": 1,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "NOT_CHECKED_IN",
+            "value": 1,
+            "thresholdValue": 30,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f2",
+            "type": "LATE_CHECK_INS",
+            "value": 1,
+            "thresholdValue": 5,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f3",
+            "type": "PENDING_LEAVE",
+            "value": 1,
+            "thresholdValue": 48,
+            "severity": "LOW",
+            "routeId": "LEAVE_APPROVALS"
+          },
+          {
+            "factId": "f4",
+            "type": "PRESENT_SHIFTS",
+            "value": 1,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f5",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 2,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "ATTENDANCE_NEEDS_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"],
+        "selectedTypes": [
+          "NOT_CHECKED_IN",
+          "LATE_CHECK_INS",
+          "PENDING_LEAVE",
+          "PRESENT_SHIFTS",
+          "SCHEDULED_SHIFTS"
+        ],
+        "mandatoryFactIds": ["f1"]
+      }
+    },
+    {
+      "id": "administrator-filters",
+      "description": "Administrator with site and legal-entity filters",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": true,
+          "legalEntityFilter": true
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 2,
+          "expected": 0,
+          "notCheckedIn": 1,
+          "present": 1,
+          "completed": 0,
+          "late": 1
+        },
+        "coverage": {
+          "uncovered": 1
+        },
+        "approvals": {
+          "leave": {
+            "pending": 0,
+            "overdue": 0
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "NOT_CHECKED_IN",
+            "value": 1,
+            "thresholdValue": 30,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f2",
+            "type": "UNCOVERED_SHIFTS",
+            "value": 1,
+            "thresholdValue": null,
+            "severity": "LOW",
+            "routeId": "SCHEDULES"
+          },
+          {
+            "factId": "f3",
+            "type": "LATE_CHECK_INS",
+            "value": 1,
+            "thresholdValue": 5,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f4",
+            "type": "PRESENT_SHIFTS",
+            "value": 1,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f5",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 2,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3", "f4", "f5"],
+        "selectedTypes": [
+          "NOT_CHECKED_IN",
+          "UNCOVERED_SHIFTS",
+          "LATE_CHECK_INS",
+          "PRESENT_SHIFTS",
+          "SCHEDULED_SHIFTS"
+        ],
+        "mandatoryFactIds": ["f1", "f2"]
+      }
+    },
+    {
+      "id": "severity-boundaries",
+      "description": "Counts 2, 3, 9 and 10 sit on the band edges; severity orders within a priority",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 22,
+          "expected": 0,
+          "notCheckedIn": 2,
+          "present": 20,
+          "completed": 0,
+          "late": 9
+        },
+        "coverage": {
+          "uncovered": 3
+        },
+        "approvals": {
+          "leave": {
+            "pending": 9,
+            "overdue": 9
+          },
+          "timesheets": {
+            "pending": 10,
+            "overdue": 10
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "NOT_CHECKED_IN",
+            "value": 2,
+            "thresholdValue": 30,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f2",
+            "type": "UNCOVERED_SHIFTS",
+            "value": 3,
+            "thresholdValue": null,
+            "severity": "MEDIUM",
+            "routeId": "SCHEDULES"
+          },
+          {
+            "factId": "f3",
+            "type": "OVERDUE_LEAVE",
+            "value": 9,
+            "thresholdValue": 48,
+            "severity": "MEDIUM",
+            "routeId": "LEAVE_APPROVALS"
+          },
+          {
+            "factId": "f4",
+            "type": "OVERDUE_TIMESHEETS",
+            "value": 10,
+            "thresholdValue": 72,
+            "severity": "HIGH",
+            "routeId": "TIMESHEETS"
+          },
+          {
+            "factId": "f5",
+            "type": "LATE_CHECK_INS",
+            "value": 9,
+            "thresholdValue": 5,
+            "severity": "MEDIUM",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f6",
+            "type": "PRESENT_SHIFTS",
+            "value": 20,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f7",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 22,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "SEVERAL_AREAS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f4", "f3", "f5"],
+        "selectedTypes": [
+          "NOT_CHECKED_IN",
+          "UNCOVERED_SHIFTS",
+          "OVERDUE_TIMESHEETS",
+          "OVERDUE_LEAVE",
+          "LATE_CHECK_INS"
+        ],
+        "mandatoryFactIds": ["f1", "f2", "f3", "f4"]
+      }
+    },
+    {
+      "id": "pending-equals-overdue-and-expected-only",
+      "description": "Pending equal to overdue leaves no pending-within fact; expected shifts are not an attention area",
+      "input": {
+        "schemaVersion": 1,
+        "language": "en",
+        "asOfInstant": "2026-10-21T21:21:02.123456Z",
+        "scope": {
+          "kind": "ORGANIZATION",
+          "siteFilter": false,
+          "legalEntityFilter": false
+        },
+        "thresholds": {
+          "lateMinutes": 5,
+          "notCheckedInGraceMinutes": 30,
+          "leaveOverdueHours": 48,
+          "timesheetOverdueHours": 72
+        },
+        "shifts": {
+          "scheduled": 2,
+          "expected": 2,
+          "notCheckedIn": 0,
+          "present": 0,
+          "completed": 0,
+          "late": 0
+        },
+        "coverage": {
+          "uncovered": 0
+        },
+        "approvals": {
+          "leave": {
+            "pending": 3,
+            "overdue": 3
+          },
+          "timesheets": {
+            "pending": 0,
+            "overdue": 0
+          }
+        },
+        "facts": [
+          {
+            "factId": "f1",
+            "type": "OVERDUE_LEAVE",
+            "value": 3,
+            "thresholdValue": 48,
+            "severity": "MEDIUM",
+            "routeId": "LEAVE_APPROVALS"
+          },
+          {
+            "factId": "f2",
+            "type": "EXPECTED_SHIFTS",
+            "value": 2,
+            "thresholdValue": 30,
+            "severity": "LOW",
+            "routeId": "ATTENDANCE"
+          },
+          {
+            "factId": "f3",
+            "type": "SCHEDULED_SHIFTS",
+            "value": 2,
+            "thresholdValue": null,
+            "severity": "NONE",
+            "routeId": "SCHEDULES"
+          }
+        ]
+      },
+      "expected": {
+        "headlineCode": "APPROVALS_NEED_ATTENTION",
+        "factIds": ["f1", "f2", "f3"],
+        "selectedTypes": ["OVERDUE_LEAVE", "EXPECTED_SHIFTS", "SCHEDULED_SHIFTS"],
+        "mandatoryFactIds": ["f1"]
+      }
+    }
+  ]
+}

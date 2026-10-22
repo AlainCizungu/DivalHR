@@ -395,7 +395,20 @@ class DevelopmentRealmBoundaryTest {
     assertThat(clients).containsExactly("divalhr-provisioning");
     assertThat(texts(serviceAccount.path("clientRoles").path("divalhr-provisioning")))
         .containsExactly("provision-invitations");
-    assertThat(realm.has("clientScopeMappings")).isFalse();
+    // The only scope mapping is the AI client's one capability role (MVP-101): with a restricted
+    // scope a client role reaches the token only when it is mapped, and nothing is mapped for the
+    // provisioner.
+    assertThat(realm.path("clientScopeMappings").size()).isEqualTo(1);
+    assertThat(realm.path("clientScopeMappings").has("divalhr-ai-service")).isTrue();
+    assertThat(realm.path("clientScopeMappings").path("divalhr-ai-service")).hasSize(1);
+    assertThat(
+            realm
+                .path("clientScopeMappings")
+                .path("divalhr-ai-service")
+                .get(0)
+                .path("client")
+                .asText())
+        .isEqualTo("divalhr-core-ai");
     assertThat(realm.path("adminPermissionsEnabled").asBoolean(false)).isFalse();
     for (JsonNode client : realm.path("clients")) {
       assertThat(client.path("clientId").asText()).isNotEqualTo("admin-permissions");
@@ -425,6 +438,52 @@ class DevelopmentRealmBoundaryTest {
         .path("divalhr-provisioning")
         .forEach(role -> roles.add(role.path("name").asText()));
     assertThat(roles).containsExactly("provision-invitations");
+  }
+
+  /** MVP-101 (D101-5): Core's AI client holds only the one capability and the AI audience. */
+  @Test
+  void theCoreAiClientHoldsOnlyTheSummaryCapabilityAndAudience() {
+    JsonNode realm = devRealm().json();
+    JsonNode serviceAccount = null;
+    for (JsonNode user : realm.path("users")) {
+      if ("service-account-divalhr-core-ai".equals(user.path("username").asText())) {
+        serviceAccount = user;
+      }
+    }
+    assertThat(serviceAccount).isNotNull();
+    assertThat(texts(serviceAccount.path("realmRoles"))).isEmpty();
+    assertThat(texts(serviceAccount.path("groups"))).isEmpty();
+    List<String> clients = new ArrayList<>();
+    serviceAccount.path("clientRoles").properties().forEach(e -> clients.add(e.getKey()));
+    assertThat(clients).containsExactly("divalhr-ai-service");
+    assertThat(texts(serviceAccount.path("clientRoles").path("divalhr-ai-service")))
+        .containsExactly("generate-operational-summary");
+
+    JsonNode ai = client(realm, "divalhr-core-ai");
+    assertThat(ai.path("serviceAccountsEnabled").asBoolean()).isTrue();
+    assertThat(ai.path("publicClient").asBoolean(true)).isFalse();
+    assertThat(ai.path("standardFlowEnabled").asBoolean(true)).isFalse();
+    assertThat(ai.path("directAccessGrantsEnabled").asBoolean(true)).isFalse();
+    assertThat(ai.path("fullScopeAllowed").asBoolean(true)).isFalse();
+    assertThat(ai.path("secret").asText()).startsWith("dev-only-");
+    List<String> audiences = new ArrayList<>();
+    for (JsonNode mapper : ai.path("protocolMappers")) {
+      assertThat(mapper.path("protocolMapper").asText()).isEqualTo("oidc-audience-mapper");
+      audiences.add(mapper.path("config").path("included.custom.audience").asText());
+    }
+    assertThat(audiences).containsExactly("divalhr-ai-service");
+
+    JsonNode capability = client(realm, "divalhr-ai-service");
+    assertThat(capability.path("standardFlowEnabled").asBoolean(true)).isFalse();
+    assertThat(capability.path("directAccessGrantsEnabled").asBoolean(true)).isFalse();
+    assertThat(capability.path("serviceAccountsEnabled").asBoolean(true)).isFalse();
+    List<String> roles = new ArrayList<>();
+    realm
+        .path("roles")
+        .path("client")
+        .path("divalhr-ai-service")
+        .forEach(role -> roles.add(role.path("name").asText()));
+    assertThat(roles).containsExactly("generate-operational-summary");
   }
 
   private static List<String> steps(JsonNode realm, String alias) {

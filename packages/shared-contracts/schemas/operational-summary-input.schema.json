@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.divalhr.com/schemas/operational-summary-input.schema.json",
+  "title": "Operational summary input (Core to AI service)",
+  "description": "MVP-101 (ADR 0027, D101-3). The ONLY data that crosses the model boundary: closed enums and bounded integers plus the as-of instant. No string field accepts free text; every unknown property is rejected. Semantic invariants (the MVP-100 partition, fact values equal to the aggregates, severity bands) are enforced by the AI service and by Core before any model call.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "language",
+    "asOfInstant",
+    "scope",
+    "thresholds",
+    "shifts",
+    "coverage",
+    "approvals",
+    "facts"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "language": {
+      "enum": ["en", "fr"]
+    },
+    "asOfInstant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$",
+      "maxLength": 32
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "siteFilter", "legalEntityFilter"],
+      "properties": {
+        "kind": {
+          "enum": ["ORGANIZATION", "TEAM"]
+        },
+        "siteFilter": {
+          "type": "boolean"
+        },
+        "legalEntityFilter": {
+          "type": "boolean"
+        }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lateMinutes",
+        "notCheckedInGraceMinutes",
+        "leaveOverdueHours",
+        "timesheetOverdueHours"
+      ],
+      "properties": {
+        "lateMinutes": {
+          "const": 5
+        },
+        "notCheckedInGraceMinutes": {
+          "const": 30
+        },
+        "leaveOverdueHours": {
+          "const": 48
+        },
+        "timesheetOverdueHours": {
+          "const": 72
+        }
+      }
+    },
+    "shifts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scheduled", "expected", "notCheckedIn", "present", "completed", "late"],
+      "properties": {
+        "scheduled": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "expected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "notCheckedIn": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "present": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "completed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "late": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    },
+    "coverage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["uncovered"],
+          "properties": {
+            "uncovered": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approvals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["leave", "timesheets"],
+      "properties": {
+        "leave": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pending", "overdue"],
+          "properties": {
+            "pending": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "overdue": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            }
+          }
+        },
+        "timesheets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pending", "overdue"],
+          "properties": {
+            "pending": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "overdue": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            }
+          }
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["factId", "type", "value", "thresholdValue", "severity", "routeId"],
+        "properties": {
+          "factId": {
+            "type": "string",
+            "pattern": "^f[1-9][0-9]?$"
+          },
+          "type": {
+            "enum": [
+              "NOT_CHECKED_IN",
+              "UNCOVERED_SHIFTS",
+              "OVERDUE_LEAVE",
+              "OVERDUE_TIMESHEETS",
+              "LATE_CHECK_INS",
+              "PENDING_LEAVE",
+              "PENDING_TIMESHEETS",
+              "EXPECTED_SHIFTS",
+              "PRESENT_SHIFTS",
+              "COMPLETED_SHIFTS",
+              "SCHEDULED_SHIFTS"
+            ]
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "thresholdValue": {
+            "enum": [5, 30, 48, 72, null]
+          },
+          "severity": {
+            "enum": ["NONE", "LOW", "MEDIUM", "HIGH"]
+          },
+          "routeId": {
+            "enum": ["ATTENDANCE", "SCHEDULES", "LEAVE_APPROVALS", "TIMESHEETS"]
+          }
+        }
+      }
+    }
+  }
+}

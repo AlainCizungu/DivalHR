@@ -58,3 +58,14 @@ A task is enabled only for the user population and data scope covered by its eva
 ## Finance rule
 
 AI may help a regulated partner review information, but DivalHR will not present an AI output as the lending decision. The partner remains responsible for underwriting, explainability, fairness, and regulatory compliance.
+
+## First enabled task: grounded daily operational summary (MVP-101, ADR 0027)
+
+Enabled for tenant administrators (exact MFA) and managers, over the aggregate counts of the
+operational status of today, in French and English independently. Model use is optional and limited
+to choosing and ordering offered facts; all wording comes from reviewed templates. The deterministic
+policy is the oracle and the fallback. Evaluation set: `packages/shared-contracts/evaluation/operational-summary/v1`
+(grounding, authorization boundary, privacy, prohibited vocabulary, prompt-injection-looking input,
+bilingual rendering, pluralization, provider failure classes, over-the-cap selection). Data flow:
+`docs/security/MVP-101-AI-DATA-FLOW.md`. Human escalation: the briefing links to the authorized
+source views and states that it is not a leave, pay, disciplinary or legal conclusion.

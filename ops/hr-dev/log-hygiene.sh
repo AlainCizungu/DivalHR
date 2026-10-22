@@ -39,7 +39,8 @@ if [ -d "$S" ]; then
       # KEY=VALUE files (keycloak.conf, kc-admin.env, acceptance accounts): secret-named keys only.
       grep -iE '^[A-Za-z0-9_.-]*(password|secret|key)[A-Za-z0-9_.-]*=' "$f" | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//"
     else
-      head -1 "$f"
+      # A file without a final newline must not run into the next file's first line.
+      { head -1 "$f"; echo; }
     fi
   done | awk 'length($0) >= 8' | sort -u > "$W/needles"
 else

@@ -140,3 +140,13 @@ A module becomes an independent service when at least one condition applies:
 - separate operational ownership
 - reliability blast-radius reduction
 - partner-facing boundary that requires independent controls
+
+### Grounded operational summary (MVP-101, ADR 0027)
+
+Core calls the AI service over HTTP with a Keycloak client-credentials token (`platform.ai`:
+`AiServiceProperties`, `ServiceTokenProvider`, `AiServiceOperationalSummaryClient`, the
+`OperationalSummaryPort`). The use case lives in `people.schedule` beside MVP-100:
+`OperationalSummary` (domain: facts, severity bands, validation of the answer),
+`OperationalSummaryService` and `OperationalSummaryController`. The AI service
+(`apps/ai-service`, `summary/`) owns the policy, templates and a provider-neutral gateway; the
+browser never calls it. No table, migration, event or stored prompt is added.

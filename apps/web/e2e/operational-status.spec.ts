@@ -29,6 +29,10 @@ import {
 // axe, reflow and target size at 320 px, 390 px, 640 px (200 % zoom of a 1280 px window), keyboard
 // focus, browser storage and URLs are checked. Boundaries, scopes, audits, consistency with the
 // approval queues and query plans are proven at API and database level, not here.
+// MVP-101 (Issue #156) adds exactly two journeys on the same data, with the real AI service in its
+// deterministic configuration and Core's real client-credentials token: the administrator
+// generates the English briefing of the filtered site; Mia generates the French briefing of her
+// team. Their wording, privacy and fallback rules are proven by the evaluation set, not here.
 // The site's zone is whichever of the two supported zones is at least an hour into its local day,
 // so the past shifts can be published for today (a publication never starts before today).
 
@@ -472,6 +476,94 @@ test.describe.serial('MVP-100: today’s operational status', () => {
 
     await view.getByRole('link', { name: 'Ouvrir la présence de l’équipe', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Présence de l’équipe');
+    await clean(page);
+  });
+
+  test('the administrator generates the English briefing of one site (MVP-101)', async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    await signIn(page, USERS.adminA, 'en');
+    await primaryNav(page).getByRole('link', { name: 'Today’s operations', exact: true }).click();
+    const view = page.getByTestId('operations-status-admin');
+    await expect(view.getByTestId('status-shifts')).toBeVisible();
+    await view.getByRole('combobox', { name: 'Legal entity' }).selectOption(entityId);
+    const siteSelect = view.getByRole('combobox', { name: 'Site', exact: true });
+    await expect(siteSelect.locator('option')).toHaveCount(2);
+    await siteSelect.selectOption(siteId);
+    await view.getByRole('button', { name: 'Apply filters' }).click();
+    await expect(view.getByTestId('tile-scheduled').getByRole('definition')).toHaveText('2');
+
+    const panel = view.getByTestId('operational-summary-admin');
+    await expect(panel.getByTestId('operational-summary-result')).toHaveCount(0);
+    await panel.getByRole('button', { name: 'Generate briefing' }).click();
+    const result = panel.getByTestId('operational-summary-result');
+    await expect(result).toBeVisible();
+    await expect(result).toHaveAttribute('lang', 'en');
+    await expect(panel.getByTestId('operational-summary-headline')).toHaveText(
+      'Several areas need attention.',
+    );
+    await expect(panel.getByTestId('operational-summary-headline')).toBeFocused();
+    const highlights = panel.getByTestId('operational-summary-highlights').getByRole('listitem');
+    await expect(highlights).toHaveCount(5);
+    await expect(highlights.nth(0)).toContainText(
+      '1 shift has no check-in recorded more than 30 minutes after its start.',
+    );
+    await expect(highlights.nth(1)).toContainText('1 shift has no assigned worker.');
+    await expect(panel.getByTestId('operational-summary-mode')).toContainText(
+      'standard priority rules',
+    );
+    await expect(
+      panel.getByTestId('operational-summary-limitations').getByRole('listitem'),
+    ).toHaveCount(3);
+    // No person, slot label or identifier appears in the briefing.
+    await expect(result).not.toContainText(
+      new RegExp(`${ANA_FAMILY}|${MIA_FAMILY}|${ANA}|${MISSED_EN}|${OPEN_EN}`, 'iu'),
+    );
+    await expectAccessible(page);
+    await reflowAndAccessible(page);
+    await evidence(page, 'mvp101-1-admin-briefing-en');
+
+    // The source link leads to an existing screen; the briefing is not kept.
+    await highlights.nth(0).getByRole('link', { name: 'Review attendance' }).click();
+    await expect(page).toHaveURL(/\/admin\/attendance-review/u);
+    await clean(page);
+  });
+
+  test('Mia génère la synthèse française de son équipe (MVP-101)', async ({ page }) => {
+    test.setTimeout(180_000);
+    await signIn(page, [MIA_EMAIL, PASSWORD], 'fr', undefined);
+    await primaryNav(page)
+      .getByRole('link', { name: 'Opérations de l’équipe', exact: true })
+      .click();
+    const view = page.getByTestId('operations-status-team');
+    await expect(view.getByTestId('status-shifts')).toBeVisible();
+    const panel = view.getByTestId('operational-summary-team');
+    await panel.getByRole('button', { name: 'Générer la synthèse' }).click();
+    const result = panel.getByTestId('operational-summary-result');
+    await expect(result).toBeVisible();
+    await expect(result).toHaveAttribute('lang', 'fr');
+    await expect(panel.getByTestId('operational-summary-headline')).toHaveText(
+      'Les pointages enregistrés nécessitent de l’attention.',
+    );
+    const highlights = panel.getByTestId('operational-summary-highlights').getByRole('listitem');
+    await expect(highlights.nth(0)).toContainText(
+      '1 quart n’a aucun pointage d’arrivée enregistré plus de 30 minutes après son début.',
+    );
+    // Her team has no coverage notion: no uncovered statement.
+    await expect(result).not.toContainText('aucune personne affectée');
+    await expect(result).not.toContainText(new RegExp(`${ANA_FAMILY}|${ANA}|${MISSED_FR}`, 'iu'));
+    await expect(
+      panel.getByTestId('operational-summary-limitations').getByRole('listitem'),
+    ).toHaveCount(3);
+    await expectAccessible(page);
+    await reflowAndAccessible(page);
+    await evidence(page, 'mvp101-2-team-briefing-fr');
+
+    // Switching the language discards the briefing: it never shows in the other language.
+    await page.getByRole('button', { name: 'English', exact: true }).click();
+    await expect(panel.getByTestId('operational-summary-result')).toHaveCount(0);
+    await expect(panel.getByRole('button', { name: 'Generate briefing' })).toBeVisible();
     await clean(page);
   });
 });

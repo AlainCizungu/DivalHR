@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.divalhr.com/schemas/operational-summary-output.schema.json",
+  "title": "Operational summary output (AI service to Core)",
+  "description": "MVP-101 (D101-6, D101-10). Rendered from versioned repository templates over the selected governed facts. Core validates it against the input before returning anything.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "language",
+    "generationMode",
+    "templateVersion",
+    "headline",
+    "highlights",
+    "limitations"
+  ],
+  "properties": {
+    "language": {
+      "enum": ["en", "fr"]
+    },
+    "generationMode": {
+      "enum": ["MODEL", "FALLBACK"]
+    },
+    "templateVersion": {
+      "type": "string",
+      "pattern": "^[a-z0-9.-]{1,32}$"
+    },
+    "headline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "text"],
+      "properties": {
+        "code": {
+          "enum": [
+            "OPERATIONS_WITHIN_RANGE",
+            "ATTENDANCE_NEEDS_ATTENTION",
+            "COVERAGE_NEEDS_ATTENTION",
+            "APPROVALS_NEED_ATTENTION",
+            "SEVERAL_AREAS_NEED_ATTENTION"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        }
+      }
+    },
+    "highlights": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["factId", "factType", "severity", "routeId", "text"],
+        "properties": {
+          "factId": {
+            "type": "string",
+            "pattern": "^f[1-9][0-9]?$"
+          },
+          "factType": {
+            "enum": [
+              "NOT_CHECKED_IN",
+              "UNCOVERED_SHIFTS",
+              "OVERDUE_LEAVE",
+              "OVERDUE_TIMESHEETS",
+              "LATE_CHECK_INS",
+              "PENDING_LEAVE",
+              "PENDING_TIMESHEETS",
+              "EXPECTED_SHIFTS",
+              "PRESENT_SHIFTS",
+              "COMPLETED_SHIFTS",
+              "SCHEDULED_SHIFTS"
+            ]
+          },
+          "severity": {
+            "enum": ["NONE", "LOW", "MEDIUM", "HIGH"]
+          },
+          "routeId": {
+            "enum": ["ATTENDANCE", "SCHEDULES", "LEAVE_APPROVALS", "TIMESHEETS"]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "text"],
+        "properties": {
+          "code": {
+            "enum": ["RECORDED_FACTS_ONLY", "NO_CONCLUSION", "REVIEW_SOURCES"]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          }
+        }
+      }
+    }
+  }
+}

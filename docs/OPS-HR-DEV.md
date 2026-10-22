@@ -179,3 +179,31 @@ Every finished run, failed or not, gets a record:
 * Keycloak and the identity origin share `hr-dev.dival.ai`; a dedicated identity origin remains a production requirement (D1).
 * The operator account has no second factor of its own; it is reachable only through SSH from the owner's address.
 * Certificates come from Let's Encrypt for `hr-dev.dival.ai` only.
+
+## MVP-101 daily briefing in the test environment (R157-1)
+
+The deterministic briefing is enabled on hr-dev. No external model provider, provider URL or API
+key exists in the environment: the AI service runs its deterministic planner only
+(`DIVALHR_AI_SUMMARY_PROVIDER_MODE=deterministic`).
+
+| Piece | Where |
+| --- | --- |
+| Keycloak client `divalhr-core-ai` (client credentials only, no browser flow, restricted scope, 120 s tokens, audience `divalhr-ai-service`, one capability role `generate-operational-summary`) | created and reconciled on every deployment by `keycloak-ai-client.sh` / `keycloak_ai_client.py` through the operator site (the realm is imported on the first start only, so an existing environment gains it here) |
+| Client secret | generated once by `init-secrets.sh`: `secrets/ops/ai-service-client-secret` (root, 0400) and `secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET` (Core's uid, 0400, read through the configtree). Never an environment value, never printed, never in the repository or an image; the AI service and the browser never hold it |
+| Core -> Keycloak | `http://idp-internal:8081/.../token`, Caddy's internal allow-listed route (already permitted); the issuer is the public one |
+| Core -> AI service | `http://ai-service:8090` on the private app network only |
+| AI service authentication | issuer `${HR_DEV_ORIGIN}/identity/realms/divalhr-test`, keys from the internal route; signature, issuer, audience, authorized party and capability role are checked before the body is read |
+| Public exposure | unchanged: Caddy forwards only `/ai/api/v1/system/*`; `/ai/api/v1/internal/operational-summary` is a 404 (added to `http-checks.sh`) |
+
+`remote-deploy.sh` provisions the client right after `keycloak-admin-setup.sh` and, after the
+existing checks, runs `ai-capability-check.sh`: inside the AI service container it obtains a real
+`divalhr-core-ai` token and verifies its issuer, audience, authorized party, single role and
+lifetime, that the internal operation refuses a request without a token, and that it answers a
+synthetic all-zero snapshot with the deterministic briefing (`FALLBACK`). A failure rolls the
+release back like any other failed check. An existing environment gets its new secret from
+`init-secrets.sh` automatically at the next deployment (existing files are never overwritten).
+
+Rotation: delete `secrets/ops/ai-service-client-secret` and `secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET`,
+run `init-secrets.sh`, then redeploy; `keycloak-ai-client.sh` writes the new value into Keycloak and
+Core restarts with it. Disabling the capability: remove the Core secret file (Core then answers
+`503 OPERATIONAL_SUMMARY_UNAVAILABLE` and sends nothing) and disable the client in Keycloak.

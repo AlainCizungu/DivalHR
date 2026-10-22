@@ -250,6 +250,13 @@ services:
       DIVALHR_MAIL_PORT: '1025'
       DIVALHR_MAIL_FROM: no-reply@hr-dev.example.test
       DIVALHR_MAIL_STARTTLS: 'false'
+      # MVP-101 / R157-1: the deterministic daily briefing. The AI service is reached on the private
+      # app network; Core authenticates with the Keycloak client divalhr-core-ai through Caddy's
+      # internal route, like the provisioner. The client secret is the file
+      # secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET (configtree), never an environment value.
+      DIVALHR_AI_SERVICE_URL: http://ai-service:8090
+      DIVALHR_AI_SERVICE_TOKEN_URL: http://idp-internal:8081/identity/realms/divalhr-test/protocol/openid-connect/token
+      DIVALHR_AI_SERVICE_CLIENT_ID: divalhr-core-ai
     volumes:
       - ${HR_DEV_DATA:?}/secrets/core:/run/secrets/core:ro
     networks: [app, core-data]
@@ -271,6 +278,12 @@ services:
     environment:
       DIVALHR_AI_ENVIRONMENT: test
       DIVALHR_AI_CORS_ALLOWED_ORIGINS: ${HR_DEV_ORIGIN:?}
+      # MVP-101 / R157-1: only Core's service token is accepted (issuer, keys, audience, client and
+      # capability role are checked before the body is read). No external model: the deterministic
+      # planner is the default, and no provider URL, model or API key is configured.
+      DIVALHR_AI_SUMMARY_PROVIDER_MODE: deterministic
+      DIVALHR_AI_SERVICE_AUTH_ISSUER: ${HR_DEV_ORIGIN:?}/identity/realms/divalhr-test
+      DIVALHR_AI_SERVICE_AUTH_JWKS_URL: http://idp-internal:8081/identity/realms/divalhr-test/protocol/openid-connect/certs
     networks: [app]
     deploy:
       resources:

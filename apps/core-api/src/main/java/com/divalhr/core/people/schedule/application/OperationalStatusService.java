@@ -188,6 +188,85 @@ public class OperationalStatusService {
                 }));
   }
 
+  /**
+   * The aggregate counts of a scope at one instant, for the derived daily briefing (MVP-101): the
+   * same figures as the status, read at the same rules, but no detail list, no person and no
+   * disclosure audit of its own (the briefing records its own).
+   *
+   * @param status counts only; every detail list is empty
+   * @param siteFilter whether a site filter applies
+   * @param legalEntityFilter whether a legal-entity filter applies
+   */
+  public record Basis(Status status, boolean siteFilter, boolean legalEntityFilter) {}
+
+  /**
+   * The counts of the caller's team.
+   *
+   * @param caller verified employee
+   * @param operation the interceptor operation, for the bounded denial counter
+   * @return the basis
+   */
+  public Basis teamBasis(PeopleCaller caller, String operation) {
+    return counted(
+        operation,
+        () ->
+            read(
+                () -> {
+                  SelfLink link = link(caller);
+                  Instant asOf = calendar.now().truncatedTo(ChronoUnit.MICROS);
+                  return new Basis(
+                      aggregate(caller.tenant(), new Team(link.employeeId()), asOf), false, false);
+                }));
+  }
+
+  /**
+   * The counts of the organization, optionally of one site and/or one legal entity.
+   *
+   * @param caller verified tenant administrator (exact MFA)
+   * @param siteId site filter or {@code null}
+   * @param legalEntityId legal-entity filter or {@code null}
+   * @return the basis
+   */
+  public Basis organizationBasis(PeopleCaller caller, String siteId, String legalEntityId) {
+    return read(
+        () -> {
+          UUID site = unit(caller.tenant(), siteId, UnitKind.SITE);
+          UUID entity = unit(caller.tenant(), legalEntityId, UnitKind.LEGAL_ENTITY);
+          Set<UUID> entitySites =
+              entity == null
+                  ? Set.of()
+                  : Set.copyOf(
+                      directory.sitesOf(caller.tenant(), entity).stream()
+                          .map(UnitView::id)
+                          .toList());
+          Instant asOf = calendar.now().truncatedTo(ChronoUnit.MICROS);
+          return new Basis(
+              aggregate(caller.tenant(), new Organization(site, entity, entitySites), asOf),
+              site != null,
+              entity != null);
+        });
+  }
+
+  /** The counts of the scope at the one instant; the detail lists stay empty. */
+  private Status aggregate(TenantId tenant, Scope scope, Instant asOf) {
+    Shifts shifts = status.shifts(tenant, scope, asOf);
+    Waiting leave = status.leave(tenant, scope, asOf);
+    Waiting timesheets = status.timesheets(tenant, scope, asOf);
+    Integer uncovered =
+        scope instanceof Organization org ? status.uncovered(tenant, org, asOf) : null;
+    boolean team = uncovered == null;
+    return new Status(
+        asOf,
+        shifts,
+        uncovered,
+        leave,
+        timesheets,
+        Detail.of(List.of()),
+        team ? null : Detail.of(List.<Shift>of()),
+        team ? Detail.of(List.<OverdueLeave>of()) : null,
+        team ? Detail.of(List.<OverdueTimesheet>of()) : null);
+  }
+
   /** Every figure and detail list of the scope at the one instant. */
   private Status compute(TenantId tenant, Scope scope, Instant asOf) {
     Shifts shifts = status.shifts(tenant, scope, asOf);

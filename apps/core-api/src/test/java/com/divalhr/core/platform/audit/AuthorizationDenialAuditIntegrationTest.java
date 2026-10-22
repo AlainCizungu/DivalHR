@@ -188,6 +188,8 @@ class AuthorizationDenialAuditIntegrationTest {
           "attendance.exception-admin-list",
           // MVP-100: the organization's operational status.
           "operations.status-admin-view",
+          // MVP-101: the organization's grounded daily briefing.
+          "operations.status-summary-admin",
           // MVP-062: attendance corrections.
           "attendance.correction-preview",
           "attendance.correction-create",
@@ -270,6 +272,8 @@ class AuthorizationDenialAuditIntegrationTest {
           "attendance.exception-team-list",
           // MVP-100: the manager's operational status.
           "operations.status-team-view",
+          // MVP-101: the manager's grounded daily briefing.
+          "operations.status-summary-team",
           // MVP-061A: the employee's own offline attendance synchronization.
           "attendance.offline-event-sync",
           // MVP-070A: the employee's own draft timesheets.
@@ -703,7 +707,8 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-071 five more (two previews, a lock, an unlock, the history).
     // MVP-090A four more (a preview, a generation, the history, a read).
     // MVP-100 one more (the organization's operational status; the manager's is self-service).
-    assertThat(handlers).hasSize(124);
+    // MVP-101 one more (the organization's briefing; the manager's is self-service).
+    assertThat(handlers).hasSize(125);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

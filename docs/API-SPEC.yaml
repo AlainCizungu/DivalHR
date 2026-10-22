@@ -5566,6 +5566,126 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /operations/status-summary:
+    post:
+      operationId: generateOperationalSummary
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Generate the organization's grounded operational briefing
+      description: >-
+        MVP-101 (ADR 0027, decisions D101-1 to D101-16). Generates, on demand, a short grounded
+        briefing of the same aggregate figures that the operational status shows, in the requested
+        language (en or fr; any other value is 400 OPERATIONAL_SUMMARY_LANGUAGE_INVALID, and the
+        body holds no other property). Nothing is stored: no briefing, prompt or response is
+        persisted. Only aggregate counts, the fixed thresholds, closed fact types with opaque
+        per-request fact identifiers and the as-of instant cross to the internal AI service (never
+        a name, identifier, free text or date other than the as-of instant); the browser never calls
+        that service. The service only chooses a headline code and fact identifiers; the visible text
+        comes from reviewed bilingual templates, and Core re-validates everything returned. When
+        the model provider fails, is slow (4 second deadline, one attempt) or answers outside its
+        contract, the service itself answers from its deterministic policy and the briefing says
+        generationMode FALLBACK. When the service cannot be reached or authenticated, or its answer
+        fails Core's validation, the answer is 503 OPERATIONAL_SUMMARY_UNAVAILABLE without detail;
+        facts Core itself cannot reconcile are 500 OPERATIONAL_SUMMARY_SOURCE_INVALID. Facts only: no
+        conclusion about a person. Restricted HR/Operations: a fail-closed disclosure (audit
+        ai.operational-summary-admin). Has its own subject and tenant limits (429). Cache-Control private, no-store.
+        Optionally scoped to one site and/or one legal entity as the operational status is; a malformed,
+        unknown, foreign or wrong-kind siteId or legalEntityId is 404 OPERATIONAL_STATUS_SCOPE_NOT_FOUND
+        without params.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/OperationalStatusSite"
+        - $ref: "#/components/parameters/OperationalStatusLegalEntity"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateOperationalSummaryRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationalSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/team-operations/status-summary:
+    post:
+      operationId: generateTeamOperationalSummary
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Generate my team's grounded operational briefing
+      description: >-
+        MVP-101 (ADR 0027, decisions D101-1 to D101-16). Generates, on demand, a short grounded
+        briefing of the same aggregate figures that the operational status shows, in the requested
+        language (en or fr; any other value is 400 OPERATIONAL_SUMMARY_LANGUAGE_INVALID, and the
+        body holds no other property). Nothing is stored: no briefing, prompt or response is
+        persisted. Only aggregate counts, the fixed thresholds, closed fact types with opaque
+        per-request fact identifiers and the as-of instant cross to the internal AI service (never
+        a name, identifier, free text or date other than the as-of instant); the browser never calls
+        that service. The service only chooses a headline code and fact identifiers; the visible text
+        comes from reviewed bilingual templates, and Core re-validates everything returned. When
+        the model provider fails, is slow (4 second deadline, one attempt) or answers outside its
+        contract, the service itself answers from its deterministic policy and the briefing says
+        generationMode FALLBACK. When the service cannot be reached or authenticated, or its answer
+        fails Core's validation, the answer is 503 OPERATIONAL_SUMMARY_UNAVAILABLE without detail;
+        facts Core itself cannot reconcile are 500 OPERATIONAL_SUMMARY_SOURCE_INVALID. Facts only: no
+        conclusion about a person. Restricted HR/Operations: a fail-closed disclosure (audit
+        ai.operational-summary-team). Has its own subject and tenant limits (429). Cache-Control private, no-store.
+        Covers the caller's reports as the team operational status does (403 EMPLOYEE_LINK_REQUIRED
+        without an active employee link); coverage is null.
+      tags: [people]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateOperationalSummaryRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationalSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /attendance/records/{attendanceRecordId}/correction-preview:
     post:
       operationId: previewAttendanceRecordCorrection
@@ -11530,6 +11650,9 @@ components:
         - PAYROLL_INPUT_EXPORT_TOO_LARGE
         - PAYROLL_VARIANCE_TARGET_NOT_FOUND
         - OPERATIONAL_STATUS_SCOPE_NOT_FOUND
+        - OPERATIONAL_SUMMARY_LANGUAGE_INVALID
+        - OPERATIONAL_SUMMARY_SOURCE_INVALID
+        - OPERATIONAL_SUMMARY_UNAVAILABLE
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]
@@ -16037,6 +16160,132 @@ components:
           type: string
           format: date-time
           description: The server-owned instant of the view, the same on every page.
+    GenerateOperationalSummaryRequest:
+      type: object
+      description: >-
+        MVP-101. The only input of a briefing; any other property is rejected. The language of the
+        text; it never selects different facts.
+      additionalProperties: false
+      required: [language]
+      properties:
+        language:
+          type: string
+          enum: [en, fr]
+    OperationalSummary:
+      type: object
+      description: >-
+        MVP-101 (ADR 0027). A grounded briefing of the operational status at one server-owned
+        instant. Texts come from reviewed templates; there is no name, identifier, prompt, provider
+        or model name.
+      required:
+        - asOfInstant
+        - generatedAt
+        - language
+        - generationMode
+        - templateVersion
+        - headline
+        - highlights
+        - sourceSnapshot
+        - limitations
+      properties:
+        asOfInstant:
+          type: string
+          format: date-time
+          description: The server instant the counts describe.
+        generatedAt:
+          type: string
+          format: date-time
+        language:
+          type: string
+          enum: [en, fr]
+        generationMode:
+          type: string
+          enum: [MODEL, FALLBACK]
+          description: MODEL when a model planned the selection, FALLBACK when the service's deterministic policy did.
+        templateVersion:
+          type: string
+        headline:
+          $ref: "#/components/schemas/OperationalSummaryHeadline"
+        highlights:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/OperationalSummaryHighlight"
+        sourceSnapshot:
+          $ref: "#/components/schemas/OperationalSummarySourceSnapshot"
+        limitations:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/OperationalSummaryLimitation"
+    OperationalSummaryHeadline:
+      type: object
+      required: [code, text]
+      properties:
+        code:
+          type: string
+          enum:
+            - OPERATIONS_WITHIN_RANGE
+            - ATTENDANCE_NEEDS_ATTENTION
+            - COVERAGE_NEEDS_ATTENTION
+            - APPROVALS_NEED_ATTENTION
+            - SEVERAL_AREAS_NEED_ATTENTION
+        text:
+          type: string
+    OperationalSummaryHighlight:
+      type: object
+      required: [factType, severity, routeId, text]
+      properties:
+        factType:
+          type: string
+          enum:
+            - NOT_CHECKED_IN
+            - UNCOVERED_SHIFTS
+            - OVERDUE_LEAVE
+            - OVERDUE_TIMESHEETS
+            - LATE_CHECK_INS
+            - PENDING_LEAVE
+            - PENDING_TIMESHEETS
+            - EXPECTED_SHIFTS
+            - PRESENT_SHIFTS
+            - COMPLETED_SHIFTS
+            - SCHEDULED_SHIFTS
+        severity:
+          type: string
+          enum: [NONE, LOW, MEDIUM, HIGH]
+        routeId:
+          type: string
+          enum: [ATTENDANCE, SCHEDULES, LEAVE_APPROVALS, TIMESHEETS]
+          description: Allow-listed identifier of the already-authorized source view; the web application maps it to a route.
+        text:
+          type: string
+    OperationalSummaryLimitation:
+      type: object
+      required: [code, text]
+      properties:
+        code:
+          type: string
+          enum: [RECORDED_FACTS_ONLY, NO_CONCLUSION, REVIEW_SOURCES]
+        text:
+          type: string
+    OperationalSummarySourceSnapshot:
+      type: object
+      description: The aggregate counts and fixed thresholds the briefing was generated from.
+      required: [thresholds, shifts, coverage, approvals]
+      properties:
+        thresholds:
+          $ref: "#/components/schemas/OperationalStatusThresholds"
+        shifts:
+          $ref: "#/components/schemas/OperationalStatusShifts"
+        coverage:
+          description: Uncovered slots; null for a manager.
+          oneOf:
+            - $ref: "#/components/schemas/OperationalStatusCoverage"
+            - type: "null"
+        approvals:
+          $ref: "#/components/schemas/OperationalStatusApprovals"
     OperationalStatus:
       type: object
       description: >-

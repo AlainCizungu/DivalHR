@@ -123,7 +123,7 @@ for p in /identity/admin/ /identity/admin/master/console/ /identity/admin/realms
   /identity/realms/$REALM/account /identity/realms/$REALM/account/ \
   /identity/realms/$REALM/divalhr-provisioning/v1/invitations/00000000-0000-4000-8000-000000000000/identity \
   /identity/health /identity/health/ready /identity/metrics /actuator/health /api/actuator/health \
-  /ai/docs /ai/api/v1/other; do
+  /ai/docs /ai/api/v1/other /ai/api/v1/internal/operational-summary; do
   expect_https "denied $p" "$p" 404
 done
 
