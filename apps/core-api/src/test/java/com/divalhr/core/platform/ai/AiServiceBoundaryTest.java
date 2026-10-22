@@ -46,6 +46,7 @@ class AiServiceBoundaryTest {
   private final List<String> tokenForms = new CopyOnWriteArrayList<>();
   private final List<String> authorizations = new CopyOnWriteArrayList<>();
   private final List<String> bodies = new CopyOnWriteArrayList<>();
+  private final List<String> upgradeHeaders = new CopyOnWriteArrayList<>();
   private volatile Consumer<HttpExchange> summary;
   private volatile Consumer<HttpExchange> token;
 
@@ -60,6 +61,7 @@ class AiServiceBoundaryTest {
         "/token",
         exchange -> {
           tokenCalls.incrementAndGet();
+          recordUpgrade(exchange);
           tokenForms.add(
               new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
           token.accept(exchange);
@@ -68,6 +70,7 @@ class AiServiceBoundaryTest {
         "/api/v1/internal/operational-summary",
         exchange -> {
           summaryCalls.incrementAndGet();
+          recordUpgrade(exchange);
           authorizations.add(
               String.valueOf(exchange.getRequestHeaders().getFirst("Authorization")));
           bodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
@@ -302,6 +305,22 @@ class AiServiceBoundaryTest {
     token = exchange -> reply(exchange, 401, "{\"error\":\"unauthorized_client\"}");
     assertThat(failureOf(client(Duration.ofSeconds(2)))).isEqualTo("token_rejected");
     assertThat(summaryCalls.get()).isZero();
+  }
+
+  @Test
+  void neitherCallAsksForAnH2cUpgrade() {
+    AiServiceOperationalSummaryClient client = client(Duration.ofSeconds(2));
+    client.generate(request());
+    assertThat(tokenCalls.get()).isEqualTo(1);
+    assertThat(summaryCalls.get()).isEqualTo(1);
+    // The default JDK client adds "Connection: Upgrade, HTTP2-Settings" and "Upgrade: h2c" to a
+    // plain-HTTP request; Caddy's internal route forwards that to Keycloak and aborts the exchange.
+    assertThat(upgradeHeaders).containsOnly("none", "none");
+  }
+
+  private void recordUpgrade(HttpExchange exchange) {
+    String upgrade = exchange.getRequestHeaders().getFirst("Upgrade");
+    upgradeHeaders.add(upgrade == null ? "none" : upgrade);
   }
 
   @Test

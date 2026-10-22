@@ -52,6 +52,9 @@ public class ServiceTokenProvider {
     this.properties = properties;
     HttpClient client =
         HttpClient.newBuilder()
+            // HTTP/1.1 only: over plain HTTP the default client adds Upgrade: h2c, which Caddy's
+            // internal route forwards to Keycloak and aborts (hr-dev live acceptance, R157-1).
+            .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(properties.connectTimeout())
             .followRedirects(HttpClient.Redirect.NEVER)
             .build();
