@@ -47,7 +47,7 @@ public class WebhookController {
   /** Base path. */
   public static final String PATH = "/api/v1/integrations/webhooks";
 
-  private static final String CACHE_CONTROL = "private, no-store";
+  static final String CACHE_CONTROL = "private, no-store";
 
   private final WebhookService webhooks;
   private final TenantContextResolver tenants;

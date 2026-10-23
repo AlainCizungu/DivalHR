@@ -379,12 +379,11 @@ public class JdbcWebhookRepository {
             """
             SELECT count(*) FROM integrations.delivery
              WHERE tenant_id = :tenant AND webhook_id = :webhook AND kind = 'TEST'
-               AND created_at > :since AND created_at <= :now
+               AND created_at > :since
             """)
         .param("tenant", tenant.value())
         .param("webhook", webhook)
         .param("since", Timestamp.from(now.minusSeconds(3600)))
-        .param("now", Timestamp.from(now))
         .query(Integer.class)
         .single();
   }
@@ -809,7 +808,7 @@ public class JdbcWebhookRepository {
                SET state = :state, attempt_count = :number, last_attempt_at = :finished,
                    last_http_status = :status, last_failure_class = :failure,
                    next_attempt_at = :next,
-                   completed_at = CASE WHEN :state = 'RETRYING' THEN NULL ELSE :finished END,
+                   completed_at = CAST(:completed AS timestamptz),
                    claim_token = NULL, claimed_until = NULL
              WHERE tenant_id = :tenant AND id = :id
             """)
@@ -817,6 +816,7 @@ public class JdbcWebhookRepository {
         .param("id", claim.id())
         .param("state", state)
         .param("number", number)
+        .param("completed", "RETRYING".equals(state) ? null : Timestamp.from(finishedAt))
         .param("finished", Timestamp.from(finishedAt))
         .param("status", httpStatus)
         .param("failure", failure == null ? null : failure.name())
