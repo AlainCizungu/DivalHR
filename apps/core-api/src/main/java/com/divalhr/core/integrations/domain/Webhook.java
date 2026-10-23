@@ -34,6 +34,10 @@ public record Webhook(
     Instant createdAt,
     Instant updatedAt) {
 
+  public Webhook {
+    eventTypes = List.copyOf(eventTypes);
+  }
+
   /**
    * @return a representation without the endpoint
    */

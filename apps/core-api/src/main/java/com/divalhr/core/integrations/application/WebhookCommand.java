@@ -79,7 +79,10 @@ final class WebhookCommand {
     }
   }
 
-  static Create create(String key, CreateWebhookRequest body, Set<Integer> ports) {
+  static Create create(
+      String key,
+      CreateWebhookRequest body,
+      java.util.function.Function<String, java.util.Optional<WebhookUrl>> urlParser) {
     FieldErrors errors = new FieldErrors();
     key(key, errors);
     if (body == null) {
@@ -90,10 +93,13 @@ final class WebhookCommand {
     confirm(body.getConfirm(), errors);
     String name = name(body.getName(), errors);
     errors.throwIfAny();
-    return new Create(configuration(name, body.getUrl(), body.getEventTypes(), ports));
+    return new Create(configuration(name, body.getUrl(), body.getEventTypes(), urlParser));
   }
 
-  static Update update(String key, UpdateWebhookRequest body, Set<Integer> ports) {
+  static Update update(
+      String key,
+      UpdateWebhookRequest body,
+      java.util.function.Function<String, java.util.Optional<WebhookUrl>> urlParser) {
     FieldErrors errors = new FieldErrors();
     key(key, errors);
     if (body == null) {
@@ -105,7 +111,7 @@ final class WebhookCommand {
     int version = version(body.getConfigVersion(), errors);
     String name = name(body.getName(), errors);
     errors.throwIfAny();
-    return new Update(configuration(name, body.getUrl(), body.getEventTypes(), ports), version);
+    return new Update(configuration(name, body.getUrl(), body.getEventTypes(), urlParser), version);
   }
 
   static Versioned versioned(String key, WebhookCommandRequest body) {
@@ -188,13 +194,17 @@ final class WebhookCommand {
   }
 
   private static Configuration configuration(
-      String name, Object url, Object events, Set<Integer> ports) {
+      String name,
+      Object url,
+      Object events,
+      java.util.function.Function<String, java.util.Optional<WebhookUrl>> urlParser) {
     List<String> normalizedEvents = events(events);
     if (!(url instanceof String raw)) {
       throw new ApiException(ErrorCode.WEBHOOK_URL_INVALID, Map.of());
     }
     WebhookUrl parsed =
-        WebhookUrl.parse(raw, ports)
+        urlParser
+            .apply(raw)
             .orElseThrow(() -> new ApiException(ErrorCode.WEBHOOK_URL_INVALID, Map.of()));
     return new Configuration(name, parsed, normalizedEvents);
   }

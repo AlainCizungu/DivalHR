@@ -211,7 +211,7 @@ public class WebhookJobs {
           });
       return;
     }
-    Optional<WebhookUrl> url = WebhookUrl.parse(webhook.get().url(), properties.extraPorts());
+    Optional<WebhookUrl> url = properties.parseUrl(webhook.get().url());
     List<byte[]> keys = new ArrayList<>();
     FailureClass failure = null;
     Integer status = null;

@@ -327,7 +327,8 @@ class WebhookApiIntegrationTest {
             "https://user:pw@a.example.com/",
             "https://127.0.0.1/",
             "https://a.example.com/#f",
-            "https://a.example.com:8443/")) {
+            "https://a.example.com:8443/",
+            "https://receiver.test:9443/")) {
       mvc.perform(json(post(PATH), admin, key(), createBody("a", bad)))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("WEBHOOK_URL_INVALID"));

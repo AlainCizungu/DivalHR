@@ -21,7 +21,7 @@ import { CORE_API, USERS, expectAccessible, primaryNav, signIn, subjectLock } fr
 // reset (`docker compose down -v`) after about nine runs; CI starts from a clean stack.
 
 const RECEIVER = process.env.E2E_WEBHOOK_RECEIVER_URL ?? 'http://127.0.0.1:8099';
-const DESTINATION = 'https://webhook-receiver:8443/hook';
+const DESTINATION = 'https://receiver.hooks.test:8443/hook';
 const stamp = Date.now().toString(36).toUpperCase().slice(-6);
 
 type Received = {

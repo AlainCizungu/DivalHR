@@ -5,7 +5,7 @@
 set -eu
 umask 077
 TLS=/tls
-HOST="${RECEIVER_HOST:-webhook-receiver}"
+HOST="${RECEIVER_HOST:-receiver.hooks.test}"
 SHARED=/shared
 openssl req -x509 -newkey rsa:2048 -nodes -keyout "$TLS/ca.key" -out "$TLS/ca.pem" \
   -days 2 -subj "/CN=DivalHR dev webhook receiver CA" >/dev/null 2>&1

@@ -41,6 +41,10 @@ public final class WebhookViews {
       Instant lastFailureAt,
       Instant createdAt,
       Instant updatedAt) {
+    public WebhookView {
+      eventTypes = List.copyOf(eventTypes);
+    }
+
     static WebhookView of(Webhook w) {
       return new WebhookView(
           w.id(),
@@ -82,7 +86,11 @@ public final class WebhookViews {
    * @param items rows
    * @param nextCursor opaque signed cursor, or null
    */
-  public record WebhookPage(List<WebhookView> items, String nextCursor) {}
+  public record WebhookPage(List<WebhookView> items, String nextCursor) {
+    public WebhookPage {
+      items = List.copyOf(items);
+    }
+  }
 
   /**
    * One delivery in history.
@@ -133,7 +141,11 @@ public final class WebhookViews {
    * @param items rows
    * @param nextCursor opaque signed cursor, or null
    */
-  public record DeliveryPage(List<DeliveryView> items, String nextCursor) {}
+  public record DeliveryPage(List<DeliveryView> items, String nextCursor) {
+    public DeliveryPage {
+      items = List.copyOf(items);
+    }
+  }
 
   /**
    * One attempt in a delivery's detail.
@@ -162,7 +174,11 @@ public final class WebhookViews {
    * @param delivery the delivery
    * @param attempts its attempts, in order
    */
-  public record DeliveryDetail(DeliveryView delivery, List<AttemptItem> attempts) {}
+  public record DeliveryDetail(DeliveryView delivery, List<AttemptItem> attempts) {
+    public DeliveryDetail {
+      attempts = List.copyOf(attempts);
+    }
+  }
 
   /**
    * An accepted test delivery.

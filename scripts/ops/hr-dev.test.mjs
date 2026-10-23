@@ -1146,14 +1146,14 @@ test('MVP-110: webhook key is a protected file, the receiver is isolated, and no
     compose.indexOf('\n  webhook-receiver:'),
     compose.indexOf('\n  ai-service:'),
   );
-  assert.match(receiver, /networks: \[hooks\]/);
+  assert.match(receiver, /networks:\n {6}hooks:\n {8}aliases: \[receiver\.hooks\.test\]/);
   assert.doesNotMatch(receiver, /ports:/);
   const core = compose.slice(
     compose.indexOf('\n  core-api:'),
     compose.indexOf('\n  webhook-receiver:'),
   );
   assert.match(core, /networks: \[app, core-data, hooks\]/);
-  assert.match(core, /DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: webhook-receiver/);
+  assert.match(core, /DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: receiver\.hooks\.test/);
   assert.match(core, /DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'/);
   assert.doesNotMatch(core, /CIDR|0\.0\.0\.0/);
   // No existing network lost `internal: true`; only the edge network is outside-facing.

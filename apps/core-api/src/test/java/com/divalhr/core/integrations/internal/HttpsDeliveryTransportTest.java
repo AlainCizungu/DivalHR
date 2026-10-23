@@ -10,6 +10,7 @@ import com.divalhr.core.integrations.domain.FailureClass;
 import com.divalhr.core.integrations.domain.WebhookUrl;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -39,7 +40,7 @@ class HttpsDeliveryTransportTest {
       Map.of("Content-Type", "application/json", "X-DivalHR-Signature", "v1=abc");
 
   private HttpsServer server;
-  private int port;
+  private volatile int port;
   private SSLSocketFactory trusting;
   private final CopyOnWriteArrayList<String> seen = new CopyOnWriteArrayList<>();
   private final AtomicInteger redirectTargetHits = new AtomicInteger();
@@ -356,7 +357,7 @@ class HttpsDeliveryTransportTest {
                     try (Socket held = silent.accept()) {
                       held.getInetAddress();
                       Thread.sleep(3000);
-                    } catch (Exception ignored) {
+                    } catch (IOException | InterruptedException ignored) {
                       // test teardown
                     }
                   });

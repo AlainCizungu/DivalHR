@@ -142,6 +142,19 @@
       <Class name="com.divalhr.core.integrations.domain.AddressPolicy$Net"/>
     </Or>
   </Match>
+  <!-- MVP-110 value records hold lists that their constructors copy to immutable lists. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Or>
+      <Class name="com.divalhr.core.integrations.domain.Webhook"/>
+      <Class name="~com\.divalhr\.core\.integrations\.application\.WebhookViews\$.*"/>
+    </Or>
+  </Match>
+  <!-- The webhook test transport records what it was asked to send, for assertions. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.integrations\.WebhookTestConfig\$.*"/>
+  </Match>
   <!-- A shared test fixture holds the test's injected MockMvc, JdbcTemplate and clock by design. -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP2"/>

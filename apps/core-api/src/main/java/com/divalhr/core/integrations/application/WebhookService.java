@@ -46,7 +46,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -199,8 +198,7 @@ public class WebhookService {
       WebhookCaller caller, String idempotencyKey, CreateWebhookRequest body) {
     var command =
         operations.validated(
-            CREATE_SPEC,
-            () -> WebhookCommand.create(idempotencyKey, body, Set.copyOf(properties.extraPorts())));
+            CREATE_SPEC, () -> WebhookCommand.create(idempotencyKey, body, properties::parseUrl));
     checkDestination(command.configuration().url());
     String[] issued = new String[1];
     var result =
@@ -251,8 +249,7 @@ public class WebhookService {
       WebhookCaller caller, String webhookId, String idempotencyKey, UpdateWebhookRequest body) {
     var command =
         operations.validated(
-            UPDATE_SPEC,
-            () -> WebhookCommand.update(idempotencyKey, body, Set.copyOf(properties.extraPorts())));
+            UPDATE_SPEC, () -> WebhookCommand.update(idempotencyKey, body, properties::parseUrl));
     UUID id = id(webhookId);
     checkDestination(command.configuration().url());
     var result =

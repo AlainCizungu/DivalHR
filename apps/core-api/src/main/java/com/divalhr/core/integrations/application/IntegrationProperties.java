@@ -1,5 +1,6 @@
 package com.divalhr.core.integrations.application;
 
+import com.divalhr.core.integrations.domain.WebhookUrl;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -58,6 +59,24 @@ public record IntegrationProperties(
    */
   public boolean keyConfigured() {
     return encryptionKey != null && !encryptionKey.isBlank();
+  }
+
+  /**
+   * Parses a customer URL. Ports other than 443 are accepted only when configured as extra ports;
+   * the development/test receiver's exact port is accepted only together with its exact host. Every
+   * destination still passes the address rules on each attempt.
+   *
+   * @param raw the submitted text
+   * @return the endpoint, or empty when it is not acceptable
+   */
+  public java.util.Optional<WebhookUrl> parseUrl(String raw) {
+    java.util.Optional<WebhookUrl> normal = WebhookUrl.parse(raw, extraPorts);
+    if (normal.isPresent() || !testReceiver.configured() || testReceiver.port() == null) {
+      return normal;
+    }
+    String receiverHost = testReceiver.host().toLowerCase(Locale.ROOT);
+    return WebhookUrl.parse(raw, List.of(testReceiver.port()))
+        .filter(url -> url.host().equals(receiverHost));
   }
 
   /**

@@ -64,6 +64,7 @@ test.describe('desktop', () => {
       'Contract expirations',
       'Users and invitations',
       'Access review',
+      'Webhooks',
     ]);
     await expect(nav(page).getByRole('link', { name: 'System status' })).toHaveCount(0);
     await expect(page.getByTestId('environment-badge')).toContainText('Development environment');
@@ -199,7 +200,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(18);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(19);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );
