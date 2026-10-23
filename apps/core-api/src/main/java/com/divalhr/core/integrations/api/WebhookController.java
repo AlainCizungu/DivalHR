@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -72,6 +73,7 @@ public class WebhookController {
    * @return the webhook and its one-time secret
    */
   @Operation(operationId = "createWebhook")
+  @ResponseStatus(HttpStatus.CREATED)
   @PostMapping(path = PATH, consumes = MediaType.APPLICATION_JSON_VALUE)
   @TenantAdminOperation(operation = WebhookService.CREATE)
   @SubjectRateLimited(bucket = WebhookService.SUBJECT_WRITE_BUCKET)
@@ -242,6 +244,7 @@ public class WebhookController {
    * @return the accepted delivery
    */
   @Operation(operationId = "createWebhookTestDelivery")
+  @ResponseStatus(HttpStatus.ACCEPTED)
   @PostMapping(
       path = PATH + "/{webhookId}/test-deliveries",
       consumes = MediaType.APPLICATION_JSON_VALUE)

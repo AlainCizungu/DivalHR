@@ -16,6 +16,8 @@ tags:
     description: Contract templates, issued contracts and acknowledgements (MVP-030)
   - name: payroll
     description: Payroll preparation from locked approved time (MVP-090A)
+  - name: integrations
+    description: Signed outbound webhooks (MVP-110)
 servers:
   - url: https://api.divalhr.com/api/v1
 security:
@@ -1595,18 +1597,6 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "200":
           description: Payroll inputs
-  /webhooks:
-    post:
-      operationId: createWebhook
-      x-divalhr-lifecycle: planned
-      summary: Create a signed webhook subscription
-      responses:
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "201":
-          description: Webhook created
   /employees/search:
     post:
       operationId: searchEmployees
@@ -8005,6 +7995,424 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks:
+    post:
+      operationId: createWebhook
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a signed outbound webhook
+      description: >-
+        MVP-110 (ADR 0028). Creates one HTTPS endpoint subscribed to a closed set of public events. The endpoint is normalized and resolved: a name that resolves to, or also to, a loopback, private, link-local, multicast, CGNAT, documentation, reserved or cloud-metadata address is 422 WEBHOOK_DESTINATION_BLOCKED; a malformed or unresolvable endpoint is 400 WEBHOOK_URL_INVALID; an unknown, duplicate or missing event type is 400 WEBHOOK_EVENT_TYPE_INVALID; the 21st webhook of a tenant is 409 WEBHOOK_LIMIT_REACHED. The random signing secret is returned once, in this response only; it is stored encrypted (AES-256-GCM) and a replay of the same Idempotency-Key returns the webhook with a null secret. One transaction writes the webhook, its secret, the audit record (webhook.create) and the outbox event. Idempotent. Cache-Control private, no-store.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWebhookRequest"
+      responses:
+        "201":
+          description: Created, or the original replayed (without the secret)
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    get:
+      operationId: listWebhooks
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the tenant's webhooks
+      description: >-
+        MVP-110. The tenant's webhooks, newest first, as a keyset page (signed cursor bound to the operation and tenant). A fail-closed disclosure (audit webhook.read). Never returns a secret. Cache-Control private, no-store.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks/{webhookId}:
+    get:
+      operationId: getWebhook
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One webhook
+      description: >-
+        MVP-110. The webhook's configuration, status, versions and failure counters, and when the previous secret stops signing during a rotation. A malformed, unknown or foreign ID is 404 WEBHOOK_NOT_FOUND. A fail-closed disclosure (audit webhook.read). Never returns a secret.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    patch:
+      operationId: updateWebhook
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Change a webhook's name, endpoint or events
+      description: >-
+        MVP-110. Requires the current configVersion (409 WEBHOOK_VERSION_STALE otherwise) and explicit confirmation. The endpoint is validated and resolved as at creation. Audit webhook.update. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWebhookRequest"
+      responses:
+        "200":
+          description: Updated, unchanged or replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks/{webhookId}/rotate-secret:
+    post:
+      operationId: rotateWebhookSecret
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Rotate a webhook's signing secret
+      description: >-
+        MVP-110. The new secret signs immediately and is returned once; the previous secret keeps signing for 24 hours (both signatures are sent during the overlap) and its ciphertext is then erased. Audit webhook.rotate-secret. Idempotent; a replay carries no secret.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookCommandRequest"
+      responses:
+        "200":
+          description: Rotated or replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks/{webhookId}/disable:
+    post:
+      operationId: disableWebhook
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Disable a webhook
+      description: >-
+        MVP-110. Stops new attempts and cancels open deliveries; history stays readable. 409 WEBHOOK_ALREADY_DISABLED when already disabled. Audit webhook.disable. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookCommandRequest"
+      responses:
+        "200":
+          description: Disabled or replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks/{webhookId}/enable:
+    post:
+      operationId: enableWebhook
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Enable a disabled or suspended webhook
+      description: >-
+        MVP-110. Resets the failure counter; older failed deliveries are not replayed. 409 WEBHOOK_ALREADY_ENABLED when already active. Audit webhook.enable. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookCommandRequest"
+      responses:
+        "200":
+          description: Enabled or replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks/{webhookId}/test-deliveries:
+    post:
+      operationId: createWebhookTestDelivery
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Send one test delivery
+      description: >-
+        MVP-110. Queues one webhook.test.v1 delivery through the real worker, signature and SSRF checks; the answer is the delivery ID, not the result. Only for an active webhook (409 WEBHOOK_DISABLED or WEBHOOK_SUSPENDED otherwise). At most 5 accepted test deliveries per webhook per hour and 20 per tenant per hour; either limit is 429 WEBHOOK_TEST_RATE_LIMITED with Retry-After, and only accepted commands count. Audit webhook.test-delivery. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestDeliveryRequest"
+      responses:
+        "202":
+          description: Accepted or replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookTestDelivery"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks/{webhookId}/deliveries:
+    get:
+      operationId: listWebhookDeliveries
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: A webhook's delivery history
+      description: >-
+        MVP-110. Deliveries, newest first, as a keyset page. Shows state, attempts, exact HTTP status and closed failure class; never a response body, header, address, signature or payload. A fail-closed disclosure (audit webhook.delivery-read).
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookDeliveryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/webhooks/{webhookId}/deliveries/{deliveryId}:
+    get:
+      operationId: getWebhookDelivery
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One delivery with its attempts
+      description: >-
+        MVP-110. A malformed, unknown or foreign delivery is 404 WEBHOOK_DELIVERY_NOT_FOUND. A fail-closed disclosure (audit webhook.delivery-read).
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WebhookId"
+        - $ref: "#/components/parameters/WebhookDeliveryId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookDeliveryDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
 components:
   securitySchemes:
     oauth2:
@@ -8306,6 +8714,22 @@ components:
       name: exportId
       in: path
       required: true
+      schema:
+        type: string
+        format: uuid
+    WebhookId:
+      name: webhookId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND.
+      schema:
+        type: string
+        format: uuid
+    WebhookDeliveryId:
+      name: deliveryId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 WEBHOOK_DELIVERY_NOT_FOUND.
       schema:
         type: string
         format: uuid
@@ -14781,6 +15205,244 @@ components:
           enum: [CREATED, EXISTING]
         export:
           $ref: "#/components/schemas/PayrollInputExport"
+    WebhookEventType:
+      type: string
+      description: MVP-110. The closed catalogue of public events a webhook can subscribe to (packages/shared-contracts/schemas/webhook-event.schema.json).
+      enum: [leave.request.approved.v1, leave.request.rejected.v1, timesheet.approved.v1, attendance.corrected.v1, payroll.input.locked.v1, payroll.input-export.created.v1]
+    CreateWebhookRequest:
+      type: object
+      description: MVP-110. Create an outbound webhook.
+      additionalProperties: false
+      required: [name, url, eventTypes, confirm]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Trimmed plain text, no markup or URL.
+        url:
+          type: string
+          maxLength: 2048
+          description: One HTTPS endpoint (port 443 unless allow-listed), no credentials, no fragment, a public host name (no IP literal).
+        eventTypes:
+          type: array
+          minItems: 1
+          maxItems: 6
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/WebhookEventType"
+        confirm:
+          type: boolean
+          const: true
+    UpdateWebhookRequest:
+      type: object
+      description: MVP-110. Change a webhook's name, endpoint or events.
+      additionalProperties: false
+      required: [name, url, eventTypes, configVersion, confirm]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        url:
+          type: string
+          maxLength: 2048
+        eventTypes:
+          type: array
+          minItems: 1
+          maxItems: 6
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/WebhookEventType"
+        configVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        confirm:
+          type: boolean
+          const: true
+    WebhookCommandRequest:
+      type: object
+      description: MVP-110. Rotate the secret, disable or enable a webhook.
+      additionalProperties: false
+      required: [configVersion, confirm]
+      properties:
+        configVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        confirm:
+          type: boolean
+          const: true
+    TestDeliveryRequest:
+      type: object
+      description: MVP-110. Send one test delivery.
+      additionalProperties: false
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+          const: true
+    Webhook:
+      type: object
+      description: MVP-110. A webhook as the administrator sees it. Never carries a secret.
+      required: [id, name, url, eventTypes, status, configVersion, secretVersion, consecutiveFailures, lastSuccessAt, lastFailureAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+        eventTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookEventType"
+        status:
+          type: string
+          enum: [ACTIVE, DISABLED, SUSPENDED]
+        configVersion:
+          type: integer
+          format: int32
+        secretVersion:
+          type: integer
+          format: int32
+        consecutiveFailures:
+          type: integer
+          format: int32
+          maximum: 10
+        lastSuccessAt:
+          type: [string, "null"]
+          format: date-time
+        lastFailureAt:
+          type: [string, "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    WebhookResult:
+      type: object
+      description: >-
+        MVP-110. The webhook after a command or read. secret is the signing secret (URL-safe
+        base64 of 32 random bytes) in the create and rotate responses of the request that made it,
+        otherwise null; it is never stored in plaintext and never replayed.
+      required: [webhook, secret, previousSecretExpiresAt]
+      properties:
+        webhook:
+          $ref: "#/components/schemas/Webhook"
+        secret:
+          type: [string, "null"]
+        previousSecretExpiresAt:
+          type: [string, "null"]
+          format: date-time
+    WebhookPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Webhook"
+        nextCursor:
+          type: [string, "null"]
+    WebhookDelivery:
+      type: object
+      description: MVP-110. One delivery. No payload, response body or header, address, signature or secret.
+      required: [id, webhookId, eventId, eventType, state, attemptCount, createdAt, lastAttemptAt, nextAttemptAt, lastHttpStatus, lastFailureClass]
+      properties:
+        id:
+          type: string
+          format: uuid
+        webhookId:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          description: A WebhookEventType or webhook.test.v1.
+        state:
+          type: string
+          enum: [PENDING, RETRYING, SUCCEEDED, FAILED, CANCELLED]
+        attemptCount:
+          type: integer
+          format: int32
+          maximum: 6
+        createdAt:
+          type: string
+          format: date-time
+        lastAttemptAt:
+          type: [string, "null"]
+          format: date-time
+        nextAttemptAt:
+          type: [string, "null"]
+          format: date-time
+        lastHttpStatus:
+          type: [integer, "null"]
+          format: int32
+        lastFailureClass:
+          type: [string, "null"]
+          enum: [DNS_BLOCKED, DNS_FAILED, CONNECT_TIMEOUT, REQUEST_TIMEOUT, TLS_FAILED, CONNECTION_FAILED, HTTP_RESPONSE, INTERNAL_FAILURE, null]
+    WebhookDeliveryPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookDelivery"
+        nextCursor:
+          type: [string, "null"]
+    WebhookDeliveryAttempt:
+      type: object
+      required: [number, startedAt, httpStatus, failureClass, latencyMillis]
+      properties:
+        number:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 6
+        startedAt:
+          type: string
+          format: date-time
+        httpStatus:
+          type: [integer, "null"]
+          format: int32
+        failureClass:
+          type: [string, "null"]
+          enum: [DNS_BLOCKED, DNS_FAILED, CONNECT_TIMEOUT, REQUEST_TIMEOUT, TLS_FAILED, CONNECTION_FAILED, HTTP_RESPONSE, INTERNAL_FAILURE, null]
+        latencyMillis:
+          type: integer
+          format: int32
+    WebhookDeliveryDetail:
+      type: object
+      required: [delivery, attempts]
+      properties:
+        delivery:
+          $ref: "#/components/schemas/WebhookDelivery"
+        attempts:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookDeliveryAttempt"
+    WebhookTestDelivery:
+      type: object
+      description: MVP-110. The accepted test delivery; follow it in the delivery history.
+      required: [deliveryId, webhookId, eventId]
+      properties:
+        deliveryId:
+          type: string
+          format: uuid
+        webhookId:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
     PayrollInputExportPage:
       type: object
       required: [items, nextCursor]
