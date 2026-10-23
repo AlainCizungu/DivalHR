@@ -460,12 +460,14 @@ CREATE TRIGGER integrations_fanout_event_no_truncate BEFORE TRUNCATE ON integrat
     FOR EACH STATEMENT EXECUTE FUNCTION integrations.append_only();
 
 CREATE TABLE integrations.fanout_state (
-    id         smallint    NOT NULL,
-    watermark  timestamptz NOT NULL,
-    updated_at timestamptz NOT NULL,
+    id                 smallint    NOT NULL,
+    watermark          timestamptz NOT NULL,
+    watermark_event_id uuid        NOT NULL,
+    updated_at         timestamptz NOT NULL,
     CONSTRAINT integrations_fanout_state_pkey PRIMARY KEY (id),
     CONSTRAINT integrations_fanout_state_single CHECK (id = 1)
 );
 COMMENT ON TABLE integrations.fanout_state IS
     'Read watermark of the webhook fan-out; starts at the migration time so history is never replayed';
-INSERT INTO integrations.fanout_state (id, watermark, updated_at) VALUES (1, now(), now());
+INSERT INTO integrations.fanout_state (id, watermark, watermark_event_id, updated_at)
+    VALUES (1, now(), '00000000-0000-0000-0000-000000000000', now());
