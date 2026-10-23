@@ -82,6 +82,7 @@ describe('signed-in frame', () => {
         en.nav.contractExpirations,
         en.nav.users,
         en.nav.accessReview,
+        en.nav.webhooks,
       ],
     ],
     [

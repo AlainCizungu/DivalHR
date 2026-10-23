@@ -141,7 +141,7 @@ test('compose: no named volumes, no env files, pinned third-party images, only C
   const ranges = [
     ...compose.matchAll(/ip_range: \$\{HR_DEV_SUBNET_PREFIX:-10\.71\}\.(\d)\.128\/25/g),
   ];
-  assert.equal(subnets.length, 6);
+  assert.equal(subnets.length, 7);
   assert.deepEqual(
     ranges.map((m) => m[1]),
     subnets.map((m) => m[1]),
@@ -1117,4 +1117,50 @@ test('R157-1: keycloak_ai_client.py refuses a missing, short or development secr
   } finally {
     fake.server.close();
   }
+});
+
+test('MVP-110: webhook key is a protected file, the receiver is isolated, and nothing else changes', () => {
+  const live = compose
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+  // The encryption key is a file (configtree), never an environment value, and never a dev value.
+  assert.doesNotMatch(live, /DIVALHR_WEBHOOK_ENCRYPTION_KEY/);
+  assert.doesNotMatch(compose, /dev-only/i);
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/core\/DIVALHR_WEBHOOK_ENCRYPTION_KEY" 10001 random/,
+  );
+  const remote = source('remote-deploy.sh');
+  assert.match(remote, /secrets\/core\/DIVALHR_WEBHOOK_ENCRYPTION_KEY" \]; then/);
+  assert.match(remote, /secrets\/core\/DIVALHR_AI_SERVICE_CLIENT_SECRET" \]; then/, 'kept');
+  assert.match(
+    read('apps/core-api/src/main/resources/application.yaml'),
+    /\$\{DIVALHR_WEBHOOK_ENCRYPTION_KEY:\}/,
+  );
+  // The synthetic receiver: its own internal network shared with Core only, no published port,
+  // one exact host and port for the development/test exception, no other egress.
+  const hooks = compose.slice(compose.indexOf('\n  hooks:'), compose.indexOf('\nservices:'));
+  assert.match(hooks, /internal: true/);
+  const receiver = compose.slice(
+    compose.indexOf('\n  webhook-receiver:'),
+    compose.indexOf('\n  ai-service:'),
+  );
+  assert.match(receiver, /networks: \[hooks\]/);
+  assert.doesNotMatch(receiver, /ports:/);
+  const core = compose.slice(
+    compose.indexOf('\n  core-api:'),
+    compose.indexOf('\n  webhook-receiver:'),
+  );
+  assert.match(core, /networks: \[app, core-data, hooks\]/);
+  assert.match(core, /DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: webhook-receiver/);
+  assert.match(core, /DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'/);
+  assert.doesNotMatch(core, /CIDR|0\.0\.0\.0/);
+  // No existing network lost `internal: true`; only the edge network is outside-facing.
+  const internal = [...compose.matchAll(/^ {4}internal: true$/gm)].length;
+  assert.equal(internal, 6);
+  assert.equal(
+    [...compose.matchAll(/^ {2}[a-z-]+:\n(?: {4}internal: true\n)?(?: {4}ipam:)/gm)].length,
+    7,
+  );
 });

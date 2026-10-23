@@ -77,6 +77,16 @@ networks:
           # Dynamic addresses only in the upper half: Caddy's fixed .2 addresses never collide.
           ip_range: ${HR_DEV_SUBNET_PREFIX:-10.71}.5.128/25
 
+  # MVP-110: Core and the synthetic webhook receiver only. Internal: it has no route out, and it
+  # is the only place the development/test receiver exception (exact host and port) applies.
+  hooks:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${HR_DEV_SUBNET_PREFIX:-10.71}.6.0/24
+          # Dynamic addresses only in the upper half: Caddy's fixed .2 addresses never collide.
+          ip_range: ${HR_DEV_SUBNET_PREFIX:-10.71}.6.128/25
+
 services:
   caddy:
     <<: *service
@@ -257,9 +267,18 @@ services:
       DIVALHR_AI_SERVICE_URL: http://ai-service:8090
       DIVALHR_AI_SERVICE_TOKEN_URL: http://idp-internal:8081/identity/realms/divalhr-test/protocol/openid-connect/token
       DIVALHR_AI_SERVICE_CLIENT_ID: divalhr-core-ai
+      # MVP-110 (ADR 0028): the signing-secret encryption key is the file
+      # secrets/core/DIVALHR_WEBHOOK_ENCRYPTION_KEY (configtree), never an environment value.
+      # TEST ENVIRONMENT ONLY: the synthetic receiver below is the single private destination Core
+      # accepts, by exact host and port, with TLS and hostname verification against its CA. Every
+      # customer URL keeps all SSRF rules; Core refuses this setting outside development and test.
+      DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: webhook-receiver
+      DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'
+      DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE: /run/webhook-tls/ca.pem
     volumes:
       - ${HR_DEV_DATA:?}/secrets/core:/run/secrets/core:ro
-    networks: [app, core-data]
+      - ${HR_DEV_DATA:?}/webhook-receiver:/run/webhook-tls:ro
+    networks: [app, core-data, hooks]
     deploy:
       resources:
         limits:
@@ -269,6 +288,33 @@ services:
         condition: service_healthy
       mailpit:
         condition: service_healthy
+      webhook-receiver:
+        condition: service_healthy
+
+  # MVP-110: a CONTROLLED SYNTHETIC HTTPS receiver for live webhook acceptance. It holds in-memory
+  # counters only, verifies signatures like a customer would, publishes only its throwaway CA
+  # certificate, and has no published port and no route out. Operators read its control endpoint
+  # with `docker compose exec` (docs/OPS-HR-DEV.md).
+  webhook-receiver:
+    <<: *service
+    image: ${HR_DEV_IMAGE_PREFIX:-divalhr-test}/webhook-receiver:${HR_DEV_RELEASE:?}
+    build:
+      context: ../docker/webhook-receiver
+    environment:
+      RECEIVER_HOST: webhook-receiver
+    volumes:
+      - ${HR_DEV_DATA:?}/webhook-receiver:/shared
+    networks: [hooks]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128m
 
   ai-service:
     <<: *service

@@ -2,6 +2,7 @@ import type { CurrentSession } from '@divalhr/api-client';
 import type { ReactNode } from 'react';
 import { CallbackPage } from '../auth/CallbackPage';
 import { AccessReviewPage } from '../features/access-review/AccessReviewPage';
+import { WebhooksPage } from '../features/webhooks/WebhooksPage';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { ContractExpirationsPage } from '../features/contracts/ContractExpirationsPage';
@@ -72,6 +73,7 @@ const DOCUMENTS: CrumbDef = { key: 'nav.groups.documents' };
 const OPERATIONS: CrumbDef = { key: 'nav.groups.operations' };
 const PAYROLL: CrumbDef = { key: 'nav.groups.payroll' };
 const ACCESS: CrumbDef = { key: 'nav.groups.access' };
+const INTEGRATIONS: CrumbDef = { key: 'nav.groups.integrations' };
 const PLATFORM: CrumbDef = { key: 'nav.groups.platform' };
 const MY_SPACE: CrumbDef = { key: 'nav.groups.mySpace' };
 
@@ -118,6 +120,12 @@ export const ROUTES: AppRoute[] = [
     element: <AccessReviewPage />,
     access: tenantAdmin('accessReview.unauthorized', 'accessReview.signInRequired'),
     crumbs: [HOME, ACCESS, { key: 'nav.accessReview' }],
+  },
+  {
+    path: '/admin/webhooks',
+    element: <WebhooksPage />,
+    access: tenantAdmin('webhooks.unauthorized', 'webhooks.signInRequired'),
+    crumbs: [HOME, INTEGRATIONS, { key: 'nav.webhooks' }],
   },
   {
     path: '/admin/people',

@@ -44,6 +44,11 @@ put "$S/core/DIVALHR_DB_PASSWORD" 10001 same_as "$S/postgres/DIVALHR_DB_PASSWORD
 put "$S/core/DIVALHR_CURSOR_SIGNING_KEY" 10001 random
 # Do not rotate in place: stored invitation lookups are keyed with it (EmailLookup).
 put "$S/core/DIVALHR_EMAIL_LOOKUP_KEY" 10001 random
+# MVP-110 (ADR 0028): key material for the AES-256-GCM encryption of webhook signing secrets
+# (HKDF-SHA256 expands it; >= 32 bytes). Never rotate it in place: stored secrets are sealed with it,
+# and losing it makes every webhook secret unreadable (the administrator would rotate each one).
+# It is part of the backed-up secrets directory and is never printed, logged or returned.
+put "$S/core/DIVALHR_WEBHOOK_ENCRYPTION_KEY" 10001 random
 put "$S/ops/provisioner-secret" 0 random
 put "$S/core/DIVALHR_KEYCLOAK_PROVISIONER_SECRET" 10001 same_as "$S/ops/provisioner-secret"
 # R157-1 (MVP-101): secret of the Keycloak client divalhr-core-ai, the Core API's only credential

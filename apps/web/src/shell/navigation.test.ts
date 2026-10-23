@@ -24,6 +24,7 @@ const TENANT = [
   '/admin/contract-expirations',
   '/admin/users',
   '/admin/access',
+  '/admin/webhooks',
 ];
 const EMPLOYEE = [
   '/me/contracts',
@@ -100,6 +101,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/hierarchy',
         '/admin/users',
         '/admin/access',
+        '/admin/webhooks',
         '/admin/people',
         '/admin/people/:employeeId',
         '/admin/people/import',

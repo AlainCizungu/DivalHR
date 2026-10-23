@@ -31,7 +31,8 @@
       "access": "Access and security",
       "mySpace": "My space",
       "operations": "Operations",
-      "payroll": "Payroll"
+      "payroll": "Payroll",
+      "integrations": "Integrations"
     },
     "leaveRoutingExceptions": "Leave routing exceptions",
     "leaveApprovalSubstitutes": "Leave approval substitutes",
@@ -47,7 +48,8 @@
     "timeApprovals": "Time approvals",
     "payrollPreparation": "Payroll preparation",
     "operationsStatus": "Today’s operations",
-    "teamOperations": "Team operations"
+    "teamOperations": "Team operations",
+    "webhooks": "Webhooks"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -1079,6 +1081,164 @@
     "accessState": {
       "ACTIVE": "Active",
       "REVOKED": "Access revoked"
+    }
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "Send signed notifications about approved business events to your own HTTPS endpoints. Each webhook receives only the events you choose, with identifiers and a status, never personal data.",
+    "unauthorized": "Only organization administrators who signed in with multi-factor authentication can manage webhooks.",
+    "signInRequired": "Sign in as an organization administrator to manage webhooks.",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "working": "Working…",
+    "cancel": "Cancel",
+    "back": "Back to webhooks",
+    "loadMore": "Show more",
+    "retryAfter_one": "Try again in {{count}} second.",
+    "retryAfter_other": "Try again in {{count}} seconds.",
+    "reference": "Reference: {{id}}",
+    "never": "Never",
+    "none": "None",
+    "create": {
+      "title": "New webhook",
+      "open": "New webhook"
+    },
+    "list": {
+      "title": "Your webhooks",
+      "count": "{{count}} of {{max}} webhooks in use.",
+      "empty": "No webhook yet. Create one to receive signed event notifications."
+    },
+    "table": {
+      "name": "Name",
+      "url": "Endpoint",
+      "status": "Status",
+      "events": "Events",
+      "lastSuccess": "Last success",
+      "lastFailure": "Last failure"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "DISABLED": "Disabled",
+      "SUSPENDED": "Suspended after repeated failures"
+    },
+    "state": {
+      "PENDING": "Waiting",
+      "RETRYING": "Will retry",
+      "SUCCEEDED": "Delivered",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
+    "failure": {
+      "DNS_BLOCKED": "Destination not allowed",
+      "DNS_FAILED": "Name not found",
+      "CONNECT_TIMEOUT": "Connection timed out",
+      "REQUEST_TIMEOUT": "Response timed out",
+      "TLS_FAILED": "Secure connection failed",
+      "CONNECTION_FAILED": "Connection failed",
+      "HTTP_RESPONSE": "Endpoint did not accept the delivery",
+      "INTERNAL_FAILURE": "Delivery could not be prepared"
+    },
+    "events": {
+      "leave.request.approved.v1": "Leave request approved",
+      "leave.request.rejected.v1": "Leave request rejected",
+      "timesheet.approved.v1": "Timesheet approved",
+      "attendance.corrected.v1": "Attendance corrected",
+      "payroll.input.locked.v1": "Payroll input locked",
+      "payroll.input-export.created.v1": "Payroll input export created"
+    },
+    "form": {
+      "name": "Name",
+      "nameHint": "Plain text, up to {{max}} characters.",
+      "url": "HTTPS endpoint",
+      "urlHint": "One public HTTPS address. Credentials, fragments and IP addresses are not accepted.",
+      "events": "Events to send",
+      "confirm": "I confirm that this endpoint may receive these events.",
+      "create": "Create webhook",
+      "save": "Save changes",
+      "urlPlaceholder": "https://example.com/webhooks"
+    },
+    "errors": {
+      "summary": "Check the highlighted fields.",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name is too long.",
+      "urlRequired": "Enter the HTTPS endpoint.",
+      "urlHttps": "Enter an address that starts with https://.",
+      "eventsRequired": "Choose at least one event.",
+      "confirmRequired": "Confirm to continue."
+    },
+    "secret": {
+      "title": "Copy your signing secret now",
+      "once": "This secret is shown only once. DivalHR cannot show it again; if you lose it, rotate the secret.",
+      "label": "Signing secret",
+      "copy": "Copy secret",
+      "copied": "Secret copied.",
+      "copyFailed": "Copy failed. Select the secret and copy it manually.",
+      "stored": "I have stored the secret safely.",
+      "done": "Done",
+      "overlap": "The previous secret keeps signing until {{when}}, so you can switch your receiver without interruption."
+    },
+    "detail": {
+      "title": "Webhook",
+      "secretVersion": "Secret version",
+      "failures": "Consecutive failed deliveries",
+      "suspendedNote": "This webhook was suspended after repeated failures. Fix the endpoint, then enable it again. Missed events are not replayed."
+    },
+    "actions": {
+      "edit": "Edit",
+      "test": "Send a test delivery",
+      "rotate": "Rotate secret",
+      "disable": "Disable",
+      "enable": "Enable"
+    },
+    "confirmAction": {
+      "understand": "I understand and want to continue.",
+      "rotate": {
+        "title": "Rotate the signing secret",
+        "body": "A new secret is generated and shown once. The previous secret keeps signing for 24 hours so you can update your receiver.",
+        "submit": "Yes, rotate the secret"
+      },
+      "disable": {
+        "title": "Disable this webhook",
+        "body": "No new events are sent and waiting deliveries are cancelled. History is kept.",
+        "submit": "Yes, disable this webhook"
+      },
+      "enable": {
+        "title": "Enable this webhook",
+        "body": "New events are sent again. Events missed while it was disabled or suspended are not replayed.",
+        "submit": "Yes, enable this webhook"
+      }
+    },
+    "announce": {
+      "created": "Webhook created. Copy the secret now.",
+      "updated": "Webhook updated.",
+      "rotate": "Secret rotated.",
+      "disable": "Webhook disabled.",
+      "enable": "Webhook enabled.",
+      "testQueued": "Test delivery queued. Follow it in the history."
+    },
+    "history": {
+      "title": "Delivery history",
+      "note": "Only outcomes are kept: no payload, response or header is stored.",
+      "refresh": "Refresh history",
+      "empty": "No delivery yet.",
+      "event": "Event",
+      "state": "State",
+      "attempts": "Attempts",
+      "result": "Result",
+      "next": "Next attempt",
+      "details": "Details",
+      "show": "Attempts",
+      "httpStatus": "HTTP {{status}}",
+      "attemptsTitle": "Attempts",
+      "attemptLine": "Attempt {{number}}, {{when}}: {{result}} ({{ms}} ms)"
+    },
+    "receiver": {
+      "title": "How to verify a delivery",
+      "intro": "Every delivery is a POST with these headers: X-DivalHR-Event-Id, X-DivalHR-Delivery-Id, X-DivalHR-Attempt, X-DivalHR-Timestamp and X-DivalHR-Signature.",
+      "step1": "Read the raw request body before parsing it.",
+      "step2": "Compute the signature with your secret as shown below and compare in constant time. During a rotation the header holds two signatures.",
+      "step3": "Reject timestamps older than five minutes.",
+      "step4": "Deliveries are at least once: ignore an event ID you already processed."
     }
   },
   "employeeImport": {

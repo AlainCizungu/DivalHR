@@ -109,6 +109,8 @@ hr_prepare_data() {
   install -d -m 0700 "$HR_DEV_DATA/caddy/data" "$HR_DEV_DATA/caddy/config" "$HR_DEV_DATA/mailpit"
   install -d -m 0700 "$HR_DEV_DATA/state" "$HR_DEV_DATA/backups" "$HR_DEV_DATA/config"
   install -d -m 0500 -o 1000 -g 1000 "$HR_DEV_DATA/keycloak/import"
+  # MVP-110: the synthetic receiver publishes only its throwaway CA certificate here (public).
+  install -d -m 0755 -o 1000 -g 1000 "$HR_DEV_DATA/webhook-receiver"
   python3 "$rel_dir/ops/hr-dev/render-realm.py" \
     "$rel_dir/infrastructure/hr-dev/keycloak/realm-divalhr-test.json" \
     "$HR_DEV_DATA/keycloak/import/realm-divalhr-test.json" \
