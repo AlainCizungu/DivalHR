@@ -4189,6 +4189,15 @@
       "LEAVE_APPROVALS": "Consulter les approbations de congés",
       "TIMESHEETS": "Consulter les feuilles de temps"
     },
-    "sourceCounts": "Fondée sur {{scheduled}} quarts planifiés, {{notCheckedIn}} sans pointage, {{pendingLeave}} demandes de congé et {{pendingTimesheets}} feuilles de temps en attente."
+    "sourceCounts": {
+      "sentence": "Fondée sur {{scheduled}}, {{notCheckedIn}}, {{leave}} et {{timesheets}} en attente.",
+      "scheduled_one": "{{n}} quart planifié",
+      "scheduled_other": "{{n}} quarts planifiés",
+      "notCheckedIn": "{{n}} sans pointage",
+      "leave_one": "{{n}} demande de congé",
+      "leave_other": "{{n}} demandes de congé",
+      "timesheets_one": "{{n}} feuille de temps",
+      "timesheets_other": "{{n}} feuilles de temps"
+    }
   }
 }

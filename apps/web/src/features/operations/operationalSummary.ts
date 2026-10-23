@@ -42,3 +42,23 @@ export function summaryBodyOf(language: 'en' | 'fr'): { language: 'en' | 'fr' } 
 export function summaryModeKey(mode: string): string {
   return mode === 'MODEL' ? 'operationalSummary.mode.MODEL' : 'operationalSummary.mode.FALLBACK';
 }
+
+/**
+ * The "Based on …" line under a briefing, with the singular and plural form of every noun chosen
+ * by its own count (0, 1, 2 and 5 are tested in both languages). The numbers are the recorded
+ * counts of the source snapshot, formatted for the display language.
+ */
+export function sourceCountsText(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  format: (value: number) => string,
+  counts: { scheduled: number; notCheckedIn: number; leave: number; timesheets: number },
+): string {
+  const part = (key: string, count: number) =>
+    t(`operationalSummary.sourceCounts.${key}`, { count, n: format(count) });
+  return t('operationalSummary.sourceCounts.sentence', {
+    scheduled: part('scheduled', counts.scheduled),
+    notCheckedIn: part('notCheckedIn', counts.notCheckedIn),
+    leave: part('leave', counts.leave),
+    timesheets: part('timesheets', counts.timesheets),
+  });
+}

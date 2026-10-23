@@ -12,7 +12,12 @@ import {
   type StatusFilters,
   type StatusView,
 } from './operationalStatus';
-import { summaryBodyOf, summaryModeKey, summaryRouteOf } from './operationalSummary';
+import {
+  sourceCountsText,
+  summaryBodyOf,
+  summaryModeKey,
+  summaryRouteOf,
+} from './operationalSummary';
 
 type State =
   | { kind: 'idle' }
@@ -171,13 +176,11 @@ export function OperationalSummaryPanel({ view, filters }: Props) {
             })}
           </ul>
           <p className="muted" data-testid="operational-summary-source">
-            {t('operationalSummary.sourceCounts', {
-              scheduled: number.format(state.summary.sourceSnapshot.shifts.scheduled),
-              notCheckedIn: number.format(state.summary.sourceSnapshot.shifts.notCheckedIn),
-              pendingLeave: number.format(state.summary.sourceSnapshot.approvals.leave.pending),
-              pendingTimesheets: number.format(
-                state.summary.sourceSnapshot.approvals.timesheets.pending,
-              ),
+            {sourceCountsText(t, (value) => number.format(value), {
+              scheduled: state.summary.sourceSnapshot.shifts.scheduled,
+              notCheckedIn: state.summary.sourceSnapshot.shifts.notCheckedIn,
+              leave: state.summary.sourceSnapshot.approvals.leave.pending,
+              timesheets: state.summary.sourceSnapshot.approvals.timesheets.pending,
             })}
           </p>
           <ul className="muted" data-testid="operational-summary-limitations">

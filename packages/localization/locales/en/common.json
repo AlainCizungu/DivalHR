@@ -4189,6 +4189,15 @@
       "LEAVE_APPROVALS": "Review leave approvals",
       "TIMESHEETS": "Review timesheets"
     },
-    "sourceCounts": "Based on {{scheduled}} scheduled shifts, {{notCheckedIn}} not checked in, {{pendingLeave}} leave requests and {{pendingTimesheets}} timesheets waiting."
+    "sourceCounts": {
+      "sentence": "Based on {{scheduled}}, {{notCheckedIn}}, {{leave}} and {{timesheets}} waiting.",
+      "scheduled_one": "{{n}} scheduled shift",
+      "scheduled_other": "{{n}} scheduled shifts",
+      "notCheckedIn": "{{n}} not checked in",
+      "leave_one": "{{n}} leave request",
+      "leave_other": "{{n}} leave requests",
+      "timesheets_one": "{{n}} timesheet",
+      "timesheets_other": "{{n}} timesheets"
+    }
   }
 }
