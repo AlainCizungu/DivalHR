@@ -170,7 +170,7 @@ test.describe.serial('MVP-110: secure outbound webhooks', () => {
 
     // A destination on the internal network is refused with a stable, translated message.
     await page.getByLabel('Nom', { exact: true }).fill(`Interne ${stamp}`);
-    await page.getByLabel('Point de terminaison HTTPS').fill('https://postgres/hook');
+    await page.getByLabel('Point de terminaison HTTPS').fill('https://internal.hooks.test/hook');
     await page.getByLabel(/Feuille de temps approuvée/u).check();
     await page
       .getByLabel('Je confirme que ce point de terminaison peut recevoir ces événements.')

@@ -95,7 +95,9 @@ services:
       - webhook-receiver-ca:/shared
     networks:
       default:
-        aliases: [receiver.hooks.test]
+        # internal.hooks.test resolves to the same private address but is NOT the exact receiver host:
+        # the browser suite uses it to prove the exception opens nothing else.
+        aliases: [receiver.hooks.test, internal.hooks.test]
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
       interval: 5s
