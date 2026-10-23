@@ -110,7 +110,7 @@ test.describe.serial('MVP-110: secure outbound webhooks', () => {
 
     // A test delivery is queued, sent by the worker and verified by the receiver.
     await page.getByRole('button', { name: 'Send a test delivery' }).click();
-    await expect(page.getByTestId('announcer')).toHaveText(
+    await expect(page.getByTestId('webhook-detail').getByTestId('announcer')).toHaveText(
       'Test delivery queued. Follow it in the history.',
     );
     await expect(async () => {
