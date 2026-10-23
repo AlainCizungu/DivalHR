@@ -312,7 +312,16 @@ public class JdbcWebhookRepository {
    * @param ciphertext the sealed secret
    * @param expiresAt when it stops being valid, or null for the current one
    */
-  public record StoredSecret(int version, byte[] ciphertext, Instant expiresAt) {}
+  public record StoredSecret(int version, byte[] ciphertext, Instant expiresAt) {
+    public StoredSecret {
+      ciphertext = ciphertext == null ? null : ciphertext.clone();
+    }
+
+    @Override
+    public byte[] ciphertext() {
+      return ciphertext == null ? null : ciphertext.clone();
+    }
+  }
 
   /**
    * The secret versions that may sign at an instant: the current one first, then a previous one
@@ -700,7 +709,16 @@ public class JdbcWebhookRepository {
       UUID eventId,
       byte[] payload,
       int attemptCount,
-      UUID claimToken) {}
+      UUID claimToken) {
+    public Claimed {
+      payload = payload.clone();
+    }
+
+    @Override
+    public byte[] payload() {
+      return payload.clone();
+    }
+  }
 
   /**
    * Claims due deliveries for this worker (row locks with SKIP LOCKED, so instances never share

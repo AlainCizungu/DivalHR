@@ -130,6 +130,9 @@ class AccessPortArchitectureTest {
       Pattern.compile("\\bdocuments\\.(contract[a-z_]*)\\b");
   private static final Pattern ANY_PEOPLE_TABLE = Pattern.compile("\\bpeople\\.[a-z_]+\\b");
   private static final Pattern PAYROLL_TABLE = Pattern.compile("\\bpayroll\\.[a-z_]+\\b");
+  private static final Pattern INTEGRATIONS_TABLE = Pattern.compile("\\bintegrations\\.[a-z_]+\\b");
+  private static final Pattern FOREIGN_FOR_INTEGRATIONS =
+      Pattern.compile("\\b(people|identity|payroll|documents|tenant)\\.[a-z_]+\\b");
 
   @Test
   void neitherModuleQueriesTheOthersTables() throws IOException {
@@ -148,6 +151,13 @@ class AccessPortArchitectureTest {
     scan(root.resolve("identity"), PAYROLL_TABLE, offenders);
     scan(root.resolve("documents"), PAYROLL_TABLE, offenders);
     scan(root.resolve("tenant"), PAYROLL_TABLE, offenders);
+    // MVP-110: webhook delivery owns its tables and reads business events only through the
+    // platform outbox port; no module reads its tables.
+    for (String module :
+        List.of("people", "identity", "documents", "payroll", "tenant", "platform")) {
+      scan(root.resolve(module), INTEGRATIONS_TABLE, offenders);
+    }
+    scanTables(root.resolve("integrations"), FOREIGN_FOR_INTEGRATIONS, offenders);
     assertThat(offenders).isEmpty();
   }
 
@@ -157,6 +167,20 @@ class AccessPortArchitectureTest {
       for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
         String text = Files.readString(file, StandardCharsets.UTF_8);
         if (foreign.matcher(text).find()) {
+          offenders.add(file.toString());
+        }
+      }
+    }
+  }
+
+  /** Like {@link #scan} but ignores Java package names (only SQL text inside string literals). */
+  private static void scanTables(Path module, Pattern foreign, List<String> offenders)
+      throws IOException {
+    Pattern sql = Pattern.compile("\\b(FROM|JOIN|INTO|UPDATE)\\s+" + foreign.pattern());
+    try (Stream<Path> files = Files.walk(module)) {
+      for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+        String text = Files.readString(file, StandardCharsets.UTF_8);
+        if (sql.matcher(text).find()) {
           offenders.add(file.toString());
         }
       }

@@ -131,6 +131,15 @@
       <Class name="com.divalhr.core.payroll.api.PayrollInputExportController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
+      <Class name="com.divalhr.core.integrations.application.WebhookService"/>
+      <Class name="com.divalhr.core.integrations.application.WebhookJobs"/>
+      <Class name="com.divalhr.core.integrations.application.WebhookJobScheduler"/>
+      <Class name="com.divalhr.core.integrations.application.WebhookSecrets"/>
+      <Class name="com.divalhr.core.integrations.application.DestinationGuard"/>
+      <Class name="com.divalhr.core.integrations.internal.JdbcWebhookRepository"/>
+      <Class name="com.divalhr.core.integrations.internal.HttpsDeliveryTransport"/>
+      <Class name="com.divalhr.core.integrations.api.WebhookController"/>
+      <Class name="com.divalhr.core.integrations.domain.AddressPolicy$Net"/>
     </Or>
   </Match>
   <!-- A shared test fixture holds the test's injected MockMvc, JdbcTemplate and clock by design. -->
