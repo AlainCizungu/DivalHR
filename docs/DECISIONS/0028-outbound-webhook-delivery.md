@@ -40,6 +40,12 @@ security boundary: who may configure it, what may be sent, where it may go, and 
   an event, or replayed: an idempotent replay of create or rotate returns the webhook **without**
   the secret (the secret leaves the command only through an out-of-band holder, not through the
   idempotency record).
+- **Replay independence (R162-1).** Create and update first look up a completed command by its key
+  (read only; a different payload under the same key is still `IDEMPOTENCY_KEY_REUSED`). A completed
+  command replays without any DNS lookup, network access or encryption-key check, so it cannot be
+  changed by what DNS, the network or the key store look like later. Only a new key runs the secret
+  availability and destination (DNS) validation, and it runs before, never inside, the
+  state-changing transaction.
 - **Signature (D110-5).** `X-DivalHR-Signature: v1=<hex HMAC-SHA256(key, timestamp "\n" body)>`, two
   values while rotated. The stored canonical body is byte-identical on every attempt. The headers
   are listed in `docs/WEBHOOKS.md`, which also carries a verified test vector.

@@ -199,6 +199,15 @@ public class WebhookService {
     var command =
         operations.validated(
             CREATE_SPEC, () -> WebhookCommand.create(idempotencyKey, body, properties::parseUrl));
+    var canonical = command.canonical(caller.tenant().value().toString());
+    // R162-1: a completed command replays without DNS, network or key checks; the outside-world
+    // validation runs only for a new key, and outside the state-changing transaction.
+    var earlier =
+        operations.replayOf(
+            CREATE_SPEC, caller.subject(), idempotencyKey, canonical, WebhookResult.class);
+    if (earlier.isPresent()) {
+      return finish(earlier.get(), null);
+    }
     checkDestination(command.configuration().url());
     String[] issued = new String[1];
     var result =
@@ -206,7 +215,7 @@ public class WebhookService {
             CREATE_SPEC,
             caller.subject(),
             idempotencyKey,
-            command.canonical(caller.tenant().value().toString()),
+            canonical,
             WebhookResult.class,
             TRANSACTION_TIMEOUT,
             () -> {
@@ -251,13 +260,20 @@ public class WebhookService {
         operations.validated(
             UPDATE_SPEC, () -> WebhookCommand.update(idempotencyKey, body, properties::parseUrl));
     UUID id = id(webhookId);
+    var canonical = command.canonical(caller.tenant().value().toString(), id);
+    var earlier =
+        operations.replayOf(
+            UPDATE_SPEC, caller.subject(), idempotencyKey, canonical, WebhookResult.class);
+    if (earlier.isPresent()) {
+      return finish(earlier.get(), null);
+    }
     checkDestination(command.configuration().url());
     var result =
         operations.execute(
             UPDATE_SPEC,
             caller.subject(),
             idempotencyKey,
-            command.canonical(caller.tenant().value().toString(), id),
+            canonical,
             WebhookResult.class,
             TRANSACTION_TIMEOUT,
             () -> {

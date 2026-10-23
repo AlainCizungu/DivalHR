@@ -56,11 +56,43 @@ public class WebhookTestConfig {
     return new ScriptedTransport();
   }
 
-  @Bean
-  @Primary
-  DnsResolver fixedResolver() {
-    return host -> {
-      if (host.startsWith("private-")) {
+  /** The fixed public resolver, switchable per test, counting lookups per host (R162-1). */
+  public static final class SwitchableDns implements DnsResolver {
+    /** What the resolver answers. */
+    public enum Mode {
+      NORMAL,
+      BLOCKED,
+      DOWN
+    }
+
+    private volatile Mode mode = Mode.NORMAL;
+    private final java.util.concurrent.ConcurrentHashMap<
+            String, java.util.concurrent.atomic.AtomicInteger>
+        lookups = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public void mode(Mode value) {
+      mode = value;
+    }
+
+    public int lookups(String host) {
+      var count = lookups.get(host);
+      return count == null ? 0 : count.get();
+    }
+
+    public void reset() {
+      mode = Mode.NORMAL;
+      lookups.clear();
+    }
+
+    @Override
+    public InetAddress[] resolve(String host) throws java.net.UnknownHostException {
+      lookups
+          .computeIfAbsent(host, h -> new java.util.concurrent.atomic.AtomicInteger())
+          .incrementAndGet();
+      if (mode == Mode.DOWN) {
+        throw new UnknownHostException(host);
+      }
+      if (mode == Mode.BLOCKED || host.startsWith("private-")) {
         return new InetAddress[] {InetAddress.getByAddress(host, new byte[] {10, 0, 0, 7})};
       }
       if (host.startsWith("mixed-")) {
@@ -75,6 +107,12 @@ public class WebhookTestConfig {
       return new InetAddress[] {
         InetAddress.getByAddress(host, new byte[] {93, (byte) 184, (byte) 216, 34})
       };
-    };
+    }
+  }
+
+  @Bean
+  @Primary
+  SwitchableDns fixedResolver() {
+    return new SwitchableDns();
   }
 }

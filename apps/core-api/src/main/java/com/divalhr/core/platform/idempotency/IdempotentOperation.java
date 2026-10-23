@@ -240,6 +240,56 @@ public class IdempotentOperation {
     return execute(spec, principal, key, canonical, responseType, bounded, replayCheck, work);
   }
 
+  /**
+   * Resolves a request that already completed, before any first-execution check that depends on the
+   * outside world (R162-1: DNS, network, key availability). Read only and reserving nothing: an
+   * identical earlier request is replayed exactly as {@code execute} would replay it, a different
+   * payload under the same key is refused with the same conflict, and a new key returns empty so
+   * the caller validates and then calls {@code execute}.
+   *
+   * @param spec operation
+   * @param principal verified JWT subject
+   * @param key idempotency key (already validated)
+   * @param canonical key-sorted normalized command, including any scope it depends on
+   * @param responseType body type for replay
+   * @param <R> body type
+   * @return the replayed result, or empty when the key is new
+   */
+  public <R> java.util.Optional<Result<R>> replayOf(
+      Spec spec,
+      String principal,
+      String key,
+      Map<String, Object> canonical,
+      Class<R> responseType) {
+    IdempotencyScope scope = new IdempotencyScope(spec.operation(), principal, key);
+    String fingerprint = Fingerprints.sha256(json.writeValueAsString(canonical));
+    TransactionTemplate readOnly = new TransactionTemplate(transactions.getTransactionManager());
+    readOnly.setReadOnly(true);
+    try {
+      java.util.Optional<StoredResponse> stored =
+          readOnly.execute(status -> idempotency.completedFor(scope, fingerprint));
+      if (stored == null || stored.isEmpty()) {
+        return java.util.Optional.empty();
+      }
+      metrics.record(spec.operation(), Outcome.REPLAYED);
+      LOG.atInfo()
+          .addKeyValue("operation", spec.operation())
+          .addKeyValue("outcome", Outcome.REPLAYED.name().toLowerCase(Locale.ROOT))
+          .log(spec.replayedEvent());
+      return java.util.Optional.of(
+          new Result<>(json.readValue(stored.get().body(), responseType), true));
+    } catch (ApiException rejected) {
+      Outcome outcome = outcomeOf(rejected.code());
+      metrics.record(spec.operation(), outcome);
+      LOG.atInfo()
+          .addKeyValue("operation", spec.operation())
+          .addKeyValue("outcome", outcome.name().toLowerCase(Locale.ROOT))
+          .addKeyValue("code", rejected.code().name())
+          .log(spec.rejectedEvent());
+      throw rejected;
+    }
+  }
+
   private <R> Result<R> execute(
       Spec spec,
       String principal,
