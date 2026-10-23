@@ -373,6 +373,13 @@ Dival AI produces a French or English summary using governed metrics and links t
 
 Authorized administrators can create signed webhooks, inspect delivery, rotate secrets, and disable failing endpoints.
 
+**Issue #161. In review (not merged, not deployed).** ADR 0028, decisions D110-1 to D110-16; receiver guide `docs/WEBHOOKS.md`.
+
+- **Who and where.** « Webhooks » under `/admin/webhooks` (tenant administrator, exact MFA, active membership); unknown or foreign webhooks answer 404.
+- **API.** `/api/v1/integrations/webhooks` (create, list, detail, update, rotate secret with a 24 h overlap, enable, disable, test, deliveries); idempotent, explicit confirmation, `Cache-Control: private, no-store`, no hard delete, at most 20 per tenant. V39 adds the `integrations` schema.
+- **Delivery.** Closed event catalogue, HMAC-SHA256 signature, at-least-once (6 attempts, automatic suspension after 10 consecutive terminal failures), SSRF checks on every attempt, no redirects.
+- **Not included:** per-event filters beyond the catalogue, custom headers, payload templates, replay of old events, general outbound internet egress in hr-dev (production-readiness gap), messaging connectors (MVP-111).
+
 ### MVP-111 Deliver one messaging connector
 
 The first design partner selects WhatsApp Business, Microsoft Teams, or Slack. Sensitive details require an authenticated DivalHR deep link.

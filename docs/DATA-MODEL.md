@@ -527,3 +527,10 @@ Additive to V37 (no V37 object is altered). All tables are append-only (V37's `i
 - `payroll.input_export` and `payroll.input_export_row`: one export per locked run (unique key), its `lock_id` and `run_id` proven to name the same lock row by one composite foreign key `(tenant_id, lock_id, run_id)` to the lock's `(tenant_id, id, run_id)` key (R150-1), rows equal to the run's source rows in the CSV order, counts and minutes proven at commit; `csv_sha256` is the SHA-256 of the exact CSV bytes.
 - `payroll.input_scope_lock(tenant, entity, start, end)` takes a transaction advisory lock for the scope.
 - Rollback: `db/rollback/V38__rollback.sql` refuses while any V38 evidence exists.
+
+## MVP-110: outbound webhooks (V39)
+
+New schema `integrations`; no existing table is altered. Tables: `webhook` (tenant, url, event types, state, version, soft-disable only), `webhook_secret` (AES-256-GCM ciphertext, nonce, key version, active and overlap windows; at most one current and one overlapping), `delivery` (one per event and webhook; state, attempt count, next attempt, lease token), `delivery_attempt` (append-only; closed failure class, status code, duration; no body), `fanout_event` (local ledger of copied outbox events) and `fanout_state` (watermark singleton).
+
+- Triggers enforce 20 webhooks per tenant, 5 test deliveries per webhook per hour, tenant consistency across the foreign keys, no DELETE or TRUNCATE on evidence, and immutable attempts.
+- Rollback: `db/rollback/V39__rollback.sql` refuses while any V39 evidence exists.
