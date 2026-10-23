@@ -21,6 +21,7 @@ export interface NavGroupDef {
     | 'organization'
     | 'documents'
     | 'access'
+    | 'integrations'
     | 'mySpace';
   labelKey: string;
   items: NavItem[];
@@ -180,6 +181,13 @@ export const NAVIGATION: NavGroupDef[] = [
     items: [
       { to: '/admin/users', labelKey: 'nav.users', icon: 'invite', role: 'tenant-admin' },
       { to: '/admin/access', labelKey: 'nav.accessReview', icon: 'shield', role: 'tenant-admin' },
+    ],
+  },
+  {
+    id: 'integrations',
+    labelKey: 'nav.groups.integrations',
+    items: [
+      { to: '/admin/webhooks', labelKey: 'nav.webhooks', icon: 'webhook', role: 'tenant-admin' },
     ],
   },
   {

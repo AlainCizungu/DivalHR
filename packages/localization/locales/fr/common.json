@@ -31,7 +31,8 @@
       "access": "Accès et sécurité",
       "mySpace": "Mon espace",
       "operations": "Opérations",
-      "payroll": "Paie"
+      "payroll": "Paie",
+      "integrations": "Intégrations"
     },
     "leaveRoutingExceptions": "Exceptions d’acheminement des congés",
     "leaveApprovalSubstitutes": "Remplaçants pour approbation des congés",
@@ -47,7 +48,8 @@
     "timeApprovals": "Approbations du temps",
     "payrollPreparation": "Préparation de la paie",
     "operationsStatus": "Opérations du jour",
-    "teamOperations": "Opérations de l’équipe"
+    "teamOperations": "Opérations de l’équipe",
+    "webhooks": "Webhooks"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -525,6 +527,19 @@
     "PAYROLL_INPUT_EXPORT_TOO_LARGE": "Cet export dépasse la taille prise en charge. Contactez le support.",
     "OPERATIONAL_STATUS_SCOPE_NOT_FOUND": "Cette entité juridique ou ce site n’est pas disponible pour les opérations du jour.",
     "OPERATIONAL_SUMMARY_UNAVAILABLE": "La synthèse n’est pas disponible pour le moment. Les chiffres ci-dessous ne sont pas touchés ; réessayez plus tard.",
+    "WEBHOOK_NOT_FOUND": "Le webhook n’existe pas ou vous n’y avez pas accès.",
+    "WEBHOOK_DELIVERY_NOT_FOUND": "La livraison n’existe pas pour ce webhook.",
+    "WEBHOOK_LIMIT_REACHED": "Cette organisation a déjà atteint le maximum de 20 webhooks.",
+    "WEBHOOK_URL_INVALID": "Saisissez une adresse HTTPS valide avec un nom d’hôte public, sans identifiants ni fragment.",
+    "WEBHOOK_DESTINATION_BLOCKED": "Cette destination ne peut pas être utilisée. Choisissez un point de terminaison HTTPS public.",
+    "WEBHOOK_EVENT_TYPE_INVALID": "Choisissez au moins un événement dans la liste.",
+    "WEBHOOK_VERSION_STALE": "Le webhook a changé depuis son ouverture. Rechargez-le puis réessayez.",
+    "WEBHOOK_ALREADY_DISABLED": "Le webhook est déjà désactivé.",
+    "WEBHOOK_ALREADY_ENABLED": "Le webhook est déjà activé.",
+    "WEBHOOK_DISABLED": "Le webhook est désactivé. Activez-le d’abord.",
+    "WEBHOOK_SUSPENDED": "Le webhook a été suspendu après des échecs de livraison répétés. Vérifiez votre point de terminaison, puis réactivez-le.",
+    "WEBHOOK_TEST_RATE_LIMITED": "Trop de livraisons de test. Réessayez plus tard.",
+    "WEBHOOK_SECRET_UNAVAILABLE": "Les webhooks ne sont pas disponibles pour le moment. Réessayez plus tard.",
     "OPERATIONAL_SUMMARY_SOURCE_INVALID": "La synthèse n’a pas pu être produite à partir des chiffres actuels. Les chiffres ci-dessous ne sont pas touchés."
   },
   "notFound": {
@@ -1066,6 +1081,164 @@
     "accessState": {
       "ACTIVE": "Actif",
       "REVOKED": "Accès révoqué"
+    }
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "Envoyez des notifications signées sur les événements validés vers vos propres points de terminaison HTTPS. Chaque webhook ne reçoit que les événements choisis, avec des identifiants et un statut, jamais de données personnelles.",
+    "unauthorized": "Seuls les administrateurs de l’organisation connectés avec une authentification multifacteur peuvent gérer les webhooks.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les webhooks.",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "working": "En cours…",
+    "cancel": "Annuler",
+    "back": "Retour aux webhooks",
+    "loadMore": "Afficher plus",
+    "retryAfter_one": "Réessayez dans {{count}} seconde.",
+    "retryAfter_other": "Réessayez dans {{count}} secondes.",
+    "reference": "Référence : {{id}}",
+    "never": "Jamais",
+    "none": "Aucune",
+    "create": {
+      "title": "Nouveau webhook",
+      "open": "Nouveau webhook"
+    },
+    "list": {
+      "title": "Vos webhooks",
+      "count": "{{count}} webhook(s) utilisé(s) sur {{max}}.",
+      "empty": "Aucun webhook pour l’instant. Créez-en un pour recevoir des notifications d’événements signées."
+    },
+    "table": {
+      "name": "Nom",
+      "url": "Point de terminaison",
+      "status": "Statut",
+      "events": "Événements",
+      "lastSuccess": "Dernier succès",
+      "lastFailure": "Dernier échec"
+    },
+    "status": {
+      "ACTIVE": "Actif",
+      "DISABLED": "Désactivé",
+      "SUSPENDED": "Suspendu après des échecs répétés"
+    },
+    "state": {
+      "PENDING": "En attente",
+      "RETRYING": "Nouvelle tentative prévue",
+      "SUCCEEDED": "Livré",
+      "FAILED": "Échec",
+      "CANCELLED": "Annulé"
+    },
+    "failure": {
+      "DNS_BLOCKED": "Destination non autorisée",
+      "DNS_FAILED": "Nom introuvable",
+      "CONNECT_TIMEOUT": "Délai de connexion dépassé",
+      "REQUEST_TIMEOUT": "Délai de réponse dépassé",
+      "TLS_FAILED": "Échec de la connexion sécurisée",
+      "CONNECTION_FAILED": "Échec de la connexion",
+      "HTTP_RESPONSE": "Le point de terminaison n’a pas accepté la livraison",
+      "INTERNAL_FAILURE": "La livraison n’a pas pu être préparée"
+    },
+    "events": {
+      "leave.request.approved.v1": "Demande de congé approuvée",
+      "leave.request.rejected.v1": "Demande de congé refusée",
+      "timesheet.approved.v1": "Feuille de temps approuvée",
+      "attendance.corrected.v1": "Présence corrigée",
+      "payroll.input.locked.v1": "Données de paie verrouillées",
+      "payroll.input-export.created.v1": "Export des données de paie créé"
+    },
+    "form": {
+      "name": "Nom",
+      "nameHint": "Texte brut, {{max}} caractères au maximum.",
+      "url": "Point de terminaison HTTPS",
+      "urlHint": "Une seule adresse HTTPS publique. Les identifiants, fragments et adresses IP ne sont pas acceptés.",
+      "events": "Événements à envoyer",
+      "confirm": "Je confirme que ce point de terminaison peut recevoir ces événements.",
+      "create": "Créer le webhook",
+      "save": "Enregistrer les modifications",
+      "urlPlaceholder": "https://exemple.com/webhooks"
+    },
+    "errors": {
+      "summary": "Vérifiez les champs signalés.",
+      "nameRequired": "Saisissez un nom.",
+      "nameTooLong": "Le nom est trop long.",
+      "urlRequired": "Saisissez le point de terminaison HTTPS.",
+      "urlHttps": "Saisissez une adresse qui commence par https://.",
+      "eventsRequired": "Choisissez au moins un événement.",
+      "confirmRequired": "Confirmez pour continuer."
+    },
+    "secret": {
+      "title": "Copiez maintenant votre secret de signature",
+      "once": "Ce secret n’est affiché qu’une seule fois. DivalHR ne peut pas le réafficher ; si vous le perdez, renouvelez le secret.",
+      "label": "Secret de signature",
+      "copy": "Copier le secret",
+      "copied": "Secret copié.",
+      "copyFailed": "La copie a échoué. Sélectionnez le secret et copiez-le manuellement.",
+      "stored": "J’ai conservé le secret en lieu sûr.",
+      "done": "Terminé",
+      "overlap": "L’ancien secret continue de signer jusqu’au {{when}}, ce qui vous permet de changer de récepteur sans interruption."
+    },
+    "detail": {
+      "title": "Webhook",
+      "secretVersion": "Version du secret",
+      "failures": "Livraisons échouées consécutives",
+      "suspendedNote": "Ce webhook a été suspendu après des échecs répétés. Corrigez le point de terminaison, puis réactivez-le. Les événements manqués ne sont pas rejoués."
+    },
+    "actions": {
+      "edit": "Modifier",
+      "test": "Envoyer une livraison de test",
+      "rotate": "Renouveler le secret",
+      "disable": "Désactiver",
+      "enable": "Activer"
+    },
+    "confirmAction": {
+      "understand": "Je comprends et je souhaite continuer.",
+      "rotate": {
+        "title": "Renouveler le secret de signature",
+        "body": "Un nouveau secret est généré et affiché une seule fois. L’ancien secret continue de signer pendant 24 heures pour vous laisser mettre à jour votre récepteur.",
+        "submit": "Oui, renouveler le secret"
+      },
+      "disable": {
+        "title": "Désactiver ce webhook",
+        "body": "Plus aucun nouvel événement n’est envoyé et les livraisons en attente sont annulées. L’historique est conservé.",
+        "submit": "Oui, désactiver ce webhook"
+      },
+      "enable": {
+        "title": "Activer ce webhook",
+        "body": "Les nouveaux événements sont de nouveau envoyés. Les événements manqués pendant la désactivation ou la suspension ne sont pas rejoués.",
+        "submit": "Oui, activer ce webhook"
+      }
+    },
+    "announce": {
+      "created": "Webhook créé. Copiez le secret maintenant.",
+      "updated": "Webhook mis à jour.",
+      "rotate": "Secret renouvelé.",
+      "disable": "Webhook désactivé.",
+      "enable": "Webhook activé.",
+      "testQueued": "Livraison de test mise en file. Suivez-la dans l’historique."
+    },
+    "history": {
+      "title": "Historique des livraisons",
+      "note": "Seuls les résultats sont conservés : aucun contenu, aucune réponse et aucun en-tête n’est stocké.",
+      "refresh": "Actualiser l’historique",
+      "empty": "Aucune livraison pour l’instant.",
+      "event": "Événement",
+      "state": "État",
+      "attempts": "Tentatives",
+      "result": "Résultat",
+      "next": "Prochaine tentative",
+      "details": "Détails",
+      "show": "Tentatives",
+      "httpStatus": "HTTP {{status}}",
+      "attemptsTitle": "Tentatives",
+      "attemptLine": "Tentative {{number}}, {{when}} : {{result}} ({{ms}} ms)"
+    },
+    "receiver": {
+      "title": "Comment vérifier une livraison",
+      "intro": "Chaque livraison est un POST avec ces en-têtes : X-DivalHR-Event-Id, X-DivalHR-Delivery-Id, X-DivalHR-Attempt, X-DivalHR-Timestamp et X-DivalHR-Signature.",
+      "step1": "Lisez le corps brut de la requête avant de l’analyser.",
+      "step2": "Calculez la signature avec votre secret comme ci-dessous et comparez en temps constant. Pendant un renouvellement, l’en-tête contient deux signatures.",
+      "step3": "Rejetez les horodatages de plus de cinq minutes.",
+      "step4": "Les livraisons sont au moins une fois : ignorez un identifiant d’événement déjà traité."
     }
   },
   "employeeImport": {

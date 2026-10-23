@@ -526,7 +526,33 @@ public enum ErrorCode {
    * MVP-101: no valid briefing could be produced (service authentication, the AI service, or its
    * answer failed); nothing partial is returned.
    */
-  OPERATIONAL_SUMMARY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
+  OPERATIONAL_SUMMARY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+  /** MVP-110: the webhook is missing or foreign (indistinguishable). */
+  WEBHOOK_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-110: the delivery is missing for this webhook. */
+  WEBHOOK_DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-110: the tenant already has 20 webhooks. */
+  WEBHOOK_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-110: the endpoint is not an acceptable HTTPS URL. */
+  WEBHOOK_URL_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-110: the endpoint resolves to a forbidden destination. */
+  WEBHOOK_DESTINATION_BLOCKED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-110: an event type is outside the closed catalogue, or none was chosen. */
+  WEBHOOK_EVENT_TYPE_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-110: the configuration version is not the current one. */
+  WEBHOOK_VERSION_STALE(HttpStatus.CONFLICT),
+  /** MVP-110: the webhook is already disabled. */
+  WEBHOOK_ALREADY_DISABLED(HttpStatus.CONFLICT),
+  /** MVP-110: the webhook is already active. */
+  WEBHOOK_ALREADY_ENABLED(HttpStatus.CONFLICT),
+  /** MVP-110: the webhook is disabled, so no test can be sent. */
+  WEBHOOK_DISABLED(HttpStatus.CONFLICT),
+  /** MVP-110: the webhook was suspended after repeated terminal failures. */
+  WEBHOOK_SUSPENDED(HttpStatus.CONFLICT),
+  /** MVP-110: a test-delivery limit was reached (which one is not disclosed). */
+  WEBHOOK_TEST_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+  /** MVP-110: the webhook encryption key is not configured. */
+  WEBHOOK_SECRET_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
 
   private final HttpStatus status;
 

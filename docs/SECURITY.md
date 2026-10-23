@@ -780,3 +780,14 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
   (`secrets/ops/ai-service-client-secret`, `secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET`), and
   verified after every deployment by `ai-capability-check.sh`; no external model provider or key is
   configured and the internal AI operation is not publicly routed.
+
+## Outbound webhooks (MVP-110)
+
+- **Authorization.** Tenant administrator, exact MFA and active membership; unknown or foreign webhooks return 404; denials are audited. Responses carry `Cache-Control: private, no-store`.
+- **SSRF.** HTTPS only, allow-listed ports, no credentials in the URL, no literal-IP shortcuts to private ranges. Every A/AAAA record is validated on every attempt (loopback, private, link-local, metadata, multicast, reserved, IPv4-mapped and unique-local ranges refused), the connection is pinned to the validated address, TLS and host-name verification stay on, and redirects are never followed. Response bodies and headers are size-capped and never stored.
+- **Signing.** `v1=HMAC-SHA256(key, timestamp + "\n" + rawBody)`, five-minute replay window for receivers, event id for deduplication. During a rotation both signatures are sent for 24 h.
+- **Secret handling.** 32 random bytes shown once; stored only as AES-256-GCM ciphertext (key derived with HKDF-SHA256 from `DIVALHR_WEBHOOK_ENCRYPTION_KEY`; AAD binds tenant, webhook, version and algorithm). Never in logs, audit metadata, idempotency records, responses after creation, or the repository. Losing or changing the key makes stored secrets unreadable: rotate the webhooks.
+- **Payload minimization.** Identifiers and closed statuses only; no names, free text, pay or time data; the internal leave-routing path is not exposed.
+- **Abuse limits.** 20 webhooks per tenant, test deliveries 20 per tenant and 5 per webhook per hour (database-enforced, indistinguishable 429), automatic suspension after repeated terminal failures.
+- **Audit.** Fail-closed audit for every state change with bounded metadata; delivery history is append-only with closed failure classes.
+- **hr-dev receiver exception.** Disabled by default, refused outside development/test, one exact host and port, TLS preserved. General outbound internet egress is a production-readiness gap (ADR 0028).

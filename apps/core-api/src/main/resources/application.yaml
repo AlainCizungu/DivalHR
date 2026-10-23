@@ -144,6 +144,9 @@ divalhr:
       payroll-input-write: ${DIVALHR_PAYROLL_INPUT_WRITE_REQUESTS_PER_MINUTE:20}
       # MVP-101: the grounded daily briefing (a deliberate, user-initiated AI call).
       operational-summary: ${DIVALHR_OPERATIONAL_SUMMARY_REQUESTS_PER_MINUTE:6}
+      # MVP-110: webhook management reads (disclosures) and commands.
+      webhook-read: ${DIVALHR_WEBHOOK_READ_REQUESTS_PER_MINUTE:60}
+      webhook-write: ${DIVALHR_WEBHOOK_WRITE_REQUESTS_PER_MINUTE:20}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -186,6 +189,28 @@ divalhr:
       operational-summary:
         requests: ${DIVALHR_OPERATIONAL_SUMMARY_TENANT_REQUESTS:120}
         window: 10m
+      # MVP-110: webhook commands, and (separately) at most 20 accepted test deliveries per tenant
+      # per hour (D110-9; the per-webhook limit of five is enforced in the database).
+      webhook-write:
+        requests: ${DIVALHR_WEBHOOK_TENANT_WRITES:100}
+        window: 10m
+      webhook-test-delivery:
+        requests: 20
+        window: 1h
+  # MVP-110: signed outbound webhooks (ADR 0028). The encryption key has no default and is read from
+  # the protected secret directory; without it the capability is unavailable (503). The test
+  # receiver exception is for the hr-dev/test environments only and names one exact host and port.
+  integrations:
+    encryption-key: ${DIVALHR_WEBHOOK_ENCRYPTION_KEY:}
+    extra-ports: ${DIVALHR_WEBHOOK_EXTRA_PORTS:}
+    jitter: true
+    jobs:
+      enabled: ${DIVALHR_WEBHOOK_JOBS_ENABLED:true}
+      interval: ${DIVALHR_WEBHOOK_JOBS_INTERVAL:PT5S}
+    test-receiver:
+      host: ${DIVALHR_WEBHOOK_TEST_RECEIVER_HOST:}
+      port: ${DIVALHR_WEBHOOK_TEST_RECEIVER_PORT:}
+      ca-file: ${DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE:}
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).
   employee-import:

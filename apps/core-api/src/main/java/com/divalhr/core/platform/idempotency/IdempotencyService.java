@@ -81,6 +81,24 @@ public class IdempotencyService {
   }
 
   /**
+   * Resolves an earlier completed request without reserving anything (R162-1): a committed record
+   * is replayed or, for a different payload, rejected; no record means the key is new.
+   *
+   * @param scope operation, principal and key
+   * @param fingerprint SHA-256 of the normalized command
+   * @return the stored response of an earlier identical request, or empty when the key is new
+   * @throws ApiException {@link ErrorCode#IDEMPOTENCY_KEY_REUSED} for a different payload
+   */
+  @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+  public Optional<StoredResponse> completedFor(IdempotencyScope scope, String fingerprint) {
+    Optional<Existing> existing = find(scope);
+    if (existing.isPresent() && !existing.get().fingerprint().equals(fingerprint)) {
+      throw new ApiException(ErrorCode.IDEMPOTENCY_KEY_REUSED, Map.of());
+    }
+    return existing.map(Existing::response);
+  }
+
+  /**
    * Stores the successful response in the same transaction as the business writes.
    *
    * @param scope operation, principal and key

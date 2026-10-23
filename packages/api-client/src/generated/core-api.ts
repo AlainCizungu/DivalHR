@@ -646,23 +646,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/webhooks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create a signed webhook subscription */
-        post: operations["createWebhook"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/employees/search": {
         parameters: {
             query?: never;
@@ -2967,6 +2950,174 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/integrations/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tenant's webhooks
+         * @description MVP-110. The tenant's webhooks, newest first, as a keyset page (signed cursor bound to the operation and tenant). A fail-closed disclosure (audit webhook.read). Never returns a secret. Cache-Control private, no-store.
+         */
+        get: operations["listWebhooks"];
+        put?: never;
+        /**
+         * Create a signed outbound webhook
+         * @description MVP-110 (ADR 0028). Creates one HTTPS endpoint subscribed to a closed set of public events. The endpoint is normalized and resolved: a name that resolves to, or also to, a loopback, private, link-local, multicast, CGNAT, documentation, reserved or cloud-metadata address is 422 WEBHOOK_DESTINATION_BLOCKED; a malformed or unresolvable endpoint is 400 WEBHOOK_URL_INVALID; an unknown, duplicate or missing event type is 400 WEBHOOK_EVENT_TYPE_INVALID; the 21st webhook of a tenant is 409 WEBHOOK_LIMIT_REACHED. The random signing secret is returned once, in this response only; it is stored encrypted (AES-256-GCM) and a replay of the same Idempotency-Key returns the webhook with a null secret. One transaction writes the webhook, its secret, the audit record (webhook.create) and the outbox event. Idempotent. Cache-Control private, no-store.
+         */
+        post: operations["createWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/webhooks/{webhookId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One webhook
+         * @description MVP-110. The webhook's configuration, status, versions and failure counters, and when the previous secret stops signing during a rotation. A malformed, unknown or foreign ID is 404 WEBHOOK_NOT_FOUND. A fail-closed disclosure (audit webhook.read). Never returns a secret.
+         */
+        get: operations["getWebhook"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a webhook's name, endpoint or events
+         * @description MVP-110. Requires the current configVersion (409 WEBHOOK_VERSION_STALE otherwise) and explicit confirmation. The endpoint is validated and resolved as at creation. Audit webhook.update. Idempotent.
+         */
+        patch: operations["updateWebhook"];
+        trace?: never;
+    };
+    "/integrations/webhooks/{webhookId}/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate a webhook's signing secret
+         * @description MVP-110. The new secret signs immediately and is returned once; the previous secret keeps signing for 24 hours (both signatures are sent during the overlap) and its ciphertext is then erased. Audit webhook.rotate-secret. Idempotent; a replay carries no secret.
+         */
+        post: operations["rotateWebhookSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/webhooks/{webhookId}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable a webhook
+         * @description MVP-110. Stops new attempts and cancels open deliveries; history stays readable. 409 WEBHOOK_ALREADY_DISABLED when already disabled. Audit webhook.disable. Idempotent.
+         */
+        post: operations["disableWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/webhooks/{webhookId}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable a disabled or suspended webhook
+         * @description MVP-110. Resets the failure counter; older failed deliveries are not replayed. 409 WEBHOOK_ALREADY_ENABLED when already active. Audit webhook.enable. Idempotent.
+         */
+        post: operations["enableWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/webhooks/{webhookId}/test-deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send one test delivery
+         * @description MVP-110. Queues one webhook.test.v1 delivery through the real worker, signature and SSRF checks; the answer is the delivery ID, not the result. Only for an active webhook (409 WEBHOOK_DISABLED or WEBHOOK_SUSPENDED otherwise). At most 5 accepted test deliveries per webhook per hour and 20 per tenant per hour; either limit is 429 WEBHOOK_TEST_RATE_LIMITED with Retry-After, and only accepted commands count. Audit webhook.test-delivery. Idempotent.
+         */
+        post: operations["createWebhookTestDelivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/webhooks/{webhookId}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A webhook's delivery history
+         * @description MVP-110. Deliveries, newest first, as a keyset page. Shows state, attempts, exact HTTP status and closed failure class; never a response body, header, address, signature or payload. A fail-closed disclosure (audit webhook.delivery-read).
+         */
+        get: operations["listWebhookDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/webhooks/{webhookId}/deliveries/{deliveryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One delivery with its attempts
+         * @description MVP-110. A malformed, unknown or foreign delivery is 404 WEBHOOK_DELIVERY_NOT_FOUND. A fail-closed disclosure (audit webhook.delivery-read).
+         */
+        get: operations["getWebhookDelivery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4381,7 +4532,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE";
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -5978,6 +6129,132 @@ export interface components {
             outcome: "CREATED" | "EXISTING";
             export: components["schemas"]["PayrollInputExport"];
         };
+        /**
+         * @description MVP-110. The closed catalogue of public events a webhook can subscribe to (packages/shared-contracts/schemas/webhook-event.schema.json).
+         * @enum {string}
+         */
+        WebhookEventType: "leave.request.approved.v1" | "leave.request.rejected.v1" | "timesheet.approved.v1" | "attendance.corrected.v1" | "payroll.input.locked.v1" | "payroll.input-export.created.v1";
+        /** @description MVP-110. Create an outbound webhook. */
+        CreateWebhookRequest: {
+            /** @description Trimmed plain text, no markup or URL. */
+            name: string;
+            /** @description One HTTPS endpoint (port 443 unless allow-listed), no credentials, no fragment, a public host name (no IP literal). */
+            url: string;
+            eventTypes: components["schemas"]["WebhookEventType"][];
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-110. Change a webhook's name, endpoint or events. */
+        UpdateWebhookRequest: {
+            name: string;
+            url: string;
+            eventTypes: components["schemas"]["WebhookEventType"][];
+            /** Format: int32 */
+            configVersion: number;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-110. Rotate the secret, disable or enable a webhook. */
+        WebhookCommandRequest: {
+            /** Format: int32 */
+            configVersion: number;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-110. Send one test delivery. */
+        TestDeliveryRequest: {
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-110. A webhook as the administrator sees it. Never carries a secret. */
+        Webhook: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            url: string;
+            eventTypes: components["schemas"]["WebhookEventType"][];
+            /** @enum {string} */
+            status: "ACTIVE" | "DISABLED" | "SUSPENDED";
+            /** Format: int32 */
+            configVersion: number;
+            /** Format: int32 */
+            secretVersion: number;
+            /** Format: int32 */
+            consecutiveFailures: number;
+            /** Format: date-time */
+            lastSuccessAt: string | null;
+            /** Format: date-time */
+            lastFailureAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description MVP-110. The webhook after a command or read. secret is the signing secret (URL-safe base64 of 32 random bytes) in the create and rotate responses of the request that made it, otherwise null; it is never stored in plaintext and never replayed. */
+        WebhookResult: {
+            webhook: components["schemas"]["Webhook"];
+            secret: string | null;
+            /** Format: date-time */
+            previousSecretExpiresAt: string | null;
+        };
+        WebhookPage: {
+            items: components["schemas"]["Webhook"][];
+            nextCursor: string | null;
+        };
+        /** @description MVP-110. One delivery. No payload, response body or header, address, signature or secret. */
+        WebhookDelivery: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            webhookId: string;
+            /** Format: uuid */
+            eventId: string;
+            /** @description A WebhookEventType or webhook.test.v1. */
+            eventType: string;
+            /** @enum {string} */
+            state: "PENDING" | "RETRYING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+            /** Format: int32 */
+            attemptCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastAttemptAt: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string | null;
+            /** Format: int32 */
+            lastHttpStatus: number | null;
+            /** @enum {string|null} */
+            lastFailureClass: "DNS_BLOCKED" | "DNS_FAILED" | "CONNECT_TIMEOUT" | "REQUEST_TIMEOUT" | "TLS_FAILED" | "CONNECTION_FAILED" | "HTTP_RESPONSE" | "INTERNAL_FAILURE" | null;
+        };
+        WebhookDeliveryPage: {
+            items: components["schemas"]["WebhookDelivery"][];
+            nextCursor: string | null;
+        };
+        WebhookDeliveryAttempt: {
+            /** Format: int32 */
+            number: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: int32 */
+            httpStatus: number | null;
+            /** @enum {string|null} */
+            failureClass: "DNS_BLOCKED" | "DNS_FAILED" | "CONNECT_TIMEOUT" | "REQUEST_TIMEOUT" | "TLS_FAILED" | "CONNECTION_FAILED" | "HTTP_RESPONSE" | "INTERNAL_FAILURE" | null;
+            /** Format: int32 */
+            latencyMillis: number;
+        };
+        WebhookDeliveryDetail: {
+            delivery: components["schemas"]["WebhookDelivery"];
+            attempts: components["schemas"]["WebhookDeliveryAttempt"][];
+        };
+        /** @description MVP-110. The accepted test delivery; follow it in the delivery history. */
+        WebhookTestDelivery: {
+            /** Format: uuid */
+            deliveryId: string;
+            /** Format: uuid */
+            webhookId: string;
+            /** Format: uuid */
+            eventId: string;
+        };
         PayrollInputExportPage: {
             items: components["schemas"]["PayrollInputExport"][];
             nextCursor: string | null;
@@ -7151,6 +7428,10 @@ export interface components {
         /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
         Cursor: string;
         TimesheetExportId: string;
+        /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+        WebhookId: string;
+        /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_DELIVERY_NOT_FOUND. */
+        WebhookDeliveryId: string;
         /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
         PayrollInputExportId: string;
         /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
@@ -8531,26 +8812,6 @@ export interface operations {
         responses: {
             /** @description Payroll inputs */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    createWebhook: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Webhook created */
-            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13204,6 +13465,385 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listWebhooks: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWebhookRequest"];
+            };
+        };
+        responses: {
+            /** @description Created, or the original replayed (without the secret) */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getWebhook: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    updateWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWebhookRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated, unchanged or replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    rotateWebhookSecret: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Rotated or replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    disableWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Disabled or replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    enableWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Enabled or replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createWebhookTestDelivery: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestDeliveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted or replayed */
+            202: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookTestDelivery"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listWebhookDeliveries: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getWebhookDelivery: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_NOT_FOUND. */
+                webhookId: components["parameters"]["WebhookId"];
+                /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_DELIVERY_NOT_FOUND. */
+                deliveryId: components["parameters"]["WebhookDeliveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
         };
     };

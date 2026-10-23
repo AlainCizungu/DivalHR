@@ -141,6 +141,17 @@ A module becomes an independent service when at least one condition applies:
 - reliability blast-radius reduction
 - partner-facing boundary that requires independent controls
 
+### Outbound webhooks (MVP-110, ADR 0028)
+
+The `integrations` module owns webhooks, secrets, deliveries and attempts (schema `integrations`, V39).
+It never reads another module's tables: a platform `OutboxReader` port exposes the durable outbox
+events, a fan-out job copies each event once into a local ledger (`fanout_event`, watermark in
+`fanout_state`, advisory lock, periodic rescan) and creates one delivery per matching enabled
+webhook. Workers claim deliveries with `FOR UPDATE SKIP LOCKED` and a lease token, resolve the host,
+validate every address, and send through an address-pinned HTTPS transport without redirects.
+`AccessPortArchitectureTest` keeps other modules out of the `integrations` tables and the module out
+of theirs. See `docs/WEBHOOKS.md` and ADR 0028.
+
 ### Grounded operational summary (MVP-101, ADR 0027)
 
 Core calls the AI service over HTTP with a Keycloak client-credentials token (`platform.ai`:

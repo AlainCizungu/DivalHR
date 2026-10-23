@@ -81,6 +81,31 @@ services:
       timeout: 3s
       retries: 20
 
+  # MVP-110: a controlled SYNTHETIC HTTPS receiver for webhook deliveries. Development stack only
+  # (never in infrastructure/hr-dev): it is the one destination Core's development-only test-receiver
+  # exception allows (exact host and port, TLS and hostname verification kept), and it holds
+  # nothing but in-memory counters. Its control port is published on 127.0.0.1 for the browser suite.
+  webhook-receiver:
+    build:
+      context: ./webhook-receiver
+    image: divalhr/webhook-receiver:dev
+    environment:
+      RECEIVER_HOST: receiver.hooks.test
+    volumes:
+      - webhook-receiver-ca:/shared
+    networks:
+      default:
+        # internal.hooks.test resolves to the same private address but is NOT the exact receiver host:
+        # the browser suite uses it to prove the exception opens nothing else.
+        aliases: [receiver.hooks.test, internal.hooks.test]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - '127.0.0.1:${WEBHOOK_RECEIVER_PORT:-8099}:8099'
+
   core-api:
     build:
       context: ../../apps/core-api
@@ -106,6 +131,14 @@ services:
       DIVALHR_AI_SERVICE_TOKEN_URL: http://keycloak:8080/realms/divalhr-dev/protocol/openid-connect/token
       DIVALHR_AI_SERVICE_CLIENT_ID: divalhr-core-ai
       DIVALHR_AI_SERVICE_CLIENT_SECRET: ${DIVALHR_AI_SERVICE_CLIENT_SECRET:?set in .env / .env.example}
+      # MVP-110: outbound webhooks. The key encrypts signing secrets at rest (>= 32 bytes; a
+      # dev-only- value is refused outside development). DEVELOPMENT ONLY: the synthetic receiver
+      # is the single private destination Core accepts, by exact host and port, with TLS and
+      # hostname verification against the receiver's throwaway CA.
+      DIVALHR_WEBHOOK_ENCRYPTION_KEY: ${DIVALHR_WEBHOOK_ENCRYPTION_KEY:?set in .env / .env.example}
+      DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: receiver.hooks.test
+      DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'
+      DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE: /run/webhook-tls/ca.pem
       DIVALHR_MAIL_HOST: mailpit
       DIVALHR_MAIL_PORT: '1025'
       DIVALHR_MAIL_FROM: ${DIVALHR_MAIL_FROM:?set in .env / .env.example}
@@ -128,12 +161,16 @@ services:
       DIVALHR_CONTRACT_READ_REQUESTS_PER_MINUTE: ${DIVALHR_CONTRACT_READ_REQUESTS_PER_MINUTE:-300}
       DIVALHR_CONTRACT_WRITE_REQUESTS_PER_MINUTE: ${DIVALHR_CONTRACT_WRITE_REQUESTS_PER_MINUTE:-100}
       DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE: ${DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE:-150}
+    volumes:
+      - webhook-receiver-ca:/run/webhook-tls:ro
     depends_on:
       postgres:
         condition: service_healthy
       keycloak:
         condition: service_healthy
       mailpit:
+        condition: service_healthy
+      webhook-receiver:
         condition: service_healthy
     ports:
       - '${CORE_API_PORT:-8080}:8080'
@@ -178,3 +215,4 @@ services:
 
 volumes:
   postgres-data:
+  webhook-receiver-ca:

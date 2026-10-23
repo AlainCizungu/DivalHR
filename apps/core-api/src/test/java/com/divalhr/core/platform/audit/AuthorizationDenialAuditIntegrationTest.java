@@ -230,7 +230,15 @@ class AuthorizationDenialAuditIntegrationTest {
           "payroll-input-export.create",
           "payroll-input-export.list",
           "payroll-input-export.read",
-          "payroll-input-export.download");
+          "payroll-input-export.download",
+          "webhook.create",
+          "webhook.delivery-read",
+          "webhook.disable",
+          "webhook.enable",
+          "webhook.read",
+          "webhook.rotate-secret",
+          "webhook.test-delivery",
+          "webhook.update");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -708,7 +716,9 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-090A four more (a preview, a generation, the history, a read).
     // MVP-100 one more (the organization's operational status; the manager's is self-service).
     // MVP-101 one more (the organization's briefing; the manager's is self-service).
-    assertThat(handlers).hasSize(125);
+    // MVP-110 ten more handlers over eight operations (the list and detail reads share
+    // webhook.read; the delivery list and detail share webhook.delivery-read).
+    assertThat(handlers).hasSize(135);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).
