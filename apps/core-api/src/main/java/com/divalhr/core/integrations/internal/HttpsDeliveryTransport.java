@@ -1,9 +1,9 @@
 package com.divalhr.core.integrations.internal;
 
 import com.divalhr.core.integrations.application.DeliveryTransport;
+import com.divalhr.core.integrations.application.DestinationGuard;
 import com.divalhr.core.integrations.application.DnsResolver;
 import com.divalhr.core.integrations.application.IntegrationProperties;
-import com.divalhr.core.integrations.domain.AddressPolicy;
 import com.divalhr.core.integrations.domain.FailureClass;
 import com.divalhr.core.integrations.domain.WebhookUrl;
 import java.io.ByteArrayOutputStream;
@@ -15,7 +15,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +23,6 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -53,10 +51,9 @@ public final class HttpsDeliveryTransport implements DeliveryTransport {
   /** Largest accepted status line plus headers. */
   static final int MAX_HEADER_BYTES = 16 * 1024;
 
-  private final DnsResolver dns;
+  private final DestinationGuard guard;
   private final Duration connectTimeout;
   private final Duration requestTimeout;
-  private final IntegrationProperties.TestReceiver receiver;
   private final SSLSocketFactory sockets;
 
   /**
@@ -65,6 +62,7 @@ public final class HttpsDeliveryTransport implements DeliveryTransport {
    * @param dns resolver
    * @param properties settings
    */
+  @org.springframework.beans.factory.annotation.Autowired
   public HttpsDeliveryTransport(DnsResolver dns, IntegrationProperties properties) {
     this(dns, properties, trustFactory(properties.testReceiver()));
   }
@@ -78,10 +76,9 @@ public final class HttpsDeliveryTransport implements DeliveryTransport {
    */
   public HttpsDeliveryTransport(
       DnsResolver dns, IntegrationProperties properties, SSLSocketFactory sockets) {
-    this.dns = dns;
+    this.guard = new DestinationGuard(dns, properties);
     this.connectTimeout = properties.connectTimeout();
     this.requestTimeout = properties.requestTimeout();
-    this.receiver = properties.testReceiver();
     this.sockets = sockets;
   }
 
@@ -129,44 +126,19 @@ public final class HttpsDeliveryTransport implements DeliveryTransport {
     FailureClass failure = null;
     Integer status = null;
     try {
-      List<InetAddress> targets = validatedAddresses(url);
+      List<InetAddress> targets = guard.validated(url);
       status = send(url, headers, body, targets, deadline);
       if (status < 200 || status > 299) {
         failure = FailureClass.HTTP_RESPONSE;
       }
+    } catch (DestinationGuard.Refused refused) {
+      failure = refused.failure();
     } catch (Failure refused) {
       failure = refused.failure;
     } catch (RuntimeException unexpected) {
       failure = FailureClass.INTERNAL_FAILURE;
     }
     return new Outcome(status, failure, (System.nanoTime() - started) / 1_000_000L);
-  }
-
-  private List<InetAddress> validatedAddresses(WebhookUrl url) {
-    InetAddress[] answers;
-    try {
-      answers = dns.resolve(url.host());
-    } catch (UnknownHostException unknown) {
-      throw new Failure(FailureClass.DNS_FAILED);
-    }
-    if (answers == null || answers.length == 0) {
-      throw new Failure(FailureClass.DNS_FAILED);
-    }
-    if (answers.length > DnsResolver.MAX_ANSWERS) {
-      throw new Failure(FailureClass.DNS_BLOCKED);
-    }
-    boolean exempt =
-        receiver.configured()
-            && receiver.host().equals(url.host())
-            && receiver.port() == url.port();
-    List<InetAddress> accepted = new ArrayList<>();
-    for (InetAddress address : answers) {
-      if (!exempt && !AddressPolicy.isPublic(address)) {
-        throw new Failure(FailureClass.DNS_BLOCKED);
-      }
-      accepted.add(address);
-    }
-    return accepted;
   }
 
   private int send(

@@ -33,6 +33,20 @@ public enum WebhookEventType {
   /** Test event; only produced by the test-delivery command. */
   WEBHOOK_TEST("webhook.test.v1", "webhook-test", "TEST", null);
 
+  /** Every internal outbox event type that maps to a public event. */
+  public static final Set<String> INTERNAL_TYPES =
+      Set.of(
+          "people.leave-request.approved.v1",
+          "people.leave-request.routing-exception-approved.v1",
+          "people.leave-request.substitute-approved.v1",
+          "people.leave-request.rejected.v1",
+          "people.leave-request.routing-exception-rejected.v1",
+          "people.leave-request.substitute-rejected.v1",
+          "people.timesheet.approved.v1",
+          "people.attendance.corrected.v1",
+          "payroll.payroll-input.locked.v1",
+          "payroll.payroll-input-export.created.v1");
+
   private final String code;
   private final String resourceKind;
   private final String resourceStatus;
