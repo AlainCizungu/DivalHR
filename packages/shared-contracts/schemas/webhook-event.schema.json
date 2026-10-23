@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.divalhr.com/schemas/webhook-event.schema.json",
+  "title": "DivalHR outbound webhook event v1",
+  "description": "Public payload POSTed to customer webhook endpoints (MVP-110, ADR 0028). Deliberately minimal: identifiers, a closed status and at most one relative authenticated DivalHR path. No names, emails, free text, times of work, compensation or payment data. Adding an event type or field is a separate reviewed contract change.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "eventType",
+    "occurredAt",
+    "tenantId",
+    "resource",
+    "links"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "enum": [
+        "leave.request.approved.v1",
+        "leave.request.rejected.v1",
+        "timesheet.approved.v1",
+        "attendance.corrected.v1",
+        "payroll.input.locked.v1",
+        "payroll.input-export.created.v1",
+        "webhook.test.v1"
+      ]
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "status", "version"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "attendance-record",
+            "leave-request",
+            "payroll-input-export",
+            "payroll-input-run",
+            "timesheet",
+            "webhook-test"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "enum": ["APPROVED", "CORRECTED", "CREATED", "LOCKED", "REJECTED", "TEST"]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "enum": [
+          "/admin/attendance-review",
+          "/admin/leave-approvals",
+          "/admin/payroll-preparation",
+          "/admin/timesheets"
+        ]
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "leave.request.approved.v1"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "then": {
+        "properties": {
+          "resource": {
+            "properties": {
+              "kind": {
+                "const": "leave-request"
+              },
+              "status": {
+                "const": "APPROVED"
+              }
+            },
+            "type": "object"
+          },
+          "links": {
+            "items": {
+              "const": "/admin/leave-approvals"
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "leave.request.rejected.v1"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "then": {
+        "properties": {
+          "resource": {
+            "properties": {
+              "kind": {
+                "const": "leave-request"
+              },
+              "status": {
+                "const": "REJECTED"
+              }
+            },
+            "type": "object"
+          },
+          "links": {
+            "items": {
+              "const": "/admin/leave-approvals"
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "timesheet.approved.v1"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "then": {
+        "properties": {
+          "resource": {
+            "properties": {
+              "kind": {
+                "const": "timesheet"
+              },
+              "status": {
+                "const": "APPROVED"
+              }
+            },
+            "type": "object"
+          },
+          "links": {
+            "items": {
+              "const": "/admin/timesheets"
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "attendance.corrected.v1"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "then": {
+        "properties": {
+          "resource": {
+            "properties": {
+              "kind": {
+                "const": "attendance-record"
+              },
+              "status": {
+                "const": "CORRECTED"
+              }
+            },
+            "type": "object"
+          },
+          "links": {
+            "items": {
+              "const": "/admin/attendance-review"
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "payroll.input.locked.v1"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "then": {
+        "properties": {
+          "resource": {
+            "properties": {
+              "kind": {
+                "const": "payroll-input-run"
+              },
+              "status": {
+                "const": "LOCKED"
+              }
+            },
+            "type": "object"
+          },
+          "links": {
+            "items": {
+              "const": "/admin/payroll-preparation"
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "payroll.input-export.created.v1"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "then": {
+        "properties": {
+          "resource": {
+            "properties": {
+              "kind": {
+                "const": "payroll-input-export"
+              },
+              "status": {
+                "const": "CREATED"
+              }
+            },
+            "type": "object"
+          },
+          "links": {
+            "items": {
+              "const": "/admin/payroll-preparation"
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "webhook.test.v1"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "then": {
+        "properties": {
+          "resource": {
+            "properties": {
+              "kind": {
+                "const": "webhook-test"
+              },
+              "status": {
+                "const": "TEST"
+              }
+            },
+            "type": "object"
+          },
+          "links": {
+            "maxItems": 0,
+            "type": "array"
+          }
+        }
+      }
+    }
+  ]
+}

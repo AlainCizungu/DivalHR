@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "eventId": "6f1c1f0e-8a8b-4b43-9a3e-0f6f7b0c2a06",
+  "eventType": "payroll.input-export.created.v1",
+  "occurredAt": "2026-10-20T09:30:00Z",
+  "tenantId": "00000000-0000-4000-8000-00000000000a",
+  "resource": {
+    "kind": "payroll-input-export",
+    "id": "7a2d3c4e-1b5f-4c6d-8e7f-9a0b1c2d3e06",
+    "status": "CREATED",
+    "version": 1
+  },
+  "links": ["/admin/payroll-preparation"]
+}
