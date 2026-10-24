@@ -552,7 +552,53 @@ public enum ErrorCode {
   /** MVP-110: a test-delivery limit was reached (which one is not disclosed). */
   WEBHOOK_TEST_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
   /** MVP-110: the webhook encryption key is not configured. */
-  WEBHOOK_SECRET_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
+  WEBHOOK_SECRET_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+  /** MVP-111: the tenant has no WhatsApp connector (or the id is foreign). */
+  MESSAGING_CONNECTOR_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-111: the tenant already has its one WhatsApp connector. */
+  MESSAGING_CONNECTOR_EXISTS(HttpStatus.CONFLICT),
+  /** MVP-111: the connector is a draft or not verified, so it cannot send. */
+  MESSAGING_CONNECTOR_INCOMPLETE(HttpStatus.CONFLICT),
+  /** MVP-111: the connector is disabled. */
+  MESSAGING_CONNECTOR_DISABLED(HttpStatus.CONFLICT),
+  /** MVP-111: the connector was suspended after repeated terminal failures. */
+  MESSAGING_CONNECTOR_SUSPENDED(HttpStatus.CONFLICT),
+  /** MVP-111: the connector configuration cannot change while it is active. */
+  MESSAGING_CONNECTOR_ACTIVE(HttpStatus.CONFLICT),
+  /** MVP-111: the configuration version is not the current one. */
+  MESSAGING_CONNECTOR_VERSION_STALE(HttpStatus.CONFLICT),
+  /** MVP-111: the connector or recipient is already disabled. */
+  MESSAGING_ALREADY_DISABLED(HttpStatus.CONFLICT),
+  /** MVP-111: the connector or recipient is already active. */
+  MESSAGING_ALREADY_ENABLED(HttpStatus.CONFLICT),
+  /** MVP-111: the provider could not be reached or answered unexpectedly. */
+  MESSAGING_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+  /** MVP-111: the provider refused the supplied credential or identifiers. */
+  MESSAGING_PROVIDER_CREDENTIAL_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-111: a template is missing, not approved, or has an unsupported shape. */
+  MESSAGING_TEMPLATE_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-111: the recipient is missing or foreign. */
+  MESSAGING_RECIPIENT_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-111: the tenant already has 25 recipients. */
+  MESSAGING_RECIPIENT_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-111: a recipient with this number already exists. */
+  MESSAGING_RECIPIENT_EXISTS(HttpStatus.CONFLICT),
+  /** MVP-111: the recipient is disabled. */
+  MESSAGING_RECIPIENT_DISABLED(HttpStatus.CONFLICT),
+  /** MVP-111: the recipient version is not the current one. */
+  MESSAGING_RECIPIENT_VERSION_STALE(HttpStatus.CONFLICT),
+  /** MVP-111: the consent attestation is missing or incomplete. */
+  MESSAGING_CONSENT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-111: the number is not a valid E.164 number. */
+  MESSAGING_PHONE_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-111: a notification type is outside the closed catalogue, or none was chosen. */
+  MESSAGING_NOTIFICATION_TYPE_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-111: a test-message limit was reached (which one is not disclosed). */
+  MESSAGING_TEST_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+  /** MVP-111: the delivery is missing or foreign. */
+  MESSAGING_DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-111: the messaging encryption key is not configured. */
+  MESSAGING_SECRET_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
 
   private final HttpStatus status;
 

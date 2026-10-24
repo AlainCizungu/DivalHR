@@ -39,7 +39,12 @@ import org.springframework.test.context.TestExecutionListeners;
       "divalhr.integrations.jobs.enabled=false",
       "divalhr.integrations.encryption-key=test-only-webhook-encryption-key-00000001",
       "divalhr.integrations.test-receiver.host=receiver.test",
-      "divalhr.integrations.test-receiver.port=8443"
+      "divalhr.integrations.test-receiver.port=8443",
+      "divalhr.messaging.jobs.enabled=false",
+      "divalhr.messaging.encryption-key=test-only-messaging-encryption-key-0000001",
+      "divalhr.messaging.app-secret=test-only-messaging-app-secret-0001",
+      "divalhr.messaging.verify-token=test-only-messaging-verify-token-01",
+      "divalhr.messaging.public-base-url=http://localhost:3000"
     })
 @AutoConfigureMockMvc
 @Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})

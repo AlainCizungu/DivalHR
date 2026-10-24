@@ -140,6 +140,7 @@
       <Class name="com.divalhr.core.integrations.internal.HttpsDeliveryTransport"/>
       <Class name="com.divalhr.core.integrations.api.WebhookController"/>
       <Class name="com.divalhr.core.integrations.domain.AddressPolicy$Net"/>
+      <Class name="~com\.divalhr\.core\.integrations\.messaging\.(application|internal|api)\..*"/>
     </Or>
   </Match>
   <!-- MVP-110 value records hold lists that their constructors copy to immutable lists. -->
@@ -148,6 +149,8 @@
     <Or>
       <Class name="com.divalhr.core.integrations.domain.Webhook"/>
       <Class name="~com\.divalhr\.core\.integrations\.application\.WebhookViews\$.*"/>
+      <Class name="~com\.divalhr\.core\.integrations\.messaging\.application\.MessagingViews\$.*"/>
+      <Class name="com.divalhr.core.integrations.messaging.domain.Recipient"/>
     </Or>
   </Match>
   <!-- The webhook test transport records what it was asked to send, for assertions. -->
