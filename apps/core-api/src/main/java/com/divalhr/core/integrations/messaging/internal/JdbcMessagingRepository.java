@@ -648,12 +648,11 @@ public class JdbcMessagingRepository {
    * @return how many recipients the tenant has
    */
   public int recipientCount(TenantId tenant) {
-    Integer count =
-        jdbc.sql("SELECT count(*) FROM integrations.messaging_recipient WHERE tenant_id = :tenant")
-            .param("tenant", tenant.value())
-            .query(Integer.class)
-            .single();
-    return count == null ? 0 : count;
+    return jdbc.sql(
+            "SELECT count(*)::int FROM integrations.messaging_recipient WHERE tenant_id = :tenant")
+        .param("tenant", tenant.value())
+        .query((rs, n) -> rs.getInt(1))
+        .single();
   }
 
   /**

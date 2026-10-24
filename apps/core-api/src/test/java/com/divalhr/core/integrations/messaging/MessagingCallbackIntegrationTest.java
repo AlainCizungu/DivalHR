@@ -88,7 +88,7 @@ class MessagingCallbackIntegrationTest {
   private static String statusBody(
       String phone, String id, String status, Object timestamp, String extra) {
     return "{\"object\":\"whatsapp_business_account\",\"entry\":[{\"id\":\"1\",\"changes\":[{\"field\":\"messages\",\"value\":{"
-               + "\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"243812000111\",\"phone_number_id\":\""
+        + "\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"243812000111\",\"phone_number_id\":\""
         + phone
         + "\"},\"statuses\":[{\"id\":\""
         + id
@@ -123,10 +123,12 @@ class MessagingCallbackIntegrationTest {
   }
 
   private int callbacks() {
-    return jdbc.queryForObject(
-        "SELECT count(*) FROM integrations.messaging_status_callback WHERE delivery_id = ?",
-        Integer.class,
-        delivery);
+    Integer count =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM integrations.messaging_status_callback WHERE delivery_id = ?",
+            Integer.class,
+            delivery);
+    return count == null ? 0 : count;
   }
 
   @Test

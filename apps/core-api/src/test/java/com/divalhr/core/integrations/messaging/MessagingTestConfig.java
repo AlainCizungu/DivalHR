@@ -37,11 +37,11 @@ public class MessagingTestConfig {
     private final AtomicReference<SendOutcome> next = new AtomicReference<>();
 
     public List<Sent> sent() {
-      return sent;
+      return List.copyOf(sent);
     }
 
     public List<String> checkedTokens() {
-      return checkedTokens;
+      return List.copyOf(checkedTokens);
     }
 
     public void credential(CredentialResult result) {

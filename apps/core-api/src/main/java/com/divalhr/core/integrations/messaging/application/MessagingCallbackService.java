@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,8 +61,9 @@ public class MessagingCallbackService {
   private final JsonMapper json;
   private final Clock clock;
   private final PlatformTransactionManager transactions;
-  private final AtomicLong windowStart = new AtomicLong();
-  private final AtomicLong windowCount = new AtomicLong();
+  private final Object windowLock = new Object();
+  private long windowStart;
+  private long windowCount;
 
   /**
    * Creates the service.
@@ -275,12 +275,13 @@ public class MessagingCallbackService {
 
   private boolean withinCeiling() {
     long minute = Instant.now(clock).getEpochSecond() / 60;
-    synchronized (windowStart) {
-      if (windowStart.get() != minute) {
-        windowStart.set(minute);
-        windowCount.set(0);
+    synchronized (windowLock) {
+      if (windowStart != minute) {
+        windowStart = minute;
+        windowCount = 0;
       }
-      return windowCount.incrementAndGet() <= properties.callbackRequestsPerMinute();
+      windowCount++;
+      return windowCount <= properties.callbackRequestsPerMinute();
     }
   }
 

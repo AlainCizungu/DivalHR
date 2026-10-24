@@ -71,12 +71,13 @@ public record MessagingProperties(
         graphBaseUrl == null || graphBaseUrl.isBlank() ? META_GRAPH : graphBaseUrl.strip();
     graphVersion = graphVersion == null || graphVersion.isBlank() ? "v22.0" : graphVersion.strip();
     publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.strip();
-    jitter = jitter == null || jitter;
+    jitter = jitter == null ? Boolean.TRUE : jitter;
     connectTimeout = connectTimeout == null ? Duration.ofSeconds(3) : connectTimeout;
     requestTimeout = requestTimeout == null ? Duration.ofSeconds(10) : requestTimeout;
     testProvider = testProvider == null ? new TestProvider(null, null, null) : testProvider;
-    callbackMaxBytes = callbackMaxBytes == null ? 65_536 : callbackMaxBytes;
-    callbackRequestsPerMinute = callbackRequestsPerMinute == null ? 600 : callbackRequestsPerMinute;
+    callbackMaxBytes = callbackMaxBytes == null ? Integer.valueOf(65_536) : callbackMaxBytes;
+    callbackRequestsPerMinute =
+        callbackRequestsPerMinute == null ? Integer.valueOf(600) : callbackRequestsPerMinute;
   }
 
   /**
