@@ -142,6 +142,7 @@ test.describe.serial('MVP-111: WhatsApp Business connector', () => {
     });
     await expect(state).toHaveAttribute('data-status', 'DRAFT');
     await page.getByRole('button', { name: 'Enable', exact: true }).click();
+    await page.getByLabel('I understand and want to continue.').check();
     await page.getByRole('button', { name: 'Yes, enable', exact: true }).click();
     await expect(state).toHaveAttribute('data-status', 'ACTIVE', { timeout: 30_000 });
     await expectAccessible(page);
