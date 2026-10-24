@@ -206,7 +206,7 @@ class MessagingApiIntegrationTest {
           404,
           "MESSAGING_RECIPIENT_NOT_FOUND");
     }
-    for (String id : new String[] {deliveryId.toString(), UUID.randomUUID().toString(), "../x"}) {
+    for (String id : new String[] {deliveryId.toString(), UUID.randomUUID().toString(), "not-a-uuid"}) {
       error(
           get(PATH + "/deliveries/" + id).header("Authorization", otherAdmin),
           404,

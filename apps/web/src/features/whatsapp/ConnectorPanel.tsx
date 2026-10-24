@@ -267,7 +267,7 @@ export function ConnectorPanel({
           <button
             type="button"
             className="button button--secondary"
-            disabled={busy || connector.state === 'DRAFT'}
+            disabled={busy || (connector.state === 'DRAFT' && connector.verifiedAt == null)}
             onClick={() => {
               open('enable');
             }}
