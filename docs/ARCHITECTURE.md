@@ -152,6 +152,23 @@ validate every address, and send through an address-pinned HTTPS transport witho
 `AccessPortArchitectureTest` keeps other modules out of the `integrations` tables and the module out
 of theirs. See `docs/WEBHOOKS.md` and ADR 0028.
 
+### WhatsApp Business notifications (MVP-111, ADR 0029)
+
+The `integrations` module also owns the tenant's one WhatsApp connector, its recipients, deliveries,
+attempts and provider callbacks (V40, package `integrations.messaging`; the domain, application,
+`internal` and `api` layers follow MVP-110). It reuses the MVP-110 outbox reader, public-event mapper and
+fan-out ledger idea (a separate ledger and watermark, so the two features never share state): a
+fan-out job turns each committed event of the closed catalogue into one delivery per opted-in
+recipient, and a worker claims deliveries with `FOR UPDATE SKIP LOCKED` and a lease, calls the Graph
+API through `MessagingProvider` outside any transaction, and records the closed outcome. The Graph
+origin is operator configuration (only `https://graph.facebook.com` in production). Meta's delivery
+statuses return on the one anonymous door `/api/v1/public/messaging/whatsapp/callback`, served by the
+token-free public chain and authenticated by the app-secret signature over the raw bytes.
+Tokens and recipient numbers are encrypted at rest with a dedicated key; messages are generic
+template messages with a deep link only. `AccessPortArchitectureTest` keeps other modules out of the
+`integrations` tables. See `docs/WHATSAPP.md`, ADR 0029 and
+`docs/security/MVP-111-WHATSAPP-DATA-FLOW.md`.
+
 ### Grounded operational summary (MVP-101, ADR 0027)
 
 Core calls the AI service over HTTP with a Keycloak client-credentials token (`platform.ai`:

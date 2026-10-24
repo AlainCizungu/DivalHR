@@ -214,3 +214,35 @@ Core restarts with it. Disabling the capability: remove the Core secret file (Co
 - **Receiver.** A synthetic HTTPS receiver (`infrastructure/docker/webhook-receiver`) runs on a new `internal: true` network `hooks` shared with Core only. The receiver is reached as `receiver.hooks.test` (a network alias on `hooks`; customer URLs must be dotted host names, and the certificate names that host). Core's receiver exception (`DIVALHR_WEBHOOK_TEST_RECEIVER_HOST`, `_PORT`, `_CA_FILE`) names that one host and port, with its throwaway CA as the only extra trust. No other private destination is allowed. Read what it received with `docker compose exec webhook-receiver wget -qO- http://127.0.0.1:8099/control/received` (`RECEIVER_CONTROL_PORT`); the control listener is never routed publicly.
 - **Egress gap.** hr-dev has no general outbound internet egress, so customer endpoints on the internet cannot be reached there. This is a production-readiness gap, not part of MVP-110; `internal: true` networking is not weakened.
 - **Rollback.** `db/rollback/V39__rollback.sql` refuses while webhooks, deliveries or attempts exist. To return to a pre-V39 release, restore the pre-deploy database backup (section 9) instead.
+
+## MVP-111 WhatsApp notifications in the test environment
+
+Acceptance uses a **synthetic Meta provider**. Nothing contacts Meta and no real WhatsApp account,
+number or token is ever used in hr-dev.
+
+- **Secrets.** `init-secrets.sh` generates, once and never overwriting, three root-only files read by
+  Core through the configtree: `secrets/core/DIVALHR_MESSAGING_ENCRYPTION_KEY` (key material for the
+  token and recipient-number encryption), `DIVALHR_MESSAGING_APP_SECRET` (signs callbacks) and
+  `DIVALHR_MESSAGING_VERIFY_TOKEN` (callback handshake). None is an environment value or a repository
+  value. The synthetic provider (container user 1000) holds copies of the last two in
+  `secrets/provider/app-secret` and `verify-token`, so it can sign and verify like Meta. An existing
+  environment gains the files on its next deployment (`remote-deploy.sh` runs `init-secrets.sh` when
+  any is missing). **Never rotate or delete the encryption key** once connectors exist: stored tokens
+  and numbers become unreadable (rotate the token and re-register the recipients). Include
+  `secrets/` in the secrets backup; the values are never printed or logged.
+- **Provider.** `infrastructure/docker/meta-provider` runs as `meta-provider` on the existing
+  `internal: true` network `hooks`, shared with Core only, with the alias `graph.meta.test`, no published
+  port and no route out. It creates a throwaway CA on every start and shares only the CA certificate
+  (`$HR_DEV_DATA/meta-provider`). Core's test-provider exception (`DIVALHR_MESSAGING_GRAPH_BASE_URL`,
+  `DIVALHR_MESSAGING_TEST_PROVIDER_HOST`, `_PORT`, `_CA_FILE`) names that one host and port with TLS and
+  host-name verification; Core refuses it outside development and test, and production accepts only
+  `https://graph.facebook.com`. The deep-link origin is the existing `DIVALHR_WEB_BASE_URL`.
+- **Driving it.** Control endpoint on `127.0.0.1:8099` inside the container, for example
+  `docker compose exec meta-provider wget -qO- http://127.0.0.1:8099/control/sends`. Scenario, template
+  and callback paths are listed in `docs/WHATSAPP.md`. Callbacks go to Core's callback URL only
+  (fixed at start); Caddy does not route the callback publicly in this environment.
+- **Callback exposure.** `/api/v1/public/messaging/whatsapp/callback` is on the public chain. Do not
+  publish it to the internet for a real Meta app without edge rate limiting and the review in ADR 0029.
+- **Rollback.** `db/rollback/V40__rollback.sql` refuses while connectors, recipients, deliveries or
+  fan-out data exist. To return to a pre-V40 release, restore the pre-deploy database backup
+  (section 9) instead.

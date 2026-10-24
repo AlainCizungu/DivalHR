@@ -83,7 +83,7 @@ cleanup() {
   done
   for sha in "$SHA_A" "${SHA_B:-}" "${SHA_C:-}" "${SHA_E:-}"; do
     [ -n "$sha" ] || continue
-    for svc in keycloak core-api ai-service web webhook-receiver; do docker image rm "$HR_DEV_IMAGE_PREFIX/$svc:$sha" >/dev/null 2>&1; done
+    for svc in keycloak core-api ai-service web webhook-receiver meta-provider; do docker image rm "$HR_DEV_IMAGE_PREFIX/$svc:$sha" >/dev/null 2>&1; done
   done
   rm -rf "${HR_DEV_DATA:?}" "${W:?}"
 }
@@ -146,7 +146,7 @@ step first-deploy-units-failure first_units_failure
 step deploy-first "$HR_DEV_OPS/remote-deploy.sh" --bundle "$W/$SHA_A.bundle" --sha "$SHA_A" --first-run \
   || { echo "STOP: the first deployment failed"; cat "$SUMMARY"; exit 1; }
 [ "$(hr_current_release)" = "$SHA_A" ] && pass "current release is the deployed SHA" || fail "current release"
-for svc in keycloak core-api ai-service web webhook-receiver; do
+for svc in keycloak core-api ai-service web webhook-receiver meta-provider; do
   docker image inspect "$HR_DEV_IMAGE_PREFIX/$svc:$SHA_A" >/dev/null 2>&1 || fail "image $svc:$SHA_A missing"
 done
 

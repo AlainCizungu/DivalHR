@@ -77,7 +77,7 @@ networks:
           # Dynamic addresses only in the upper half: Caddy's fixed .2 addresses never collide.
           ip_range: ${HR_DEV_SUBNET_PREFIX:-10.71}.5.128/25
 
-  # MVP-110: Core and the synthetic webhook receiver only. Internal: it has no route out, and it
+  # MVP-110/MVP-111: Core, the synthetic webhook receiver and the synthetic Meta Graph provider only. Internal: it has no route out, and it
   # is the only place the development/test receiver exception (exact host and port) applies.
   hooks:
     internal: true
@@ -275,9 +275,20 @@ services:
       DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: receiver.hooks.test
       DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'
       DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE: /run/webhook-tls/ca.pem
+      # MVP-111 (ADR 0029): the encryption key, the Meta app secret and the callback verify token are
+      # the files secrets/core/DIVALHR_MESSAGING_ENCRYPTION_KEY, _APP_SECRET and _VERIFY_TOKEN
+      # (configtree), never environment values. TEST ENVIRONMENT ONLY: the synthetic Graph provider
+      # below replaces the production Meta Graph origin by exact host and port, with TLS and hostname
+      # verification against its throwaway CA. Core refuses these settings outside development and
+      # test; production uses the Meta origin only. The deep-link origin is DIVALHR_WEB_BASE_URL.
+      DIVALHR_MESSAGING_GRAPH_BASE_URL: https://graph.meta.test:8443
+      DIVALHR_MESSAGING_TEST_PROVIDER_HOST: graph.meta.test
+      DIVALHR_MESSAGING_TEST_PROVIDER_PORT: '8443'
+      DIVALHR_MESSAGING_TEST_PROVIDER_CA_FILE: /run/meta-provider-tls/ca.pem
     volumes:
       - ${HR_DEV_DATA:?}/secrets/core:/run/secrets/core:ro
       - ${HR_DEV_DATA:?}/webhook-receiver:/run/webhook-tls:ro
+      - ${HR_DEV_DATA:?}/meta-provider:/run/meta-provider-tls:ro
     networks: [app, core-data, hooks]
     deploy:
       resources:
@@ -289,6 +300,8 @@ services:
       mailpit:
         condition: service_healthy
       webhook-receiver:
+        condition: service_healthy
+      meta-provider:
         condition: service_healthy
 
   # MVP-110: a CONTROLLED SYNTHETIC HTTPS receiver for live webhook acceptance. It holds in-memory
@@ -307,6 +320,40 @@ services:
     networks:
       hooks:
         aliases: [receiver.hooks.test]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+  # MVP-111: a CONTROLLED SYNTHETIC Meta Graph provider for live WhatsApp acceptance with throwaway
+  # data. NOT Meta; no real WhatsApp account, number or token is ever used here. It shares the
+  # internal `hooks` network with Core only (no route out, no published port), answers the three
+  # Graph requests Core makes, and posts signed status callbacks to Core's callback URL only. Its
+  # app secret and verify token are read from files copied from Core's own (secrets/provider,
+  # readable by the container user only). Operators drive it with `docker compose exec`
+  # (docs/WHATSAPP.md).
+  meta-provider:
+    <<: *service
+    image: ${HR_DEV_IMAGE_PREFIX:-divalhr-test}/meta-provider:${HR_DEV_RELEASE:?}
+    build:
+      context: ../docker/meta-provider
+    environment:
+      PROVIDER_HOST: graph.meta.test
+      PROVIDER_CALLBACK_TARGET: http://core-api:8080/api/v1/public/messaging/whatsapp/callback
+      PROVIDER_APP_SECRET_FILE: /run/secrets/provider/app-secret
+      PROVIDER_VERIFY_TOKEN_FILE: /run/secrets/provider/verify-token
+    volumes:
+      - ${HR_DEV_DATA:?}/meta-provider:/shared
+      - ${HR_DEV_DATA:?}/secrets/provider:/run/secrets/provider:ro
+    networks:
+      hooks:
+        aliases: [graph.meta.test]
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
       interval: 10s
