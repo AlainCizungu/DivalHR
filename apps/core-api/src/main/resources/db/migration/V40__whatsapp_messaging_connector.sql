@@ -163,7 +163,7 @@ CREATE TABLE integrations.messaging_template (
         CHECK (notification_type IN ('LEAVE_DECISION', 'TIMESHEET_APPROVED', 'ATTENDANCE_CORRECTED',
             'PAYROLL_INPUT_LOCKED', 'PAYROLL_EXPORT_READY', 'CONNECTOR_TEST')),
     CONSTRAINT integrations_messaging_template_language CHECK (language IN ('en', 'fr')),
-    CONSTRAINT integrations_messaging_template_name CHECK (template_name ~ '^[a-z][a-z0-9_]{0,511}$'),
+    CONSTRAINT integrations_messaging_template_name CHECK (template_name ~ '^[a-z][a-z0-9_]*$' AND char_length(template_name) <= 512),
     CONSTRAINT integrations_messaging_template_body CHECK (body_parameters IN (0, 1))
 );
 COMMENT ON TABLE integrations.messaging_template IS
@@ -412,7 +412,7 @@ CREATE TABLE integrations.messaging_delivery (
     CONSTRAINT integrations_messaging_delivery_status CHECK (last_http_status IS NULL OR last_http_status BETWEEN 100 AND 599),
     CONSTRAINT integrations_messaging_delivery_attempts CHECK (attempt_count BETWEEN 0 AND 5),
     CONSTRAINT integrations_messaging_delivery_provider_id
-        CHECK (provider_message_id IS NULL OR provider_message_id ~ '^[A-Za-z0-9=_.:+/-]{8,256}$'),
+        CHECK (provider_message_id IS NULL OR (provider_message_id ~ '^[A-Za-z0-9=_.:+/-]+$' AND char_length(provider_message_id) BETWEEN 8 AND 256)),
     CONSTRAINT integrations_messaging_delivery_claim CHECK ((claim_token IS NULL) = (claimed_until IS NULL)),
     CONSTRAINT integrations_messaging_delivery_shape CHECK (
         (state = 'PENDING' AND attempt_count = 0 AND next_attempt_at IS NOT NULL AND completed_at IS NULL
