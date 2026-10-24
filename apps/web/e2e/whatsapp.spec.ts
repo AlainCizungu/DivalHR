@@ -46,7 +46,7 @@ const TYPES = [
 const templateName = (type: string, language: string) =>
   `divalhr_${type.toLowerCase()}_${language}_${stamp.toLowerCase()}`;
 
-type Send = { template: string; language: string; last2: string; parameters: number };
+type Send = { templateName: string; language: string; toLast2: string; bodyParameters: number };
 
 let release: (() => void) | undefined;
 
@@ -181,9 +181,9 @@ test.describe.serial('MVP-111: WhatsApp Business connector', () => {
     }).toPass({ timeout: 60_000 });
     const sends = (await control('/control/sends')) as Send[];
     expect(sends.at(-1)).toMatchObject({
-      template: templateName('CONNECTOR_TEST', 'en'),
+      templateName: templateName('CONNECTOR_TEST', 'en'),
       language: 'en',
-      last2: number.slice(-2),
+      toLast2: number.slice(-2),
     });
     await control('/control/emit-callback', {
       statuses: [{ id: 'last', status: 'delivered' }],
