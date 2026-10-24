@@ -1450,7 +1450,7 @@
     },
     "verification": {
       "title": "Résultat de la vérification",
-      "verified": "Tout est conforme. Le connecteur est actif.",
+      "verified": "Tout est conforme. Activez le connecteur pour commencer l’envoi.",
       "notVerified": "Le connecteur n’a pas pu être vérifié. Corrigez les éléments ci-dessous, puis vérifiez de nouveau.",
       "credential": "Jeton d’accès",
       "template": "{{type}} ({{language}}) : {{result}}"
@@ -1506,7 +1506,7 @@
     "announce": {
       "created": "Connecteur WhatsApp enregistré.",
       "updated": "Connecteur mis à jour.",
-      "verified": "Connecteur vérifié et actif.",
+      "verified": "Connecteur vérifié. Activez-le pour commencer l’envoi.",
       "notVerified": "La vérification n’a pas abouti.",
       "rotate": "Jeton d’accès renouvelé.",
       "disable": "Connecteur désactivé.",

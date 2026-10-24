@@ -212,7 +212,7 @@ public final class MessagingViews {
    * @param lastHttpStatus exact status of the last answer
    * @param failureClass closed failure class
    */
-  public record DeliveryView(
+  public record WhatsAppDeliveryView(
       UUID id,
       UUID recipientId,
       String recipientLabel,
@@ -231,8 +231,8 @@ public final class MessagingViews {
       Instant completedAt,
       Integer lastHttpStatus,
       String failureClass) {
-    static DeliveryView of(MessagingDelivery d) {
-      return new DeliveryView(
+    static WhatsAppDeliveryView of(MessagingDelivery d) {
+      return new WhatsAppDeliveryView(
           d.id(),
           d.recipientId(),
           d.recipientLabel(),
@@ -260,9 +260,9 @@ public final class MessagingViews {
    * @param items rows
    * @param nextCursor opaque signed cursor, or null
    */
-  public record DeliveryPage(List<DeliveryView> items, String nextCursor) {
+  public record WhatsAppDeliveryPage(List<WhatsAppDeliveryView> items, String nextCursor) {
     /** Copies the list. */
-    public DeliveryPage {
+    public WhatsAppDeliveryPage {
       items = List.copyOf(items);
     }
   }
@@ -277,15 +277,15 @@ public final class MessagingViews {
    * @param failureClass closed class, null when accepted
    * @param latencyMs wall time
    */
-  public record AttemptItem(
+  public record WhatsAppAttemptItem(
       int number,
       Instant startedAt,
       Instant finishedAt,
       Integer httpStatus,
       String failureClass,
       int latencyMs) {
-    static AttemptItem of(AttemptView a) {
-      return new AttemptItem(
+    static WhatsAppAttemptItem of(AttemptView a) {
+      return new WhatsAppAttemptItem(
           a.number(),
           a.startedAt(),
           a.finishedAt(),
@@ -321,10 +321,12 @@ public final class MessagingViews {
    * @param attempts attempts, oldest first
    * @param statusReports provider status reports, oldest first
    */
-  public record DeliveryDetail(
-      DeliveryView delivery, List<AttemptItem> attempts, List<StatusReportItem> statusReports) {
+  public record WhatsAppDeliveryDetail(
+      WhatsAppDeliveryView delivery,
+      List<WhatsAppAttemptItem> attempts,
+      List<StatusReportItem> statusReports) {
     /** Copies the lists. */
-    public DeliveryDetail {
+    public WhatsAppDeliveryDetail {
       attempts = List.copyOf(attempts);
       statusReports = List.copyOf(statusReports);
     }
@@ -337,5 +339,5 @@ public final class MessagingViews {
    * @param recipientId the recipient
    * @param eventId the test event id
    */
-  public record TestDeliveryResult(UUID deliveryId, UUID recipientId, UUID eventId) {}
+  public record WhatsAppTestDeliveryResult(UUID deliveryId, UUID recipientId, UUID eventId) {}
 }

@@ -1450,7 +1450,7 @@
     },
     "verification": {
       "title": "Verification result",
-      "verified": "Everything checks out. The connector is active.",
+      "verified": "Everything checks out. Enable the connector to start sending.",
       "notVerified": "The connector could not be verified. Fix the items below, then verify again.",
       "credential": "Access token",
       "template": "{{type}} ({{language}}): {{result}}"
@@ -1506,7 +1506,7 @@
     "announce": {
       "created": "WhatsApp connector saved.",
       "updated": "Connector updated.",
-      "verified": "Connector verified and active.",
+      "verified": "Connector verified. Enable it to start sending.",
       "notVerified": "Verification did not pass.",
       "rotate": "Access token rotated.",
       "disable": "Connector disabled.",

@@ -11,17 +11,17 @@ import com.divalhr.core.integrations.messaging.api.UpdateRecipientRequest;
 import com.divalhr.core.integrations.messaging.application.MessagingProvider.CredentialResult;
 import com.divalhr.core.integrations.messaging.application.MessagingProvider.TemplateCheck;
 import com.divalhr.core.integrations.messaging.application.MessagingProvider.TemplateResult;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.AttemptItem;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.ConnectorView;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryDetail;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryPage;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryView;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.RecipientList;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.RecipientView;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.StatusReportItem;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.TemplateCheckView;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.TestDeliveryResult;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.VerificationView;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppAttemptItem;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppDeliveryDetail;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppDeliveryPage;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppDeliveryView;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppTestDeliveryResult;
 import com.divalhr.core.integrations.messaging.domain.Connector;
 import com.divalhr.core.integrations.messaging.domain.ConnectorState;
 import com.divalhr.core.integrations.messaging.domain.DeepLink;
@@ -907,7 +907,7 @@ public class MessagingService {
    * @param body the request
    * @return the queued delivery
    */
-  public Command<TestDeliveryResult> testDelivery(
+  public Command<WhatsAppTestDeliveryResult> testDelivery(
       MessagingCaller caller,
       String recipientId,
       String idempotencyKey,
@@ -933,11 +933,12 @@ public class MessagingService {
                 "test-delivery",
                 "confirm",
                 true),
-            TestDeliveryResult.class,
+            WhatsAppTestDeliveryResult.class,
             TRANSACTION_TIMEOUT,
             () -> {
               Instant now = Instant.now(clock);
               Connector connector = lockConnector(caller);
+              Recipient recipient = lockRecipient(caller, id);
               switch (connector.state()) {
                 case DRAFT ->
                     throw new ApiException(ErrorCode.MESSAGING_CONNECTOR_INCOMPLETE, Map.of());
@@ -949,7 +950,6 @@ public class MessagingService {
                   // active
                 }
               }
-              Recipient recipient = lockRecipient(caller, id);
               if (recipient.status() == RecipientStatus.DISABLED) {
                 throw new ApiException(ErrorCode.MESSAGING_RECIPIENT_DISABLED, Map.of());
               }
@@ -975,7 +975,9 @@ public class MessagingService {
               Map<String, Object> metadata = recipientMetadata(recipient, "TEST_DELIVERY");
               record(caller, TEST, "messaging-recipient", id, now, metadata);
               return new IdempotentOperation.Completed<>(
-                  new TestDeliveryResult(deliveryId, id, eventId), deliveryId, Outcome.CREATED);
+                  new WhatsAppTestDeliveryResult(deliveryId, id, eventId),
+                  deliveryId,
+                  Outcome.CREATED);
             });
     return new Command<>(result.body(), result.replayed());
   }
@@ -1056,7 +1058,7 @@ public class MessagingService {
    * @param limit page size or null
    * @return the page, after its disclosure audit committed
    */
-  public DeliveryPage deliveries(
+  public WhatsAppDeliveryPage deliveries(
       MessagingCaller caller, String recipientId, String cursor, String limit) {
     return observed(
         DELIVERY_READ,
@@ -1096,7 +1098,8 @@ public class MessagingService {
                             new KeysetPosition(
                                 toCode(page.get(size - 1).createdAt()), page.get(size - 1).id()))
                         : null;
-                return new DeliveryPage(page.stream().map(DeliveryView::of).toList(), next);
+                return new WhatsAppDeliveryPage(
+                    page.stream().map(WhatsAppDeliveryView::of).toList(), next);
               });
         });
   }
@@ -1108,7 +1111,7 @@ public class MessagingService {
    * @param deliveryId path value
    * @return the delivery, after its disclosure audit committed
    */
-  public DeliveryDetail delivery(MessagingCaller caller, String deliveryId) {
+  public WhatsAppDeliveryDetail delivery(MessagingCaller caller, String deliveryId) {
     return observed(
         DELIVERY_READ,
         () -> {
@@ -1122,13 +1125,16 @@ public class MessagingService {
                             () ->
                                 new ApiException(ErrorCode.MESSAGING_DELIVERY_NOT_FOUND, Map.of()));
                 disclose(caller, DELIVERY_READ, "delivery-detail", id, 1);
-                List<AttemptItem> attempts =
-                    repository.attempts(caller.tenant(), id).stream().map(AttemptItem::of).toList();
+                List<WhatsAppAttemptItem> attempts =
+                    repository.attempts(caller.tenant(), id).stream()
+                        .map(WhatsAppAttemptItem::of)
+                        .toList();
                 List<StatusReportItem> callbacks =
                     repository.callbacks(caller.tenant(), id).stream()
                         .map(StatusReportItem::of)
                         .toList();
-                return new DeliveryDetail(DeliveryView.of(found), attempts, callbacks);
+                return new WhatsAppDeliveryDetail(
+                    WhatsAppDeliveryView.of(found), attempts, callbacks);
               });
         });
   }

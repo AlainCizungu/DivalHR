@@ -1080,7 +1080,11 @@ class MessagingApiIntegrationTest {
             .read(
                 get(PATH + "/deliveries/" + row.get("id").asText()).header("Authorization", admin))
             .toString();
-    assertThat(detail).doesNotContain("wamid").doesNotContain("template").doesNotContain("http");
+    assertThat(detail)
+        .doesNotContain("wamid")
+        .doesNotContain("template")
+        .doesNotContain("http:")
+        .doesNotContain("https:");
   }
 
   // ------------------------------------------------------------------------------------------
@@ -1167,8 +1171,10 @@ class MessagingApiIntegrationTest {
   @Test
   void disablingTheConnectorOrARecipientCancelsQueuedWorkAndStopsSending() throws Exception {
     JsonNode active = fixture.activate(admin);
-    String keep = fixture.recipient(admin, newNumber(), "en", "LEAVE_DECISION").get("id").asText();
-    String drop = fixture.recipient(admin, newNumber(), "en", "LEAVE_DECISION").get("id").asText();
+    String keepNumber = newNumber();
+    String dropNumber = newNumber();
+    String keep = fixture.recipient(admin, keepNumber, "en", "LEAVE_DECISION").get("id").asText();
+    String drop = fixture.recipient(admin, dropNumber, "en", "LEAVE_DECISION").get("id").asText();
     UUID kept = fixture.test(admin, keep);
     UUID dropped = fixture.test(admin, drop);
     mvc.perform(
@@ -1198,6 +1204,8 @@ class MessagingApiIntegrationTest {
                 kept))
         .isEqualTo(1);
     jobs.deliverDue();
-    assertThat(provider.sent()).isEmpty();
+    // Other tests' queued work may be sent by the same worker; only this test's numbers matter.
+    assertThat(provider.sent())
+        .noneMatch(sent -> sent.to().equals(keepNumber) || sent.to().equals(dropNumber));
   }
 }

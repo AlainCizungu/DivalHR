@@ -4,12 +4,12 @@ import com.divalhr.core.integrations.messaging.application.MessagingCaller;
 import com.divalhr.core.integrations.messaging.application.MessagingService;
 import com.divalhr.core.integrations.messaging.application.MessagingService.Command;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.ConnectorView;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryDetail;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryPage;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.RecipientList;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.RecipientView;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.TestDeliveryResult;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.VerificationView;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppDeliveryDetail;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppDeliveryPage;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.WhatsAppTestDeliveryResult;
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.idempotency.IdempotencyKeys;
@@ -277,7 +277,7 @@ public class MessagingController {
       consumes = MediaType.APPLICATION_JSON_VALUE)
   @TenantAdminOperation(operation = MessagingService.TEST)
   @SubjectRateLimited(bucket = MessagingService.SUBJECT_WRITE_BUCKET)
-  public ResponseEntity<TestDeliveryResult> testDelivery(
+  public ResponseEntity<WhatsAppTestDeliveryResult> testDelivery(
       @PathVariable("recipientId") String recipientId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestBody MessagingTestRequest body,
@@ -293,7 +293,7 @@ public class MessagingController {
   @GetMapping(PATH + "/deliveries")
   @TenantAdminOperation(operation = MessagingService.DELIVERY_READ)
   @SubjectRateLimited(bucket = MessagingService.SUBJECT_READ_BUCKET)
-  public ResponseEntity<DeliveryPage> deliveries(
+  public ResponseEntity<WhatsAppDeliveryPage> deliveries(
       @RequestParam(name = "recipientId", required = false) String recipientId,
       @RequestParam(name = "cursor", required = false) String cursor,
       @RequestParam(name = "limit", required = false) String limit,
@@ -307,7 +307,7 @@ public class MessagingController {
   @GetMapping(PATH + "/deliveries/{deliveryId}")
   @TenantAdminOperation(operation = MessagingService.DELIVERY_READ)
   @SubjectRateLimited(bucket = MessagingService.SUBJECT_READ_BUCKET)
-  public ResponseEntity<DeliveryDetail> delivery(
+  public ResponseEntity<WhatsAppDeliveryDetail> delivery(
       @PathVariable("deliveryId") String deliveryId,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {

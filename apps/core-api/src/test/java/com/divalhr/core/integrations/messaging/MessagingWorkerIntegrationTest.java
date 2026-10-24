@@ -253,6 +253,11 @@ class MessagingWorkerIntegrationTest {
     jobs.deliverDue();
     Instant next = ((java.sql.Timestamp) delivery(id).get("next_attempt_at")).toInstant();
     assertThat(Duration.between(now, next)).isEqualTo(Duration.ofHours(2));
+    // Finish the delivery so no due work outlives this test for the others sharing the database.
+    clock.set(next.plusSeconds(1));
+    provider.accept();
+    jobs.deliverDue();
+    assertThat(delivery(id)).containsEntry("state", "ACCEPTED");
   }
 
   @Test

@@ -133,12 +133,17 @@ test.describe.serial('MVP-111: WhatsApp Business connector', () => {
     await expect(state).toHaveAttribute('data-status', 'DRAFT');
     await expect(page.locator('body')).not.toContainText(`synthetic-token-${stamp}`);
 
-    // Verification with the provider turns it active.
+    // Verification with the provider reports only; enabling is a separate, explicit step.
     await page.getByRole('button', { name: 'Verify with WhatsApp' }).click();
     await page.getByLabel('I understand and want to continue.').check();
     await page.getByRole('button', { name: 'Yes, verify' }).click();
+    await expect(page.getByTestId('verification')).toContainText('Everything checks out', {
+      timeout: 30_000,
+    });
+    await expect(state).toHaveAttribute('data-status', 'DRAFT');
+    await page.getByRole('button', { name: 'Enable', exact: true }).click();
+    await page.getByRole('button', { name: 'Yes, enable', exact: true }).click();
     await expect(state).toHaveAttribute('data-status', 'ACTIVE', { timeout: 30_000 });
-    await expect(page.getByTestId('verification')).toContainText('Everything checks out');
     await expectAccessible(page);
 
     // A recipient with a recorded consent: only the masked number is displayed afterwards.
