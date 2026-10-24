@@ -49,7 +49,8 @@
     "payrollPreparation": "Préparation de la paie",
     "operationsStatus": "Opérations du jour",
     "teamOperations": "Opérations de l’équipe",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "whatsapp": "WhatsApp Business"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -540,6 +541,29 @@
     "WEBHOOK_SUSPENDED": "Le webhook a été suspendu après des échecs de livraison répétés. Vérifiez votre point de terminaison, puis réactivez-le.",
     "WEBHOOK_TEST_RATE_LIMITED": "Trop de livraisons de test. Réessayez plus tard.",
     "WEBHOOK_SECRET_UNAVAILABLE": "Les webhooks ne sont pas disponibles pour le moment. Réessayez plus tard.",
+    "MESSAGING_CONNECTOR_NOT_FOUND": "Aucun connecteur WhatsApp n’est encore connecté.",
+    "MESSAGING_CONNECTOR_EXISTS": "Cette organisation a déjà un connecteur WhatsApp.",
+    "MESSAGING_CONNECTOR_INCOMPLETE": "Vérifiez d’abord le connecteur auprès de WhatsApp.",
+    "MESSAGING_CONNECTOR_DISABLED": "Le connecteur WhatsApp est désactivé. Activez-le d’abord.",
+    "MESSAGING_CONNECTOR_SUSPENDED": "Le connecteur WhatsApp a été suspendu après des échecs répétés. Vérifiez-le, puis réactivez-le.",
+    "MESSAGING_CONNECTOR_ACTIVE": "Désactivez le connecteur avant de modifier ses identifiants ou ses modèles.",
+    "MESSAGING_CONNECTOR_VERSION_STALE": "Le connecteur a changé depuis son ouverture. Rechargez-le puis réessayez.",
+    "MESSAGING_ALREADY_DISABLED": "Le connecteur est déjà désactivé.",
+    "MESSAGING_ALREADY_ENABLED": "Le connecteur est déjà activé.",
+    "MESSAGING_PROVIDER_UNAVAILABLE": "WhatsApp est injoignable. Réessayez dans quelques minutes.",
+    "MESSAGING_PROVIDER_CREDENTIAL_INVALID": "WhatsApp a refusé le jeton d’accès ou les identifiants. Vérifiez-les puis réessayez.",
+    "MESSAGING_TEMPLATE_INVALID": "Un modèle est introuvable, non approuvé, dans la mauvaise langue ou dans une structure non prise en charge.",
+    "MESSAGING_RECIPIENT_NOT_FOUND": "Le destinataire n’existe pas ou vous n’y avez pas accès.",
+    "MESSAGING_RECIPIENT_LIMIT_REACHED": "Cette organisation a déjà atteint le maximum de 25 destinataires.",
+    "MESSAGING_RECIPIENT_EXISTS": "Ce numéro est déjà enregistré.",
+    "MESSAGING_RECIPIENT_DISABLED": "Le destinataire est désactivé. Activez-le d’abord.",
+    "MESSAGING_RECIPIENT_VERSION_STALE": "Le destinataire a changé depuis son ouverture. Rechargez puis réessayez.",
+    "MESSAGING_CONSENT_REQUIRED": "Consignez comment et quand cette personne a accepté de recevoir des messages WhatsApp, et attestez-le.",
+    "MESSAGING_PHONE_INVALID": "Saisissez le numéro au format international, par exemple +243812345678.",
+    "MESSAGING_NOTIFICATION_TYPE_INVALID": "Choisissez au moins une notification dans la liste.",
+    "MESSAGING_TEST_RATE_LIMITED": "Trop de messages de test. Réessayez plus tard.",
+    "MESSAGING_DELIVERY_NOT_FOUND": "Le message n’existe pas ou vous n’y avez pas accès.",
+    "MESSAGING_SECRET_UNAVAILABLE": "Les notifications WhatsApp ne sont pas disponibles pour le moment. Réessayez plus tard.",
     "OPERATIONAL_SUMMARY_SOURCE_INVALID": "La synthèse n’a pas pu être produite à partir des chiffres actuels. Les chiffres ci-dessous ne sont pas touchés."
   },
   "notFound": {
@@ -1239,6 +1263,282 @@
       "step2": "Calculez la signature avec votre secret comme ci-dessous et comparez en temps constant. Pendant un renouvellement, l’en-tête contient deux signatures.",
       "step3": "Rejetez les horodatages de plus de cinq minutes.",
       "step4": "Les livraisons sont au moins une fois : ignorez un identifiant d’événement déjà traité."
+    }
+  },
+  "whatsapp": {
+    "title": "WhatsApp Business",
+    "description": "Envoyez de courtes notifications WhatsApp génériques aux collègues que vous choisissez. Chaque message nomme seulement le type d’événement et contient un lien sécurisé ; il ne contient jamais de données personnelles et la personne se connecte pour lire le détail.",
+    "unauthorized": "Seuls les administrateurs de l’organisation connectés avec une authentification multifacteur peuvent gérer les notifications WhatsApp.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les notifications WhatsApp.",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "working": "Traitement en cours…",
+    "cancel": "Annuler",
+    "loadMore": "Afficher plus",
+    "retryAfter_one": "Réessayez dans {{count}} seconde.",
+    "retryAfter_other": "Réessayez dans {{count}} secondes.",
+    "reference": "Référence : {{id}}",
+    "never": "Jamais",
+    "none": "Aucun",
+    "stopNote": "La gestion automatique du mot-clé STOP n’est pas mise en œuvre. Si une personne demande à ne plus recevoir de messages, désactivez-la ici.",
+    "language": {
+      "en": "anglais",
+      "fr": "français"
+    },
+    "types": {
+      "LEAVE_DECISION": "Décision sur un congé",
+      "TIMESHEET_APPROVED": "Feuille de temps approuvée",
+      "ATTENDANCE_CORRECTED": "Présence corrigée",
+      "PAYROLL_INPUT_LOCKED": "Éléments de paie verrouillés",
+      "PAYROLL_EXPORT_READY": "Export de paie prêt",
+      "CONNECTOR_TEST": "Test de connexion"
+    },
+    "consentSource": {
+      "WRITTEN": "Consentement écrit",
+      "WEB_FORM": "Formulaire en ligne",
+      "VERBAL_RECORDED_OUTSIDE_DIVALHR": "Oral, consigné en dehors de DivalHR",
+      "OTHER_DOCUMENTED": "Autre, documenté"
+    },
+    "connectorState": {
+      "DRAFT": "Pas encore vérifié",
+      "ACTIVE": "Actif",
+      "DISABLED": "Désactivé",
+      "SUSPENDED": "Suspendu après des échecs répétés"
+    },
+    "recipientStatus": {
+      "ACTIVE": "Actif",
+      "DISABLED": "Désactivé"
+    },
+    "state": {
+      "PENDING": "En attente",
+      "RETRYING": "Nouvelle tentative prévue",
+      "ACCEPTED": "Accepté par WhatsApp",
+      "DELIVERED": "Remis",
+      "READ": "Lu",
+      "FAILED": "Échec",
+      "CANCELLED": "Annulé",
+      "STATUS_UNKNOWN": "Statut inconnu"
+    },
+    "failure": {
+      "DNS_FAILED": "Nom introuvable",
+      "CONNECT_TIMEOUT": "Délai de connexion dépassé",
+      "REQUEST_TIMEOUT": "Délai de réponse dépassé",
+      "TLS_FAILED": "Connexion sécurisée en échec",
+      "CONNECTION_FAILED": "Connexion en échec",
+      "RATE_LIMITED": "WhatsApp limite les messages",
+      "PROVIDER_FAILED": "WhatsApp a rencontré un problème",
+      "HTTP_RESPONSE": "WhatsApp n’a pas accepté le message",
+      "CREDENTIAL_INVALID": "Jeton d’accès refusé",
+      "TEMPLATE_INVALID": "Modèle refusé",
+      "RECIPIENT_REJECTED": "Le destinataire ne peut pas recevoir de messages",
+      "INTERNAL_FAILURE": "Le message n’a pas pu être préparé",
+      "CONNECTOR_INACTIVE": "Le connecteur ou le destinataire n’était pas actif"
+    },
+    "callbackStatus": {
+      "SENT": "Envoyé",
+      "DELIVERED": "Remis",
+      "READ": "Lu",
+      "FAILED": "Échec"
+    },
+    "templateResult": {
+      "OK": "Prêt",
+      "MISSING": "Introuvable chez WhatsApp",
+      "NOT_APPROVED": "Pas encore approuvé",
+      "WRONG_LANGUAGE": "Langue incorrecte",
+      "WRONG_SHAPE": "Structure non prise en charge",
+      "CREDENTIAL_REJECTED": "Jeton d’accès refusé",
+      "UNAVAILABLE": "Vérification impossible"
+    },
+    "credentialResult": {
+      "VALID": "Jeton d’accès accepté",
+      "REJECTED": "Jeton d’accès refusé",
+      "UNAVAILABLE": "WhatsApp est injoignable"
+    },
+    "connect": {
+      "title": "Connecter WhatsApp Business",
+      "intro": "Utilisez le compte WhatsApp Business Cloud API que votre organisation possède déjà. DivalHR ne crée jamais de compte Meta. Les modèles doivent être approuvés par WhatsApp avant la vérification.",
+      "unavailable": "Les notifications WhatsApp ne sont pas disponibles pour le moment. Réessayez plus tard.",
+      "wabaId": "Identifiant du compte WhatsApp Business",
+      "wabaIdHint": "De 5 à 20 chiffres.",
+      "phoneNumberId": "Identifiant du numéro d’envoi",
+      "phoneNumberIdHint": "De 5 à 20 chiffres, fourni par le compte WhatsApp Business.",
+      "displayNumber": "Numéro d’envoi",
+      "displayNumberHint": "Format international, par exemple +243…",
+      "accessToken": "Jeton d’accès",
+      "accessTokenHint": "Le jeton de l’utilisateur système. Il est stocké chiffré et n’est plus jamais affiché.",
+      "templatesTitle": "Modèles approuvés",
+      "templatesHint": "Saisissez le nom du modèle approuvé pour chaque notification et pour les deux langues. La vérification les exige tous. Chaque modèle accepte au plus une variable de texte générique et un bouton de lien.",
+      "templateName": "{{type}}, {{language}} : nom du modèle",
+      "confirm": "Je confirme que ces identifiants et ces modèles appartiennent à mon organisation.",
+      "create": "Connecter",
+      "save": "Enregistrer les modifications"
+    },
+    "errors": {
+      "summary": "Vérifiez les champs signalés.",
+      "digitsInvalid": "Saisissez de 5 à 20 chiffres.",
+      "displayNumberInvalid": "Saisissez le numéro au format international, par exemple +243812345678.",
+      "tokenRequired": "Saisissez le jeton d’accès.",
+      "tokenInvalid": "Le jeton d’accès semble incomplet. Collez-le à nouveau.",
+      "templateNameInvalid": "Utilisez des minuscules, des chiffres et des tirets bas, en commençant par une lettre.",
+      "templatesRequired": "Saisissez au moins un nom de modèle.",
+      "labelRequired": "Saisissez un nom.",
+      "labelTooLong": "Le nom est trop long.",
+      "labelInvalid": "Utilisez du texte simple, sans lien.",
+      "phoneInvalid": "Saisissez le numéro au format international, par exemple +243812345678.",
+      "typesRequired": "Choisissez au moins une notification.",
+      "consentSourceRequired": "Indiquez comment la personne a donné son accord.",
+      "consentDateRequired": "Saisissez la date du consentement.",
+      "consentDateFuture": "La date du consentement ne peut pas être dans le futur.",
+      "consentAttestRequired": "Confirmez que cette personne a accepté de recevoir ces messages.",
+      "confirmRequired": "Confirmez pour continuer."
+    },
+    "connector": {
+      "title": "Connecteur",
+      "stateLabel": "Statut",
+      "wabaId": "Identifiant du compte",
+      "phoneNumberId": "Identifiant du numéro",
+      "displayNumber": "Numéro d’envoi",
+      "graphVersion": "Version de l’API WhatsApp",
+      "credentialVersion": "Version du jeton",
+      "failures": "Échecs consécutifs",
+      "verifiedAt": "Dernière vérification",
+      "lastSuccess": "Dernier succès",
+      "lastFailure": "Dernier échec",
+      "recipients": "Destinataires",
+      "templates": "Modèles",
+      "templateRow": "{{type}} ({{language}}) : {{name}}",
+      "templateVerified": "vérifié",
+      "templateUnverified": "non vérifié",
+      "draftNote": "Ce connecteur n’a pas été vérifié. Vérifiez-le pour commencer l’envoi.",
+      "disabledNote": "Ce connecteur est désactivé. Aucun message n’est envoyé.",
+      "suspendedNote": "Ce connecteur a été suspendu après des échecs répétés. Vérifiez le jeton d’accès et les modèles, puis réactivez-le. Les événements manqués ne sont pas rejoués.",
+      "activeNote": "Pour modifier les identifiants ou les modèles, désactivez d’abord le connecteur."
+    },
+    "actions": {
+      "edit": "Modifier",
+      "verify": "Vérifier auprès de WhatsApp",
+      "rotate": "Renouveler le jeton d’accès",
+      "disable": "Désactiver",
+      "enable": "Activer"
+    },
+    "confirmAction": {
+      "understand": "Je comprends et je souhaite continuer.",
+      "verify": {
+        "title": "Vérifier auprès de WhatsApp",
+        "body": "DivalHR contrôle le jeton d’accès et chaque modèle auprès de WhatsApp. Si tous les contrôles réussissent, le connecteur devient actif.",
+        "submit": "Oui, vérifier"
+      },
+      "rotate": {
+        "title": "Renouveler le jeton d’accès",
+        "body": "Collez le nouveau jeton. DivalHR le contrôle auprès de WhatsApp, le stocke chiffré et efface le précédent.",
+        "submit": "Oui, renouveler le jeton"
+      },
+      "disable": {
+        "title": "Désactiver les notifications WhatsApp",
+        "body": "Aucun nouveau message n’est envoyé et les messages en attente sont annulés. L’historique est conservé.",
+        "submit": "Oui, désactiver"
+      },
+      "enable": {
+        "title": "Activer les notifications WhatsApp",
+        "body": "DivalHR contrôle de nouveau le connecteur. Les événements manqués pendant la désactivation ou la suspension ne sont pas rejoués.",
+        "submit": "Oui, activer"
+      }
+    },
+    "rotate": {
+      "token": "Nouveau jeton d’accès",
+      "tokenHint": "Stocké chiffré et n’est plus jamais affiché."
+    },
+    "verification": {
+      "title": "Résultat de la vérification",
+      "verified": "Tout est conforme. Le connecteur est actif.",
+      "notVerified": "Le connecteur n’a pas pu être vérifié. Corrigez les éléments ci-dessous, puis vérifiez de nouveau.",
+      "credential": "Jeton d’accès",
+      "template": "{{type}} ({{language}}) : {{result}}"
+    },
+    "recipients": {
+      "title": "Destinataires",
+      "count": "{{count}} destinataires enregistrés sur {{max}}.",
+      "empty": "Aucun destinataire pour le moment. Ajoutez un collègue qui a accepté de recevoir des notifications WhatsApp.",
+      "add": "Ajouter un destinataire",
+      "createTitle": "Nouveau destinataire",
+      "editTitle": "Modifier le destinataire",
+      "loading": "Chargement des destinataires…",
+      "table": {
+        "label": "Nom",
+        "number": "Numéro",
+        "language": "Langue",
+        "types": "Notifications",
+        "status": "Statut",
+        "consent": "Consentement",
+        "actions": "Actions"
+      },
+      "form": {
+        "label": "Nom",
+        "labelHint": "Texte simple, {{max}} caractères au plus. Non transmis à WhatsApp.",
+        "phone": "Numéro WhatsApp",
+        "phoneHint": "Format international. Il est stocké chiffré et affiché masqué.",
+        "language": "Langue des messages",
+        "types": "Notifications à envoyer",
+        "consentTitle": "Consentement",
+        "consentSource": "Comment la personne a donné son accord",
+        "consentSourcePlaceholder": "Choisir…",
+        "consentDate": "Date du consentement",
+        "consentAttest": "J’atteste que cette personne a accepté de recevoir ces messages WhatsApp.",
+        "confirm": "Je confirme que ce destinataire peut recevoir ces notifications.",
+        "create": "Ajouter le destinataire",
+        "save": "Enregistrer les modifications",
+        "editNote": "Le numéro ne peut pas être modifié. Désactivez ce destinataire et ajoutez le nouveau numéro."
+      },
+      "actions": {
+        "edit": "Modifier",
+        "test": "Envoyer un message de test",
+        "disable": "Désactiver",
+        "enable": "Activer"
+      },
+      "confirm": {
+        "disable": "Désactiver ce destinataire ? Les messages en attente sont annulés.",
+        "enable": "Activer ce destinataire ? Les événements passés ne sont pas rejoués.",
+        "yes": "Oui, continuer",
+        "testBody": "Envoyer un message de test générique à ce destinataire ? Il ne contient aucune donnée personnelle.",
+        "testYes": "Oui, envoyer le test"
+      }
+    },
+    "announce": {
+      "created": "Connecteur WhatsApp enregistré.",
+      "updated": "Connecteur mis à jour.",
+      "verified": "Connecteur vérifié et actif.",
+      "notVerified": "La vérification n’a pas abouti.",
+      "rotate": "Jeton d’accès renouvelé.",
+      "disable": "Connecteur désactivé.",
+      "enable": "Connecteur activé.",
+      "recipientCreated": "Destinataire ajouté.",
+      "recipientUpdated": "Destinataire mis à jour.",
+      "recipientDisable": "Destinataire désactivé.",
+      "recipientEnable": "Destinataire activé.",
+      "testQueued": "Message de test mis en file d’attente. Suivez-le dans l’historique."
+    },
+    "history": {
+      "title": "Historique des envois",
+      "note": "Seuls les résultats sont conservés : aucun numéro, message, lien ni identifiant WhatsApp n’est affiché.",
+      "refresh": "Actualiser l’historique",
+      "empty": "Aucun message pour le moment.",
+      "filter": "Destinataire",
+      "allRecipients": "Tous les destinataires",
+      "recipient": "Destinataire",
+      "type": "Notification",
+      "state": "État",
+      "attempts": "Tentatives",
+      "result": "Résultat",
+      "completed": "Dernière mise à jour",
+      "details": "Détails",
+      "show": "Détails",
+      "test": "Test",
+      "httpStatus": "HTTP {{status}}",
+      "attemptsTitle": "Tentatives",
+      "attemptLine": "Tentative {{number}}, {{when}} : {{result}} ({{ms}} ms)",
+      "callbacksTitle": "Rapports d’état de WhatsApp",
+      "callbackLine": "{{when}} : {{status}}",
+      "noCallbacks": "Aucun reçu pour le moment."
     }
   },
   "employeeImport": {

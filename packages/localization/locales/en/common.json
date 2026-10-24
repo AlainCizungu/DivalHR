@@ -49,7 +49,8 @@
     "payrollPreparation": "Payroll preparation",
     "operationsStatus": "Today’s operations",
     "teamOperations": "Team operations",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "whatsapp": "WhatsApp Business"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -540,6 +541,29 @@
     "WEBHOOK_SUSPENDED": "The webhook was suspended after repeated delivery failures. Check your endpoint, then enable it again.",
     "WEBHOOK_TEST_RATE_LIMITED": "Too many test deliveries. Try again later.",
     "WEBHOOK_SECRET_UNAVAILABLE": "Webhooks are not available right now. Try again later.",
+    "MESSAGING_CONNECTOR_NOT_FOUND": "No WhatsApp connector is connected yet.",
+    "MESSAGING_CONNECTOR_EXISTS": "This organization already has a WhatsApp connector.",
+    "MESSAGING_CONNECTOR_INCOMPLETE": "Verify the connector with WhatsApp first.",
+    "MESSAGING_CONNECTOR_DISABLED": "The WhatsApp connector is disabled. Enable it first.",
+    "MESSAGING_CONNECTOR_SUSPENDED": "The WhatsApp connector was suspended after repeated failures. Check it, then enable it again.",
+    "MESSAGING_CONNECTOR_ACTIVE": "Disable the connector before changing its identifiers or templates.",
+    "MESSAGING_CONNECTOR_VERSION_STALE": "The connector changed since you opened it. Reload it and try again.",
+    "MESSAGING_ALREADY_DISABLED": "The connector is already disabled.",
+    "MESSAGING_ALREADY_ENABLED": "The connector is already enabled.",
+    "MESSAGING_PROVIDER_UNAVAILABLE": "WhatsApp could not be reached. Try again in a few minutes.",
+    "MESSAGING_PROVIDER_CREDENTIAL_INVALID": "WhatsApp refused the access token or the identifiers. Check them and try again.",
+    "MESSAGING_TEMPLATE_INVALID": "A template is missing, not approved, in the wrong language or not in a supported layout.",
+    "MESSAGING_RECIPIENT_NOT_FOUND": "The recipient does not exist or is not visible to you.",
+    "MESSAGING_RECIPIENT_LIMIT_REACHED": "This organization already has the maximum of 25 recipients.",
+    "MESSAGING_RECIPIENT_EXISTS": "This number is already registered.",
+    "MESSAGING_RECIPIENT_DISABLED": "The recipient is disabled. Enable them first.",
+    "MESSAGING_RECIPIENT_VERSION_STALE": "The recipient changed since you opened them. Reload and try again.",
+    "MESSAGING_CONSENT_REQUIRED": "Record how and when this person agreed to receive WhatsApp messages, and attest to it.",
+    "MESSAGING_PHONE_INVALID": "Enter the number in international format, for example +243812345678.",
+    "MESSAGING_NOTIFICATION_TYPE_INVALID": "Choose at least one notification from the list.",
+    "MESSAGING_TEST_RATE_LIMITED": "Too many test messages. Try again later.",
+    "MESSAGING_DELIVERY_NOT_FOUND": "The message does not exist or is not visible to you.",
+    "MESSAGING_SECRET_UNAVAILABLE": "WhatsApp notifications are not available right now. Try again later.",
     "OPERATIONAL_SUMMARY_SOURCE_INVALID": "The briefing could not be produced from the current figures. The figures below are unaffected."
   },
   "notFound": {
@@ -1239,6 +1263,282 @@
       "step2": "Compute the signature with your secret as shown below and compare in constant time. During a rotation the header holds two signatures.",
       "step3": "Reject timestamps older than five minutes.",
       "step4": "Deliveries are at least once: ignore an event ID you already processed."
+    }
+  },
+  "whatsapp": {
+    "title": "WhatsApp Business",
+    "description": "Send short, generic WhatsApp notifications to the colleagues you choose. Each message names only the kind of event and carries one secure link; it never contains personal data, and the person signs in to read the details.",
+    "unauthorized": "Only organization administrators who signed in with multi-factor authentication can manage WhatsApp notifications.",
+    "signInRequired": "Sign in as an organization administrator to manage WhatsApp notifications.",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "working": "Working…",
+    "cancel": "Cancel",
+    "loadMore": "Show more",
+    "retryAfter_one": "Try again in {{count}} second.",
+    "retryAfter_other": "Try again in {{count}} seconds.",
+    "reference": "Reference: {{id}}",
+    "never": "Never",
+    "none": "None",
+    "stopNote": "Automatic handling of the STOP keyword is not implemented. If someone asks to stop, disable them here.",
+    "language": {
+      "en": "English",
+      "fr": "French"
+    },
+    "types": {
+      "LEAVE_DECISION": "Leave decision",
+      "TIMESHEET_APPROVED": "Timesheet approved",
+      "ATTENDANCE_CORRECTED": "Attendance corrected",
+      "PAYROLL_INPUT_LOCKED": "Payroll inputs locked",
+      "PAYROLL_EXPORT_READY": "Payroll export ready",
+      "CONNECTOR_TEST": "Connection test"
+    },
+    "consentSource": {
+      "WRITTEN": "Written consent",
+      "WEB_FORM": "Web form",
+      "VERBAL_RECORDED_OUTSIDE_DIVALHR": "Verbal, recorded outside DivalHR",
+      "OTHER_DOCUMENTED": "Other, documented"
+    },
+    "connectorState": {
+      "DRAFT": "Not verified yet",
+      "ACTIVE": "Active",
+      "DISABLED": "Disabled",
+      "SUSPENDED": "Suspended after repeated failures"
+    },
+    "recipientStatus": {
+      "ACTIVE": "Active",
+      "DISABLED": "Disabled"
+    },
+    "state": {
+      "PENDING": "Waiting",
+      "RETRYING": "Will retry",
+      "ACCEPTED": "Accepted by WhatsApp",
+      "DELIVERED": "Delivered",
+      "READ": "Read",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled",
+      "STATUS_UNKNOWN": "Status unknown"
+    },
+    "failure": {
+      "DNS_FAILED": "Name not found",
+      "CONNECT_TIMEOUT": "Connection timed out",
+      "REQUEST_TIMEOUT": "Response timed out",
+      "TLS_FAILED": "Secure connection failed",
+      "CONNECTION_FAILED": "Connection failed",
+      "RATE_LIMITED": "WhatsApp is limiting messages",
+      "PROVIDER_FAILED": "WhatsApp had a problem",
+      "HTTP_RESPONSE": "WhatsApp did not accept the message",
+      "CREDENTIAL_INVALID": "Access token refused",
+      "TEMPLATE_INVALID": "Template refused",
+      "RECIPIENT_REJECTED": "Recipient cannot receive messages",
+      "INTERNAL_FAILURE": "Message could not be prepared",
+      "CONNECTOR_INACTIVE": "Connector or recipient was not active"
+    },
+    "callbackStatus": {
+      "SENT": "Sent",
+      "DELIVERED": "Delivered",
+      "READ": "Read",
+      "FAILED": "Failed"
+    },
+    "templateResult": {
+      "OK": "Ready",
+      "MISSING": "Not found at WhatsApp",
+      "NOT_APPROVED": "Not approved yet",
+      "WRONG_LANGUAGE": "Wrong language",
+      "WRONG_SHAPE": "Unsupported layout",
+      "CREDENTIAL_REJECTED": "Access token refused",
+      "UNAVAILABLE": "Could not be checked"
+    },
+    "credentialResult": {
+      "VALID": "Access token accepted",
+      "REJECTED": "Access token refused",
+      "UNAVAILABLE": "WhatsApp could not be reached"
+    },
+    "connect": {
+      "title": "Connect WhatsApp Business",
+      "intro": "Use the WhatsApp Business Cloud API account your organization already owns. DivalHR never creates a Meta account. Templates must be approved by WhatsApp before you verify.",
+      "unavailable": "WhatsApp notifications are not available right now. Try again later.",
+      "wabaId": "WhatsApp Business account ID",
+      "wabaIdHint": "5 to 20 digits.",
+      "phoneNumberId": "Sending phone number ID",
+      "phoneNumberIdHint": "5 to 20 digits, from the WhatsApp Business account.",
+      "displayNumber": "Sending phone number",
+      "displayNumberHint": "International format, for example +243…",
+      "accessToken": "Access token",
+      "accessTokenHint": "The system-user token. It is stored encrypted and never shown again.",
+      "templatesTitle": "Approved templates",
+      "templatesHint": "Enter the name of the approved template for every notification and both languages. Verification requires all of them. Every template takes at most one generic text variable and one link button.",
+      "templateName": "{{type}}, {{language}}: template name",
+      "confirm": "I confirm that these identifiers and templates belong to my organization.",
+      "create": "Connect",
+      "save": "Save changes"
+    },
+    "errors": {
+      "summary": "Check the highlighted fields.",
+      "digitsInvalid": "Enter 5 to 20 digits.",
+      "displayNumberInvalid": "Enter the number in international format, for example +243812345678.",
+      "tokenRequired": "Enter the access token.",
+      "tokenInvalid": "The access token looks incomplete. Paste it again.",
+      "templateNameInvalid": "Use lowercase letters, digits and underscores, starting with a letter.",
+      "templatesRequired": "Enter at least one template name.",
+      "labelRequired": "Enter a name.",
+      "labelTooLong": "The name is too long.",
+      "labelInvalid": "Use plain text without links.",
+      "phoneInvalid": "Enter the number in international format, for example +243812345678.",
+      "typesRequired": "Choose at least one notification.",
+      "consentSourceRequired": "Choose how the person agreed.",
+      "consentDateRequired": "Enter the date of the consent.",
+      "consentDateFuture": "The consent date cannot be in the future.",
+      "consentAttestRequired": "Confirm that this person agreed to receive these messages.",
+      "confirmRequired": "Confirm to continue."
+    },
+    "connector": {
+      "title": "Connector",
+      "stateLabel": "Status",
+      "wabaId": "Business account ID",
+      "phoneNumberId": "Phone number ID",
+      "displayNumber": "Sending phone number",
+      "graphVersion": "WhatsApp API version",
+      "credentialVersion": "Token version",
+      "failures": "Consecutive failed messages",
+      "verifiedAt": "Last verified",
+      "lastSuccess": "Last success",
+      "lastFailure": "Last failure",
+      "recipients": "Recipients",
+      "templates": "Templates",
+      "templateRow": "{{type}} ({{language}}): {{name}}",
+      "templateVerified": "verified",
+      "templateUnverified": "not verified",
+      "draftNote": "This connector has not been verified. Verify it to start sending.",
+      "disabledNote": "This connector is disabled. No message is sent.",
+      "suspendedNote": "This connector was suspended after repeated failures. Check the access token and the templates, then enable it again. Missed events are not replayed.",
+      "activeNote": "To change the identifiers or templates, disable the connector first."
+    },
+    "actions": {
+      "edit": "Edit",
+      "verify": "Verify with WhatsApp",
+      "rotate": "Rotate access token",
+      "disable": "Disable",
+      "enable": "Enable"
+    },
+    "confirmAction": {
+      "understand": "I understand and want to continue.",
+      "verify": {
+        "title": "Verify with WhatsApp",
+        "body": "DivalHR checks the access token and every template with WhatsApp. If all checks pass, the connector becomes active.",
+        "submit": "Yes, verify"
+      },
+      "rotate": {
+        "title": "Rotate the access token",
+        "body": "Paste the new token. DivalHR checks it with WhatsApp, stores it encrypted and erases the previous one.",
+        "submit": "Yes, rotate the token"
+      },
+      "disable": {
+        "title": "Disable WhatsApp notifications",
+        "body": "No new message is sent and waiting messages are cancelled. History is kept.",
+        "submit": "Yes, disable"
+      },
+      "enable": {
+        "title": "Enable WhatsApp notifications",
+        "body": "DivalHR checks the connector again. Events missed while it was disabled or suspended are not replayed.",
+        "submit": "Yes, enable"
+      }
+    },
+    "rotate": {
+      "token": "New access token",
+      "tokenHint": "Stored encrypted and never shown again."
+    },
+    "verification": {
+      "title": "Verification result",
+      "verified": "Everything checks out. The connector is active.",
+      "notVerified": "The connector could not be verified. Fix the items below, then verify again.",
+      "credential": "Access token",
+      "template": "{{type}} ({{language}}): {{result}}"
+    },
+    "recipients": {
+      "title": "Recipients",
+      "count": "{{count}} of {{max}} recipients registered.",
+      "empty": "No recipient yet. Add a colleague who agreed to receive WhatsApp notifications.",
+      "add": "Add a recipient",
+      "createTitle": "New recipient",
+      "editTitle": "Edit recipient",
+      "loading": "Loading recipients…",
+      "table": {
+        "label": "Name",
+        "number": "Number",
+        "language": "Language",
+        "types": "Notifications",
+        "status": "Status",
+        "consent": "Consent",
+        "actions": "Actions"
+      },
+      "form": {
+        "label": "Name",
+        "labelHint": "Plain text, up to {{max}} characters. Not sent to WhatsApp.",
+        "phone": "WhatsApp number",
+        "phoneHint": "International format. It is stored encrypted and shown masked.",
+        "language": "Message language",
+        "types": "Notifications to send",
+        "consentTitle": "Consent",
+        "consentSource": "How the person agreed",
+        "consentSourcePlaceholder": "Choose…",
+        "consentDate": "Date of consent",
+        "consentAttest": "I attest that this person agreed to receive these WhatsApp messages.",
+        "confirm": "I confirm that this recipient may receive these notifications.",
+        "create": "Add recipient",
+        "save": "Save changes",
+        "editNote": "The number cannot be changed. Disable this recipient and add the new number instead."
+      },
+      "actions": {
+        "edit": "Edit",
+        "test": "Send a test message",
+        "disable": "Disable",
+        "enable": "Enable"
+      },
+      "confirm": {
+        "disable": "Disable this recipient? Waiting messages are cancelled.",
+        "enable": "Enable this recipient? Past events are not replayed.",
+        "yes": "Yes, continue",
+        "testBody": "Send one generic test message to this recipient? It contains no personal data.",
+        "testYes": "Yes, send the test"
+      }
+    },
+    "announce": {
+      "created": "WhatsApp connector saved.",
+      "updated": "Connector updated.",
+      "verified": "Connector verified and active.",
+      "notVerified": "Verification did not pass.",
+      "rotate": "Access token rotated.",
+      "disable": "Connector disabled.",
+      "enable": "Connector enabled.",
+      "recipientCreated": "Recipient added.",
+      "recipientUpdated": "Recipient updated.",
+      "recipientDisable": "Recipient disabled.",
+      "recipientEnable": "Recipient enabled.",
+      "testQueued": "Test message queued. Follow it in the history."
+    },
+    "history": {
+      "title": "Delivery history",
+      "note": "Only outcomes are kept: no number, message, link or WhatsApp identifier is shown.",
+      "refresh": "Refresh history",
+      "empty": "No message yet.",
+      "filter": "Recipient",
+      "allRecipients": "All recipients",
+      "recipient": "Recipient",
+      "type": "Notification",
+      "state": "State",
+      "attempts": "Attempts",
+      "result": "Result",
+      "completed": "Last update",
+      "details": "Details",
+      "show": "Details",
+      "test": "Test",
+      "httpStatus": "HTTP {{status}}",
+      "attemptsTitle": "Attempts",
+      "attemptLine": "Attempt {{number}}, {{when}}: {{result}} ({{ms}} ms)",
+      "callbacksTitle": "Status reports from WhatsApp",
+      "callbackLine": "{{when}}: {{status}}",
+      "noCallbacks": "None received yet."
     }
   },
   "employeeImport": {

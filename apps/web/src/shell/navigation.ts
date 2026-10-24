@@ -188,6 +188,12 @@ export const NAVIGATION: NavGroupDef[] = [
     labelKey: 'nav.groups.integrations',
     items: [
       { to: '/admin/webhooks', labelKey: 'nav.webhooks', icon: 'webhook', role: 'tenant-admin' },
+      {
+        to: '/admin/integrations/whatsapp',
+        labelKey: 'nav.whatsapp',
+        icon: 'phone',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

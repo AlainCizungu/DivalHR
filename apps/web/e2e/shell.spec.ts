@@ -65,6 +65,7 @@ test.describe('desktop', () => {
       'Users and invitations',
       'Access review',
       'Webhooks',
+      'WhatsApp Business',
     ]);
     await expect(nav(page).getByRole('link', { name: 'System status' })).toHaveCount(0);
     await expect(page.getByTestId('environment-badge')).toContainText('Development environment');
