@@ -397,15 +397,15 @@ class MessagingSchemaGuardsIntegrationTest {
                     + " '\\x00'::bytea WHERE connector_id = ?",
                 connector))
         .contains("can only be erased");
-    // A second stored ciphertext without moving the connector's credential version is refused at
-    // commit.
+    // A second stored ciphertext is refused at once by the one-current-credential unique index (the
+    // deferred exactness trigger is the second line of defence).
     assertThat(
             refused(
                 "INSERT INTO integrations.messaging_credential (tenant_id, connector_id, version,"
                     + " ciphertext, created_at) SELECT tenant_id, connector_id, 2, ciphertext,"
                     + " now() FROM integrations.messaging_credential WHERE connector_id = ?",
                 connector))
-        .contains("exactly one stored credential");
+        .contains("integrations_messaging_credential_current");
     assertThat(
             jdbc.queryForObject(
                 "SELECT count(*) FROM integrations.messaging_credential WHERE connector_id = ?",

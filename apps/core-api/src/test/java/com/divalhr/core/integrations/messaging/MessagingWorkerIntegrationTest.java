@@ -167,7 +167,7 @@ class MessagingWorkerIntegrationTest {
     event(jdbc, tenant, LEAVE);
     jobs.fanOut();
     UUID id = onlyDelivery();
-    Instant start = Instant.now();
+    Instant start = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
     clock.set(start);
 
     provider.fail(SendFailure.RATE_LIMITED);
@@ -203,7 +203,7 @@ class MessagingWorkerIntegrationTest {
     event(jdbc, tenant, LEAVE);
     jobs.fanOut();
     UUID id = onlyDelivery();
-    Instant now = Instant.now();
+    Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
     clock.set(now);
     provider.fail(SendFailure.REQUEST_TIMEOUT);
 
@@ -247,7 +247,7 @@ class MessagingWorkerIntegrationTest {
     event(jdbc, tenant, LEAVE);
     jobs.fanOut();
     UUID id = onlyDelivery();
-    Instant now = Instant.now();
+    Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
     clock.set(now);
     provider.fail(SendFailure.RATE_LIMITED, Duration.ofDays(3));
     jobs.deliverDue();

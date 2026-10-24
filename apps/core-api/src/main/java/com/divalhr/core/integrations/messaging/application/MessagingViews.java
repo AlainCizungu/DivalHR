@@ -303,10 +303,10 @@ public final class MessagingViews {
    * @param receivedAt our time
    * @param errorClass closed class for FAILED
    */
-  public record CallbackItem(
+  public record StatusReportItem(
       String status, Instant occurredAt, Instant receivedAt, String errorClass) {
-    static CallbackItem of(CallbackView c) {
-      return new CallbackItem(
+    static StatusReportItem of(CallbackView c) {
+      return new StatusReportItem(
           c.status(),
           c.occurredAt(),
           c.receivedAt(),
@@ -322,7 +322,7 @@ public final class MessagingViews {
    * @param statusReports provider status reports, oldest first
    */
   public record DeliveryDetail(
-      DeliveryView delivery, List<AttemptItem> attempts, List<CallbackItem> statusReports) {
+      DeliveryView delivery, List<AttemptItem> attempts, List<StatusReportItem> statusReports) {
     /** Copies the lists. */
     public DeliveryDetail {
       attempts = List.copyOf(attempts);

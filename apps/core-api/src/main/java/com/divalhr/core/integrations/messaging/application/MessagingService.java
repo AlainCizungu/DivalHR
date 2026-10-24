@@ -12,13 +12,13 @@ import com.divalhr.core.integrations.messaging.application.MessagingProvider.Cre
 import com.divalhr.core.integrations.messaging.application.MessagingProvider.TemplateCheck;
 import com.divalhr.core.integrations.messaging.application.MessagingProvider.TemplateResult;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.AttemptItem;
-import com.divalhr.core.integrations.messaging.application.MessagingViews.CallbackItem;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.ConnectorView;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryDetail;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryPage;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.DeliveryView;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.RecipientList;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.RecipientView;
+import com.divalhr.core.integrations.messaging.application.MessagingViews.StatusReportItem;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.TemplateCheckView;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.TestDeliveryResult;
 import com.divalhr.core.integrations.messaging.application.MessagingViews.VerificationView;
@@ -1124,9 +1124,9 @@ public class MessagingService {
                 disclose(caller, DELIVERY_READ, "delivery-detail", id, 1);
                 List<AttemptItem> attempts =
                     repository.attempts(caller.tenant(), id).stream().map(AttemptItem::of).toList();
-                List<CallbackItem> callbacks =
+                List<StatusReportItem> callbacks =
                     repository.callbacks(caller.tenant(), id).stream()
-                        .map(CallbackItem::of)
+                        .map(StatusReportItem::of)
                         .toList();
                 return new DeliveryDetail(DeliveryView.of(found), attempts, callbacks);
               });

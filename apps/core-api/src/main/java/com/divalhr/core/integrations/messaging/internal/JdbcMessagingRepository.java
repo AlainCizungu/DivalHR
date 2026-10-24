@@ -383,7 +383,7 @@ public class JdbcMessagingRepository {
                    state = CASE WHEN :activate THEN 'ACTIVE' ELSE state END,
                    activated_at = CASE WHEN :activate THEN :now ELSE activated_at END,
                    consecutive_failures = CASE WHEN :activate THEN 0 ELSE consecutive_failures END,
-                   config_version = config_version + 1, updated_at = :now, updated_by = :actor
+                   updated_at = :now, updated_by = :actor
              WHERE tenant_id = :tenant AND id = :id
             """)
         .param("tenant", tenant.value())
@@ -406,7 +406,7 @@ public class JdbcMessagingRepository {
     jdbc.sql(
             """
             UPDATE integrations.messaging_connector
-               SET state = 'DISABLED', config_version = config_version + 1,
+               SET state = 'DISABLED',
                    updated_at = :now, updated_by = :actor
              WHERE tenant_id = :tenant AND id = :id
             """)
@@ -526,7 +526,6 @@ public class JdbcMessagingRepository {
             UPDATE integrations.messaging_connector
                SET consecutive_failures = consecutive_failures + 1, last_failure_at = :now,
                    state = CASE WHEN :suspend THEN 'SUSPENDED' ELSE state END,
-                   config_version = CASE WHEN :suspend THEN config_version + 1 ELSE config_version END,
                    updated_at = :now, updated_by = 'system'
              WHERE tenant_id = :tenant AND id = :id
             """)
