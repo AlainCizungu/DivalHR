@@ -25,6 +25,7 @@ const TENANT = [
   '/admin/users',
   '/admin/access',
   '/admin/webhooks',
+  '/admin/integrations/whatsapp',
 ];
 const EMPLOYEE = [
   '/me/contracts',
@@ -102,6 +103,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/users',
         '/admin/access',
         '/admin/webhooks',
+        '/admin/integrations/whatsapp',
         '/admin/people',
         '/admin/people/:employeeId',
         '/admin/people/import',

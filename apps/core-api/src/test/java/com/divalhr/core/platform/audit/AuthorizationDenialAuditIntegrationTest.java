@@ -231,6 +231,19 @@ class AuthorizationDenialAuditIntegrationTest {
           "payroll-input-export.list",
           "payroll-input-export.read",
           "payroll-input-export.download",
+          "messaging.whatsapp.create",
+          "messaging.whatsapp.delivery-read",
+          "messaging.whatsapp.disable",
+          "messaging.whatsapp.enable",
+          "messaging.whatsapp.read",
+          "messaging.whatsapp.recipient-create",
+          "messaging.whatsapp.recipient-disable",
+          "messaging.whatsapp.recipient-enable",
+          "messaging.whatsapp.recipient-update",
+          "messaging.whatsapp.rotate-token",
+          "messaging.whatsapp.test-delivery",
+          "messaging.whatsapp.update",
+          "messaging.whatsapp.verify",
           "webhook.create",
           "webhook.delivery-read",
           "webhook.disable",
@@ -718,7 +731,10 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-101 one more (the organization's briefing; the manager's is self-service).
     // MVP-110 ten more handlers over eight operations (the list and detail reads share
     // webhook.read; the delivery list and detail share webhook.delivery-read).
-    assertThat(handlers).hasSize(135);
+    // MVP-111 sixteen more handlers over thirteen operations (the connector, recipient-list and
+    // recipient reads share messaging.whatsapp.read; the delivery list and detail share
+    // messaging.whatsapp.delivery-read).
+    assertThat(handlers).hasSize(151);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

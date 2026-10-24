@@ -429,6 +429,40 @@ export type WebhookDeliveryPage = CoreComponents['schemas']['WebhookDeliveryPage
 export type WebhookDeliveryAttempt = CoreComponents['schemas']['WebhookDeliveryAttempt'];
 export type WebhookDeliveryDetail = CoreComponents['schemas']['WebhookDeliveryDetail'];
 export type WebhookTestDelivery = CoreComponents['schemas']['WebhookTestDelivery'];
+/** MVP-111: the tenant's WhatsApp Business connector, recipients and deliveries. */
+export type WhatsAppNotificationType = CoreComponents['schemas']['WhatsAppNotificationType'];
+export type WhatsAppSelectableNotificationType =
+  CoreComponents['schemas']['WhatsAppSelectableNotificationType'];
+export type WhatsAppLanguage = CoreComponents['schemas']['WhatsAppLanguage'];
+export type WhatsAppConsentSource = CoreComponents['schemas']['WhatsAppConsentSource'];
+export type WhatsAppTemplateRequest = CoreComponents['schemas']['WhatsAppTemplateRequest'];
+export type CreateWhatsAppConnectorRequest =
+  CoreComponents['schemas']['CreateWhatsAppConnectorRequest'];
+export type UpdateWhatsAppConnectorRequest =
+  CoreComponents['schemas']['UpdateWhatsAppConnectorRequest'];
+export type WhatsAppConnectorCommandRequest =
+  CoreComponents['schemas']['WhatsAppConnectorCommandRequest'];
+export type RotateWhatsAppTokenRequest = CoreComponents['schemas']['RotateWhatsAppTokenRequest'];
+export type WhatsAppConsentRequest = CoreComponents['schemas']['WhatsAppConsentRequest'];
+export type CreateWhatsAppRecipientRequest =
+  CoreComponents['schemas']['CreateWhatsAppRecipientRequest'];
+export type UpdateWhatsAppRecipientRequest =
+  CoreComponents['schemas']['UpdateWhatsAppRecipientRequest'];
+export type WhatsAppRecipientCommandRequest =
+  CoreComponents['schemas']['WhatsAppRecipientCommandRequest'];
+export type WhatsAppTestRequest = CoreComponents['schemas']['WhatsAppTestRequest'];
+export type WhatsAppTemplate = CoreComponents['schemas']['WhatsAppTemplate'];
+export type WhatsAppConnector = CoreComponents['schemas']['WhatsAppConnector'];
+export type WhatsAppTemplateCheck = CoreComponents['schemas']['WhatsAppTemplateCheck'];
+export type WhatsAppVerification = CoreComponents['schemas']['WhatsAppVerification'];
+export type WhatsAppRecipient = CoreComponents['schemas']['WhatsAppRecipient'];
+export type WhatsAppRecipientList = CoreComponents['schemas']['WhatsAppRecipientList'];
+export type WhatsAppDelivery = CoreComponents['schemas']['WhatsAppDelivery'];
+export type WhatsAppDeliveryPage = CoreComponents['schemas']['WhatsAppDeliveryPage'];
+export type WhatsAppAttempt = CoreComponents['schemas']['WhatsAppAttempt'];
+export type WhatsAppStatusCallback = CoreComponents['schemas']['WhatsAppStatusCallback'];
+export type WhatsAppDeliveryDetail = CoreComponents['schemas']['WhatsAppDeliveryDetail'];
+export type WhatsAppTestDelivery = CoreComponents['schemas']['WhatsAppTestDelivery'];
 export type PayrollVarianceView = CoreComponents['schemas']['PayrollVarianceView'];
 export type PayrollVarianceCandidates = CoreComponents['schemas']['PayrollVarianceCandidates'];
 export type PayrollVarianceThresholds = CoreComponents['schemas']['PayrollVarianceThresholds'];

@@ -106,6 +106,33 @@ services:
     ports:
       - '127.0.0.1:${WEBHOOK_RECEIVER_PORT:-8099}:8099'
 
+  # MVP-111: a controlled SYNTHETIC Meta Graph provider for WhatsApp. Development stack only (the
+  # hr-dev counterpart lives in infrastructure/hr-dev). NOT Meta. Core reaches it as
+  # graph.meta.test on the internal `meta` network (no route out); the control port is published on
+  # 127.0.0.1 only, for the browser suite and for emitting signed callbacks to Core.
+  meta-provider:
+    build:
+      context: ./meta-provider
+    image: divalhr/meta-provider:dev
+    environment:
+      PROVIDER_HOST: graph.meta.test
+      PROVIDER_CALLBACK_TARGET: http://core-api:8080/api/v1/public/messaging/whatsapp/callback
+      PROVIDER_APP_SECRET: ${DIVALHR_MESSAGING_APP_SECRET:?set in .env / .env.example}
+      PROVIDER_VERIFY_TOKEN: ${DIVALHR_MESSAGING_VERIFY_TOKEN:?set in .env / .env.example}
+    volumes:
+      - meta-provider-ca:/shared
+    networks:
+      default: {}
+      meta:
+        aliases: [graph.meta.test]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - '127.0.0.1:${META_PROVIDER_PORT:-8098}:8099'
+
   core-api:
     build:
       context: ../../apps/core-api
@@ -139,6 +166,18 @@ services:
       DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: receiver.hooks.test
       DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'
       DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE: /run/webhook-tls/ca.pem
+      # MVP-111: WhatsApp notifications. The key encrypts the access token and recipient numbers at
+      # rest (>= 32 bytes; a dev-only- value is refused outside development); the app secret signs
+      # and the verify token verifies Meta callbacks. DEVELOPMENT ONLY: the synthetic Graph
+      # provider replaces https://graph.facebook.com by exact host and port, with TLS and hostname
+      # verification against its throwaway CA. No real Meta account is ever used.
+      DIVALHR_MESSAGING_ENCRYPTION_KEY: ${DIVALHR_MESSAGING_ENCRYPTION_KEY:?set in .env / .env.example}
+      DIVALHR_MESSAGING_APP_SECRET: ${DIVALHR_MESSAGING_APP_SECRET:?set in .env / .env.example}
+      DIVALHR_MESSAGING_VERIFY_TOKEN: ${DIVALHR_MESSAGING_VERIFY_TOKEN:?set in .env / .env.example}
+      DIVALHR_MESSAGING_GRAPH_BASE_URL: https://graph.meta.test:8443
+      DIVALHR_MESSAGING_TEST_PROVIDER_HOST: graph.meta.test
+      DIVALHR_MESSAGING_TEST_PROVIDER_PORT: '8443'
+      DIVALHR_MESSAGING_TEST_PROVIDER_CA_FILE: /run/meta-provider-tls/ca.pem
       DIVALHR_MAIL_HOST: mailpit
       DIVALHR_MAIL_PORT: '1025'
       DIVALHR_MAIL_FROM: ${DIVALHR_MAIL_FROM:?set in .env / .env.example}
@@ -163,6 +202,8 @@ services:
       DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE: ${DIVALHR_CONTRACT_SELF_REQUESTS_PER_MINUTE:-150}
     volumes:
       - webhook-receiver-ca:/run/webhook-tls:ro
+      - meta-provider-ca:/run/meta-provider-tls:ro
+    networks: [default, meta]
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,6 +212,8 @@ services:
       mailpit:
         condition: service_healthy
       webhook-receiver:
+        condition: service_healthy
+      meta-provider:
         condition: service_healthy
     ports:
       - '${CORE_API_PORT:-8080}:8080'
@@ -213,6 +256,12 @@ services:
     ports:
       - '${WEB_PORT:-5173}:8080'
 
+networks:
+  # MVP-111: Core and the synthetic Meta provider; nothing else, and no route out.
+  meta:
+    internal: true
+
 volumes:
   postgres-data:
   webhook-receiver-ca:
+  meta-provider-ca:

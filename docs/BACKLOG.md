@@ -384,6 +384,14 @@ Authorized administrators can create signed webhooks, inspect delivery, rotate s
 
 The first design partner selects WhatsApp Business, Microsoft Teams, or Slack. Sensitive details require an authenticated DivalHR deep link.
 
+**Issue #163. In review (not merged, not deployed).** WhatsApp Business was selected. ADR 0029, decisions D111-1 to D111-16; operator guide `docs/WHATSAPP.md`; threat model `docs/security/MVP-111-WHATSAPP-DATA-FLOW.md`; evidence map `docs/DECISIONS/0029-evidence.md`. No Meta contact and no real WhatsApp account was used; acceptance runs against a synthetic provider.
+
+- **Who and where.** « Intégrations → WhatsApp Business » under `/admin/integrations/whatsapp` (tenant administrator, exact MFA, active membership); unknown or foreign resources answer 404.
+- **API.** `/api/v1/integrations/messaging/whatsapp` (connector create, read, update, verify, rotate token, enable, disable; recipients; test messages; delivery history); idempotent, `Cache-Control: private, no-store`, no hard delete. V40 extends the `integrations` schema.
+- **Recipients and messages.** One connector per tenant, up to 25 opted-in recipients, closed catalogue of five notification types, generic template messages with an authenticated deep link only; tokens and numbers encrypted at rest, numbers masked.
+- **Delivery.** At-least-once, five attempts (immediate, 1 min, 5 min, 30 min, 2 h), never re-sent once Meta accepted, signed provider callbacks (delivered, read, failed), suspension after 10 consecutive terminal failures; 3 tests per recipient and 10 per tenant per hour.
+- **Not included:** STOP and opt-out automation, inbound conversations, bots and replies, media, marketing and bulk, arbitrary templates or links, personal data in messages, more than one connector per tenant, replay of old events, Teams, Slack, SMS, email and push, and production enablement (Meta App Review, legal and privacy review).
+
 ## Epic 13 Product Experience
 
 ### UI-001 Product shell and role-based home experience

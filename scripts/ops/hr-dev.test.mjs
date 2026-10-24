@@ -1164,3 +1164,47 @@ test('MVP-110: webhook key is a protected file, the receiver is isolated, and no
     7,
   );
 });
+
+test('MVP-111: messaging secrets are protected files and the synthetic Meta provider is isolated', () => {
+  const live = compose
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+  // The three secrets are files (configtree), never environment values, and never dev values.
+  assert.doesNotMatch(live, /DIVALHR_MESSAGING_(ENCRYPTION_KEY|APP_SECRET|VERIFY_TOKEN)/);
+  assert.doesNotMatch(compose, /dev-only/i);
+  const init = source('init-secrets.sh');
+  for (const name of ['ENCRYPTION_KEY', 'APP_SECRET', 'VERIFY_TOKEN']) {
+    assert.match(init, new RegExp(`put "\\$S/core/DIVALHR_MESSAGING_${name}" 10001 random`));
+  }
+  assert.match(init, /put "\$S\/provider\/app-secret" 1000 same_as/);
+  assert.match(init, /put "\$S\/provider\/verify-token" 1000 same_as/);
+  const remote = source('remote-deploy.sh');
+  assert.match(remote, /secrets\/core\/DIVALHR_MESSAGING_ENCRYPTION_KEY" \]/);
+  assert.match(remote, /secrets\/core\/DIVALHR_WEBHOOK_ENCRYPTION_KEY" \]; then/, 'kept');
+  const yaml = read('apps/core-api/src/main/resources/application.yaml');
+  for (const name of ['ENCRYPTION_KEY', 'APP_SECRET', 'VERIFY_TOKEN']) {
+    assert.match(yaml, new RegExp(`\\$\\{DIVALHR_MESSAGING_${name}:\\}`));
+  }
+  // The provider shares the internal `hooks` network with Core only: no published port, no route
+  // out, one exact host and port for the development/test exception.
+  const provider = compose.slice(
+    compose.indexOf('\n  meta-provider:'),
+    compose.indexOf('\n  ai-service:'),
+  );
+  assert.match(provider, /networks:\n {6}hooks:\n {8}aliases: \[graph\.meta\.test\]/);
+  assert.doesNotMatch(provider, /ports:/);
+  assert.match(
+    provider,
+    /PROVIDER_CALLBACK_TARGET: http:\/\/core-api:8080\/api\/v1\/public\/messaging\/whatsapp\/callback/,
+  );
+  const core = compose.slice(
+    compose.indexOf('\n  core-api:'),
+    compose.indexOf('\n  webhook-receiver:'),
+  );
+  assert.match(core, /DIVALHR_MESSAGING_GRAPH_BASE_URL: https:\/\/graph\.meta\.test:8443/);
+  assert.match(core, /DIVALHR_MESSAGING_TEST_PROVIDER_HOST: graph\.meta\.test/);
+  assert.match(core, /DIVALHR_MESSAGING_TEST_PROVIDER_PORT: '8443'/);
+  assert.match(core, /networks: \[app, core-data, hooks\]/);
+  assert.doesNotMatch(core, /graph\.facebook\.com/);
+});

@@ -45,6 +45,13 @@ public class SecurityConfig {
   };
 
   /**
+   * The WhatsApp provider callback door (MVP-111): GET verification and signed POST status
+   * callbacks. It authenticates the provider by signature, not a user, and is served by {@link
+   * #publicSecurity}.
+   */
+  static final String PUBLIC_MESSAGING_CALLBACK = "/api/v1/public/messaging/whatsapp/callback";
+
+  /**
    * Anonymous {@code /api/v1/public/**} endpoints ({@code x-divalhr-scope: public}). This chain has
    * no resource server: access tokens are neither required nor read, so a bearer token can never
    * change what these endpoints return. Everything else under the prefix is denied.
@@ -68,6 +75,10 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, PUBLIC_INVITATION_PATHS)
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, PUBLIC_MESSAGING_CALLBACK)
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, PUBLIC_MESSAGING_CALLBACK)
                     .permitAll()
                     .anyRequest()
                     .denyAll())

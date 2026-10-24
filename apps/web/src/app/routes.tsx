@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { CallbackPage } from '../auth/CallbackPage';
 import { AccessReviewPage } from '../features/access-review/AccessReviewPage';
 import { WebhooksPage } from '../features/webhooks/WebhooksPage';
+import { WhatsAppPage } from '../features/whatsapp/WhatsAppPage';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { ContractExpirationsPage } from '../features/contracts/ContractExpirationsPage';
@@ -126,6 +127,12 @@ export const ROUTES: AppRoute[] = [
     element: <WebhooksPage />,
     access: tenantAdmin('webhooks.unauthorized', 'webhooks.signInRequired'),
     crumbs: [HOME, INTEGRATIONS, { key: 'nav.webhooks' }],
+  },
+  {
+    path: '/admin/integrations/whatsapp',
+    element: <WhatsAppPage />,
+    access: tenantAdmin('whatsapp.unauthorized', 'whatsapp.signInRequired'),
+    crumbs: [HOME, INTEGRATIONS, { key: 'nav.whatsapp' }],
   },
   {
     path: '/admin/people',
