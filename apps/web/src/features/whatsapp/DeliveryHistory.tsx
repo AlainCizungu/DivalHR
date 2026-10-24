@@ -250,11 +250,11 @@ export function DeliveryHistory({
             ))}
           </ol>
           <h4>{t('whatsapp.history.callbacksTitle')}</h4>
-          {detail.callbacks.length === 0 ? (
+          {detail.statusReports.length === 0 ? (
             <p className="muted">{t('whatsapp.history.noCallbacks')}</p>
           ) : (
             <ul>
-              {detail.callbacks.map((callback) => (
+              {detail.statusReports.map((callback) => (
                 <li key={`${callback.status}-${callback.receivedAt}`}>
                   {t('whatsapp.history.callbackLine', {
                     when: format(callback.occurredAt),

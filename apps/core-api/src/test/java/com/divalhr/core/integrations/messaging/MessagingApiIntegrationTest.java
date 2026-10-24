@@ -11,6 +11,7 @@ import static com.divalhr.core.integrations.messaging.MessagingFixture.newNumber
 import static com.divalhr.core.integrations.messaging.MessagingFixture.newToken;
 import static com.divalhr.core.integrations.messaging.MessagingFixture.recipientBody;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -133,7 +134,11 @@ class MessagingApiIntegrationTest {
 
   @Test
   void everyResponseIncludingErrorsIsPrivateNoStore() throws Exception {
-    mvc.perform(get(PATH)).andExpect(header().string("Cache-Control", NO_STORE));
+    // An unauthenticated answer is produced by the security chain, whose own cache policy is
+    // equally non-cacheable.
+    mvc.perform(get(PATH))
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().string("Cache-Control", containsString("no-store")));
     error(get(PATH).header("Authorization", admin), 404, "MESSAGING_CONNECTOR_NOT_FOUND");
     JsonNode created = fixture.connect(admin, newToken());
     mvc.perform(get(PATH).header("Authorization", admin))

@@ -5057,7 +5057,7 @@ export interface components {
         WhatsAppDeliveryDetail: {
             delivery: components["schemas"]["WhatsAppDelivery"];
             attempts: components["schemas"]["WhatsAppAttempt"][];
-            callbacks: components["schemas"]["WhatsAppStatusCallback"][];
+            statusReports: components["schemas"]["WhatsAppStatusCallback"][];
         };
         /** @description MVP-111. The accepted test message; the result is read from the delivery. */
         WhatsAppTestDelivery: {

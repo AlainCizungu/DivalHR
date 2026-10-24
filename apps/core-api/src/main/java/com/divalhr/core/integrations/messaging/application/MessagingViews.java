@@ -319,14 +319,14 @@ public final class MessagingViews {
    *
    * @param delivery the delivery
    * @param attempts attempts, oldest first
-   * @param callbacks callbacks, oldest first
+   * @param statusReports provider status reports, oldest first
    */
   public record DeliveryDetail(
-      DeliveryView delivery, List<AttemptItem> attempts, List<CallbackItem> callbacks) {
+      DeliveryView delivery, List<AttemptItem> attempts, List<CallbackItem> statusReports) {
     /** Copies the lists. */
     public DeliveryDetail {
       attempts = List.copyOf(attempts);
-      callbacks = List.copyOf(callbacks);
+      statusReports = List.copyOf(statusReports);
     }
   }
 

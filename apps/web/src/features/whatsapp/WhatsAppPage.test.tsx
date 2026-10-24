@@ -112,7 +112,7 @@ function stubApi(
                       latencyMs: 3000,
                     },
                   ],
-                  callbacks: [
+                  statusReports: [
                     {
                       status: 'DELIVERED',
                       occurredAt: '2026-10-01T10:00:20Z',
