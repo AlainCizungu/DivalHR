@@ -6,7 +6,7 @@ import {
   primaryNav,
   signIn,
   subjectLock,
-  typeSecret,
+  typeReactSecret,
 } from './support';
 
 // MVP-111 (Issue #163): the WhatsApp Business connector with the real identity provider, database,
@@ -15,7 +15,7 @@ import {
 // Meta, throwaway data only). Tenant A's administrator; the provider is reached on its published
 // control port (127.0.0.1) to hand it the account, the approved templates and a send scenario, to
 // read what it received (template, language, last two digits, parameter count) and to emit signed
-// status callbacks. The access token is typed with typeSecret() and is a throwaway value.
+// status callbacks. The access token is typed with typeReactSecret() and is a throwaway value.
 // Exactly two journeys:
 //  - English: connect with all twelve templates, verify with the provider, register a recipient
 //    with a consent attestation (masked number only), send a test message, see it accepted and
@@ -117,7 +117,7 @@ test.describe.serial('MVP-111: WhatsApp Business connector', () => {
     await page.getByLabel('WhatsApp Business account ID').fill(WABA_ID);
     await page.getByLabel('Sending phone number ID').fill(PHONE_NUMBER_ID);
     await page.getByLabel('Sending phone number', { exact: true }).fill('+243812345678');
-    await typeSecret(page, 'input[type="password"]', `synthetic-token-${stamp}-0123456789`);
+    await typeReactSecret(page, 'input[type="password"]', `synthetic-token-${stamp}-0123456789`);
     for (const [type, english] of TYPES) {
       await page.getByLabel(`${english}, English: template name`).fill(templateName(type, 'en'));
       await page.getByLabel(`${english}, French: template name`).fill(templateName(type, 'fr'));
@@ -194,7 +194,7 @@ test.describe.serial('MVP-111: WhatsApp Business connector', () => {
 
     // Rotating the access token: confirmed, checked with the provider, never echoed.
     await page.getByRole('button', { name: 'Rotate access token' }).click();
-    await typeSecret(
+    await typeReactSecret(
       page,
       '[data-testid="confirm"] input[type="password"]',
       `rotated-${stamp}-0123456789abcdef`,
