@@ -3389,7 +3389,7 @@ export interface paths {
         put?: never;
         /**
          * Provider delivery-status callback (anonymous, provider only)
-         * @description MVP-111 (ADR 0029). Meta's signed status callbacks. The X-Hub-Signature-256 HMAC-SHA-256 over the exact request bytes (keyed by the Meta app secret) is verified in constant time before anything is parsed; the body is bounded to 64 KiB; only allow-listed fields are read (a provider message ID, the phone-number ID, a status, a time and a numeric error code). A message is matched by provider message ID plus its connector's stored phone-number binding. Unknown, duplicate and out-of-order statuses are acknowledged without effect, a lower status never moves a delivery backward, and inbound customer messages are ignored without being stored. The body is not described here because it is the provider's, not DivalHR's. Answers are empty. 403 for a missing or wrong signature, 413 over the limit, 429 over the provider-wide ceiling, 503 when unconfigured. Cache-Control no-store.
+         * @description MVP-111 (ADR 0029). Meta's signed status callbacks. The X-Hub-Signature-256 HMAC-SHA-256 over the exact request bytes (keyed by the Meta app secret) is verified in constant time before anything is parsed; the body is bounded to 64 KiB; only allow-listed fields are read (a provider message ID, the phone-number ID, a status, a time and a numeric error code). A message is matched by provider message ID plus its connector's stored phone-number binding. Unknown, duplicate and out-of-order statuses are acknowledged without effect, a lower status never moves a delivery backward, and inbound customer messages are ignored without being stored. The body is not described here because it is the provider's, not DivalHR's. Answers are empty. Only application/json (a charset parameter is allowed) is accepted: 415 for a missing or other Content-Type, before anything is read. 403 for a missing or wrong signature, 413 over the limit, 429 over the provider-wide ceiling. 503 when unconfigured or when processing failed (nothing was stored; the provider retries the identical callback). A signed body that cannot be used is acknowledged with 200 and stores nothing. Cache-Control no-store.
          */
         post: operations["receiveWhatsAppCallback"];
         delete?: never;
@@ -15046,6 +15046,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Missing or unsupported Content-Type (only application/json). Empty body. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Provider-wide callback ceiling reached. Empty body. */
             429: {
                 headers: {
@@ -15053,7 +15060,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The callback is not configured. Empty body. */
+            /** @description The callback is not configured, or processing failed and may be retried. Empty body. */
             503: {
                 headers: {
                     [name: string]: unknown;

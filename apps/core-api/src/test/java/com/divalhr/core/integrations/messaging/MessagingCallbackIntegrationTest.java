@@ -88,7 +88,7 @@ class MessagingCallbackIntegrationTest {
   private static String statusBody(
       String phone, String id, String status, Object timestamp, String extra) {
     return "{\"object\":\"whatsapp_business_account\",\"entry\":[{\"id\":\"1\",\"changes\":[{\"field\":\"messages\",\"value\":{"
-               + "\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"243812000111\",\"phone_number_id\":\""
+        + "\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"243812000111\",\"phone_number_id\":\""
         + phone
         + "\"},\"statuses\":[{\"id\":\""
         + id
