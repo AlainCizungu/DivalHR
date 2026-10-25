@@ -131,7 +131,8 @@ In the Meta app, WhatsApp, Configuration, set:
 
 Meta checks the URL with a `GET`; DivalHR answers when the verify token matches. Every callback `POST`
 is signed with the app secret (`X-Hub-Signature-256`) and DivalHR rejects anything unsigned or
-wrongly signed (`403`). Allow only Meta's published addresses at your edge where possible, and rate
+wrongly signed (`403`), anything that is not `application/json` (`415`), and answers `503` when it
+could not store a status so Meta retries it. Allow only Meta's published addresses at your edge where possible, and rate
 limit `/api/v1/public/**` at the ingress.
 
 ## Troubleshooting

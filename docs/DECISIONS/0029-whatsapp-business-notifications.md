@@ -77,7 +77,10 @@ may be messaged, what a message may say, where a secret lives, and how a provide
   exact raw bytes with the app secret, constant time) before parsing, reads at most 64 KiB, enforces a
   provider-specific ceiling (600 per minute per instance), and reads allow-listed fields only. A message
   is found by provider message id **and** the connector's stored phone-number id. Unknown messages,
-  duplicates and lower statuses get a neutral `200`; inbound customer messages are ignored without
+  duplicates, lower statuses and a signed body that cannot be used get a neutral `200` (nothing is stored);
+  a missing or non-`application/json` Content-Type gets `415` before anything is read; a persistence or
+  transaction failure gets `503` with an empty body so the provider retries (the update is never
+  acknowledged and lost, and only the exception class is logged); inbound customer messages are ignored without
   being read or stored. Status moves are monotonic and `READ` implies delivered. A bad signature is
   `403`, an unconfigured door `503`, an excess `429`, an oversized body `413`.
 - **Test messages (D111-11).** A test goes to one recipient as a `CONNECTOR_TEST` delivery with the

@@ -99,6 +99,9 @@ public class MessagingCallbackController {
       @RequestHeader(name = "X-Hub-Signature-256", required = false) String signature,
       @Parameter(hidden = true) HttpServletRequest servletRequest)
       throws IOException {
+    if (!isJson(servletRequest.getContentType())) {
+      return answer(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
     if (servletRequest.getContentLengthLong() > maxBytes) {
       return answer(HttpStatus.CONTENT_TOO_LARGE);
     }
@@ -113,6 +116,20 @@ public class MessagingCallbackController {
       case RATE_LIMITED -> answer(HttpStatus.TOO_MANY_REQUESTS);
       case UNAVAILABLE -> answer(HttpStatus.SERVICE_UNAVAILABLE);
     };
+  }
+
+  /** Only {@code application/json}, with or without parameters such as a charset, is accepted. */
+  private static boolean isJson(String contentType) {
+    if (contentType == null || contentType.isBlank()) {
+      return false;
+    }
+    try {
+      MediaType parsed = MediaType.parseMediaType(contentType);
+      return parsed.getType().equalsIgnoreCase("application")
+          && parsed.getSubtype().equalsIgnoreCase("json");
+    } catch (org.springframework.http.InvalidMediaTypeException invalid) {
+      return false;
+    }
   }
 
   private static ResponseEntity<Void> answer(HttpStatus status) {

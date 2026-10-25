@@ -88,7 +88,7 @@ class MessagingCallbackIntegrationTest {
   private static String statusBody(
       String phone, String id, String status, Object timestamp, String extra) {
     return "{\"object\":\"whatsapp_business_account\",\"entry\":[{\"id\":\"1\",\"changes\":[{\"field\":\"messages\",\"value\":{"
-        + "\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"243812000111\",\"phone_number_id\":\""
+               + "\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"243812000111\",\"phone_number_id\":\""
         + phone
         + "\"},\"statuses\":[{\"id\":\""
         + id
@@ -327,6 +327,114 @@ class MessagingCallbackIntegrationTest {
       assertThat(send(garbage, sign(garbage))).isEqualTo(200);
     }
     assertThat(state()).isEqualTo("ACCEPTED");
+    assertThat(callbacks()).isZero();
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // R164-1: an infrastructure failure is never acknowledged as success
+  // ------------------------------------------------------------------------------------------
+
+  private static final String OUTAGE_PROBE = "outage-probe-7788-provider-data";
+
+  private void failCallbackStorage() {
+    jdbc.execute(
+        "CREATE OR REPLACE FUNCTION integrations.test_fail_callback_store() RETURNS trigger"
+            + " LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION '"
+            + OUTAGE_PROBE
+            + "'; END $$");
+    jdbc.execute(
+        "CREATE TRIGGER test_fail_callback_store BEFORE INSERT ON"
+            + " integrations.messaging_status_callback FOR EACH ROW EXECUTE FUNCTION"
+            + " integrations.test_fail_callback_store()");
+  }
+
+  private void recoverCallbackStorage() {
+    jdbc.execute(
+        "DROP TRIGGER IF EXISTS test_fail_callback_store ON"
+            + " integrations.messaging_status_callback");
+    jdbc.execute("DROP FUNCTION IF EXISTS integrations.test_fail_callback_store()");
+  }
+
+  @Test
+  void aStorageFailureAnswers503WithNoStateChangeAndTheIdenticalRetryAppliesOnce(
+      CapturedOutput output) throws Exception {
+    String delivered = body("delivered");
+    failCallbackStorage();
+    try {
+      var failed =
+          mvc.perform(
+                  post(CALLBACK)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(delivered)
+                      .header("X-Hub-Signature-256", sign(delivered)))
+              .andExpect(status().isServiceUnavailable())
+              .andExpect(header().string("Cache-Control", "no-store"))
+              .andReturn()
+              .getResponse();
+      // Nothing of the failure leaks into the answer, and the transaction left no trace.
+      assertThat(failed.getContentAsString()).isEmpty();
+      assertThat(state()).isEqualTo("ACCEPTED");
+      assertThat(callbacks()).isZero();
+    } finally {
+      recoverCallbackStorage();
+    }
+    // The provider retries the identical callback after recovery: applied exactly once.
+    assertThat(send(delivered, sign(delivered))).isEqualTo(200);
+    assertThat(state()).isEqualTo("DELIVERED");
+    assertThat(callbacks()).isEqualTo(1);
+    assertThat(send(delivered, sign(delivered))).isEqualTo(200);
+    assertThat(callbacks()).isEqualTo(1);
+    assertThat(output.getAll())
+        .doesNotContain(OUTAGE_PROBE)
+        .doesNotContain(wamid)
+        .doesNotContain(SECRET)
+        .doesNotContain("243812999888")
+        .doesNotContain(delivered)
+        .doesNotContain(sign(delivered));
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // R164-2: only application/json is accepted, before anything is parsed or stored
+  // ------------------------------------------------------------------------------------------
+
+  private int sendAs(String contentType, String body) throws Exception {
+    var request = post(CALLBACK).content(body).header("X-Hub-Signature-256", sign(body));
+    if (contentType != null) {
+      request = request.contentType(contentType);
+    }
+    return mvc.perform(request)
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andReturn()
+        .getResponse()
+        .getStatus();
+  }
+
+  @Test
+  void jsonWithOrWithoutACharsetIsAccepted() throws Exception {
+    String delivered = body("delivered");
+    assertThat(sendAs("application/json", delivered)).isEqualTo(200);
+    assertThat(state()).isEqualTo("DELIVERED");
+    String read = body("read");
+    assertThat(sendAs("application/json; charset=UTF-8", read)).isEqualTo(200);
+    assertThat(state()).isEqualTo("READ");
+  }
+
+  @Test
+  void aMissingOrUnsupportedContentTypeIsRefusedBeforeAnythingIsParsedOrStored() throws Exception {
+    String delivered = body("delivered");
+    for (String type :
+        new String[] {"text/plain", "application/x-www-form-urlencoded", "application/xml", null}) {
+      assertThat(sendAs(type, delivered)).as("content type %s", type).isEqualTo(415);
+    }
+    // Even a correctly signed body is not looked at; a wrong signature does not change the answer.
+    assertThat(
+            mvc.perform(post(CALLBACK).contentType("text/plain").content(delivered))
+                .andReturn()
+                .getResponse()
+                .getStatus())
+        .isEqualTo(415);
+    assertThat(state()).isEqualTo("ACCEPTED");
+    assertThat(callbacks()).isZero();
   }
 
   @Test

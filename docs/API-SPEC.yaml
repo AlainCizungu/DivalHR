@@ -9148,8 +9148,12 @@ paths:
         Unknown, duplicate and out-of-order statuses are acknowledged without effect, a lower status
         never moves a delivery backward, and inbound customer messages are ignored without being
         stored. The body is not described here because it is the provider's, not DivalHR's. Answers
-        are empty. 403 for a missing or wrong signature, 413 over the limit, 429 over the
-        provider-wide ceiling, 503 when unconfigured. Cache-Control no-store.
+        are empty. Only application/json (a charset parameter is allowed) is accepted: 415 for a
+        missing or other Content-Type, before anything is read. 403 for a missing or wrong
+        signature, 413 over the limit, 429 over the provider-wide ceiling. 503 when unconfigured or
+        when processing failed (nothing was stored; the provider retries the identical callback).
+        A signed body that cannot be used is acknowledged with 200 and stores nothing.
+        Cache-Control no-store.
       tags: [integrations]
       security: []
       parameters:
@@ -9170,10 +9174,12 @@ paths:
           description: Missing or wrong signature. Empty body.
         "413":
           description: Body over the limit. Empty body.
+        "415":
+          description: Missing or unsupported Content-Type (only application/json). Empty body.
         "429":
           description: Provider-wide callback ceiling reached. Empty body.
         "503":
-          description: The callback is not configured. Empty body.
+          description: The callback is not configured, or processing failed and may be retried. Empty body.
 
 components:
   securitySchemes:

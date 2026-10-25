@@ -41,7 +41,7 @@ public class MessagingCallbackService {
     ACCEPTED,
     /** The signature is missing or wrong. */
     FORBIDDEN,
-    /** The capability is not configured. */
+    /** The capability is not configured, or processing failed and the provider must retry. */
     UNAVAILABLE,
     /** The provider-wide ceiling was reached. */
     RATE_LIMITED
@@ -127,10 +127,22 @@ public class MessagingCallbackService {
     if (!withinCeiling()) {
       return Outcome.RATE_LIMITED;
     }
+    List<Status> statuses;
+    try {
+      statuses = parse(raw);
+    } catch (RuntimeException unusable) {
+      // A verified but malformed body can never become valid: acknowledge it so the provider does
+      // not retry it forever. Nothing is persisted and neither the body nor the exception is
+      // logged.
+      LOG.atWarn()
+          .addKeyValue("operation", "messaging.callback")
+          .addKeyValue("outcome", "malformed")
+          .log("messaging_callback_malformed");
+      return Outcome.ACCEPTED;
+    }
     int applied = 0;
     int ignored = 0;
     try {
-      List<Status> statuses = parse(raw);
       Instant now = Instant.now(clock);
       int[] counts =
           inTransaction(
@@ -159,13 +171,15 @@ public class MessagingCallbackService {
         ignored = counts[1];
       }
     } catch (RuntimeException failure) {
-      // A verified but unusable body is acknowledged so the provider does not retry it forever.
-      LOG.atWarn()
+      // Persistence or transaction failure: the update must not be lost, so the provider is told to
+      // retry (HTTP 503). Only the exception class is logged, never its message or any callback
+      // data.
+      LOG.atError()
           .addKeyValue("operation", "messaging.callback")
-          .addKeyValue("outcome", "unprocessable")
+          .addKeyValue("outcome", "unavailable")
           .addKeyValue("error", failure.getClass().getSimpleName())
-          .log("messaging_callback_unprocessable");
-      return Outcome.ACCEPTED;
+          .log("messaging_callback_unavailable");
+      return Outcome.UNAVAILABLE;
     }
     LOG.atInfo()
         .addKeyValue("operation", "messaging.callback")
