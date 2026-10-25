@@ -111,8 +111,13 @@ export function DeliveryHistory({
 
   const failureText = (value: string | null) =>
     value ? t(`whatsapp.failure.${value}`) : t('whatsapp.none');
-  const resultOf = (status: number | null, failureClass: string | null) =>
-    status ? t('whatsapp.history.httpStatus', { status }) : failureText(failureClass);
+  const resultOf = (status: number | null, failureClass: string | null) => {
+    const parts = [
+      ...(failureClass ? [failureText(failureClass)] : []),
+      ...(status ? [t('whatsapp.history.httpStatus', { status })] : []),
+    ];
+    return parts.length > 0 ? parts.join(' · ') : failureText(null);
+  };
 
   return (
     <section
