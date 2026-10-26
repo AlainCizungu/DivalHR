@@ -294,6 +294,20 @@ export async function typeSecret(page: Page, selector: string, secret: string) {
   }, secret);
 }
 
+/**
+ * typeSecret() for a React-controlled input: the native value setter is used so React's value
+ * tracker sees the change (a plain `value =` assignment is ignored by a controlled field). The
+ * value still never appears in a Playwright step title.
+ */
+export async function typeReactSecret(page: Page, selector: string, secret: string) {
+  await page.locator(selector).evaluate((input, value) => {
+    const field = input as HTMLInputElement;
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    descriptor?.set?.call(field, value);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  }, secret);
+}
+
 /** Types a one-time code (MVP-011); see typeSecret. */
 export const typeCode = typeSecret;
 

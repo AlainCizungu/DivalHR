@@ -65,6 +65,7 @@ test.describe('desktop', () => {
       'Users and invitations',
       'Access review',
       'Webhooks',
+      'WhatsApp Business',
     ]);
     await expect(nav(page).getByRole('link', { name: 'System status' })).toHaveCount(0);
     await expect(page.getByTestId('environment-badge')).toContainText('Development environment');
@@ -200,7 +201,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(19);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(20);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

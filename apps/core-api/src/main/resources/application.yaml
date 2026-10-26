@@ -147,6 +147,9 @@ divalhr:
       # MVP-110: webhook management reads (disclosures) and commands.
       webhook-read: ${DIVALHR_WEBHOOK_READ_REQUESTS_PER_MINUTE:60}
       webhook-write: ${DIVALHR_WEBHOOK_WRITE_REQUESTS_PER_MINUTE:20}
+      # MVP-111: WhatsApp connector management reads (disclosures) and commands.
+      messaging-read: ${DIVALHR_MESSAGING_READ_REQUESTS_PER_MINUTE:60}
+      messaging-write: ${DIVALHR_MESSAGING_WRITE_REQUESTS_PER_MINUTE:20}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -197,6 +200,11 @@ divalhr:
       webhook-test-delivery:
         requests: 20
         window: 1h
+      # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
+      # 10 per tenant per hour), not here.
+      messaging-write:
+        requests: ${DIVALHR_MESSAGING_TENANT_WRITES:100}
+        window: 10m
   # MVP-110: signed outbound webhooks (ADR 0028). The encryption key has no default and is read from
   # the protected secret directory; without it the capability is unavailable (503). The test
   # receiver exception is for the hr-dev/test environments only and names one exact host and port.
@@ -211,6 +219,28 @@ divalhr:
       host: ${DIVALHR_WEBHOOK_TEST_RECEIVER_HOST:}
       port: ${DIVALHR_WEBHOOK_TEST_RECEIVER_PORT:}
       ca-file: ${DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE:}
+  # MVP-111: WhatsApp Business notifications (ADR 0029). The encryption key, the Meta app secret and
+  # the callback verify token have no default and are read from the protected secret directory;
+  # without them the capability is unavailable (503) or the callback door refuses everything. The
+  # Graph origin is exactly https://graph.facebook.com in production; the synthetic provider is for
+  # development and test only and names one exact host and port.
+  messaging:
+    encryption-key: ${DIVALHR_MESSAGING_ENCRYPTION_KEY:}
+    app-secret: ${DIVALHR_MESSAGING_APP_SECRET:}
+    verify-token: ${DIVALHR_MESSAGING_VERIFY_TOKEN:}
+    graph-base-url: ${DIVALHR_MESSAGING_GRAPH_BASE_URL:https://graph.facebook.com}
+    graph-version: ${DIVALHR_MESSAGING_GRAPH_VERSION:v22.0}
+    public-base-url: ${DIVALHR_WEB_BASE_URL:}
+    jitter: true
+    callback-max-bytes: 65536
+    callback-requests-per-minute: ${DIVALHR_MESSAGING_CALLBACK_REQUESTS_PER_MINUTE:600}
+    jobs:
+      enabled: ${DIVALHR_MESSAGING_JOBS_ENABLED:true}
+      interval: ${DIVALHR_MESSAGING_JOBS_INTERVAL:PT5S}
+    test-provider:
+      host: ${DIVALHR_MESSAGING_TEST_PROVIDER_HOST:}
+      port: ${DIVALHR_MESSAGING_TEST_PROVIDER_PORT:}
+      ca-file: ${DIVALHR_MESSAGING_TEST_PROVIDER_CA_FILE:}
   # MVP-020: employee import bounds, staging lifetime, result retention (operational policy, not a
   # statutory period) and timeouts (A20-2, A20-5, A20-6).
   employee-import:

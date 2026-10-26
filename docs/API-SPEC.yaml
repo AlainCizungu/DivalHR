@@ -17,7 +17,7 @@ tags:
   - name: payroll
     description: Payroll preparation from locked approved time (MVP-090A)
   - name: integrations
-    description: Signed outbound webhooks (MVP-110)
+    description: Signed outbound webhooks (MVP-110) and WhatsApp Business notifications (MVP-111)
 servers:
   - url: https://api.divalhr.com/api/v1
 security:
@@ -8412,6 +8412,774 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /integrations/messaging/whatsapp:
+    post:
+      operationId: createWhatsAppConnector
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Connect the tenant's WhatsApp Business connector
+      description: >-
+        MVP-111 (ADR 0029). Registers the tenant's one WhatsApp Business Cloud API connector as a DRAFT: the WABA ID, the sending phone-number ID, its display number, the system-user access token and up to 12 pre-approved template names (one per notification type and language). The token is accepted here and on rotation only; it is stored encrypted (AES-256-GCM), is never returned, audited, logged or kept in the idempotency store. No provider call is made; verification activates the connector. A second connector is 409 MESSAGING_CONNECTOR_EXISTS; a template name outside the allowed shape is 422 MESSAGING_TEMPLATE_INVALID; a missing encryption key is 503 MESSAGING_SECRET_UNAVAILABLE. Audit messaging.whatsapp.create. Idempotent. Cache-Control private, no-store.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWhatsAppConnectorRequest"
+      responses:
+        "201":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppConnector"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: getWhatsAppConnector
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: The tenant's WhatsApp connector
+      description: >-
+        MVP-111. The connector's identifiers, state, versions, failure counter, recipient count and templates. Never returns the token. 404 MESSAGING_CONNECTOR_NOT_FOUND when none is connected. A fail-closed disclosure (audit messaging.whatsapp.read). Cache-Control private, no-store.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppConnector"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    patch:
+      operationId: updateWhatsAppConnector
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Change the connector's identifiers or templates
+      description: >-
+        MVP-111. Requires the current configVersion (409 MESSAGING_CONNECTOR_VERSION_STALE otherwise) and explicit confirmation. An active connector cannot be changed: disable it first (409 MESSAGING_CONNECTOR_ACTIVE). Changing an identifier or a template clears the earlier verification, so the connector must be verified again before it is activated. Audit messaging.whatsapp.update. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWhatsAppConnectorRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppConnector"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /integrations/messaging/whatsapp/verify:
+    post:
+      operationId: verifyWhatsAppConnector
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Verify the connector with the provider and activate it
+      description: >-
+        MVP-111. Checks the token against the phone-number ID and every configured template (exists, approved, expected language, exact supported shape, URL button declared as the operator public origin) with the provider, outside any database transaction. On success the connector becomes ACTIVE (verified true); otherwise it stays as it was and the per-check results explain why. A provider that cannot be reached is 503 MESSAGING_PROVIDER_UNAVAILABLE. A disabled or suspended connector is 409 MESSAGING_CONNECTOR_DISABLED or MESSAGING_CONNECTOR_SUSPENDED. Audit messaging.whatsapp.verify. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppConnectorCommandRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppVerification"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /integrations/messaging/whatsapp/rotate-token:
+    post:
+      operationId: rotateWhatsAppToken
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Rotate the access token
+      description: >-
+        MVP-111. Replaces the token, which is checked with the provider first (422 MESSAGING_PROVIDER_CREDENTIAL_INVALID when refused, 503 MESSAGING_PROVIDER_UNAVAILABLE when unreachable) and then stored encrypted under the next credential version; the old ciphertext is erased. The token is never returned. Audit messaging.whatsapp.rotate-token. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RotateWhatsAppTokenRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppConnector"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /integrations/messaging/whatsapp/disable:
+    post:
+      operationId: disableWhatsAppConnector
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Disable the connector
+      description: >-
+        MVP-111. Stops new attempts and cancels open deliveries; history stays readable. 409 MESSAGING_ALREADY_DISABLED when already disabled. Audit messaging.whatsapp.disable. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppConnectorCommandRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppConnector"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/messaging/whatsapp/enable:
+    post:
+      operationId: enableWhatsAppConnector
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Enable a disabled or suspended connector
+      description: >-
+        MVP-111. Requires the current configVersion. Checks the credential and templates with the provider again (422 MESSAGING_PROVIDER_CREDENTIAL_INVALID or MESSAGING_TEMPLATE_INVALID, 503 MESSAGING_PROVIDER_UNAVAILABLE), then resets the failure counter and returns the connector to ACTIVE; older failed deliveries are not replayed. 409 MESSAGING_ALREADY_ENABLED when already active. Audit messaging.whatsapp.enable. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppConnectorCommandRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppConnector"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /integrations/messaging/whatsapp/recipients:
+    get:
+      operationId: listWhatsAppRecipients
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: The registered recipients
+      description: >-
+        MVP-111. At most 25 recipients per tenant. Numbers are only ever shown masked. A fail-closed disclosure (audit messaging.whatsapp.read). Cache-Control private, no-store.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppRecipientList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: createWhatsAppRecipient
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Register an opted-in recipient
+      description: >-
+        MVP-111. Registers one recipient with their E.164 number (stored encrypted, shown masked, unique per tenant by a keyed digest), language, notification types and a recorded opt-in: the administrator attests that the recipient consented, with the source and time of the consent. Without it, 422 MESSAGING_CONSENT_REQUIRED. 400 MESSAGING_PHONE_INVALID, 400 MESSAGING_NOTIFICATION_TYPE_INVALID; the 26th recipient is 409 MESSAGING_RECIPIENT_LIMIT_REACHED; a repeated number is 409 MESSAGING_RECIPIENT_EXISTS; no connector is 404 MESSAGING_CONNECTOR_NOT_FOUND. STOP-keyword automation is not implemented. Audit messaging.whatsapp.recipient-create. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWhatsAppRecipientRequest"
+      responses:
+        "201":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppRecipient"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /integrations/messaging/whatsapp/recipients/{recipientId}:
+    get:
+      operationId: getWhatsAppRecipient
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One recipient
+      description: >-
+        MVP-111. A malformed, unknown or foreign ID is 404 MESSAGING_RECIPIENT_NOT_FOUND. A fail-closed disclosure (audit messaging.whatsapp.read).
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WhatsAppRecipientId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppRecipient"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    patch:
+      operationId: updateWhatsAppRecipient
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Change a recipient's label, language or notification types
+      description: >-
+        MVP-111. Requires the current version (409 MESSAGING_RECIPIENT_VERSION_STALE otherwise). The number cannot be changed: disable and register again. Audit messaging.whatsapp.recipient-update. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WhatsAppRecipientId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWhatsAppRecipientRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppRecipient"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/messaging/whatsapp/recipients/{recipientId}/disable:
+    post:
+      operationId: disableWhatsAppRecipient
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Disable a recipient
+      description: >-
+        MVP-111. Cancels the recipient's open deliveries. 409 MESSAGING_RECIPIENT_DISABLED when already disabled. Audit messaging.whatsapp.recipient-disable. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WhatsAppRecipientId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppRecipientCommandRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppRecipient"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/messaging/whatsapp/recipients/{recipientId}/enable:
+    post:
+      operationId: enableWhatsAppRecipient
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Enable a recipient
+      description: >-
+        MVP-111. Audit messaging.whatsapp.recipient-enable. Idempotent. Older events are not replayed.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WhatsAppRecipientId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppRecipientCommandRequest"
+      responses:
+        "200":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppRecipient"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/messaging/whatsapp/recipients/{recipientId}/test-deliveries:
+    post:
+      operationId: createWhatsAppTestDelivery
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Send one test message
+      description: >-
+        MVP-111. Queues one generic CONNECTOR_TEST message through the real worker and provider; the answer is the delivery ID, not the result. Only for an active connector and an active recipient (409 MESSAGING_CONNECTOR_DISABLED, MESSAGING_CONNECTOR_SUSPENDED, MESSAGING_CONNECTOR_INCOMPLETE or MESSAGING_RECIPIENT_DISABLED otherwise). At most 3 accepted tests per recipient and 10 per tenant per hour, enforced in the database; either limit is the same 429 MESSAGING_TEST_RATE_LIMITED with Retry-After 3600. Audit messaging.whatsapp.test-delivery. Idempotent.
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WhatsAppRecipientId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WhatsAppTestRequest"
+      responses:
+        "202":
+          description: Done, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppTestDelivery"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /integrations/messaging/whatsapp/deliveries:
+    get:
+      operationId: listWhatsAppDeliveries
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Delivery history
+      description: >-
+        MVP-111. Deliveries, newest first, as a keyset page, optionally for one recipient. Shows state, attempts, exact HTTP status and closed failure class; never a number, template, provider message ID, link, response body or header. A fail-closed disclosure (audit messaging.whatsapp.delivery-read).
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WhatsAppRecipientFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/AttendanceLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppDeliveryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /integrations/messaging/whatsapp/deliveries/{deliveryId}:
+    get:
+      operationId: getWhatsAppDelivery
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: One delivery with its attempts and provider statuses
+      description: >-
+        MVP-111. A malformed, unknown or foreign delivery is 404 MESSAGING_DELIVERY_NOT_FOUND. A fail-closed disclosure (audit messaging.whatsapp.delivery-read).
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/WhatsAppDeliveryId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsAppDeliveryDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /public/messaging/whatsapp/callback:
+    get:
+      operationId: verifyWhatsAppCallback
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: public
+      summary: Provider subscription verification (anonymous, provider only)
+      description: >-
+        MVP-111 (ADR 0029). Meta's webhook subscription handshake. Echoes hub.challenge as text/plain
+        only when hub.mode is subscribe and hub.verify_token equals the operator-provisioned verify
+        token (constant-time comparison); everything else, including an unconfigured deployment, is
+        an empty 403. Access tokens are neither required nor read. Cache-Control no-store.
+      tags: [integrations]
+      security: []
+      parameters:
+        - name: hub.mode
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 32
+        - name: hub.verify_token
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 256
+        - name: hub.challenge
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 256
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The challenge
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+          content:
+            text/plain:
+              schema:
+                type: string
+                maxLength: 256
+        "403":
+          description: Wrong mode or verify token, or the callback is not configured. Empty body.
+    post:
+      operationId: receiveWhatsAppCallback
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: public
+      summary: Provider delivery-status callback (anonymous, provider only)
+      description: >-
+        MVP-111 (ADR 0029). Meta's signed status callbacks. The X-Hub-Signature-256 HMAC-SHA-256 over
+        the exact request bytes (keyed by the Meta app secret) is verified in constant time before
+        anything is parsed; the body is bounded to 64 KiB; only allow-listed fields are read (a
+        provider message ID, the phone-number ID, a status, a time and a numeric error code). A
+        message is matched by provider message ID plus its connector's stored phone-number binding.
+        Unknown, duplicate and out-of-order statuses are acknowledged without effect, a lower status
+        never moves a delivery backward, and inbound customer messages are ignored without being
+        stored. The body is not described here because it is the provider's, not DivalHR's. Answers
+        are empty. Only application/json (a charset parameter is allowed) is accepted: 415 for a
+        missing or other Content-Type, before anything is read. 403 for a missing or wrong
+        signature, 413 over the limit, 429 over the provider-wide ceiling. 503 when unconfigured or
+        when processing failed (nothing was stored; the provider retries the identical callback).
+        A signed body that cannot be used is acknowledged with 200 and stores nothing.
+        Cache-Control no-store.
+      tags: [integrations]
+      security: []
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 71
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Verified and processed, or verified and ignored
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+        "403":
+          description: Missing or wrong signature. Empty body.
+        "413":
+          description: Body over the limit. Empty body.
+        "415":
+          description: Missing or unsupported Content-Type (only application/json). Empty body.
+        "429":
+          description: Provider-wide callback ceiling reached. Empty body.
+        "503":
+          description: The callback is not configured, or processing failed and may be retried. Empty body.
 
 components:
   securitySchemes:
@@ -8730,6 +9498,30 @@ components:
       in: path
       required: true
       description: Malformed, unknown and foreign IDs give the same 404 WEBHOOK_DELIVERY_NOT_FOUND.
+      schema:
+        type: string
+        format: uuid
+    WhatsAppRecipientId:
+      name: recipientId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 MESSAGING_RECIPIENT_NOT_FOUND.
+      schema:
+        type: string
+        format: uuid
+    WhatsAppDeliveryId:
+      name: deliveryId
+      in: path
+      required: true
+      description: Malformed, unknown and foreign IDs give the same 404 MESSAGING_DELIVERY_NOT_FOUND.
+      schema:
+        type: string
+        format: uuid
+    WhatsAppRecipientFilter:
+      name: recipientId
+      in: query
+      required: false
+      description: Restrict the history to one recipient. A malformed, unknown or foreign ID is 404 MESSAGING_RECIPIENT_NOT_FOUND.
       schema:
         type: string
         format: uuid
@@ -12090,6 +12882,506 @@ components:
         - WEBHOOK_SUSPENDED
         - WEBHOOK_TEST_RATE_LIMITED
         - WEBHOOK_SECRET_UNAVAILABLE
+        - MESSAGING_CONNECTOR_NOT_FOUND
+        - MESSAGING_CONNECTOR_EXISTS
+        - MESSAGING_CONNECTOR_INCOMPLETE
+        - MESSAGING_CONNECTOR_DISABLED
+        - MESSAGING_CONNECTOR_SUSPENDED
+        - MESSAGING_CONNECTOR_ACTIVE
+        - MESSAGING_CONNECTOR_VERSION_STALE
+        - MESSAGING_ALREADY_DISABLED
+        - MESSAGING_ALREADY_ENABLED
+        - MESSAGING_PROVIDER_UNAVAILABLE
+        - MESSAGING_PROVIDER_CREDENTIAL_INVALID
+        - MESSAGING_TEMPLATE_INVALID
+        - MESSAGING_RECIPIENT_NOT_FOUND
+        - MESSAGING_RECIPIENT_LIMIT_REACHED
+        - MESSAGING_RECIPIENT_EXISTS
+        - MESSAGING_RECIPIENT_DISABLED
+        - MESSAGING_RECIPIENT_VERSION_STALE
+        - MESSAGING_CONSENT_REQUIRED
+        - MESSAGING_PHONE_INVALID
+        - MESSAGING_NOTIFICATION_TYPE_INVALID
+        - MESSAGING_TEST_RATE_LIMITED
+        - MESSAGING_DELIVERY_NOT_FOUND
+        - MESSAGING_SECRET_UNAVAILABLE
+    WhatsAppNotificationType:
+      type: string
+      description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
+      enum: [LEAVE_DECISION, TIMESHEET_APPROVED, ATTENDANCE_CORRECTED, PAYROLL_INPUT_LOCKED, PAYROLL_EXPORT_READY, CONNECTOR_TEST]
+    WhatsAppSelectableNotificationType:
+      type: string
+      description: MVP-111. The notification types a recipient can choose.
+      enum: [LEAVE_DECISION, TIMESHEET_APPROVED, ATTENDANCE_CORRECTED, PAYROLL_INPUT_LOCKED, PAYROLL_EXPORT_READY]
+    WhatsAppLanguage:
+      type: string
+      enum: [en, fr]
+    WhatsAppConsentSource:
+      type: string
+      description: MVP-111. Where the recipient's opt-in was given, recorded as attested by the administrator.
+      enum: [WRITTEN, WEB_FORM, VERBAL_RECORDED_OUTSIDE_DIVALHR, OTHER_DOCUMENTED]
+    WhatsAppTemplateRequest:
+      type: object
+      description: MVP-111. One pre-approved Meta template for a notification type and language.
+      additionalProperties: false
+      required: [notificationType, language, templateName]
+      properties:
+        notificationType:
+          $ref: "#/components/schemas/WhatsAppNotificationType"
+        language:
+          $ref: "#/components/schemas/WhatsAppLanguage"
+        templateName:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{0,511}$"
+    CreateWhatsAppConnectorRequest:
+      type: object
+      description: MVP-111. Connect the tenant's WhatsApp Business connector. The token is write-only.
+      additionalProperties: false
+      required: [wabaId, phoneNumberId, displayNumber, accessToken, templates, confirm]
+      properties:
+        wabaId:
+          type: string
+          pattern: "^[0-9]{5,20}$"
+        phoneNumberId:
+          type: string
+          pattern: "^[0-9]{5,20}$"
+        displayNumber:
+          type: string
+          pattern: "^\\+[1-9][0-9]{6,14}$"
+        accessToken:
+          type: string
+          minLength: 20
+          maxLength: 1024
+          writeOnly: true
+        templates:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/WhatsAppTemplateRequest"
+        confirm:
+          type: boolean
+          const: true
+    UpdateWhatsAppConnectorRequest:
+      type: object
+      description: MVP-111. Change the connector's identifiers or templates (returns it to DRAFT).
+      additionalProperties: false
+      required: [configVersion, wabaId, phoneNumberId, displayNumber, templates, confirm]
+      properties:
+        configVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        wabaId:
+          type: string
+          pattern: "^[0-9]{5,20}$"
+        phoneNumberId:
+          type: string
+          pattern: "^[0-9]{5,20}$"
+        displayNumber:
+          type: string
+          pattern: "^\\+[1-9][0-9]{6,14}$"
+        templates:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/WhatsAppTemplateRequest"
+        confirm:
+          type: boolean
+          const: true
+    WhatsAppConnectorCommandRequest:
+      type: object
+      description: MVP-111. Verify, disable or enable the connector.
+      additionalProperties: false
+      required: [configVersion, confirm]
+      properties:
+        configVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        confirm:
+          type: boolean
+          const: true
+    RotateWhatsAppTokenRequest:
+      type: object
+      description: MVP-111. Replace the access token. The token is write-only.
+      additionalProperties: false
+      required: [configVersion, accessToken, confirm]
+      properties:
+        configVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        accessToken:
+          type: string
+          minLength: 20
+          maxLength: 1024
+          writeOnly: true
+        confirm:
+          type: boolean
+          const: true
+    WhatsAppConsentRequest:
+      type: object
+      description: MVP-111. The administrator's attestation that the recipient opted in.
+      additionalProperties: false
+      required: [source, confirmedAt, attested]
+      properties:
+        source:
+          $ref: "#/components/schemas/WhatsAppConsentSource"
+        confirmedAt:
+          type: string
+          format: date-time
+        attested:
+          type: boolean
+          const: true
+    CreateWhatsAppRecipientRequest:
+      type: object
+      description: MVP-111. Register an opted-in recipient. The number is write-only.
+      additionalProperties: false
+      required: [label, phoneNumber, language, notificationTypes, consent, confirm]
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Trimmed plain text, no markup or URL.
+        phoneNumber:
+          type: string
+          pattern: "^\\+[1-9][0-9]{6,14}$"
+          writeOnly: true
+        language:
+          $ref: "#/components/schemas/WhatsAppLanguage"
+        notificationTypes:
+          type: array
+          minItems: 1
+          maxItems: 5
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/WhatsAppSelectableNotificationType"
+        consent:
+          $ref: "#/components/schemas/WhatsAppConsentRequest"
+        confirm:
+          type: boolean
+          const: true
+    UpdateWhatsAppRecipientRequest:
+      type: object
+      description: MVP-111. Change a recipient's label, language or notification types.
+      additionalProperties: false
+      required: [version, label, language, notificationTypes, confirm]
+      properties:
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        language:
+          $ref: "#/components/schemas/WhatsAppLanguage"
+        notificationTypes:
+          type: array
+          minItems: 1
+          maxItems: 5
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/WhatsAppSelectableNotificationType"
+        consent:
+          $ref: "#/components/schemas/WhatsAppConsentRequest"
+        confirm:
+          type: boolean
+          const: true
+    WhatsAppRecipientCommandRequest:
+      type: object
+      description: MVP-111. Disable or enable a recipient.
+      additionalProperties: false
+      required: [version, confirm]
+      properties:
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        confirm:
+          type: boolean
+          const: true
+    WhatsAppTestRequest:
+      type: object
+      description: MVP-111. Confirm sending one test message.
+      additionalProperties: false
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+          const: true
+    WhatsAppTemplate:
+      type: object
+      description: MVP-111. A configured template and whether the provider check passed.
+      required: [notificationType, language, templateName, verified]
+      properties:
+        notificationType:
+          $ref: "#/components/schemas/WhatsAppNotificationType"
+        language:
+          $ref: "#/components/schemas/WhatsAppLanguage"
+        templateName:
+          type: string
+        verified:
+          type: boolean
+    WhatsAppConnector:
+      type: object
+      description: MVP-111. The connector as the administrator sees it. Never carries the token.
+      required: [id, provider, state, configVersion, credentialVersion, wabaId, phoneNumberId, displayNumber, graphApiVersion, verifiedAt, consecutiveFailures, lastSuccessAt, lastFailureAt, recipientCount, templates, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          enum: [WHATSAPP]
+        state:
+          type: string
+          enum: [DRAFT, ACTIVE, DISABLED, SUSPENDED]
+        configVersion:
+          type: integer
+          format: int32
+        credentialVersion:
+          type: integer
+          format: int32
+        wabaId:
+          type: string
+        phoneNumberId:
+          type: string
+        displayNumber:
+          type: string
+        graphApiVersion:
+          type: string
+          description: The operator-pinned Graph API version.
+        verifiedAt:
+          type: [string, "null"]
+          format: date-time
+        consecutiveFailures:
+          type: integer
+          format: int32
+        lastSuccessAt:
+          type: [string, "null"]
+          format: date-time
+        lastFailureAt:
+          type: [string, "null"]
+          format: date-time
+        recipientCount:
+          type: integer
+          format: int32
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsAppTemplate"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    WhatsAppTemplateCheck:
+      type: object
+      description: MVP-111. One template's verification result.
+      required: [notificationType, language, result]
+      properties:
+        notificationType:
+          $ref: "#/components/schemas/WhatsAppNotificationType"
+        language:
+          $ref: "#/components/schemas/WhatsAppLanguage"
+        result:
+          type: string
+          enum: [OK, MISSING, NOT_APPROVED, WRONG_LANGUAGE, WRONG_SHAPE, CREDENTIAL_REJECTED, UNAVAILABLE]
+    WhatsAppVerification:
+      type: object
+      description: MVP-111. The outcome of verifying the connector with the provider.
+      required: [connector, credential, templates, verified]
+      properties:
+        connector:
+          $ref: "#/components/schemas/WhatsAppConnector"
+        credential:
+          type: string
+          enum: [VALID, REJECTED, UNAVAILABLE]
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsAppTemplateCheck"
+        verified:
+          type: boolean
+    WhatsAppRecipient:
+      type: object
+      description: MVP-111. A recipient. The number is only ever masked.
+      required: [id, label, numberMasked, language, notificationTypes, status, consentSource, consentConfirmedAt, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        numberMasked:
+          type: string
+          description: For example "+2 *** ** 42"; the full number is never returned.
+        language:
+          $ref: "#/components/schemas/WhatsAppLanguage"
+        notificationTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsAppSelectableNotificationType"
+        status:
+          type: string
+          enum: [ACTIVE, DISABLED]
+        consentSource:
+          $ref: "#/components/schemas/WhatsAppConsentSource"
+        consentConfirmedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    WhatsAppRecipientList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsAppRecipient"
+    WhatsAppDelivery:
+      type: object
+      description: MVP-111. One delivery. No number, template, provider message ID, link, response body or header.
+      required: [id, recipientId, recipientLabel, numberMasked, notificationType, test, language, state, attemptCount, createdAt, lastAttemptAt, nextAttemptAt, acceptedAt, deliveredAt, readAt, completedAt, lastHttpStatus, failureClass]
+      properties:
+        id:
+          type: string
+          format: uuid
+        recipientId:
+          type: string
+          format: uuid
+        recipientLabel:
+          type: string
+        numberMasked:
+          type: string
+        notificationType:
+          $ref: "#/components/schemas/WhatsAppNotificationType"
+        test:
+          type: boolean
+        language:
+          $ref: "#/components/schemas/WhatsAppLanguage"
+        state:
+          type: string
+          enum: [PENDING, RETRYING, ACCEPTED, DELIVERED, READ, FAILED, CANCELLED, STATUS_UNKNOWN]
+        attemptCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        lastAttemptAt:
+          type: [string, "null"]
+          format: date-time
+        nextAttemptAt:
+          type: [string, "null"]
+          format: date-time
+        acceptedAt:
+          type: [string, "null"]
+          format: date-time
+        deliveredAt:
+          type: [string, "null"]
+          format: date-time
+        readAt:
+          type: [string, "null"]
+          format: date-time
+        completedAt:
+          type: [string, "null"]
+          format: date-time
+        lastHttpStatus:
+          type: [integer, "null"]
+          format: int32
+        failureClass:
+          type: [string, "null"]
+          enum: [DNS_FAILED, CONNECT_TIMEOUT, REQUEST_TIMEOUT, TLS_FAILED, CONNECTION_FAILED, RATE_LIMITED, PROVIDER_FAILED, HTTP_RESPONSE, CREDENTIAL_INVALID, TEMPLATE_INVALID, RECIPIENT_REJECTED, INTERNAL_FAILURE, CONNECTOR_INACTIVE, null]
+    WhatsAppDeliveryPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsAppDelivery"
+        nextCursor:
+          type: [string, "null"]
+    WhatsAppAttempt:
+      type: object
+      required: [number, startedAt, finishedAt, httpStatus, failureClass, latencyMs]
+      properties:
+        number:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 5
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        httpStatus:
+          type: [integer, "null"]
+          format: int32
+        failureClass:
+          type: [string, "null"]
+        latencyMs:
+          type: integer
+          format: int32
+    WhatsAppStatusCallback:
+      type: object
+      description: MVP-111. One verified provider status (SENT, DELIVERED, READ or FAILED).
+      required: [status, occurredAt, receivedAt, errorClass]
+      properties:
+        status:
+          type: string
+          enum: [SENT, DELIVERED, READ, FAILED]
+        occurredAt:
+          type: string
+          format: date-time
+        receivedAt:
+          type: string
+          format: date-time
+        errorClass:
+          type: [string, "null"]
+    WhatsAppDeliveryDetail:
+      type: object
+      required: [delivery, attempts, statusReports]
+      properties:
+        delivery:
+          $ref: "#/components/schemas/WhatsAppDelivery"
+        attempts:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsAppAttempt"
+        statusReports:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsAppStatusCallback"
+    WhatsAppTestDelivery:
+      type: object
+      description: MVP-111. The accepted test message; the result is read from the delivery.
+      required: [deliveryId, recipientId, eventId]
+      properties:
+        deliveryId:
+          type: string
+          format: uuid
+        recipientId:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
     LeaveUnit:
       type: string
       enum: [DAYS, HOURS]

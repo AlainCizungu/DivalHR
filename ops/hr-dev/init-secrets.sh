@@ -15,7 +15,7 @@ divalhr_lock "init-secrets" || exit $?
 
 S="$HR_DEV_DATA/secrets"
 umask 077
-mkdir -p "$S/postgres" "$S/core" "$S/keycloak" "$S/ops"
+mkdir -p "$S/postgres" "$S/core" "$S/keycloak" "$S/ops" "$S/provider"
 chmod 0711 "$S"
 
 random() { openssl rand -base64 64 | tr -d '/+=\n' | cut -c1-48; }
@@ -49,6 +49,20 @@ put "$S/core/DIVALHR_EMAIL_LOOKUP_KEY" 10001 random
 # and losing it makes every webhook secret unreadable (the administrator would rotate each one).
 # It is part of the backed-up secrets directory and is never printed, logged or returned.
 put "$S/core/DIVALHR_WEBHOOK_ENCRYPTION_KEY" 10001 random
+# MVP-111 (ADR 0029): key material for the AES-256-GCM encryption of the WhatsApp access token and
+# of recipient phone numbers (HKDF-SHA256 expands it; >= 32 bytes). Never rotate it in place: stored
+# tokens and numbers are sealed with it, and losing it makes them unreadable (the administrator
+# would rotate the token and re-register every recipient). Backed up with the secrets directory,
+# never printed, logged or returned.
+put "$S/core/DIVALHR_MESSAGING_ENCRYPTION_KEY" 10001 random
+# MVP-111: the Meta app secret (signs callbacks) and the callback verify token. In this test
+# environment they belong to the synthetic provider only, never to a real Meta app; production
+# values come from the real Meta app and are provisioned the same way, by the operator.
+put "$S/core/DIVALHR_MESSAGING_APP_SECRET" 10001 random
+put "$S/core/DIVALHR_MESSAGING_VERIFY_TOKEN" 10001 random
+# The synthetic provider (container uid 1000) holds copies of those two, to sign and verify like Meta.
+put "$S/provider/app-secret" 1000 same_as "$S/core/DIVALHR_MESSAGING_APP_SECRET"
+put "$S/provider/verify-token" 1000 same_as "$S/core/DIVALHR_MESSAGING_VERIFY_TOKEN"
 put "$S/ops/provisioner-secret" 0 random
 put "$S/core/DIVALHR_KEYCLOAK_PROVISIONER_SECRET" 10001 same_as "$S/ops/provisioner-secret"
 # R157-1 (MVP-101): secret of the Keycloak client divalhr-core-ai, the Core API's only credential
@@ -68,8 +82,8 @@ keycloak_conf() {
 put "$S/keycloak/keycloak.conf" 1000 keycloak_conf
 
 # Each directory belongs to the container user that reads it (Spring lists its config tree).
-chown 999 "$S/postgres"; chown 10001 "$S/core"; chown 1000 "$S/keycloak"; chown -R root:root "$S/ops"
-chmod 0500 "$S/postgres" "$S/core" "$S/keycloak"
+chown 999 "$S/postgres"; chown 10001 "$S/core"; chown 1000 "$S/keycloak"; chown 1000 "$S/provider"; chown -R root:root "$S/ops"
+chmod 0500 "$S/postgres" "$S/core" "$S/keycloak" "$S/provider"
 chmod 0700 "$S/ops"
 
 for f in "$S"/*/*; do

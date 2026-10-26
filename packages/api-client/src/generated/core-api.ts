@@ -3118,6 +3118,286 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/integrations/messaging/whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The tenant's WhatsApp connector
+         * @description MVP-111. The connector's identifiers, state, versions, failure counter, recipient count and templates. Never returns the token. 404 MESSAGING_CONNECTOR_NOT_FOUND when none is connected. A fail-closed disclosure (audit messaging.whatsapp.read). Cache-Control private, no-store.
+         */
+        get: operations["getWhatsAppConnector"];
+        put?: never;
+        /**
+         * Connect the tenant's WhatsApp Business connector
+         * @description MVP-111 (ADR 0029). Registers the tenant's one WhatsApp Business Cloud API connector as a DRAFT: the WABA ID, the sending phone-number ID, its display number, the system-user access token and up to 12 pre-approved template names (one per notification type and language). The token is accepted here and on rotation only; it is stored encrypted (AES-256-GCM), is never returned, audited, logged or kept in the idempotency store. No provider call is made; verification activates the connector. A second connector is 409 MESSAGING_CONNECTOR_EXISTS; a template name outside the allowed shape is 422 MESSAGING_TEMPLATE_INVALID; a missing encryption key is 503 MESSAGING_SECRET_UNAVAILABLE. Audit messaging.whatsapp.create. Idempotent. Cache-Control private, no-store.
+         */
+        post: operations["createWhatsAppConnector"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change the connector's identifiers or templates
+         * @description MVP-111. Requires the current configVersion (409 MESSAGING_CONNECTOR_VERSION_STALE otherwise) and explicit confirmation. An active connector cannot be changed: disable it first (409 MESSAGING_CONNECTOR_ACTIVE). Changing an identifier or a template clears the earlier verification, so the connector must be verified again before it is activated. Audit messaging.whatsapp.update. Idempotent.
+         */
+        patch: operations["updateWhatsAppConnector"];
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify the connector with the provider and activate it
+         * @description MVP-111. Checks the token against the phone-number ID and every configured template (exists, approved, expected language, exact supported shape, URL button declared as the operator public origin) with the provider, outside any database transaction. On success the connector becomes ACTIVE (verified true); otherwise it stays as it was and the per-check results explain why. A provider that cannot be reached is 503 MESSAGING_PROVIDER_UNAVAILABLE. A disabled or suspended connector is 409 MESSAGING_CONNECTOR_DISABLED or MESSAGING_CONNECTOR_SUSPENDED. Audit messaging.whatsapp.verify. Idempotent.
+         */
+        post: operations["verifyWhatsAppConnector"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/rotate-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the access token
+         * @description MVP-111. Replaces the token, which is checked with the provider first (422 MESSAGING_PROVIDER_CREDENTIAL_INVALID when refused, 503 MESSAGING_PROVIDER_UNAVAILABLE when unreachable) and then stored encrypted under the next credential version; the old ciphertext is erased. The token is never returned. Audit messaging.whatsapp.rotate-token. Idempotent.
+         */
+        post: operations["rotateWhatsAppToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable the connector
+         * @description MVP-111. Stops new attempts and cancels open deliveries; history stays readable. 409 MESSAGING_ALREADY_DISABLED when already disabled. Audit messaging.whatsapp.disable. Idempotent.
+         */
+        post: operations["disableWhatsAppConnector"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable a disabled or suspended connector
+         * @description MVP-111. Requires the current configVersion. Checks the credential and templates with the provider again (422 MESSAGING_PROVIDER_CREDENTIAL_INVALID or MESSAGING_TEMPLATE_INVALID, 503 MESSAGING_PROVIDER_UNAVAILABLE), then resets the failure counter and returns the connector to ACTIVE; older failed deliveries are not replayed. 409 MESSAGING_ALREADY_ENABLED when already active. Audit messaging.whatsapp.enable. Idempotent.
+         */
+        post: operations["enableWhatsAppConnector"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The registered recipients
+         * @description MVP-111. At most 25 recipients per tenant. Numbers are only ever shown masked. A fail-closed disclosure (audit messaging.whatsapp.read). Cache-Control private, no-store.
+         */
+        get: operations["listWhatsAppRecipients"];
+        put?: never;
+        /**
+         * Register an opted-in recipient
+         * @description MVP-111. Registers one recipient with their E.164 number (stored encrypted, shown masked, unique per tenant by a keyed digest), language, notification types and a recorded opt-in: the administrator attests that the recipient consented, with the source and time of the consent. Without it, 422 MESSAGING_CONSENT_REQUIRED. 400 MESSAGING_PHONE_INVALID, 400 MESSAGING_NOTIFICATION_TYPE_INVALID; the 26th recipient is 409 MESSAGING_RECIPIENT_LIMIT_REACHED; a repeated number is 409 MESSAGING_RECIPIENT_EXISTS; no connector is 404 MESSAGING_CONNECTOR_NOT_FOUND. STOP-keyword automation is not implemented. Audit messaging.whatsapp.recipient-create. Idempotent.
+         */
+        post: operations["createWhatsAppRecipient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/recipients/{recipientId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One recipient
+         * @description MVP-111. A malformed, unknown or foreign ID is 404 MESSAGING_RECIPIENT_NOT_FOUND. A fail-closed disclosure (audit messaging.whatsapp.read).
+         */
+        get: operations["getWhatsAppRecipient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a recipient's label, language or notification types
+         * @description MVP-111. Requires the current version (409 MESSAGING_RECIPIENT_VERSION_STALE otherwise). The number cannot be changed: disable and register again. Audit messaging.whatsapp.recipient-update. Idempotent.
+         */
+        patch: operations["updateWhatsAppRecipient"];
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/recipients/{recipientId}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable a recipient
+         * @description MVP-111. Cancels the recipient's open deliveries. 409 MESSAGING_RECIPIENT_DISABLED when already disabled. Audit messaging.whatsapp.recipient-disable. Idempotent.
+         */
+        post: operations["disableWhatsAppRecipient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/recipients/{recipientId}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable a recipient
+         * @description MVP-111. Audit messaging.whatsapp.recipient-enable. Idempotent. Older events are not replayed.
+         */
+        post: operations["enableWhatsAppRecipient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/recipients/{recipientId}/test-deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send one test message
+         * @description MVP-111. Queues one generic CONNECTOR_TEST message through the real worker and provider; the answer is the delivery ID, not the result. Only for an active connector and an active recipient (409 MESSAGING_CONNECTOR_DISABLED, MESSAGING_CONNECTOR_SUSPENDED, MESSAGING_CONNECTOR_INCOMPLETE or MESSAGING_RECIPIENT_DISABLED otherwise). At most 3 accepted tests per recipient and 10 per tenant per hour, enforced in the database; either limit is the same 429 MESSAGING_TEST_RATE_LIMITED with Retry-After 3600. Audit messaging.whatsapp.test-delivery. Idempotent.
+         */
+        post: operations["createWhatsAppTestDelivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delivery history
+         * @description MVP-111. Deliveries, newest first, as a keyset page, optionally for one recipient. Shows state, attempts, exact HTTP status and closed failure class; never a number, template, provider message ID, link, response body or header. A fail-closed disclosure (audit messaging.whatsapp.delivery-read).
+         */
+        get: operations["listWhatsAppDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/messaging/whatsapp/deliveries/{deliveryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One delivery with its attempts and provider statuses
+         * @description MVP-111. A malformed, unknown or foreign delivery is 404 MESSAGING_DELIVERY_NOT_FOUND. A fail-closed disclosure (audit messaging.whatsapp.delivery-read).
+         */
+        get: operations["getWhatsAppDelivery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/messaging/whatsapp/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Provider subscription verification (anonymous, provider only)
+         * @description MVP-111 (ADR 0029). Meta's webhook subscription handshake. Echoes hub.challenge as text/plain only when hub.mode is subscribe and hub.verify_token equals the operator-provisioned verify token (constant-time comparison); everything else, including an unconfigured deployment, is an empty 403. Access tokens are neither required nor read. Cache-Control no-store.
+         */
+        get: operations["verifyWhatsAppCallback"];
+        put?: never;
+        /**
+         * Provider delivery-status callback (anonymous, provider only)
+         * @description MVP-111 (ADR 0029). Meta's signed status callbacks. The X-Hub-Signature-256 HMAC-SHA-256 over the exact request bytes (keyed by the Meta app secret) is verified in constant time before anything is parsed; the body is bounded to 64 KiB; only allow-listed fields are read (a provider message ID, the phone-number ID, a status, a time and a numeric error code). A message is matched by provider message ID plus its connector's stored phone-number binding. Unknown, duplicate and out-of-order statuses are acknowledged without effect, a lower status never moves a delivery backward, and inbound customer messages are ignored without being stored. The body is not described here because it is the provider's, not DivalHR's. Answers are empty. Only application/json (a charset parameter is allowed) is accepted: 415 for a missing or other Content-Type, before anything is read. 403 for a missing or wrong signature, 413 over the limit, 429 over the provider-wide ceiling. 503 when unconfigured or when processing failed (nothing was stored; the provider retries the identical callback). A signed body that cannot be used is acknowledged with 200 and stores nothing. Cache-Control no-store.
+         */
+        post: operations["receiveWhatsAppCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4532,7 +4812,262 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE";
+        /**
+         * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
+         * @enum {string}
+         */
+        WhatsAppNotificationType: "LEAVE_DECISION" | "TIMESHEET_APPROVED" | "ATTENDANCE_CORRECTED" | "PAYROLL_INPUT_LOCKED" | "PAYROLL_EXPORT_READY" | "CONNECTOR_TEST";
+        /**
+         * @description MVP-111. The notification types a recipient can choose.
+         * @enum {string}
+         */
+        WhatsAppSelectableNotificationType: "LEAVE_DECISION" | "TIMESHEET_APPROVED" | "ATTENDANCE_CORRECTED" | "PAYROLL_INPUT_LOCKED" | "PAYROLL_EXPORT_READY";
+        /** @enum {string} */
+        WhatsAppLanguage: "en" | "fr";
+        /**
+         * @description MVP-111. Where the recipient's opt-in was given, recorded as attested by the administrator.
+         * @enum {string}
+         */
+        WhatsAppConsentSource: "WRITTEN" | "WEB_FORM" | "VERBAL_RECORDED_OUTSIDE_DIVALHR" | "OTHER_DOCUMENTED";
+        /** @description MVP-111. One pre-approved Meta template for a notification type and language. */
+        WhatsAppTemplateRequest: {
+            notificationType: components["schemas"]["WhatsAppNotificationType"];
+            language: components["schemas"]["WhatsAppLanguage"];
+            templateName: string;
+        };
+        /** @description MVP-111. Connect the tenant's WhatsApp Business connector. The token is write-only. */
+        CreateWhatsAppConnectorRequest: {
+            wabaId: string;
+            phoneNumberId: string;
+            displayNumber: string;
+            accessToken: string;
+            templates: components["schemas"]["WhatsAppTemplateRequest"][];
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. Change the connector's identifiers or templates (returns it to DRAFT). */
+        UpdateWhatsAppConnectorRequest: {
+            /** Format: int32 */
+            configVersion: number;
+            wabaId: string;
+            phoneNumberId: string;
+            displayNumber: string;
+            templates: components["schemas"]["WhatsAppTemplateRequest"][];
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. Verify, disable or enable the connector. */
+        WhatsAppConnectorCommandRequest: {
+            /** Format: int32 */
+            configVersion: number;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. Replace the access token. The token is write-only. */
+        RotateWhatsAppTokenRequest: {
+            /** Format: int32 */
+            configVersion: number;
+            accessToken: string;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. The administrator's attestation that the recipient opted in. */
+        WhatsAppConsentRequest: {
+            source: components["schemas"]["WhatsAppConsentSource"];
+            /** Format: date-time */
+            confirmedAt: string;
+            /** @constant */
+            attested: true;
+        };
+        /** @description MVP-111. Register an opted-in recipient. The number is write-only. */
+        CreateWhatsAppRecipientRequest: {
+            /** @description Trimmed plain text, no markup or URL. */
+            label: string;
+            phoneNumber: string;
+            language: components["schemas"]["WhatsAppLanguage"];
+            notificationTypes: components["schemas"]["WhatsAppSelectableNotificationType"][];
+            consent: components["schemas"]["WhatsAppConsentRequest"];
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. Change a recipient's label, language or notification types. */
+        UpdateWhatsAppRecipientRequest: {
+            /** Format: int32 */
+            version: number;
+            label: string;
+            language: components["schemas"]["WhatsAppLanguage"];
+            notificationTypes: components["schemas"]["WhatsAppSelectableNotificationType"][];
+            consent?: components["schemas"]["WhatsAppConsentRequest"];
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. Disable or enable a recipient. */
+        WhatsAppRecipientCommandRequest: {
+            /** Format: int32 */
+            version: number;
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. Confirm sending one test message. */
+        WhatsAppTestRequest: {
+            /** @constant */
+            confirm: true;
+        };
+        /** @description MVP-111. A configured template and whether the provider check passed. */
+        WhatsAppTemplate: {
+            notificationType: components["schemas"]["WhatsAppNotificationType"];
+            language: components["schemas"]["WhatsAppLanguage"];
+            templateName: string;
+            verified: boolean;
+        };
+        /** @description MVP-111. The connector as the administrator sees it. Never carries the token. */
+        WhatsAppConnector: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            provider: "WHATSAPP";
+            /** @enum {string} */
+            state: "DRAFT" | "ACTIVE" | "DISABLED" | "SUSPENDED";
+            /** Format: int32 */
+            configVersion: number;
+            /** Format: int32 */
+            credentialVersion: number;
+            wabaId: string;
+            phoneNumberId: string;
+            displayNumber: string;
+            /** @description The operator-pinned Graph API version. */
+            graphApiVersion: string;
+            /** Format: date-time */
+            verifiedAt: string | null;
+            /** Format: int32 */
+            consecutiveFailures: number;
+            /** Format: date-time */
+            lastSuccessAt: string | null;
+            /** Format: date-time */
+            lastFailureAt: string | null;
+            /** Format: int32 */
+            recipientCount: number;
+            templates: components["schemas"]["WhatsAppTemplate"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description MVP-111. One template's verification result. */
+        WhatsAppTemplateCheck: {
+            notificationType: components["schemas"]["WhatsAppNotificationType"];
+            language: components["schemas"]["WhatsAppLanguage"];
+            /** @enum {string} */
+            result: "OK" | "MISSING" | "NOT_APPROVED" | "WRONG_LANGUAGE" | "WRONG_SHAPE" | "CREDENTIAL_REJECTED" | "UNAVAILABLE";
+        };
+        /** @description MVP-111. The outcome of verifying the connector with the provider. */
+        WhatsAppVerification: {
+            connector: components["schemas"]["WhatsAppConnector"];
+            /** @enum {string} */
+            credential: "VALID" | "REJECTED" | "UNAVAILABLE";
+            templates: components["schemas"]["WhatsAppTemplateCheck"][];
+            verified: boolean;
+        };
+        /** @description MVP-111. A recipient. The number is only ever masked. */
+        WhatsAppRecipient: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** @description For example "+2 *** ** 42"; the full number is never returned. */
+            numberMasked: string;
+            language: components["schemas"]["WhatsAppLanguage"];
+            notificationTypes: components["schemas"]["WhatsAppSelectableNotificationType"][];
+            /** @enum {string} */
+            status: "ACTIVE" | "DISABLED";
+            consentSource: components["schemas"]["WhatsAppConsentSource"];
+            /** Format: date-time */
+            consentConfirmedAt: string;
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        WhatsAppRecipientList: {
+            items: components["schemas"]["WhatsAppRecipient"][];
+        };
+        /** @description MVP-111. One delivery. No number, template, provider message ID, link, response body or header. */
+        WhatsAppDelivery: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            recipientId: string;
+            recipientLabel: string;
+            numberMasked: string;
+            notificationType: components["schemas"]["WhatsAppNotificationType"];
+            test: boolean;
+            language: components["schemas"]["WhatsAppLanguage"];
+            /** @enum {string} */
+            state: "PENDING" | "RETRYING" | "ACCEPTED" | "DELIVERED" | "READ" | "FAILED" | "CANCELLED" | "STATUS_UNKNOWN";
+            /** Format: int32 */
+            attemptCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastAttemptAt: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string | null;
+            /** Format: date-time */
+            acceptedAt: string | null;
+            /** Format: date-time */
+            deliveredAt: string | null;
+            /** Format: date-time */
+            readAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: int32 */
+            lastHttpStatus: number | null;
+            /** @enum {string|null} */
+            failureClass: "DNS_FAILED" | "CONNECT_TIMEOUT" | "REQUEST_TIMEOUT" | "TLS_FAILED" | "CONNECTION_FAILED" | "RATE_LIMITED" | "PROVIDER_FAILED" | "HTTP_RESPONSE" | "CREDENTIAL_INVALID" | "TEMPLATE_INVALID" | "RECIPIENT_REJECTED" | "INTERNAL_FAILURE" | "CONNECTOR_INACTIVE" | null;
+        };
+        WhatsAppDeliveryPage: {
+            items: components["schemas"]["WhatsAppDelivery"][];
+            nextCursor: string | null;
+        };
+        WhatsAppAttempt: {
+            /** Format: int32 */
+            number: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string;
+            /** Format: int32 */
+            httpStatus: number | null;
+            failureClass: string | null;
+            /** Format: int32 */
+            latencyMs: number;
+        };
+        /** @description MVP-111. One verified provider status (SENT, DELIVERED, READ or FAILED). */
+        WhatsAppStatusCallback: {
+            /** @enum {string} */
+            status: "SENT" | "DELIVERED" | "READ" | "FAILED";
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: date-time */
+            receivedAt: string;
+            errorClass: string | null;
+        };
+        WhatsAppDeliveryDetail: {
+            delivery: components["schemas"]["WhatsAppDelivery"];
+            attempts: components["schemas"]["WhatsAppAttempt"][];
+            statusReports: components["schemas"]["WhatsAppStatusCallback"][];
+        };
+        /** @description MVP-111. The accepted test message; the result is read from the delivery. */
+        WhatsAppTestDelivery: {
+            /** Format: uuid */
+            deliveryId: string;
+            /** Format: uuid */
+            recipientId: string;
+            /** Format: uuid */
+            eventId: string;
+        };
         /** @enum {string} */
         LeaveUnit: "DAYS" | "HOURS";
         /** @enum {string} */
@@ -7432,6 +7967,12 @@ export interface components {
         WebhookId: string;
         /** @description Malformed, unknown and foreign IDs give the same 404 WEBHOOK_DELIVERY_NOT_FOUND. */
         WebhookDeliveryId: string;
+        /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+        WhatsAppRecipientId: string;
+        /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_DELIVERY_NOT_FOUND. */
+        WhatsAppDeliveryId: string;
+        /** @description Restrict the history to one recipient. A malformed, unknown or foreign ID is 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+        WhatsAppRecipientFilter: string;
         /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
         PayrollInputExportId: string;
         /** @description Malformed, unknown and foreign IDs give the same 404 PAYROLL_INPUT_TARGET_NOT_FOUND. */
@@ -13845,6 +14386,687 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getWhatsAppConnector: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppConnector"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createWhatsAppConnector: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWhatsAppConnectorRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppConnector"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    updateWhatsAppConnector: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWhatsAppConnectorRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppConnector"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    verifyWhatsAppConnector: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppConnectorCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppVerification"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    rotateWhatsAppToken: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RotateWhatsAppTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppConnector"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    disableWhatsAppConnector: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppConnectorCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppConnector"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    enableWhatsAppConnector: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppConnectorCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppConnector"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listWhatsAppRecipients: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRecipientList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createWhatsAppRecipient: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWhatsAppRecipientRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRecipient"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getWhatsAppRecipient: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+                recipientId: components["parameters"]["WhatsAppRecipientId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRecipient"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    updateWhatsAppRecipient: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+                recipientId: components["parameters"]["WhatsAppRecipientId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWhatsAppRecipientRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRecipient"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    disableWhatsAppRecipient: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+                recipientId: components["parameters"]["WhatsAppRecipientId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppRecipientCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRecipient"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    enableWhatsAppRecipient: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+                recipientId: components["parameters"]["WhatsAppRecipientId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppRecipientCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRecipient"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createWhatsAppTestDelivery: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+                recipientId: components["parameters"]["WhatsAppRecipientId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the original replayed */
+            202: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppTestDelivery"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listWhatsAppDeliveries: {
+        parameters: {
+            query?: {
+                /** @description Restrict the history to one recipient. A malformed, unknown or foreign ID is 404 MESSAGING_RECIPIENT_NOT_FOUND. */
+                recipientId?: components["parameters"]["WhatsAppRecipientFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 20). */
+                limit?: components["parameters"]["AttendanceLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppDeliveryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getWhatsAppDelivery: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown and foreign IDs give the same 404 MESSAGING_DELIVERY_NOT_FOUND. */
+                deliveryId: components["parameters"]["WhatsAppDeliveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppDeliveryDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    verifyWhatsAppCallback: {
+        parameters: {
+            query?: {
+                "hub.mode"?: string;
+                "hub.verify_token"?: string;
+                "hub.challenge"?: string;
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The challenge */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Wrong mode or verify token, or the callback is not configured. Empty body. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    receiveWhatsAppCallback: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Hub-Signature-256"?: string;
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verified and processed, or verified and ignored */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or wrong signature. Empty body. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Body over the limit. Empty body. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or unsupported Content-Type (only application/json). Empty body. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Provider-wide callback ceiling reached. Empty body. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The callback is not configured, or processing failed and may be retried. Empty body. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
 }

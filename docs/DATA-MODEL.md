@@ -91,6 +91,9 @@
 - ExternalIdentifier
 - WebhookSubscription
 - WebhookDelivery
+- MessagingConnector (WhatsApp, MVP-111)
+- MessagingRecipient
+- MessagingDelivery
 - ImportJob
 - ExportJob
 
@@ -534,3 +537,11 @@ New schema `integrations`; no existing table is altered. Tables: `webhook` (tena
 
 - Triggers enforce 20 webhooks per tenant, 5 test deliveries per webhook per hour, tenant consistency across the foreign keys, no DELETE or TRUNCATE on evidence, and immutable attempts.
 - Rollback: `db/rollback/V39__rollback.sql` refuses while any V39 evidence exists.
+
+## MVP-111: WhatsApp Business notifications (V40)
+
+Same schema `integrations`; no existing table is altered. Tables: `messaging_connector` (one per tenant; unique phone-number id; state `DRAFT/ACTIVE/DISABLED/SUSPENDED`; config and credential versions; consecutive-failure counter), `messaging_template` (per connector, notification type and language: template name, body-parameter count, verification instant), `messaging_credential` (AES-256-GCM ciphertext of the access token; one stored, erase-only), `messaging_recipient` (at most 25 per tenant; number ciphertext, keyed digest, masked number, language, selected types, status, consent source, confirmation instant and attesting administrator, version), `messaging_delivery` (unique per connector, recipient and event; state, attempt count, next attempt, lease token, provider message id, timestamps), `messaging_delivery_attempt` (append-only; closed failure class, status code, duration; no body), `messaging_status_callback` (append-only; one row per delivery and provider status), `messaging_fanout_event` and `messaging_fanout_state` (local ledger and watermark, separate from MVP-110's).
+
+- Triggers enforce one connector per tenant, 25 recipients per tenant, number uniqueness per tenant, the exactly-one-credential rule, tenant consistency across the foreign keys, monotonic delivery states with no resend once a provider message id exists, 3 test messages per recipient and 10 per tenant per hour, no DELETE or TRUNCATE on any messaging table, and immutable attempts, callbacks and ledger rows.
+- No phone number is stored in clear text; no response body, message text, URL or provider error text is stored.
+- Rollback: `db/rollback/V40__rollback.sql` refuses while any connector, recipient, delivery or fan-out data exists.
