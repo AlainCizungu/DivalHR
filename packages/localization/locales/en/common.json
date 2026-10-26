@@ -50,7 +50,9 @@
     "operationsStatus": "Today’s operations",
     "teamOperations": "Team operations",
     "webhooks": "Webhooks",
-    "whatsapp": "WhatsApp Business"
+    "whatsapp": "WhatsApp Business",
+    "tasks": "Tasks",
+    "myTasks": "My tasks"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -564,6 +566,11 @@
     "MESSAGING_TEST_RATE_LIMITED": "Too many test messages. Try again later.",
     "MESSAGING_DELIVERY_NOT_FOUND": "The message does not exist or is not visible to you.",
     "MESSAGING_SECRET_UNAVAILABLE": "WhatsApp notifications are not available right now. Try again later.",
+    "TASK_NOT_FOUND": "This task does not exist or is not available to you.",
+    "TASK_ASSIGNEE_NOT_FOUND": "This employee cannot be assigned a task. Choose an active employee with access to DivalHR.",
+    "TASK_VERSION_CONFLICT": "This task changed in the meantime. Reload it and try again.",
+    "TASK_TRANSITION_NOT_ALLOWED": "This task is already finished or its state does not allow this action.",
+    "TASK_LIMIT_REACHED": "This organization has reached its limit of 10,000 unfinished tasks. Finish or cancel some before assigning more.",
     "OPERATIONAL_SUMMARY_SOURCE_INVALID": "The briefing could not be produced from the current figures. The figures below are unaffected."
   },
   "notFound": {
@@ -4671,6 +4678,131 @@
       "leave_other": "{{n}} leave requests",
       "timesheets_one": "{{n}} timesheet",
       "timesheets_other": "{{n}} timesheets"
+    }
+  },
+  "tasks": {
+    "loading": "Loading tasks…",
+    "sending": "Sending…",
+    "forbidden": "You are not allowed to do this.",
+    "validation": "Check the highlighted fields and try again.",
+    "count": "{{n}} of {{max}} characters",
+    "noDue": "No due date",
+    "due": "Due {{date}}",
+    "completedOn": "Completed {{date}}",
+    "noteLabel": "Completion note:",
+    "cancelledWith": "Cancelled: {{reason}}",
+    "state": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "priority": {
+      "NORMAL": "Normal priority",
+      "HIGH": "High priority",
+      "URGENT": "Urgent"
+    },
+    "dueClass": {
+      "OVERDUE": "Overdue",
+      "DUE_SOON": "Due soon",
+      "LATER": "Due later",
+      "NONE": "No due date"
+    },
+    "cancelReason": {
+      "NO_LONGER_REQUIRED": "No longer required",
+      "CREATED_IN_ERROR": "Created in error",
+      "WORK_MOVED_ELSEWHERE": "Work moved elsewhere",
+      "OTHER": "Other reason"
+    },
+    "action": {
+      "CREATED": "Assigned on {{date}} by {{role}}",
+      "STARTED": "Started on {{date}} by {{role}}",
+      "COMPLETED": "Completed on {{date}} by {{role}}",
+      "CANCELLED": "Cancelled on {{date}} by {{role}}"
+    },
+    "problems": {
+      "assignee": "Choose an employee to assign the task to.",
+      "title": "Enter a title of 1 to 120 characters, without markup, web addresses or encoded text.",
+      "instructions": "Instructions must be at most 1,000 characters, without markup, web addresses or encoded text.",
+      "priority": "Choose a priority.",
+      "dueAt": "The due date must be in the future and within 366 days.",
+      "reason": "Choose a reason.",
+      "explanation": "For “Other reason”, explain in 10 to 500 characters, without markup, web addresses or encoded text. Other reasons take no explanation.",
+      "note": "The note must be at most 500 characters, without markup, web addresses or encoded text."
+    },
+    "admin": {
+      "title": "Tasks",
+      "description": "Assign a task to an active employee, follow it, and cancel it if it is no longer required.",
+      "unauthorized": "Only organization administrators can manage tasks.",
+      "signInRequired": "Sign in as an organization administrator to manage tasks.",
+      "created": "Task assigned.",
+      "cancelled": "Task cancelled.",
+      "assignee": "{{given}} {{family}} ({{number}})",
+      "ref": "Employee {{id}}",
+      "create": {
+        "title": "Assign a task",
+        "assignee": "Assignee",
+        "titleLabel": "Title",
+        "titleHelp": "1 to {{max}} characters. Shown unchanged to the assignee.",
+        "instructions": "Instructions (optional)",
+        "instructionsHelp": "Up to {{max}} characters. Plain text only.",
+        "priority": "Priority",
+        "due": "Due date and time (optional)",
+        "dueHelp": "In your local time. Must be in the future and within 366 days.",
+        "submit": "Assign task"
+      },
+      "list": {
+        "title": "Assigned tasks",
+        "state": "State",
+        "due": "Due",
+        "any": "Any",
+        "empty": "No tasks match.",
+        "open": "View",
+        "more": "Show more"
+      },
+      "detail": {
+        "assignee": "Assignee",
+        "due": "Due",
+        "instructions": "Instructions",
+        "note": "Completion note",
+        "cancelReason": "Cancellation reason",
+        "history": "History",
+        "byAdmin": "an administrator",
+        "byAssignee": "the assignee"
+      },
+      "cancel": {
+        "open": "Cancel this task",
+        "title": "Cancel this task?",
+        "warning": "“{{title}}” will be cancelled for good. It cannot be reopened.",
+        "reason": "Reason",
+        "choose": "Choose a reason",
+        "explanation": "Explanation",
+        "explanationHelp": "{{min}} to {{max}} characters. Plain text only.",
+        "confirm": "Cancel the task",
+        "keep": "Keep the task"
+      }
+    },
+    "me": {
+      "title": "My tasks",
+      "description": "Tasks assigned to you. Start a task, then complete it when it is done.",
+      "unauthorized": "Only employees linked to their own account can see their tasks.",
+      "signInRequired": "Sign in to see your tasks.",
+      "empty": "No task is assigned to you.",
+      "groupEmpty": "Nothing here.",
+      "groups": {
+        "open": "Open ({{n}})",
+        "inProgress": "In progress ({{n}})",
+        "closed": "Completed or cancelled ({{n}})"
+      },
+      "start": "Start",
+      "complete": "Complete",
+      "started": "Task started.",
+      "completed": "Task completed.",
+      "confirmComplete": "Mark “{{title}}” as completed? This cannot be undone.",
+      "note": "Completion note (optional)",
+      "noteHelp": "Up to {{max}} characters. Plain text only.",
+      "confirmButton": "Complete the task",
+      "keep": "Not yet"
     }
   }
 }

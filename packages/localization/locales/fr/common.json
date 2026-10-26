@@ -50,7 +50,9 @@
     "operationsStatus": "Opérations du jour",
     "teamOperations": "Opérations de l’équipe",
     "webhooks": "Webhooks",
-    "whatsapp": "WhatsApp Business"
+    "whatsapp": "WhatsApp Business",
+    "tasks": "Tâches",
+    "myTasks": "Mes tâches"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -564,6 +566,11 @@
     "MESSAGING_TEST_RATE_LIMITED": "Trop de messages de test. Réessayez plus tard.",
     "MESSAGING_DELIVERY_NOT_FOUND": "Le message n’existe pas ou vous n’y avez pas accès.",
     "MESSAGING_SECRET_UNAVAILABLE": "Les notifications WhatsApp ne sont pas disponibles pour le moment. Réessayez plus tard.",
+    "TASK_NOT_FOUND": "Cette tâche n’existe pas ou ne vous est pas accessible.",
+    "TASK_ASSIGNEE_NOT_FOUND": "Une tâche ne peut pas être assignée à cet employé. Choisissez un employé actif ayant accès à DivalHR.",
+    "TASK_VERSION_CONFLICT": "Cette tâche a changé entre-temps. Rechargez-la et réessayez.",
+    "TASK_TRANSITION_NOT_ALLOWED": "Cette tâche est déjà terminée ou son état ne permet pas cette action.",
+    "TASK_LIMIT_REACHED": "Cette organisation a atteint sa limite de 10 000 tâches non terminées. Terminez ou annulez-en avant d’en assigner d’autres.",
     "OPERATIONAL_SUMMARY_SOURCE_INVALID": "La synthèse n’a pas pu être produite à partir des chiffres actuels. Les chiffres ci-dessous ne sont pas touchés."
   },
   "notFound": {
@@ -4671,6 +4678,131 @@
       "leave_other": "{{n}} demandes de congé",
       "timesheets_one": "{{n}} feuille de temps",
       "timesheets_other": "{{n}} feuilles de temps"
+    }
+  },
+  "tasks": {
+    "loading": "Chargement des tâches…",
+    "sending": "Envoi en cours…",
+    "forbidden": "Vous n’êtes pas autorisé à effectuer cette action.",
+    "validation": "Vérifiez les champs signalés et réessayez.",
+    "count": "{{n}} caractères sur {{max}}",
+    "noDue": "Sans échéance",
+    "due": "Échéance : {{date}}",
+    "completedOn": "Terminée le {{date}}",
+    "noteLabel": "Note de fin :",
+    "cancelledWith": "Annulée : {{reason}}",
+    "state": {
+      "OPEN": "À faire",
+      "IN_PROGRESS": "En cours",
+      "COMPLETED": "Terminée",
+      "CANCELLED": "Annulée"
+    },
+    "priority": {
+      "NORMAL": "Priorité normale",
+      "HIGH": "Priorité élevée",
+      "URGENT": "Urgente"
+    },
+    "dueClass": {
+      "OVERDUE": "En retard",
+      "DUE_SOON": "Échéance proche",
+      "LATER": "Échéance lointaine",
+      "NONE": "Sans échéance"
+    },
+    "cancelReason": {
+      "NO_LONGER_REQUIRED": "Plus nécessaire",
+      "CREATED_IN_ERROR": "Créée par erreur",
+      "WORK_MOVED_ELSEWHERE": "Travail confié ailleurs",
+      "OTHER": "Autre motif"
+    },
+    "action": {
+      "CREATED": "Assignée le {{date}} par {{role}}",
+      "STARTED": "Démarrée le {{date}} par {{role}}",
+      "COMPLETED": "Terminée le {{date}} par {{role}}",
+      "CANCELLED": "Annulée le {{date}} par {{role}}"
+    },
+    "problems": {
+      "assignee": "Choisissez l’employé à qui assigner la tâche.",
+      "title": "Saisissez un titre de 1 à 120 caractères, sans balisage, adresse web ni texte encodé.",
+      "instructions": "Les consignes comptent au plus 1 000 caractères, sans balisage, adresse web ni texte encodé.",
+      "priority": "Choisissez une priorité.",
+      "dueAt": "L’échéance doit être dans le futur et dans les 366 jours.",
+      "reason": "Choisissez un motif.",
+      "explanation": "Pour « Autre motif », expliquez en 10 à 500 caractères, sans balisage, adresse web ni texte encodé. Les autres motifs n’ont pas d’explication.",
+      "note": "La note compte au plus 500 caractères, sans balisage, adresse web ni texte encodé."
+    },
+    "admin": {
+      "title": "Tâches",
+      "description": "Assignez une tâche à un employé actif, suivez-la et annulez-la si elle n’est plus nécessaire.",
+      "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les tâches.",
+      "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les tâches.",
+      "created": "Tâche assignée.",
+      "cancelled": "Tâche annulée.",
+      "assignee": "{{given}} {{family}} ({{number}})",
+      "ref": "Employé {{id}}",
+      "create": {
+        "title": "Assigner une tâche",
+        "assignee": "Personne assignée",
+        "titleLabel": "Titre",
+        "titleHelp": "De 1 à {{max}} caractères. Affiché tel quel à la personne assignée.",
+        "instructions": "Consignes (facultatif)",
+        "instructionsHelp": "Jusqu’à {{max}} caractères. Texte brut uniquement.",
+        "priority": "Priorité",
+        "due": "Date et heure d’échéance (facultatif)",
+        "dueHelp": "À votre heure locale. Doit être dans le futur et dans les 366 jours.",
+        "submit": "Assigner la tâche"
+      },
+      "list": {
+        "title": "Tâches assignées",
+        "state": "État",
+        "due": "Échéance",
+        "any": "Tous",
+        "empty": "Aucune tâche ne correspond.",
+        "open": "Consulter",
+        "more": "Afficher plus"
+      },
+      "detail": {
+        "assignee": "Personne assignée",
+        "due": "Échéance",
+        "instructions": "Consignes",
+        "note": "Note de fin",
+        "cancelReason": "Motif d’annulation",
+        "history": "Historique",
+        "byAdmin": "un administrateur",
+        "byAssignee": "la personne assignée"
+      },
+      "cancel": {
+        "open": "Annuler cette tâche",
+        "title": "Annuler cette tâche ?",
+        "warning": "« {{title}} » sera annulée définitivement. Elle ne pourra pas être rouverte.",
+        "reason": "Motif",
+        "choose": "Choisissez un motif",
+        "explanation": "Explication",
+        "explanationHelp": "De {{min}} à {{max}} caractères. Texte brut uniquement.",
+        "confirm": "Annuler la tâche",
+        "keep": "Conserver la tâche"
+      }
+    },
+    "me": {
+      "title": "Mes tâches",
+      "description": "Les tâches qui vous sont assignées. Démarrez une tâche, puis terminez-la une fois faite.",
+      "unauthorized": "Seuls les employés liés à leur propre compte peuvent voir leurs tâches.",
+      "signInRequired": "Connectez-vous pour voir vos tâches.",
+      "empty": "Aucune tâche ne vous est assignée.",
+      "groupEmpty": "Rien ici.",
+      "groups": {
+        "open": "À faire ({{n}})",
+        "inProgress": "En cours ({{n}})",
+        "closed": "Terminées ou annulées ({{n}})"
+      },
+      "start": "Démarrer",
+      "complete": "Terminer",
+      "started": "Tâche démarrée.",
+      "completed": "Tâche terminée.",
+      "confirmComplete": "Marquer « {{title}} » comme terminée ? Cette action est irréversible.",
+      "note": "Note de fin (facultatif)",
+      "noteHelp": "Jusqu’à {{max}} caractères. Texte brut uniquement.",
+      "confirmButton": "Terminer la tâche",
+      "keep": "Pas encore"
     }
   }
 }

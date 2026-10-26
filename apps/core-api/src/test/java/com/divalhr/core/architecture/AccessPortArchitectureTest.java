@@ -131,6 +131,9 @@ class AccessPortArchitectureTest {
   private static final Pattern ANY_PEOPLE_TABLE = Pattern.compile("\\bpeople\\.[a-z_]+\\b");
   private static final Pattern PAYROLL_TABLE = Pattern.compile("\\bpayroll\\.[a-z_]+\\b");
   private static final Pattern INTEGRATIONS_TABLE = Pattern.compile("\\bintegrations\\.[a-z_]+\\b");
+  private static final Pattern OPERATIONS_TABLE = Pattern.compile("\\boperations\\.[a-z_]+\\b");
+  private static final Pattern FOREIGN_FOR_OPERATIONS =
+      Pattern.compile("\\b(people|identity|payroll|documents|tenant|integrations)\\.[a-z_]+\\b");
   private static final Pattern FOREIGN_FOR_INTEGRATIONS =
       Pattern.compile("\\b(people|identity|payroll|documents|tenant)\\.[a-z_]+\\b");
 
@@ -158,6 +161,14 @@ class AccessPortArchitectureTest {
       scan(root.resolve(module), INTEGRATIONS_TABLE, offenders);
     }
     scanTables(root.resolve("integrations"), FOREIGN_FOR_INTEGRATIONS, offenders);
+    // MVP-080: operations owns its tables and reads no other module's (the assignee is checked
+    // through the people and identity ports); no module reads its tables.
+    scanTables(root.resolve("operations"), FOREIGN_FOR_OPERATIONS, offenders);
+    for (String module :
+        List.of(
+            "people", "identity", "documents", "payroll", "tenant", "platform", "integrations")) {
+      scanTables(root.resolve(module), OPERATIONS_TABLE, offenders);
+    }
     assertThat(offenders).isEmpty();
   }
 

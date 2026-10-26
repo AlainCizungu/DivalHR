@@ -215,6 +215,11 @@ Core restarts with it. Disabling the capability: remove the Core secret file (Co
 - **Egress gap.** hr-dev has no general outbound internet egress, so customer endpoints on the internet cannot be reached there. This is a production-readiness gap, not part of MVP-110; `internal: true` networking is not weakened.
 - **Rollback.** `db/rollback/V39__rollback.sql` refuses while webhooks, deliveries or attempts exist. To return to a pre-V39 release, restore the pre-deploy database backup (section 9) instead.
 
+## MVP-080 operational tasks
+
+- **Migration.** V41 adds `operations.task` and `operations.task_action`. No configuration, secret or external dependency; no notifications are sent.
+- **Rollback.** `db/rollback/V41__rollback.sql` refuses while any task or action exists and has no override. To return to a pre-V41 release once tasks exist, roll back the application only (V41 changed no earlier object) or restore the pre-deploy database backup. Removing the V41 row from `flyway_schema_history` is a separate, controlled operator step taken only with the application rollback.
+
 ## MVP-111 WhatsApp notifications in the test environment
 
 Acceptance uses a **synthetic Meta provider**. Nothing contacts Meta and no real WhatsApp account,

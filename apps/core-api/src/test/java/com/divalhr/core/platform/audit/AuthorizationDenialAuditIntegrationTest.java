@@ -251,7 +251,12 @@ class AuthorizationDenialAuditIntegrationTest {
           "webhook.read",
           "webhook.rotate-secret",
           "webhook.test-delivery",
-          "webhook.update");
+          "webhook.update",
+          // MVP-080: operational tasks (administrator).
+          "task.cancel",
+          "task.create",
+          "task.list",
+          "task.read");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -305,7 +310,12 @@ class AuthorizationDenialAuditIntegrationTest {
           "timesheet.approval-list",
           "timesheet.approval-read",
           "timesheet.approve",
-          "timesheet.return");
+          "timesheet.return",
+          // MVP-080: the assignee's own tasks.
+          "task.self-list",
+          "task.self-read",
+          "task.self-start",
+          "task.self-complete");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -734,7 +744,8 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-111 sixteen more handlers over thirteen operations (the connector, recipient-list and
     // recipient reads share messaging.whatsapp.read; the delivery list and detail share
     // messaging.whatsapp.delivery-read).
-    assertThat(handlers).hasSize(151);
+    // MVP-080 four more (assign, list, read and cancel a task).
+    assertThat(handlers).hasSize(155);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

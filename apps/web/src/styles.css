@@ -681,3 +681,9 @@ fieldset.field {
     grid-template-columns: 1fr;
   }
 }
+
+/* MVP-080: user-entered task text is shown unchanged; line breaks are kept and long words wrap. */
+.task-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

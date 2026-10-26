@@ -9,6 +9,8 @@ import com.divalhr.core.identity.application.InvitationQueryService;
 import com.divalhr.core.identity.application.PublicInvitationService;
 import com.divalhr.core.identity.application.ResendInvitationService;
 import com.divalhr.core.identity.application.RevokeInvitationService;
+import com.divalhr.core.operations.application.MyTaskService;
+import com.divalhr.core.operations.application.TaskService;
 import com.divalhr.core.people.leave.application.LeaveApprovalService;
 import com.divalhr.core.people.leave.application.LeavePolicyService;
 import com.divalhr.core.people.leave.application.LeaveSubstitutionService;
@@ -61,7 +63,18 @@ class OperationNameTest {
           LeavePolicyService.LIST,
           MyLeaveService.POLICIES,
           MyLeaveService.CREATE,
-          MyLeaveService.REQUESTS);
+          MyLeaveService.REQUESTS,
+          // MVP-080: operational tasks.
+          TaskService.CREATE,
+          TaskService.CANCEL,
+          TaskService.LIST,
+          TaskService.READ,
+          MyTaskService.START,
+          MyTaskService.COMPLETE,
+          MyTaskService.LIST,
+          MyTaskService.READ,
+          MyTaskService.START_AUDIT,
+          MyTaskService.COMPLETE_AUDIT);
 
   /** Malformed names from Issue #17 plus the grammar's edges. */
   static final List<String> MALFORMED =

@@ -792,6 +792,13 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - **Audit.** Fail-closed audit for every state change with bounded metadata; delivery history is append-only with closed failure classes.
 - **hr-dev receiver exception.** Disabled by default, refused outside development/test, one exact host and port, TLS preserved. General outbound internet egress is a production-readiness gap (ADR 0028).
 
+## Operational tasks (MVP-080)
+
+- **Access.** Tenant administrators (exact MFA) create, list, read and cancel; the linked active employee reads and acts on their own tasks only. The employee link and membership are revalidated on every request; unknown, foreign and unauthorized ids are the same 404, and assignee eligibility failures are indistinguishable (`TASK_ASSIGNEE_NOT_FOUND`).
+- **Confidential text.** Titles, instructions, completion notes and cancellation explanations are restricted plain text. They are stored only in `operations.task` and returned only to the authorized reader; never in audit metadata, outbox events, idempotency records (receipts carry identifiers only), metrics, logs or error responses. Audit records of the text carry a digest only.
+- **Integrity.** Database triggers make the action trail append-only, bind tenant and task, enforce legal transitions and terminal immutability, and forbid hard deletion. The rollback refuses while any task exists.
+- **Abuse limits.** 10,000 open tasks per tenant; hourly create and transition quotas per subject and tenant; per-minute burst buckets; explicit timeouts and capped pages.
+
 ## WhatsApp Business notifications (MVP-111)
 
 - **Authorization.** Tenant administrator, exact MFA and active membership; unknown, malformed or foreign ids are the same 404; denials are audited; every response carries `Cache-Control: private, no-store`.

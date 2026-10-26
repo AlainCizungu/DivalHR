@@ -3398,6 +3398,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tasks
+         * @description MVP-080. Tasks of the caller's organization as a keyset page (default 25, maximum 100), optionally filtered by assigneeId, state and due classification. Order: unfinished tasks first by due instant (none last), then newest creation, then ID; completed and cancelled tasks after them, newest terminal action first, then ID. The cursor is bound to the tenant, the operation, the filters and the page size; any other use is 400 CURSOR_INVALID. dueClass and asOf come from the server's business instant; overdue is derived (the instant is strictly later than dueAt) and never stored. A fail-closed disclosure (audit task.list, metadata with counts only). Cache-Control private, no-store.
+         */
+        get: operations["listTasks"];
+        put?: never;
+        /**
+         * Assign a task
+         * @description MVP-080 (ADR 0030). Creates an OPEN task for one active employee of the caller's organization in one transaction with its CREATED action, the audit record task.create and the event operations.task.assigned.v1. The assignee must exist in the tenant, have an employment covering the organization's business date with no recorded separation, and an active employee membership linked to the employee; otherwise 404 TASK_ASSIGNEE_NOT_FOUND without saying which condition failed. The title (1-120) and optional instructions (0-1000) are restricted plain text: NFC, no leading or trailing whitespace, no control or format characters, no markup, links or encoded content, otherwise 400 VALIDATION_FAILED with the field and a closed constraint (never the value). dueAt, when given, must be after the server time and at most 366 days ahead. At most 10,000 non-terminal tasks per tenant (409 TASK_LIMIT_REACHED). The response is a receipt (id, state, version, occurredAt) so that the idempotency store never holds user text; read the task with getTask. Errors never echo a submitted value. Cache-Control private, no-store.
+         */
+        post: operations["createTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{taskId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a task with its history
+         * @description MVP-080. One task of the caller's organization with its immutable action history (who performed each transition, by role, and when). Unknown, malformed and foreign IDs are the same 404 TASK_NOT_FOUND. The history stays available after the assignee loses access. A fail-closed disclosure (audit task.read). Cache-Control private, no-store.
+         */
+        get: operations["getTask"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{taskId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an unfinished task
+         * @description MVP-080. OPEN or IN_PROGRESS to CANCELLED, once, with a closed reason (NO_LONGER_REQUIRED, CREATED_IN_ERROR, WORK_MOVED_ELSEWHERE or OTHER) and, for OTHER only, a restricted plain-text explanation of 10-500 characters (other reasons accept none). The task is locked before the transition is validated: a stale expectedVersion is 409 TASK_VERSION_CONFLICT and a completed or cancelled task is 409 TASK_TRANSITION_NOT_ALLOWED. Unknown, malformed and foreign IDs are 404 TASK_NOT_FOUND. Idempotent: an exact retry returns the stored receipt with Idempotent-Replayed true and writes no new action, audit record or event; a changed body on the key is 409 IDEMPOTENCY_KEY_REUSED. Audit task.cancel; event operations.task.cancelled.v1. Cache-Control private, no-store.
+         */
+        post: operations["cancelTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my tasks
+         * @description MVP-080. The tasks assigned to the caller's own employee (resolved from the caller's current active employee-access link on every request; 403 EMPLOYEE_LINK_REQUIRED otherwise), as a keyset page with the same order, state and due filters as listTasks. No other employee's task is ever returned. A fail-closed disclosure (audit task.list). Cache-Control private, no-store.
+         */
+        get: operations["listMyTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/tasks/{taskId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one of my tasks with its history
+         * @description MVP-080. One task assigned to the caller's own employee with its action history (roles and times, no subject). Unknown, malformed, foreign and other employees' IDs are the same 404 TASK_NOT_FOUND. A fail-closed disclosure (audit task.read). Cache-Control private, no-store.
+         */
+        get: operations["getMyTask"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/tasks/{taskId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start one of my tasks
+         * @description MVP-080. OPEN to IN_PROGRESS by the assigned employee, re-validating the link on every call. A stale expectedVersion is 409 TASK_VERSION_CONFLICT; any other state is 409 TASK_TRANSITION_NOT_ALLOWED; another employee's task is 404 TASK_NOT_FOUND. Idempotent (replay returns the stored receipt only while the caller is still linked to the same employee). Audit task.start; event operations.task.started.v1. Cache-Control private, no-store.
+         */
+        post: operations["startMyTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/tasks/{taskId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete one of my tasks
+         * @description MVP-080. OPEN or IN_PROGRESS to COMPLETED by the assigned employee with an optional restricted plain-text note of 1-500 characters (the only evidence of this increment). Same locking, version, error and idempotency rules as startMyTask. Audit task.complete; event operations.task.completed.v1. Cache-Control private, no-store.
+         */
+        post: operations["completeMyTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4808,11 +4952,213 @@ export interface components {
             contract: components["schemas"]["MyContract"];
             alreadyAcknowledged: boolean;
         };
+        /** @enum {string} */
+        TaskState: "OPEN" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+        /** @enum {string} */
+        TaskPriority: "NORMAL" | "HIGH" | "URGENT";
+        /**
+         * @description OVERDUE: unfinished and the server instant is strictly later than dueAt (exactly at dueAt is not overdue); DUE_SOON: unfinished, not overdue and due within 48 hours; LATER: due after that; NONE: no due instant.
+         * @enum {string}
+         */
+        TaskDueClass: "OVERDUE" | "DUE_SOON" | "LATER" | "NONE";
+        /** @enum {string} */
+        TaskCancelReason: "NO_LONGER_REQUIRED" | "CREATED_IN_ERROR" | "WORK_MOVED_ELSEWHERE" | "OTHER";
+        /** @enum {string} */
+        TaskActionType: "CREATED" | "STARTED" | "COMPLETED" | "CANCELLED";
+        /** @description MVP-080. One task as the administrator sees it (confidential tenant data). */
+        Task: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            assigneeEmployeeId: string;
+            /** @description Restricted plain text, 1-120 characters, shown unchanged. */
+            title: string;
+            /** @description Restricted plain text, 1-1000 characters, or null. */
+            instructions: string | null;
+            priority: components["schemas"]["TaskPriority"];
+            /** Format: date-time */
+            dueAt: string | null;
+            /** @description Derived at the server's business instant; null once the task is completed or cancelled. */
+            dueClass: components["schemas"]["TaskDueClass"] | null;
+            state: components["schemas"]["TaskState"];
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            completionNote: string | null;
+            cancelReason: components["schemas"]["TaskCancelReason"] | null;
+            cancelExplanation: string | null;
+        };
+        /** @description MVP-080. One task assigned to the caller (no assignee field: it is always the caller). */
+        MyTask: {
+            /** Format: uuid */
+            id: string;
+            /** @description Restricted plain text, 1-120 characters, shown unchanged. */
+            title: string;
+            /** @description Restricted plain text, 1-1000 characters, or null. */
+            instructions: string | null;
+            priority: components["schemas"]["TaskPriority"];
+            /** Format: date-time */
+            dueAt: string | null;
+            /** @description Derived at the server's business instant; null once the task is completed or cancelled. */
+            dueClass: components["schemas"]["TaskDueClass"] | null;
+            state: components["schemas"]["TaskState"];
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            completionNote: string | null;
+            cancelReason: components["schemas"]["TaskCancelReason"] | null;
+            cancelExplanation: string | null;
+        };
+        /** @description MVP-080. One immutable action of a task, as the administrator sees it. */
+        TaskAction: {
+            seq: number;
+            action: components["schemas"]["TaskActionType"];
+            /** Format: date-time */
+            occurredAt: string;
+            /** @enum {string} */
+            actorRole: "tenant-admin" | "employee";
+            /** @description The opaque identity-provider subject of the actor (an administrator-only audit field, never a name). */
+            actorSubject: string;
+            fromState: components["schemas"]["TaskState"] | null;
+            toState: components["schemas"]["TaskState"];
+        };
+        /** @description MVP-080. One immutable action of a task, as the assignee sees it (no subject). */
+        MyTaskAction: {
+            seq: number;
+            action: components["schemas"]["TaskActionType"];
+            /** Format: date-time */
+            occurredAt: string;
+            /** @enum {string} */
+            actorRole: "tenant-admin" | "employee";
+            fromState: components["schemas"]["TaskState"] | null;
+            toState: components["schemas"]["TaskState"];
+        };
+        /** @description MVP-080. A task with its action history, oldest first. */
+        TaskDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            assigneeEmployeeId: string;
+            /** @description Restricted plain text, 1-120 characters, shown unchanged. */
+            title: string;
+            /** @description Restricted plain text, 1-1000 characters, or null. */
+            instructions: string | null;
+            priority: components["schemas"]["TaskPriority"];
+            /** Format: date-time */
+            dueAt: string | null;
+            /** @description Derived at the server's business instant; null once the task is completed or cancelled. */
+            dueClass: components["schemas"]["TaskDueClass"] | null;
+            state: components["schemas"]["TaskState"];
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            completionNote: string | null;
+            cancelReason: components["schemas"]["TaskCancelReason"] | null;
+            cancelExplanation: string | null;
+            history: components["schemas"]["TaskAction"][];
+        };
+        /** @description MVP-080. One of the caller's tasks with its action history, oldest first. */
+        MyTaskDetail: {
+            /** Format: uuid */
+            id: string;
+            /** @description Restricted plain text, 1-120 characters, shown unchanged. */
+            title: string;
+            /** @description Restricted plain text, 1-1000 characters, or null. */
+            instructions: string | null;
+            priority: components["schemas"]["TaskPriority"];
+            /** Format: date-time */
+            dueAt: string | null;
+            /** @description Derived at the server's business instant; null once the task is completed or cancelled. */
+            dueClass: components["schemas"]["TaskDueClass"] | null;
+            state: components["schemas"]["TaskState"];
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            completionNote: string | null;
+            cancelReason: components["schemas"]["TaskCancelReason"] | null;
+            cancelExplanation: string | null;
+            history: components["schemas"]["MyTaskAction"][];
+        };
+        /** @description MVP-080. A keyset page of tasks. */
+        TaskPage: {
+            items: components["schemas"]["Task"][];
+            nextCursor: string | null;
+            /**
+             * Format: date-time
+             * @description The server instant the due classifications were derived at.
+             */
+            asOf: string;
+        };
+        /** @description MVP-080. A keyset page of the caller's tasks. */
+        MyTaskPage: {
+            items: components["schemas"]["MyTask"][];
+            nextCursor: string | null;
+            /**
+             * Format: date-time
+             * @description The server instant the due classifications were derived at.
+             */
+            asOf: string;
+        };
+        /** @description MVP-080. The result of a command: the task, its new state and version and the server time of the action. It carries no user-entered text, so the idempotency store never holds any. */
+        TaskReceipt: {
+            /** Format: uuid */
+            id: string;
+            state: components["schemas"]["TaskState"];
+            version: number;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        CreateTaskRequest: {
+            /** Format: uuid */
+            assigneeEmployeeId: string;
+            title: string;
+            instructions?: string | null;
+            priority: components["schemas"]["TaskPriority"];
+            /** Format: date-time */
+            dueAt?: string | null;
+        };
+        CancelTaskRequest: {
+            expectedVersion: number;
+            reason: components["schemas"]["TaskCancelReason"];
+            /** @description Required (10-500 characters) with reason OTHER, refused with any other reason. */
+            explanation?: string | null;
+        };
+        StartTaskRequest: {
+            expectedVersion: number;
+        };
+        CompleteTaskRequest: {
+            expectedVersion: number;
+            note?: string | null;
+        };
         /**
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -8004,6 +8350,16 @@ export interface components {
         ContractTemplateVersionId: string;
         /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 CONTRACT_NOT_FOUND. */
         ContractId: string;
+        /** @description Malformed, unknown, foreign and (for the employee API) other employees' IDs give the same 404 TASK_NOT_FOUND. */
+        TaskId: string;
+        /** @description Items per page (1-100, default 25). */
+        TaskLimit: number;
+        /** @description Only tasks assigned to this employee. Part of the cursor binding. */
+        TaskAssigneeFilter: string;
+        /** @description Only tasks in this state. Part of the cursor binding. */
+        TaskStateFilter: components["schemas"]["TaskState"];
+        /** @description Only unfinished tasks in this due classification (OVERDUE, DUE_SOON, LATER or NONE). Part of the cursor binding. */
+        TaskDueFilter: components["schemas"]["TaskDueClass"];
         /** @description Leave request ID. */
         LeaveRequestId: string;
         /** @description A leave approval substitute appointment of the caller's organization. */
@@ -15067,6 +15423,303 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    listTasks: {
+        parameters: {
+            query?: {
+                /** @description Only tasks assigned to this employee. Part of the cursor binding. */
+                assigneeId?: components["parameters"]["TaskAssigneeFilter"];
+                /** @description Only tasks in this state. Part of the cursor binding. */
+                state?: components["parameters"]["TaskStateFilter"];
+                /** @description Only unfinished tasks in this due classification (OVERDUE, DUE_SOON, LATER or NONE). Part of the cursor binding. */
+                due?: components["parameters"]["TaskDueFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createTask: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getTask: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and (for the employee API) other employees' IDs give the same 404 TASK_NOT_FOUND. */
+                taskId: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    cancelTask: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and (for the employee API) other employees' IDs give the same 404 TASK_NOT_FOUND. */
+                taskId: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK, or the original result replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listMyTasks: {
+        parameters: {
+            query?: {
+                /** @description Only tasks in this state. Part of the cursor binding. */
+                state?: components["parameters"]["TaskStateFilter"];
+                /** @description Only unfinished tasks in this due classification (OVERDUE, DUE_SOON, LATER or NONE). Part of the cursor binding. */
+                due?: components["parameters"]["TaskDueFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTaskPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getMyTask: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and (for the employee API) other employees' IDs give the same 404 TASK_NOT_FOUND. */
+                taskId: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTaskDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    startMyTask: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and (for the employee API) other employees' IDs give the same 404 TASK_NOT_FOUND. */
+                taskId: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK, or the original result replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    completeMyTask: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and (for the employee API) other employees' IDs give the same 404 TASK_NOT_FOUND. */
+                taskId: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK, or the original result replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
 }

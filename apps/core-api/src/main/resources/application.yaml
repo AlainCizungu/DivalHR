@@ -150,6 +150,12 @@ divalhr:
       # MVP-111: WhatsApp connector management reads (disclosures) and commands.
       messaging-read: ${DIVALHR_MESSAGING_READ_REQUESTS_PER_MINUTE:60}
       messaging-write: ${DIVALHR_MESSAGING_WRITE_REQUESTS_PER_MINUTE:20}
+      # MVP-080: operational tasks. The per-minute buckets are burst limits; the per-subject hourly
+      # quotas (60 creations, 120 start/complete/cancel) are durable and enforced in the database.
+      task-read: ${DIVALHR_TASK_READ_REQUESTS_PER_MINUTE:60}
+      task-self-read: ${DIVALHR_TASK_SELF_READ_REQUESTS_PER_MINUTE:60}
+      task-create: ${DIVALHR_TASK_CREATE_REQUESTS_PER_MINUTE:20}
+      task-transition: ${DIVALHR_TASK_TRANSITION_REQUESTS_PER_MINUTE:30}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -199,6 +205,14 @@ divalhr:
         window: 10m
       webhook-test-delivery:
         requests: 20
+        window: 1h
+      # MVP-080: operational tasks (D80-11): 300 creations and 600 start/complete/cancel per tenant
+      # per hour.
+      task-create:
+        requests: ${DIVALHR_TASK_TENANT_CREATES:300}
+        window: 1h
+      task-transition:
+        requests: ${DIVALHR_TASK_TENANT_TRANSITIONS:600}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.

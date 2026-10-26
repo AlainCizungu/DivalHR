@@ -113,6 +113,7 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'pulse',
         role: 'tenant-admin',
       },
+      { to: '/admin/tasks', labelKey: 'nav.tasks', icon: 'check', role: 'tenant-admin' },
       {
         to: '/admin/attendance-review',
         labelKey: 'nav.attendanceReview',
@@ -235,6 +236,7 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'check',
         role: 'employee',
       },
+      { to: '/me/tasks', labelKey: 'nav.myTasks', icon: 'check', role: 'employee' },
     ],
   },
 ];

@@ -141,4 +141,18 @@ class TenantPredicateArchitectureTest {
           .and()
           .areNotAnnotatedWith(CrossTenantAccess.class)
           .should(TAKE_TENANT_ID);
+
+  /** MVP-080: the operations repositories follow the same rule, with no exception. */
+  @ArchTest
+  static final ArchRule operationsRepositoriesRequireTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.operations.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleNameEndingWith("Repository")
+          .and()
+          .arePublic()
+          .should(TAKE_TENANT_ID);
 }

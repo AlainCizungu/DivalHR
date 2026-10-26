@@ -21,6 +21,8 @@ import {
 import { LeaveApprovalSubstitutesPage } from '../features/leave/LeaveApprovalSubstitutesPage';
 import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
+import { AdminTasksPage } from '../features/tasks/AdminTasksPage';
+import { MyTasksPage } from '../features/tasks/MyTasksPage';
 import { AttendanceReviewPage } from '../features/schedules/AttendanceReviewPage';
 import {
   OperationsStatusPage,
@@ -194,6 +196,12 @@ export const ROUTES: AppRoute[] = [
     crumbs: [HOME, OPERATIONS, { key: 'nav.operationsStatus' }],
   },
   {
+    path: '/admin/tasks',
+    element: <AdminTasksPage />,
+    access: tenantAdmin('tasks.admin.unauthorized', 'tasks.admin.signInRequired'),
+    crumbs: [HOME, OPERATIONS, { key: 'nav.tasks' }],
+  },
+  {
     path: '/admin/attendance-review',
     element: <AttendanceReviewPage />,
     access: tenantAdmin('attendanceReview.unauthorized', 'attendanceReview.signInRequired'),
@@ -354,6 +362,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'leaveApprovals.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myLeaveApprovals' }],
+  },
+  {
+    path: '/me/tasks',
+    element: <MyTasksPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'tasks.me.unauthorized',
+      signInKey: 'tasks.me.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myTasks' }],
   },
   { path: '/invitation', element: <AcceptInvitationPage />, frame: 'public' },
   { path: '/auth/callback', element: <CallbackPage />, frame: 'public' },
