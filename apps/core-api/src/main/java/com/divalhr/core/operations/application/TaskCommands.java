@@ -150,7 +150,7 @@ public final class TaskCommands {
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
       body(errors, request == null ? null : request.unknownProperties(), request);
-      Integer version = version(errors, request.getExpectedVersion());
+      Integer version = version(errors, request == null ? null : request.getExpectedVersion());
       TaskCancelReason reason =
           enumeration(errors, "reason", request.getReason(), TaskCancelReason.class, true);
       String explanation = null;
@@ -212,7 +212,7 @@ public final class TaskCommands {
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
       body(errors, request == null ? null : request.unknownProperties(), request);
-      Integer version = version(errors, request.getExpectedVersion());
+      Integer version = version(errors, request == null ? null : request.getExpectedVersion());
       errors.throwIfAny();
       return new Start(id, version);
     }
@@ -264,7 +264,7 @@ public final class TaskCommands {
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
       body(errors, request == null ? null : request.unknownProperties(), request);
-      Integer version = version(errors, request.getExpectedVersion());
+      Integer version = version(errors, request == null ? null : request.getExpectedVersion());
       String note = TaskText.parse(errors, "note", request.getNote(), 1, 500, false);
       errors.throwIfAny();
       return new Complete(id, version, note);

@@ -179,6 +179,23 @@ class TaskMigrationIntegrationTest {
     return id;
   }
 
+  /**
+   * Runs a script as written. JDBC escape processing would rewrite the braces of the regular
+   * expressions in the function bodies, so this is switched off (Flyway sends scripts as written).
+   */
+  private static void script(Db db, String sql) {
+    db.jdbc()
+        .execute(
+            (org.springframework.jdbc.core.ConnectionCallback<Void>)
+                connection -> {
+                  try (java.sql.Statement statement = connection.createStatement()) {
+                    statement.setEscapeProcessing(false);
+                    statement.execute(sql);
+                  }
+                  return null;
+                });
+  }
+
   private static Person employee(JdbcTemplate db, UUID tenant) {
     UUID id = UUID.randomUUID();
     db.update(
@@ -187,7 +204,7 @@ class TaskMigrationIntegrationTest {
             + " ' ana mbuyi ', now(), 'test')",
         id,
         tenant,
-        "E-" + id.toString().substring(0, 8));
+        "E-" + id.toString().substring(0, 8).toUpperCase(java.util.Locale.ROOT));
     return new Person(tenant, id);
   }
 
@@ -280,7 +297,7 @@ class TaskMigrationIntegrationTest {
           assertThat(count(db, "SELECT count(*) FROM flyway_schema_history")).isEqualTo(recorded);
 
           // With no rows the rollback ran; the migration can be applied again.
-          db.jdbc().execute(resource("db/migration/V41__operations_task_lifecycle.sql"));
+          script(db, resource("db/migration/V41__operations_task_lifecycle.sql"));
           assertThat(db.jdbc().queryForObject(SIGNATURE, String.class)).isEqualTo(v41);
 
           // Once a task exists, the rollback refuses and changes nothing.

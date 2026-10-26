@@ -218,6 +218,10 @@ test.describe.serial('MVP-080: assign and complete operational tasks', () => {
 
     // Later: a fresh page load, then cancel after an explicit confirmation.
     await page.reload();
+    await expect(page).toHaveURL(/\/admin\/tasks$/u);
+    // The reload ended the in-memory session: signing in again (the identity session is kept)
+    // returns to the same page.
+    await page.getByRole('banner').getByRole('button', { name: 'Sign in' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tasks');
     const again = page.getByTestId('admin-task').filter({ hasText: ADMIN_TITLE });
     await again.getByRole('button', { name: /^View/u }).click();
