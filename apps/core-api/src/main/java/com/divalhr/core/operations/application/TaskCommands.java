@@ -73,6 +73,10 @@ public final class TaskCommands {
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
       body(errors, request == null ? null : request.unknownProperties(), request);
+      if (request == null) {
+        errors.throwIfAny();
+        throw new IllegalStateException("a missing body is always a validation failure");
+      }
       UUID assignee = uuid(errors, "assigneeEmployeeId", request.getAssigneeEmployeeId(), true);
       String title = TaskText.parse(errors, "title", request.getTitle(), 1, 120, true);
       String instructions =
@@ -150,6 +154,10 @@ public final class TaskCommands {
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
       body(errors, request == null ? null : request.unknownProperties(), request);
+      if (request == null) {
+        errors.throwIfAny();
+        throw new IllegalStateException("a missing body is always a validation failure");
+      }
       Integer version = version(errors, request == null ? null : request.getExpectedVersion());
       TaskCancelReason reason =
           enumeration(errors, "reason", request.getReason(), TaskCancelReason.class, true);
@@ -212,6 +220,10 @@ public final class TaskCommands {
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
       body(errors, request == null ? null : request.unknownProperties(), request);
+      if (request == null) {
+        errors.throwIfAny();
+        throw new IllegalStateException("a missing body is always a validation failure");
+      }
       Integer version = version(errors, request == null ? null : request.getExpectedVersion());
       errors.throwIfAny();
       return new Start(id, version);
@@ -264,6 +276,10 @@ public final class TaskCommands {
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
       body(errors, request == null ? null : request.unknownProperties(), request);
+      if (request == null) {
+        errors.throwIfAny();
+        throw new IllegalStateException("a missing body is always a validation failure");
+      }
       Integer version = version(errors, request == null ? null : request.getExpectedVersion());
       String note = TaskText.parse(errors, "note", request.getNote(), 1, 500, false);
       errors.throwIfAny();
