@@ -55,6 +55,7 @@ test.describe('desktop', () => {
       'Leave approval substitutes',
       'Schedules',
       'Today’s operations',
+      'Tasks',
       'Attendance review',
       'Timesheets',
       'Time exports',
@@ -146,6 +147,7 @@ test.describe('desktop', () => {
       'Remplacements d’horaire',
       'Mes congés',
       'Approbations de congé',
+      'Mes tâches',
     ]);
     await expect(page.getByTestId('roadmap')).toContainText('Prochainement');
     await expect(page.getByTestId('roadmap').locator('a, button')).toHaveCount(0);
@@ -201,7 +203,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(20);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(21);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

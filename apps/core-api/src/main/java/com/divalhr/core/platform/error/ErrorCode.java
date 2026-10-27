@@ -598,7 +598,19 @@ public enum ErrorCode {
   /** MVP-111: the delivery is missing or foreign. */
   MESSAGING_DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND),
   /** MVP-111: the messaging encryption key is not configured. */
-  MESSAGING_SECRET_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
+  MESSAGING_SECRET_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+  /**
+   * MVP-080: the task is unknown, malformed, foreign, or another employee's (indistinguishable).
+   */
+  TASK_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-080: the assignee does not qualify (which condition failed is never disclosed). */
+  TASK_ASSIGNEE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-080: the expected version is stale. */
+  TASK_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-080: the task's state does not allow the command. */
+  TASK_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-080: the tenant holds the maximum number of non-terminal tasks. */
+  TASK_LIMIT_REACHED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

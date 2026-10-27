@@ -92,6 +92,7 @@
 - WebhookSubscription
 - WebhookDelivery
 - MessagingConnector (WhatsApp, MVP-111)
+- Task and TaskAction (MVP-080)
 - MessagingRecipient
 - MessagingDelivery
 - ImportJob
@@ -537,6 +538,13 @@ New schema `integrations`; no existing table is altered. Tables: `webhook` (tena
 
 - Triggers enforce 20 webhooks per tenant, 5 test deliveries per webhook per hour, tenant consistency across the foreign keys, no DELETE or TRUNCATE on evidence, and immutable attempts.
 - Rollback: `db/rollback/V39__rollback.sql` refuses while any V39 evidence exists.
+
+## MVP-080: Operational tasks (V41)
+
+- `operations.task`: tenant, id, immutable assignee employee, title, instructions, priority, optional due instant, state, version, server timestamps, completion note and cancellation reason and explanation. Text is restricted plain text (database function `task_text_valid`).
+- `operations.task_action`: append-only `CREATED | STARTED | COMPLETED | CANCELLED` with a per-task increasing sequence, actor role and subject, and the states before and after.
+- Triggers: tenant and task binding, one increasing sequence, legal transitions, state/version/action agreement (deferred), terminal immutability, no update or delete of actions, no hard delete of tasks, 10,000 open tasks per tenant.
+- Rollback: `db/rollback/V41__rollback.sql` refuses while any task or action exists; no override.
 
 ## MVP-111: WhatsApp Business notifications (V40)
 

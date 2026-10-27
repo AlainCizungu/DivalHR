@@ -152,6 +152,15 @@ validate every address, and send through an address-pinned HTTPS transport witho
 `AccessPortArchitectureTest` keeps other modules out of the `integrations` tables and the module out
 of theirs. See `docs/WEBHOOKS.md` and ADR 0028.
 
+### Operational tasks (MVP-080, ADR 0030)
+
+The `operations` module owns `operations.task` (projection) and `operations.task_action`
+(append-only evidence), V41. Commands lock the task row, validate the expected version and the
+legal transition, write projection, action, audit and outbox event in one transaction and are
+idempotent. The assignee is checked through the people and identity ports; the module reads no
+other module's tables and no module reads its tables (`AccessPortArchitectureTest`). Overdue is
+derived at read time, never stored.
+
 ### WhatsApp Business notifications (MVP-111, ADR 0029)
 
 The `integrations` module also owns the tenant's one WhatsApp connector, its recipients, deliveries,

@@ -15,6 +15,7 @@ const TENANT = [
   '/admin/leave-approval-substitutes',
   '/admin/work-schedules',
   '/admin/operations',
+  '/admin/tasks',
   '/admin/attendance-review',
   '/admin/timesheets',
   '/admin/time-exports',
@@ -38,6 +39,7 @@ const EMPLOYEE = [
   '/me/schedule/substitutions',
   '/me/leave',
   '/me/leave/approvals',
+  '/me/tasks',
 ];
 
 describe('role-to-navigation matrix (UI-001 proposal §5)', () => {
@@ -116,6 +118,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/leave-approval-substitutes',
         '/admin/work-schedules',
         '/admin/operations',
+        '/admin/tasks',
         '/admin/attendance-review',
         '/admin/timesheets',
         '/admin/time-exports',
@@ -130,6 +133,7 @@ describe('navigation and route registry consistency', () => {
         '/me/schedule/substitutions',
         '/me/leave',
         '/me/leave/approvals',
+        '/me/tasks',
         '/me/contracts/:contractId',
         '/invitation',
         '/auth/callback',

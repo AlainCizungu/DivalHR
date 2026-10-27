@@ -300,6 +300,13 @@ Approved periods can be locked; reopening requires privileged approval and audit
 
 A worker can receive, update, and complete a task with optional evidence.
 
+**Issue #167. In review (not merged, not deployed).** First increment: administrator assigns a bounded task to one active employee, the employee starts and completes it, administrators cancel unfinished tasks; immutable history. ADR 0030, decisions D80-1 to D80-12, evidence map `docs/DECISIONS/0030-evidence.md`. V41 adds the `operations` task tables.
+
+- **Who and where.** « Tâches » under `/admin/tasks` (tenant administrator, exact MFA) and « Mes tâches » under `/me/tasks` (linked employee). No manager authority; unknown or foreign ids answer 404.
+- **API.** `/api/v1/tasks` and `/api/v1/me/tasks`: idempotent commands with expected version, `Cache-Control: private, no-store`, keyset pagination, no hard delete.
+- **Evidence.** The immutable completion action and the optional restricted completion note satisfy the optional evidence of this story for now; file evidence is deferred.
+- **Not included:** attachments, comments, recurring or dependent tasks, reassignment, editing, reopening, bulk actions, manager oversight, approvals, reminders or any notification channel (the task events are not in the webhook or WhatsApp catalogues), projects, expenses, time or payroll linkage, AI, native mobile and offline updates.
+
 ### MVP-081 Submit an expense
 
 A worker can submit CDF or USD expenses, attach a receipt, and follow approval status.

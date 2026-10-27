@@ -143,6 +143,12 @@
       <Class name="~com\.divalhr\.core\.integrations\.messaging\.(application|internal|api)\..*"/>
     </Or>
   </Match>
+  <!-- MVP-080: operations services, repository and controllers hold injected collaborators; the
+       response records hold lists built by the services and never modified. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.operations\..*"/>
+  </Match>
   <!-- MVP-110 value records hold lists that their constructors copy to immutable lists. -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
