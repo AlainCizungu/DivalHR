@@ -158,7 +158,7 @@ public final class TaskCommands {
         errors.throwIfAny();
         throw new IllegalStateException("a missing body is always a validation failure");
       }
-      Integer version = version(errors, request == null ? null : request.getExpectedVersion());
+      Integer version = version(errors, request.getExpectedVersion());
       TaskCancelReason reason =
           enumeration(errors, "reason", request.getReason(), TaskCancelReason.class, true);
       String explanation = null;
@@ -224,7 +224,7 @@ public final class TaskCommands {
         errors.throwIfAny();
         throw new IllegalStateException("a missing body is always a validation failure");
       }
-      Integer version = version(errors, request == null ? null : request.getExpectedVersion());
+      Integer version = version(errors, request.getExpectedVersion());
       errors.throwIfAny();
       return new Start(id, version);
     }
@@ -280,7 +280,7 @@ public final class TaskCommands {
         errors.throwIfAny();
         throw new IllegalStateException("a missing body is always a validation failure");
       }
-      Integer version = version(errors, request == null ? null : request.getExpectedVersion());
+      Integer version = version(errors, request.getExpectedVersion());
       String note = TaskText.parse(errors, "note", request.getNote(), 1, 500, false);
       errors.throwIfAny();
       return new Complete(id, version, note);
