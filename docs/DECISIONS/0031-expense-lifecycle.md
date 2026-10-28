@@ -30,7 +30,13 @@ travel. Approval is a business decision only: it is not reimbursement, payment o
 - **Business date (D81-4).** Not in the future and at most 90 days old, in the organization's
   business calendar; the server owns every timestamp.
 - **Receipt (D81-5).** At most one per revision; PDF, JPEG or PNG; at most 2 MiB; the declared type
-  must match the magic bytes and structure; SHA-256 stored and checked by the database. The upload is
+  must match the magic bytes and structure; SHA-256 stored and checked by the database. A JPEG
+  must decode completely with the JDK's maintained image reader (every scan line, no decoder
+  warning, whole segment structure ending exactly at the end-of-image marker, bounded pixel count,
+  dimensions from the decoder); a PDF must load with Apache PDFBox's strict, non-repairing parser
+  as an unencrypted document of 1 to 50 pages with no active or embedded content in the parsed
+  object graph (object streams included) or in the raw bytes (R170-1, architecture review of
+  PR #170). The upload is
   `PUT /receipt` with a raw body: authorization, idempotency and quotas run before the body is read;
   multipart parsing is not enabled. No public URL: the download is an authorized, `private, no-store`,
   `attachment` response with `nosniff`. Pilot storage is PostgreSQL; the production object-storage
@@ -66,6 +72,17 @@ travel. Approval is a business decision only: it is not reimbursement, payment o
 - **Tests (D81-14).** See the evidence map; two Playwright journeys.
 
 ## Consequences
+
+- **PDFBox is a new runtime dependency** (Apache-2.0, `org.apache.pdfbox:pdfbox:3.0.8`, with
+  `commons-logging` excluded because Spring's `spring-jcl` already provides that API). It parses
+  only; nothing is rendered, no stream is decoded and nothing touches the disk. Its two 2026
+  advisories concern the separate `pdfbox-examples` artifact, which is not used.
+- **JPEG limits.** 8-bit baseline, extended-sequential and progressive JPEGs with one or three
+  components, up to 16 megapixels; CMYK, arithmetic-coded, lossless and 12-bit files are refused.
+  The JDK decoder keeps about one megapixel (subsampled output) in memory while it reads every
+  scan line.
+- **PDF strictness.** The cross-reference data and trailer must be intact; a damaged file that a
+  tolerant reader could repair is refused, so a "loadable" receipt means loadable as written.
 
 - The manager queue is a bounded scan with per-row route verification: correct and fail-closed, not
   the cheapest possible query; revisit if queues grow.

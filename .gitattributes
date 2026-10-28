@@ -1,0 +1,2 @@
+# Receipt fixtures are byte-exact (PDF cross-reference offsets, JPEG scan data): never normalize them.
+apps/core-api/src/test/resources/receipts/* binary

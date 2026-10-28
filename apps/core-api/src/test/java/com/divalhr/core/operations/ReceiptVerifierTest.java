@@ -72,38 +72,240 @@ class ReceiptVerifierTest {
     }
   }
 
+  private static void assertInvalid(String declared, byte[] bytes, String why) {
+    assertThat(refused(declared, bytes)).as(why).isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
+  }
+
+  /** The offset of the first byte after the SOS header of the first scan. */
+  private static int scanStart(byte[] jpeg) {
+    for (int i = 2; i + 4 < jpeg.length; i++) {
+      if ((jpeg[i] & 0xFF) == 0xFF && (jpeg[i + 1] & 0xFF) == 0xDA) {
+        return i + 2 + (((jpeg[i + 2] & 0xFF) << 8) | (jpeg[i + 3] & 0xFF));
+      }
+    }
+    throw new IllegalStateException("no scan");
+  }
+
+  // ------------------------------------------------------------------------- R170-1: JPEG
+
   @Test
-  void trailingDataTruncationAndCorruptionAreRefused() {
-    assertThat(refused("image/png", Receipts.withTrailer(Receipts.png(1), "<script>")))
-        .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    assertThat(refused("image/jpeg", Receipts.withTrailer(Receipts.jpeg(1), "PK\u0003\u0004")))
-        .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    assertThat(refused("application/pdf", Receipts.withTrailer(Receipts.pdf(1), "MZ-payload")))
-        .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    byte[] png = Receipts.png(1);
-    assertThat(refused("image/png", java.util.Arrays.copyOf(png, png.length - 5)))
-        .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    byte[] flipped = png.clone();
-    flipped[20] ^= 0x55;
-    assertThat(refused("image/png", flipped)).isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    byte[] jpeg = Receipts.jpeg(1);
-    assertThat(refused("image/jpeg", java.util.Arrays.copyOf(jpeg, jpeg.length - 2)))
-        .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    assertThat(
-            refused(
-                "application/pdf", "%PDF-1.4\nnothing else".getBytes(StandardCharsets.ISO_8859_1)))
-        .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
+  void genuineJpegsFromStandardWritersAreAcceptedAndReallyDecode() throws Exception {
+    // The fixtures were written by Pillow and checked with ImageMagick; the salted ones come from
+    // the JDK encoder. Each is also decoded here by the standard reader, independently of the
+    // verifier, so "accepted" is never merely "accepted by itself".
+    for (byte[] file :
+        new byte[][] {
+          Receipts.resource("receipt-baseline.jpg"),
+          Receipts.resource("receipt-progressive.jpg"),
+          Receipts.jpeg(1),
+          Receipts.jpeg(2)
+        }) {
+      assertThat(javax.imageio.ImageIO.read(new ByteArrayInputStream(file))).isNotNull();
+      var verified = ReceiptVerifier.verify("image/jpeg", file, "scan.jpg");
+      assertThat(verified.mediaType()).isEqualTo("image/jpeg");
+    }
+    assertThat(Receipts.jpeg(1)).isNotEqualTo(Receipts.jpeg(2));
   }
 
   @Test
-  void aPdfWithActiveContentIsRefused() {
+  void aJpegWithValidMarkersButNoRealScanDataIsRefused() {
+    // Every marker is present and well ordered, including SOI, JFIF, SOF, SOS and EOI.
+    assertInvalid("image/jpeg", Receipts.jpegMarkersOnly(1), "the old synthetic fixture");
+  }
+
+  @Test
+  void aJpegWithCorruptScanDataIsRefused() {
+    for (String name : new String[] {"receipt-baseline.jpg", "receipt-progressive.jpg"}) {
+      byte[] jpeg = Receipts.resource(name);
+      int start = scanStart(jpeg);
+      byte[] zeros = jpeg.clone();
+      java.util.Arrays.fill(zeros, start, jpeg.length - 2, (byte) 0);
+      assertInvalid("image/jpeg", zeros, name + ": scan replaced by zero bytes");
+      byte[] noise = jpeg.clone();
+      for (int i = start; i < jpeg.length - 2; i++) {
+        noise[i] = (byte) (i * 31 + 7);
+        if ((noise[i] & 0xFF) == 0xFF) {
+          noise[i] = 0x55;
+        }
+      }
+      assertInvalid("image/jpeg", noise, name + ": scan replaced by noise");
+      byte[] empty = new byte[start + 2];
+      System.arraycopy(jpeg, 0, empty, 0, start);
+      empty[start] = (byte) 0xFF;
+      empty[start + 1] = (byte) 0xD9;
+      assertInvalid("image/jpeg", empty, name + ": no entropy data at all");
+    }
+  }
+
+  @Test
+  void aTruncatedOrCorruptJpegIsRefused() {
+    byte[] jpeg = Receipts.resource("receipt-baseline.jpg");
+    int start = scanStart(jpeg);
+    int middle = start + (jpeg.length - start) / 2;
+    byte[] cut = java.util.Arrays.copyOf(jpeg, middle);
+    assertInvalid("image/jpeg", cut, "cut inside the scan, no end marker");
+    byte[] cutWithEnd = java.util.Arrays.copyOf(jpeg, middle + 2);
+    cutWithEnd[middle] = (byte) 0xFF;
+    cutWithEnd[middle + 1] = (byte) 0xD9;
+    assertInvalid("image/jpeg", cutWithEnd, "cut inside the scan, then a forged end marker");
+    assertInvalid("image/jpeg", java.util.Arrays.copyOf(jpeg, start - 3), "cut inside a header");
+    assertInvalid("image/jpeg", java.util.Arrays.copyOf(jpeg, 3), "only the first marker");
+    byte[] header = jpeg.clone();
+    header[4] ^= 0x7F;
+    assertInvalid("image/jpeg", header, "a corrupt segment length");
+  }
+
+  @Test
+  void theJpegDimensionsAreTheDecodersAndAreBounded() {
+    byte[] jpeg = Receipts.resource("receipt-baseline.jpg").clone();
+    int sof = -1;
+    for (int i = 2; i + 9 < jpeg.length; i++) {
+      if ((jpeg[i] & 0xFF) == 0xFF && (jpeg[i + 1] & 0xFF) == 0xC0) {
+        sof = i;
+        break;
+      }
+    }
+    assertThat(sof).isPositive();
+    // Zero dimensions are refused.
+    byte[] zero = jpeg.clone();
+    zero[sof + 7] = 0;
+    zero[sof + 8] = 0;
+    assertInvalid("image/jpeg", zero, "zero width");
+    // A header that claims a huge image over a tiny scan is not believed: the decode fails (the
+    // data is far too short) or the pixel bound refuses it before any decoding.
+    byte[] huge = jpeg.clone();
+    huge[sof + 5] = (byte) 0xFF;
+    huge[sof + 6] = (byte) 0xFF;
+    huge[sof + 7] = (byte) 0xFF;
+    huge[sof + 8] = (byte) 0xFF;
+    assertInvalid("image/jpeg", huge, "65535 x 65535 declared");
+    assertThat(ReceiptVerifier.MAX_BYTES).isEqualTo(2 * 1024 * 1024);
+  }
+
+  // -------------------------------------------------------------------------- R170-1: PDF
+
+  @Test
+  void genuinePdfsFromStandardWritersAreAccepted() {
+    // receipt.pdf: reportlab, checked with qpdf and pdfinfo. receipt-objstm.pdf: the same document
+    // rewritten by qpdf with a compressed object stream and a cross-reference stream (PDF 1.5).
+    for (byte[] file :
+        new byte[][] {
+          Receipts.resource("receipt.pdf"),
+          Receipts.resource("receipt-objstm.pdf"),
+          Receipts.pdf(1),
+          Receipts.pdf(2)
+        }) {
+      assertThat(ReceiptVerifier.verify("application/pdf", file, "ticket.pdf").mediaType())
+          .isEqualTo("application/pdf");
+    }
+    assertThat(Receipts.pdf(1)).isNotEqualTo(Receipts.pdf(2)).hasSize(Receipts.pdf(2).length);
+  }
+
+  @Test
+  void aPdfWithHeaderObjectAndEofStringsButNoDocumentStructureIsRefused() {
+    assertInvalid("application/pdf", Receipts.pdfStringsOnly(1), "the old synthetic fixture");
+    String lookalike =
+        "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n2 0 obj\n<< /Type /Pages >>\nendobj\n"
+            + "xref\n0 1\n0000000000 65535 f \ntrailer\n<< /Size 3 /Root 1 0 R >>\n"
+            + "startxref\n0\n%%EOF\n";
+    assertInvalid(
+        "application/pdf",
+        lookalike.getBytes(StandardCharsets.ISO_8859_1),
+        "a catalog and a pages object that no page tree connects");
+  }
+
+  @Test
+  void aTruncatedOrCorruptPdfIsRefused() {
+    for (String name : new String[] {"receipt.pdf", "receipt-objstm.pdf"}) {
+      byte[] pdf = Receipts.resource(name);
+      assertInvalid(
+          "application/pdf", java.util.Arrays.copyOf(pdf, pdf.length / 2), name + ": cut in half");
+      assertInvalid(
+          "application/pdf",
+          withEof(java.util.Arrays.copyOf(pdf, pdf.length / 2)),
+          name + ": cut in half, then a forged end marker");
+      assertInvalid(
+          "application/pdf",
+          java.util.Arrays.copyOf(pdf, pdf.length - 20),
+          name + ": the end of the file removed");
+      String text = new String(pdf, StandardCharsets.ISO_8859_1);
+      int startxref = text.lastIndexOf("startxref");
+      byte[] wrongOffset =
+          text.substring(0, startxref)
+              .concat("startxref\n7\n%%EOF\n")
+              .getBytes(StandardCharsets.ISO_8859_1);
+      assertInvalid("application/pdf", wrongOffset, name + ": startxref points at nothing");
+      byte[] noise = pdf.clone();
+      for (int i = noise.length / 3; i < noise.length / 3 + 64; i++) {
+        noise[i] = (byte) (i * 17 + 3);
+      }
+      assertInvalid("application/pdf", noise, name + ": bytes overwritten in the middle");
+    }
+  }
+
+  private static byte[] withEof(byte[] bytes) {
+    return Receipts.withTrailer(bytes, "\nstartxref\n0\n%%EOF\n");
+  }
+
+  @Test
+  void aPdfWithActiveContentIsRefusedWhereverItIsHidden() {
+    // Real, loadable PDFs (written with pikepdf, checked with qpdf and pdfinfo) that carry an
+    // OpenAction with JavaScript, a URI link, and JavaScript hidden inside a compressed object
+    // stream that no byte search can see.
+    for (String name :
+        new String[] {"active-javascript.pdf", "active-uri.pdf", "active-in-objstm.pdf"}) {
+      assertInvalid("application/pdf", Receipts.resource(name), name);
+    }
     for (String active :
         new String[] {"/JavaScript", "/JS", "/Launch", "/EmbeddedFile", "/OpenAction"}) {
       String text = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog " + active + " (x) >>\nendobj\n%%EOF\n";
-      assertThat(refused("application/pdf", text.getBytes(StandardCharsets.ISO_8859_1)))
-          .as(active)
-          .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
+      assertInvalid("application/pdf", text.getBytes(StandardCharsets.ISO_8859_1), active);
     }
+  }
+
+  // ------------------------------------------------------- terminal data and declared type
+
+  @Test
+  void payloadAfterTheLegalTerminatorIsRefused() {
+    assertInvalid("image/png", Receipts.withTrailer(Receipts.png(1), "<script>"), "PNG");
+    for (String name : new String[] {"receipt-baseline.jpg", "receipt-progressive.jpg"}) {
+      byte[] jpeg = Receipts.resource(name);
+      assertInvalid("image/jpeg", Receipts.withTrailer(jpeg, "PK\u0003\u0004"), name + ": archive");
+      assertInvalid("image/jpeg", Receipts.withTrailer(jpeg, "\u0000"), name + ": one NUL byte");
+      assertInvalid(
+          "image/jpeg",
+          Receipts.withTrailer(jpeg, "MZ-payload\u00FF\u00D9"),
+          name + ": payload that itself ends with a forged end marker");
+    }
+    for (String name : new String[] {"receipt.pdf", "receipt-objstm.pdf"}) {
+      byte[] pdf = Receipts.resource(name);
+      assertInvalid("application/pdf", Receipts.withTrailer(pdf, "MZ-payload"), name + ": payload");
+      assertInvalid("application/pdf", Receipts.withTrailer(pdf, "\u0000"), name + ": NUL byte");
+    }
+  }
+
+  @Test
+  void aDeclaredTypeThatDisagreesWithTheRealFileIsRefused() {
+    byte[] jpeg = Receipts.jpeg(3);
+    byte[] pdf = Receipts.pdf(3);
+    byte[] png = Receipts.png(3);
+    assertInvalid("application/pdf", jpeg, "JPEG declared as PDF");
+    assertInvalid("image/png", jpeg, "JPEG declared as PNG");
+    assertInvalid("image/jpeg", pdf, "PDF declared as JPEG");
+    assertInvalid("image/png", pdf, "PDF declared as PNG");
+    assertInvalid("image/jpeg", png, "PNG declared as JPEG");
+    assertInvalid("application/pdf", png, "PNG declared as PDF");
+  }
+
+  @Test
+  void aPngIsStillValidatedAsBefore() {
+    byte[] png = Receipts.png(1);
+    assertThat(ReceiptVerifier.verify("image/png", png, "a.png").mediaType())
+        .isEqualTo("image/png");
+    assertInvalid("image/png", java.util.Arrays.copyOf(png, png.length - 5), "truncated PNG");
+    byte[] flipped = png.clone();
+    flipped[20] ^= 0x55;
+    assertInvalid("image/png", flipped, "corrupt PNG checksum");
   }
 
   @Test
