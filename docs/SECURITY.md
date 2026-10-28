@@ -799,6 +799,15 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - **Integrity.** Database triggers make the action trail append-only, bind tenant and task, enforce legal transitions and terminal immutability, and forbid hard deletion. The rollback refuses while any task exists.
 - **Abuse limits.** 10,000 open tasks per tenant; hourly create and transition quotas per subject and tenant; per-minute burst buckets; explicit timeouts and capped pages.
 
+## Employee expenses (MVP-081)
+
+- **Access.** The linked employee reads and changes only their own expenses; only the effective manager at the time (verified on every call, fail closed) reads and decides submitted ones; tenant administrators (exact MFA) read submitted revisions. Nobody decides their own expense. Unknown, foreign and unauthorized ids are the same 404.
+- **Confidential data.** Merchant, description, return reason, receipt file name and receipt bytes are stored only in `operations`, returned only to the authorized reader, and never appear in audit metadata, outbox events, idempotency records (receipts carry identifiers only), metrics, logs or error responses.
+- **Receipt boundary.** Authorization, idempotency and quota run before the body is read; the body is bounded to 2 MiB; the declared type must match magic bytes and structure (PDF, JPEG, PNG); a JPEG must decode completely with the JDK image reader (no decoder warning, end marker last, bounded pixels) and a PDF must load with Apache PDFBox's strict parser with no active content anywhere in its object graph; SHA-256 is checked by the database; downloads are authorized, `attachment`, `nosniff`, `private, no-store`; no public URL; global multipart parsing is not enabled.
+- **Money.** CDF and USD only, integer minor units, never converted or combined; approval is not payment.
+- **Integrity and limits.** Triggers make evidence append-only, bind tenant and expense, enforce legal transitions and forbid deletion; 100 open expenses per employee, 5,000 per tenant; hourly quotas and burst buckets.
+- **Pilot limitation.** Receipts are in PostgreSQL; production needs private object storage and a scanning decision.
+
 ## WhatsApp Business notifications (MVP-111)
 
 - **Authorization.** Tenant administrator, exact MFA and active membership; unknown, malformed or foreign ids are the same 404; denials are audited; every response carries `Cache-Control: private, no-store`.

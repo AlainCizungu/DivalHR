@@ -52,7 +52,10 @@
     "webhooks": "Webhooks",
     "whatsapp": "WhatsApp Business",
     "tasks": "Tasks",
-    "myTasks": "My tasks"
+    "myTasks": "My tasks",
+    "expenses": "Expenses",
+    "myExpenses": "My expenses",
+    "expenseApprovals": "Expense approvals"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -571,7 +574,16 @@
     "TASK_VERSION_CONFLICT": "This task changed in the meantime. Reload it and try again.",
     "TASK_TRANSITION_NOT_ALLOWED": "This task is already finished or its state does not allow this action.",
     "TASK_LIMIT_REACHED": "This organization has reached its limit of 10,000 unfinished tasks. Finish or cancel some before assigning more.",
-    "OPERATIONAL_SUMMARY_SOURCE_INVALID": "The briefing could not be produced from the current figures. The figures below are unaffected."
+    "OPERATIONAL_SUMMARY_SOURCE_INVALID": "The briefing could not be produced from the current figures. The figures below are unaffected.",
+    "EXPENSE_NOT_FOUND": "This expense does not exist or is not available to you.",
+    "EXPENSE_VERSION_CONFLICT": "This expense changed since you opened it. The latest version is shown; check it and try again.",
+    "EXPENSE_TRANSITION_NOT_ALLOWED": "This action is no longer possible for this expense in its current state.",
+    "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE": "This expense cannot be routed for approval right now. Ask your administrator to check your reporting line.",
+    "EXPENSE_LIMIT_REACHED": "You have reached the limit of open expenses. Finish or withdraw some before creating more.",
+    "EXPENSE_RECEIPT_INVALID": "The receipt file could not be read as a valid PDF, JPEG or PNG. Choose another file.",
+    "EXPENSE_RECEIPT_TOO_LARGE": "The receipt is larger than 2 MB. Choose a smaller file.",
+    "EXPENSE_RECEIPT_UPLOAD_TIMEOUT": "The receipt took too long to send. Check your connection and try again.",
+    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Only PDF, JPEG and PNG receipts are accepted."
   },
   "notFound": {
     "title": "Page not found",
@@ -4803,6 +4815,154 @@
       "noteHelp": "Up to {{max}} characters. Plain text only.",
       "confirmButton": "Complete the task",
       "keep": "Not yet"
+    }
+  },
+  "expenses": {
+    "loading": "Loading expenses…",
+    "sending": "Sending…",
+    "forbidden": "You are not allowed to do this.",
+    "validation": "Check the highlighted fields and try again.",
+    "notice": "Approving an expense is not reimbursing or paying it. Payment and accounting are handled elsewhere.",
+    "count": "{{n}} of {{max}} characters",
+    "kilobytes": "KB",
+    "noReceipt": "No receipt",
+    "open": "Open the expense from {{merchant}}",
+    "back": "Back to the list",
+    "cancel": "Cancel",
+    "saved": "Expense saved.",
+    "created": "Expense draft created.",
+    "submitted": "Expense submitted for approval.",
+    "withdrawn": "Expense withdrawn.",
+    "receiptSaved": "Receipt attached.",
+    "receiptRemoved": "Receipt removed.",
+    "revisions": "Versions",
+    "revisionN": "Version {{n}}",
+    "history": "History",
+    "downloadReceipt": "Download receipt {{name}}",
+    "state": {
+      "DRAFT": "Draft",
+      "SUBMITTED": "Waiting for approval",
+      "APPROVED": "Approved",
+      "RETURNED": "Returned for correction",
+      "WITHDRAWN": "Withdrawn"
+    },
+    "currency": {
+      "CDF": "CDF – Congolese franc",
+      "USD": "USD – US dollar"
+    },
+    "category": {
+      "TRANSPORT": "Transport",
+      "MEALS": "Meals",
+      "LODGING": "Lodging",
+      "SUPPLIES": "Supplies",
+      "COMMUNICATION": "Communication",
+      "TRAINING": "Training",
+      "MEDICAL_WORK_RELATED": "Work-related medical",
+      "OTHER": "Other"
+    },
+    "action": {
+      "CREATED": "Created",
+      "DRAFT_UPDATED": "Draft changed",
+      "RECEIPT_SET": "Receipt attached",
+      "RECEIPT_REMOVED": "Receipt removed",
+      "SUBMITTED": "Submitted",
+      "WITHDRAWN": "Withdrawn",
+      "APPROVED": "Approved",
+      "RETURNED": "Returned for correction"
+    },
+    "role": {
+      "employee": "Employee",
+      "manager": "Manager"
+    },
+    "fields": {
+      "currency": "Currency",
+      "currencyHelp": "Choose the currency of the receipt. Amounts are never converted.",
+      "amount": "Amount",
+      "amountHelpCdf": "Whole francs, from 1 to 100,000,000.",
+      "amountHelpUsd": "Up to two decimals, from 0.01 to 100,000.00.",
+      "businessDate": "Expense date",
+      "businessDateHelp": "Today or up to 90 days ago; not in the future.",
+      "category": "Category",
+      "categoryChoose": "Choose a category",
+      "merchant": "Merchant or payee",
+      "description": "Description",
+      "descriptionHelp": "{{min}} to {{max}} characters. No links or markup.",
+      "receipt": "Receipt"
+    },
+    "problems": {
+      "businessDate": "Choose a date within the last 90 days, not in the future.",
+      "currency": "Choose a currency.",
+      "amount": "Enter a valid amount for this currency.",
+      "category": "Choose a category.",
+      "merchant": "Enter the merchant, up to 120 characters, without links or markup.",
+      "description": "Describe the expense in 10 to 1,000 characters, without links or markup.",
+      "reason": "Give a reason of 10 to 500 characters, without links or markup."
+    },
+    "receiptProblem": {
+      "type": "Choose a PDF, JPEG or PNG file.",
+      "size": "The file is larger than 2 MB.",
+      "name": "The file name is not accepted. Rename the file and try again.",
+      "empty": "The file is empty."
+    },
+    "me": {
+      "title": "My expenses",
+      "description": "Record an expense in CDF or USD, attach its receipt and send it to your manager for approval.",
+      "unauthorized": "Expenses are available to employees linked to their account.",
+      "signInRequired": "Sign in to see your expenses.",
+      "new": "New expense",
+      "newTitle": "New expense",
+      "editTitle": "Change the expense",
+      "listTitle": "Your expenses",
+      "detailTitle": "Expense",
+      "empty": "You have no expenses yet.",
+      "save": "Save",
+      "edit": "Change",
+      "submit": "Submit for approval",
+      "withdraw": "Withdraw",
+      "withdrawConfirmTitle": "Confirm withdrawal",
+      "withdrawConfirm": "Withdraw this expense? It will not be approved and cannot be reopened; to correct it, create a new expense.",
+      "withdrawButton": "Withdraw the expense",
+      "keep": "Keep it",
+      "correctNew": "Correct in a new expense",
+      "receiptLabel": "Receipt (PDF, JPEG or PNG)",
+      "receiptHelp": "One file of at most 2 MB. A new file replaces the current one.",
+      "removeReceipt": "Remove the receipt",
+      "returnedWith": "Returned by your manager:",
+      "returnedHelp": "Change the expense, then submit it again.",
+      "waiting": "Waiting for your manager’s decision.",
+      "approvedNote": "Approved. This is not a payment.",
+      "withdrawnNote": "Withdrawn. You can correct it in a new expense."
+    },
+    "approvals": {
+      "title": "Expenses to approve",
+      "description": "Expenses submitted by the people who report to you.",
+      "unauthorized": "Expense approvals are available to linked employees.",
+      "signInRequired": "Sign in to see expenses to approve.",
+      "empty": "No expense is waiting for your decision.",
+      "queueTitle": "Waiting for your decision",
+      "submittedOn": "Submitted {{date}}",
+      "approve": "Approve",
+      "return": "Return for correction",
+      "approveTitle": "Confirm approval",
+      "confirmApprove": "Approve this expense of {{amount}}?",
+      "approveButton": "Approve the expense",
+      "reason": "Reason for the return",
+      "reasonHelp": "{{min}} to {{max}} characters. The employee will see it.",
+      "returnButton": "Return the expense",
+      "approved": "Expense approved.",
+      "returned": "Expense returned for correction."
+    },
+    "admin": {
+      "title": "Expenses",
+      "description": "Read-only view of submitted expenses and their receipts.",
+      "unauthorized": "Only administrators can see all expenses.",
+      "signInRequired": "Sign in to see expenses.",
+      "filterState": "State",
+      "filterCurrency": "Currency",
+      "all": "All",
+      "empty": "No submitted expense matches.",
+      "listTitle": "Submitted expenses",
+      "more": "Show more"
     }
   }
 }

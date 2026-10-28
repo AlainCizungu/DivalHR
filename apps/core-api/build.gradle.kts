@@ -47,6 +47,11 @@ dependencies {
     implementation("org.postgresql:postgresql")
     // MVP-020 (A20-3): pinned, dependency-reviewed CSV parser for employee imports.
     implementation("org.apache.commons:commons-csv:1.14.1")
+    // MVP-081 / R170-1: the maintained, bounded PDF parser that proves a receipt PDF is loadable.
+    // Spring's spring-jcl already provides the commons-logging API, so the jar is excluded.
+    implementation("org.apache.pdfbox:pdfbox:3.0.8") {
+        exclude(group = "commons-logging", module = "commons-logging")
+    }
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

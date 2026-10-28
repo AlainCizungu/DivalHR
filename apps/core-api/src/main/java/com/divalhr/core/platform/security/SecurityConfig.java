@@ -146,7 +146,11 @@ public class SecurityConfig {
             "Content-Type",
             "Accept-Language",
             CorrelationId.HEADER,
-            IdempotencyKeys.HEADER));
+            IdempotencyKeys.HEADER,
+            // MVP-081: the receipt upload carries its expected version and display name in
+            // headers (the body is the raw file), so a browser preflight must allow them.
+            "X-Expected-Version",
+            "X-Receipt-File-Name"));
     config.setExposedHeaders(
         List.of(CorrelationId.HEADER, IdempotencyKeys.REPLAYED_HEADER, HttpHeaders.RETRY_AFTER));
     // Bearer tokens travel in the Authorization header; browser credentials are never needed.

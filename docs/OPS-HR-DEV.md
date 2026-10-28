@@ -220,6 +220,13 @@ Core restarts with it. Disabling the capability: remove the Core secret file (Co
 - **Migration.** V41 adds `operations.task` and `operations.task_action`. No configuration, secret or external dependency; no notifications are sent.
 - **Rollback.** `db/rollback/V41__rollback.sql` refuses while any task or action exists and has no override. To return to a pre-V41 release once tasks exist, roll back the application only (V41 changed no earlier object) or restore the pre-deploy database backup. Removing the V41 row from `flyway_schema_history` is a separate, controlled operator step taken only with the application rollback.
 
+## MVP-081 employee expenses
+
+- **Migration.** V42 adds `operations.expense`, `expense_revision`, `expense_receipt` and `expense_action`. No configuration, secret or external dependency; no notification is sent.
+- **Rollback.** `db/rollback/V42__rollback.sql` refuses while any expense, revision, receipt or action exists and has no override. Once expenses exist, roll back the application only (V42 changed no earlier object) or restore the pre-deploy backup; removing the V42 row from `flyway_schema_history` is a separate operator step taken only with the application rollback.
+- **Receipt storage (pilot only).** Receipts (at most 2 MiB each, 100 open expenses per employee, 5,000 per tenant) are stored in PostgreSQL on the encrypted data volume and included in database backups. This is a pilot decision. **Follow-up before production:** move receipt content to private, encrypted object storage behind the same repository port, with retention and malware-scanning decisions; no public URLs and no new infrastructure were added by MVP-081.
+- **Limits.** Hourly quotas of 60 writes and 30 receipt changes per employee, 120 decisions per manager; burst buckets `DIVALHR_EXPENSE_*_REQUESTS_PER_MINUTE`.
+
 ## MVP-111 WhatsApp notifications in the test environment
 
 Acceptance uses a **synthetic Meta provider**. Nothing contacts Meta and no real WhatsApp account,

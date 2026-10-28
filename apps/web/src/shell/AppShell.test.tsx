@@ -74,6 +74,7 @@ describe('signed-in frame', () => {
         en.nav.workSchedules,
         en.nav.operationsStatus,
         en.nav.tasks,
+        en.nav.expenses,
         en.nav.attendanceReview,
         en.nav.timesheets,
         en.nav.timeExports,
@@ -103,6 +104,8 @@ describe('signed-in frame', () => {
         en.nav.myLeave,
         en.nav.myLeaveApprovals,
         en.nav.myTasks,
+        en.nav.myExpenses,
+        en.nav.expenseApprovals,
       ],
     ],
     [

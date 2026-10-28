@@ -610,7 +610,28 @@ public enum ErrorCode {
   /** MVP-080: the task's state does not allow the command. */
   TASK_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT),
   /** MVP-080: the tenant holds the maximum number of non-terminal tasks. */
-  TASK_LIMIT_REACHED(HttpStatus.CONFLICT);
+  TASK_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /**
+   * MVP-081: the expense is unknown, malformed, foreign, not the caller's, or no longer routed to
+   * the caller (indistinguishable).
+   */
+  EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-081: the expected version is stale. */
+  EXPENSE_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-081: the expense's state does not allow the command. */
+  EXPENSE_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-081: no single eligible manager can decide the expense (nobody is named). */
+  EXPENSE_APPROVAL_ROUTE_UNAVAILABLE(HttpStatus.CONFLICT),
+  /** MVP-081: the employee or the tenant holds the maximum number of open expenses. */
+  EXPENSE_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-081: the receipt is not an accepted, well-formed PDF, JPEG or PNG. */
+  EXPENSE_RECEIPT_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-081: the receipt exceeds 2 MiB. */
+  EXPENSE_RECEIPT_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+  /** MVP-081: the receipt body was not received in time. */
+  EXPENSE_RECEIPT_UPLOAD_TIMEOUT(HttpStatus.REQUEST_TIMEOUT),
+  /** MVP-081: the receipt is not one of the accepted media types. */
+  EXPENSE_RECEIPT_MEDIA_UNSUPPORTED(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
 
   private final HttpStatus status;
 

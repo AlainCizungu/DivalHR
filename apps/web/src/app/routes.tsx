@@ -23,6 +23,9 @@ import { LeavePoliciesPage } from '../features/leave/LeavePoliciesPage';
 import { MyLeavePage } from '../features/leave/MyLeavePage';
 import { AdminTasksPage } from '../features/tasks/AdminTasksPage';
 import { MyTasksPage } from '../features/tasks/MyTasksPage';
+import { AdminExpensesPage } from '../features/expenses/AdminExpensesPage';
+import { ExpenseApprovalsPage } from '../features/expenses/ExpenseApprovalsPage';
+import { MyExpensesPage } from '../features/expenses/MyExpensesPage';
 import { AttendanceReviewPage } from '../features/schedules/AttendanceReviewPage';
 import {
   OperationsStatusPage,
@@ -202,6 +205,12 @@ export const ROUTES: AppRoute[] = [
     crumbs: [HOME, OPERATIONS, { key: 'nav.tasks' }],
   },
   {
+    path: '/admin/expenses',
+    element: <AdminExpensesPage />,
+    access: tenantAdmin('expenses.admin.unauthorized', 'expenses.admin.signInRequired'),
+    crumbs: [HOME, OPERATIONS, { key: 'nav.expenses' }],
+  },
+  {
     path: '/admin/attendance-review',
     element: <AttendanceReviewPage />,
     access: tenantAdmin('attendanceReview.unauthorized', 'attendanceReview.signInRequired'),
@@ -372,6 +381,26 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'tasks.me.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myTasks' }],
+  },
+  {
+    path: '/me/expenses',
+    element: <MyExpensesPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'expenses.me.unauthorized',
+      signInKey: 'expenses.me.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myExpenses' }],
+  },
+  {
+    path: '/me/expense-approvals',
+    element: <ExpenseApprovalsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'expenses.approvals.unauthorized',
+      signInKey: 'expenses.approvals.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.expenseApprovals' }],
   },
   { path: '/invitation', element: <AcceptInvitationPage />, frame: 'public' },
   { path: '/auth/callback', element: <CallbackPage />, frame: 'public' },

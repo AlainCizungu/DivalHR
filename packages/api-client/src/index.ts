@@ -568,3 +568,16 @@ export function createAiServiceStatusClient(options: Omit<ClientOptions, 'getAcc
   client.use(correlationMiddleware);
   return client;
 }
+
+// MVP-081: employee expenses (CDF and USD, never converted).
+export type ExpenseState = CoreComponents['schemas']['ExpenseState'];
+export type ExpenseCurrency = CoreComponents['schemas']['ExpenseCurrency'];
+export type ExpenseCategory = CoreComponents['schemas']['ExpenseCategory'];
+export type ExpenseActionType = CoreComponents['schemas']['ExpenseActionType'];
+export type Expense = CoreComponents['schemas']['Expense'];
+export type ExpenseRevision = CoreComponents['schemas']['ExpenseRevision'];
+export type ExpenseAction = CoreComponents['schemas']['ExpenseAction'];
+export type ExpenseDetail = CoreComponents['schemas']['ExpenseDetail'];
+export type ExpensePage = CoreComponents['schemas']['ExpensePage'];
+export type ExpenseReceipt = CoreComponents['schemas']['ExpenseReceipt'];
+export type ExpenseReceiptFile = CoreComponents['schemas']['ExpenseReceiptFile'];

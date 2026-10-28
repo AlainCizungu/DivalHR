@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.divalhr.core.platform.access.EmployeeAccessLinks;
 import com.divalhr.core.platform.access.EmploymentContractFacts;
 import com.divalhr.core.platform.access.LockedApprovedTime;
+import com.divalhr.core.platform.access.ReportingLines;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -85,6 +86,26 @@ class AccessPortArchitectureTest {
           .and()
           .haveName("lockForPayrollInputs")
           .should(JOIN_THE_CALLER);
+
+  /** MVP-081: the manager-graph lock of an expense decision joins the caller's transaction. */
+  @ArchTest
+  static final ArchRule reportingLinesGraphLockJoinsTheCallersTransaction =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .implement(ReportingLines.class)
+          .and()
+          .haveName("lockManagerGraph")
+          .should(JOIN_THE_CALLER);
+
+  @Test
+  void theReportingLinesPortHasExactlyItsDeclaredMethods() {
+    assertThat(
+            Stream.of(ReportingLines.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactlyInAnyOrder("route", "reportsOf", "describe", "lockManagerGraph");
+  }
 
   @Test
   void thePayrollPortReadsAndLocksOnlyThroughItsDeclaredMethods() {
