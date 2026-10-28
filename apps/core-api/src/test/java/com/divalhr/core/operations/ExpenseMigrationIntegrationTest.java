@@ -184,7 +184,9 @@ class ExpenseMigrationIntegrationTest {
           String v42 = db.jdbc().queryForObject(SIGNATURE, String.class);
           assertThat(v42).isNotEqualTo(v41).contains("expense_action");
           int recorded =
-              db.jdbc().queryForObject("SELECT count(*) FROM flyway_schema_history", Integer.class);
+              java.util.Objects.requireNonNull(
+                  db.jdbc()
+                      .queryForObject("SELECT count(*) FROM flyway_schema_history", Integer.class));
           script(db, resource("db/rollback/V42__rollback.sql"));
           assertThat(db.jdbc().queryForObject(SIGNATURE, String.class)).isEqualTo(v41);
           assertThat(
