@@ -19,7 +19,7 @@ import {
 //     a reason; the employee corrects and resubmits it; the manager approves it; the French
 //     administrator then observes it read-only.
 // Setup (API, the administrator's existing SSO session, one interactive sign-in per employee):
-// three invited and linked employees, the employee B -> manager M reporting line. Authorization,
+// three invited and linked employees, the employee A -> manager M and B -> M reporting lines. Authorization,
 // tenant isolation, races, receipt hardening and rollbacks are covered by the Core tests, not
 // here. axe, reflow at 320 px, 390 px and 640 px, browser storage and URLs are checked.
 
@@ -265,36 +265,42 @@ test.describe.serial('MVP-081: employee expenses, approval and read-only observa
       ).toBe(201);
     }
 
-    // Reporting line: Ben reports to Mireille from ten days ago (a late notification).
-    const change = {
-      type: 'CHANGE',
-      effectiveFrom: utcDate(-10),
-      manager: { employeeId: MAN.employee },
-      reasonCode: 'LATE_NOTIFICATION',
-    };
-    const preview = await page.request.post(
-      `${CORE_API}/employees/${BEN.employee}/employment-changes/preview`,
-      { headers: { Authorization: bearer() }, data: change },
-    );
-    expect(preview.status()).toBe(200);
-    const previewed = (await preview.json()) as {
-      expectedVersion: number;
-      previewDigest: string;
-      requiresAcknowledgement: boolean;
-    };
-    const applied = await page.request.post(
-      `${CORE_API}/employees/${BEN.employee}/employment-changes`,
-      {
-        headers: { Authorization: bearer(), 'Idempotency-Key': `e2e-ex-manager-${stamp}-0001` },
-        data: {
-          ...change,
-          expectedVersion: previewed.expectedVersion,
-          previewDigest: previewed.previewDigest,
-          acknowledgeRetroactive: previewed.requiresAcknowledgement,
+    // Reporting lines: Anna and Ben both report to Mireille from ten days ago (a late
+    // notification), so each has an effective manager at submission.
+    for (const [index, employee] of [ANA, BEN].entries()) {
+      const change = {
+        type: 'CHANGE',
+        effectiveFrom: utcDate(-10),
+        manager: { employeeId: MAN.employee },
+        reasonCode: 'LATE_NOTIFICATION',
+      };
+      const preview = await page.request.post(
+        `${CORE_API}/employees/${employee.employee}/employment-changes/preview`,
+        { headers: { Authorization: bearer() }, data: change },
+      );
+      expect(preview.status()).toBe(200);
+      const previewed = (await preview.json()) as {
+        expectedVersion: number;
+        previewDigest: string;
+        requiresAcknowledgement: boolean;
+      };
+      const applied = await page.request.post(
+        `${CORE_API}/employees/${employee.employee}/employment-changes`,
+        {
+          headers: {
+            Authorization: bearer(),
+            'Idempotency-Key': `e2e-ex-manager-${stamp}-000${String(index + 1)}`,
+          },
+          data: {
+            ...change,
+            expectedVersion: previewed.expectedVersion,
+            previewDigest: previewed.previewDigest,
+            acknowledgeRetroactive: previewed.requiresAcknowledgement,
+          },
         },
-      },
-    );
-    expect(applied.status()).toBe(201);
+      );
+      expect(applied.status()).toBe(201);
+    }
     await page.close();
   });
 
@@ -462,7 +468,9 @@ test.describe.serial('MVP-081: employee expenses, approval and read-only observa
     await expect(manager.getByTestId('announcer')).toContainText(
       'Note de frais renvoyée pour correction.',
     );
-    await expect(manager.getByTestId('approvals-empty')).toBeVisible();
+    await expect(manager.getByTestId('approval-item').filter({ hasText: MERCHANT_3 })).toHaveCount(
+      0,
+    );
 
     // 3. Bénédicte sees the reason, corrects and resubmits.
     await employee.getByRole('button', { name: 'Retour à la liste' }).click();
@@ -498,7 +506,9 @@ test.describe.serial('MVP-081: employee expenses, approval and read-only observa
     );
     await manager.getByTestId('confirm-approve').click();
     await expect(manager.getByTestId('announcer')).toContainText('Note de frais approuvée.');
-    await expect(manager.getByTestId('approvals-empty')).toBeVisible();
+    await expect(manager.getByTestId('approval-item').filter({ hasText: MERCHANT_3 })).toHaveCount(
+      0,
+    );
 
     // 5. Bénédicte sees the final status; the administrator observes read-only.
     await employee.getByRole('button', { name: 'Retour à la liste' }).click();
