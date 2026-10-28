@@ -156,6 +156,14 @@ divalhr:
       task-self-read: ${DIVALHR_TASK_SELF_READ_REQUESTS_PER_MINUTE:60}
       task-create: ${DIVALHR_TASK_CREATE_REQUESTS_PER_MINUTE:20}
       task-transition: ${DIVALHR_TASK_TRANSITION_REQUESTS_PER_MINUTE:30}
+      # MVP-081: expenses. The per-minute buckets are burst limits; the per-subject hourly quotas
+      # (60 writes, 30 receipt mutations, 120 decisions) are durable and enforced in the database.
+      expense-self-read: ${DIVALHR_EXPENSE_SELF_READ_REQUESTS_PER_MINUTE:60}
+      expense-approval-read: ${DIVALHR_EXPENSE_APPROVAL_READ_REQUESTS_PER_MINUTE:60}
+      expense-read: ${DIVALHR_EXPENSE_READ_REQUESTS_PER_MINUTE:60}
+      expense-write: ${DIVALHR_EXPENSE_WRITE_REQUESTS_PER_MINUTE:20}
+      expense-receipt: ${DIVALHR_EXPENSE_RECEIPT_REQUESTS_PER_MINUTE:10}
+      expense-decision: ${DIVALHR_EXPENSE_DECISION_REQUESTS_PER_MINUTE:30}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -213,6 +221,17 @@ divalhr:
         window: 1h
       task-transition:
         requests: ${DIVALHR_TASK_TENANT_TRANSITIONS:600}
+        window: 1h
+      # MVP-081: expenses (D81-13): 600 create/update/submit/withdraw, 300 receipt mutations and
+      # 600 manager decisions per tenant per hour.
+      expense-write:
+        requests: ${DIVALHR_EXPENSE_TENANT_WRITES:600}
+        window: 1h
+      expense-receipt:
+        requests: ${DIVALHR_EXPENSE_TENANT_RECEIPTS:300}
+        window: 1h
+      expense-decision:
+        requests: ${DIVALHR_EXPENSE_TENANT_DECISIONS:600}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.
