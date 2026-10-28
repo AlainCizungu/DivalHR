@@ -9496,6 +9496,711 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /me/expenses:
+    post:
+      operationId: createMyExpense
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Create an expense draft
+      description: >-
+        MVP-081 (ADR 0031). Creates a DRAFT expense of the caller's own employee (resolved from the caller's current active employee-access link on every request; 403 EMPLOYEE_LINK_REQUIRED otherwise) in one transaction with its CREATED action and the audit record expense.create. currency is CDF (whole francs, 1 to 100,000,000) or USD (at most two decimals, 0.01 to 100,000.00); amount is a decimal string, never a JSON number, and is stored as integer minor units; the two currencies are never converted or combined. businessDate is the organization's today or up to 90 days earlier (never in the future). merchant (1-120) and description (10-1000) are restricted plain text and never appear in logs, metrics, audit, events, cursors, URLs or errors. At most 100 open expenses per employee and 5,000 per tenant (409 EXPENSE_LIMIT_REACHED); at most 60 expense writes per employee and 600 per tenant per hour. The response is a text-free receipt so that the idempotency store never holds user text; read the expense with getMyExpense. Approval of an expense is not reimbursement or payment. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExpenseRequest"
+      responses:
+        "201":
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    get:
+      operationId: listMyExpenses
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my expenses
+      description: >-
+        MVP-081. The caller's own expenses as a keyset page (default 25, maximum 100), newest creation first then ID, optionally filtered by state, currency and a business-date range. The cursor is bound to the tenant, the subject, the operation, the filters and the page size; any other use is 400 CURSOR_INVALID. Amounts of different currencies are listed side by side and never totalled. A fail-closed disclosure (audit expense.self-list, counts only). Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseStateFilter"
+        - $ref: "#/components/parameters/ExpenseCurrencyFilter"
+        - $ref: "#/components/parameters/ExpenseFromFilter"
+        - $ref: "#/components/parameters/ExpenseToFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expenses/{expenseId}:
+    get:
+      operationId: getMyExpense
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read one of my expenses
+      description: >-
+        MVP-081. One of the caller's own expenses with all its revisions and its immutable action history (roles and times, no subject). Unknown, malformed, foreign and other employees' IDs are the same 404 EXPENSE_NOT_FOUND. A fail-closed disclosure (audit expense.self-read). Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expenses/{expenseId}/draft:
+    post:
+      operationId: updateMyExpenseDraft
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Change the editable revision
+      description: >-
+        MVP-081. Replaces the values of the editable revision (a DRAFT, or a RETURNED expense, which opens a new revision on its first change). A stale expectedVersion is 409 EXPENSE_VERSION_CONFLICT; a submitted, approved or withdrawn expense is 409 EXPENSE_TRANSITION_NOT_ALLOWED. Same field rules, limits and text-free receipt as createMyExpense. Idempotent. Audit expense.update-draft. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateExpenseDraftRequest"
+      responses:
+        "200":
+          description: OK, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expenses/{expenseId}/receipt:
+    put:
+      operationId: setMyExpenseReceipt
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Attach or replace the receipt
+      description: >-
+        MVP-081. Attaches or replaces the one receipt of the editable revision. The body is the raw file (Content-Type application/pdf, image/jpeg or image/png; no multipart), at most 2 MiB and read within 30 seconds, only after the caller, the expense and the expected version have been established; the version is X-Expected-Version and the display name X-Receipt-File-Name (percent-encoded UTF-8, 1-120 characters, no path or markup). The server verifies the leading bytes and structure against the declared type (413 EXPENSE_RECEIPT_TOO_LARGE, 415 EXPENSE_RECEIPT_MEDIA_UNSUPPORTED, 400 EXPENSE_RECEIPT_INVALID, 408 EXPENSE_RECEIPT_UPLOAD_TIMEOUT), computes the SHA-256 digest itself and stores the bytes in PostgreSQL (pilot only; object storage is the production follow-up). Content, name and digest never reach logs, metrics, audit, events or errors. At most 30 receipt changes per employee and 300 per tenant per hour. Idempotent. Audit expense.receipt-set. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/ExpectedVersionHeader"
+        - $ref: "#/components/parameters/ReceiptFileNameHeader"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    delete:
+      operationId: removeMyExpenseReceipt
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Remove the receipt of the editable revision
+      description: >-
+        MVP-081. Removes the receipt of the editable revision (never one a submitted revision uses). Version in X-Expected-Version. Idempotent. Audit expense.receipt-remove. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/ExpectedVersionHeader"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expenses/{expenseId}/revisions/{revision}/receipt:
+    get:
+      operationId: downloadMyExpenseReceipt
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Download the receipt of one revision
+      description: >-
+        MVP-081. The stored receipt bytes of one revision of the caller's own expense, always as an attachment with a fixed file name, X-Content-Type-Options nosniff and Cache-Control private, no-store; never a public or signed URL. A fail-closed disclosure (audit expense.self-receipt-read). Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/ExpenseRevisionNumber"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            X-Content-Type-Options:
+              description: nosniff
+              schema:
+                type: string
+            Content-Disposition:
+              description: attachment; filename="receipt.pdf|jpg|png" (a fixed name, never the entered one)
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expenses/{expenseId}/submit:
+    post:
+      operationId: submitMyExpense
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Submit an expense for approval
+      description: >-
+        MVP-081. DRAFT or RETURNED to SUBMITTED. The approver is the one effective MANAGER of the employee on the business date; with none or more than one the answer is 409 EXPENSE_APPROVAL_ROUTE_UNAVAILABLE (never naming a manager). The manager is re-resolved on every list, read and decision. The submitted revision is frozen with its receipt. A RETURNED expense must have been changed first. Event operations.expense.submitted.v1 (identifiers and numbers only). Idempotent. Audit expense.submit. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseVersionRequest"
+      responses:
+        "200":
+          description: OK, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expenses/{expenseId}/withdraw:
+    post:
+      operationId: withdrawMyExpense
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Withdraw a submitted expense
+      description: >-
+        MVP-081. SUBMITTED to WITHDRAWN by the owner, before any decision; terminal. A correction is a new expense. Event operations.expense.withdrawn.v1. Idempotent. Audit expense.withdraw. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseVersionRequest"
+      responses:
+        "200":
+          description: OK, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expense-approvals:
+    get:
+      operationId: listMyExpenseApprovals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List expenses waiting for my decision
+      description: >-
+        MVP-081. SUBMITTED expenses whose effective manager on the business date is the caller (resolved from the caller's active link on every request), oldest submission first, as a keyset page (default 25, maximum 100). Each row is verified against the current reporting line, so an expense whose route has moved is not listed. A caller who manages nobody gets an empty page. Fail-closed disclosure (audit expense.approval-list). Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expense-approvals/{expenseId}:
+    get:
+      operationId: getMyExpenseApproval
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read an expense waiting for my decision
+      description: >-
+        MVP-081. One SUBMITTED expense routed to the caller, with its revisions and history. Anything else (unknown, foreign, not submitted, not routed to the caller, including after the route moved) is the same 404 EXPENSE_NOT_FOUND. Audit expense.approval-read. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expense-approvals/{expenseId}/revisions/{revision}/receipt:
+    get:
+      operationId: downloadMyExpenseApprovalReceipt
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Download the receipt of an expense waiting for my decision
+      description: >-
+        MVP-081. As downloadMyExpenseReceipt, for an expense routed to the caller. Audit expense.approval-receipt-read. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/ExpenseRevisionNumber"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            X-Content-Type-Options:
+              description: nosniff
+              schema:
+                type: string
+            Content-Disposition:
+              description: attachment; filename="receipt.pdf|jpg|png" (a fixed name, never the entered one)
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expense-approvals/{expenseId}/approve:
+    post:
+      operationId: approveMyExpenseApproval
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Approve an expense
+      description: >-
+        MVP-081. SUBMITTED to APPROVED by the effective manager on the business date, never by the owner. The manager graph is locked first, then the employee link, then the expense; the route is re-resolved inside the transaction. Approval is not reimbursement or payment and changes no accounting or payroll data. At most 120 decisions per approver and 600 per tenant per hour. Event operations.expense.approved.v1. Idempotent (replay only while the caller is still linked and routed). Audit expense.approval-approve. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseVersionRequest"
+      responses:
+        "200":
+          description: OK, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /me/expense-approvals/{expenseId}/return:
+    post:
+      operationId: returnMyExpenseApproval
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Return an expense for correction
+      description: >-
+        MVP-081. SUBMITTED to RETURNED with a reason of 10-500 characters (restricted plain text, kept only in the action history, never in audit, events or logs). The employee corrects it in a new revision and may submit it again. Same locking, routing and limits as approveMyExpenseApproval. Event operations.expense.returned.v1. Idempotent. Audit expense.approval-return. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReturnExpenseRequest"
+      responses:
+        "200":
+          description: OK, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /expenses:
+    get:
+      operationId: listExpenses
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List expenses (read-only)
+      description: >-
+        MVP-081. Expenses of the caller's organization as a keyset page (default 25, maximum 100), newest creation first, filtered by employee, state, currency, category and business-date range. Administrators observe only: each row shows the last submitted revision, never an unsubmitted draft, and no administrator action changes an expense. Currencies are never totalled. A fail-closed disclosure (audit expense.list, counts only). Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseEmployeeFilter"
+        - $ref: "#/components/parameters/ExpenseStateFilter"
+        - $ref: "#/components/parameters/ExpenseCurrencyFilter"
+        - $ref: "#/components/parameters/ExpenseCategoryFilter"
+        - $ref: "#/components/parameters/ExpenseFromFilter"
+        - $ref: "#/components/parameters/ExpenseToFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /expenses/{expenseId}:
+    get:
+      operationId: getExpense
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read an expense (read-only)
+      description: >-
+        MVP-081. One submitted expense of the caller's organization with its submitted revisions and history. Unknown, malformed, foreign and never-submitted IDs are the same 404 EXPENSE_NOT_FOUND. Audit expense.read. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /expenses/{expenseId}/revisions/{revision}/receipt:
+    get:
+      operationId: downloadExpenseReceipt
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download a submitted receipt (read-only)
+      description: >-
+        MVP-081. As downloadMyExpenseReceipt, for a submitted revision of an expense of the organization. Audit expense.receipt-read. Cache-Control private, no-store.
+      tags: [operations]
+      parameters:
+        - $ref: "#/components/parameters/ExpenseId"
+        - $ref: "#/components/parameters/ExpenseRevisionNumber"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            X-Content-Type-Options:
+              description: nosniff
+              schema:
+                type: string
+            Content-Disposition:
+              description: attachment; filename="receipt.pdf|jpg|png" (a fixed name, never the entered one)
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     oauth2:
@@ -9702,6 +10407,13 @@ components:
       description: >-
         IMPORT_FILE_TOO_LARGE - the CSV body exceeds 2 MiB; reading stopped at the limit and nothing
         was stored. No params.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnsupportedMediaType:
+      description: >-
+        EXPENSE_RECEIPT_MEDIA_UNSUPPORTED - the receipt is not a PDF, JPEG or PNG, or its leading bytes do not match the declared type. Nothing was stored. No params.
       content:
         application/problem+json:
           schema:
@@ -10007,6 +10719,75 @@ components:
         Part of the cursor binding.
       schema:
         $ref: "#/components/schemas/TaskDueClass"
+    ExpenseId:
+      name: expenseId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign and out-of-scope IDs give the same 404 EXPENSE_NOT_FOUND.
+      schema:
+        type: string
+    ExpenseRevisionNumber:
+      name: revision
+      in: path
+      required: true
+      description: Revision number of the expense (1 or more).
+      schema:
+        type: integer
+        minimum: 1
+    ExpectedVersionHeader:
+      name: X-Expected-Version
+      in: header
+      required: true
+      description: The expense version the caller last read; a stale value is 409 EXPENSE_VERSION_CONFLICT.
+      schema:
+        type: integer
+        minimum: 1
+    ReceiptFileNameHeader:
+      name: X-Receipt-File-Name
+      in: header
+      required: true
+      description: Display name of the receipt, percent-encoded UTF-8, 1-120 characters, no path separator or markup. Never logged.
+      schema:
+        type: string
+    ExpenseStateFilter:
+      name: state
+      in: query
+      description: Only expenses in this state. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/ExpenseState"
+    ExpenseCurrencyFilter:
+      name: currency
+      in: query
+      description: Only expenses in this currency. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/ExpenseCurrency"
+    ExpenseCategoryFilter:
+      name: category
+      in: query
+      description: Only expenses of this category. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/ExpenseCategory"
+    ExpenseEmployeeFilter:
+      name: employeeId
+      in: query
+      description: Only expenses of this employee. Part of the cursor binding.
+      schema:
+        type: string
+        format: uuid
+    ExpenseFromFilter:
+      name: from
+      in: query
+      description: Earliest business date (inclusive). Part of the cursor binding.
+      schema:
+        type: string
+        format: date
+    ExpenseToFilter:
+      name: to
+      in: query
+      description: Latest business date (inclusive). Part of the cursor binding.
+      schema:
+        type: string
+        format: date
     LeaveRequestId:
       name: requestId
       in: path
@@ -13370,6 +14151,335 @@ components:
         occurredAt:
           type: string
           format: date-time
+    ExpenseState:
+      type: string
+      enum: [DRAFT, SUBMITTED, APPROVED, RETURNED, WITHDRAWN]
+    ExpenseCurrency:
+      type: string
+      description: >-
+        CDF (whole francs) or USD (two decimals). The currencies are never converted or combined.
+      enum: [CDF, USD]
+    ExpenseCategory:
+      type: string
+      enum: [TRANSPORT, MEALS, LODGING, SUPPLIES, COMMUNICATION, TRAINING, MEDICAL_WORK_RELATED, OTHER]
+    ExpenseActionType:
+      type: string
+      enum: [CREATED, DRAFT_UPDATED, RECEIPT_SET, RECEIPT_REMOVED, SUBMITTED, WITHDRAWN, APPROVED, RETURNED]
+    ExpenseReceiptFile:
+      type: object
+      description: >-
+        MVP-081. The receipt of one revision (metadata only). The bytes are read with a download operation.
+      additionalProperties: false
+      required: [id, mediaType, sizeBytes, sha256, fileName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        mediaType:
+          type: string
+          enum: [application/pdf, image/jpeg, image/png]
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 2097152
+        sha256:
+          type: string
+          description: Hex SHA-256 computed by the server.
+        fileName:
+          type: string
+          description: Display name only (restricted), shown unchanged and never used as a path.
+    ExpenseEmployee:
+      type: object
+      description: >-
+        MVP-081. The employee an expense belongs to (shown to the approver and the administrator).
+      additionalProperties: false
+      required: [id, employeeNumber, givenNames, familyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        givenNames:
+          type: string
+        familyName:
+          type: string
+    Expense:
+      type: object
+      description: >-
+        MVP-081. One expense as its viewer may see it. For an administrator it is the last submitted revision.
+      additionalProperties: false
+      required: [id, employee, state, cycle, revision, version, businessDate, currency, amount, amountMinorUnits, category, merchant, description, receipt, createdAt, submittedAt, decidedAt, lastActionAt, editable]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employee:
+          $ref: "#/components/schemas/ExpenseEmployee"
+        state:
+          $ref: "#/components/schemas/ExpenseState"
+        cycle:
+          type: integer
+          minimum: 1
+        revision:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+        businessDate:
+          type: string
+          format: date
+        currency:
+          $ref: "#/components/schemas/ExpenseCurrency"
+        amount:
+          type: string
+          description: Decimal string in the currency exponent (CDF "125000", USD "12.50").
+        amountMinorUnits:
+          type: integer
+          format: int64
+          minimum: 1
+          description: CDF francs or USD cents.
+        category:
+          $ref: "#/components/schemas/ExpenseCategory"
+        merchant:
+          type: string
+          description: Restricted plain text, 1-120 characters.
+        description:
+          type: string
+          description: Restricted plain text, 10-1000 characters.
+        receipt:
+          oneOf:
+            - $ref: "#/components/schemas/ExpenseReceiptFile"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+        submittedAt:
+          type: [string, "null"]
+          format: date-time
+        decidedAt:
+          type: [string, "null"]
+          format: date-time
+        lastActionAt:
+          type: string
+          format: date-time
+        editable:
+          type: boolean
+          description: True while the owner may still change or submit it.
+    ExpenseRevision:
+      type: object
+      description: >-
+        MVP-081. One immutable revision once submitted.
+      additionalProperties: false
+      required: [revision, businessDate, currency, amount, amountMinorUnits, category, merchant, description, receipt, createdAt, submittedAt]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+        businessDate:
+          type: string
+          format: date
+        currency:
+          $ref: "#/components/schemas/ExpenseCurrency"
+        amount:
+          type: string
+          description: Decimal string in the currency exponent (CDF "125000", USD "12.50").
+        amountMinorUnits:
+          type: integer
+          format: int64
+          minimum: 1
+          description: CDF francs or USD cents.
+        category:
+          $ref: "#/components/schemas/ExpenseCategory"
+        merchant:
+          type: string
+        description:
+          type: string
+        receipt:
+          oneOf:
+            - $ref: "#/components/schemas/ExpenseReceiptFile"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+        submittedAt:
+          type: [string, "null"]
+          format: date-time
+    ExpenseAction:
+      type: object
+      description: >-
+        MVP-081. One immutable history entry (role and time, no subject).
+      additionalProperties: false
+      required: [sequence, action, occurredAt, actorRole, fromState, toState, revision, receiptPresent, returnReason]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        action:
+          $ref: "#/components/schemas/ExpenseActionType"
+        occurredAt:
+          type: string
+          format: date-time
+        actorRole:
+          type: string
+          enum: [employee, manager]
+        fromState:
+          oneOf:
+            - $ref: "#/components/schemas/ExpenseState"
+            - type: "null"
+        toState:
+          $ref: "#/components/schemas/ExpenseState"
+        revision:
+          type: integer
+          minimum: 1
+        receiptPresent:
+          type: boolean
+        returnReason:
+          type: [string, "null"]
+          description: The manager's reason, only on a RETURNED action.
+    ExpenseDetail:
+      type: object
+      description: >-
+        MVP-081. An expense with its revisions and history.
+      additionalProperties: false
+      required: [expense, revisions, history]
+      properties:
+        expense:
+          $ref: "#/components/schemas/Expense"
+        revisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpenseRevision"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpenseAction"
+    ExpensePage:
+      type: object
+      description: >-
+        MVP-081. A keyset page.
+      additionalProperties: false
+      required: [items, nextCursor, asOf]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Expense"
+        nextCursor:
+          type: [string, "null"]
+        asOf:
+          type: string
+          format: date-time
+    ExpenseReceipt:
+      type: object
+      description: >-
+        MVP-081. The result of a command: ids, state, numbers and the server time. It carries no user-entered text, so the idempotency store never holds any.
+      additionalProperties: false
+      required: [id, state, cycle, revision, version, currency, amount, amountMinorUnits, category, receiptPresent, occurredAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          $ref: "#/components/schemas/ExpenseState"
+        cycle:
+          type: integer
+          minimum: 1
+        revision:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+        currency:
+          $ref: "#/components/schemas/ExpenseCurrency"
+        amount:
+          type: string
+          description: Decimal string in the currency exponent (CDF "125000", USD "12.50").
+        amountMinorUnits:
+          type: integer
+          format: int64
+          minimum: 1
+          description: CDF francs or USD cents.
+        category:
+          $ref: "#/components/schemas/ExpenseCategory"
+        receiptPresent:
+          type: boolean
+        occurredAt:
+          type: string
+          format: date-time
+    CreateExpenseRequest:
+      type: object
+      additionalProperties: false
+      required: [businessDate, currency, amount, category, merchant, description]
+      properties:
+        businessDate:
+          type: string
+          format: date
+          description: The organization's today or up to 90 days earlier; never in the future.
+        currency:
+          $ref: "#/components/schemas/ExpenseCurrency"
+        amount:
+          type: string
+          description: Decimal string, never a JSON number. CDF whole francs 1-100000000; USD at most two decimals 0.01-100000.00.
+        category:
+          $ref: "#/components/schemas/ExpenseCategory"
+        merchant:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          minLength: 10
+          maxLength: 1000
+    UpdateExpenseDraftRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, businessDate, currency, amount, category, merchant, description]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        businessDate:
+          type: string
+          format: date
+          description: The organization's today or up to 90 days earlier; never in the future.
+        currency:
+          $ref: "#/components/schemas/ExpenseCurrency"
+        amount:
+          type: string
+          description: Decimal string, never a JSON number. CDF whole francs 1-100000000; USD at most two decimals 0.01-100000.00.
+        category:
+          $ref: "#/components/schemas/ExpenseCategory"
+        merchant:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          minLength: 10
+          maxLength: 1000
+    ExpenseVersionRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+    ReturnExpenseRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, reason]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
     CreateTaskRequest:
       type: object
       additionalProperties: false
@@ -13662,6 +14772,15 @@ components:
         - TASK_VERSION_CONFLICT
         - TASK_TRANSITION_NOT_ALLOWED
         - TASK_LIMIT_REACHED
+        - EXPENSE_NOT_FOUND
+        - EXPENSE_VERSION_CONFLICT
+        - EXPENSE_TRANSITION_NOT_ALLOWED
+        - EXPENSE_APPROVAL_ROUTE_UNAVAILABLE
+        - EXPENSE_LIMIT_REACHED
+        - EXPENSE_RECEIPT_INVALID
+        - EXPENSE_RECEIPT_TOO_LARGE
+        - EXPENSE_RECEIPT_UPLOAD_TIMEOUT
+        - EXPENSE_RECEIPT_MEDIA_UNSUPPORTED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.

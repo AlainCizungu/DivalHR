@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -78,6 +79,7 @@ public class MyExpenseController {
    */
   @Operation(operationId = "createMyExpense")
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
   @EmployeeSelfOperation(operation = MyExpenseService.CREATE)
   @SubjectRateLimited(bucket = MyExpenseService.SUBJECT_WRITE_BUCKET)
   @TenantRateLimited(bucket = MyExpenseService.TENANT_WRITE_BUCKET)
