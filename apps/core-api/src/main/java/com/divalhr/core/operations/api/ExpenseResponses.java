@@ -33,7 +33,7 @@ public final class ExpenseResponses {
    * @param sha256 server-computed digest, hexadecimal
    * @param fileName normalized display name
    */
-  @Schema(name = "ExpenseReceipt")
+  @Schema(name = "ExpenseReceiptFile")
   public record ReceiptView(
       UUID id, String mediaType, int sizeBytes, String sha256, String fileName) {
 
@@ -164,6 +164,65 @@ public final class ExpenseResponses {
           expense.decidedAt(),
           expense.lastActionAt(),
           employee == null && expense.state().editable());
+    }
+  }
+
+  /**
+   * The result of a command: identifiers, state and numbers only. It is what an idempotency record
+   * stores for a replay, so it never carries a merchant, description, return reason, file name or
+   * name; the caller reads the detail for those.
+   *
+   * @param id expense
+   * @param state resulting state
+   * @param cycle submission cycle
+   * @param revision current revision
+   * @param version resulting optimistic version
+   * @param currency currency
+   * @param amount decimal string in the currency's own scale
+   * @param amountMinorUnits integer minor units
+   * @param category category
+   * @param receiptPresent whether the current revision has a receipt
+   * @param occurredAt server instant of the command
+   */
+  @Schema(name = "ExpenseReceipt")
+  public record CommandReceipt(
+      UUID id,
+      ExpenseState state,
+      int cycle,
+      int revision,
+      int version,
+      ExpenseCurrency currency,
+      String amount,
+      long amountMinorUnits,
+      ExpenseCategory category,
+      boolean receiptPresent,
+      Instant occurredAt) {
+
+    @Override
+    public String toString() {
+      return "ExpenseCommandReceipt[" + id + "]";
+    }
+
+    /**
+     * The receipt of a command.
+     *
+     * @param expense the expense after the command
+     * @param at server instant
+     * @return the receipt
+     */
+    public static CommandReceipt of(Expense expense, Instant at) {
+      return new CommandReceipt(
+          expense.id(),
+          expense.state(),
+          expense.cycle(),
+          expense.revision(),
+          expense.version(),
+          expense.currency(),
+          expense.currency().format(expense.amountMinor()),
+          expense.amountMinor(),
+          expense.category(),
+          expense.receipt() != null,
+          at);
     }
   }
 

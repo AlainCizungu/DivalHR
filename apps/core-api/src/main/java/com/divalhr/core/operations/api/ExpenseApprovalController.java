@@ -1,7 +1,7 @@
 package com.divalhr.core.operations.api;
 
+import com.divalhr.core.operations.api.ExpenseResponses.CommandReceipt;
 import com.divalhr.core.operations.api.ExpenseResponses.DetailView;
-import com.divalhr.core.operations.api.ExpenseResponses.ExpenseView;
 import com.divalhr.core.operations.api.ExpenseResponses.Page;
 import com.divalhr.core.operations.application.ExpenseApprovalService;
 import com.divalhr.core.operations.application.ExpenseReceiptDownload;
@@ -141,7 +141,7 @@ public class ExpenseApprovalController {
   @EmployeeSelfOperation(operation = ExpenseApprovalService.APPROVE)
   @SubjectRateLimited(bucket = ExpenseApprovalService.SUBJECT_DECISION_BUCKET)
   @TenantRateLimited(bucket = ExpenseApprovalService.TENANT_DECISION_BUCKET)
-  public ResponseEntity<ExpenseView> approve(
+  public ResponseEntity<CommandReceipt> approve(
       @PathVariable("expenseId") String expenseId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestBody ExpenseVersionRequest body,
@@ -166,7 +166,7 @@ public class ExpenseApprovalController {
   @EmployeeSelfOperation(operation = ExpenseApprovalService.RETURN)
   @SubjectRateLimited(bucket = ExpenseApprovalService.SUBJECT_DECISION_BUCKET)
   @TenantRateLimited(bucket = ExpenseApprovalService.TENANT_DECISION_BUCKET)
-  public ResponseEntity<ExpenseView> returnExpense(
+  public ResponseEntity<CommandReceipt> returnExpense(
       @PathVariable("expenseId") String expenseId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestBody ReturnExpenseRequest body,
@@ -176,8 +176,8 @@ public class ExpenseApprovalController {
         approvals.returnExpense(caller(authentication, request), expenseId, idempotencyKey, body));
   }
 
-  private static ResponseEntity<ExpenseView> respond(
-      IdempotentOperation.Result<ExpenseView> result) {
+  private static ResponseEntity<CommandReceipt> respond(
+      IdempotentOperation.Result<CommandReceipt> result) {
     ResponseEntity.BodyBuilder response =
         ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
     if (result.replayed()) {

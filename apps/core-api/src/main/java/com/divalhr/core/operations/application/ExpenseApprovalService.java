@@ -1,5 +1,6 @@
 package com.divalhr.core.operations.application;
 
+import com.divalhr.core.operations.api.ExpenseResponses.CommandReceipt;
 import com.divalhr.core.operations.api.ExpenseResponses.DetailView;
 import com.divalhr.core.operations.api.ExpenseResponses.EmployeeRef;
 import com.divalhr.core.operations.api.ExpenseResponses.ExpenseView;
@@ -151,7 +152,7 @@ public class ExpenseApprovalService {
    * @param body expected version
    * @return the expense, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> approve(
+  public IdempotentOperation.Result<CommandReceipt> approve(
       OperationsCaller caller,
       String expenseId,
       String idempotencyKey,
@@ -169,7 +170,7 @@ public class ExpenseApprovalService {
                 caller.subject(),
                 idempotencyKey,
                 command.canonical(caller.tenant()),
-                ExpenseView.class,
+                CommandReceipt.class,
                 ExpenseCalls.TIMEOUT,
                 resource -> replayable(caller, resource),
                 () -> decide(caller, command.expenseId(), command.expectedVersion(), null)));
@@ -184,7 +185,7 @@ public class ExpenseApprovalService {
    * @param body expected version and reason
    * @return the expense, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> returnExpense(
+  public IdempotentOperation.Result<CommandReceipt> returnExpense(
       OperationsCaller caller,
       String expenseId,
       String idempotencyKey,
@@ -202,7 +203,7 @@ public class ExpenseApprovalService {
                 caller.subject(),
                 idempotencyKey,
                 command.canonical(caller.tenant()),
-                ExpenseView.class,
+                CommandReceipt.class,
                 ExpenseCalls.TIMEOUT,
                 resource -> replayable(caller, resource),
                 () ->
@@ -213,7 +214,7 @@ public class ExpenseApprovalService {
                         command.reason())));
   }
 
-  private IdempotentOperation.Completed<ExpenseView> decide(
+  private IdempotentOperation.Completed<CommandReceipt> decide(
       OperationsCaller caller, UUID id, int expectedVersion, String reason) {
     TenantId tenant = caller.tenant();
     boolean approve = reason == null;
@@ -276,7 +277,7 @@ public class ExpenseApprovalService {
         .addKeyValue("outcome", approve ? "approved" : "returned")
         .log(approve ? "expense_approved" : "expense_returned");
     return new IdempotentOperation.Completed<>(
-        ExpenseView.of(after, reference(tenant, after)), id, Outcome.UPDATED);
+        CommandReceipt.of(after, now), id, Outcome.UPDATED);
   }
 
   /** A stored decision is returned only to the manager the expense still routes to. */

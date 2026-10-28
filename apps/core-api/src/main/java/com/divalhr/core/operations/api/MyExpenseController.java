@@ -1,7 +1,7 @@
 package com.divalhr.core.operations.api;
 
+import com.divalhr.core.operations.api.ExpenseResponses.CommandReceipt;
 import com.divalhr.core.operations.api.ExpenseResponses.DetailView;
-import com.divalhr.core.operations.api.ExpenseResponses.ExpenseView;
 import com.divalhr.core.operations.api.ExpenseResponses.Page;
 import com.divalhr.core.operations.application.MyExpenseService;
 import com.divalhr.core.operations.application.ExpenseReceiptDownload;
@@ -81,7 +81,7 @@ public class MyExpenseController {
   @EmployeeSelfOperation(operation = MyExpenseService.CREATE)
   @SubjectRateLimited(bucket = MyExpenseService.SUBJECT_WRITE_BUCKET)
   @TenantRateLimited(bucket = MyExpenseService.TENANT_WRITE_BUCKET)
-  public ResponseEntity<ExpenseView> create(
+  public ResponseEntity<CommandReceipt> create(
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestBody CreateExpenseRequest body,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
@@ -159,7 +159,7 @@ public class MyExpenseController {
   @EmployeeSelfOperation(operation = MyExpenseService.UPDATE)
   @SubjectRateLimited(bucket = MyExpenseService.SUBJECT_WRITE_BUCKET)
   @TenantRateLimited(bucket = MyExpenseService.TENANT_WRITE_BUCKET)
-  public ResponseEntity<ExpenseView> update(
+  public ResponseEntity<CommandReceipt> update(
       @PathVariable("expenseId") String expenseId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestBody UpdateExpenseDraftRequest body,
@@ -189,7 +189,7 @@ public class MyExpenseController {
   @EmployeeSelfOperation(operation = MyExpenseService.RECEIPT_SET)
   @SubjectRateLimited(bucket = MyExpenseService.SUBJECT_RECEIPT_BUCKET)
   @TenantRateLimited(bucket = MyExpenseService.TENANT_RECEIPT_BUCKET)
-  public ResponseEntity<ExpenseView> setReceipt(
+  public ResponseEntity<CommandReceipt> setReceipt(
       @PathVariable("expenseId") String expenseId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestHeader(name = "X-Expected-Version", required = false) String expectedVersion,
@@ -227,7 +227,7 @@ public class MyExpenseController {
   @EmployeeSelfOperation(operation = MyExpenseService.RECEIPT_REMOVE)
   @SubjectRateLimited(bucket = MyExpenseService.SUBJECT_RECEIPT_BUCKET)
   @TenantRateLimited(bucket = MyExpenseService.TENANT_RECEIPT_BUCKET)
-  public ResponseEntity<ExpenseView> removeReceipt(
+  public ResponseEntity<CommandReceipt> removeReceipt(
       @PathVariable("expenseId") String expenseId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestHeader(name = "X-Expected-Version", required = false) String expectedVersion,
@@ -275,7 +275,7 @@ public class MyExpenseController {
   @EmployeeSelfOperation(operation = MyExpenseService.SUBMIT)
   @SubjectRateLimited(bucket = MyExpenseService.SUBJECT_WRITE_BUCKET)
   @TenantRateLimited(bucket = MyExpenseService.TENANT_WRITE_BUCKET)
-  public ResponseEntity<ExpenseView> submit(
+  public ResponseEntity<CommandReceipt> submit(
       @PathVariable("expenseId") String expenseId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestBody ExpenseVersionRequest body,
@@ -301,7 +301,7 @@ public class MyExpenseController {
   @EmployeeSelfOperation(operation = MyExpenseService.WITHDRAW)
   @SubjectRateLimited(bucket = MyExpenseService.SUBJECT_WRITE_BUCKET)
   @TenantRateLimited(bucket = MyExpenseService.TENANT_WRITE_BUCKET)
-  public ResponseEntity<ExpenseView> withdraw(
+  public ResponseEntity<CommandReceipt> withdraw(
       @PathVariable("expenseId") String expenseId,
       @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
       @RequestBody ExpenseVersionRequest body,
@@ -312,8 +312,8 @@ public class MyExpenseController {
         expenses.withdraw(caller(authentication, request), expenseId, idempotencyKey, body));
   }
 
-  private static ResponseEntity<ExpenseView> respond(
-      HttpStatus status, IdempotentOperation.Result<ExpenseView> result) {
+  private static ResponseEntity<CommandReceipt> respond(
+      HttpStatus status, IdempotentOperation.Result<CommandReceipt> result) {
     ResponseEntity.BodyBuilder response =
         ResponseEntity.status(status).header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
     if (result.replayed()) {

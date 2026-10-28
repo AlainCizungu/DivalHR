@@ -1,6 +1,7 @@
 package com.divalhr.core.operations.application;
 
 import com.divalhr.core.operations.api.CreateExpenseRequest;
+import com.divalhr.core.operations.api.ExpenseResponses.CommandReceipt;
 import com.divalhr.core.operations.api.ExpenseResponses.DetailView;
 import com.divalhr.core.operations.api.ExpenseResponses.ExpenseView;
 import com.divalhr.core.operations.api.ExpenseResponses.Page;
@@ -174,7 +175,7 @@ public class MyExpenseService {
    * @param body the values
    * @return the draft, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> create(
+  public IdempotentOperation.Result<CommandReceipt> create(
       OperationsCaller caller, String idempotencyKey, CreateExpenseRequest body) {
     ExpenseCommands.Create command =
         operations.validated(
@@ -189,13 +190,13 @@ public class MyExpenseService {
                 caller.subject(),
                 idempotencyKey,
                 command.canonical(caller.tenant()),
-                ExpenseView.class,
+                CommandReceipt.class,
                 ExpenseCalls.TIMEOUT,
                 resource -> replayable(caller, resource),
                 () -> doCreate(caller, command)));
   }
 
-  private IdempotentOperation.Completed<ExpenseView> doCreate(
+  private IdempotentOperation.Completed<CommandReceipt> doCreate(
       OperationsCaller caller, ExpenseCommands.Create command) {
     TenantId tenant = caller.tenant();
     SelfLink link = link(caller);
@@ -214,7 +215,7 @@ public class MyExpenseService {
     recorder.command(caller, "expense.create", null, null, after, ROLE, false, now);
     log(CREATE, "created");
     return new IdempotentOperation.Completed<>(
-        ExpenseView.of(after, null), id, Outcome.CREATED);
+        CommandReceipt.of(after, now), id, Outcome.CREATED);
   }
 
   /**
@@ -226,7 +227,7 @@ public class MyExpenseService {
    * @param body the expected version and values
    * @return the expense, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> update(
+  public IdempotentOperation.Result<CommandReceipt> update(
       OperationsCaller caller,
       String expenseId,
       String idempotencyKey,
@@ -244,13 +245,13 @@ public class MyExpenseService {
                 caller.subject(),
                 idempotencyKey,
                 command.canonical(caller.tenant()),
-                ExpenseView.class,
+                CommandReceipt.class,
                 ExpenseCalls.TIMEOUT,
                 resource -> replayable(caller, resource),
                 () -> doUpdate(caller, command)));
   }
 
-  private IdempotentOperation.Completed<ExpenseView> doUpdate(
+  private IdempotentOperation.Completed<CommandReceipt> doUpdate(
       OperationsCaller caller, ExpenseCommands.Save command) {
     TenantId tenant = caller.tenant();
     SelfLink link = link(caller);
@@ -286,7 +287,7 @@ public class MyExpenseService {
     recorder.command(caller, "expense.update-draft", null, before, after, ROLE, false, now);
     log(UPDATE, "updated");
     return new IdempotentOperation.Completed<>(
-        ExpenseView.of(after, null), after.id(), Outcome.UPDATED);
+        CommandReceipt.of(after, now), after.id(), Outcome.UPDATED);
   }
 
   /**
@@ -304,7 +305,7 @@ public class MyExpenseService {
    * @param body the request body stream
    * @return the expense, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> setReceipt(
+  public IdempotentOperation.Result<CommandReceipt> setReceipt(
       OperationsCaller caller,
       String expenseId,
       String idempotencyKey,
@@ -350,7 +351,7 @@ public class MyExpenseService {
               caller.subject(),
               idempotencyKey,
               command.canonical(caller.tenant(), verified),
-              ExpenseView.class,
+              CommandReceipt.class,
               ExpenseCalls.TIMEOUT,
               resource -> replayable(caller, resource),
               () -> doReceipt(caller, command, verified));
@@ -366,7 +367,7 @@ public class MyExpenseService {
    * @param expectedVersion {@code X-Expected-Version} header
    * @return the expense, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> removeReceipt(
+  public IdempotentOperation.Result<CommandReceipt> removeReceipt(
       OperationsCaller caller, String expenseId, String idempotencyKey, String expectedVersion) {
     ExpenseCommands.ReceiptMutation command =
         operations.validated(
@@ -382,13 +383,13 @@ public class MyExpenseService {
                 caller.subject(),
                 idempotencyKey,
                 command.canonical(caller.tenant(), null),
-                ExpenseView.class,
+                CommandReceipt.class,
                 ExpenseCalls.TIMEOUT,
                 resource -> replayable(caller, resource),
                 () -> doReceipt(caller, command, null)));
   }
 
-  private IdempotentOperation.Completed<ExpenseView> doReceipt(
+  private IdempotentOperation.Completed<CommandReceipt> doReceipt(
       OperationsCaller caller,
       ExpenseCommands.ReceiptMutation command,
       ReceiptVerifier.Verified verified) {
@@ -466,7 +467,7 @@ public class MyExpenseService {
         now);
     log(set ? RECEIPT_SET : RECEIPT_REMOVE, set ? "receipt_set" : "receipt_removed");
     return new IdempotentOperation.Completed<>(
-        ExpenseView.of(after, null), after.id(), Outcome.UPDATED);
+        CommandReceipt.of(after, now), after.id(), Outcome.UPDATED);
   }
 
   /**
@@ -478,7 +479,7 @@ public class MyExpenseService {
    * @param body expected version
    * @return the expense, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> submit(
+  public IdempotentOperation.Result<CommandReceipt> submit(
       OperationsCaller caller,
       String expenseId,
       String idempotencyKey,
@@ -496,13 +497,13 @@ public class MyExpenseService {
                 caller.subject(),
                 idempotencyKey,
                 command.canonical(caller.tenant()),
-                ExpenseView.class,
+                CommandReceipt.class,
                 ExpenseCalls.TIMEOUT,
                 resource -> replayable(caller, resource),
                 () -> doSubmit(caller, command)));
   }
 
-  private IdempotentOperation.Completed<ExpenseView> doSubmit(
+  private IdempotentOperation.Completed<CommandReceipt> doSubmit(
       OperationsCaller caller, ExpenseCommands.Decision command) {
     TenantId tenant = caller.tenant();
     // Lock order: manager graph (step 1), employee link (step 4), expense row (step 5).
@@ -551,7 +552,7 @@ public class MyExpenseService {
     recorder.command(caller, "expense.submit", SUBMITTED_EVENT, before, after, ROLE, false, now);
     log(SUBMIT, "submitted");
     return new IdempotentOperation.Completed<>(
-        ExpenseView.of(after, null), after.id(), Outcome.UPDATED);
+        CommandReceipt.of(after, now), after.id(), Outcome.UPDATED);
   }
 
   /**
@@ -563,7 +564,7 @@ public class MyExpenseService {
    * @param body expected version
    * @return the expense, or the replayed original
    */
-  public IdempotentOperation.Result<ExpenseView> withdraw(
+  public IdempotentOperation.Result<CommandReceipt> withdraw(
       OperationsCaller caller,
       String expenseId,
       String idempotencyKey,
@@ -581,13 +582,13 @@ public class MyExpenseService {
                 caller.subject(),
                 idempotencyKey,
                 command.canonical(caller.tenant()),
-                ExpenseView.class,
+                CommandReceipt.class,
                 ExpenseCalls.TIMEOUT,
                 resource -> replayable(caller, resource),
                 () -> doWithdraw(caller, command)));
   }
 
-  private IdempotentOperation.Completed<ExpenseView> doWithdraw(
+  private IdempotentOperation.Completed<CommandReceipt> doWithdraw(
       OperationsCaller caller, ExpenseCommands.Decision command) {
     TenantId tenant = caller.tenant();
     SelfLink link = link(caller);
@@ -625,7 +626,7 @@ public class MyExpenseService {
     recorder.command(caller, "expense.withdraw", WITHDRAWN_EVENT, before, after, ROLE, false, now);
     log(WITHDRAW, "withdrawn");
     return new IdempotentOperation.Completed<>(
-        ExpenseView.of(after, null), after.id(), Outcome.UPDATED);
+        CommandReceipt.of(after, now), after.id(), Outcome.UPDATED);
   }
 
   // ------------------------------------------------------------------------------------------
