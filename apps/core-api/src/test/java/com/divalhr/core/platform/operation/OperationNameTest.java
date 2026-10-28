@@ -9,6 +9,9 @@ import com.divalhr.core.identity.application.InvitationQueryService;
 import com.divalhr.core.identity.application.PublicInvitationService;
 import com.divalhr.core.identity.application.ResendInvitationService;
 import com.divalhr.core.identity.application.RevokeInvitationService;
+import com.divalhr.core.operations.application.ExpenseApprovalService;
+import com.divalhr.core.operations.application.ExpenseService;
+import com.divalhr.core.operations.application.MyExpenseService;
 import com.divalhr.core.operations.application.MyTaskService;
 import com.divalhr.core.operations.application.TaskService;
 import com.divalhr.core.people.leave.application.LeaveApprovalService;
@@ -74,7 +77,25 @@ class OperationNameTest {
           MyTaskService.LIST,
           MyTaskService.READ,
           MyTaskService.START_AUDIT,
-          MyTaskService.COMPLETE_AUDIT);
+          MyTaskService.COMPLETE_AUDIT,
+          // MVP-081: expenses.
+          MyExpenseService.CREATE,
+          MyExpenseService.UPDATE,
+          MyExpenseService.RECEIPT_SET,
+          MyExpenseService.RECEIPT_REMOVE,
+          MyExpenseService.SUBMIT,
+          MyExpenseService.WITHDRAW,
+          MyExpenseService.LIST,
+          MyExpenseService.READ,
+          MyExpenseService.RECEIPT_READ,
+          ExpenseApprovalService.APPROVE,
+          ExpenseApprovalService.RETURN,
+          ExpenseApprovalService.LIST,
+          ExpenseApprovalService.READ,
+          ExpenseApprovalService.RECEIPT_READ,
+          ExpenseService.LIST,
+          ExpenseService.READ,
+          ExpenseService.RECEIPT_READ);
 
   /** Malformed names from Issue #17 plus the grammar's edges. */
   static final List<String> MALFORMED =
