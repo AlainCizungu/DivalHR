@@ -158,8 +158,10 @@ class ReceiptVerifierTest {
   void theBodyIsReadWithinTheCapAndTheDeadline() throws Exception {
     Clock clock = Clock.fixed(Instant.parse("2026-10-19T10:00:00Z"), ZoneOffset.UTC);
     byte[] ok = new byte[1000];
-    assertThat(ReceiptBody.read(new ByteArrayInputStream(ok), clock)).hasSize(1000);
-    InputStream endless =
+    try (InputStream in = new ByteArrayInputStream(ok)) {
+      assertThat(ReceiptBody.read(in, clock)).hasSize(1000);
+    }
+    try (InputStream endless =
         new InputStream() {
           long served;
 
@@ -175,22 +177,24 @@ class ReceiptVerifierTest {
             assertThat(served).as("never read far beyond the cap").isLessThan(3L * 1024 * 1024);
             return length;
           }
-        };
-    assertThatThrownBy(() -> ReceiptBody.read(endless, clock))
-        .isInstanceOfSatisfying(
-            ApiException.class,
-            e -> assertThat(e.code()).isEqualTo(ErrorCode.EXPENSE_RECEIPT_TOO_LARGE));
-    InputStream broken =
+        }) {
+      assertThatThrownBy(() -> ReceiptBody.read(endless, clock))
+          .isInstanceOfSatisfying(
+              ApiException.class,
+              e -> assertThat(e.code()).isEqualTo(ErrorCode.EXPENSE_RECEIPT_TOO_LARGE));
+    }
+    try (InputStream broken =
         new InputStream() {
           @Override
           public int read() throws IOException {
             throw new IOException("reset");
           }
-        };
-    assertThatThrownBy(() -> ReceiptBody.read(broken, clock))
-        .isInstanceOfSatisfying(
-            ApiException.class,
-            e -> assertThat(e.code()).isEqualTo(ErrorCode.EXPENSE_RECEIPT_UPLOAD_TIMEOUT));
+        }) {
+      assertThatThrownBy(() -> ReceiptBody.read(broken, clock))
+          .isInstanceOfSatisfying(
+              ApiException.class,
+              e -> assertThat(e.code()).isEqualTo(ErrorCode.EXPENSE_RECEIPT_UPLOAD_TIMEOUT));
+    }
     assertThatThrownBy(() -> ReceiptBody.requireDeclaredLength(ReceiptVerifier.MAX_BYTES + 1L))
         .isInstanceOf(ApiException.class);
     ReceiptBody.requireDeclaredLength(-1);
