@@ -234,7 +234,8 @@ public final class ExpenseCommands {
      * @param request body
      * @return the command
      */
-    public static Return from(String idempotencyKey, String expenseId, ReturnExpenseRequest request) {
+    public static Return from(
+        String idempotencyKey, String expenseId, ReturnExpenseRequest request) {
       UUID id = ExpenseCommands.expenseId(expenseId);
       FieldErrors errors = new FieldErrors();
       key(errors, idempotencyKey);
@@ -305,8 +306,9 @@ public final class ExpenseCommands {
           errors.add("X-Receipt-File-Name", Constraint.LENGTH);
         } else {
           try {
-            name = java.net.URLDecoder.decode(encodedName.replace("+", "%2B"),
-                java.nio.charset.StandardCharsets.UTF_8);
+            name =
+                java.net.URLDecoder.decode(
+                    encodedName.replace("+", "%2B"), java.nio.charset.StandardCharsets.UTF_8);
           } catch (IllegalArgumentException invalid) {
             errors.add("X-Receipt-File-Name", Constraint.FORMAT);
           }

@@ -85,26 +85,66 @@ class ExpenseDatabaseAndConcurrencyIntegrationTest {
     String id = approved();
     UUID expense = UUID.fromString(id);
     UUID tenant = w.tenant();
-    refused("UPDATE operations.expense SET state = 'DRAFT' WHERE tenant_id = ? AND id = ?", tenant, expense);
-    refused("UPDATE operations.expense SET amount_minor = 5 WHERE tenant_id = ? AND id = ?", tenant, expense);
+    refused(
+        "UPDATE operations.expense SET state = 'DRAFT' WHERE tenant_id = ? AND id = ?",
+        tenant,
+        expense);
+    refused(
+        "UPDATE operations.expense SET amount_minor = 5 WHERE tenant_id = ? AND id = ?",
+        tenant,
+        expense);
     refused("DELETE FROM operations.expense WHERE tenant_id = ? AND id = ?", tenant, expense);
-    refused("UPDATE operations.expense_action SET actor_role = 'manager' WHERE tenant_id = ? AND expense_id = ?", tenant, expense);
-    refused("DELETE FROM operations.expense_action WHERE tenant_id = ? AND expense_id = ?", tenant, expense);
-    refused("DELETE FROM operations.expense_revision WHERE tenant_id = ? AND expense_id = ?", tenant, expense);
-    refused("UPDATE operations.expense_revision SET merchant = 'Autre' WHERE tenant_id = ? AND expense_id = ?", tenant, expense);
+    refused(
+        "UPDATE operations.expense_action SET actor_role = 'manager' WHERE tenant_id = ? AND"
+            + " expense_id = ?",
+        tenant,
+        expense);
+    refused(
+        "DELETE FROM operations.expense_action WHERE tenant_id = ? AND expense_id = ?",
+        tenant,
+        expense);
+    refused(
+        "DELETE FROM operations.expense_revision WHERE tenant_id = ? AND expense_id = ?",
+        tenant,
+        expense);
+    refused(
+        "UPDATE operations.expense_revision SET merchant = 'Autre' WHERE tenant_id = ? AND"
+            + " expense_id = ?",
+        tenant,
+        expense);
     refused("TRUNCATE operations.expense_action");
-    assertThat(w.count("SELECT count(*) FROM operations.expense WHERE tenant_id = ? AND id = ? AND state = 'APPROVED' AND amount_minor = 1000", tenant, expense)).isEqualTo(1);
+    assertThat(
+            w.count(
+                "SELECT count(*) FROM operations.expense WHERE tenant_id = ? AND id = ? AND state ="
+                    + " 'APPROVED' AND amount_minor = 1000",
+                tenant,
+                expense))
+        .isEqualTo(1);
   }
 
   @Test
   void aSubmittedRevisionsReceiptCannotBeDeletedOrChanged() throws Exception {
     String id = x.create(ana, x.usd("10", 1)).get("id").asText();
-    w.expect(ExpenseWorld.upload(ana, id, 1, "image/png", Receipts.png(1), ExpenseWorld.FILE_NAME, key()), 200);
+    w.expect(
+        ExpenseWorld.upload(
+            ana, id, 1, "image/png", Receipts.png(1), ExpenseWorld.FILE_NAME, key()),
+        200);
     x.submit(ana, id, 2);
     UUID expense = UUID.fromString(id);
-    refused("DELETE FROM operations.expense_receipt WHERE tenant_id = ? AND expense_id = ?", w.tenant(), expense);
-    refused("UPDATE operations.expense_receipt SET file_name = 'autre.png' WHERE tenant_id = ? AND expense_id = ?", w.tenant(), expense);
-    refused("UPDATE operations.expense_receipt SET content = '\\x89504e470d0a1a0a00'::bytea WHERE tenant_id = ? AND expense_id = ?", w.tenant(), expense);
+    refused(
+        "DELETE FROM operations.expense_receipt WHERE tenant_id = ? AND expense_id = ?",
+        w.tenant(),
+        expense);
+    refused(
+        "UPDATE operations.expense_receipt SET file_name = 'autre.png' WHERE tenant_id = ? AND"
+            + " expense_id = ?",
+        w.tenant(),
+        expense);
+    refused(
+        "UPDATE operations.expense_receipt SET content = '\\x89504e470d0a1a0a00'::bytea WHERE"
+            + " tenant_id = ? AND expense_id = ?",
+        w.tenant(),
+        expense);
   }
 
   @Test
@@ -113,14 +153,44 @@ class ExpenseDatabaseAndConcurrencyIntegrationTest {
     UUID expense = UUID.fromString(id);
     // A jump from draft to approved, a projection that no longer matches its revision, a version
     // that does not move by one: all refused at the database.
-    refused("UPDATE operations.expense SET state = 'APPROVED', submitted_at = now(), decided_at = now(), routed_manager_employee_id = ?, version = version + 1 WHERE tenant_id = ? AND id = ?", mina.employee(), w.tenant(), expense);
-    refused("UPDATE operations.expense SET amount_minor = 9999, version = version + 1 WHERE tenant_id = ? AND id = ?", w.tenant(), expense);
-    refused("UPDATE operations.expense SET version = version + 5 WHERE tenant_id = ? AND id = ?", w.tenant(), expense);
-    refused("UPDATE operations.expense SET employee_id = ? WHERE tenant_id = ? AND id = ?", mina.employee(), w.tenant(), expense);
-    refused("UPDATE operations.expense SET currency = 'CDF' WHERE tenant_id = ? AND id = ?", w.tenant(), expense);
+    refused(
+        "UPDATE operations.expense SET state = 'APPROVED', submitted_at = now(), decided_at ="
+            + " now(), routed_manager_employee_id = ?, version = version + 1 WHERE tenant_id = ?"
+            + " AND id = ?",
+        mina.employee(),
+        w.tenant(),
+        expense);
+    refused(
+        "UPDATE operations.expense SET amount_minor = 9999, version = version + 1 WHERE tenant_id ="
+            + " ? AND id = ?",
+        w.tenant(),
+        expense);
+    refused(
+        "UPDATE operations.expense SET version = version + 5 WHERE tenant_id = ? AND id = ?",
+        w.tenant(),
+        expense);
+    refused(
+        "UPDATE operations.expense SET employee_id = ? WHERE tenant_id = ? AND id = ?",
+        mina.employee(),
+        w.tenant(),
+        expense);
+    refused(
+        "UPDATE operations.expense SET currency = 'CDF' WHERE tenant_id = ? AND id = ?",
+        w.tenant(),
+        expense);
     // Range per currency, at the table.
-    refused("UPDATE operations.expense SET currency = 'CDF', amount_minor = 100000001 WHERE tenant_id = ? AND id = ?", w.tenant(), expense);
-    assertThat(w.count("SELECT count(*) FROM operations.expense WHERE tenant_id = ? AND id = ? AND state = 'DRAFT' AND version = 1 AND amount_minor = 1000", w.tenant(), expense)).isEqualTo(1);
+    refused(
+        "UPDATE operations.expense SET currency = 'CDF', amount_minor = 100000001 WHERE tenant_id ="
+            + " ? AND id = ?",
+        w.tenant(),
+        expense);
+    assertThat(
+            w.count(
+                "SELECT count(*) FROM operations.expense WHERE tenant_id = ? AND id = ? AND state ="
+                    + " 'DRAFT' AND version = 1 AND amount_minor = 1000",
+                w.tenant(),
+                expense))
+        .isEqualTo(1);
   }
 
   @Test
@@ -129,8 +199,8 @@ class ExpenseDatabaseAndConcurrencyIntegrationTest {
     UUID expense = UUID.fromString(id);
     String insert =
         "INSERT INTO operations.expense_receipt (tenant_id, expense_id, id, media_type, size_bytes,"
-            + " sha256, file_name, content, created_at, created_by)"
-            + " VALUES (?, ?, gen_random_uuid(), ?, octet_length(?::bytea), ?, ?, ?::bytea, now(), 'x')";
+            + " sha256, file_name, content, created_at, created_by) VALUES (?, ?,"
+            + " gen_random_uuid(), ?, octet_length(?::bytea), ?, ?, ?::bytea, now(), 'x')";
     byte[] png = Receipts.png(1);
     byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(png);
     // Wrong magic for the declared type.
@@ -185,13 +255,28 @@ class ExpenseDatabaseAndConcurrencyIntegrationTest {
       List<MockHttpServletResponse> responses =
           parallel(
               List.of(
-                  ExpenseWorld.post(mina, ExpenseWorld.APPROVALS + "/" + id + "/approve", key(), ExpenseWorld.version(2)),
-                  ExpenseWorld.post(ana, ExpenseWorld.MINE + "/" + id + "/withdraw", key(), ExpenseWorld.version(2))));
+                  ExpenseWorld.post(
+                      mina,
+                      ExpenseWorld.APPROVALS + "/" + id + "/approve",
+                      key(),
+                      ExpenseWorld.version(2)),
+                  ExpenseWorld.post(
+                      ana,
+                      ExpenseWorld.MINE + "/" + id + "/withdraw",
+                      key(),
+                      ExpenseWorld.version(2))));
       List<Integer> statuses = responses.stream().map(MockHttpServletResponse::getStatus).toList();
-      assertThat(statuses.stream().filter(s -> s == 200).count()).as("round " + round + " " + statuses).isEqualTo(1);
+      assertThat(statuses.stream().filter(s -> s == 200).count())
+          .as("round " + round + " " + statuses)
+          .isEqualTo(1);
       assertThat(statuses.stream().filter(s -> s != 200)).allMatch(s -> s == 409 || s == 404);
       assertThat(decisions(id)).isEqualTo(1);
-      assertThat(w.count("SELECT count(*) FROM operations.expense WHERE id = ? AND state IN ('APPROVED','WITHDRAWN') AND version = 3", UUID.fromString(id))).isEqualTo(1);
+      assertThat(
+              w.count(
+                  "SELECT count(*) FROM operations.expense WHERE id = ? AND state IN"
+                      + " ('APPROVED','WITHDRAWN') AND version = 3",
+                  UUID.fromString(id)))
+          .isEqualTo(1);
     }
   }
 
@@ -203,10 +288,20 @@ class ExpenseDatabaseAndConcurrencyIntegrationTest {
       List<MockHttpServletResponse> responses =
           parallel(
               List.of(
-                  ExpenseWorld.post(mina, ExpenseWorld.APPROVALS + "/" + id + "/approve", key(), ExpenseWorld.version(2)),
-                  ExpenseWorld.post(mina, ExpenseWorld.APPROVALS + "/" + id + "/return", key(), Map.of("expectedVersion", 2, "reason", ExpenseWorld.REASON))));
+                  ExpenseWorld.post(
+                      mina,
+                      ExpenseWorld.APPROVALS + "/" + id + "/approve",
+                      key(),
+                      ExpenseWorld.version(2)),
+                  ExpenseWorld.post(
+                      mina,
+                      ExpenseWorld.APPROVALS + "/" + id + "/return",
+                      key(),
+                      Map.of("expectedVersion", 2, "reason", ExpenseWorld.REASON))));
       List<Integer> statuses = responses.stream().map(MockHttpServletResponse::getStatus).toList();
-      assertThat(statuses.stream().filter(s -> s == 200).count()).as("round " + round + " " + statuses).isEqualTo(1);
+      assertThat(statuses.stream().filter(s -> s == 200).count())
+          .as("round " + round + " " + statuses)
+          .isEqualTo(1);
       assertThat(decisions(id)).isEqualTo(1);
     }
   }
@@ -219,11 +314,25 @@ class ExpenseDatabaseAndConcurrencyIntegrationTest {
     List<MockHttpServletResponse> responses =
         parallel(
             List.of(
-                ExpenseWorld.post(mina, ExpenseWorld.APPROVALS + "/" + id + "/approve", same, ExpenseWorld.version(2)),
-                ExpenseWorld.post(mina, ExpenseWorld.APPROVALS + "/" + id + "/approve", same, ExpenseWorld.version(2))));
+                ExpenseWorld.post(
+                    mina,
+                    ExpenseWorld.APPROVALS + "/" + id + "/approve",
+                    same,
+                    ExpenseWorld.version(2)),
+                ExpenseWorld.post(
+                    mina,
+                    ExpenseWorld.APPROVALS + "/" + id + "/approve",
+                    same,
+                    ExpenseWorld.version(2))));
     assertThat(responses).allMatch(r -> r.getStatus() == 200 || r.getStatus() == 409);
-    assertThat(responses.stream().filter(r -> r.getStatus() == 200).count()).isGreaterThanOrEqualTo(1);
+    assertThat(responses.stream().filter(r -> r.getStatus() == 200).count())
+        .isGreaterThanOrEqualTo(1);
     assertThat(decisions(id)).isEqualTo(1);
-    assertThat(w.count("SELECT count(*) FROM platform.outbox_event WHERE tenant_id = ? AND event_type = 'operations.expense.approved.v1'", w.tenant())).isEqualTo(1);
+    assertThat(
+            w.count(
+                "SELECT count(*) FROM platform.outbox_event WHERE tenant_id = ? AND event_type ="
+                    + " 'operations.expense.approved.v1'",
+                w.tenant()))
+        .isEqualTo(1);
   }
 }

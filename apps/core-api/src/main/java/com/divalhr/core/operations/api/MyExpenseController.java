@@ -3,29 +3,29 @@ package com.divalhr.core.operations.api;
 import com.divalhr.core.operations.api.ExpenseResponses.CommandReceipt;
 import com.divalhr.core.operations.api.ExpenseResponses.DetailView;
 import com.divalhr.core.operations.api.ExpenseResponses.Page;
-import com.divalhr.core.operations.application.MyExpenseService;
 import com.divalhr.core.operations.application.ExpenseReceiptDownload;
+import com.divalhr.core.operations.application.MyExpenseService;
 import com.divalhr.core.operations.application.OperationsCaller;
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
-import com.divalhr.core.platform.tenancy.TenantContextResolver;
-import com.divalhr.core.platform.web.CorrelationId;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import com.divalhr.core.platform.idempotency.IdempotencyKeys;
 import com.divalhr.core.platform.idempotency.IdempotentOperation;
 import com.divalhr.core.platform.ratelimit.SubjectRateLimited;
 import com.divalhr.core.platform.ratelimit.TenantRateLimited;
 import com.divalhr.core.platform.security.EmployeeSelfOperation;
+import com.divalhr.core.platform.tenancy.TenantContextResolver;
+import com.divalhr.core.platform.web.CorrelationId;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -335,7 +335,8 @@ public class MyExpenseController {
         };
     return ResponseEntity.ok()
         .contentType(MediaType.parseMediaType(receipt.mediaType()))
-        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"receipt." + extension + "\"")
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"receipt." + extension + "\"")
         .header("X-Content-Type-Options", "nosniff")
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
         .body(receipt.content());

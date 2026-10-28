@@ -123,8 +123,8 @@ final class ExpenseWorld {
     return body;
   }
 
-  static MockHttpServletRequestBuilder post(
-      Person p, String path, String key, Object body) throws Exception {
+  static MockHttpServletRequestBuilder post(Person p, String path, String key, Object body)
+      throws Exception {
     return TaskWorld.json(path, p.bearer(), key, body);
   }
 
@@ -152,8 +152,7 @@ final class ExpenseWorld {
     return key == null ? request : request.header("Idempotency-Key", key);
   }
 
-  static MockHttpServletRequestBuilder removeReceipt(
-      Person p, String id, int version, String key) {
+  static MockHttpServletRequestBuilder removeReceipt(Person p, String id, int version, String key) {
     MockHttpServletRequestBuilder request =
         delete(MINE + "/" + id + "/receipt")
             .header("Authorization", p.bearer())
@@ -230,14 +229,12 @@ final class ExpenseWorld {
         w.jdbc.queryForList(
             "SELECT metadata::text FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND action LIKE 'expense.%'",
-            String.class,
-            w.tenant());
+            String.class, w.tenant());
     rows.addAll(
         w.jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'operations.expense.%'",
-            String.class,
-            w.tenant()));
+            String.class, w.tenant()));
     rows.addAll(
         w.jdbc.queryForList(
             "SELECT response_body::text FROM platform.idempotency_record"

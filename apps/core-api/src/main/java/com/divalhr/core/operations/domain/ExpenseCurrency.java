@@ -6,8 +6,8 @@ import java.util.regex.Pattern;
 
 /**
  * The two currencies of an expense (MVP-081, D81-2). Amounts are decimal strings on the wire and
- * integer minor units in storage: Congolese francs have no minor unit, US dollars have two decimals.
- * Nothing converts one into the other and nothing ever adds them together.
+ * integer minor units in storage: Congolese francs have no minor unit, US dollars have two
+ * decimals. Nothing converts one into the other and nothing ever adds them together.
  */
 public enum ExpenseCurrency {
   /** Congolese franc: whole francs from 1 to 100,000,000. */

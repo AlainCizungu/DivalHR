@@ -66,7 +66,9 @@ final class Receipts {
   }
 
   private static byte[] int32(int value) {
-    return new byte[] {(byte) (value >>> 24), (byte) (value >>> 16), (byte) (value >>> 8), (byte) value};
+    return new byte[] {
+      (byte) (value >>> 24), (byte) (value >>> 16), (byte) (value >>> 8), (byte) value
+    };
   }
 
   /** The bytes followed by trailing data (a polyglot or an appended payload). */

@@ -49,7 +49,8 @@ class ReceiptVerifierTest {
   void theDeclaredTypeMustMatchTheMagicBytes() {
     // Mutation proof (D81-14): swapping the declared type must fail, not be believed.
     assertThat(refused("image/png", Receipts.jpeg(1))).isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    assertThat(refused("application/pdf", Receipts.png(1))).isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
+    assertThat(refused("application/pdf", Receipts.png(1)))
+        .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
     assertThat(refused("image/jpeg", Receipts.pdf(1))).isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
   }
 
@@ -88,15 +89,17 @@ class ReceiptVerifierTest {
     byte[] jpeg = Receipts.jpeg(1);
     assertThat(refused("image/jpeg", java.util.Arrays.copyOf(jpeg, jpeg.length - 2)))
         .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
-    assertThat(refused("application/pdf", "%PDF-1.4\nnothing else".getBytes(StandardCharsets.ISO_8859_1)))
+    assertThat(
+            refused(
+                "application/pdf", "%PDF-1.4\nnothing else".getBytes(StandardCharsets.ISO_8859_1)))
         .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
   }
 
   @Test
   void aPdfWithActiveContentIsRefused() {
-    for (String active : new String[] {"/JavaScript", "/JS", "/Launch", "/EmbeddedFile", "/OpenAction"}) {
-      String text =
-          "%PDF-1.4\n1 0 obj\n<< /Type /Catalog " + active + " (x) >>\nendobj\n%%EOF\n";
+    for (String active :
+        new String[] {"/JavaScript", "/JS", "/Launch", "/EmbeddedFile", "/OpenAction"}) {
+      String text = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog " + active + " (x) >>\nendobj\n%%EOF\n";
       assertThat(refused("application/pdf", text.getBytes(StandardCharsets.ISO_8859_1)))
           .as(active)
           .isEqualTo(ErrorCode.EXPENSE_RECEIPT_INVALID);
@@ -113,7 +116,17 @@ class ReceiptVerifierTest {
   @Test
   void onlyThreeDeclaredTypesAreAccepted() {
     assertThat(ReceiptVerifier.declared("IMAGE/PNG; charset=binary")).isEqualTo("image/png");
-    for (String declared : new String[] {null, "", "image/svg+xml", "text/html", "image/gif", "application/zip", "application/octet-stream", "multipart/form-data"}) {
+    for (String declared :
+        new String[] {
+          null,
+          "",
+          "image/svg+xml",
+          "text/html",
+          "image/gif",
+          "application/zip",
+          "application/octet-stream",
+          "multipart/form-data"
+        }) {
       assertThatThrownBy(() -> ReceiptVerifier.declared(declared))
           .isInstanceOfSatisfying(
               ApiException.class,

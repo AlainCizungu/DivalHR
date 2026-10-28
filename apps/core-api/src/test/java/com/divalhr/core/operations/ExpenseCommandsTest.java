@@ -24,7 +24,8 @@ class ExpenseCommandsTest {
   private static final String KEY = "0123456789abcdef0123";
   private static final JsonMapper JSON = JsonMapper.builder().build();
   private static final UUID EXPENSE = UUID.fromString("00000000-0000-0000-0000-0000000000f1");
-  private static final TenantId TENANT = new TenantId(UUID.fromString("00000000-0000-0000-0000-0000000000a1"));
+  private static final TenantId TENANT =
+      new TenantId(UUID.fromString("00000000-0000-0000-0000-0000000000a1"));
 
   private static final String VALID =
       "{\"businessDate\":\"2026-10-12\",\"currency\":\"USD\",\"amount\":\"12.50\","
@@ -83,7 +84,8 @@ class ExpenseCommandsTest {
     assertThat(createProblems(cdf.replace("\"1250\"", "\"1250.50\""))).contains("amount:FORMAT");
     assertThat(createProblems(VALID.replace("\"12.50\"", "\"12.505\""))).contains("amount:FORMAT");
     assertThat(createProblems(VALID.replace("\"12.50\"", "\"0.00\""))).contains("amount:FORMAT");
-    assertThat(createProblems(VALID.replace("\"12.50\"", "\"100000.01\""))).contains("amount:FORMAT");
+    assertThat(createProblems(VALID.replace("\"12.50\"", "\"100000.01\"")))
+        .contains("amount:FORMAT");
     assertThat(createProblems(VALID.replace("\"12.50\"", "\"100000.00\""))).isEmpty();
     assertThat(createProblems(VALID.replace("\"USD\"", "\"EUR\""))).contains("currency:FORMAT");
     assertThat(createProblems(VALID.replace("\"USD\"", "\"usd\""))).contains("currency:FORMAT");
@@ -93,7 +95,8 @@ class ExpenseCommandsTest {
   void theSameAmountTextMeansDifferentMinorUnitsPerCurrency() {
     ExpenseCommands.Create usd = ExpenseCommands.Create.from(KEY, create(VALID));
     ExpenseCommands.Create cdf =
-        ExpenseCommands.Create.from(KEY, create(VALID.replace("\"USD\"", "\"CDF\"").replace("12.50", "1250")));
+        ExpenseCommands.Create.from(
+            KEY, create(VALID.replace("\"USD\"", "\"CDF\"").replace("12.50", "1250")));
     assertThat(usd.draft().fields().amountMinor()).isEqualTo(cdf.draft().fields().amountMinor());
     assertThat(usd.canonical(TENANT)).isNotEqualTo(cdf.canonical(TENANT));
   }
@@ -111,18 +114,31 @@ class ExpenseCommandsTest {
         .containsExactly("businessDate:RANGE");
     // The month-end and leap-day arithmetic is the calendar's.
     ExpenseCommands.requireWindow(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 4, 1));
-    assertThat(problems(() -> ExpenseCommands.requireWindow(LocalDate.of(2025, 12, 31), LocalDate.of(2026, 4, 1))))
+    assertThat(
+            problems(
+                () ->
+                    ExpenseCommands.requireWindow(
+                        LocalDate.of(2025, 12, 31), LocalDate.of(2026, 4, 1))))
         .containsExactly("businessDate:RANGE");
   }
 
   @Test
   void dateShapeAndCategoryAreClosed() {
-    assertThat(createProblems(with("businessDate", "\"2026-13-01\""))).contains("businessDate:FORMAT");
-    assertThat(createProblems(with("businessDate", "\"12/10/2026\""))).contains("businessDate:FORMAT");
-    assertThat(createProblems(with("businessDate", "\"2026-02-30\""))).contains("businessDate:FORMAT");
+    assertThat(createProblems(with("businessDate", "\"2026-13-01\"")))
+        .contains("businessDate:FORMAT");
+    assertThat(createProblems(with("businessDate", "\"12/10/2026\"")))
+        .contains("businessDate:FORMAT");
+    assertThat(createProblems(with("businessDate", "\"2026-02-30\"")))
+        .contains("businessDate:FORMAT");
     assertThat(createProblems(with("category", "\"TRAVEL\""))).contains("category:FORMAT");
-    assertThat(createProblems("{}")).contains("businessDate:REQUIRED", "currency:REQUIRED",
-        "amount:REQUIRED", "category:REQUIRED", "merchant:REQUIRED", "description:REQUIRED");
+    assertThat(createProblems("{}"))
+        .contains(
+            "businessDate:REQUIRED",
+            "currency:REQUIRED",
+            "amount:REQUIRED",
+            "category:REQUIRED",
+            "merchant:REQUIRED",
+            "description:REQUIRED");
   }
 
   @Test
@@ -131,19 +147,26 @@ class ExpenseCommandsTest {
     assertThat(createProblems(with("description", "\"Voir https://exemple.cd pour le recu\"")))
         .contains("description:FORMAT");
     assertThat(createProblems(with("description", "\"trop bref\""))).contains("description:LENGTH");
-    assertThat(createProblems(with("merchant", "\"" + "x".repeat(121) + "\""))).contains("merchant:LENGTH");
-    assertThat(createProblems(with("description", "\"" + "y".repeat(1001) + "\""))).contains("description:LENGTH");
+    assertThat(createProblems(with("merchant", "\"" + "x".repeat(121) + "\"")))
+        .contains("merchant:LENGTH");
+    assertThat(createProblems(with("description", "\"" + "y".repeat(1001) + "\"")))
+        .contains("description:LENGTH");
     assertThat(createProblems(with("merchant", "\"Cafe\\u0000\""))).contains("merchant:FORMAT");
-    assertThat(createProblems(with("description", "\"Deux lignes\\nici bien\""))).contains("description:FORMAT");
+    assertThat(createProblems(with("description", "\"Deux lignes\\nici bien\"")))
+        .contains("description:FORMAT");
     assertThat(createProblems(with("merchant", "\"%3Cscript%3E\""))).contains("merchant:FORMAT");
   }
 
   @Test
   void problemsNeverEchoTheValue() {
     ApiException invalid =
-        catchApi(() -> ExpenseCommands.Create.from(KEY, create(with("merchant", "\"<secret-merchant>\""))));
+        catchApi(
+            () ->
+                ExpenseCommands.Create.from(
+                    KEY, create(with("merchant", "\"<secret-merchant>\""))));
     assertThat(invalid.params().toString()).doesNotContain("secret-merchant");
-    assertThat(invalid.getMessage() == null ? "" : invalid.getMessage()).doesNotContain("secret-merchant");
+    assertThat(invalid.getMessage() == null ? "" : invalid.getMessage())
+        .doesNotContain("secret-merchant");
   }
 
   @Test
@@ -160,44 +183,65 @@ class ExpenseCommandsTest {
   @Test
   void updateNeedsAVersionAndAKnownExpense() {
     UpdateExpenseDraftRequest body =
-        JSON.readValue(VALID.replace("}", ",\"expectedVersion\":3}"), UpdateExpenseDraftRequest.class);
+        JSON.readValue(
+            VALID.replace("}", ",\"expectedVersion\":3}"), UpdateExpenseDraftRequest.class);
     ExpenseCommands.Save save = ExpenseCommands.Save.from(KEY, EXPENSE.toString(), body);
     assertThat(save.expectedVersion()).isEqualTo(3);
     assertThat(save.canonical(TENANT)).containsEntry("expectedVersion", 3);
     assertThat(
             problems(
-                () -> ExpenseCommands.Save.from(KEY, EXPENSE.toString(), JSON.readValue(VALID, UpdateExpenseDraftRequest.class))))
+                () ->
+                    ExpenseCommands.Save.from(
+                        KEY,
+                        EXPENSE.toString(),
+                        JSON.readValue(VALID, UpdateExpenseDraftRequest.class))))
         .contains("expectedVersion:REQUIRED");
     assertThat(
             problems(
                 () ->
                     ExpenseCommands.Save.from(
-                        KEY, EXPENSE.toString(), JSON.readValue(VALID.replace("}", ",\"expectedVersion\":0}"), UpdateExpenseDraftRequest.class))))
+                        KEY,
+                        EXPENSE.toString(),
+                        JSON.readValue(
+                            VALID.replace("}", ",\"expectedVersion\":0}"),
+                            UpdateExpenseDraftRequest.class))))
         .contains("expectedVersion:RANGE");
     assertThatThrownBy(() -> ExpenseCommands.Save.from(KEY, "not-an-id", body))
-        .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.EXPENSE_NOT_FOUND));
+        .isInstanceOfSatisfying(
+            ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.EXPENSE_NOT_FOUND));
   }
 
   @Test
   void returnNeedsAReasonOfTenToFiveHundredCharacters() {
     ReturnExpenseRequest ok =
-        JSON.readValue("{\"expectedVersion\":2,\"reason\":\"Le recu est illisible, merci de le rescanner\"}", ReturnExpenseRequest.class);
+        JSON.readValue(
+            "{\"expectedVersion\":2,\"reason\":\"Le recu est illisible, merci de le rescanner\"}",
+            ReturnExpenseRequest.class);
     ExpenseCommands.Return command = ExpenseCommands.Return.from(KEY, EXPENSE.toString(), ok);
     assertThat(command.reason()).startsWith("Le recu");
     assertThat(command.toString()).doesNotContain("recu");
     for (String reason : new String[] {"court", "<b>reason reason</b>", "x".repeat(501)}) {
-      ReturnExpenseRequest bad = JSON.readValue("{\"expectedVersion\":2,\"reason\":\"" + reason + "\"}", ReturnExpenseRequest.class);
-      assertThat(problems(() -> ExpenseCommands.Return.from(KEY, EXPENSE.toString(), bad))).as(reason).isNotEmpty();
+      ReturnExpenseRequest bad =
+          JSON.readValue(
+              "{\"expectedVersion\":2,\"reason\":\"" + reason + "\"}", ReturnExpenseRequest.class);
+      assertThat(problems(() -> ExpenseCommands.Return.from(KEY, EXPENSE.toString(), bad)))
+          .as(reason)
+          .isNotEmpty();
     }
-    ReturnExpenseRequest none = JSON.readValue("{\"expectedVersion\":2}", ReturnExpenseRequest.class);
-    assertThat(problems(() -> ExpenseCommands.Return.from(KEY, EXPENSE.toString(), none))).contains("reason:REQUIRED");
+    ReturnExpenseRequest none =
+        JSON.readValue("{\"expectedVersion\":2}", ReturnExpenseRequest.class);
+    assertThat(problems(() -> ExpenseCommands.Return.from(KEY, EXPENSE.toString(), none)))
+        .contains("reason:REQUIRED");
   }
 
   @Test
   void approvalHasNoNoteAndWithdrawNeedsOnlyTheVersion() {
-    ExpenseVersionRequest ok = JSON.readValue("{\"expectedVersion\":2}", ExpenseVersionRequest.class);
-    assertThat(ExpenseCommands.Decision.from(KEY, EXPENSE.toString(), ok).expectedVersion()).isEqualTo(2);
-    ExpenseVersionRequest note = JSON.readValue("{\"expectedVersion\":2,\"note\":\"fine\"}", ExpenseVersionRequest.class);
+    ExpenseVersionRequest ok =
+        JSON.readValue("{\"expectedVersion\":2}", ExpenseVersionRequest.class);
+    assertThat(ExpenseCommands.Decision.from(KEY, EXPENSE.toString(), ok).expectedVersion())
+        .isEqualTo(2);
+    ExpenseVersionRequest note =
+        JSON.readValue("{\"expectedVersion\":2,\"note\":\"fine\"}", ExpenseVersionRequest.class);
     assertThat(problems(() -> ExpenseCommands.Decision.from(KEY, EXPENSE.toString(), note)))
         .contains("body:UNKNOWN_PROPERTY");
   }
@@ -205,15 +249,28 @@ class ExpenseCommandsTest {
   @Test
   void receiptHeadersAreValidatedBeforeAnyBodyIsRead() {
     ExpenseCommands.ReceiptMutation set =
-        ExpenseCommands.ReceiptMutation.set(KEY, EXPENSE.toString(), "4", "image/png", "re%C3%A7u%20caf%C3%A9.png");
+        ExpenseCommands.ReceiptMutation.set(
+            KEY, EXPENSE.toString(), "4", "image/png", "re%C3%A7u%20caf%C3%A9.png");
     assertThat(set.declaredName()).isEqualTo("reçu café.png");
     assertThat(set.expectedVersion()).isEqualTo(4);
-    assertThat(problems(() -> ExpenseCommands.ReceiptMutation.set(KEY, EXPENSE.toString(), null, "image/png", null)))
+    assertThat(
+            problems(
+                () ->
+                    ExpenseCommands.ReceiptMutation.set(
+                        KEY, EXPENSE.toString(), null, "image/png", null)))
         .contains("X-Expected-Version:REQUIRED");
-    assertThat(problems(() -> ExpenseCommands.ReceiptMutation.set(KEY, EXPENSE.toString(), "x", "image/png", null)))
+    assertThat(
+            problems(
+                () ->
+                    ExpenseCommands.ReceiptMutation.set(
+                        KEY, EXPENSE.toString(), "x", "image/png", null)))
         .contains("X-Expected-Version:FORMAT");
-    assertThatThrownBy(() -> ExpenseCommands.ReceiptMutation.set(KEY, EXPENSE.toString(), "4", "text/html", null))
-        .isInstanceOfSatisfying(ApiException.class,
+    assertThatThrownBy(
+            () ->
+                ExpenseCommands.ReceiptMutation.set(
+                    KEY, EXPENSE.toString(), "4", "text/html", null))
+        .isInstanceOfSatisfying(
+            ApiException.class,
             e -> assertThat(e.code()).isEqualTo(ErrorCode.EXPENSE_RECEIPT_MEDIA_UNSUPPORTED));
     assertThat(set.canonical(TENANT, null)).doesNotContainKey("sha256");
   }

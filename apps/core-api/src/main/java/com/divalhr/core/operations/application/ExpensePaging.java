@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
 
 /**
  * The list parameters of expenses (MVP-081, D81-10): page size, filters and the cursor's binding.
- * The cursor is bound to the operation, tenant, the verified subject and role scope (a digest), every
- * filter and the page size, so it cannot be replayed across tenants, actors, roles, filters or
- * sizes. It carries only an expense identifier: never an amount, merchant, description or name.
+ * The cursor is bound to the operation, tenant, the verified subject and role scope (a digest),
+ * every filter and the page size, so it cannot be replayed across tenants, actors, roles, filters
+ * or sizes. It carries only an expense identifier: never an amount, merchant, description or name.
  */
 final class ExpensePaging {
 

@@ -168,9 +168,7 @@ public class ExpenseService {
                     .addKeyValue("outcome", "listed")
                     .log("expense_listed");
                 return new Page(
-                    shown.stream()
-                        .map(e -> ExpenseView.of(e, people.get(e.employeeId())))
-                        .toList(),
+                    shown.stream().map(e -> ExpenseView.of(e, people.get(e.employeeId()))).toList(),
                     next,
                     now);
               });
@@ -204,7 +202,8 @@ public class ExpenseService {
                     .addKeyValue("outcome", "read")
                     .log("expense_read");
                 return DetailView.of(
-                    ExpenseView.of(expense, people(tenant, List.of(expense)).get(expense.employeeId())),
+                    ExpenseView.of(
+                        expense, people(tenant, List.of(expense)).get(expense.employeeId())),
                     expenses.revisions(tenant, id, true),
                     expenses.history(tenant, id, true));
               });
@@ -236,7 +235,9 @@ public class ExpenseService {
                 TenantId tenant = caller.tenant();
                 Expense expense = submitted(tenant, id);
                 var content =
-                    expenses.receipt(tenant, id, number, true).orElseThrow(ExpenseCommands::notFound);
+                    expenses
+                        .receipt(tenant, id, number, true)
+                        .orElseThrow(ExpenseCommands::notFound);
                 recorder.read(
                     caller, "expense.receipt-download", "admin", expense, number, calendar.now());
                 LOG.atInfo()

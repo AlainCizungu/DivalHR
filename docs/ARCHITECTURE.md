@@ -161,6 +161,18 @@ idempotent. The assignee is checked through the people and identity ports; the m
 other module's tables and no module reads its tables (`AccessPortArchitectureTest`). Overdue is
 derived at read time, never stored.
 
+### Employee expenses (MVP-081, ADR 0031)
+
+The `operations` module also owns `operations.expense` (projection), `expense_revision`,
+`expense_receipt` and `expense_action` (append-only), V42. The effective manager comes from the
+`ReportingLines` port (implemented by the people module), stored at submission and re-verified on
+every manager read and decision. Commands lock manager graph, employee link and expense row in that
+order, write projection, revision, action, audit and outbox event in one transaction and are
+idempotent. The receipt upload is a raw `PUT` body read only after authorization, idempotency and
+quota checks; multipart parsing stays off. Receipts live in PostgreSQL for the pilot behind the
+repository; the production object-storage port is a follow-up. CDF and USD are integer minor units
+and never combined.
+
 ### WhatsApp Business notifications (MVP-111, ADR 0029)
 
 The `integrations` module also owns the tenant's one WhatsApp connector, its recipients, deliveries,

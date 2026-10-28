@@ -187,8 +187,7 @@ public class JdbcExpenseRepository {
    * @return the expense, or empty
    */
   public Optional<Expense> lock(TenantId tenant, UUID id) {
-    return one(
-        select(View.CURRENT) + " AND e.id = :id FOR UPDATE OF e", params(tenant, id));
+    return one(select(View.CURRENT) + " AND e.id = :id FOR UPDATE OF e", params(tenant, id));
   }
 
   /**
@@ -390,11 +389,11 @@ public class JdbcExpenseRepository {
     MapSqlParameterSource p = values(tenant, id, fields).addValue("employee", employeeId);
     p.addValue("now", Timestamp.from(now)).addValue("subject", subject);
     jdbc.update(
-        "INSERT INTO operations.expense (tenant_id, id, employee_id, state, cycle, current_revision,"
-            + " version, business_date, currency, amount_minor, category, receipt_present,"
-            + " created_at, created_by, last_action_at)"
-            + " VALUES (:tenant, :id, :employee, 'DRAFT', 1, 1, 1, :date, :currency, :minor,"
-            + " :category, false, :now, :subject, :now)",
+        "INSERT INTO operations.expense (tenant_id, id, employee_id, state, cycle,"
+            + " current_revision, version, business_date, currency, amount_minor, category,"
+            + " receipt_present, created_at, created_by, last_action_at) VALUES (:tenant, :id,"
+            + " :employee, 'DRAFT', 1, 1, 1, :date, :currency, :minor, :category, false, :now,"
+            + " :subject, :now)",
         p);
     jdbc.update(
         "INSERT INTO operations.expense_revision (tenant_id, expense_id, revision, business_date,"
@@ -404,9 +403,9 @@ public class JdbcExpenseRepository {
         p);
     jdbc.update(
         "INSERT INTO operations.expense_action (tenant_id, expense_id, seq, action, occurred_at,"
-            + " actor_subject, actor_role, actor_employee_id, from_state, to_state, revision, cycle,"
-            + " receipt_present) VALUES (:tenant, :id, 1, 'CREATED', :now, :subject, 'employee',"
-            + " :employee, NULL, 'DRAFT', 1, 1, false)",
+            + " actor_subject, actor_role, actor_employee_id, from_state, to_state, revision,"
+            + " cycle, receipt_present) VALUES (:tenant, :id, 1, 'CREATED', :now, :subject,"
+            + " 'employee', :employee, NULL, 'DRAFT', 1, 1, false)",
         p);
   }
 
@@ -589,9 +588,9 @@ public class JdbcExpenseRepository {
         .addValue("reason", change.returnReason());
     jdbc.update(
         "INSERT INTO operations.expense_action (tenant_id, expense_id, seq, action, occurred_at,"
-            + " actor_subject, actor_role, actor_employee_id, from_state, to_state, revision, cycle,"
-            + " manager_employee_id, receipt_present, return_reason) VALUES (:tenant, :id, :next,"
-            + " :action, :now, :subject, :role, :actorEmployee, :from, :state, :revision,"
+            + " actor_subject, actor_role, actor_employee_id, from_state, to_state, revision,"
+            + " cycle, manager_employee_id, receipt_present, return_reason) VALUES (:tenant, :id,"
+            + " :next, :action, :now, :subject, :role, :actorEmployee, :from, :state, :revision,"
             + " :revision, :actionManager, :receiptPresent, :reason)",
         p);
   }
@@ -613,12 +612,7 @@ public class JdbcExpenseRepository {
   // ------------------------------------------------------------------------------------------
 
   private static String select(View view) {
-    return "SELECT "
-        + COLUMNS
-        + FROM
-        + view.join
-        + RECEIPT_JOIN
-        + " WHERE e.tenant_id = :tenant";
+    return "SELECT " + COLUMNS + FROM + view.join + RECEIPT_JOIN + " WHERE e.tenant_id = :tenant";
   }
 
   private Optional<Expense> one(String sql, MapSqlParameterSource params) {

@@ -2,9 +2,7 @@ package com.divalhr.core.operations.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-/**
- * The employee's replacement of the editable revision (MVP-081, D81-10).
- */
+/** The employee's replacement of the editable revision (MVP-081, D81-10). */
 @Schema(name = "UpdateExpenseDraftRequest")
 public class UpdateExpenseDraftRequest extends ExpenseDraftRequest {
   private Object expectedVersion;

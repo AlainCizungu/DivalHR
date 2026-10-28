@@ -63,8 +63,7 @@ public final class ExpenseResponses {
    * @param familyName family name
    */
   @Schema(name = "ExpenseEmployee")
-  public record EmployeeRef(
-      UUID id, String employeeNumber, String givenNames, String familyName) {
+  public record EmployeeRef(UUID id, String employeeNumber, String givenNames, String familyName) {
 
     @Override
     public String toString() {
@@ -81,8 +80,7 @@ public final class ExpenseResponses {
     public static EmployeeRef of(UUID id, Person person) {
       return person == null
           ? new EmployeeRef(id, null, null, null)
-          : new EmployeeRef(
-              id, person.employeeNumber(), person.givenNames(), person.familyName());
+          : new EmployeeRef(id, person.employeeNumber(), person.givenNames(), person.familyName());
     }
   }
 

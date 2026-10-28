@@ -311,6 +311,12 @@ A worker can receive, update, and complete a task with optional evidence.
 
 A worker can submit CDF or USD expenses, attach a receipt, and follow approval status.
 
+**Issue #169. In review (not merged, not deployed).** First increment: a linked employee records an expense in CDF or USD with at most one receipt (PDF, JPEG or PNG, 2 MiB), submits it to the effective manager, who approves it or returns it for correction; the employee may withdraw; administrators read. Approval is not reimbursement or payment. ADR 0031, decisions D81-1 to D81-14, evidence map `docs/DECISIONS/0031-evidence.md`. V42 adds the expense tables.
+
+- **Who and where.** « Mes notes de frais » under `/me/expenses` (linked employee), « Approbations de frais » under `/me/expense-approvals` (effective manager), « Notes de frais » under `/admin/expenses` (tenant administrator, exact MFA, read only).
+- **Currencies.** CDF and USD are never converted, rounded across or combined.
+- **Not included:** reimbursement, payment, accounting or payroll changes, exchange rates, OCR or AI, multi-level approval, notifications of any kind, external object storage (receipts are in PostgreSQL for the pilot), editing a submitted revision, deletion.
+
 ## Epic 10 Payroll Preparation
 
 ### MVP-090 Generate pay inputs

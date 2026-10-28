@@ -23,9 +23,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * MVP-081 V42 directly against PostgreSQL in a database of its own (D81-14 item 14): the refusing
- * rollback that restores V41 exactly, the 100 open expenses per employee and 5,000 per tenant limits
- * (the database is the final authority, whatever the application checks), and the query plans of the
- * three list shapes (an index, never a sort of the tenant's expenses).
+ * rollback that restores V41 exactly, the 100 open expenses per employee and 5,000 per tenant
+ * limits (the database is the final authority, whatever the application checks), and the query
+ * plans of the three list shapes (an index, never a sort of the tenant's expenses).
  */
 @IntegrationTest
 class ExpenseMigrationIntegrationTest {
@@ -57,7 +57,6 @@ class ExpenseMigrationIntegrationTest {
                                   ORDER BY proname) FROM pg_proc
                               WHERE pronamespace = 'operations'::regnamespace), '')
       """;
-
 
   @Autowired private JdbcTemplate jdbc;
   @Autowired private JdbcConnectionDetails connection;
@@ -151,9 +150,9 @@ class ExpenseMigrationIntegrationTest {
 
   private static final String EXPENSE =
       "INSERT INTO operations.expense (tenant_id, id, employee_id, state, cycle, current_revision,"
-          + " version, business_date, currency, amount_minor, category, receipt_present, created_at,"
-          + " created_by, last_action_at) VALUES (?, ?, ?, 'DRAFT', 1, 1, 1, current_date, 'USD',"
-          + " 1250, 'TRANSPORT', false, now(), 'subject', now())";
+          + " version, business_date, currency, amount_minor, category, receipt_present,"
+          + " created_at, created_by, last_action_at) VALUES (?, ?, ?, 'DRAFT', 1, 1, 1,"
+          + " current_date, 'USD', 1250, 'TRANSPORT', false, now(), 'subject', now())";
   private static final String REVISION =
       "INSERT INTO operations.expense_revision (tenant_id, expense_id, revision, business_date,"
           + " currency, exponent, amount_minor, category, merchant, description, created_at)"
@@ -210,7 +209,8 @@ class ExpenseMigrationIntegrationTest {
               .hasMessageContaining("V42 rollback refused");
           assertThat(db.jdbc().queryForObject(SIGNATURE, String.class)).isEqualTo(v42);
           assertThat(
-                  db.jdbc().queryForObject("SELECT count(*) FROM operations.expense", Integer.class))
+                  db.jdbc()
+                      .queryForObject("SELECT count(*) FROM operations.expense", Integer.class))
               .isEqualTo(1);
         });
   }
@@ -284,17 +284,36 @@ class ExpenseMigrationIntegrationTest {
             s.execute("ANALYZE operations.expense");
             s.execute("SET LOCAL enable_seqscan = off");
             String ids = "tenant_id = '" + tenant + "' ";
-            assertThat(plan(s, "SELECT id FROM operations.expense WHERE " + ids + "AND employee_id = '" + who + "' ORDER BY created_at DESC, id DESC LIMIT 26"))
+            assertThat(
+                    plan(
+                        s,
+                        "SELECT id FROM operations.expense WHERE "
+                            + ids
+                            + "AND employee_id = '"
+                            + who
+                            + "' ORDER BY created_at DESC, id DESC LIMIT 26"))
                 .contains("operations_expense_employee_order")
                 .doesNotContain("Sort");
-            assertThat(plan(s, "SELECT id FROM operations.expense WHERE " + ids + "ORDER BY created_at DESC, id DESC LIMIT 26"))
+            assertThat(
+                    plan(
+                        s,
+                        "SELECT id FROM operations.expense WHERE "
+                            + ids
+                            + "ORDER BY created_at DESC, id DESC LIMIT 26"))
                 .contains("operations_expense_tenant_order")
                 .doesNotContain("Sort");
             // The manager queue: with the general indexes out of the way (rolled back below),
             // the partial index alone serves the submitted-only, oldest-first shape.
             s.execute("DROP INDEX operations.operations_expense_employee_order");
             s.execute("DROP INDEX operations.operations_expense_tenant_order");
-            assertThat(plan(s, "SELECT id FROM operations.expense WHERE " + ids + "AND employee_id = '" + who + "' AND state = 'SUBMITTED' ORDER BY submitted_at, id LIMIT 26"))
+            assertThat(
+                    plan(
+                        s,
+                        "SELECT id FROM operations.expense WHERE "
+                            + ids
+                            + "AND employee_id = '"
+                            + who
+                            + "' AND state = 'SUBMITTED' ORDER BY submitted_at, id LIMIT 26"))
                 .contains("operations_expense_queue")
                 .doesNotContain("Sort");
             c.rollback();

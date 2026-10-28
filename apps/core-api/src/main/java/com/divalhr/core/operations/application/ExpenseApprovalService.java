@@ -186,10 +186,7 @@ public class ExpenseApprovalService {
    * @return the expense, or the replayed original
    */
   public IdempotentOperation.Result<CommandReceipt> returnExpense(
-      OperationsCaller caller,
-      String expenseId,
-      String idempotencyKey,
-      ReturnExpenseRequest body) {
+      OperationsCaller caller, String expenseId, String idempotencyKey, ReturnExpenseRequest body) {
     ExpenseCommands.Return command =
         operations.validated(
             RETURN_SPEC, () -> ExpenseCommands.Return.from(idempotencyKey, expenseId, body));
@@ -208,10 +205,7 @@ public class ExpenseApprovalService {
                 resource -> replayable(caller, resource),
                 () ->
                     decide(
-                        caller,
-                        command.expenseId(),
-                        command.expectedVersion(),
-                        command.reason())));
+                        caller, command.expenseId(), command.expectedVersion(), command.reason())));
   }
 
   private IdempotentOperation.Completed<CommandReceipt> decide(
@@ -276,8 +270,7 @@ public class ExpenseApprovalService {
         .addKeyValue("operation", approve ? APPROVE : RETURN)
         .addKeyValue("outcome", approve ? "approved" : "returned")
         .log(approve ? "expense_approved" : "expense_returned");
-    return new IdempotentOperation.Completed<>(
-        CommandReceipt.of(after, now), id, Outcome.UPDATED);
+    return new IdempotentOperation.Completed<>(CommandReceipt.of(after, now), id, Outcome.UPDATED);
   }
 
   /** A stored decision is returned only to the manager the expense still routes to. */
@@ -329,8 +322,7 @@ public class ExpenseApprovalService {
                 List<UUID> reports = lines.reportsOf(tenant, link.employeeId(), REPORT_CANDIDATES);
                 UUID after = position == null ? null : position.id();
                 if (after != null) {
-                  Expense anchor =
-                      expenses.find(tenant, View.CURRENT, after).orElse(null);
+                  Expense anchor = expenses.find(tenant, View.CURRENT, after).orElse(null);
                   if (anchor == null || !reports.contains(anchor.employeeId())) {
                     throw ExpensePaging.invalidCursor();
                   }
@@ -398,9 +390,7 @@ public class ExpenseApprovalService {
                     .addKeyValue("outcome", "listed")
                     .log("expense_approval_listed");
                 return new Page(
-                    shown.stream()
-                        .map(e -> ExpenseView.of(e, people.get(e.employeeId())))
-                        .toList(),
+                    shown.stream().map(e -> ExpenseView.of(e, people.get(e.employeeId()))).toList(),
                     next,
                     now);
               });
@@ -468,7 +458,9 @@ public class ExpenseApprovalService {
                 SelfLink link = link(caller);
                 Expense expense = routed(tenant, link, id);
                 var content =
-                    expenses.receipt(tenant, id, number, true).orElseThrow(ExpenseCommands::notFound);
+                    expenses
+                        .receipt(tenant, id, number, true)
+                        .orElseThrow(ExpenseCommands::notFound);
                 recorder.read(
                     caller, "expense.receipt-download", "manager", expense, number, calendar.now());
                 LOG.atInfo()
@@ -484,7 +476,8 @@ public class ExpenseApprovalService {
 
   /** A submitted expense that routes to the caller now, or the safe 404. */
   private Expense routed(TenantId tenant, SelfLink link, UUID id) {
-    Expense expense = expenses.find(tenant, View.CURRENT, id).orElseThrow(ExpenseCommands::notFound);
+    Expense expense =
+        expenses.find(tenant, View.CURRENT, id).orElseThrow(ExpenseCommands::notFound);
     if (expense.state() != ExpenseState.SUBMITTED
         || !routing.routedTo(tenant, expense, link.employeeId())) {
       throw ExpenseCommands.notFound();

@@ -178,8 +178,7 @@ public class MyExpenseService {
   public IdempotentOperation.Result<CommandReceipt> create(
       OperationsCaller caller, String idempotencyKey, CreateExpenseRequest body) {
     ExpenseCommands.Create command =
-        operations.validated(
-            CREATE_SPEC, () -> ExpenseCommands.Create.from(idempotencyKey, body));
+        operations.validated(CREATE_SPEC, () -> ExpenseCommands.Create.from(idempotencyKey, body));
     return ExpenseCalls.counted(
         meters,
         CREATE,
@@ -206,7 +205,8 @@ public class MyExpenseService {
     UUID id = UUID.randomUUID();
     Expense after;
     try {
-      expenses.insert(tenant, id, link.employeeId(), command.draft().fields(), now, caller.subject());
+      expenses.insert(
+          tenant, id, link.employeeId(), command.draft().fields(), now, caller.subject());
       expenses.checkConsistency(tenant);
       after = expenses.findOwn(tenant, link.employeeId(), id).orElseThrow();
     } catch (DataIntegrityViolationException violated) {
@@ -214,8 +214,7 @@ public class MyExpenseService {
     }
     recorder.command(caller, "expense.create", null, null, after, ROLE, false, now);
     log(CREATE, "created");
-    return new IdempotentOperation.Completed<>(
-        CommandReceipt.of(after, now), id, Outcome.CREATED);
+    return new IdempotentOperation.Completed<>(CommandReceipt.of(after, now), id, Outcome.CREATED);
   }
 
   /**
@@ -372,7 +371,8 @@ public class MyExpenseService {
     ExpenseCommands.ReceiptMutation command =
         operations.validated(
             RECEIPT_REMOVE_SPEC,
-            () -> ExpenseCommands.ReceiptMutation.remove(idempotencyKey, expenseId, expectedVersion));
+            () ->
+                ExpenseCommands.ReceiptMutation.remove(idempotencyKey, expenseId, expectedVersion));
     return ExpenseCalls.counted(
         meters,
         RECEIPT_REMOVE,
@@ -824,7 +824,12 @@ public class MyExpenseService {
 
   private static Fields fields(Expense e) {
     return new Fields(
-        e.businessDate(), e.currency(), e.amountMinor(), e.category(), e.merchant(), e.description());
+        e.businessDate(),
+        e.currency(),
+        e.amountMinor(),
+        e.category(),
+        e.merchant(),
+        e.description());
   }
 
   private static Change edit(

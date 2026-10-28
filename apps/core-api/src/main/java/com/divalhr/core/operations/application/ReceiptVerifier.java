@@ -41,8 +41,21 @@ public final class ReceiptVerifier {
 
   /** Active or embedded PDF content that a receipt never needs. */
   private static final String[] PDF_ACTIVE = {
-    "/JavaScript", "/JS", "/Launch", "/EmbeddedFile", "/RichMedia", "/OpenAction", "/AA",
-    "/XFA", "/SubmitForm", "/ImportData", "/GoToR", "/GoToE", "/URI", "/Movie", "/Sound",
+    "/JavaScript",
+    "/JS",
+    "/Launch",
+    "/EmbeddedFile",
+    "/RichMedia",
+    "/OpenAction",
+    "/AA",
+    "/XFA",
+    "/SubmitForm",
+    "/ImportData",
+    "/GoToR",
+    "/GoToE",
+    "/URI",
+    "/Movie",
+    "/Sound",
     "/FileAttachment"
   };
 
@@ -56,9 +69,7 @@ public final class ReceiptVerifier {
    */
   public static String declared(String contentType) {
     String type =
-        contentType == null
-            ? ""
-            : contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
+        contentType == null ? "" : contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
     if (!ACCEPTED.contains(type)) {
       throw new ApiException(ErrorCode.EXPENSE_RECEIPT_MEDIA_UNSUPPORTED, Map.of());
     }
@@ -95,7 +106,11 @@ public final class ReceiptVerifier {
     }
     byte[] digest = sha256(bytes);
     return new Verified(
-        sniffed, bytes, digest, HexFormat.of().formatHex(digest), displayName(declaredName, sniffed));
+        sniffed,
+        bytes,
+        digest,
+        HexFormat.of().formatHex(digest),
+        displayName(declaredName, sniffed));
   }
 
   /**
@@ -183,8 +198,8 @@ public final class ReceiptVerifier {
       if (length < 2 || pos + 2 + length > b.length) {
         return false;
       }
-      boolean sof = marker >= 0xC0 && marker <= 0xCF && marker != 0xC4 && marker != 0xC8
-          && marker != 0xCC;
+      boolean sof =
+          marker >= 0xC0 && marker <= 0xCF && marker != 0xC4 && marker != 0xC8 && marker != 0xCC;
       if (sof) {
         if (length < 8) {
           return false;
@@ -245,8 +260,8 @@ public final class ReceiptVerifier {
 
   /**
    * The normalized display name (D81-5): any path removed, NFC, no control, format, private-use or
-   * markup character, at most 120 code points; never used as a storage path. A missing or empty name
-   * becomes {@code receipt} plus the extension of the verified type.
+   * markup character, at most 120 code points; never used as a storage path. A missing or empty
+   * name becomes {@code receipt} plus the extension of the verified type.
    *
    * @param declared client name or {@code null}
    * @param mediaType verified type
@@ -254,11 +269,12 @@ public final class ReceiptVerifier {
    */
   static String displayName(String declared, String mediaType) {
     String fallback =
-        "receipt" + switch (mediaType) {
-          case "application/pdf" -> ".pdf";
-          case "image/jpeg" -> ".jpg";
-          default -> ".png";
-        };
+        "receipt"
+            + switch (mediaType) {
+              case "application/pdf" -> ".pdf";
+              case "image/jpeg" -> ".jpg";
+              default -> ".png";
+            };
     if (declared == null) {
       return fallback;
     }
@@ -292,8 +308,10 @@ public final class ReceiptVerifier {
     String cleaned = Normalizer.normalize(out.toString(), Normalizer.Form.NFC);
     int[] points = cleaned.codePoints().limit(120).toArray();
     cleaned = new String(points, 0, points.length).strip();
-    cleaned = cleaned.replaceAll("^[\\s\\u00A0\\u1680\\u2000-\\u200A\\u202F\\u205F\\u3000]+", "")
-        .replaceAll("[\\s\\u00A0\\u1680\\u2000-\\u200A\\u202F\\u205F\\u3000]+$", "");
+    cleaned =
+        cleaned
+            .replaceAll("^[\\s\\u00A0\\u1680\\u2000-\\u200A\\u202F\\u205F\\u3000]+", "")
+            .replaceAll("[\\s\\u00A0\\u1680\\u2000-\\u200A\\u202F\\u205F\\u3000]+$", "");
     return cleaned.isEmpty() ? fallback : cleaned;
   }
 

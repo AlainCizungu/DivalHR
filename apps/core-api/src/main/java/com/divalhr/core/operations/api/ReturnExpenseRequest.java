@@ -2,9 +2,7 @@ package com.divalhr.core.operations.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-/**
- * The routed manager's return of an expense with its reason (MVP-081, D81-6).
- */
+/** The routed manager's return of an expense with its reason (MVP-081, D81-6). */
 @Schema(name = "ReturnExpenseRequest")
 public class ReturnExpenseRequest extends StrictRequest {
   private Object expectedVersion;

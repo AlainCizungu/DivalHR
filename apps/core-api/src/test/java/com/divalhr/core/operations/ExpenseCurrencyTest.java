@@ -14,7 +14,8 @@ class ExpenseCurrencyTest {
     assertThat(ExpenseCurrency.CDF.parse("100000000")).contains(100_000_000L);
     assertThat(ExpenseCurrency.CDF.parse("100000001")).isEmpty();
     assertThat(ExpenseCurrency.CDF.parse("0")).isEmpty();
-    for (String bad : new String[] {"10.5", "10.00", "1e3", "-5", "+5", "05", " 5", "5 ", "1,000", "", "٣"}) {
+    for (String bad :
+        new String[] {"10.5", "10.00", "1e3", "-5", "+5", "05", " 5", "5 ", "1,000", "", "٣"}) {
       assertThat(ExpenseCurrency.CDF.parse(bad)).as(bad).isEmpty();
     }
   }
@@ -28,7 +29,8 @@ class ExpenseCurrencyTest {
     assertThat(ExpenseCurrency.USD.parse("100000.01")).isEmpty();
     assertThat(ExpenseCurrency.USD.parse("0")).isEmpty();
     assertThat(ExpenseCurrency.USD.parse("0.00")).isEmpty();
-    for (String bad : new String[] {"1.234", "1.", ".5", "1e2", "-1", "01.00", "1,50", "NaN", "Infinity"}) {
+    for (String bad :
+        new String[] {"1.234", "1.", ".5", "1e2", "-1", "01.00", "1,50", "NaN", "Infinity"}) {
       assertThat(ExpenseCurrency.USD.parse(bad)).as(bad).isEmpty();
     }
   }

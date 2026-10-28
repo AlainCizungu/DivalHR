@@ -48,8 +48,8 @@ public interface ReportingLines {
 
   /**
    * The identity an authorized reader needs to tell employees apart in a list: number and current
-   * names. The caller has already established the right to see these employees (their own
-   * reports, or the tenant administrator role).
+   * names. The caller has already established the right to see these employees (their own reports,
+   * or the tenant administrator role).
    *
    * @param tenant verified tenant
    * @param employeeIds employees (at most 200)
