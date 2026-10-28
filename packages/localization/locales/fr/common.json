@@ -52,7 +52,10 @@
     "webhooks": "Webhooks",
     "whatsapp": "WhatsApp Business",
     "tasks": "Tâches",
-    "myTasks": "Mes tâches"
+    "myTasks": "Mes tâches",
+    "expenses": "Notes de frais",
+    "myExpenses": "Mes notes de frais",
+    "expenseApprovals": "Notes de frais à approuver"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -571,7 +574,16 @@
     "TASK_VERSION_CONFLICT": "Cette tâche a changé entre-temps. Rechargez-la et réessayez.",
     "TASK_TRANSITION_NOT_ALLOWED": "Cette tâche est déjà terminée ou son état ne permet pas cette action.",
     "TASK_LIMIT_REACHED": "Cette organisation a atteint sa limite de 10 000 tâches non terminées. Terminez ou annulez-en avant d’en assigner d’autres.",
-    "OPERATIONAL_SUMMARY_SOURCE_INVALID": "La synthèse n’a pas pu être produite à partir des chiffres actuels. Les chiffres ci-dessous ne sont pas touchés."
+    "OPERATIONAL_SUMMARY_SOURCE_INVALID": "La synthèse n’a pas pu être produite à partir des chiffres actuels. Les chiffres ci-dessous ne sont pas touchés.",
+    "EXPENSE_NOT_FOUND": "Cette note de frais n’existe pas ou ne vous est pas accessible.",
+    "EXPENSE_VERSION_CONFLICT": "Cette note de frais a changé depuis son ouverture. La dernière version est affichée ; vérifiez-la et réessayez.",
+    "EXPENSE_TRANSITION_NOT_ALLOWED": "Cette action n’est plus possible pour cette note de frais dans son état actuel.",
+    "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE": "Cette note de frais ne peut pas être acheminée pour approbation pour le moment. Demandez à votre administrateur de vérifier votre ligne hiérarchique.",
+    "EXPENSE_LIMIT_REACHED": "Vous avez atteint la limite de notes de frais ouvertes. Terminez-en ou retirez-en avant d’en créer d’autres.",
+    "EXPENSE_RECEIPT_INVALID": "Le fichier du justificatif n’est pas un PDF, JPEG ou PNG valide. Choisissez un autre fichier.",
+    "EXPENSE_RECEIPT_TOO_LARGE": "Le justificatif dépasse 2 Mo. Choisissez un fichier plus petit.",
+    "EXPENSE_RECEIPT_UPLOAD_TIMEOUT": "L’envoi du justificatif a pris trop de temps. Vérifiez votre connexion et réessayez.",
+    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Seuls les justificatifs PDF, JPEG et PNG sont acceptés."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -4803,6 +4815,154 @@
       "noteHelp": "Jusqu’à {{max}} caractères. Texte brut uniquement.",
       "confirmButton": "Terminer la tâche",
       "keep": "Pas encore"
+    }
+  },
+  "expenses": {
+    "loading": "Chargement des notes de frais…",
+    "sending": "Envoi en cours…",
+    "forbidden": "Vous n’êtes pas autorisé à faire cela.",
+    "validation": "Vérifiez les champs signalés et réessayez.",
+    "notice": "Approuver une note de frais ne signifie ni la rembourser ni la payer. Le paiement et la comptabilité sont gérés ailleurs.",
+    "count": "{{n}} sur {{max}} caractères",
+    "kilobytes": "Ko",
+    "noReceipt": "Aucun justificatif",
+    "open": "Ouvrir la note de frais de {{merchant}}",
+    "back": "Retour à la liste",
+    "cancel": "Annuler",
+    "saved": "Note de frais enregistrée.",
+    "created": "Brouillon de note de frais créé.",
+    "submitted": "Note de frais soumise pour approbation.",
+    "withdrawn": "Note de frais retirée.",
+    "receiptSaved": "Justificatif joint.",
+    "receiptRemoved": "Justificatif retiré.",
+    "revisions": "Versions",
+    "revisionN": "Version {{n}}",
+    "history": "Historique",
+    "downloadReceipt": "Télécharger le justificatif {{name}}",
+    "state": {
+      "DRAFT": "Brouillon",
+      "SUBMITTED": "En attente d’approbation",
+      "APPROVED": "Approuvée",
+      "RETURNED": "Renvoyée pour correction",
+      "WITHDRAWN": "Retirée"
+    },
+    "currency": {
+      "CDF": "CDF – franc congolais",
+      "USD": "USD – dollar américain"
+    },
+    "category": {
+      "TRANSPORT": "Transport",
+      "MEALS": "Repas",
+      "LODGING": "Hébergement",
+      "SUPPLIES": "Fournitures",
+      "COMMUNICATION": "Communication",
+      "TRAINING": "Formation",
+      "MEDICAL_WORK_RELATED": "Frais médicaux liés au travail",
+      "OTHER": "Autre"
+    },
+    "action": {
+      "CREATED": "Créée",
+      "DRAFT_UPDATED": "Brouillon modifié",
+      "RECEIPT_SET": "Justificatif joint",
+      "RECEIPT_REMOVED": "Justificatif retiré",
+      "SUBMITTED": "Soumise",
+      "WITHDRAWN": "Retirée",
+      "APPROVED": "Approuvée",
+      "RETURNED": "Renvoyée pour correction"
+    },
+    "role": {
+      "employee": "Employé",
+      "manager": "Responsable"
+    },
+    "fields": {
+      "currency": "Devise",
+      "currencyHelp": "Choisissez la devise du justificatif. Les montants ne sont jamais convertis.",
+      "amount": "Montant",
+      "amountHelpCdf": "Francs entiers, de 1 à 100 000 000.",
+      "amountHelpUsd": "Jusqu’à deux décimales, de 0,01 à 100 000,00.",
+      "businessDate": "Date de la dépense",
+      "businessDateHelp": "Aujourd’hui ou jusqu’à 90 jours avant ; pas dans le futur.",
+      "category": "Catégorie",
+      "categoryChoose": "Choisissez une catégorie",
+      "merchant": "Commerçant ou bénéficiaire",
+      "description": "Description",
+      "descriptionHelp": "De {{min}} à {{max}} caractères. Ni lien ni balisage.",
+      "receipt": "Justificatif"
+    },
+    "problems": {
+      "businessDate": "Choisissez une date dans les 90 derniers jours, pas dans le futur.",
+      "currency": "Choisissez une devise.",
+      "amount": "Saisissez un montant valide pour cette devise.",
+      "category": "Choisissez une catégorie.",
+      "merchant": "Saisissez le commerçant, 120 caractères au maximum, sans lien ni balisage.",
+      "description": "Décrivez la dépense en 10 à 1 000 caractères, sans lien ni balisage.",
+      "reason": "Indiquez un motif de 10 à 500 caractères, sans lien ni balisage."
+    },
+    "receiptProblem": {
+      "type": "Choisissez un fichier PDF, JPEG ou PNG.",
+      "size": "Le fichier dépasse 2 Mo.",
+      "name": "Le nom du fichier n’est pas accepté. Renommez le fichier et réessayez.",
+      "empty": "Le fichier est vide."
+    },
+    "me": {
+      "title": "Mes notes de frais",
+      "description": "Saisissez une dépense en CDF ou en USD, joignez son justificatif et envoyez-la à votre responsable pour approbation.",
+      "unauthorized": "Les notes de frais sont réservées aux employés dont le compte est lié.",
+      "signInRequired": "Connectez-vous pour voir vos notes de frais.",
+      "new": "Nouvelle note de frais",
+      "newTitle": "Nouvelle note de frais",
+      "editTitle": "Modifier la note de frais",
+      "listTitle": "Vos notes de frais",
+      "detailTitle": "Note de frais",
+      "empty": "Vous n’avez pas encore de note de frais.",
+      "save": "Enregistrer",
+      "edit": "Modifier",
+      "submit": "Soumettre pour approbation",
+      "withdraw": "Retirer",
+      "withdrawConfirmTitle": "Confirmer le retrait",
+      "withdrawConfirm": "Retirer cette note de frais ? Elle ne sera pas approuvée et ne pourra pas être rouverte ; pour la corriger, créez une nouvelle note de frais.",
+      "withdrawButton": "Retirer la note de frais",
+      "keep": "La conserver",
+      "correctNew": "Corriger dans une nouvelle note de frais",
+      "receiptLabel": "Justificatif (PDF, JPEG ou PNG)",
+      "receiptHelp": "Un fichier de 2 Mo au maximum. Un nouveau fichier remplace l’actuel.",
+      "removeReceipt": "Retirer le justificatif",
+      "returnedWith": "Renvoyée par votre responsable :",
+      "returnedHelp": "Modifiez la note de frais, puis soumettez-la de nouveau.",
+      "waiting": "En attente de la décision de votre responsable.",
+      "approvedNote": "Approuvée. Ce n’est pas un paiement.",
+      "withdrawnNote": "Retirée. Vous pouvez la corriger dans une nouvelle note de frais."
+    },
+    "approvals": {
+      "title": "Notes de frais à approuver",
+      "description": "Notes de frais soumises par les personnes qui vous sont rattachées.",
+      "unauthorized": "Les approbations de notes de frais sont réservées aux employés dont le compte est lié.",
+      "signInRequired": "Connectez-vous pour voir les notes de frais à approuver.",
+      "empty": "Aucune note de frais n’attend votre décision.",
+      "queueTitle": "En attente de votre décision",
+      "submittedOn": "Soumise le {{date}}",
+      "approve": "Approuver",
+      "return": "Renvoyer pour correction",
+      "approveTitle": "Confirmer l’approbation",
+      "confirmApprove": "Approuver cette note de frais de {{amount}} ?",
+      "approveButton": "Approuver la note de frais",
+      "reason": "Motif du renvoi",
+      "reasonHelp": "De {{min}} à {{max}} caractères. L’employé le verra.",
+      "returnButton": "Renvoyer la note de frais",
+      "approved": "Note de frais approuvée.",
+      "returned": "Note de frais renvoyée pour correction."
+    },
+    "admin": {
+      "title": "Notes de frais",
+      "description": "Consultation en lecture seule des notes de frais soumises et de leurs justificatifs.",
+      "unauthorized": "Seuls les administrateurs peuvent voir toutes les notes de frais.",
+      "signInRequired": "Connectez-vous pour voir les notes de frais.",
+      "filterState": "État",
+      "filterCurrency": "Devise",
+      "all": "Tous",
+      "empty": "Aucune note de frais soumise ne correspond.",
+      "listTitle": "Notes de frais soumises",
+      "more": "Afficher la suite"
     }
   }
 }

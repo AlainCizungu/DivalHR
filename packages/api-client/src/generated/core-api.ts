@@ -16399,7 +16399,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        /** @description The raw file, at most 2 MiB. The media type must be one of the three and match the bytes; multipart is not accepted. */
+        requestBody: {
+            content: {
+                "application/pdf": string;
+                "image/jpeg": string;
+                "image/png": string;
+            };
+        };
         responses: {
             /** @description OK, or the original result replayed */
             200: {

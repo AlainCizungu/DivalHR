@@ -114,6 +114,7 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'tenant-admin',
       },
       { to: '/admin/tasks', labelKey: 'nav.tasks', icon: 'check', role: 'tenant-admin' },
+      { to: '/admin/expenses', labelKey: 'nav.expenses', icon: 'expenses', role: 'tenant-admin' },
       {
         to: '/admin/attendance-review',
         labelKey: 'nav.attendanceReview',
@@ -237,6 +238,13 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'employee',
       },
       { to: '/me/tasks', labelKey: 'nav.myTasks', icon: 'check', role: 'employee' },
+      { to: '/me/expenses', labelKey: 'nav.myExpenses', icon: 'expenses', role: 'employee' },
+      {
+        to: '/me/expense-approvals',
+        labelKey: 'nav.expenseApprovals',
+        icon: 'check',
+        role: 'employee',
+      },
     ],
   },
 ];
