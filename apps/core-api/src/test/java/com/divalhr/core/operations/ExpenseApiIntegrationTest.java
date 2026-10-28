@@ -56,6 +56,30 @@ class ExpenseApiIntegrationTest {
     return ExpenseWorld.MINE + "/" + id + suffix;
   }
 
+  /**
+   * The receipt upload carries its expected version and display name in two request headers, so the
+   * browser preflight must allow them; without it the browser never sends the upload (found by the
+   * end-to-end journey in CI).
+   */
+  @Test
+  void theBrowserPreflightAllowsTheReceiptUploadHeaders() throws Exception {
+    var result =
+        mvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
+                        "/api/v1/me/expenses/00000000-0000-4000-8000-000000000001/receipt")
+                    .header("Origin", "http://localhost:5173")
+                    .header("Access-Control-Request-Method", "PUT")
+                    .header(
+                        "Access-Control-Request-Headers",
+                        "authorization,content-type,idempotency-key,x-expected-version,"
+                            + "x-receipt-file-name"))
+            .andReturn()
+            .getResponse();
+    assertThat(result.getStatus()).isEqualTo(200);
+    assertThat(result.getHeader("Access-Control-Allow-Headers").toLowerCase(java.util.Locale.ROOT))
+        .contains("x-expected-version", "x-receipt-file-name");
+  }
+
   // -------------------------------------------------------------------------- create & currency
 
   @Test
