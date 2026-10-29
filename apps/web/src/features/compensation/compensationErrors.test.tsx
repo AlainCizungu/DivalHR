@@ -14,6 +14,13 @@ import { MyCompensationPage } from './MyCompensationPage';
 const schema = problemSchema as { properties: { code: { enum: string[] } } };
 const CODES = schema.properties.code.enum.filter((code) => code.startsWith('COMPENSATION_'));
 
+/** The message of a code in a language; a missing one fails the test with the code named. */
+function message(locale: 'en' | 'fr', code: string): string {
+  const text = (resources[locale].common.errors as Record<string, string | undefined>)[code];
+  if (text === undefined) throw new Error(`${code} has no ${locale} message`);
+  return text;
+}
+
 const EMPLOYEE_ID = '22222222-0000-4000-8000-000000000002';
 const STATUS: Record<string, number> = {
   COMPENSATION_NOT_FOUND: 404,
@@ -53,8 +60,8 @@ describe('compensation error messages', () => {
   });
 
   it.each(CODES)('%s has a distinct, finished sentence in English and French', (code) => {
-    const en = (resources.en.common.errors as Record<string, string>)[code];
-    const fr = (resources.fr.common.errors as Record<string, string>)[code];
+    const en = message('en', code);
+    const fr = message('fr', code);
     for (const text of [en, fr]) {
       expect(text).toBeTruthy();
       expect(text).not.toContain(code);
@@ -80,9 +87,7 @@ describe('compensation error messages', () => {
       );
       const alert = await screen.findByTestId('compensation-load-error');
       expect(alert).toHaveAttribute('data-code', code);
-      expect(alert).toHaveTextContent(
-        (resources[locale].common.errors as Record<string, string>)[code],
-      );
+      expect(alert).toHaveTextContent(message(locale, code));
       expect(alert).toHaveTextContent('corr-comp-4242');
       expect(alert.textContent).not.toContain(code);
     });
@@ -97,9 +102,7 @@ describe('compensation error messages', () => {
       );
       const alert = await screen.findByTestId('compensation-error');
       expect(alert).toHaveAttribute('data-code', code);
-      expect(alert).toHaveTextContent(
-        (resources[locale].common.errors as Record<string, string>)[code],
-      );
+      expect(alert).toHaveTextContent(message(locale, code));
       expect(alert.textContent).not.toContain(code);
     });
   });
