@@ -631,7 +631,23 @@ public enum ErrorCode {
   /** MVP-081: the receipt body was not received in time. */
   EXPENSE_RECEIPT_UPLOAD_TIMEOUT(HttpStatus.REQUEST_TIMEOUT),
   /** MVP-081: the receipt is not one of the accepted media types. */
-  EXPENSE_RECEIPT_MEDIA_UNSUPPORTED(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+  EXPENSE_RECEIPT_MEDIA_UNSUPPORTED(HttpStatus.UNSUPPORTED_MEDIA_TYPE),
+  /** MVP-093A: the employee or compensation change is unknown or not visible to the caller. */
+  COMPENSATION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-093A: the amount is malformed or outside the currency's bounds. */
+  COMPENSATION_INVALID_AMOUNT(HttpStatus.BAD_REQUEST),
+  /** MVP-093A: an effective date is outside the permitted window or employment. */
+  COMPENSATION_DATE_OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-093A: the change conflicts with the employee's employment history. */
+  COMPENSATION_EMPLOYMENT_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-093A: the preview expired or no longer matches the current state. */
+  COMPENSATION_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-093A: the compensation version differs from the one the caller saw. */
+  COMPENSATION_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-093A: the action is not legal in the current timeline. */
+  COMPENSATION_TRANSITION_NOT_ALLOWED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-093A: the per-employee limit of changes or scheduled changes is reached. */
+  COMPENSATION_LIMIT_REACHED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

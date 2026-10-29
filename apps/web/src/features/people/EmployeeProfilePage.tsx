@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/ApiProvider';
+import { EmployeeCompensationSection } from '../compensation/EmployeeCompensationSection';
 import { EmployeeContractsSection } from '../contracts/EmployeeContractsSection';
 import { AccessLinkSection } from './AccessLinkSection';
 import { ChangeForm } from './ChangeForm';
@@ -194,6 +195,11 @@ export function EmployeeProfilePage() {
         businessDate={profile.businessDate}
         revision={revision}
         onChanged={changed}
+      />
+      <EmployeeCompensationSection
+        employeeId={profile.id}
+        revision={revision}
+        onChanged={setAnnouncement}
       />
       <AccessLinkSection
         employeeId={profile.id}

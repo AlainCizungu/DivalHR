@@ -2184,6 +2184,9 @@ paths:
         rewritten by lineage-backed changes; the linked membership's revocation is scheduled; the
         checklist is created; audit and outbox commit together. Nothing is deleted. Retries with the
         same Idempotency-Key replay the original 201.
+        MVP-093A: a last day before the first day of the employee's latest active monthly
+        compensation interval is 409 COMPENSATION_EMPLOYMENT_CONFLICT; a separation never rewrites
+        compensation, so correct the compensation first.
       tags: [people]
       parameters:
         - $ref: "#/components/parameters/EmployeeId"
@@ -2237,6 +2240,8 @@ paths:
         consequence, the checklist, the acknowledgements the commit needs, the employment version
         and a previewDigest. Writes nothing. Recorded as a disclosure (audit
         employee-separation.preview). Cache-Control private, no-store.
+        MVP-093A: a last day before the first day of the employee's latest active monthly
+        compensation interval is 409 COMPENSATION_EMPLOYMENT_CONFLICT.
       tags: [people]
       parameters:
         - $ref: "#/components/parameters/EmployeeId"
@@ -9606,9 +9611,10 @@ paths:
         lock, deferred checks, audit and outbox) the employment and compensation are re-evaluated: a
         different compensation version is 409 COMPENSATION_VERSION_CONFLICT; an expired preview or any
         difference from the preview (including employment drift) is 409 COMPENSATION_PREVIEW_STALE and
-        nothing is written. A rule violation is 422 COMPENSATION_DATE_OUT_OF_RANGE,
-        COMPENSATION_EMPLOYMENT_CONFLICT or COMPENSATION_TRANSITION_NOT_ALLOWED, or 409
-        COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per employee);
+        nothing is written. A rule violation is 400 COMPENSATION_INVALID_AMOUNT, 422
+        COMPENSATION_DATE_OUT_OF_RANGE or COMPENSATION_TRANSITION_NOT_ALLOWED, or 409
+        COMPENSATION_EMPLOYMENT_CONFLICT or COMPENSATION_LIMIT_REACHED (at most 100 changes and 10
+        scheduled changes per employee);
         identical values record nothing (422 COMPENSATION_TRANSITION_NOT_ALLOWED). Nothing is updated
         in place or deleted. Business rows, the audit record (compensation.establish, .change or
         .correct) and the internal outbox event commit together; none carries an amount. At most 30
@@ -10612,6 +10618,9 @@ components:
         TOO_MANY_ROWS) and, for header problems, params.column (1-based header position, or the
         missing column key for COLUMN_MISSING); the file content is never echoed. A request body
         that is not text/csv (multipart included) is VALIDATION_FAILED on field Content-Type.
+        MVP-093A: COMPENSATION_INVALID_AMOUNT - the amount is not a decimal string in the currency's
+        grammar (sign, exponent, grouping separator, excess scale) or is outside its bounds (CDF 1 to
+        1,000,000,000; USD 0.01 to 100,000.00); the value is never echoed. No params.
       content:
         application/problem+json:
           schema:
@@ -10655,6 +10664,12 @@ components:
         LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) and
         LEAVE_REQUEST_ALREADY_AMENDED (MVP-041D: the employee already replaced the request) carry no
         params.
+        MVP-093A: COMPENSATION_VERSION_CONFLICT (another command changed the employee's compensation
+        first), COMPENSATION_PREVIEW_STALE (the preview expired, or the employment or compensation
+        differs from the preview), COMPENSATION_EMPLOYMENT_CONFLICT (the date is outside every
+        qualifying employment, or a separation would end the employment before an active compensation
+        interval starts) or COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per
+        employee). No params.
       content:
         application/problem+json:
           schema:
@@ -10671,6 +10686,9 @@ components:
         echoed. LEAVE_REQUEST_NOT_FOUND (MVP-041B) - no leave request the caller may see or
         decide: unknown, foreign-tenant, other-route and non-report requests are
         indistinguishable; no params.
+        MVP-093A: COMPENSATION_NOT_FOUND - the employee or compensation change is malformed, unknown,
+        foreign, belongs to another employee or is not visible to the caller; the cases are
+        indistinguishable. No params.
       content:
         application/problem+json:
           schema:
@@ -10702,6 +10720,8 @@ components:
         an employment change or cancellation, a separation, its cancellation or an access-link
         change exceeded its time limit or met a lock held by a background job, and nothing was
         written; retry with the same Idempotency-Key. No params.
+        A compensation command or read that exceeded its time limit or met a lock is also
+        EMPLOYMENT_CHANGE_TIMEOUT (MVP-093A); nothing was written; retry with the same Idempotency-Key.
       content:
         application/problem+json:
           schema:
@@ -10742,6 +10762,10 @@ components:
         SEPARATION_ACKNOWLEDGEMENT_REQUIRED (params.acknowledgement),
         SEPARATION_REPORT_PLAN_REQUIRED, SEPARATION_TOO_MANY_INTERVALS (params.count) and
         MANAGER_INVALID for the replacement manager. Params never carry a date, a value or an ID.
+        MVP-093A: COMPENSATION_DATE_OUT_OF_RANGE (an effective date, or the reach of a correction, is
+        outside 60 days back to 366 days ahead of the business date) and
+        COMPENSATION_TRANSITION_NOT_ALLOWED (the action is not legal in the current timeline, the
+        values are identical, or the change is not an unstarted CHANGED interval). No params.
       content:
         application/problem+json:
           schema:

@@ -23,6 +23,10 @@ describe('service worker caching (MVP-010 guardrails 3 and 6)', () => {
       '/api/v1/invitations?status=PENDING',
       '/api/v1/public/invitations/inspect',
       '/api/v1/public/invitations/accept',
+      '/api/v1/me/compensation',
+      '/api/v1/me/compensation?cursor=x',
+      '/api/v1/employees/00000000-0000-4000-8000-000000000001/compensation',
+      '/api/v1/employees/00000000-0000-4000-8000-000000000001/compensation/preview',
       '/auth/callback',
     ]) {
       expect(denied(path), path).toBe(true);

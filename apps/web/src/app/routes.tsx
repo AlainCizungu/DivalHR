@@ -6,6 +6,7 @@ import { WebhooksPage } from '../features/webhooks/WebhooksPage';
 import { WhatsAppPage } from '../features/whatsapp/WhatsAppPage';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
+import { MyCompensationPage } from '../features/compensation/MyCompensationPage';
 import { ContractExpirationsPage } from '../features/contracts/ContractExpirationsPage';
 import { ContractTemplatePage } from '../features/contracts/ContractTemplatePage';
 import { ContractTemplatesPage } from '../features/contracts/ContractTemplatesPage';
@@ -391,6 +392,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'expenses.me.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myExpenses' }],
+  },
+  {
+    path: '/me/compensation',
+    element: <MyCompensationPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'compensation.me.unauthorized',
+      signInKey: 'compensation.me.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myCompensation' }],
   },
   {
     path: '/me/expense-approvals',

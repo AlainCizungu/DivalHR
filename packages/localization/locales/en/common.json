@@ -55,6 +55,7 @@
     "myTasks": "My tasks",
     "expenses": "Expenses",
     "myExpenses": "My expenses",
+    "myCompensation": "My compensation",
     "expenseApprovals": "Expense approvals"
   },
   "shell": {
@@ -624,7 +625,15 @@
     "EXPENSE_RECEIPT_INVALID": "The receipt file could not be read as a valid PDF, JPEG or PNG. Choose another file.",
     "EXPENSE_RECEIPT_TOO_LARGE": "The receipt is larger than 2 MB. Choose a smaller file.",
     "EXPENSE_RECEIPT_UPLOAD_TIMEOUT": "The receipt took too long to send. Check your connection and try again.",
-    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Only PDF, JPEG and PNG receipts are accepted."
+    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Only PDF, JPEG and PNG receipts are accepted.",
+    "COMPENSATION_NOT_FOUND": "This compensation record does not exist or is not available to you.",
+    "COMPENSATION_INVALID_AMOUNT": "The amount is not valid for this currency. Use whole francs for CDF, or at most two decimals for USD, within the allowed range.",
+    "COMPENSATION_DATE_OUT_OF_RANGE": "The effective date is outside the allowed range: at most 60 days in the past and 366 days ahead.",
+    "COMPENSATION_EMPLOYMENT_CONFLICT": "The effective date does not fit the employee’s employment periods. Check the employment history, then correct the compensation if needed.",
+    "COMPENSATION_PREVIEW_STALE": "The preview is out of date because the record or the employment changed or the preview expired. Preview the change again before confirming.",
+    "COMPENSATION_VERSION_CONFLICT": "The compensation changed since you opened it. The latest record is shown; preview the change again.",
+    "COMPENSATION_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current state of the compensation. Only a change that has not started yet can be cancelled.",
+    "COMPENSATION_LIMIT_REACHED": "The limit of changes or scheduled changes for this employee has been reached."
   },
   "notFound": {
     "title": "Page not found",
@@ -5030,6 +5039,143 @@
       "empty": "No submitted expense matches.",
       "listTitle": "Submitted expenses",
       "more": "Show more"
+    }
+  },
+  "compensation": {
+    "title": "Compensation",
+    "privacy": "Compensation is restricted financial and HR data. Only administrators of your organization and the employee concerned can read it. DivalHR keeps no copy of it in your browser.",
+    "notice": "Recording compensation does not calculate payroll or initiate payment.",
+    "loading": "Loading compensation…",
+    "loadMore": "Load more history",
+    "loadingMore": "Loading…",
+    "monthly": "per month",
+    "validation": "Check the highlighted fields and try again.",
+    "forbidden": "You are not allowed to do this.",
+    "period": {
+      "open": "from {{from}}",
+      "closed": "{{from}} – {{to}}"
+    },
+    "current": {
+      "title": "Current monthly base compensation",
+      "none": "No compensation applies today.",
+      "empty": "No compensation has been recorded for this employee."
+    },
+    "scheduled": {
+      "title": "Scheduled changes"
+    },
+    "actions": {
+      "establish": "Record the first compensation",
+      "change": "Schedule or record a change",
+      "correct": "Correct",
+      "cancel": "Cancel this scheduled change"
+    },
+    "action": {
+      "ESTABLISHED": "First compensation",
+      "CHANGED": "Change",
+      "CORRECTED": "Correction",
+      "SCHEDULED_CHANGE_CANCELLED": "Scheduled change cancelled"
+    },
+    "reason": {
+      "DATA_ENTRY_ERROR": "Data entry error",
+      "WRONG_EFFECTIVE_DATE": "Wrong effective date",
+      "WRONG_CURRENCY": "Wrong currency",
+      "OTHER_CORRECTION": "Other correction"
+    },
+    "currency": {
+      "CDF": "CDF – Congolese franc",
+      "USD": "USD – US dollar"
+    },
+    "warnings": {
+      "RETROACTIVE": "The effective date is in the past. This is a retroactive change and needs your acknowledgement.",
+      "LATER_CHANGE_SCHEDULED": "A later change is already scheduled. It is not changed by this command."
+    },
+    "blockers": {
+      "AMOUNT_OUT_OF_RANGE": "The amount is outside the allowed range for this currency.",
+      "DATE_OUT_OF_RANGE": "The effective date is outside the allowed range: at most 60 days in the past and 366 days ahead.",
+      "EMPLOYMENT_CONFLICT": "The effective date is not within a period of employment of this employee.",
+      "TRANSITION_NOT_ALLOWED": "This change is not allowed in the current state of the record.",
+      "NO_CHANGE": "These values are already recorded. Nothing would change.",
+      "NOT_CANCELLABLE": "Only a change that has not started yet can be cancelled.",
+      "LIMIT_REACHED": "The limit of changes or scheduled changes for this employee has been reached."
+    },
+    "form": {
+      "title": {
+        "ESTABLISHED": "Record the first compensation",
+        "CHANGED": "Record or schedule a change",
+        "CORRECTED": "Correct a recorded compensation"
+      },
+      "help": {
+        "ESTABLISHED": "Enter the monthly base amount and the date it starts. You will see a preview before anything is recorded.",
+        "CHANGED": "Enter the new monthly base amount and the date it starts. A future date schedules the change. You will see a preview before anything is recorded.",
+        "CORRECTED": "Correct the amount, currency or start of a recorded value. The earlier record is kept. You will see a preview before anything is recorded."
+      },
+      "effectiveFrom": "Effective date",
+      "effectiveFromHelp": "The first day this amount applies.",
+      "currency": "Currency",
+      "currencyHelp": "Amounts are never converted between currencies.",
+      "amount": "Monthly base amount",
+      "amountHelpCdf": "Whole francs, from 1 to 1,000,000,000.",
+      "amountHelpUsd": "Up to two decimals, from 0.01 to 100,000.00.",
+      "reasonCode": "Reason for the correction",
+      "chooseReason": "Choose a reason",
+      "explanation": "Explanation for administrators",
+      "explanationHelp": "{{min}} to {{max}} characters. Plain text, no links or markup. Only administrators can read it.",
+      "preview": "Preview",
+      "previewing": "Previewing…",
+      "saving": "Saving…",
+      "close": "Close",
+      "problems": {
+        "effectiveFrom": "Enter a valid effective date.",
+        "currency": "Choose a currency.",
+        "amount": "Enter a valid amount for this currency.",
+        "reasonCode": "Choose a reason for the correction.",
+        "explanation": "Enter an explanation of 10 to 500 characters, without links or markup.",
+        "acknowledge": "Confirm that you acknowledge this retroactive change."
+      }
+    },
+    "preview": {
+      "title": "Preview",
+      "summary": "{{action}}: {{money}} per month from {{date}}.",
+      "before": "Before",
+      "after": "After",
+      "nothing": "Nothing.",
+      "warningsTitle": "Please note",
+      "blockersTitle": "This cannot be recorded",
+      "expires": "This preview is valid until {{at}}.",
+      "acknowledge": "I acknowledge that this change applies to a past date.",
+      "confirm": "Confirm and record"
+    },
+    "cancel": {
+      "title": "Cancel the scheduled change of {{money}} from {{date}}",
+      "loading": "Checking the cancellation…",
+      "help": "The cancellation is recorded and the earlier history is kept. The previous amount applies again.",
+      "confirm": "Confirm the cancellation",
+      "keep": "Keep the change"
+    },
+    "history": {
+      "title": "History",
+      "empty": "No change has been recorded yet.",
+      "effectiveFrom": "Effective date",
+      "reason": "Reason",
+      "timing": "Timing",
+      "retroactive": "Retroactive",
+      "explanation": "Administrator explanation",
+      "recordedAt": "Recorded"
+    },
+    "announce": {
+      "ESTABLISHED": "First compensation recorded.",
+      "CHANGED": "Compensation change recorded.",
+      "CORRECTED": "Compensation correction recorded.",
+      "SCHEDULED_CHANGE_CANCELLED": "Scheduled change cancelled."
+    },
+    "me": {
+      "title": "My compensation",
+      "description": "Your current monthly base compensation and its dated history, privately.",
+      "unauthorized": "Compensation is available to employees linked to their account.",
+      "signInRequired": "Sign in to see your compensation.",
+      "notice": "Worked minutes do not automatically change a monthly salary, and no payment is initiated.",
+      "privacy": "Only you and the administrators of your organization can read this. DivalHR keeps no copy of it in your browser.",
+      "empty": "No compensation has been recorded for you yet."
     }
   }
 }

@@ -553,3 +553,16 @@ Same schema `integrations`; no existing table is altered. Tables: `messaging_con
 - Triggers enforce one connector per tenant, 25 recipients per tenant, number uniqueness per tenant, the exactly-one-credential rule, tenant consistency across the foreign keys, monotonic delivery states with no resend once a provider message id exists, 3 test messages per recipient and 10 per tenant per hour, no DELETE or TRUNCATE on any messaging table, and immutable attempts, callbacks and ledger rows.
 - No phone number is stored in clear text; no response body, message text, URL or provider error text is stored.
 - Rollback: `db/rollback/V40__rollback.sql` refuses while any connector, recipient, delivery or fan-out data exists.
+
+## MVP-093A: monthly base compensation (V43)
+
+- `payroll.compensation_change`: append-only command evidence, one increasing `seq` per employee (the
+  compensation version), actions `ESTABLISHED`, `CHANGED`, `CORRECTED`, `SCHEDULED_CHANGE_CANCELLED`,
+  at most 100 per employee. No update, delete or truncate.
+- `payroll.compensation`: transaction-time facts (currency, ISO exponent, signed 64-bit minor units,
+  frequency `MONTHLY`, `effective_from`/`effective_to`). A fact is active while `superseded_seq IS NULL`;
+  the only legal update supersedes an active fact. Exclusion constraint on overlapping active facts;
+  deferred exact check that the active timeline is gap-free and equals the latest change; trigger-level
+  tenant/employee binding. Advisory lock `payroll.compensation:{tenant}:{employee}`.
+- **Classification.** Restricted financial and HR data: amounts, explanations and before/after values.
+  Rollback `db/rollback/V43__rollback.sql` is manual and refuses while any row exists.

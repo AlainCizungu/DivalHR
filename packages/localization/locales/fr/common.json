@@ -55,6 +55,7 @@
     "myTasks": "Mes tâches",
     "expenses": "Notes de frais",
     "myExpenses": "Mes notes de frais",
+    "myCompensation": "Ma rémunération",
     "expenseApprovals": "Notes de frais à approuver"
   },
   "shell": {
@@ -624,7 +625,15 @@
     "EXPENSE_RECEIPT_INVALID": "Le fichier du justificatif n’est pas un PDF, JPEG ou PNG valide. Choisissez un autre fichier.",
     "EXPENSE_RECEIPT_TOO_LARGE": "Le justificatif dépasse 2 Mo. Choisissez un fichier plus petit.",
     "EXPENSE_RECEIPT_UPLOAD_TIMEOUT": "L’envoi du justificatif a pris trop de temps. Vérifiez votre connexion et réessayez.",
-    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Seuls les justificatifs PDF, JPEG et PNG sont acceptés."
+    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Seuls les justificatifs PDF, JPEG et PNG sont acceptés.",
+    "COMPENSATION_NOT_FOUND": "Cette rémunération n’existe pas ou ne vous est pas accessible.",
+    "COMPENSATION_INVALID_AMOUNT": "Le montant n’est pas valide pour cette devise. Utilisez des francs entiers pour le CDF, ou au plus deux décimales pour l’USD, dans la plage autorisée.",
+    "COMPENSATION_DATE_OUT_OF_RANGE": "La date d’effet est en dehors de la plage autorisée : au plus 60 jours dans le passé et 366 jours à l’avance.",
+    "COMPENSATION_EMPLOYMENT_CONFLICT": "La date d’effet ne correspond pas aux périodes d’emploi de l’employé. Vérifiez l’historique d’emploi, puis corrigez la rémunération si nécessaire.",
+    "COMPENSATION_PREVIEW_STALE": "L’aperçu n’est plus à jour : le dossier ou l’emploi a changé, ou l’aperçu a expiré. Faites un nouvel aperçu avant de confirmer.",
+    "COMPENSATION_VERSION_CONFLICT": "La rémunération a changé depuis son ouverture. Le dernier état est affiché ; faites un nouvel aperçu du changement.",
+    "COMPENSATION_TRANSITION_NOT_ALLOWED": "Cette action n’est pas autorisée dans l’état actuel de la rémunération. Seul un changement qui n’a pas encore commencé peut être annulé.",
+    "COMPENSATION_LIMIT_REACHED": "La limite de changements ou de changements programmés pour cet employé est atteinte."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -5030,6 +5039,143 @@
       "empty": "Aucune note de frais soumise ne correspond.",
       "listTitle": "Notes de frais soumises",
       "more": "Afficher la suite"
+    }
+  },
+  "compensation": {
+    "title": "Rémunération",
+    "privacy": "La rémunération est une donnée financière et RH restreinte. Seuls les administrateurs de votre organisation et l’employé concerné peuvent la consulter. DivalHR n’en conserve aucune copie dans votre navigateur.",
+    "notice": "L’enregistrement de la rémunération ne calcule pas la paie et n’initie aucun paiement.",
+    "loading": "Chargement de la rémunération…",
+    "loadMore": "Charger plus d’historique",
+    "loadingMore": "Chargement…",
+    "monthly": "par mois",
+    "validation": "Vérifiez les champs signalés puis réessayez.",
+    "forbidden": "Vous n’avez pas le droit de faire cela.",
+    "period": {
+      "open": "à partir du {{from}}",
+      "closed": "{{from}} – {{to}}"
+    },
+    "current": {
+      "title": "Rémunération mensuelle de base actuelle",
+      "none": "Aucune rémunération ne s’applique aujourd’hui.",
+      "empty": "Aucune rémunération n’a été enregistrée pour cet employé."
+    },
+    "scheduled": {
+      "title": "Changements programmés"
+    },
+    "actions": {
+      "establish": "Enregistrer la première rémunération",
+      "change": "Programmer ou enregistrer un changement",
+      "correct": "Corriger",
+      "cancel": "Annuler ce changement programmé"
+    },
+    "action": {
+      "ESTABLISHED": "Première rémunération",
+      "CHANGED": "Changement",
+      "CORRECTED": "Correction",
+      "SCHEDULED_CHANGE_CANCELLED": "Changement programmé annulé"
+    },
+    "reason": {
+      "DATA_ENTRY_ERROR": "Erreur de saisie",
+      "WRONG_EFFECTIVE_DATE": "Date d’effet erronée",
+      "WRONG_CURRENCY": "Devise erronée",
+      "OTHER_CORRECTION": "Autre correction"
+    },
+    "currency": {
+      "CDF": "CDF – franc congolais",
+      "USD": "USD – dollar américain"
+    },
+    "warnings": {
+      "RETROACTIVE": "La date d’effet est dans le passé. Il s’agit d’un changement rétroactif qui demande votre confirmation.",
+      "LATER_CHANGE_SCHEDULED": "Un changement ultérieur est déjà programmé. Cette commande ne le modifie pas."
+    },
+    "blockers": {
+      "AMOUNT_OUT_OF_RANGE": "Le montant est en dehors de la plage autorisée pour cette devise.",
+      "DATE_OUT_OF_RANGE": "La date d’effet est en dehors de la plage autorisée : au plus 60 jours dans le passé et 366 jours à l’avance.",
+      "EMPLOYMENT_CONFLICT": "La date d’effet ne se situe pas dans une période d’emploi de cet employé.",
+      "TRANSITION_NOT_ALLOWED": "Ce changement n’est pas autorisé dans l’état actuel du dossier.",
+      "NO_CHANGE": "Ces valeurs sont déjà enregistrées. Rien ne changerait.",
+      "NOT_CANCELLABLE": "Seul un changement qui n’a pas encore commencé peut être annulé.",
+      "LIMIT_REACHED": "La limite de changements ou de changements programmés pour cet employé est atteinte."
+    },
+    "form": {
+      "title": {
+        "ESTABLISHED": "Enregistrer la première rémunération",
+        "CHANGED": "Enregistrer ou programmer un changement",
+        "CORRECTED": "Corriger une rémunération enregistrée"
+      },
+      "help": {
+        "ESTABLISHED": "Saisissez le montant mensuel de base et sa date de début. Un aperçu s’affiche avant tout enregistrement.",
+        "CHANGED": "Saisissez le nouveau montant mensuel de base et sa date de début. Une date future programme le changement. Un aperçu s’affiche avant tout enregistrement.",
+        "CORRECTED": "Corrigez le montant, la devise ou le début d’une valeur enregistrée. L’enregistrement précédent est conservé. Un aperçu s’affiche avant tout enregistrement."
+      },
+      "effectiveFrom": "Date d’effet",
+      "effectiveFromHelp": "Le premier jour où ce montant s’applique.",
+      "currency": "Devise",
+      "currencyHelp": "Les montants ne sont jamais convertis d’une devise à l’autre.",
+      "amount": "Montant mensuel de base",
+      "amountHelpCdf": "Francs entiers, de 1 à 1 000 000 000.",
+      "amountHelpUsd": "Jusqu’à deux décimales, de 0,01 à 100 000,00. La virgule ou le point est accepté.",
+      "reasonCode": "Motif de la correction",
+      "chooseReason": "Choisissez un motif",
+      "explanation": "Explication pour les administrateurs",
+      "explanationHelp": "De {{min}} à {{max}} caractères. Texte brut, sans lien ni balisage. Seuls les administrateurs peuvent la lire.",
+      "preview": "Aperçu",
+      "previewing": "Aperçu en cours…",
+      "saving": "Enregistrement…",
+      "close": "Fermer",
+      "problems": {
+        "effectiveFrom": "Saisissez une date d’effet valide.",
+        "currency": "Choisissez une devise.",
+        "amount": "Saisissez un montant valide pour cette devise.",
+        "reasonCode": "Choisissez un motif de correction.",
+        "explanation": "Saisissez une explication de 10 à 500 caractères, sans lien ni balisage.",
+        "acknowledge": "Confirmez que vous avez pris connaissance de ce changement rétroactif."
+      }
+    },
+    "preview": {
+      "title": "Aperçu",
+      "summary": "{{action}} : {{money}} par mois à partir du {{date}}.",
+      "before": "Avant",
+      "after": "Après",
+      "nothing": "Rien.",
+      "warningsTitle": "À noter",
+      "blockersTitle": "Ceci ne peut pas être enregistré",
+      "expires": "Cet aperçu est valable jusqu’au {{at}}.",
+      "acknowledge": "Je reconnais que ce changement s’applique à une date passée.",
+      "confirm": "Confirmer et enregistrer"
+    },
+    "cancel": {
+      "title": "Annuler le changement programmé de {{money}} à partir du {{date}}",
+      "loading": "Vérification de l’annulation…",
+      "help": "L’annulation est enregistrée et l’historique précédent est conservé. Le montant précédent s’applique de nouveau.",
+      "confirm": "Confirmer l’annulation",
+      "keep": "Conserver le changement"
+    },
+    "history": {
+      "title": "Historique",
+      "empty": "Aucun changement n’a encore été enregistré.",
+      "effectiveFrom": "Date d’effet",
+      "reason": "Motif",
+      "timing": "Chronologie",
+      "retroactive": "Rétroactif",
+      "explanation": "Explication de l’administrateur",
+      "recordedAt": "Enregistré"
+    },
+    "announce": {
+      "ESTABLISHED": "Première rémunération enregistrée.",
+      "CHANGED": "Changement de rémunération enregistré.",
+      "CORRECTED": "Correction de rémunération enregistrée.",
+      "SCHEDULED_CHANGE_CANCELLED": "Changement programmé annulé."
+    },
+    "me": {
+      "title": "Ma rémunération",
+      "description": "Votre rémunération mensuelle de base actuelle et son historique daté, en toute confidentialité.",
+      "unauthorized": "La rémunération est accessible aux employés liés à leur compte.",
+      "signInRequired": "Connectez-vous pour consulter votre rémunération.",
+      "notice": "Les minutes travaillées ne modifient pas automatiquement un salaire mensuel, et aucun paiement n’est initié.",
+      "privacy": "Vous seul et les administrateurs de votre organisation pouvez la consulter. DivalHR n’en conserve aucune copie dans votre navigateur.",
+      "empty": "Aucune rémunération n’a encore été enregistrée pour vous."
     }
   }
 }
