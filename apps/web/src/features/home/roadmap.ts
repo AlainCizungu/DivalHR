@@ -4,8 +4,10 @@ import type { IconName } from '../../ui/Icon';
  * UI-001 (D7): capabilities on the DivalHR roadmap, shown on the homes as "Coming next" tiles.
  * Static text only: no link, button, date or availability promise. UI-003 (UI3-4, UI3-5) removed
  * what had shipped: leave, scheduling and contract expiration, and the employee's leave. UI-004
- * (U4-1) removed attendance and timesheets (MVP-060A to MVP-070E) and names what comes next:
- * period locking, payroll preparation and calculations, and salary disbursement.
+ * (U4-1) removed attendance and timesheets (MVP-060A to MVP-070E). MVP-093A (Issue #175, D93-15)
+ * removed period locking and payroll inputs (shipped through MVP-092) and names what comes next
+ * for an administrator: statutory calculation, payslips and net-pay approval, disbursement and
+ * reconciliation, and salary advances. Monthly compensation records are shipped, not roadmap.
  */
 export interface RoadmapItem {
   id: string;
@@ -13,9 +15,10 @@ export interface RoadmapItem {
 }
 
 export const TENANT_ADMIN_ROADMAP: RoadmapItem[] = [
-  { id: 'periodLocking', icon: 'shield' },
-  { id: 'payrollInputs', icon: 'payroll' },
+  { id: 'statutoryCalculation', icon: 'payroll' },
+  { id: 'payslipApproval', icon: 'contract' },
   { id: 'disbursement', icon: 'bank' },
+  { id: 'salaryAdvances', icon: 'benefits' },
 ];
 
 export const EMPLOYEE_ROADMAP: RoadmapItem[] = [

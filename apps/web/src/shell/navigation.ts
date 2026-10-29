@@ -240,6 +240,12 @@ export const NAVIGATION: NavGroupDef[] = [
       { to: '/me/tasks', labelKey: 'nav.myTasks', icon: 'check', role: 'employee' },
       { to: '/me/expenses', labelKey: 'nav.myExpenses', icon: 'expenses', role: 'employee' },
       {
+        to: '/me/compensation',
+        labelKey: 'nav.myCompensation',
+        icon: 'contract',
+        role: 'employee',
+      },
+      {
         to: '/me/expense-approvals',
         labelKey: 'nav.expenseApprovals',
         icon: 'check',

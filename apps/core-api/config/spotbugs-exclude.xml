@@ -131,6 +131,12 @@
       <Class name="com.divalhr.core.payroll.internal.JdbcPayrollLifecycleRepository"/>
       <Class name="com.divalhr.core.payroll.api.PayrollLifecycleController"/>
       <Class name="com.divalhr.core.payroll.api.PayrollInputExportController"/>
+      <!-- MVP-093A: monthly compensation services, guard, adapter, repository and controllers
+           hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.application\.(Compensation|MyCompensation|PayrollCompensation)[A-Za-z]*"/>
+      <Class name="com.divalhr.core.payroll.api.EmployeeCompensationController"/>
+      <Class name="com.divalhr.core.payroll.api.MyCompensationController"/>
+      <Class name="com.divalhr.core.people.application.PeopleEmploymentIntervals"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
       <Class name="com.divalhr.core.integrations.application.WebhookService"/>

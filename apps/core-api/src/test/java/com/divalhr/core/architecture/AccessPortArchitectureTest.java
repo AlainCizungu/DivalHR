@@ -3,8 +3,10 @@ package com.divalhr.core.architecture;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.divalhr.core.platform.access.CompensationEmploymentGuard;
 import com.divalhr.core.platform.access.EmployeeAccessLinks;
 import com.divalhr.core.platform.access.EmploymentContractFacts;
+import com.divalhr.core.platform.access.EmploymentIntervals;
 import com.divalhr.core.platform.access.LockedApprovedTime;
 import com.divalhr.core.platform.access.ReportingLines;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -97,6 +99,31 @@ class AccessPortArchitectureTest {
           .and()
           .haveName("lockManagerGraph")
           .should(JOIN_THE_CALLER);
+
+  /** MVP-093A: the shared employment locks of a compensation command join its transaction. */
+  @ArchTest
+  static final ArchRule employmentIntervalsLockJoinsTheCoordinatorsTransaction =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .implement(EmploymentIntervals.class)
+          .and()
+          .haveName("lockShared")
+          .should(JOIN_THE_CALLER);
+
+  @Test
+  void theCompensationPortsReadAndLockOnlyThroughTheirDeclaredMethods() {
+    assertThat(
+            Stream.of(EmploymentIntervals.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactlyInAnyOrder("read", "lockShared");
+    assertThat(
+            Stream.of(CompensationEmploymentGuard.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactly("latestCompensationStart");
+  }
 
   @Test
   void theReportingLinesPortHasExactlyItsDeclaredMethods() {

@@ -820,3 +820,19 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - **Abuse limits.** 25 recipients per tenant, one connector per tenant, test messages 3 per recipient and 10 per tenant per hour (database-enforced, one indistinguishable 429), automatic suspension after ten consecutive terminal failures.
 - **Audit.** Fail-closed, closed and bounded metadata (no phone, WABA or phone-number id, template name, token, provider message id or URL); append-only delivery, attempt and callback evidence.
 - **Not implemented.** STOP/opt-out automation and inbound conversations. Production enablement needs Meta review, legal and privacy review and edge controls (ADR 0029, `docs/security/MVP-111-WHATSAPP-DATA-FLOW.md`).
+
+## Monthly compensation (MVP-093A, ADR 0032)
+
+- **Restricted financial and HR data.** The amount, the free-text correction explanation, employee
+  number, name and contact details never enter logs, metrics, audit metadata, outbox payloads,
+  idempotency receipts, cursors, URLs or error bodies. Audit and events carry stable ids, currency,
+  frequency, effective dates, the action, the version and bounded counts only.
+- **Authority.** Tenant administrator with exact MFA (`TenantAdminOperation`) for all five employee
+  operations; a linked active employee reads only their own record (`/me/compensation`, link resolved
+  inside the read). Managers, substitutes and platform administrators have no operation. Unknown,
+  malformed, foreign and unauthorized employee or change ids are one `404 COMPENSATION_NOT_FOUND`.
+- **Disclosure audit.** Every read, history page and preview is audited fail-closed
+  (`compensation.read`, `compensation.history-read`). Responses are `Cache-Control: private, no-store`.
+- **Limits.** Previews 60 per hour (subject, in-process) and 600 per tenant; commands 30 per subject
+  and 300 per tenant per hour; 100 changes and 10 scheduled changes per employee.
+- **Events are internal.** `payroll.compensation.*` events are not mapped to webhooks or WhatsApp.

@@ -42,6 +42,7 @@ const EMPLOYEE = [
   '/me/leave/approvals',
   '/me/tasks',
   '/me/expenses',
+  '/me/compensation',
   '/me/expense-approvals',
 ];
 
@@ -139,6 +140,7 @@ describe('navigation and route registry consistency', () => {
         '/me/leave/approvals',
         '/me/tasks',
         '/me/expenses',
+        '/me/compensation',
         '/me/expense-approvals',
         '/me/contracts/:contractId',
         '/invitation',

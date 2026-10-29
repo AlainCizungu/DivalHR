@@ -18,13 +18,38 @@ A story is ready when it has a business owner, French and English copy, acceptan
 
 ## Status and test environment
 
-Statuses below are reconciled against GitHub: "Complete" means the story's issue is closed as completed and its pull request is merged into `main`. As of 2026-10-07, the test environment `https://hr-dev.dival.ai` runs `main` at `194471e` (after PR #70), which contains every story marked complete here; it was deployed on 2026-10-06 after an exact-SHA host verification, passed the live acceptance suite and was accepted by the architect on 2026-10-07 (OPS-001, Issue #65). It holds synthetic data only. Stories marked "deployed to hr-dev" were deployed one at a time since; as of 2026-10-13 the test environment runs `main` at `7522c2b0102143612768269baf61da8ba0fbd5a7` (PR #121, after MVP-060C).
+Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a story is **Merged** when its pull request's merge commit is on the first-parent history of `main` (`git log --merges --first-parent origin/main`), and its merge commit, pull-request number and date are the ones Git records (`git show -s --format=%cI`). "Complete" on older stories keeps its earlier meaning (issue closed as completed and pull request merged); this refresh checked Git only, not the issue tracker, so it does not re-assert whether an issue is closed.
+
+**Deployed hr-dev release (as of 2026-10-29).** `https://hr-dev.dival.ai` runs `main` at `5d4cd1068b63b84e33671123405d6bef1178b6aa` (merge of PR #174, SEC-003, merged 2026-10-29T07:42:43-05:00; deployed 2026-10-29). It was preceded by `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (merge of PR #170, MVP-081, merged 2026-10-28), which was deployed first. The test environment runs one released commit of `main` at a time and holds synthetic data only. Deployment dates of earlier releases are recorded in the story sections where this backlog already stated them; for every other story the deployed fact derived from Git is that its merge commit is an ancestor of the deployed release `1d910234…` (and so of `5d4cd106…`), shown as "contained" below. Where Git cannot show a deployment, this backlog says "merged", not "deployed".
+
+### Git evidence for the stories reconciled by MVP-093A
+
+`scripts/ops/backlog.test.mjs` checks every row against Git (merge subject and PR number, date, ancestry) and checks that this section names the deployed release and that every story below has a status.
+
+| Story    | PR   | Merge commit                               | Merged     | On hr-dev |
+| -------- | ---- | ------------------------------------------ | ---------- | --------- |
+| MVP-001  | #11  | `a3aa9bf37148e49268ed2df2f8f5f8005d99507a` | 2026-09-28 | contained |
+| DEVX-001B | #79  | `0634d8791b2960860d0a1a82fd5c7d41b1dc4b85` | 2026-10-08 | contained |
+| MVP-090A | #142 | `2c9a1ee0db3215e79a10ffe622fb9899dc04cb54` | 2026-10-18 | contained |
+| MVP-091  | #144 | `11e7b5066e5bdf27d8fdc6862d33fa6413e6829a` | 2026-10-18 | contained |
+| MVP-092  | #150 | `0489dab31234bf8d7cb997ff1a52b94eaa54aa02` | 2026-10-20 | contained |
+| MVP-100  | #155 | `538c1b33f9e2932830f0f126d402c9349f33931b` | 2026-10-21 | contained |
+| MVP-101  | #157 | `8608fd192e344909b8f27e162b2a9792643653d1` | 2026-10-21 | contained |
+| MVP-110  | #162 | `2dee8a1d29b6cb9c2229a7ebb4cabfd92c4cab6d` | 2026-10-23 | contained |
+| MVP-111  | #164 | `1d3b441aead24387529018bbec6411816827f95e` | 2026-10-26 | contained |
+| MVP-080  | #168 | `77e1f89d5de63d33203986e1d592728a0c026015` | 2026-10-27 | contained |
+| MVP-081  | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
+| SEC-003  | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
+
+Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.
 
 ## Epic 1 Tenant Foundation
 
 ### MVP-001 Create an organization
 
 As a platform administrator, I can create an organization with a default country, language, timezone, and currencies.
+
+**Issue #10. Merged (PR #11, `a3aa9bf`, 2026-09-28).** Reconciled against Git by MVP-093A; its acceptance criteria below are unchanged.
 
 Acceptance criteria:
 
@@ -300,7 +325,7 @@ Approved periods can be locked; reopening requires privileged approval and audit
 
 A worker can receive, update, and complete a task with optional evidence.
 
-**Issue #167. In review (not merged, not deployed).** First increment: administrator assigns a bounded task to one active employee, the employee starts and completes it, administrators cancel unfinished tasks; immutable history. ADR 0030, decisions D80-1 to D80-12, evidence map `docs/DECISIONS/0030-evidence.md`. V41 adds the `operations` task tables.
+**Issue #167. Merged (PR #168, merge commit `77e1f89`, 2026-10-27); contained in the deployed hr-dev release `1d910234…`.** First increment: administrator assigns a bounded task to one active employee, the employee starts and completes it, administrators cancel unfinished tasks; immutable history. ADR 0030, decisions D80-1 to D80-12, evidence map `docs/DECISIONS/0030-evidence.md`. V41 adds the `operations` task tables.
 
 - **Who and where.** « Tâches » under `/admin/tasks` (tenant administrator, exact MFA) and « Mes tâches » under `/me/tasks` (linked employee). No manager authority; unknown or foreign ids answer 404.
 - **API.** `/api/v1/tasks` and `/api/v1/me/tasks`: idempotent commands with expected version, `Cache-Control: private, no-store`, keyset pagination, no hard delete.
@@ -311,7 +336,7 @@ A worker can receive, update, and complete a task with optional evidence.
 
 A worker can submit CDF or USD expenses, attach a receipt, and follow approval status.
 
-**Issue #169. In review (not merged, not deployed).** First increment: a linked employee records an expense in CDF or USD with at most one receipt (PDF, JPEG or PNG, 2 MiB), submits it to the effective manager, who approves it or returns it for correction; the employee may withdraw; administrators read. Approval is not reimbursement or payment. ADR 0031, decisions D81-1 to D81-14, evidence map `docs/DECISIONS/0031-evidence.md`. V42 adds the expense tables.
+**Issue #169. Merged (PR #170, merge commit `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf`, 2026-10-28); deployed to hr-dev first, then followed by SEC-003.** First increment: a linked employee records an expense in CDF or USD with at most one receipt (PDF, JPEG or PNG, 2 MiB), submits it to the effective manager, who approves it or returns it for correction; the employee may withdraw; administrators read. Approval is not reimbursement or payment. ADR 0031, decisions D81-1 to D81-14, evidence map `docs/DECISIONS/0031-evidence.md`. V42 adds the expense tables.
 
 - **Who and where.** « Mes notes de frais » under `/me/expenses` (linked employee), « Approbations de frais » under `/me/expense-approvals` (effective manager), « Notes de frais » under `/admin/expenses` (tenant administrator, exact MFA, read only).
 - **Currencies.** CDF and USD are never converted, rounded across or combined.
@@ -323,9 +348,11 @@ A worker can submit CDF or USD expenses, attach a receipt, and follow approval s
 
 Approved attendance, time, leave, allowances, and deductions produce traceable payroll inputs. Delivered in increments of one combined payroll release; MVP-090A is the first.
 
+**Umbrella story.** Only the time-based increment MVP-090A is delivered (merged, below), completed by MVP-091 (variance) and MVP-092 (locked export). Leave, allowances and deductions are not part of any delivered increment.
+
 #### MVP-090A Generate traceable time-based payroll inputs
 
-**Issue #141. In review.** Time-based payroll inputs from locked approved weeks (ADR 0023).
+**Issue #141. Merged (PR #142, merge commit `2c9a1ee`, 2026-10-18); contained in the deployed hr-dev release `1d910234…`.** Time-based payroll inputs from locked approved weeks (ADR 0023).
 
 - **Who and where.** A tenant administrator with exact MFA, on « Préparation de la paie » / "Payroll preparation" under « Paie » / "Payroll": one legal entity and one inclusive period (1 to 31 days from 2026-01-01, ending no later than today) in the organization's business time zone; « Prévisualiser » / "Preview", then an explicit confirmation and « Générer les données de préparation » / "Generate payroll inputs"; the immutable result and the history, newest first. Every screen states « Données de préparation uniquement. DivalHR n’a calculé ni salaire brut, ni retenues, ni impôts, ni salaire net, ni paiement. » / "Payroll inputs only. DivalHR has not calculated gross pay, deductions, tax, net pay or payment."
 - **Preview.** Every week the period touches at a site of the legal entity (a generated week, or a week with published operational shifts) with its status (`LOCKED`, `NOT_GENERATED`, `NOT_LOCKED`, `EVIDENCE_CHANGED`, `EMPTY`), generation and lock versions; the eligible employees, timesheets, rows and approved minutes; exclusions with stable codes (`ROW_OUTSIDE_PERIOD` for weeks cut by the period, `TIMESHEET_WITHOUT_TIME`); blockers with stable codes (`WEEK_NOT_GENERATED`, `WEEK_NOT_LOCKED`, `EVIDENCE_CHANGED`, `ATTRIBUTION_AMBIGUOUS`, `NO_APPROVED_TIME`); the source-versions digest, the canonical preview digest and its expiry (15 to 30 minutes); the existing run of the same period, unchanged or not. Never a name, an employee number or a pay amount.
@@ -336,7 +363,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-091 Review payroll variance
 
-**Issue #143. In review.** Payroll officers can compare the current period with the prior period and investigate material differences (ADR 0024).
+**Issue #143. Merged (PR #144, merge commit `11e7b50`, 2026-10-18); contained in the deployed hr-dev release `1d910234…`.** Payroll officers can compare the current period with the prior period and investigate material differences (ADR 0024).
 
 - **Who and where.** A tenant administrator with exact MFA, inside « Préparation de la paie » / "Payroll preparation": « Examiner les écarts de temps travaillé » / "Review worked-time input differences" on the detail of a run and on each history row. Read-only; no migration, V37 unchanged.
 - **Comparison.** A current MVP-090A run against an eligible earlier run: same tenant and legal entity, ending before the current period begins, the same inclusive day count. The newest eligible run is the default; with none, a bilingual empty state (no baseline is invented). Employees are matched by immutable employee ID (the employments of both runs are aggregated) and classified NEW, MISSING, CHANGED or UNCHANGED.
@@ -346,7 +373,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-092 Export payroll inputs
 
-**Issue #149. In review.** Authorized users can export a locked, versioned payroll-input file (ADR 0025).
+**Issue #149. Merged (PR #150, merge commit `0489dab`, 2026-10-20); contained in the deployed hr-dev release `1d910234…`.** Authorized users can export a locked, versioned payroll-input file (ADR 0025).
 
 - **Who and where.** A tenant administrator with exact MFA, inside « Préparation de la paie » / "Payroll preparation": the version chain, the supersede flow, the final lock and the worked-time export of a run, and a history of exports with CSV and manifest downloads.
 - **Versions.** Replacement version N+1 with `supersedesRunId` and a reason (`UPSTREAM_CORRECTION`, `UPSTREAM_REAPPROVAL`, `SCOPE_CORRECTION`, `OTHER`; `OTHER` needs a bounded plain-text explanation); offered only when the upstream evidence changed; preview digest, confirmation and `Idempotency-Key`. Nothing is deleted, edited, invalidated or hidden.
@@ -356,11 +383,21 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **Data and events.** V38 (V37 untouched) with a refusing rollback; audits `payroll-input.supersede`, `payroll-input.lock`, `payroll-input-export.create`, `payroll-input-export.download`; events `payroll.payroll-input.superseded.v1`, `payroll.payroll-input.locked.v1`, `payroll.payroll-input-export.created.v1`.
 - **Not included:** compensation, calculations, taxes, payslips, payment files, unlocking, voiding exports, notifications, AI.
 
+### MVP-093A Configure monthly compensation
+
+**Issue #175. In progress (not merged, not deployed).** Branch `feature/175-mvp-093a-monthly-compensation`, created from `main` at `5d4cd10` (which contains the SEC-003 merge). Decisions D93-1 to D93-16 of the architect-approved plan on Issue #175.
+
+- **Outcome.** A tenant administrator with exact MFA records an employee's effective-dated **monthly base compensation** in CDF or USD without destroying history; a linked employee reads only their own current compensation and history at `/me/compensation`. Recording compensation does not calculate payroll or initiate payment.
+- **Boundary.** Compensation facts only: frequency exactly `MONTHLY`, one amount, currency `CDF` or `USD`, no conversion. Worked minutes never change a monthly salary. Restricted financial and HR data: no amount in logs, metrics, audit metadata, outbox payloads, cursors, URLs or error bodies.
+- **Data.** Migration V43 in the payroll module (current timeline plus append-only change evidence); rollback refuses while any V43 row exists.
+- **Truthfulness refresh (D93-13 to D93-16).** This backlog, the public landing page (three states: « Disponible maintenant » / "Available now", « Fonctionnalités disponibles » / "Capabilities available", « Prochainement » / "Coming next") and the administrator and employee homes are reconciled with what is shipped, without claiming salary calculation, statutory payroll, payslips or payment.
+- **Not included:** gross or net payroll calculation, hourly rates, overtime, deductions, tax and DRC statutory rules, payslips, payment files and money movement, salary advances and loans, currency conversion, manager access to compensation, bulk import or export, external compensation providers, webhook or WhatsApp compensation events, deletion or retention policy, AI recommendations, native mobile.
+
 ## Epic 11 Dashboards and AI
 
 ### MVP-100 View operational status
 
-**Issue #154. Complete; merged and deployed (merge commit 538c1b3).** Authorized leaders see scheduled shifts, check-ins, lateness, shifts not checked in, uncovered shifts and overdue approvals within their scope (ADR 0026, amendments A100-1 to A100-8).
+**Issue #154. Merged (PR #155, merge commit `538c1b3`, 2026-10-21); recorded as deployed by the previous revision of this backlog and contained in the deployed hr-dev release `1d910234…`.** Authorized leaders see scheduled shifts, check-ins, lateness, shifts not checked in, uncovered shifts and overdue approvals within their scope (ADR 0026, amendments A100-1 to A100-8).
 
 - **Who and where.** A tenant administrator with exact MFA under « Opérations » / "Operations": « Opérations du jour » / "Today's operations" (`/admin/operations`), optionally filtered by legal entity and site. A manager under « Mon espace » / "My space": « Opérations de l’équipe » / "Team operations" (`/me/team-operations`), for the employees she manages, never herself. Read-only; no migration, V38 is still the last.
 - **Counting unit.** Effective assigned shift occurrences, not people: « Quarts planifiés » / "Scheduled shifts" is the total; Expected, Not checked in (« Aucun pointage d’arrivée »), Present and Completed partition it; Late (checked in more than 5 minutes after the start) is a labelled subset. Uncovered shifts (administrator only) are counted apart.
@@ -373,7 +410,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 Dival AI produces a French or English summary using governed metrics and links to authorized source views.
 
-**Issue #156. In review (not merged, not deployed).** ADR 0027, decisions D101-1 to D101-16.
+**Issue #156. Merged (PR #157, merge commit `8608fd1`, 2026-10-21; follow-ups PR #159 and PR #160, merged 2026-10-22); contained in the deployed hr-dev release `1d910234…`.** ADR 0027, decisions D101-1 to D101-16.
 
 - **Who and where.** A « Synthèse du jour » / "Daily briefing" panel on « Opérations du jour » (tenant administrator, exact MFA) and « Opérations de l’équipe » (manager), generated on request in the display language.
 - **API.** `POST /api/v1/operations/status-summary` and `POST /api/v1/me/team-operations/status-summary`, body `{language}` only; no migration, no stored briefing or prompt.
@@ -386,7 +423,7 @@ Dival AI produces a French or English summary using governed metrics and links t
 
 Authorized administrators can create signed webhooks, inspect delivery, rotate secrets, and disable failing endpoints.
 
-**Issue #161. In review (not merged, not deployed).** ADR 0028, decisions D110-1 to D110-16; receiver guide `docs/WEBHOOKS.md`.
+**Issue #161. Merged (PR #162, merge commit `2dee8a1`, 2026-10-23); contained in the deployed hr-dev release `1d910234…`.** ADR 0028, decisions D110-1 to D110-16; receiver guide `docs/WEBHOOKS.md`.
 
 - **Who and where.** « Webhooks » under `/admin/webhooks` (tenant administrator, exact MFA, active membership); unknown or foreign webhooks answer 404.
 - **API.** `/api/v1/integrations/webhooks` (create, list, detail, update, rotate secret with a 24 h overlap, enable, disable, test, deliveries); idempotent, explicit confirmation, `Cache-Control: private, no-store`, no hard delete, at most 20 per tenant. V39 adds the `integrations` schema.
@@ -397,7 +434,7 @@ Authorized administrators can create signed webhooks, inspect delivery, rotate s
 
 The first design partner selects WhatsApp Business, Microsoft Teams, or Slack. Sensitive details require an authenticated DivalHR deep link.
 
-**Issue #163. In review (not merged, not deployed).** WhatsApp Business was selected. ADR 0029, decisions D111-1 to D111-16; operator guide `docs/WHATSAPP.md`; threat model `docs/security/MVP-111-WHATSAPP-DATA-FLOW.md`; evidence map `docs/DECISIONS/0029-evidence.md`. No Meta contact and no real WhatsApp account was used; acceptance runs against a synthetic provider.
+**Issue #163. Merged (PR #164, merge commit `1d3b441`, 2026-10-26); contained in the deployed hr-dev release `1d910234…`.** WhatsApp Business was selected. ADR 0029, decisions D111-1 to D111-16; operator guide `docs/WHATSAPP.md`; threat model `docs/security/MVP-111-WHATSAPP-DATA-FLOW.md`; evidence map `docs/DECISIONS/0029-evidence.md`. No Meta contact and no real WhatsApp account was used; acceptance runs against a synthetic provider.
 
 - **Who and where.** « Intégrations → WhatsApp Business » under `/admin/integrations/whatsapp` (tenant administrator, exact MFA, active membership); unknown or foreign resources answer 404.
 - **API.** `/api/v1/integrations/messaging/whatsapp` (connector create, read, update, verify, rotate token, enable, disable; recipients; test messages; delivery history); idempotent, `Cache-Control: private, no-store`, no hard delete. V40 extends the `integrations` schema.
@@ -451,10 +488,20 @@ Out of scope for OPS-001: production or staging, a dedicated identity origin (a 
 
 **Issue #116. Merged (PR #117) and deployed to hr-dev.** Found by the live privacy check of the MVP-060A deployment, which was rolled back by the runbook: Caddy's access log recorded every command's `Idempotency-Key` header (pre-existing since OPS-001). Caddy deletes the field; the static policy, the CI canaries and `log-hygiene.sh` cover it permanently. The deployment of the new `main` (MVP-060A and SEC-002) passed the live attendance and zero-key log checks, which unblocked MVP-060B.
 
+### SEC-003 Delete receipt file names and receipt metadata from access logs
+
+**Complete: merged (PR #174, merge commit `5d4cd1068b63b84e33671123405d6bef1178b6aa`, 2026-10-29T07:42:43-05:00) and deployed to hr-dev on 2026-10-29; this is the deployed release.** Refs Issue #172. Found by the MVP-081 live acceptance on hr-dev: Caddy's access log recorded the `X-Receipt-File-Name` request header on every receipt upload. Caddy now deletes that header and the receipt `Content-Disposition`, `Etag` and digest fields (a follow-up commit also deletes the webhook signature header and makes the receipt-metadata deletions symmetric); nginx and Core were reviewed and log no headers. A structural test classifies every request header of the API contract, a runtime canary with unique sentinels covers both proxies, and `log-hygiene.sh` has a matching shape. No change to the expense API, validation, lifecycle or UI.
+
 ### DEVX-001 Reduce verification cycle time without reducing coverage
 
-Maintenance (Issue #75; approved proposal with amendments A75-1 to A75-8). Two increments.
+Maintenance (Issue #75; approved proposal with amendments A75-1 to A75-8). Two increments, both merged: DEVX-001A as PR #76 (`383a98c`, 2026-10-08) and DEVX-001B as PR #79 (`0634d87`, 2026-10-08).
 
 **DEVX-001A (complete, PR #76).** The review sequence in `CLAUDE.md`; the Playwright `auth-setup`, `features` (parallel, reusing one real MFA sign-in per privileged seed role) and `identity` (serial) projects, both required; credential hygiene of generated output; per-phase timings; and the `changed`, `pr` and `full` verification profiles. No deployment-gate or rehearsal change.
 
-**DEVX-001B (in progress; amendments A75B-1 to A75B-7).** Risk classes with fail-closed precedence, the canonical rehearsal step matrix, checksummed read-only evidence for every finished run, and a deployment gate that recomputes the release class and tree and reuses the newest qualifying `pr` or `full` evidence, with a class-aware fallback. Closes #75.
+**DEVX-001B (merged, PR #79, `0634d87`, 2026-10-08; amendments A75B-1 to A75B-7).** Risk classes with fail-closed precedence, the canonical rehearsal step matrix, checksummed read-only evidence for every finished run, and a deployment gate that recomputes the release class and tree and reuses the newest qualifying `pr` or `full` evidence, with a class-aware fallback. Closes #75.
+
+## Open maintenance
+
+Work that is not part of any story above. It does not change a story's status.
+
+- **Issues #151 and #173: duplicate tracks for the same identity timeout.** Both track the same identity-provider timeout. Recommendation: consolidate them into one issue (keep the one with the fuller reproduction and link the other as a duplicate) so the fix, its evidence and its closure have a single owner. MVP-093A does not close either issue; the decision belongs to the architect and the founder.

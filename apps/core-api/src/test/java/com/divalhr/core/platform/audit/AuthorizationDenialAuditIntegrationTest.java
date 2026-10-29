@@ -260,7 +260,13 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-081: employee expenses (administrator, read only).
           "expense.list",
           "expense.read",
-          "expense.receipt-read");
+          "expense.receipt-read",
+          // MVP-093A: monthly compensation (administrator).
+          "compensation.read",
+          "compensation.preview",
+          "compensation.commit",
+          "compensation.cancel-preview",
+          "compensation.scheduled-change-cancel");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -334,7 +340,9 @@ class AuthorizationDenialAuditIntegrationTest {
           "expense.approval-read",
           "expense.approval-receipt-read",
           "expense.approval-approve",
-          "expense.approval-return");
+          "expense.approval-return",
+          // MVP-093A: the employee's own monthly compensation.
+          "compensation.self-read");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -765,7 +773,8 @@ class AuthorizationDenialAuditIntegrationTest {
     // messaging.whatsapp.delivery-read).
     // MVP-080 four more (assign, list, read and cancel a task).
     // MVP-081 three more (the administrator's expense list, read and receipt download).
-    assertThat(handlers).hasSize(158);
+    // MVP-093A five more (read, preview, commit, cancellation preview and cancellation).
+    assertThat(handlers).hasSize(163);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

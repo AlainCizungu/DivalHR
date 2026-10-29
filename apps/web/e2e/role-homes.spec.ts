@@ -2,9 +2,11 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectAccessible, signIn, USERS } from './support';
 
 /**
- * UI-003 (Issue #103) and UI-004 (Issue #136): the refreshed landing page and role homes in a real
- * browser. Leave is available, the "Available now" and "Coming next" lists hold the owner's two
- * states, the approved-time message is shown while payouts stay planned; the organization
+ * UI-003 (Issue #103), UI-004 (Issue #136) and MVP-093A (Issue #175, D93-14 to D93-16): the
+ * refreshed landing page and role homes in a real browser. Three truthful states (Available now,
+ * Capabilities available, Coming next), the payroll preparation and compensation message while
+ * calculation, payslips and payment stay planned, per-entry integration states, Tasks and Expenses
+ * in the illustrative preview; the organization
  * administrator's quick actions, three groups and the progress panel, and the employee's work
  * cards and approvals card, open their pages; each role sees only its own destinations; Axe and
  * reflow at 320 px, 390 px and 200 % zoom in English and French. The homes load no dashboard data
@@ -15,21 +17,22 @@ const LANDING = {
   en: {
     language: 'English',
     available: 'Available now',
+    capabilities: 'Capabilities available',
     later: 'Coming next',
-    exports: 'Approved-time CSV and manifest exports for payroll and accounting preparation',
-    next: 'Payroll preparation and calculations',
-    approved:
-      'Export approved time for payroll and accounting—without pretending payroll has already been calculated.',
+    compensation: 'Monthly compensation records',
+    next: 'Gross and net payroll calculation',
+    active:
+      'Payroll preparation and monthly compensation records are active. Salary calculation, statutory rules and payment are not.',
   },
   fr: {
     language: 'Français',
     available: 'Disponible maintenant',
+    capabilities: 'Fonctionnalités disponibles',
     later: 'Prochainement',
-    exports:
-      'Exports CSV du temps approuvé avec manifeste, pour préparer la paie et la comptabilité',
-    next: 'Préparation et calculs de la paie',
-    approved:
-      'Exportez le temps approuvé vers la paie et la comptabilité, sans prétendre que la paie a déjà été calculée.',
+    compensation: 'Rémunérations mensuelles enregistrées',
+    next: 'Calcul de la paie brute et nette',
+    active:
+      'La préparation de la paie et les rémunérations mensuelles sont actives. Le calcul des salaires, les règles légales et le paiement ne le sont pas encore.',
   },
 } as const;
 
@@ -81,33 +84,59 @@ for (const locale of ['en', 'fr'] as const) {
     await page.goto('/');
     await page.getByRole('button', { name: LANDING[locale].language, exact: true }).click();
     const modules = page.getByTestId('landing-modules');
-    await expect(modules.locator('li[data-status][data-module="leave"]')).toContainText(
-      LANDING[locale].available,
-    );
-    for (const id of ['payroll', 'loans', 'benefits', 'integrations', 'ai', 'mobile']) {
-      await expect(modules.locator(`li[data-status][data-module="${id}"]`)).toContainText(
-        LANDING[locale].later,
-      );
-    }
     await expect(modules.locator('li[data-status]')).toHaveCount(12);
-    // U4-1: the two states, as plain text (no link, button or figure).
+    // D93-14: the exact module truth table, one state label per module.
+    const truth = {
+      available: ['employees', 'leave', 'ai'],
+      capabilities: ['payroll', 'documents', 'analytics', 'workflow', 'integrations'],
+      later: ['loans', 'benefits', 'performance', 'mobile'],
+    } as const;
+    for (const [state, ids] of Object.entries(truth)) {
+      for (const id of ids) {
+        const card = modules.locator(`li[data-status][data-module="${id}"]`);
+        await expect(card).toHaveAttribute('data-status', state);
+        await expect(card).toContainText(LANDING[locale][state as keyof typeof truth]);
+      }
+    }
+    await expect(modules.locator('[data-testid="landing-remaining"]')).toHaveCount(5);
+    // The two plain lists (no link, button or figure): Available now grouped, Coming next.
     const today = page.getByTestId('landing-today');
-    await expect(today.getByRole('listitem')).toHaveCount(11);
-    await expect(today.locator('li[data-module="exports"]')).toHaveText(LANDING[locale].exports);
+    await expect(today.getByRole('listitem')).toHaveCount(12);
+    await expect(today.locator('li[data-module="compensation"]')).toHaveText(
+      LANDING[locale].compensation,
+    );
     const next = page.getByTestId('landing-next');
     await expect(next.getByRole('listitem')).toHaveCount(6);
-    await expect(next.locator('li[data-module="payroll"]')).toHaveText(LANDING[locale].next);
+    await expect(next.locator('li[data-module="payrollCalculation"]')).toHaveText(
+      LANDING[locale].next,
+    );
     await expect(today.locator('a, button')).toHaveCount(0);
     await expect(next.locator('a, button')).toHaveCount(0);
-    // U4-2: the approved-time message, while the payout story keeps its "Coming next" badge.
-    await expect(page.getByTestId('landing-approved-time')).toContainText(LANDING[locale].approved);
-    await expect(page.locator('#payroll')).toContainText(LANDING[locale].later);
-    await expect(page.getByTestId('landing-preview').locator('.landing-preview__card')).toHaveCount(
-      4,
+    // Payroll: preparation and compensation active, calculation and payment planned.
+    await expect(page.getByTestId('landing-payroll-active')).toContainText(LANDING[locale].active);
+    const payroll = page.locator('#payroll');
+    for (const step of ['preparation', 'compensation']) {
+      await expect(payroll.locator(`li[data-step="${step}"]`)).toContainText(
+        LANDING[locale].available,
+      );
+    }
+    for (const step of ['calculation', 'payment']) {
+      await expect(payroll.locator(`li[data-step="${step}"]`)).toContainText(LANDING[locale].later);
+    }
+    // Integrations: each entry states its own state; only three are active.
+    const integrations = page.getByTestId('landing-integrations');
+    await expect(integrations.locator('li[data-entry]')).toHaveCount(20);
+    await expect(integrations.locator('li[data-entry][data-state="capabilities"]')).toHaveCount(3);
+    await expect(integrations.locator('li[data-entry="Slack"]')).toContainText(
+      LANDING[locale].later,
     );
-    await expect(page.getByTestId('landing-preview').locator('.landing-preview__link')).toHaveCount(
-      7,
+    await expect(integrations.locator('li[data-entry="WhatsApp Business"]')).toContainText(
+      LANDING[locale].capabilities,
     );
+    // The illustrative preview shows Tasks and Expenses, without customer data.
+    const preview = page.getByTestId('landing-preview');
+    await expect(preview.locator('.landing-preview__card')).toHaveCount(6);
+    await expect(preview.locator('.landing-preview__link')).toHaveCount(9);
     await expectAccessible(page);
     await reflows(page);
   });
@@ -127,12 +156,14 @@ test.describe('organization administrator home', () => {
     await expect(page.locator('main a[href^="/me/"]')).toHaveCount(0);
     // U4-3: the progress panel is static text with no control; the roadmap names what comes next.
     const progress = page.getByTestId('home-progress');
-    await expect(progress.getByRole('listitem')).toHaveCount(3);
-    await expect(progress).toContainText('Approved-time exports');
+    await expect(progress.getByRole('listitem')).toHaveCount(5);
+    await expect(progress).toContainText('Monthly compensation records');
+    await expect(progress).toContainText('Payroll preparation, locking and export');
     await expect(progress.locator('a, button')).toHaveCount(0);
     const roadmap = page.getByTestId('roadmap');
-    await expect(roadmap.getByRole('listitem')).toHaveCount(3);
+    await expect(roadmap.getByRole('listitem')).toHaveCount(4);
     await expect(roadmap).toContainText('Coming next');
+    await expect(roadmap).not.toContainText('locking');
     await expect(roadmap).not.toContainText('Leave');
     await expect(roadmap).not.toContainText('Scheduling');
     await expect(roadmap).not.toContainText('Attendance');
@@ -178,6 +209,9 @@ test.describe('organization administrator home', () => {
           ['Attendance review', '/admin/attendance-review'],
           ['Timesheets', '/admin/timesheets'],
           ['Time exports', '/admin/time-exports'],
+          ['Payroll preparation', '/admin/payroll-preparation'],
+          ['Tasks', '/admin/tasks'],
+          ['Expenses', '/admin/expenses'],
         ],
       ],
       [
@@ -186,6 +220,13 @@ test.describe('organization administrator home', () => {
           ['Contract templates', '/admin/contract-templates'],
           ['Users and invitations', '/admin/users'],
           ['Access review', '/admin/access'],
+        ],
+      ],
+      [
+        'integrations',
+        [
+          ['Webhooks', '/admin/webhooks'],
+          ['WhatsApp Business', '/admin/integrations/whatsapp'],
         ],
       ],
     ] as const) {
@@ -245,6 +286,9 @@ test.describe('employee home', () => {
     await expect(roadmap.getByRole('listitem')).toHaveCount(3);
     await expect(roadmap).toContainText('Prochainement');
     await expect(roadmap).not.toContainText('Congés');
+    await expect(roadmap).not.toContainText('Mes tâches');
+    // D93-15: no administrator destination, and the conditional expense-approval card is present.
+    await expect(page.getByTestId('home-expense-approvals')).toBeVisible();
     // UI3-7: the employee home loads only the session and, as the one approved exception
     // (MVP-060B, B60B-8), the first item of the caller's own team-attendance queue for the
     // conditional task card; an employee who manages nobody sees no card.
@@ -267,6 +311,9 @@ test.describe('employee home', () => {
       ['Mes congés', '/me/leave'],
       ['Ma présence', '/me/attendance'],
       ['Mes feuilles de temps', '/me/timesheets'],
+      ['Mes tâches', '/me/tasks'],
+      ['Mes notes de frais', '/me/expenses'],
+      ['Ma rémunération', '/me/compensation'],
       ['Mes contrats', '/me/contracts'],
     ] as const) {
       await page.getByTestId('home-my-work').getByRole('link', { name, exact: true }).click();
@@ -279,6 +326,13 @@ test.describe('employee home', () => {
       .getByRole('link', { name: 'Ouvrir les approbations de congé' })
       .click();
     await expect(page).toHaveURL(/\/me\/leave\/approvals$/u);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await home();
+    await page
+      .getByTestId('home-expense-approvals')
+      .getByRole('link', { name: 'Ouvrir les approbations de notes de frais' })
+      .click();
+    await expect(page).toHaveURL(/\/me\/expense-approvals$/u);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await home();
     // MVP-051: the shift-substitution card opens the manager's page.

@@ -155,4 +155,22 @@ class TenantPredicateArchitectureTest {
           .and()
           .arePublic()
           .should(TAKE_TENANT_ID);
+
+  /**
+   * MVP-093A: the compensation repository follows the same rule, with no exception (every statement
+   * filters on the tenant and the employee). The older payroll-input repositories keep their
+   * MVP-090A shape.
+   */
+  @ArchTest
+  static final ArchRule compensationRepositoryRequiresTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.payroll.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleName("JdbcCompensationRepository")
+          .and()
+          .arePublic()
+          .should(TAKE_TENANT_ID);
 }

@@ -317,6 +317,11 @@ button:disabled {
   max-width: 100%;
 }
 
+/* MVP-093A: a date field is a full-height target, like the selects beside it (WCAG 2.2 target size). */
+.field input[type='date'] {
+  min-block-size: 2.5rem;
+}
+
 /* A fieldset defaults to min-inline-size: min-content, so a select with long unit names would
    widen the page on phones (MVP-031A unit filter, and the placement fields). */
 fieldset.field {

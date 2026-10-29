@@ -164,6 +164,12 @@ divalhr:
       expense-write: ${DIVALHR_EXPENSE_WRITE_REQUESTS_PER_MINUTE:20}
       expense-receipt: ${DIVALHR_EXPENSE_RECEIPT_REQUESTS_PER_MINUTE:10}
       expense-decision: ${DIVALHR_EXPENSE_DECISION_REQUESTS_PER_MINUTE:30}
+      # MVP-093A: monthly compensation. The per-minute buckets are burst limits; the per-subject
+      # hourly quotas (60 previews, 30 commands) are enforced by the service (ADR 0032).
+      compensation-read: ${DIVALHR_COMPENSATION_READ_REQUESTS_PER_MINUTE:60}
+      compensation-self-read: ${DIVALHR_COMPENSATION_SELF_READ_REQUESTS_PER_MINUTE:60}
+      compensation-preview: ${DIVALHR_COMPENSATION_PREVIEW_REQUESTS_PER_MINUTE:20}
+      compensation-write: ${DIVALHR_COMPENSATION_WRITE_REQUESTS_PER_MINUTE:10}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -232,6 +238,14 @@ divalhr:
         window: 1h
       expense-decision:
         requests: ${DIVALHR_EXPENSE_TENANT_DECISIONS:600}
+        window: 1h
+      # MVP-093A: monthly compensation (D93-10): 600 previews and 300 commands or cancellations per
+      # tenant per hour.
+      compensation-preview:
+        requests: ${DIVALHR_COMPENSATION_TENANT_PREVIEWS:600}
+        window: 1h
+      compensation-write:
+        requests: ${DIVALHR_COMPENSATION_TENANT_WRITES:300}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.

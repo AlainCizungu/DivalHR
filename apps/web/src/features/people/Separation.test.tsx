@@ -359,6 +359,16 @@ describe.each(['fr', 'en'] as const)('MVP-022 separation and access (%s)', (loca
           return json(200, { items: [] });
         }
         if (path.endsWith('/access-link')) return json(200, { state: 'ACTIVE', link: null });
+        if (path.endsWith('/compensation')) {
+          return json(200, {
+            version: 0,
+            businessDate: '2026-10-29',
+            current: null,
+            scheduled: [],
+            changes: [],
+            nextCursor: null,
+          });
+        }
         if (path.endsWith('/separations/preview')) {
           const command = JSON.parse(text) as { reportPlan: unknown };
           return json(

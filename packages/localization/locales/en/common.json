@@ -55,6 +55,7 @@
     "myTasks": "My tasks",
     "expenses": "Expenses",
     "myExpenses": "My expenses",
+    "myCompensation": "My compensation",
     "expenseApprovals": "Expense approvals"
   },
   "shell": {
@@ -144,7 +145,7 @@
     "tenant": {
       "eyebrow": "Organization workspace",
       "title": "Organization administration",
-      "description": "Run your people and daily operations—employees, leave, schedules, attendance, timesheets and approved-time exports—and control your organization and who has access.",
+      "description": "Run people and daily operations—employees, leave, attendance, timesheets, payroll preparation, tasks and expenses—and control your organization and its access.",
       "quickActions": "Quick actions",
       "actions": {
         "importEmployees": "Import employees",
@@ -159,17 +160,21 @@
         },
         "operations": {
           "title": "Operations and time",
-          "description": "Schedules, attendance, timesheets and approved-time exports."
+          "description": "Schedules, attendance, timesheets, exports, payroll preparation, tasks and expenses."
         },
         "governance": {
           "title": "Contracts and access",
           "description": "Contracts, users and access."
+        },
+        "integrations": {
+          "title": "Integrations",
+          "description": "Signed webhooks and the WhatsApp Business connector."
         }
       },
       "cards": {
         "employees": {
           "title": "Employees",
-          "description": "Search the directory, open employee records and record employment changes and separations."
+          "description": "Search the directory, open employee records and record employment changes, separations and monthly compensation."
         },
         "leavePolicies": {
           "title": "Leave policies",
@@ -218,6 +223,22 @@
         "operationsStatus": {
           "title": "Today’s operations",
           "description": "Today’s scheduled shifts, check-ins, coverage and waiting approvals across the organization, with their time of reading."
+        },
+        "tasks": {
+          "title": "Tasks",
+          "description": "Assign operational tasks to employees and follow them until they are completed or cancelled."
+        },
+        "expenses": {
+          "title": "Expenses",
+          "description": "Read the expenses your employees have submitted, with their approval status. Read only; no payment is made."
+        },
+        "webhooks": {
+          "title": "Webhooks",
+          "description": "Create signed webhooks, inspect deliveries, rotate secrets and disable failing endpoints."
+        },
+        "whatsapp": {
+          "title": "WhatsApp Business",
+          "description": "Set up the WhatsApp Business connector, its opted-in recipients and test messages."
         }
       },
       "attention": {
@@ -235,17 +256,25 @@
         "title": "Recent platform progress",
         "description": "Delivered recently and available to your organization now.",
         "items": {
-          "attendance": {
-            "title": "Attendance",
-            "description": "Online check-in and check-out, supervisor-assisted and offline attendance, exceptions review and append-only corrections."
+          "payroll": {
+            "title": "Payroll preparation, locking and export",
+            "description": "Lock approved periods, generate traceable payroll inputs, review variance and export a locked file. DivalHR does not calculate pay."
           },
-          "approvals": {
-            "title": "Timesheet approvals and reopening",
-            "description": "Weekly timesheets generated from schedules and attendance, submitted by employees, approved or returned by their manager, and reopened when a correction changes approved time."
+          "compensation": {
+            "title": "Monthly compensation records",
+            "description": "Record effective-dated monthly base compensation in CDF or USD from the employee record. Recording compensation does not calculate payroll or initiate payment."
           },
-          "exports": {
-            "title": "Approved-time exports",
-            "description": "Immutable CSV exports of a site’s approved week with a verifiable manifest, ready for payroll and accounting. DivalHR does not calculate pay."
+          "briefing": {
+            "title": "Operational status and daily briefing",
+            "description": "Today’s operations and a governed, grounded daily briefing with authorized source links."
+          },
+          "integrations": {
+            "title": "Webhooks and WhatsApp Business",
+            "description": "Signed webhooks and a governed WhatsApp Business connector, set up by administrators."
+          },
+          "tasksExpenses": {
+            "title": "Tasks and expenses",
+            "description": "Operational tasks with an immutable history, and employee expenses approved by managers. Approval is not payment."
           }
         }
       }
@@ -253,7 +282,7 @@
     "employee": {
       "eyebrow": "Employee space",
       "title": "My space",
-      "description": "Your schedule, your leave, your attendance and your timesheets in one place.",
+      "description": "Your schedule, leave, attendance, timesheets, tasks, expenses and monthly compensation in one place.",
       "myWork": "My work",
       "cards": {
         "leave": "Request leave, follow your requests and see each decision.",
@@ -261,7 +290,11 @@
         "attendance": "Check in and out of your scheduled shifts, online or offline, and see your attendance history.",
         "contracts": "Read the contracts your organization has issued to you and confirm that you received them.",
         "timesheets": "Review your weekly timesheets, submit them to your manager and follow each approval, return or reopening.",
-        "teamOperations": "If you manage employees, see today’s shifts, check-ins and waiting approvals for your team."
+        "teamOperations": "If you manage employees, see today’s shifts, check-ins and waiting approvals for your team.",
+        "tasks": "Follow the tasks assigned to you, start them and mark them complete.",
+        "expenses": "Record expenses in CDF or USD with a receipt, submit them to your manager and follow each decision. Approval is not payment.",
+        "compensationTitle": "My compensation",
+        "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -277,6 +310,11 @@
         "title": "Team attendance to record",
         "description": "Some of your direct reports’ shifts need a check-in or a check-out now. You can record it for them, with a reason they will see.",
         "action": "Open team attendance"
+      },
+      "expenseApprovals": {
+        "title": "Expense approvals routed to you",
+        "description": "If employees’ expenses are routed to you as their manager, they appear here for your approval. This page is empty unless you manage employees.",
+        "action": "Open expense approvals"
       }
     }
   },
@@ -285,17 +323,9 @@
     "description": "On the DivalHR roadmap. Not available yet.",
     "badge": "Coming next",
     "items": {
-      "periodLocking": {
-        "title": "Timesheet period locking",
-        "description": "Lock approved periods; reopening needs privileged approval."
-      },
-      "payrollInputs": {
-        "title": "Payroll preparation and calculations",
-        "description": "Pay calculated from approved time, with statutory deductions and reporting."
-      },
       "disbursement": {
-        "title": "Salary disbursement",
-        "description": "Bank and mobile-money payment instructions prepared from approved payroll."
+        "title": "Salary disbursement and reconciliation",
+        "description": "Bank and mobile-money payment instructions prepared from approved payroll, with reconciliation of results."
       },
       "myDocuments": {
         "title": "Documents",
@@ -308,6 +338,18 @@
       "payslips": {
         "title": "Payroll and payslips",
         "description": "Access your payslips once payroll is calculated."
+      },
+      "statutoryCalculation": {
+        "title": "Payroll calculation and statutory rules",
+        "description": "Gross and net pay from approved time and compensation, with DRC statutory deductions and reporting."
+      },
+      "payslipApproval": {
+        "title": "Payslips and net-pay approval",
+        "description": "Review, approve and publish payslips once payroll is calculated."
+      },
+      "salaryAdvances": {
+        "title": "Salary advances",
+        "description": "Advances through approved partners, with employee consent, repaid through payroll."
       }
     }
   },
@@ -583,7 +625,15 @@
     "EXPENSE_RECEIPT_INVALID": "The receipt file could not be read as a valid PDF, JPEG or PNG. Choose another file.",
     "EXPENSE_RECEIPT_TOO_LARGE": "The receipt is larger than 2 MB. Choose a smaller file.",
     "EXPENSE_RECEIPT_UPLOAD_TIMEOUT": "The receipt took too long to send. Check your connection and try again.",
-    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Only PDF, JPEG and PNG receipts are accepted."
+    "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED": "Only PDF, JPEG and PNG receipts are accepted.",
+    "COMPENSATION_NOT_FOUND": "This compensation record does not exist or is not available to you.",
+    "COMPENSATION_INVALID_AMOUNT": "The amount is not valid for this currency. Use whole francs for CDF, or at most two decimals for USD, within the allowed range.",
+    "COMPENSATION_DATE_OUT_OF_RANGE": "The effective date is outside the allowed range: at most 60 days in the past and 366 days ahead.",
+    "COMPENSATION_EMPLOYMENT_CONFLICT": "The effective date does not fit the employee’s employment periods. Check the employment history, then correct the compensation if needed.",
+    "COMPENSATION_PREVIEW_STALE": "The preview is out of date because the record or the employment changed or the preview expired. Preview the change again before confirming.",
+    "COMPENSATION_VERSION_CONFLICT": "The compensation changed since you opened it. The latest record is shown; preview the change again.",
+    "COMPENSATION_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current state of the compensation. Only a change that has not started yet can be cancelled.",
+    "COMPENSATION_LIMIT_REACHED": "The limit of changes or scheduled changes for this employee has been reached."
   },
   "notFound": {
     "title": "Page not found",
@@ -2761,7 +2811,7 @@
     "sectionsLabel": "Page sections",
     "nav": {
       "platform": "Platform",
-      "payroll": "Approved time & payouts",
+      "payroll": "Payroll preparation",
       "integrations": "Integrations",
       "why": "Why DivalHR"
     },
@@ -2773,7 +2823,7 @@
       "eyebrow": "The workforce operating platform for Africa",
       "line1": "Run your people.",
       "line2": "Power your operations.",
-      "intro": "DivalHR is the workforce and operations platform for African organizations: employee records, leave, work schedules, attendance and approved weekly time in one connected system—ready to hand to payroll and accounting, with payroll calculation and payouts coming next.",
+      "intro": "DivalHR is the workforce and operations platform for African organizations: employee records, leave, schedules, attendance, timesheets, payroll-input preparation, monthly compensation records, tasks and expenses in one connected system—with payroll calculation, payslips and payments coming next.",
       "signIn": "Sign in to DivalHR",
       "note": "Already a customer? Sign in securely."
     },
@@ -2788,7 +2838,9 @@
         "schedules": "Schedules",
         "attendance": "Attendance review",
         "timesheets": "Timesheets",
-        "exports": "Time exports"
+        "exports": "Time exports",
+        "tasks": "Tasks",
+        "expenses": "Expenses"
       },
       "actions": {
         "import": "Import employees",
@@ -2812,6 +2864,14 @@
         "exports": {
           "title": "Time exports",
           "description": "Approved time only. No pay calculated."
+        },
+        "tasks": {
+          "title": "Tasks",
+          "description": "Assigned, started, completed"
+        },
+        "expenses": {
+          "title": "Expenses",
+          "description": "Submitted and approved by managers. No payment made."
         }
       }
     },
@@ -2834,15 +2894,15 @@
         },
         "operations": {
           "title": "Daily operations",
-          "description": "Sites, leave approvals, work schedules, attendance and weekly timesheets."
+          "description": "Sites, leave approvals, work schedules, attendance, weekly timesheets, tasks and expenses."
         },
         "pay": {
           "title": "Time to pay",
-          "description": "Approved time exported for payroll and accounting today; payroll calculation, payouts and partner benefits next."
+          "description": "Approved time locked, prepared and exported for payroll, with monthly compensation records today; payroll calculation, payslips and payments next."
         },
         "intelligence": {
           "title": "Intelligence",
-          "description": "Grounded answers with sources and human approval."
+          "description": "A governed daily briefing built from aggregate metrics, with source links."
         }
       }
     },
@@ -2852,7 +2912,7 @@
       "body": "Start with what is available now. Add the next capabilities as they arrive and as your organization grows.",
       "available": "Available now",
       "later": "Coming next",
-      "legend": "“Available now” capabilities are in the product today. “Coming next” capabilities are on the roadmap and are not yet available.",
+      "legend": "“Available now” means the module’s scope is in the product today. “Capabilities available” means part of a module is in the product and the rest of it is not yet available. “Coming next” capabilities are on the roadmap and are not yet available.",
       "todayTitle": "Available now",
       "items": {
         "employees": {
@@ -2865,7 +2925,8 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Approved pay inputs and payments by bank, mobile money or bank file."
+          "description": "Period locking, payroll-input generation, variance review, locked input export and monthly compensation records.",
+          "remaining": "Gross and net calculation, statutory deductions, payslips and payment."
         },
         "loans": {
           "title": "Loans & Salary Advances",
@@ -2881,23 +2942,27 @@
         },
         "documents": {
           "title": "Documents",
-          "description": "Versioned, tamper-evident records with acknowledgments and APIs."
+          "description": "Contract templates, issuing, acknowledgement and expiration tracking.",
+          "remaining": "General document storage and e-signature."
         },
         "analytics": {
           "title": "Analytics",
-          "description": "Workforce and operational intelligence."
+          "description": "Today’s operational status and a governed daily briefing.",
+          "remaining": "General workforce analytics and trends."
         },
         "workflow": {
           "title": "Workflow Automation",
-          "description": "Approval chains and reliable automated processes."
+          "description": "Operational task lifecycle and closed approval workflows.",
+          "remaining": "Configurable workflow automation."
         },
         "ai": {
           "title": "Dival AI",
-          "description": "A governed intelligent assistant for every workflow."
+          "description": "A governed, grounded daily briefing on operations, with authorized source links. It is not a general assistant."
         },
         "integrations": {
           "title": "Integrations",
-          "description": "Banks, payment providers, accounting and existing tools."
+          "description": "Signed webhooks and a governed WhatsApp Business connector.",
+          "remaining": "Other displayed tools and providers are planned; no partnership is implied."
         },
         "mobile": {
           "title": "Mobile Apps",
@@ -2926,63 +2991,74 @@
         "time": {
           "title": "Timesheets and approved time",
           "description": "Weekly timesheets generated from schedules and attendance, submitted by employees, approved or returned by managers, reopened after corrections, and exported as CSV with a manifest."
+        },
+        "tasks": {
+          "title": "Operational tasks",
+          "description": "Assign a task to an employee, who starts and completes it, with an immutable history."
+        },
+        "expenses": {
+          "title": "Employee expenses",
+          "description": "Employees record expenses in CDF or USD with a receipt and submit them; managers approve or return them. Approval is not payment."
         }
       },
       "nextTitle": "Coming next",
       "now": {
-        "employees": "Employee records and organizational structure",
+        "people": "Employee records, organizational structure and access with multi-factor sign-in",
+        "contracts": "Contracts and expiration attention",
         "leave": "Leave requests, approvals and lifecycle controls",
-        "scheduling": "Work schedules and shift substitution",
-        "attendance": "Online, supervisor-assisted and offline attendance",
-        "exceptions": "Attendance exceptions and append-only corrections",
-        "timesheets": "Weekly timesheet generation",
-        "approvals": "Employee submission and manager approval or return",
-        "reopening": "Reopening and reapproval after source changes",
-        "exports": "Approved-time CSV and manifest exports for payroll and accounting preparation",
-        "languages": "English and French",
-        "security": "Secure tenant isolation and privileged multi-factor sign-in"
+        "scheduling": "Schedules, shift substitution, online and offline attendance, and corrections",
+        "timesheets": "Timesheets, period locking and exports of approved time",
+        "payrollPreparation": "Payroll-input preparation, variance review and locked export",
+        "compensation": "Monthly compensation records",
+        "operations": "Daily operational status and a grounded daily briefing",
+        "integrations": "Signed webhooks and a WhatsApp Business connector",
+        "tasks": "Operational tasks",
+        "expenses": "Employee expenses and manager approval",
+        "languages": "English and French"
       },
       "next": {
-        "periodLocking": "Timesheet period locking",
-        "payroll": "Payroll preparation and calculations",
-        "statutory": "Statutory deductions and reporting",
-        "disbursement": "Bank and mobile-money salary disbursement",
-        "loans": "Loans and salary advances through approved partners",
-        "platform": "Benefits, performance, documents, analytics, automation, integrations and native mobile apps"
-      }
+        "payrollCalculation": "Gross and net payroll calculation",
+        "statutory": "DRC statutory country pack",
+        "payslips": "Payslips",
+        "disbursement": "Bank and mobile-money disbursement and reconciliation",
+        "advances": "Salary advances and partner loans",
+        "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
+      },
+      "capabilities": "Capabilities available",
+      "remainingLabel": "Not yet available:"
     },
     "payroll": {
-      "kicker": "From approved time to payout",
-      "title": "Hand payroll the time you have already approved.",
-      "body": "Today, DivalHR exports each site’s approved weekly time as a CSV file with a verifiable manifest for your payroll and accounting tools. Payroll calculation, payment instructions for mobile wallets, bank accounts or a controlled bank file, and reconciliation come next.",
+      "kicker": "From approved time to payroll preparation",
+      "title": "Prepare payroll inputs. Record monthly compensation.",
+      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. Gross and net calculation, statutory deductions, payslips and payment come next.",
       "steps": {
-        "approved": {
-          "title": "Approved time",
-          "description": "Weekly timesheets approved by managers, exported as CSV with a manifest."
+        "preparation": {
+          "title": "Payroll preparation",
+          "description": "Approved weeks are locked, become traceable payroll inputs with variance review, and are exported as a locked file."
         },
-        "instructions": {
-          "title": "Payroll and payment instructions",
-          "description": "Pay calculated and instructions prepared for each employee’s chosen rail."
+        "compensation": {
+          "title": "Monthly compensation",
+          "description": "Effective-dated monthly base amounts in CDF or USD, with history. Recording compensation does not calculate payroll or initiate payment."
         },
-        "rails": {
-          "title": "Mobile money or bank",
-          "description": "Sent by your bank or a licensed payment provider."
+        "calculation": {
+          "title": "Calculation and payslips",
+          "description": "Gross and net pay, statutory deductions and payslips."
         },
-        "reconciliation": {
-          "title": "Status and reconciliation",
-          "description": "Results returned for review and reconciliation."
+        "payment": {
+          "title": "Payment and reconciliation",
+          "description": "Payment instructions by mobile money or bank, and reconciliation of results."
         }
       },
       "railsLabel": "Planned payment rails",
       "bankAccount": "Bank account",
       "bankFile": "Bank file",
-      "note": "Payments are executed by your bank or a licensed payment provider. DivalHR prepares and tracks instructions; it does not hold employee funds. Payouts and payment rails are planned and coming later.",
-      "approvedMessage": "Export approved time for payroll and accounting—without pretending payroll has already been calculated."
+      "note": "Payments are not available today. When they arrive, they will be executed by your bank or a licensed payment provider, and DivalHR will not hold employee funds. Your organization remains responsible for its payroll decisions and legal obligations. Payouts and payment rails are planned and coming later.",
+      "activeMessage": "Payroll preparation and monthly compensation records are active. Salary calculation, statutory rules and payment are not."
     },
     "integrations": {
       "kicker": "Connected ecosystem",
       "title": "Built to work with the tools that already move your business.",
-      "body": "Payroll, payments, accounting, identity and collaboration—through governed integrations and open APIs.",
+      "body": "Signed webhooks, an API and a governed WhatsApp Business connector today; payments, accounting and collaboration tools next.",
       "groups": {
         "payments": "Payments and payroll",
         "accounting": "Accounting and enterprise",
@@ -2996,23 +3072,23 @@
         "webhooks": "Webhooks",
         "sso": "SSO / SAML"
       },
-      "planned": "Planned",
-      "note": "Integrations are planned. Availability will vary by country, provider and implementation phase. Names and logos identify planned compatibility; no partnership or endorsement is implied. Trademarks belong to their respective owners."
+      "note": "Only signed webhooks, the REST API and the WhatsApp Business connector are available today; every other name is planned. Availability will vary by country, provider and implementation phase. Names and logos identify compatibility, available or planned; no partnership or endorsement is implied. Trademarks belong to their respective owners."
     },
     "ai": {
       "kicker": "Dival AI",
-      "title": "Intelligence that understands the work behind the data.",
-      "body": "Ask workforce questions in plain language, prepare daily summaries and move work forward—with source links, authorization and human approval built in.",
-      "examplesLabel": "Example questions",
-      "examples": {
-        "staffing": "Which sites need staffing attention today?",
-        "approvals": "Summarize pending approvals for payroll",
-        "contracts": "Show contracts expiring in the next 30 days"
-      },
+      "title": "A governed daily briefing on your operations.",
+      "body": "Dival AI writes a daily operations briefing from governed aggregate metrics, using reviewed bilingual templates and links to the views you are authorized to open. If the AI service is unavailable, a deterministic fallback still produces a briefing. It does not answer free-form questions and draws no conclusions about individual employees.",
       "guarantees": {
-        "sources": "Sources for every answer",
-        "authorization": "Only data you are allowed to see",
-        "approval": "A person approves every decision"
+        "metrics": "Governed aggregate metrics only",
+        "templates": "Reviewed bilingual templates",
+        "sources": "Links to authorized source views",
+        "fallback": "Deterministic fallback when AI is unavailable"
+      },
+      "topicsLabel": "Briefing topics",
+      "topics": {
+        "shifts": "Scheduled shifts and check-ins today",
+        "coverage": "Shifts not checked in and uncovered shifts",
+        "approvals": "Leave and timesheet approvals waiting beyond their thresholds"
       }
     },
     "why": {
@@ -3074,11 +3150,11 @@
         },
         "finance": {
           "title": "Finance",
-          "description": "Approved-time exports with a verifiable manifest today; payroll calculation next."
+          "description": "Approved-time exports, payroll-input preparation and monthly compensation records today; payroll calculation next."
         },
         "employees": {
           "title": "Employees",
-          "description": "Contracts, leave, shifts, attendance and timesheets today; pay and benefits next."
+          "description": "Contracts, leave, shifts, attendance, timesheets, tasks, expenses and their own monthly compensation today; payslips and benefits next."
         }
       }
     },
@@ -4963,6 +5039,143 @@
       "empty": "No submitted expense matches.",
       "listTitle": "Submitted expenses",
       "more": "Show more"
+    }
+  },
+  "compensation": {
+    "title": "Compensation",
+    "privacy": "Compensation is restricted financial and HR data. Only administrators of your organization and the employee concerned can read it. DivalHR keeps no copy of it in your browser.",
+    "notice": "Recording compensation does not calculate payroll or initiate payment.",
+    "loading": "Loading compensation…",
+    "loadMore": "Load more history",
+    "loadingMore": "Loading…",
+    "monthly": "per month",
+    "validation": "Check the highlighted fields and try again.",
+    "forbidden": "You are not allowed to do this.",
+    "period": {
+      "open": "from {{from}}",
+      "closed": "{{from}} – {{to}}"
+    },
+    "current": {
+      "title": "Current monthly base compensation",
+      "none": "No compensation applies today.",
+      "empty": "No compensation has been recorded for this employee."
+    },
+    "scheduled": {
+      "title": "Scheduled changes"
+    },
+    "actions": {
+      "establish": "Record the first compensation",
+      "change": "Schedule or record a change",
+      "correct": "Correct",
+      "cancel": "Cancel this scheduled change"
+    },
+    "action": {
+      "ESTABLISHED": "First compensation",
+      "CHANGED": "Change",
+      "CORRECTED": "Correction",
+      "SCHEDULED_CHANGE_CANCELLED": "Scheduled change cancelled"
+    },
+    "reason": {
+      "DATA_ENTRY_ERROR": "Data entry error",
+      "WRONG_EFFECTIVE_DATE": "Wrong effective date",
+      "WRONG_CURRENCY": "Wrong currency",
+      "OTHER_CORRECTION": "Other correction"
+    },
+    "currency": {
+      "CDF": "CDF – Congolese franc",
+      "USD": "USD – US dollar"
+    },
+    "warnings": {
+      "RETROACTIVE": "The effective date is in the past. This is a retroactive change and needs your acknowledgement.",
+      "LATER_CHANGE_SCHEDULED": "A later change is already scheduled. It is not changed by this command."
+    },
+    "blockers": {
+      "AMOUNT_OUT_OF_RANGE": "The amount is outside the allowed range for this currency.",
+      "DATE_OUT_OF_RANGE": "The effective date is outside the allowed range: at most 60 days in the past and 366 days ahead.",
+      "EMPLOYMENT_CONFLICT": "The effective date is not within a period of employment of this employee.",
+      "TRANSITION_NOT_ALLOWED": "This change is not allowed in the current state of the record.",
+      "NO_CHANGE": "These values are already recorded. Nothing would change.",
+      "NOT_CANCELLABLE": "Only a change that has not started yet can be cancelled.",
+      "LIMIT_REACHED": "The limit of changes or scheduled changes for this employee has been reached."
+    },
+    "form": {
+      "title": {
+        "ESTABLISHED": "Record the first compensation",
+        "CHANGED": "Record or schedule a change",
+        "CORRECTED": "Correct a recorded compensation"
+      },
+      "help": {
+        "ESTABLISHED": "Enter the monthly base amount and the date it starts. You will see a preview before anything is recorded.",
+        "CHANGED": "Enter the new monthly base amount and the date it starts. A future date schedules the change. You will see a preview before anything is recorded.",
+        "CORRECTED": "Correct the amount, currency or start of a recorded value. The earlier record is kept. You will see a preview before anything is recorded."
+      },
+      "effectiveFrom": "Effective date",
+      "effectiveFromHelp": "The first day this amount applies.",
+      "currency": "Currency",
+      "currencyHelp": "Amounts are never converted between currencies.",
+      "amount": "Monthly base amount",
+      "amountHelpCdf": "Whole francs, from 1 to 1,000,000,000.",
+      "amountHelpUsd": "Up to two decimals, from 0.01 to 100,000.00.",
+      "reasonCode": "Reason for the correction",
+      "chooseReason": "Choose a reason",
+      "explanation": "Explanation for administrators",
+      "explanationHelp": "{{min}} to {{max}} characters. Plain text, no links or markup. Only administrators can read it.",
+      "preview": "Preview",
+      "previewing": "Previewing…",
+      "saving": "Saving…",
+      "close": "Close",
+      "problems": {
+        "effectiveFrom": "Enter a valid effective date.",
+        "currency": "Choose a currency.",
+        "amount": "Enter a valid amount for this currency.",
+        "reasonCode": "Choose a reason for the correction.",
+        "explanation": "Enter an explanation of 10 to 500 characters, without links or markup.",
+        "acknowledge": "Confirm that you acknowledge this retroactive change."
+      }
+    },
+    "preview": {
+      "title": "Preview",
+      "summary": "{{action}}: {{money}} per month from {{date}}.",
+      "before": "Before",
+      "after": "After",
+      "nothing": "Nothing.",
+      "warningsTitle": "Please note",
+      "blockersTitle": "This cannot be recorded",
+      "expires": "This preview is valid until {{at}}.",
+      "acknowledge": "I acknowledge that this change applies to a past date.",
+      "confirm": "Confirm and record"
+    },
+    "cancel": {
+      "title": "Cancel the scheduled change of {{money}} from {{date}}",
+      "loading": "Checking the cancellation…",
+      "help": "The cancellation is recorded and the earlier history is kept. The previous amount applies again.",
+      "confirm": "Confirm the cancellation",
+      "keep": "Keep the change"
+    },
+    "history": {
+      "title": "History",
+      "empty": "No change has been recorded yet.",
+      "effectiveFrom": "Effective date",
+      "reason": "Reason",
+      "timing": "Timing",
+      "retroactive": "Retroactive",
+      "explanation": "Administrator explanation",
+      "recordedAt": "Recorded"
+    },
+    "announce": {
+      "ESTABLISHED": "First compensation recorded.",
+      "CHANGED": "Compensation change recorded.",
+      "CORRECTED": "Compensation correction recorded.",
+      "SCHEDULED_CHANGE_CANCELLED": "Scheduled change cancelled."
+    },
+    "me": {
+      "title": "My compensation",
+      "description": "Your current monthly base compensation and its dated history, privately.",
+      "unauthorized": "Compensation is available to employees linked to their account.",
+      "signInRequired": "Sign in to see your compensation.",
+      "notice": "Worked minutes do not automatically change a monthly salary, and no payment is initiated.",
+      "privacy": "Only you and the administrators of your organization can read this. DivalHR keeps no copy of it in your browser.",
+      "empty": "No compensation has been recorded for you yet."
     }
   }
 }

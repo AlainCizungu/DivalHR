@@ -5,7 +5,7 @@ import { BrandMark, Wordmark } from '../../shell/controls';
 import { Icon } from '../../ui/Icon';
 import { StatusBadge } from '../../ui/primitives';
 import {
-  AI_EXAMPLES,
+  AI_TOPICS,
   AI_GUARANTEES,
   AVAILABLE_NOW,
   COMING_NEXT,
@@ -30,19 +30,29 @@ import {
 
 /**
  * UI-002 (Issue #63): the content of the public landing page. Static copy only: no figures,
- * people, customers or metrics (UI2-4). Planned capabilities are labelled "Coming next"
- * (UI2-1, UI-004 U4-1); integrations and payout rails are planned (UI2-2, UI2-5). UI-004 (Issue
- * #136): "Available now" and "Coming next" lists, the current navigation in the preview and the
- * approved-time-to-payroll message; DivalHR never claims to calculate payroll or move money.
+ * people, customers or metrics (UI2-4). Three truthful states (MVP-093A, Issue #175, D93-14):
+ * "Available now", "Capabilities available" and "Coming next". Payout rails and every integration
+ * other than signed webhooks, the REST API and the WhatsApp Business connector are planned
+ * (UI2-2, UI2-5). DivalHR never claims to calculate payroll, issue payslips or move money.
  */
 
 function AvailabilityBadge({ status }: { status: Availability }) {
   const { t } = useTranslation();
-  return status === 'available' ? (
-    <StatusBadge tone="success" icon="check">
-      {t('landing.modules.available')}
-    </StatusBadge>
-  ) : (
+  if (status === 'available') {
+    return (
+      <StatusBadge tone="success" icon="check">
+        {t('landing.modules.available')}
+      </StatusBadge>
+    );
+  }
+  if (status === 'capabilities') {
+    return (
+      <StatusBadge tone="info" icon="spark">
+        {t('landing.modules.capabilities')}
+      </StatusBadge>
+    );
+  }
+  return (
     <StatusBadge tone="neutral" icon="clock">
       {t('landing.modules.later')}
     </StatusBadge>
@@ -59,12 +69,13 @@ function Steps({ prefix, steps }: { prefix: string; steps: readonly StepDef[] })
   return (
     <ol className="landing-steps">
       {steps.map((step) => (
-        <li key={step.key}>
+        <li key={step.key} data-step={step.key} data-state={step.state}>
           <span className="landing-tile-icon">
             <Icon name={step.icon} />
           </span>
           <h3>{t(`${prefix}.${step.key}.title`)}</h3>
           <p>{t(`${prefix}.${step.key}.description`)}</p>
+          {step.state && <AvailabilityBadge status={step.state} />}
         </li>
       ))}
     </ol>
@@ -128,33 +139,42 @@ function ProductPreview() {
 
 function IntegrationItem({ entry }: { entry: IntegrationEntry }) {
   const { t } = useTranslation();
-  if (entry.kind === 'generic') {
-    return (
-      <li className="landing-integration landing-integration--generic" data-kind="generic">
+  const chip =
+    entry.kind === 'generic' ? (
+      <span className="landing-integration landing-integration--generic" data-kind="generic">
         <Icon name={entry.icon} />
         <span>{t(`landing.integrations.generic.${entry.labelKey}`)}</span>
-      </li>
+      </span>
+    ) : (
+      <span
+        className="landing-integration"
+        data-kind={entry.logo ? 'logo' : 'name'}
+        data-testid="landing-integration-brand"
+      >
+        {entry.logo && (
+          // The visible name carries the meaning; the mark is not announced again (UI2-2).
+          <img
+            className="landing-integration__logo"
+            src={`${import.meta.env.BASE_URL}brands/${entry.logo}`}
+            alt=""
+            width={20}
+            height={20}
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+        <span lang="en">{entry.name}</span>
+      </span>
     );
-  }
+  // MVP-093A (D93-14): every entry states its own truthful state in text, never by colour alone.
   return (
     <li
-      className="landing-integration"
-      data-kind={entry.logo ? 'logo' : 'name'}
-      data-testid="landing-integration-brand"
+      className="landing-integration-item"
+      data-state={entry.state}
+      data-entry={entry.kind === 'brand' ? entry.name : entry.labelKey}
     >
-      {entry.logo && (
-        // The visible name carries the meaning; the mark is not announced again (UI2-2).
-        <img
-          className="landing-integration__logo"
-          src={`${import.meta.env.BASE_URL}brands/${entry.logo}`}
-          alt=""
-          width={20}
-          height={20}
-          loading="lazy"
-          decoding="async"
-        />
-      )}
-      <span lang="en">{entry.name}</span>
+      {chip}
+      <AvailabilityBadge status={entry.state} />
     </li>
   );
 }
@@ -248,6 +268,12 @@ export default function LandingContent() {
                 </div>
                 <h3>{t(`landing.modules.items.${module.id}.title`)}</h3>
                 <p>{t(`landing.modules.items.${module.id}.description`)}</p>
+                {module.status === 'capabilities' && (
+                  <p className="landing-modules__remaining" data-testid="landing-remaining">
+                    <b>{t('landing.modules.remainingLabel')}</b>{' '}
+                    {t(`landing.modules.items.${module.id}.remaining`)}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -295,15 +321,13 @@ export default function LandingContent() {
           <div>
             <div className="landing-kicker-row">
               <Kicker>{t('landing.payroll.kicker')}</Kicker>
-              <AvailabilityBadge status="later" />
+              <AvailabilityBadge status="capabilities" />
             </div>
             <h2 id="landing-payroll-title">{t('landing.payroll.title')}</h2>
             <p className="landing-lead">{t('landing.payroll.body')}</p>
-            <p className="landing-approved" data-testid="landing-approved-time">
-              <StatusBadge tone="success" icon="check">
-                {t('landing.modules.available')}
-              </StatusBadge>
-              <span>{t('landing.payroll.approvedMessage')}</span>
+            <p className="landing-approved" data-testid="landing-payroll-active">
+              <AvailabilityBadge status="capabilities" />
+              <span>{t('landing.payroll.activeMessage')}</span>
             </p>
             <ul className="landing-rails" aria-label={t('landing.payroll.railsLabel')}>
               {RAILS.map((rail) => (
@@ -345,9 +369,6 @@ export default function LandingContent() {
                   <h3 id={`landing-integrations-${group.id}`}>
                     {t(`landing.integrations.groups.${group.id}`)}
                   </h3>
-                  <StatusBadge tone="neutral" icon="clock">
-                    {t('landing.integrations.planned')}
-                  </StatusBadge>
                 </div>
                 <ul>
                   {group.entries.map((entry) => (
@@ -372,7 +393,7 @@ export default function LandingContent() {
           <div>
             <div className="landing-kicker-row">
               <Kicker>{t('landing.ai.kicker')}</Kicker>
-              <AvailabilityBadge status="later" />
+              <AvailabilityBadge status="available" />
             </div>
             <h2 id="landing-ai-title">{t('landing.ai.title')}</h2>
             <p className="landing-lead">{t('landing.ai.body')}</p>
@@ -385,11 +406,11 @@ export default function LandingContent() {
               ))}
             </ul>
           </div>
-          <ul className="landing-prompts" aria-label={t('landing.ai.examplesLabel')}>
-            {AI_EXAMPLES.map((key) => (
+          <ul className="landing-prompts" aria-label={t('landing.ai.topicsLabel')}>
+            {AI_TOPICS.map((key) => (
               <li key={key}>
                 <Icon name="spark" />
-                <span>{t(`landing.ai.examples.${key}`)}</span>
+                <span>{t(`landing.ai.topics.${key}`)}</span>
               </li>
             ))}
           </ul>

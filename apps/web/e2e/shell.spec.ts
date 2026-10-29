@@ -150,6 +150,7 @@ test.describe('desktop', () => {
       'Approbations de congé',
       'Mes tâches',
       'Mes notes de frais',
+      'Ma rémunération',
       'Notes de frais à approuver',
     ]);
     await expect(page.getByTestId('roadmap')).toContainText('Prochainement');

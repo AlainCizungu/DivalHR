@@ -258,3 +258,15 @@ number or token is ever used in hr-dev.
 - **Rollback.** `db/rollback/V40__rollback.sql` refuses while connectors, recipients, deliveries or
   fan-out data exist. To return to a pre-V40 release, restore the pre-deploy database backup
   (section 9) instead.
+
+## MVP-093A monthly compensation
+
+- Six operations (`getEmployeeCompensation`, `previewEmployeeCompensation`, `commitEmployeeCompensation`,
+  `previewEmployeeCompensationCancellation`, `cancelEmployeeCompensationChange`, `getMyCompensation`).
+  Buckets: `compensation-read`/`-self-read` 60, `-preview` 20, `-write` 10 per subject per minute;
+  tenant preview 600 and write 300 per hour (`application.yaml`).
+- The preview quota (60 per hour per subject) is an in-process counter per instance; commands are
+  counted from the evidence table. Timeouts surface as `503 EMPLOYMENT_CHANGE_TIMEOUT`.
+- Mutation checks: `scripts/dev/compensation-mutations.sh [n ...]` (needs Gradle and Docker); a
+  surviving mutation exits non-zero. Dev data contains no real salary; never paste amounts into
+  issues, logs or support tickets.

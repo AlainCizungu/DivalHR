@@ -45,6 +45,7 @@ import com.divalhr.core.people.internal.JdbcSeparationRepository.BoundChange;
 import com.divalhr.core.people.internal.JdbcSeparationRepository.SeparationRecord;
 import com.divalhr.core.people.internal.JdbcSeparationRepository.TaskRecord;
 import com.divalhr.core.people.internal.TransactionLimits;
+import com.divalhr.core.platform.access.CompensationEmploymentGuard;
 import com.divalhr.core.platform.access.EmployeeAccessLinks;
 import com.divalhr.core.platform.access.EmployeeAccessLinks.CancelOutcome;
 import com.divalhr.core.platform.access.EmployeeAccessLinks.Link;
@@ -140,6 +141,7 @@ public class EmployeeSeparationService {
   private final BusinessCalendar calendar;
   private final EmployeeDirectoryService directory;
   private final EmployeeAccessLinks links;
+  private final CompensationEmploymentGuard compensation;
   private final IdempotentOperation operations;
   private final TransactionLimits limits;
   private final EmploymentHistoryProperties properties;
@@ -156,6 +158,7 @@ public class EmployeeSeparationService {
    * @param calendar business date
    * @param directory fail-closed disclosure
    * @param links the identity port (joins this module's transactions)
+   * @param compensation the payroll port that reports the latest compensation start
    * @param operations idempotent operation flow
    * @param limits transaction limits
    * @param properties settings
@@ -170,6 +173,7 @@ public class EmployeeSeparationService {
       BusinessCalendar calendar,
       EmployeeDirectoryService directory,
       EmployeeAccessLinks links,
+      CompensationEmploymentGuard compensation,
       IdempotentOperation operations,
       TransactionLimits limits,
       EmploymentHistoryProperties properties) {
@@ -182,6 +186,7 @@ public class EmployeeSeparationService {
     this.calendar = calendar;
     this.directory = directory;
     this.links = links;
+    this.compensation = compensation;
     this.operations = operations;
     this.limits = limits;
     this.properties = properties;
@@ -229,6 +234,13 @@ public class EmployeeSeparationService {
         || lastDay.isBefore(today.minusDays(properties.retroactiveDays()))
         || lastDay.isAfter(today.plusDays(FUTURE_DAYS))) {
       throw new ApiException(ErrorCode.SEPARATION_DATE_OUT_OF_RANGE, Map.of());
+    }
+    // ADR 0032: a separation never rewrites compensation; a compensation interval starting after
+    // the last day must be corrected first.
+    Optional<LocalDate> compensationStart =
+        compensation.latestCompensationStart(tenant, employeeId);
+    if (compensationStart.isPresent() && lastDay.isBefore(compensationStart.get())) {
+      throw new ApiException(ErrorCode.COMPENSATION_EMPLOYMENT_CONFLICT, Map.of());
     }
     // A22-1: immediate removal only when the last day is today or earlier; a retroactive
     // separation removes access at once, explicitly.
