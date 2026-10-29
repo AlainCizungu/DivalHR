@@ -21,7 +21,7 @@ against real PostgreSQL in normal CI.
 | Lock order | `CompensationService`, `PeopleEmploymentIntervals.lockShared`, V43 advisory-lock triggers | `AccessPortArchitectureTest`, `CompensationConcurrencyIntegrationTest` |
 
 | D93-12 UI | `apps/web/src/features/compensation/*` (`EmployeeCompensationSection` on the employee profile, `CompensationForm`, `CompensationCancelPanel`, `MyCompensationPage` at `/me/compensation`), `app/routes.tsx`, `shell/navigation.ts` | `compensation.test.ts`, `compensationPages.test.tsx`, `navigation.test.ts`, `AppShell.test.tsx`, `pwa/workbox.test.ts`, `e2e/compensation.spec.ts` (exactly two journeys) |
-| D93-13 backlog | `docs/BACKLOG.md` (Git evidence table, deployed release, MVP-093A section), `scripts/ops/backlog.test.mjs` | `pnpm test:ops` backlog test: every row checked against Git (merge subject, PR number, date, ancestry) |
+| D93-13 backlog | `docs/BACKLOG.md` (Git evidence table, deployed release, MVP-093A section), `scripts/ops/backlog.test.mjs` | `pnpm ops:test` (backlog test): every row checked against Git (merge subject, PR number, date, ancestry) |
 | D93-14 landing | `features/landing/catalogue.ts`, `LandingContent.tsx`, `landing.css` | `LandingPage.test.tsx`, `e2e/landing.spec.ts` (extended, no new screenshot-only journey) |
 | D93-15 role homes | `features/home/HomePage.tsx`, `roadmap.ts` | `HomePage.test.tsx`, `e2e/role-homes.spec.ts` (extended) |
 | D93-16 accessibility, localization | `packages/localization/locales/{en,fr}/common.json` (`compensation`, `nav.myCompensation`, `errors.COMPENSATION_*`) | key-parity tests, `compensation.test.ts` (Intl formatting), axe, keyboard and reflow checks (390, 320 and 640 px) inside the two compensation journeys |
