@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { enterCode, typeSecret } from './support';
+import { enterCode, expectAccessible, typeSecret } from './support';
 
 // DEVELOPMENT-ONLY seed credentials from infrastructure/docker/keycloak (never valid elsewhere).
 const USERNAME = process.env.E2E_USERNAME ?? 'dev-admin-a';
@@ -10,13 +9,6 @@ const AI_SERVICE = process.env.E2E_AI_SERVICE_URL ?? 'http://localhost:8090/api/
 
 async function chooseLocale(page: Page, label: 'English' | 'Français') {
   await page.getByRole('button', { name: label, exact: true }).click();
-}
-
-async function expectAccessible(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
-    .analyze();
-  expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 }
 
 async function storedValues(page: Page): Promise<string> {
