@@ -9797,6 +9797,365 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /legal-entities/{legalEntityId}/payroll-policy:
+    get:
+      operationId: getPayrollPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a legal entity's monthly payroll policy timeline
+      description: >-
+        MVP-094A (ADR 0033). The effective-dated employer policy of one legal entity (pay day and
+        proration method), newest first, at most 60 entries, and the policy in force on the
+        organization's business date (null when none is configured). The version is the last
+        sequence (0 when none). These are employer policies, not legal-compliance claims. Unknown,
+        malformed, foreign and unauthorized legal entities are the same 404 LEGAL_ENTITY_NOT_FOUND.
+        A fail-closed disclosure (audit payroll-policy.read; counts only). Cache-Control private,
+        no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The policy timeline
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollPolicyView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: commitPayrollPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Commit a previewed monthly payroll policy
+      description: >-
+        MVP-094A. Repeats the previewed policy with the expectedVersion, previewDigest and expiresAt
+        the preview returned, confirmed=true and an Idempotency-Key. In one transaction (lock order
+        ADR 0033: idempotency, the legal entity's payroll lock, deferred checks, audit and outbox) the
+        timeline is re-read: a different policy version is 409 PAYROLL_POLICY_CONFLICT, as is a
+        policy identical to the one in force on its date or an effective date already used; an
+        expired or different preview is 409 PAYROLL_RUN_PREVIEW_STALE. An effective date outside the
+        24 months before the business date to 366 days after it is 422 PAYROLL_PERIOD_INVALID. At most
+        60 policies per legal entity (409 PAYROLL_RUN_LIMIT_REACHED). Policies are appended, never
+        edited or deleted, and never rewrite a created run. Business row, audit record
+        (payroll-policy.change) and internal outbox event commit together and carry no amount. At
+        most 5 commits per subject per minute. The same Idempotency-Key and payload replays the
+        original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED. Cache-Control private,
+        no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPayrollPolicy"
+      responses:
+        "201":
+          description: Recorded, or the original recording replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollPolicyReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-policy/preview:
+    post:
+      operationId: previewPayrollPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview adding a monthly payroll policy
+      description: >-
+        MVP-094A. Validates the policy without writing and returns the timeline before and after,
+        stable blockers (NO_CHANGE when the policy equals the one already in force on its date,
+        LIMIT_REACHED at 60 policies), the policy version, a previewDigest and its expiry (15
+        minutes). A blocked preview has a null previewDigest and expiresAt. An effective date outside
+        the allowed range is 422 PAYROLL_PERIOD_INVALID. At most 10 previews per subject per minute.
+        Recorded as a disclosure (audit payroll-policy.read). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollPolicyCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollPolicyPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-runs/preview:
+    post:
+      operationId: previewPayrollRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a monthly payroll run and its contractual gross
+      description: >-
+        MVP-094A (ADR 0033). For one legal entity, one fully closed calendar month (YYYY-MM within the
+        prior 24 months; otherwise 422 PAYROLL_PERIOD_INVALID) and one currency (CDF or USD), returns the
+        policy in force on the month's last day (409 PAYROLL_POLICY_NOT_FOUND when none), the current
+        draft's version as expectedVersion, the existing draft, the population and blocker counts,
+        the total and, per employee, the eligible date ranges and days, the denominator, the monthly
+        amount, the contractual gross and stable explanation codes or employee blockers. Contractual
+        gross is monthly base compensation after the approved proration policy; it is not taxable gross,
+        net pay or money owed. Attendance, schedules and timesheets never scale it. Nothing is
+        written. inputDigest identifies the inputs; previewDigest and expiresAt (15 minutes) are null
+        while any blocker exists or when the draft is already identical (identicalToCurrent). More
+        than 5,000 employees is 409 PAYROLL_RUN_LIMIT_REACHED. At most 5 previews per subject per
+        minute and 60 per tenant per hour. A disclosure (audit payroll-run.read; counts only, never an
+        amount). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollRunCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollRunPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-runs:
+    get:
+      operationId: listPayrollRuns
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List a legal entity's payroll runs
+      description: >-
+        MVP-094A. Run versions of one legal entity, newest period first, then currency, then version
+        descending, as a keyset page (default 25, maximum 100; the cursor is bound to the operation,
+        tenant, subject, legal entity, role and page size and carries no amount, number or digest).
+        Each item is a summary with its status (DRAFT or SUPERSEDED), employee count and total. A
+        fail-closed disclosure (audit payroll-run.read; counts only). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of runs
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollRunPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: commitPayrollRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a previewed monthly payroll run
+      description: >-
+        MVP-094A. Repeats the previewed period and currency with the expectedVersion, inputDigest,
+        previewDigest and expiresAt the preview returned, confirmed=true and an Idempotency-Key. In one
+        transaction (lock order ADR 0033: idempotency, employment rows FOR SHARE, the tenant payroll
+        population lock exclusive, the legal entity's payroll lock, deferred checks, audit and outbox)
+        the policy, population, employment, placement and compensation are re-read and recalculated.
+        A different current version is 409 PAYROLL_RUN_VERSION_CONFLICT; an expired preview, any change
+        of the inputs, a tampered digest or an identical recalculation is 409 PAYROLL_RUN_PREVIEW_STALE
+        and nothing is written; any blocker is 409 PAYROLL_RUN_BLOCKED; 25 versions of a chain or
+        more than 5,000 employees is 409 PAYROLL_RUN_LIMIT_REACHED. The run, its lines, eligible ranges
+        and source references, the audit record (payroll-run.create) and the internal outbox event
+        commit together; a changed recalculation creates version N+1 and supersedes version N in the
+        same transaction. Nothing is edited or deleted. Neither audit nor outbox carries an amount, a
+        number, a day count or a digest. At most 2 creations per subject per minute and 20 per tenant
+        per hour. The same Idempotency-Key and payload replays the original 201; a different payload is
+        409 IDEMPOTENCY_KEY_REUSED. The response is an amount-free receipt; read the run with
+        getPayrollRun. A draft is not statutory payroll. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPayrollRun"
+      responses:
+        "201":
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollRunReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-runs/{runId}:
+    get:
+      operationId: getPayrollRun
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a frozen payroll run and its calculation evidence
+      description: >-
+        MVP-094A. One run version with its frozen policy, status, totals and, as a keyset page ordered
+        by employee number (byte order) then id (default 50, maximum 200; the cursor is bound to the
+        operation, tenant, subject, run, role and page size and carries no amount, number or digest),
+        each employee's eligible ranges and days, denominator, monthly amount, contractual gross,
+        explanation codes and source references (employment, placement and compensation by id and
+        version). The run never changes after creation; later source corrections do not alter it.
+        Unknown, malformed, foreign-tenant, foreign-entity and unauthorized runs are the same 404
+        PAYROLL_RUN_NOT_FOUND. A fail-closed disclosure (audit payroll-run.read for the first page;
+        counts only). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollRunId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PayrollLineLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The run and a page of its lines
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollRunDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /me/expenses:
     post:
       operationId: createMyExpense
@@ -10670,6 +11029,12 @@ components:
         qualifying employment, or a separation would end the employment before an active compensation
         interval starts) or COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per
         employee). No params.
+        MVP-094A: PAYROLL_POLICY_NOT_FOUND (no payroll policy is in force on the month's last day),
+        PAYROLL_POLICY_CONFLICT (the policy version moved, the policy equals the one in force or the
+        effective date is used), PAYROLL_RUN_BLOCKED (an employee blocker exists),
+        PAYROLL_RUN_PREVIEW_STALE (the preview expired, the inputs changed or the draft is already
+        identical), PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or
+        PAYROLL_RUN_LIMIT_REACHED (60 policies, 25 versions of a chain or 5,000 employees). No params.
       content:
         application/problem+json:
           schema:
@@ -10689,6 +11054,9 @@ components:
         MVP-093A: COMPENSATION_NOT_FOUND - the employee or compensation change is malformed, unknown,
         foreign, belongs to another employee or is not visible to the caller; the cases are
         indistinguishable. No params.
+        MVP-094A: PAYROLL_RUN_NOT_FOUND - the run is malformed, unknown, foreign-tenant, foreign-entity or
+        not visible to the caller; the cases are indistinguishable. A legal entity that is malformed,
+        unknown or foreign is LEGAL_ENTITY_NOT_FOUND. No params.
       content:
         application/problem+json:
           schema:
@@ -10722,6 +11090,7 @@ components:
         written; retry with the same Idempotency-Key. No params.
         A compensation command or read that exceeded its time limit or met a lock is also
         EMPLOYMENT_CHANGE_TIMEOUT (MVP-093A); nothing was written; retry with the same Idempotency-Key.
+        The same holds for a payroll policy or run command or read (MVP-094A).
       content:
         application/problem+json:
           schema:
@@ -10766,6 +11135,8 @@ components:
         outside 60 days back to 366 days ahead of the business date) and
         COMPENSATION_TRANSITION_NOT_ALLOWED (the action is not legal in the current timeline, the
         values are identical, or the change is not an unstarted CHANGED interval). No params.
+        MVP-094A: PAYROLL_PERIOD_INVALID (the month is not fully closed, is older than 24 months, or a
+        policy effective date is outside 24 months back to 366 days ahead of the business date). No params.
       content:
         application/problem+json:
           schema:
@@ -10941,6 +11312,31 @@ components:
       description: Malformed, unknown, foreign and unauthorized IDs give the same 404 COMPENSATION_NOT_FOUND.
       schema:
         type: string
+    PayrollLegalEntityId:
+      name: legalEntityId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND.
+      schema:
+        type: string
+    PayrollRunId:
+      name: runId
+      in: path
+      required: true
+      description: >-
+        Malformed, unknown, foreign-tenant, foreign-entity and unauthorized IDs give the same 404
+        PAYROLL_RUN_NOT_FOUND.
+      schema:
+        type: string
+    PayrollLineLimit:
+      name: limit
+      in: query
+      description: Lines per page (1-200, default 50).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
     CompensationChangeId:
       name: changeId
       in: path
@@ -14869,6 +15265,528 @@ components:
         version:
           type: integer
           minimum: 1
+    PayrollPeriod:
+      type: string
+      description: A calendar month, YYYY-MM. A run needs a fully closed month within the prior 24 months.
+      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
+    PayrollProrationMethod:
+      type: string
+      description: >-
+        CALENDAR_DAYS (eligible days / days in the month), FIXED_30_DAYS (eligible days / 30, capped at a
+        full month) or NONE (a partial month is a blocker). Rounded once, HALF_UP, in the currency minor unit.
+      enum: [CALENDAR_DAYS, FIXED_30_DAYS, NONE]
+    PayrollPayDay:
+      type: object
+      additionalProperties: false
+      required: [kind, day]
+      properties:
+        kind:
+          type: string
+          enum: [DAY, LAST_DAY]
+        day:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 28
+          description: Day of the month (1-28) for DAY; null for LAST_DAY.
+    PayrollPolicyEntry:
+      type: object
+      additionalProperties: false
+      description: One effective-dated employer policy (not a legal-compliance claim).
+      required: [policyId, sequence, effectiveFrom, effectiveTo, payDay, prorationMethod]
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Inclusive last day (derived); null for the last policy.
+        payDay:
+          $ref: "#/components/schemas/PayrollPayDay"
+        prorationMethod:
+          $ref: "#/components/schemas/PayrollProrationMethod"
+    PayrollPolicyView:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, version, businessDate, current, policies]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          maximum: 60
+          description: The last policy sequence (0 when none); repeat it as expectedVersion.
+        businessDate:
+          type: string
+          format: date
+        current:
+          oneOf:
+            - $ref: "#/components/schemas/PayrollPolicyEntry"
+            - type: "null"
+        policies:
+          type: array
+          maxItems: 60
+          description: Newest first.
+          items:
+            $ref: "#/components/schemas/PayrollPolicyEntry"
+    PayrollPolicyCommand:
+      type: object
+      additionalProperties: false
+      required: [effectiveFrom, payDay, prorationMethod]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        payDay:
+          $ref: "#/components/schemas/PayrollPayDay"
+        prorationMethod:
+          $ref: "#/components/schemas/PayrollProrationMethod"
+    PayrollPolicyBlocker:
+      type: string
+      enum: [NO_CHANGE, LIMIT_REACHED]
+    PayrollPolicyPreview:
+      type: object
+      additionalProperties: false
+      required: [effectiveFrom, payDay, prorationMethod, before, after, blockers, version, previewDigest, expiresAt]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        payDay:
+          $ref: "#/components/schemas/PayrollPayDay"
+        prorationMethod:
+          $ref: "#/components/schemas/PayrollProrationMethod"
+        before:
+          type: array
+          maxItems: 60
+          items:
+            $ref: "#/components/schemas/PayrollPolicyEntry"
+        after:
+          type: array
+          maxItems: 60
+          items:
+            $ref: "#/components/schemas/PayrollPolicyEntry"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollPolicyBlocker"
+        version:
+          type: integer
+          minimum: 0
+          maximum: 60
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitPayrollPolicy:
+      type: object
+      additionalProperties: false
+      required: [effectiveFrom, payDay, prorationMethod, expectedVersion, previewDigest, expiresAt, confirmed]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        payDay:
+          $ref: "#/components/schemas/PayrollPayDay"
+        prorationMethod:
+          $ref: "#/components/schemas/PayrollProrationMethod"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 60
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        confirmed:
+          type: boolean
+          description: Must be true.
+    PayrollPolicyReceipt:
+      type: object
+      additionalProperties: false
+      required: [policyId, sequence, effectiveFrom, version]
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+        effectiveFrom:
+          type: string
+          format: date
+        version:
+          type: integer
+          minimum: 1
+    PayrollRunCommand:
+      type: object
+      additionalProperties: false
+      required: [period, currency]
+      properties:
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+    PayrollEmployeeBlocker:
+      type: string
+      description: >-
+        Stable employee blockers; any blocker forbids creating the run. COMPENSATION_MISSING (an employed day in
+        this legal entity without compensation), CURRENCY_MISMATCH (compensation in another currency),
+        FOREIGN_PLACEMENT (placed in another legal entity for part of the month), OVERLAPPING_EVIDENCE
+        (inconsistent overlapping source records), MULTIPLE_MONTHLY_AMOUNTS (the monthly amount changes inside
+        the month; correct or align the effective date), PARTIAL_MONTH_NOT_ALLOWED (the policy method NONE and a
+        partial month).
+      enum:
+        - COMPENSATION_MISSING
+        - CURRENCY_MISMATCH
+        - FOREIGN_PLACEMENT
+        - OVERLAPPING_EVIDENCE
+        - MULTIPLE_MONTHLY_AMOUNTS
+        - PARTIAL_MONTH_NOT_ALLOWED
+    PayrollExplanationCode:
+      type: string
+      enum:
+        - FULL_MONTH
+        - PRORATED_CALENDAR_DAYS
+        - PRORATED_FIXED_30_DAYS
+        - CAPPED_AT_FULL_MONTH
+        - STARTED_IN_MONTH
+        - ENDED_IN_MONTH
+        - MULTIPLE_PERIODS
+    PayrollDateRange:
+      type: object
+      additionalProperties: false
+      description: A maximal run of eligible days, inclusive.
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+    PayrollSourceReference:
+      type: object
+      additionalProperties: false
+      description: A source record that fed the calculation, by identifier and version only.
+      required: [kind, sourceId, sourceVersion, validFrom, validTo]
+      properties:
+        kind:
+          type: string
+          enum: [EMPLOYMENT, PLACEMENT, COMPENSATION]
+        sourceId:
+          type: string
+          format: uuid
+        sourceVersion:
+          type: integer
+          minimum: 0
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: [string, "null"]
+          format: date
+    PayrollPolicyApplied:
+      type: object
+      additionalProperties: false
+      description: The policy in force on the month's last day, frozen onto the run.
+      required: [policyId, sequence, payDay, prorationMethod]
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+        payDay:
+          $ref: "#/components/schemas/PayrollPayDay"
+        prorationMethod:
+          $ref: "#/components/schemas/PayrollProrationMethod"
+    PayrollPreviewLine:
+      type: object
+      additionalProperties: false
+      description: >-
+        One employee of the population. With any blocker, denominator, monthly and gross are null. Contractual
+        gross is not taxable gross, net pay or money owed.
+      required: [employeeId, employeeNumber, eligibleDays, ranges, denominator, fullMonth, monthly, gross, explanationCodes, blockers]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+          maxLength: 64
+        eligibleDays:
+          type: integer
+          minimum: 0
+          maximum: 31
+        ranges:
+          type: array
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/PayrollDateRange"
+        denominator:
+          type: [integer, "null"]
+          minimum: 28
+          maximum: 31
+          description: Null for a full month (no division) and when blocked.
+        fullMonth:
+          type: boolean
+        monthly:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        gross:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        explanationCodes:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/PayrollExplanationCode"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollEmployeeBlocker"
+    PayrollRunSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [runId, legalEntityId, period, currency, version, status, policySequence, employeeCount, total,
+         createdAt, supersededAt, supersededByRunId]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        status:
+          type: string
+          description: A draft is not statutory payroll. DRAFT is current; SUPERSEDED was replaced by a later version.
+          enum: [DRAFT, SUPERSEDED]
+        policySequence:
+          type: integer
+          minimum: 1
+        employeeCount:
+          type: integer
+          minimum: 1
+          maximum: 5000
+        total:
+          $ref: "#/components/schemas/CompensationMoney"
+        createdAt:
+          type: string
+          format: date-time
+        supersededAt:
+          type: [string, "null"]
+          format: date-time
+        supersededByRunId:
+          type: [string, "null"]
+          format: uuid
+    PayrollRunPreview:
+      type: object
+      additionalProperties: false
+      required:
+        [legalEntityId, period, currency, policy, expectedVersion, existingRun, identicalToCurrent,
+         employeeCount, blockedEmployeeCount, total, lines, inputDigest, previewDigest, expiresAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        policy:
+          $ref: "#/components/schemas/PayrollPolicyApplied"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 25
+          description: The current chain version (0 when no run exists); repeat it on creation.
+        existingRun:
+          oneOf:
+            - $ref: "#/components/schemas/PayrollRunSummary"
+            - type: "null"
+        identicalToCurrent:
+          type: boolean
+          description: True when the recalculation equals the current draft; nothing can be created.
+        employeeCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        blockedEmployeeCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        total:
+          description: Sum of the contractual gross of the employees without a blocker, in the run currency only.
+          $ref: "#/components/schemas/CompensationMoney"
+        lines:
+          type: array
+          maxItems: 5000
+          items:
+            $ref: "#/components/schemas/PayrollPreviewLine"
+        inputDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitPayrollRun:
+      type: object
+      additionalProperties: false
+      required: [period, currency, expectedVersion, inputDigest, previewDigest, expiresAt, confirmed]
+      properties:
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 25
+        inputDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        confirmed:
+          type: boolean
+          description: Must be true.
+    PayrollRunReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        Amount-free receipt (identifiers, period, currency, version and a count only) so that the idempotency
+        store never holds an amount.
+      required: [runId, legalEntityId, period, currency, version, status, supersededRunId, employeeCount]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        status:
+          type: string
+          enum: [DRAFT]
+        supersededRunId:
+          type: [string, "null"]
+          format: uuid
+        employeeCount:
+          type: integer
+          minimum: 1
+          maximum: 5000
+    PayrollRunPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PayrollRunSummary"
+        nextCursor:
+          type: [string, "null"]
+    PayrollRunLine:
+      type: object
+      additionalProperties: false
+      description: One frozen employee line with its evidence.
+      required: [employeeId, employeeNumber, eligibleDays, ranges, denominator, fullMonth, monthly, gross, explanationCodes, sources]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+          maxLength: 64
+        eligibleDays:
+          type: integer
+          minimum: 1
+          maximum: 31
+        ranges:
+          type: array
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/PayrollDateRange"
+        denominator:
+          type: [integer, "null"]
+          minimum: 28
+          maximum: 31
+        fullMonth:
+          type: boolean
+        monthly:
+          $ref: "#/components/schemas/CompensationMoney"
+        gross:
+          $ref: "#/components/schemas/CompensationMoney"
+        explanationCodes:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/PayrollExplanationCode"
+        sources:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PayrollSourceReference"
+    PayrollRunDetail:
+      type: object
+      additionalProperties: false
+      required: [run, policy, inputDigest, lines, nextCursor]
+      properties:
+        run:
+          $ref: "#/components/schemas/PayrollRunSummary"
+        policy:
+          $ref: "#/components/schemas/PayrollPolicyApplied"
+        inputDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        lines:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PayrollRunLine"
+        nextCursor:
+          type: [string, "null"]
     ExpenseCurrency:
       type: string
       description: >-
@@ -15504,6 +16422,14 @@ components:
         - COMPENSATION_VERSION_CONFLICT
         - COMPENSATION_TRANSITION_NOT_ALLOWED
         - COMPENSATION_LIMIT_REACHED
+        - PAYROLL_POLICY_NOT_FOUND
+        - PAYROLL_POLICY_CONFLICT
+        - PAYROLL_PERIOD_INVALID
+        - PAYROLL_RUN_NOT_FOUND
+        - PAYROLL_RUN_BLOCKED
+        - PAYROLL_RUN_PREVIEW_STALE
+        - PAYROLL_RUN_VERSION_CONFLICT
+        - PAYROLL_RUN_LIMIT_REACHED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
