@@ -47,7 +47,7 @@ $fn$
 SELECT value IS NFC NORMALIZED
     AND char_length(value) BETWEEN min_length AND max_length
     AND value !~ '^[[:space:]]' AND value !~ '[[:space:]]$'
-    AND value !~ '[\u0001-\u001F\u007F-\u009F­​-‏ -‮⁠-⁤⁦-⁯﻿-￹-￻]'
+    AND value !~ '[\u0001-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u2028-\u202E\u2060-\u2064\u2066-\u206F\uFEFF\uE000-\uF8FF\uFFF9-\uFFFB]'
     AND value !~ '[<>\\]'
     AND value !~* '(https?:|www\.|://|%[0-9a-f]{2}|&#|&[a-z][a-z0-9]{1,31};)'
 $fn$;
