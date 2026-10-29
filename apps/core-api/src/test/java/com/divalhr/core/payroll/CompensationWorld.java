@@ -198,6 +198,35 @@ final class CompensationWorld {
     return get(MINE + (query == null ? "" : "?" + query)).header("Authorization", bearer);
   }
 
+  /**
+   * A real employment change through the public API: previews and commits a scheduled separation
+   * (the employment ends on {@code lastDay}); returns the committed response.
+   */
+  JsonNode separate(UUID employee, LocalDate lastDay) throws Exception {
+    Map<String, Object> command = new LinkedHashMap<>();
+    command.put("lastDay", lastDay.toString());
+    command.put("reasonCode", "RESIGNATION");
+    command.put("accessTiming", "END_OF_LAST_DAY");
+    JsonNode preview =
+        expect(
+            Employees.postJson(
+                admin,
+                EMPLOYEES + "/" + employee + "/separations/preview",
+                JSON.writeValueAsString(command)),
+            200);
+    List<String> acknowledgements = new java.util.ArrayList<>();
+    preview.get("requiredAcknowledgements").forEach(a -> acknowledgements.add(a.asText()));
+    Map<String, Object> body = new LinkedHashMap<>(command);
+    body.put("expectedVersion", preview.get("expectedVersion").asLong());
+    body.put("previewDigest", preview.get("previewDigest").asText());
+    body.put("acknowledgements", acknowledgements);
+    return expect(
+        Employees.postJson(
+                admin, EMPLOYEES + "/" + employee + "/separations", JSON.writeValueAsString(body))
+            .header("Idempotency-Key", Organizations.newKey()),
+        201);
+  }
+
   // ------------------------------------------------------------------------------------------
   // Flows
   // ------------------------------------------------------------------------------------------

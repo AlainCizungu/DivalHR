@@ -385,6 +385,35 @@ class CompensationApiIntegrationTest {
   }
 
   @Test
+  void aRealEmploymentChangeBetweenPreviewAndCommitIsStaleWithNothingWritten() throws Exception {
+    UUID employee = ana.employee();
+    establish(ana, "USD", "10.00");
+    Map<String, Object> change = command("CHANGED", w.today.plusDays(5), "USD", "20.00");
+    JsonNode preview = w.preview(employee, change);
+    List<Integer> before = w.evidence();
+    JsonNode versionBefore = w.read(employee);
+
+    // The employment really changes through the people API: it now ends on a given day.
+    w.separate(employee, w.today.plusDays(200));
+
+    JsonNode problem =
+        w.problem(
+            commitRequest(w.admin, employee, key(), committing(change, preview, false)),
+            409,
+            "COMPENSATION_PREVIEW_STALE");
+    // No compensation side effect: no change, no fact, no audit record, no event, same history.
+    assertThat(w.evidence()).isEqualTo(before);
+    assertThat(w.read(employee)).isEqualTo(versionBefore);
+    // The refusal names neither the amount nor the dates it protected.
+    assertThat(problem.toString()).doesNotContain("20.00").doesNotContain("employmentDigest");
+
+    // A fresh preview sees the new employment and commits.
+    JsonNode fresh = w.preview(employee, change);
+    assertThat(fresh.get("employmentDigest")).isNotEqualTo(preview.get("employmentDigest"));
+    w.expect(commitRequest(w.admin, employee, key(), committing(change, fresh, false)), 201);
+  }
+
+  @Test
   void theSameKeyAndPayloadReplaysTheReceiptAndAnotherPayloadIsRefused() throws Exception {
     UUID employee = ana.employee();
     Map<String, Object> establish = command("ESTABLISHED", w.today, "USD", "10.00");
