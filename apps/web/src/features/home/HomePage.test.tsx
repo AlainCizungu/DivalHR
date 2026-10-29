@@ -5,6 +5,7 @@ import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionState } from '../../app/SessionProvider';
 import { renderWithSession, sessionWithRoles } from '../../test/renderWithSession';
+import { ROUTES, type Role } from '../../app/routes';
 import { HomePage } from './HomePage';
 
 const en = resources.en.common;
@@ -84,13 +85,44 @@ const TENANT_DESTINATIONS = {
     ['timesheets', '/admin/timesheets'],
     ['timeExports', '/admin/time-exports'],
     ['payrollPreparation', '/admin/payroll-preparation'],
+    ['tasks', '/admin/tasks'],
+    ['expenses', '/admin/expenses'],
   ],
   governance: [
     ['contractTemplates', '/admin/contract-templates'],
     ['users', '/admin/users'],
     ['accessReview', '/admin/access'],
   ],
+  integrations: [
+    ['webhooks', '/admin/webhooks'],
+    ['whatsapp', '/admin/integrations/whatsapp'],
+  ],
 } as const;
+
+/** D93-15: the employee's destinations, in order, all under the `employee` route guard. */
+const EMPLOYEE_DESTINATIONS = [
+  ['mySchedule', '/me/schedule'],
+  ['myLeave', '/me/leave'],
+  ['myAttendance', '/me/attendance'],
+  ['myTimesheets', '/me/timesheets'],
+  ['myTasks', '/me/tasks'],
+  ['myExpenses', '/me/expenses'],
+  ['compensation', '/me/compensation'],
+  ['teamOperations', '/me/team-operations'],
+  ['myContracts', '/me/contracts'],
+] as const;
+
+/** The guard of a route as the registry declares it: the role the page is wrapped in. */
+const guardOf = (path: string): Role | undefined =>
+  ROUTES.find((r) => r.path === path)?.access?.role;
+
+/** Every internal link of a rendered home, deduplicated. */
+const hrefs = (container: HTMLElement) =>
+  [
+    ...new Set(
+      [...container.querySelectorAll('a[href^="/"]')].map((a) => a.getAttribute('href') as string),
+    ),
+  ].filter((href) => href !== '/');
 
 const groupLinks = (testId: string) =>
   within(screen.getByTestId(testId))
@@ -117,7 +149,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
       [c.home.tenant.actions.openTimesheets, '/admin/timesheets'],
       [c.home.tenant.actions.exportTime, '/admin/time-exports'],
     ]);
-    for (const group of ['people', 'operations', 'governance'] as const) {
+    for (const group of ['people', 'operations', 'governance', 'integrations'] as const) {
       const section = screen.getByTestId(`home-group-${group}`);
       expect(within(section).getByRole('heading', { level: 2 })).toHaveTextContent(
         c.home.tenant.groups[group].title,
@@ -137,26 +169,41 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
       c.home.tenant.progress.title,
     );
     const delivered = within(progress).getAllByRole('listitem');
-    expect(delivered).toHaveLength(3);
-    for (const [index, id] of (['attendance', 'approvals', 'exports'] as const).entries()) {
+    const progressIds = [
+      'payroll',
+      'compensation',
+      'briefing',
+      'integrations',
+      'tasksExpenses',
+    ] as const;
+    expect(delivered).toHaveLength(progressIds.length);
+    for (const [index, id] of progressIds.entries()) {
       expect(delivered[index]).toHaveTextContent(c.home.tenant.progress.items[id].title);
       expect(delivered[index]).toHaveTextContent(c.home.tenant.progress.items[id].description);
       expect(delivered[index]).toHaveTextContent(c.landing.modules.available);
     }
+    // D93-15: no claim of calculation, payslips or payment is made by any progress item.
+    expect(progress).toHaveTextContent(c.home.tenant.progress.items.compensation.description);
     expect(progress.querySelectorAll('a, button, [role]')).toHaveLength(0);
     expect(progress).not.toHaveTextContent(/\d/);
     // The live card stays; shipped capabilities left the roadmap (UI3-4, U4-1).
     expect(screen.getByTestId('home-contract-attention')).toBeInTheDocument();
     const roadmap = screen.getByTestId('roadmap');
-    expect(within(roadmap).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(roadmap).getAllByRole('listitem')).toHaveLength(4);
     expect(within(roadmap).getByRole('heading', { level: 2 })).toHaveTextContent(c.roadmap.title);
+    // D93-15: what remains after this story; period locking and payroll inputs have shipped.
     for (const title of [
-      c.roadmap.items.periodLocking.title,
-      c.roadmap.items.payrollInputs.title,
+      c.roadmap.items.statutoryCalculation.title,
+      c.roadmap.items.payslipApproval.title,
       c.roadmap.items.disbursement.title,
+      c.roadmap.items.salaryAdvances.title,
     ]) {
       expect(roadmap).toHaveTextContent(title);
     }
+    expect(roadmap).not.toHaveTextContent(/lock|verrouill|payroll inputs|données de paie/iu);
+    expect(roadmap).not.toHaveTextContent(c.nav.payrollPreparation);
+    expect(roadmap).not.toHaveTextContent(c.nav.myTasks);
+    expect(roadmap).not.toHaveTextContent(c.nav.myExpenses);
     for (const item of within(roadmap).getAllByRole('listitem')) {
       expect(item).toHaveTextContent(c.roadmap.badge);
     }
@@ -179,14 +226,11 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     expect(within(work).getByRole('heading', { level: 2 })).toHaveTextContent(
       c.home.employee.myWork,
     );
-    expect(groupLinks('home-my-work')).toEqual([
-      [c.nav.mySchedule, '/me/schedule'],
-      [c.nav.myLeave, '/me/leave'],
-      [c.nav.myAttendance, '/me/attendance'],
-      [c.nav.myTimesheets, '/me/timesheets'],
-      [c.nav.teamOperations, '/me/team-operations'],
-      [c.nav.myContracts, '/me/contracts'],
-    ]);
+    const title = (id: string) =>
+      id === 'compensation' ? c.home.employee.cards.compensationTitle : c.nav[id as 'mySchedule'];
+    expect(groupLinks('home-my-work')).toEqual(
+      EMPLOYEE_DESTINATIONS.map(([id, to]) => [title(id), to]),
+    );
     // U4-4: short bilingual descriptions name offline attendance and timesheet submission only
     // where the employee can use them, and never an administrator's capability.
     expect(screen.getByTestId('home-card-my-attendance')).toHaveTextContent(
@@ -227,18 +271,99 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     expect(
       within(substitutions).getByRole('link', { name: c.home.employee.substitutions.action }),
     ).toHaveAttribute('href', '/me/schedule/substitutions');
+    // D93-15: conditional, accurately worded expense-approval destination (not every employee is
+    // an approver), and no data loaded for it.
+    const expenseApprovals = screen.getByTestId('home-expense-approvals');
+    expect(within(expenseApprovals).getByRole('heading', { level: 2 })).toHaveTextContent(
+      c.home.employee.expenseApprovals.title,
+    );
+    expect(expenseApprovals).toHaveTextContent(c.home.employee.expenseApprovals.description);
+    expect(
+      within(expenseApprovals).getByRole('link', { name: c.home.employee.expenseApprovals.action }),
+    ).toHaveAttribute('href', '/me/expense-approvals');
+    expect(c.home.employee.expenseApprovals.description).toMatch(
+      locale === 'en' ? /If employees’ expenses are routed to you/u : /Si des notes de frais/u,
+    );
     const roadmap = screen.getByTestId('roadmap');
     const items = within(roadmap).getAllByRole('listitem');
     expect(items).toHaveLength(3);
     for (const item of items) expect(item).toHaveTextContent(c.roadmap.badge);
     expect(roadmap).toHaveTextContent(c.roadmap.items.payslips.title);
     expect(roadmap).not.toHaveTextContent(c.nav.myLeave);
+    // D93-15: shipped items never sit on the employee roadmap.
+    for (const text of [c.nav.myTasks, c.nav.myExpenses, c.home.employee.cards.compensationTitle]) {
+      expect(roadmap).not.toHaveTextContent(text);
+    }
     // No administrator destination for an employee (UI3-6), and no data is loaded (UI3-7).
     expect(screen.queryByTestId('quick-actions')).toBeNull();
     expect(screen.queryByTestId('home-contract-attention')).toBeNull();
     expect(container.querySelector('a[href^="/admin/"]')).toBeNull();
     expect(requestedPaths).toEqual([]);
     expectNoFigures(container);
+  });
+
+  it('links every destination only to roles whose route guard allows it (D93-15, test 15)', async () => {
+    const cases: { roles: Role[]; expected: string[] }[] = [
+      {
+        roles: ['tenant-admin'],
+        expected: [
+          '/admin/people/import',
+          ...Object.values(TENANT_DESTINATIONS).flatMap((cards) => cards.map(([, to]) => to)),
+          '/admin/contract-expirations',
+        ],
+      },
+      {
+        roles: ['employee'],
+        expected: [
+          ...EMPLOYEE_DESTINATIONS.map(([, to]) => to),
+          '/me/leave/approvals',
+          '/me/schedule/substitutions',
+          '/me/expense-approvals',
+        ],
+      },
+      {
+        roles: ['platform-admin'],
+        expected: ['/admin/organizations/new', '/admin/organizations/first-admin', '/status'],
+      },
+    ];
+    for (const { roles, expected } of cases) {
+      const { container, unmount } = await renderHome(sessionWithRoles(roles), locale);
+      const links = hrefs(container);
+      // Nothing outside the role's own set, and the whole set is there.
+      expect([...new Set(links)].sort()).toEqual([...new Set(expected)].sort());
+      // Every link resolves to a registered route whose guard is one of the viewer's roles
+      // (/status is the one deliberately unguarded page).
+      for (const href of links) {
+        const guard = guardOf(href);
+        if (href === '/status') expect(guard).toBeUndefined();
+        else expect(roles, `${href} guard`).toContain(guard);
+      }
+      unmount();
+    }
+    // The new links are exactly the ones D93-15 names, each for one role only.
+    const newTenant = [
+      '/admin/tasks',
+      '/admin/expenses',
+      '/admin/webhooks',
+      '/admin/integrations/whatsapp',
+    ];
+    const newEmployee = ['/me/tasks', '/me/expenses', '/me/compensation', '/me/expense-approvals'];
+    const admin = await renderHome(sessionWithRoles(['tenant-admin']), locale);
+    for (const href of newEmployee)
+      expect(admin.container.querySelector(`a[href="${href}"]`)).toBeNull();
+    for (const href of newTenant)
+      expect(admin.container.querySelector(`a[href="${href}"]`)).not.toBeNull();
+    admin.unmount();
+    const employee = await renderHome(sessionWithRoles(['employee']), locale);
+    for (const href of newTenant)
+      expect(employee.container.querySelector(`a[href="${href}"]`)).toBeNull();
+    for (const href of newEmployee)
+      expect(employee.container.querySelector(`a[href="${href}"]`)).not.toBeNull();
+    employee.unmount();
+    // A user without any role and a platform administrator see none of them.
+    const nobody = await renderHome(sessionWithRoles([]), locale);
+    expect(hrefs(nobody.container)).toEqual([]);
+    nobody.unmount();
   });
 
   it('combines both sections for a user with both roles, without duplicate names (UI3-6)', async () => {

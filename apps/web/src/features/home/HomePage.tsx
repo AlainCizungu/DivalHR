@@ -21,7 +21,9 @@ import { EMPLOYEE_ROADMAP, TENANT_ADMIN_ROADMAP, type RoadmapItem } from './road
 /**
  * UI-001 role homes, refreshed by UI-003 (Issue #103) with the shipped leave and scheduling
  * destinations and by UI-004 (Issue #136) with attendance, timesheets and approved-time exports
- * (an operations launchpad with a static "Recent platform progress" panel; still no figures). Static entry points only: no counts, totals, alerts or activity (D10, UI3-7), with
+ * (an operations launchpad with a static "Recent platform progress" panel; still no figures) and by
+ * MVP-093A (Issue #175, D93-15) with payroll preparation, tasks, expenses, integrations and the
+ * employee's tasks, expenses and compensation. Static entry points only: no counts, totals, alerts or activity (D10, UI3-7), with
  * two approved exceptions: the organization administrator's live "Contracts needing attention"
  * card (MVP-031A, C3b) and the manager's conditional "Team attendance to record" card (MVP-060B,
  * B60B-8, shown only while the caller's queue is not empty, without a count). Each section appears for the role that can open its destinations; users with
@@ -143,7 +145,10 @@ function tenantCard(id: string, to: string, icon: IconName, testId: string): Car
  * UI-003 (UI3-4), UI-004 (U4-3): three groups, each card a destination the tenant administrator
  * can open through existing navigation; descriptive text and links only, never a total.
  */
-const TENANT_GROUPS: { id: 'people' | 'operations' | 'governance'; cards: CardDef[] }[] = [
+const TENANT_GROUPS: {
+  id: 'people' | 'operations' | 'governance' | 'integrations';
+  cards: CardDef[];
+}[] = [
   {
     id: 'people',
     cards: [
@@ -172,6 +177,8 @@ const TENANT_GROUPS: { id: 'people' | 'operations' | 'governance'; cards: CardDe
         'payroll',
         'home-card-payroll-preparation',
       ),
+      tenantCard('tasks', '/admin/tasks', 'check', 'home-card-tasks'),
+      tenantCard('expenses', '/admin/expenses', 'payroll', 'home-card-expenses'),
     ],
   },
   {
@@ -187,13 +194,25 @@ const TENANT_GROUPS: { id: 'people' | 'operations' | 'governance'; cards: CardDe
       tenantCard('accessReview', '/admin/access', 'shield', 'home-card-access-review'),
     ],
   },
+  {
+    id: 'integrations',
+    cards: [
+      tenantCard('webhooks', '/admin/webhooks', 'network', 'home-card-webhooks'),
+      tenantCard('whatsapp', '/admin/integrations/whatsapp', 'phone', 'home-card-whatsapp'),
+    ],
+  },
 ];
 
-/** UI-004 (U4-3): what was delivered recently; static text with no count, status or alert. */
+/**
+ * UI-004 (U4-3), refreshed by MVP-093A (D93-15): what was delivered recently; static text with no
+ * count, status or alert.
+ */
 const PROGRESS: { id: string; icon: IconName }[] = [
-  { id: 'attendance', icon: 'clock' },
-  { id: 'approvals', icon: 'check' },
-  { id: 'exports', icon: 'payroll' },
+  { id: 'payroll', icon: 'payroll' },
+  { id: 'compensation', icon: 'contract' },
+  { id: 'briefing', icon: 'pulse' },
+  { id: 'integrations', icon: 'network' },
+  { id: 'tasksExpenses', icon: 'check' },
 ];
 
 function ProgressPanel() {
@@ -273,7 +292,9 @@ function TenantAdminSections() {
 
 /**
  * UI-003 (UI3-5), UI-004 (U4-4): the employee's own destinations, in the order of a working
- * week (schedule, leave, attendance, timesheets, contracts); each page loads its own data.
+ * week (schedule, leave, attendance, timesheets, tasks, expenses, compensation, contracts); each
+ * page loads its own data. MVP-093A (D93-15) added tasks, expenses and compensation, all under the
+ * `employee` route guard.
  */
 const EMPLOYEE_CARDS: CardDef[] = [
   {
@@ -305,6 +326,27 @@ const EMPLOYEE_CARDS: CardDef[] = [
     testId: 'home-card-my-timesheets',
   },
   {
+    to: '/me/tasks',
+    icon: 'check',
+    titleKey: 'nav.myTasks',
+    descriptionKey: 'home.employee.cards.tasks',
+    testId: 'home-card-my-tasks',
+  },
+  {
+    to: '/me/expenses',
+    icon: 'payroll',
+    titleKey: 'nav.myExpenses',
+    descriptionKey: 'home.employee.cards.expenses',
+    testId: 'home-card-my-expenses',
+  },
+  {
+    to: '/me/compensation',
+    icon: 'contract',
+    titleKey: 'home.employee.cards.compensationTitle',
+    descriptionKey: 'home.employee.cards.compensation',
+    testId: 'home-card-my-compensation',
+  },
+  {
     to: '/me/team-operations',
     icon: 'pulse',
     titleKey: 'nav.teamOperations',
@@ -325,6 +367,7 @@ function EmployeeSection() {
   const workId = useId();
   const approvalsId = useId();
   const substitutionsId = useId();
+  const expenseApprovalsId = useId();
   return (
     <>
       <section className="home-section" aria-labelledby={workId} data-testid="home-my-work">
@@ -359,6 +402,24 @@ function EmployeeSection() {
           <p>{t('home.employee.substitutions.description')}</p>
           <Link to="/me/schedule/substitutions" className="button button--secondary">
             {t('home.employee.substitutions.action')}
+            <Icon name="chevronRight" />
+          </Link>
+        </div>
+      </Card>
+      {/* MVP-081, MVP-093A: conditional wording; not every employee is an approver (D93-15). */}
+      <Card
+        labelledBy={expenseApprovalsId}
+        className="feature-card"
+        testId="home-expense-approvals"
+      >
+        <span className="feature-card__icon">
+          <Icon name="check" />
+        </span>
+        <div className="feature-card__body">
+          <h2 id={expenseApprovalsId}>{t('home.employee.expenseApprovals.title')}</h2>
+          <p>{t('home.employee.expenseApprovals.description')}</p>
+          <Link to="/me/expense-approvals" className="button button--secondary">
+            {t('home.employee.expenseApprovals.action')}
             <Icon name="chevronRight" />
           </Link>
         </div>

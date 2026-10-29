@@ -555,6 +555,20 @@ html:has(.landing) {
   font-weight: 700;
 }
 
+.landing-steps .status-badge {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.landing-modules .landing-modules__remaining {
+  margin-top: var(--dv-space-2);
+  font-size: 0.88rem;
+}
+
+.landing-modules__remaining b {
+  color: var(--dv-color-text);
+}
+
 .landing-steps h3,
 .landing-modules h3,
 .landing-outcomes h3 {
@@ -744,6 +758,18 @@ html:has(.landing) {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* MVP-093A: each entry is a white chip plus its own state badge, in text. */
+.landing-integration-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-start;
+}
+
+.landing-integration-item .status-badge {
+  font-size: 0.72rem;
 }
 
 .landing-integration {

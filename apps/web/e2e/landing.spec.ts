@@ -98,6 +98,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
         ]);
         expect(stored.every((key) => /^divalhr\.(locale|theme|sidebar)$/u.test(key))).toBe(true);
 
+        // D93-14: no page text claims calculation, payslips, payment, loans or a partnership today.
+        const available = await page.getByTestId('landing-today').innerText();
+        expect(available).not.toMatch(
+          /calcul|gross|payslip|bulletin|disburs|versement|loan|prêt|partnership|partenariat/iu,
+        );
         await expectAccessible(page);
       });
     }

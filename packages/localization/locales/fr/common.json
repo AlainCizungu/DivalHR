@@ -144,7 +144,7 @@
     "tenant": {
       "eyebrow": "Espace de l’organisation",
       "title": "Administration de l’organisation",
-      "description": "Pilotez vos effectifs et vos opérations quotidiennes — employés, congés, horaires, présences, feuilles de temps et exports du temps approuvé — et contrôlez votre organisation et ses accès.",
+      "description": "Pilotez vos effectifs et vos opérations quotidiennes — employés, congés, horaires, présences, feuilles de temps, préparation de la paie, tâches, notes de frais et intégrations — et contrôlez votre organisation et ses accès.",
       "quickActions": "Actions rapides",
       "actions": {
         "importEmployees": "Importer des employés",
@@ -159,17 +159,21 @@
         },
         "operations": {
           "title": "Opérations et temps",
-          "description": "Horaires, présences, feuilles de temps et exports du temps approuvé."
+          "description": "Horaires, présences, feuilles de temps, exports, préparation de la paie, tâches et notes de frais."
         },
         "governance": {
           "title": "Contrats et accès",
           "description": "Contrats, utilisateurs et accès."
+        },
+        "integrations": {
+          "title": "Intégrations",
+          "description": "Webhooks signés et connecteur WhatsApp Business."
         }
       },
       "cards": {
         "employees": {
           "title": "Employés",
-          "description": "Recherchez dans l’annuaire, ouvrez les dossiers et enregistrez les changements d’emploi et les sorties."
+          "description": "Recherchez dans l’annuaire, ouvrez les dossiers et enregistrez les changements d’emploi, les sorties et la rémunération mensuelle."
         },
         "leavePolicies": {
           "title": "Politiques de congé",
@@ -218,6 +222,22 @@
         "operationsStatus": {
           "title": "Opérations du jour",
           "description": "Quarts planifiés, pointages, couverture et approbations en attente du jour pour toute l’organisation, avec l’heure de lecture."
+        },
+        "tasks": {
+          "title": "Tâches",
+          "description": "Confiez des tâches opérationnelles aux employés et suivez-les jusqu’à leur achèvement ou leur annulation."
+        },
+        "expenses": {
+          "title": "Notes de frais",
+          "description": "Consultez les notes de frais soumises par vos employés, avec leur statut d’approbation. Lecture seule ; aucun paiement n’est effectué."
+        },
+        "webhooks": {
+          "title": "Webhooks",
+          "description": "Créez des webhooks signés, consultez les livraisons, renouvelez les secrets et désactivez les points d’accès défaillants."
+        },
+        "whatsapp": {
+          "title": "WhatsApp Business",
+          "description": "Configurez le connecteur WhatsApp Business, ses destinataires consentants et les messages de test."
         }
       },
       "attention": {
@@ -235,17 +255,25 @@
         "title": "Progrès récents de la plateforme",
         "description": "Livré récemment et disponible pour votre organisation dès maintenant.",
         "items": {
-          "attendance": {
-            "title": "Présences",
-            "description": "Pointage en ligne, présence assistée par un superviseur et hors connexion, revue des exceptions et corrections en ajout seul."
+          "payroll": {
+            "title": "Préparation, verrouillage et export de la paie",
+            "description": "Verrouillez les périodes approuvées, générez des données de paie traçables, examinez les écarts et exportez un fichier verrouillé. DivalHR ne calcule pas la paie."
           },
-          "approvals": {
-            "title": "Approbations et réouverture des feuilles de temps",
-            "description": "Feuilles de temps hebdomadaires générées à partir des horaires et des présences, soumises par les employés, approuvées ou renvoyées par leur responsable, et rouvertes lorsqu’une correction modifie du temps approuvé."
+          "compensation": {
+            "title": "Rémunérations mensuelles",
+            "description": "Enregistrez la rémunération mensuelle de base, datée, en CDF ou en USD depuis le dossier de l’employé. Enregistrer une rémunération ne calcule pas la paie et ne déclenche aucun paiement."
           },
-          "exports": {
-            "title": "Exports du temps approuvé",
-            "description": "Exports CSV immuables de la semaine approuvée d’un site avec un manifeste vérifiable, prêts pour la paie et la comptabilité. DivalHR ne calcule pas la paie."
+          "briefing": {
+            "title": "État opérationnel et synthèse du jour",
+            "description": "Les opérations du jour et une synthèse quotidienne gouvernée et sourcée, avec liens vers les sources autorisées."
+          },
+          "integrations": {
+            "title": "Webhooks et WhatsApp Business",
+            "description": "Webhooks signés et connecteur WhatsApp Business gouverné, configurés par les administrateurs."
+          },
+          "tasksExpenses": {
+            "title": "Tâches et notes de frais",
+            "description": "Tâches opérationnelles avec historique immuable, et notes de frais des employés approuvées par les responsables. L’approbation n’est pas un paiement."
           }
         }
       }
@@ -253,7 +281,7 @@
     "employee": {
       "eyebrow": "Espace employé",
       "title": "Mon espace",
-      "description": "Votre horaire, vos congés, vos présences et vos feuilles de temps au même endroit.",
+      "description": "Votre horaire, vos congés, vos présences, vos feuilles de temps, vos tâches, vos notes de frais et votre rémunération mensuelle au même endroit.",
       "myWork": "Mon travail",
       "cards": {
         "leave": "Demandez un congé, suivez vos demandes et consultez chaque décision.",
@@ -261,7 +289,11 @@
         "attendance": "Pointez votre arrivée et votre départ sur vos créneaux, en ligne ou hors connexion, et consultez votre historique de présence.",
         "contracts": "Lisez les contrats que votre organisation vous a remis et confirmez que vous les avez reçus.",
         "timesheets": "Vérifiez vos feuilles de temps hebdomadaires, soumettez-les à votre responsable et suivez chaque approbation, renvoi ou réouverture.",
-        "teamOperations": "Si vous gérez des employés, consultez les quarts, les pointages et les approbations en attente du jour pour votre équipe."
+        "teamOperations": "Si vous gérez des employés, consultez les quarts, les pointages et les approbations en attente du jour pour votre équipe.",
+        "tasks": "Suivez les tâches qui vous sont confiées, démarrez-les et marquez-les comme terminées.",
+        "expenses": "Enregistrez vos dépenses en CDF ou en USD avec un justificatif, soumettez-les à votre responsable et suivez chaque décision. L’approbation n’est pas un paiement.",
+        "compensationTitle": "Ma rémunération",
+        "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -277,6 +309,11 @@
         "title": "Présence de l’équipe à enregistrer",
         "description": "Des créneaux de vos collaborateurs directs attendent maintenant une arrivée ou un départ. Vous pouvez l’enregistrer pour eux, avec un motif qu’ils verront.",
         "action": "Ouvrir la présence de l’équipe"
+      },
+      "expenseApprovals": {
+        "title": "Notes de frais qui vous sont confiées",
+        "description": "Si des notes de frais d’employés vous sont acheminées en tant que responsable, elles apparaissent ici pour votre approbation. Cette page reste vide si vous ne gérez personne.",
+        "action": "Ouvrir les approbations de notes de frais"
       }
     }
   },
@@ -285,17 +322,9 @@
     "description": "Prévu dans la feuille de route DivalHR. Pas encore disponible.",
     "badge": "Prochainement",
     "items": {
-      "periodLocking": {
-        "title": "Verrouillage des périodes de feuilles de temps",
-        "description": "Verrouillez les périodes approuvées ; leur réouverture exige une approbation privilégiée."
-      },
-      "payrollInputs": {
-        "title": "Préparation et calculs de la paie",
-        "description": "Paie calculée à partir du temps approuvé, avec retenues légales et déclarations."
-      },
       "disbursement": {
-        "title": "Versement des salaires",
-        "description": "Instructions de paiement par banque et mobile money préparées à partir de la paie validée."
+        "title": "Versement des salaires et rapprochement",
+        "description": "Instructions de paiement par banque et mobile money préparées à partir de la paie validée, avec rapprochement des résultats."
       },
       "myDocuments": {
         "title": "Documents",
@@ -308,6 +337,18 @@
       "payslips": {
         "title": "Paie et bulletins",
         "description": "Accédez à vos bulletins une fois la paie calculée."
+      },
+      "statutoryCalculation": {
+        "title": "Calcul de la paie et règles légales",
+        "description": "Paie brute et nette à partir du temps approuvé et de la rémunération, avec retenues légales et déclarations de la RDC."
+      },
+      "payslipApproval": {
+        "title": "Bulletins de paie et approbation du net à payer",
+        "description": "Examinez, approuvez et publiez les bulletins de paie une fois la paie calculée."
+      },
+      "salaryAdvances": {
+        "title": "Avances sur salaire",
+        "description": "Avances via des partenaires agréés, avec le consentement de l’employé, remboursées via la paie."
       }
     }
   },
@@ -2761,7 +2802,7 @@
     "sectionsLabel": "Sections de la page",
     "nav": {
       "platform": "Plateforme",
-      "payroll": "Temps approuvé et versements",
+      "payroll": "Préparation de la paie",
       "integrations": "Intégrations",
       "why": "Pourquoi DivalHR"
     },
@@ -2773,7 +2814,7 @@
       "eyebrow": "La plateforme de gestion des effectifs pour l’Afrique",
       "line1": "Gérez vos talents.",
       "line2": "Pilotez vos opérations.",
-      "intro": "DivalHR est la plateforme de gestion des effectifs et des opérations des organisations africaines : dossiers employés, congés, horaires, présences et temps hebdomadaire approuvé dans un seul système connecté, prêt à être transmis à la paie et à la comptabilité ; le calcul de la paie et les versements arrivent prochainement.",
+      "intro": "DivalHR est la plateforme de gestion des effectifs et des opérations des organisations africaines : dossiers employés, congés, horaires, présences, feuilles de temps, préparation de la paie, rémunérations mensuelles, tâches et notes de frais dans un seul système connecté ; le calcul de la paie, les bulletins de paie et les paiements arrivent prochainement.",
       "signIn": "Se connecter à DivalHR",
       "note": "Déjà client ? Connectez-vous en toute sécurité."
     },
@@ -2788,7 +2829,9 @@
         "schedules": "Horaires",
         "attendance": "Suivi de la présence",
         "timesheets": "Feuilles de temps",
-        "exports": "Exports de temps"
+        "exports": "Exports de temps",
+        "tasks": "Tâches",
+        "expenses": "Notes de frais"
       },
       "actions": {
         "import": "Importer des employés",
@@ -2812,6 +2855,14 @@
         "exports": {
           "title": "Exports de temps",
           "description": "Temps approuvé uniquement. Aucune paie calculée."
+        },
+        "tasks": {
+          "title": "Tâches",
+          "description": "Assignées, démarrées, terminées"
+        },
+        "expenses": {
+          "title": "Notes de frais",
+          "description": "Soumises et approuvées par les responsables. Aucun paiement effectué."
         }
       }
     },
@@ -2834,15 +2885,15 @@
         },
         "operations": {
           "title": "Opérations",
-          "description": "Sites, approbations de congé, horaires de travail, présences et feuilles de temps hebdomadaires."
+          "description": "Sites, approbations de congé, horaires de travail, présences, feuilles de temps hebdomadaires, tâches et notes de frais."
         },
         "pay": {
           "title": "Du temps à la paie",
-          "description": "Temps approuvé exporté vers la paie et la comptabilité dès aujourd’hui ; calcul de la paie, versements et avantages partenaires prochainement."
+          "description": "Temps approuvé verrouillé, préparé et exporté pour la paie, et rémunérations mensuelles enregistrées dès aujourd’hui ; calcul de la paie, bulletins de paie et paiements prochainement."
         },
         "intelligence": {
           "title": "Intelligence",
-          "description": "Des réponses sourcées, avec validation humaine."
+          "description": "Une synthèse quotidienne gouvernée, fondée sur des indicateurs agrégés, avec liens vers les sources."
         }
       }
     },
@@ -2852,7 +2903,7 @@
       "body": "Commencez avec ce qui est disponible maintenant. Ajoutez les prochaines fonctionnalités à mesure qu’elles arrivent et que votre organisation grandit.",
       "available": "Disponible maintenant",
       "later": "Prochainement",
-      "legend": "Les fonctionnalités « Disponible maintenant » sont déjà dans le produit. Les fonctionnalités « Prochainement » sont dans la feuille de route et ne sont pas encore disponibles.",
+      "legend": "« Disponible maintenant » signifie que le périmètre du module est déjà dans le produit. « Fonctionnalités disponibles » signifie qu’une partie du module est dans le produit et que le reste n’est pas encore disponible. Les fonctionnalités « Prochainement » sont dans la feuille de route et ne sont pas encore disponibles.",
       "todayTitle": "Disponible maintenant",
       "items": {
         "employees": {
@@ -2865,7 +2916,8 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Éléments de paie validés et paiements vers banques, mobile money ou fichier bancaire."
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé et rémunérations mensuelles.",
+          "remaining": "Calcul de la paie brute et nette, retenues légales, bulletins de paie et paiement."
         },
         "loans": {
           "title": "Prêts et avances sur salaire",
@@ -2881,23 +2933,27 @@
         },
         "documents": {
           "title": "Documents",
-          "description": "Dossiers versionnés, intègres, avec accusés de réception et API."
+          "description": "Modèles de contrat, émission, accusé de réception et suivi des échéances.",
+          "remaining": "Stockage général de documents et signature électronique."
         },
         "analytics": {
           "title": "Analytique",
-          "description": "Intelligence RH et opérationnelle."
+          "description": "État opérationnel du jour et synthèse quotidienne gouvernée.",
+          "remaining": "Analytique générale des effectifs et tendances."
         },
         "workflow": {
           "title": "Automatisation",
-          "description": "Chaînes de validation et processus automatisés fiables."
+          "description": "Cycle de vie des tâches opérationnelles et circuits d’approbation fermés.",
+          "remaining": "Automatisation configurable des processus."
         },
         "ai": {
           "title": "Dival AI",
-          "description": "Un assistant intelligent et gouverné pour chaque processus."
+          "description": "Une synthèse quotidienne gouvernée et sourcée des opérations, avec liens vers les sources autorisées. Ce n’est pas un assistant généraliste."
         },
         "integrations": {
           "title": "Intégrations",
-          "description": "Banques, paiements, comptabilité et outils existants."
+          "description": "Webhooks signés et connecteur WhatsApp Business gouverné.",
+          "remaining": "Les autres outils et fournisseurs affichés sont prévus ; aucun partenariat n’est sous-entendu."
         },
         "mobile": {
           "title": "Applications mobiles",
@@ -2926,63 +2982,74 @@
         "time": {
           "title": "Feuilles de temps et temps approuvé",
           "description": "Feuilles de temps hebdomadaires générées à partir des horaires et des présences, soumises par les employés, approuvées ou renvoyées par les responsables, rouvertes après correction et exportées en CSV avec un manifeste."
+        },
+        "tasks": {
+          "title": "Tâches opérationnelles",
+          "description": "Confiez une tâche à un employé, qui la démarre et la termine, avec un historique immuable."
+        },
+        "expenses": {
+          "title": "Notes de frais",
+          "description": "Les employés enregistrent leurs dépenses en CDF ou en USD avec un justificatif et les soumettent ; les responsables les approuvent ou les renvoient. L’approbation n’est pas un paiement."
         }
       },
       "nextTitle": "Prochainement",
       "now": {
-        "employees": "Dossiers employés et structure organisationnelle",
+        "people": "Dossiers employés, structure organisationnelle et accès avec connexion à facteurs multiples",
+        "contracts": "Contrats et suivi des échéances",
         "leave": "Demandes de congé, approbations et contrôles du cycle de vie",
-        "scheduling": "Horaires de travail et remplacements de créneau",
-        "attendance": "Présence en ligne, assistée par un superviseur et hors connexion",
-        "exceptions": "Exceptions de présence et corrections en ajout seul",
-        "timesheets": "Génération des feuilles de temps hebdomadaires",
-        "approvals": "Soumission par l’employé et approbation ou renvoi par le responsable",
-        "reopening": "Réouverture et nouvelle approbation après un changement des sources",
-        "exports": "Exports CSV du temps approuvé avec manifeste, pour préparer la paie et la comptabilité",
-        "languages": "Anglais et français",
-        "security": "Isolation sécurisée des organisations et connexion privilégiée à facteurs multiples"
+        "scheduling": "Horaires, remplacement de créneau, présence en ligne et hors connexion, et corrections",
+        "timesheets": "Feuilles de temps, verrouillage des périodes et exports du temps approuvé",
+        "payrollPreparation": "Préparation des données de paie, revue des écarts et export verrouillé",
+        "compensation": "Rémunérations mensuelles enregistrées",
+        "operations": "État opérationnel du jour et synthèse quotidienne sourcée",
+        "integrations": "Webhooks signés et connecteur WhatsApp Business",
+        "tasks": "Tâches opérationnelles",
+        "expenses": "Notes de frais des employés et approbation par le responsable",
+        "languages": "Anglais et français"
       },
       "next": {
-        "periodLocking": "Verrouillage des périodes de feuilles de temps",
-        "payroll": "Préparation et calculs de la paie",
-        "statutory": "Retenues légales et déclarations",
-        "disbursement": "Versement des salaires par banque et mobile money",
-        "loans": "Prêts et avances sur salaire via des partenaires agréés",
-        "platform": "Avantages sociaux, performance, documents, analytique, automatisation, intégrations et applications mobiles natives"
-      }
+        "payrollCalculation": "Calcul de la paie brute et nette",
+        "statutory": "Pack légal pays pour la RDC",
+        "payslips": "Bulletins de paie",
+        "disbursement": "Versement par banque et mobile money, et rapprochement",
+        "advances": "Avances sur salaire et prêts via des partenaires",
+        "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
+      },
+      "capabilities": "Fonctionnalités disponibles",
+      "remainingLabel": "Pas encore disponible :"
     },
     "payroll": {
-      "kicker": "Du temps approuvé au versement",
-      "title": "Transmettez à la paie le temps que vous avez déjà approuvé.",
-      "body": "Dès aujourd’hui, DivalHR exporte le temps hebdomadaire approuvé de chaque site dans un fichier CSV accompagné d’un manifeste vérifiable, pour vos outils de paie et de comptabilité. Le calcul de la paie, les instructions de paiement vers les portefeuilles mobiles, les comptes bancaires ou un fichier bancaire contrôlé, et le rapprochement arrivent prochainement.",
+      "kicker": "Du temps approuvé à la préparation de la paie",
+      "title": "Préparez les données de paie. Enregistrez les rémunérations mensuelles.",
+      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. Le calcul de la paie brute et nette, les retenues légales, les bulletins de paie et le paiement arrivent prochainement.",
       "steps": {
-        "approved": {
-          "title": "Temps approuvé",
-          "description": "Feuilles de temps hebdomadaires approuvées par les responsables, exportées en CSV avec un manifeste."
+        "preparation": {
+          "title": "Préparation de la paie",
+          "description": "Les semaines approuvées sont verrouillées, deviennent des données de paie traçables avec revue des écarts, et sont exportées dans un fichier verrouillé."
         },
-        "instructions": {
-          "title": "Paie et instructions de paiement",
-          "description": "Paie calculée et instructions préparées pour le canal de chaque employé."
+        "compensation": {
+          "title": "Rémunération mensuelle",
+          "description": "Montants de base mensuels datés en CDF ou en USD, avec historique. Enregistrer une rémunération ne calcule pas la paie et ne déclenche aucun paiement."
         },
-        "rails": {
-          "title": "Mobile money ou banque",
-          "description": "Exécutées par votre banque ou un prestataire de paiement agréé."
+        "calculation": {
+          "title": "Calcul et bulletins",
+          "description": "Paie brute et nette, retenues légales et bulletins de paie."
         },
-        "reconciliation": {
-          "title": "Statut et rapprochement",
-          "description": "Résultats rapatriés pour contrôle et rapprochement."
+        "payment": {
+          "title": "Paiement et rapprochement",
+          "description": "Instructions de paiement par mobile money ou banque, et rapprochement des résultats."
         }
       },
       "railsLabel": "Canaux de paiement prévus",
       "bankAccount": "Compte bancaire",
       "bankFile": "Fichier bancaire",
-      "note": "Les paiements sont exécutés par votre banque ou un prestataire de paiement agréé. DivalHR prépare et suit les instructions ; elle ne détient pas les fonds des employés. Les versements et canaux de paiement sont prévus et à venir.",
-      "approvedMessage": "Exportez le temps approuvé vers la paie et la comptabilité, sans prétendre que la paie a déjà été calculée."
+      "note": "Les paiements ne sont pas disponibles aujourd’hui. Lorsqu’ils arriveront, ils seront exécutés par votre banque ou un prestataire de paiement agréé, et DivalHR ne détiendra pas les fonds des employés. Votre organisation reste responsable de ses décisions de paie et de ses obligations légales. Les versements et les canaux de paiement sont prévus et arriveront plus tard.",
+      "activeMessage": "La préparation de la paie et les rémunérations mensuelles sont actives. Le calcul des salaires, les règles légales et le paiement ne le sont pas encore."
     },
     "integrations": {
       "kicker": "Écosystème connecté",
       "title": "Conçue pour fonctionner avec les outils qui font déjà avancer votre organisation.",
-      "body": "Paie, paiements, comptabilité, identité et collaboration—grâce à des intégrations gouvernées et des API ouvertes.",
+      "body": "Webhooks signés, une API et un connecteur WhatsApp Business gouverné dès aujourd’hui ; outils de paiement, de comptabilité et de collaboration prochainement.",
       "groups": {
         "payments": "Paiements et paie",
         "accounting": "Comptabilité et gestion",
@@ -2996,23 +3063,23 @@
         "webhooks": "Webhooks",
         "sso": "SSO / SAML"
       },
-      "planned": "Prévu",
-      "note": "Les intégrations sont prévues. Leur disponibilité variera selon le pays, le fournisseur et la phase de déploiement. Les noms et logos indiquent une compatibilité prévue ; aucune affiliation ni approbation n’est sous-entendue. Les marques appartiennent à leurs propriétaires respectifs."
+      "note": "Seuls les webhooks signés, l’API REST et le connecteur WhatsApp Business sont disponibles aujourd’hui ; tous les autres noms sont prévus. La disponibilité variera selon le pays, le fournisseur et la phase de mise en œuvre. Les noms et logos identifient une compatibilité, disponible ou prévue ; aucun partenariat ni parrainage n’est sous-entendu. Les marques appartiennent à leurs propriétaires respectifs."
     },
     "ai": {
       "kicker": "Dival AI",
-      "title": "Une intelligence qui comprend le travail derrière les données.",
-      "body": "Posez vos questions en langage naturel, préparez les synthèses quotidiennes et faites avancer le travail—avec sources, autorisations et validation humaine intégrées.",
-      "examplesLabel": "Exemples de questions",
-      "examples": {
-        "staffing": "Quels sites ont besoin de renfort aujourd’hui ?",
-        "approvals": "Résume les validations en attente pour la paie",
-        "contracts": "Affiche les contrats qui expirent dans les 30 jours"
-      },
+      "title": "Une synthèse quotidienne gouvernée de vos opérations.",
+      "body": "Dival AI rédige une synthèse quotidienne des opérations à partir d’indicateurs agrégés gouvernés, avec des modèles bilingues validés et des liens vers les vues que vous êtes autorisé à ouvrir. Si le service d’IA est indisponible, un repli déterministe produit tout de même une synthèse. Il ne répond pas à des questions libres et ne tire aucune conclusion sur des employés pris individuellement.",
       "guarantees": {
-        "sources": "Une source pour chaque réponse",
-        "authorization": "Uniquement les données autorisées",
-        "approval": "Une personne valide chaque décision"
+        "metrics": "Indicateurs agrégés gouvernés uniquement",
+        "templates": "Modèles bilingues validés",
+        "sources": "Liens vers les vues sources autorisées",
+        "fallback": "Repli déterministe si l’IA est indisponible"
+      },
+      "topicsLabel": "Sujets de la synthèse",
+      "topics": {
+        "shifts": "Quarts planifiés et pointages du jour",
+        "coverage": "Quarts sans pointage d’arrivée et quarts non couverts",
+        "approvals": "Approbations de congé et de feuilles de temps en attente au-delà de leurs seuils"
       }
     },
     "why": {
@@ -3074,11 +3141,11 @@
         },
         "finance": {
           "title": "Finance",
-          "description": "Exports du temps approuvé avec manifeste vérifiable dès aujourd’hui ; calcul de la paie prochainement."
+          "description": "Exports du temps approuvé, préparation de la paie et rémunérations mensuelles dès aujourd’hui ; calcul de la paie prochainement."
         },
         "employees": {
           "title": "Employés",
-          "description": "Contrats, congés, créneaux, présences et feuilles de temps dès aujourd’hui ; paie et avantages prochainement."
+          "description": "Contrats, congés, horaires, présences, feuilles de temps, tâches, notes de frais et leur propre rémunération mensuelle dès aujourd’hui ; bulletins de paie et avantages prochainement."
         }
       }
     },
