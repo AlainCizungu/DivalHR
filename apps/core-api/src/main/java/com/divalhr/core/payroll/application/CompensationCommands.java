@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -223,8 +224,8 @@ final class CompensationCommands {
     String employment = digest(request.getEmploymentDigest(), "employmentDigest", errors);
     String preview = digest(request.getPreviewDigest(), "previewDigest", errors);
     Instant expiresAt = instant(request.getExpiresAt(), "expiresAt", errors);
-    Boolean acknowledged =
-        flag(request.getAcknowledgeRetroactive(), "acknowledgeRetroactive", errors);
+    boolean acknowledged =
+        flag(request.getAcknowledgeRetroactive(), "acknowledgeRetroactive", errors).orElse(false);
     confirmed(request.getConfirmed(), errors);
     errors.throwIfAny();
     return new Commit(amountChecked(draft), version, employment, preview, expiresAt, acknowledged);
@@ -519,21 +520,21 @@ final class CompensationCommands {
     return text;
   }
 
-  private static Boolean flag(Object raw, String field, FieldErrors errors) {
+  private static Optional<Boolean> flag(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
-      return null;
+      return Optional.empty();
     }
     if (!(raw instanceof Boolean value)) {
       errors.add(field, Constraint.FORMAT);
-      return null;
+      return Optional.empty();
     }
-    return value;
+    return Optional.of(value);
   }
 
   private static void confirmed(Object raw, FieldErrors errors) {
-    Boolean value = flag(raw, "confirmed", errors);
-    if (value != null && !value) {
+    Optional<Boolean> value = flag(raw, "confirmed", errors);
+    if (value.isPresent() && !value.get()) {
       errors.add("confirmed", Constraint.REQUIRED);
     }
   }
