@@ -63,7 +63,7 @@ run() {
 
 ONLY="$*"
 
-run 1 "version() ignores the tenant" "*CompensationApiIntegrationTest" \
+run 1 "version() ignores the tenant" "*JdbcCompensationRepositoryTenantTest" \
   mutate "$SRC/internal/JdbcCompensationRepository.java" \
   '" WHERE tenant_id = :tenant AND employee_id = :employee")
         .param("tenant", tenant.value())

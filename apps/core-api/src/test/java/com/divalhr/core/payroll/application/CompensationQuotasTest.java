@@ -24,7 +24,9 @@ class CompensationQuotasTest {
   @Test
   void theSixtyFirstPreviewOfTheHourIsRefusedAndTheNextHourStartsAgain() {
     CompensationQuotas quotas = new CompensationQuotas(mock(JdbcCompensationRepository.class));
-    for (int i = 0; i < CompensationQuotas.PREVIEWS_PER_HOUR; i++) {
+    assertThat(CompensationQuotas.PREVIEWS_PER_HOUR).isEqualTo(60);
+    assertThat(CompensationQuotas.COMMANDS_PER_HOUR).isEqualTo(30);
+    for (int i = 0; i < 60; i++) {
       quotas.requirePreview(TENANT, "subject-a", NOW);
     }
     assertThatThrownBy(() -> quotas.requirePreview(TENANT, "subject-a", NOW))
