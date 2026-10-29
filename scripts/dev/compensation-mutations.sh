@@ -46,11 +46,16 @@ run() {
   if ! "$@"; then echo "   cannot apply the mutation"; survivors=$((survivors + 1)); return; fi
   local args=()
   for t in $tests; do args+=(--tests "$t"); done
-  if (cd "$CORE" && ./gradlew --no-daemon test "${args[@]}" >/dev/null 2>&1); then
+  local log; log="$(mktemp)"
+  if (cd "$CORE" && ./gradlew --no-daemon test "${args[@]}" >"$log" 2>&1); then
     echo "   SURVIVED (tests still pass): $tests"
     survivors=$((survivors + 1))
+  elif grep -qE '^[A-Za-z0-9_.$]+ > .* FAILED' "$log"; then
+    echo "   KILLED by: $(grep -E '^[A-Za-z0-9_.$]+ > .* FAILED' "$log" | head -3 | tr '\n' ';')"
   else
-    echo "   KILLED"
+    echo "   NOT A VALID KILL (no test failed; probably a compile error). See $log"
+    survivors=$((survivors + 1))
+    cp "$log" "${MUTATION_LOG_DIR:-/tmp}/mutation-$number-invalid.log" 2>/dev/null
   fi
   restore_all
   TOUCHED=()
