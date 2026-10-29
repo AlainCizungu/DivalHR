@@ -1,8 +1,7 @@
 import { resources } from '@divalhr/localization';
 import { screen } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import problemSchema from '../../../../../packages/shared-contracts/schemas/problem.schema.json';
 import { renderWithSession, sessionWithRoles } from '../../test/renderWithSession';
 import { EmployeeCompensationSection } from './EmployeeCompensationSection';
 import { MyCompensationPage } from './MyCompensationPage';
@@ -12,12 +11,7 @@ import { MyCompensationPage } from './MyCompensationPage';
  * English and in French, in the administrator section and on the employee page. The codes are read
  * from the shared problem schema, so a new code without a message cannot slip through.
  */
-const schema = JSON.parse(
-  readFileSync(
-    resolve(process.cwd(), '../../packages/shared-contracts/schemas/problem.schema.json'),
-    'utf8',
-  ),
-) as { properties: { code: { enum: string[] } } };
+const schema = problemSchema as { properties: { code: { enum: string[] } } };
 const CODES = schema.properties.code.enum.filter((code) => code.startsWith('COMPENSATION_'));
 
 const EMPLOYEE_ID = '22222222-0000-4000-8000-000000000002';
@@ -30,18 +24,20 @@ const STATUS: Record<string, number> = {
 function failWith(code: string) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => {
+    vi.fn(() => {
       const status = STATUS[code] ?? 409;
-      return new Response(
-        JSON.stringify({
-          type: 'about:blank',
-          title: 'x',
-          status,
-          code,
-          params: {},
-          correlationId: 'corr-comp-4242',
-        }),
-        { status, headers: { 'Content-Type': 'application/problem+json' } },
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            type: 'about:blank',
+            title: 'x',
+            status,
+            code,
+            params: {},
+            correlationId: 'corr-comp-4242',
+          }),
+          { status, headers: { 'Content-Type': 'application/problem+json' } },
+        ),
       );
     }),
   );
