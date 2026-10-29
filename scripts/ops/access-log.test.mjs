@@ -1,4 +1,4 @@
-// SEC-001 and SEC-002: static tests of the access-log policy (Caddy of the test environment, nginx
+// SEC-001, SEC-002 and SEC-003: static tests of the access-log policy (Caddy of the test environment, nginx
 // of the web image), mutation checks of that policy, and the wiring of the runtime canary test and
 // of the hr-dev log check. Run: pnpm ops:test
 import assert from 'node:assert/strict';
@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   REQUEST_HEADERS_DELETED,
+  REQUEST_HEADERS_DIAGNOSTIC,
   caddyAccessLogSnippet,
   checkCaddy,
   checkNginx,
@@ -21,6 +22,28 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 const CADDYFILE = read('infrastructure/hr-dev/caddy/Caddyfile');
 const TEMPLATE = read('apps/web/docker/default.conf.template');
+
+// SEC-003 (R174-1): the fields Caddy deletes on each side. Request and response are symmetric for
+// the receipt metadata; the webhook signature is a request header only.
+const SEC003_HEADERS = {
+  'request>headers': [
+    'X-Receipt-File-Name',
+    'Content-Disposition',
+    'Etag',
+    'Digest',
+    'Content-Digest',
+    'Repr-Digest',
+    'X-Hub-Signature-256',
+  ],
+  resp_headers: [
+    'X-Receipt-File-Name',
+    'Content-Disposition',
+    'Etag',
+    'Digest',
+    'Content-Digest',
+    'Repr-Digest',
+  ],
+};
 
 const without = (text, pattern) => {
   const next = text
@@ -45,6 +68,7 @@ test('the committed Caddyfile deletes the fields that carry OIDC data and drops 
     'request>headers>X-Receipt-File-Name',
     'resp_headers>Content-Disposition',
     'resp_headers>Etag',
+    'request>headers>X-Hub-Signature-256',
   ]) {
     assert.match(snippet, new RegExp(`^\\s*${field} delete$`, 'm'), field);
   }
@@ -72,25 +96,17 @@ test('every removed or weakened Caddy redaction is a violation', () => {
       'request>headers>Idempotency-Key delete',
       'request>headers>Idempotency-Key replace REDACTED',
     ),
-    // SEC-003: receipt file name, digest and metadata.
-    'receipt file name kept': without(CADDYFILE, /request>headers>X-Receipt-File-Name delete/),
+    // SEC-003: receipt metadata and webhook signature, request and response side, independently.
     'receipt file name rewritten instead of deleted': replace(
       CADDYFILE,
       'request>headers>X-Receipt-File-Name delete',
       'request>headers>X-Receipt-File-Name replace REDACTED',
     ),
-    'request Content-Disposition kept': without(
+    'webhook signature rewritten instead of deleted': replace(
       CADDYFILE,
-      /request>headers>Content-Disposition delete/,
+      'request>headers>X-Hub-Signature-256 delete',
+      'request>headers>X-Hub-Signature-256 replace REDACTED',
     ),
-    'response Content-Disposition kept': without(
-      CADDYFILE,
-      /resp_headers>Content-Disposition delete/,
-    ),
-    'Etag kept': without(CADDYFILE, /resp_headers>Etag delete/),
-    'Digest kept': without(CADDYFILE, /resp_headers>Digest delete/),
-    'Content-Digest kept': without(CADDYFILE, /resp_headers>Content-Digest delete/),
-    'Repr-Digest kept': without(CADDYFILE, /resp_headers>Repr-Digest delete/),
     'query kept': without(CADDYFILE, /request>uri regexp/),
     'Location rewritten instead of deleted': replace(
       CADDYFILE,
@@ -105,6 +121,13 @@ test('every removed or weakened Caddy redaction is a violation', () => {
     'query only partly removed': replace(CADDYFILE, 'regexp "\\?.*$" ""', 'regexp "code=[^&]*" ""'),
     'unfiltered log': replace(CADDYFILE, 'format filter {', 'format json {'),
   };
+  // Every SEC-003 deletion, removed alone, is a violation (13 of them).
+  for (const side of ['request>headers', 'resp_headers']) {
+    for (const header of SEC003_HEADERS[side]) {
+      const field = `${side}>${header}`;
+      mutations[`${field} kept`] = without(CADDYFILE, new RegExp(`${field} delete`));
+    }
+  }
   for (const [name, text] of Object.entries(mutations)) {
     assert.notDeepEqual(checkCaddy(text), [], name);
   }
@@ -156,6 +179,35 @@ test('every unsafe nginx logging change is a violation', () => {
       '$request_time $sent_http_content_disposition',
     ),
     'response entity tag': replace(TEMPLATE, '$request_time', '$request_time $sent_http_etag'),
+    'webhook signature': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $http_x_hub_signature_256',
+    ),
+    'request entity tag': replace(TEMPLATE, '$request_time', '$request_time $http_etag'),
+    'request digest': replace(TEMPLATE, '$request_time', '$request_time $http_digest'),
+    'request content digest': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $http_content_digest',
+    ),
+    'request repr digest': replace(TEMPLATE, '$request_time', '$request_time $http_repr_digest'),
+    'response digest': replace(TEMPLATE, '$request_time', '$request_time $sent_http_digest'),
+    'response content digest': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $sent_http_content_digest',
+    ),
+    'response repr digest': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $sent_http_repr_digest',
+    ),
+    'response receipt file name': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $sent_http_x_receipt_file_name',
+    ),
     'any upstream header': replace(
       TEMPLATE,
       '$request_time',
@@ -211,9 +263,21 @@ test('the runtime canary test runs in CI with the pinned images, and the hr-dev 
     'X-Receipt-File-Name',
     'Content-Disposition',
     'ETag',
+    'X-Hub-Signature-256',
   ]) {
     assert.ok(canary.includes(field), `mutation for ${field}`);
   }
+  // SEC-003 (R174-1): every Caddy deletion has its own mutation in the canary, and the success
+  // label names SEC-003.
+  for (const [side, headers] of Object.entries(SEC003_HEADERS)) {
+    for (const header of headers) {
+      assert.ok(
+        canary.includes(`'${side}>${header} delete'`),
+        `canary mutation for ${side}>${header}`,
+      );
+    }
+  }
+  assert.match(canary, /ALL PASS \(SEC-001, SEC-002 and SEC-003 access-log canaries/);
   const browser = read('ops/hr-dev/rehearsal-browser.sh');
   assert.match(browser, /log-hygiene\.sh/);
   const hygiene = read('ops/hr-dev/log-hygiene.sh');
@@ -356,6 +420,16 @@ test('SEC-003: every request header of the API contract is classified, so none i
   for (const name of REQUEST_HEADERS_DELETED) {
     assert.match(snippet, new RegExp(`^\\s*request>headers>${name} delete$`, 'm'), name);
   }
+  // R174-1: exactly these three are deleted, and only these two are diagnostic.
+  assert.deepEqual([...REQUEST_HEADERS_DELETED].sort(), [
+    'Idempotency-Key',
+    'X-Hub-Signature-256',
+    'X-Receipt-File-Name',
+  ]);
+  assert.deepEqual([...REQUEST_HEADERS_DIAGNOSTIC].sort(), [
+    'X-Correlation-Id',
+    'X-Expected-Version',
+  ]);
   // The detector itself works: a contract with an unknown header is reported.
   const withNew = `${API_SPEC}\n        in: header\n        name: X-Unreviewed-Value\n`;
   assert.deepEqual(unclassifiedRequestHeaders(withNew), ['X-Unreviewed-Value']);
@@ -421,4 +495,15 @@ test('SEC-003: log-hygiene fails on a receipt file name header, without printing
   assert.ok(!result.stdout.includes('sentinelreceipt0123456789'), 'printed a value');
   const raw = hygieneWorld({ 'p-caddy-1': `${CLEAN}X-Receipt-File-Name: receipt-x.png\n` });
   assert.equal(raw.status, 1);
+  // R174-1: the webhook signature header is credential material.
+  const signature =
+    '{"headers":{"X-Hub-Signature-256":["sha256=sentinelsignature0123456789abcdef"]}}';
+  const signed = hygieneWorld({ 'p-caddy-1': CLEAN, 'p-web-1': `${CLEAN}${signature}\n` });
+  assert.equal(signed.status, 1);
+  assert.match(signed.stdout, /^FAIL /m);
+  assert.ok(!signed.stdout.includes('sentinelsignature'), 'printed a value');
+  const rawSigned = hygieneWorld({
+    'p-caddy-1': `${CLEAN}X-Hub-Signature-256: sha256=sentinelsignature0123456789abcdef\n`,
+  });
+  assert.equal(rawSigned.status, 1);
 });

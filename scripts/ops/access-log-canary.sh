@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # SEC-001: runtime test that OIDC authorization data never reaches an access log; SEC-002: nor an
 # Idempotency-Key header value; SEC-003: nor receipt metadata (the X-Receipt-File-Name header, a
-# receipt Content-Disposition, ETag or digest header, or the receipt bytes).
+# receipt Content-Disposition, ETag or digest header, or the receipt bytes); nor webhook
+# authentication material (the X-Hub-Signature-256 header).
 #
 #   bash scripts/ops/access-log-canary.sh            # CI: the pinned Caddy and web nginx images
 #   bash scripts/ops/access-log-canary.sh --local    # caddy and nginx binaries on PATH
@@ -10,8 +11,10 @@
 # (code, state, session_state), a Referer header, a redirect Location header (Keycloak's redirect
 # to the callback, proxied by Caddy), a Cookie, an Authorization header, a Set-Cookie header and
 # an Idempotency-Key header (SEC-002), and, on a receipt upload and download, a unique file name
-# header, request and response Content-Disposition headers, an ETag, Digest, Content-Digest and
-# Repr-Digest header and unique receipt bytes (SEC-003).
+# header, Content-Disposition, ETag, Digest, Content-Digest and Repr-Digest headers, each with its
+# OWN unique request-side and response-side sentinel, an X-Receipt-File-Name response header, a
+# webhook X-Hub-Signature-256 request header and unique receipt bytes (SEC-003). Every deletion
+# has a mutation that must leak its own sentinel.
 # The committed configuration must keep every canary out of the logs while the method, the path
 # and the status stay visible. Then each required redaction is removed in turn (a mutation): the
 # canary it protects must appear, which proves the check would catch that regression.
@@ -47,11 +50,16 @@ wait_http() { # <url>
 QCODE=$(canary code) QSTATE=$(canary state) QSESSION=$(canary session) REFERER=$(canary referer)
 LOCATION=$(canary location) COOKIE=$(canary cookie) AUTHZ=$(canary authorization) SETCOOKIE=$(canary setcookie)
 IDEMKEY=$(canary idempotency)
-RCPTNAME=$(canary rcptname) RCPTCDREQ=$(canary rcptcdreq) RCPTCDRESP=$(canary rcptcdresp) RCPTETAG=$(canary rcptetag)
+# SEC-003 request-side sentinels
+RCPTNAME=$(canary rcptname) RCPTCDREQ=$(canary rcptcdreq) REQETAG=$(canary reqetag) REQDIGEST=$(canary reqdigest)
+REQCONTENTDIGEST=$(canary reqcontentdigest) REQREPRDIGEST=$(canary reqreprdigest) HUBSIG=$(canary hubsignature)
+# SEC-003 response-side sentinels
+RCPTNAMERESP=$(canary rcptnameresp) RCPTCDRESP=$(canary rcptcdresp) RCPTETAG=$(canary rcptetag)
 RCPTDIGEST=$(canary rcptdigest) RCPTCONTENTDIGEST=$(canary rcptcontentdigest) RCPTREPRDIGEST=$(canary rcptreprdigest)
 RCPTBODY=$(canary rcptbody)
 ALL=("$QCODE" "$QSTATE" "$QSESSION" "$REFERER" "$LOCATION" "$COOKIE" "$AUTHZ" "$SETCOOKIE" "$IDEMKEY"
-  "$RCPTNAME" "$RCPTCDREQ" "$RCPTCDRESP" "$RCPTETAG" "$RCPTDIGEST" "$RCPTCONTENTDIGEST" "$RCPTREPRDIGEST" "$RCPTBODY")
+  "$RCPTNAME" "$RCPTCDREQ" "$REQETAG" "$REQDIGEST" "$REQCONTENTDIGEST" "$REQREPRDIGEST" "$HUBSIG"
+  "$RCPTNAMERESP" "$RCPTCDRESP" "$RCPTETAG" "$RCPTDIGEST" "$RCPTCONTENTDIGEST" "$RCPTREPRDIGEST" "$RCPTBODY")
 
 requests() { # <base url>: the browser's view of a sign-in, with every canary in place
   local base="$1"
@@ -67,10 +75,15 @@ requests() { # <base url>: the browser's view of a sign-in, with every canary in
   # receipt download whose response carries disposition, entity tag and digest headers.
   curl -s -o /dev/null -X PUT -H "Authorization: Bearer $AUTHZ" -H "Idempotency-Key: $IDEMKEY" \
     -H "X-Receipt-File-Name: $RCPTNAME.png" -H "Content-Disposition: attachment; filename=\"$RCPTCDREQ.png\"" \
+    -H "ETag: \"$REQETAG\"" -H "Digest: sha-256=$REQDIGEST" -H "Content-Digest: sha-256=:$REQCONTENTDIGEST:" \
+    -H "Repr-Digest: sha-256=:$REQREPRDIGEST:" \
     -H 'Content-Type: image/png' --data-binary "$RCPTBODY" \
     "$base/api/v1/me/expenses/00000000-0000-4000-8000-000000000001/receipt"
   curl -s -o /dev/null -H "Authorization: Bearer $AUTHZ" \
     "$base/api/v1/me/expenses/00000000-0000-4000-8000-000000000001/revisions/1/receipt"
+  # SEC-003: a webhook delivery to the receiver, whose payload signature is authentication material.
+  curl -s -o /dev/null -X POST -H "X-Hub-Signature-256: sha256=$HUBSIG" -H 'Content-Type: application/json' \
+    --data '{}' "$base/api/v1/webhooks/receiver"
 }
 leaks() { # <log file>: how many canaries appear (never which values)
   local n=0 c
@@ -95,6 +108,7 @@ $(cat "$1")
 # Stand-in for Keycloak: the redirect to the callback carries the code; a session cookie is set.
 http://:$3 {
 	header Set-Cookie "KEYCLOAK_SESSION=$SETCOOKIE; Path=/"
+	header X-Receipt-File-Name "$RCPTNAMERESP.png"
 	header Content-Disposition "attachment; filename=\"$RCPTCDRESP.png\""
 	header ETag "\"$RCPTETAG\""
 	header Digest "sha-256=$RCPTDIGEST"
@@ -151,8 +165,8 @@ if run_caddy "$W/accesslog" "$W/caddy.log"; then
     && pass "Caddy: method, path without query and status are still logged" \
     || fail "Caddy: the safe fields are missing from the access log"
   # The deleted fields are absent altogether (Caddy itself would only write REDACTED for some).
-  present=$(grep -oE '"(Referer|Location|Cookie|Set-Cookie|Authorization|Idempotency-Key|X-Receipt-File-Name|Content-Disposition|Etag|Digest|Content-Digest|Repr-Digest)":' "$W/caddy.log" | sort -u | tr -d '":' | tr '\n' ' ')
-  [ -z "$present" ] && pass "Caddy: no Referer, Location, Cookie, Set-Cookie, Authorization, Idempotency-Key, receipt file name, Content-Disposition, Etag or digest field is logged" \
+  present=$(grep -oE '"(Referer|Location|Cookie|Set-Cookie|Authorization|Idempotency-Key|X-Receipt-File-Name|Content-Disposition|Etag|Digest|Content-Digest|Repr-Digest|X-Hub-Signature-256)":' "$W/caddy.log" | sort -u | tr -d '":' | tr '\n' ' ')
+  [ -z "$present" ] && pass "Caddy: no Referer, Location, Cookie, Set-Cookie, Authorization, Idempotency-Key, receipt file name, Content-Disposition, Etag, digest or webhook signature field is logged" \
     || fail "Caddy: logged fields that must be deleted: $present"
 else
   fail "Caddy did not start"
@@ -177,14 +191,21 @@ caddy_mutation 'Caddy Idempotency-Key kept' 'request>headers>Idempotency-Key del
 caddy_mutation 'Caddy Cookie kept' 'request>headers>Cookie delete' '"Cookie":'
 caddy_mutation 'Caddy Authorization kept' 'request>headers>Authorization delete' '"Authorization":'
 caddy_mutation 'Caddy Set-Cookie kept' 'resp_headers>Set-Cookie delete' '"Set-Cookie":'
-# SEC-003: receipt metadata. Each removed deletion must let its unique sentinel through.
-caddy_mutation 'Caddy receipt file name kept' 'request>headers>X-Receipt-File-Name delete' "$RCPTNAME"
+# SEC-003: receipt metadata and webhook signature. Each of the 13 deletions has its own mutation:
+# removing it must let its OWN sentinel through (request side and response side independently).
+caddy_mutation 'Caddy request X-Receipt-File-Name kept' 'request>headers>X-Receipt-File-Name delete' "$RCPTNAME"
 caddy_mutation 'Caddy request Content-Disposition kept' 'request>headers>Content-Disposition delete' "$RCPTCDREQ"
+caddy_mutation 'Caddy request Etag kept' 'request>headers>Etag delete' "$REQETAG"
+caddy_mutation 'Caddy request Digest kept' 'request>headers>Digest delete' "$REQDIGEST"
+caddy_mutation 'Caddy request Content-Digest kept' 'request>headers>Content-Digest delete' "$REQCONTENTDIGEST"
+caddy_mutation 'Caddy request Repr-Digest kept' 'request>headers>Repr-Digest delete' "$REQREPRDIGEST"
+caddy_mutation 'Caddy request X-Hub-Signature-256 kept' 'request>headers>X-Hub-Signature-256 delete' "$HUBSIG"
+caddy_mutation 'Caddy response X-Receipt-File-Name kept' 'resp_headers>X-Receipt-File-Name delete' "$RCPTNAMERESP"
 caddy_mutation 'Caddy response Content-Disposition kept' 'resp_headers>Content-Disposition delete' "$RCPTCDRESP"
-caddy_mutation 'Caddy Etag kept' 'resp_headers>Etag delete' "$RCPTETAG"
-caddy_mutation 'Caddy Digest kept' 'resp_headers>Digest delete' "$RCPTDIGEST"
-caddy_mutation 'Caddy Content-Digest kept' 'resp_headers>Content-Digest delete' "$RCPTCONTENTDIGEST"
-caddy_mutation 'Caddy Repr-Digest kept' 'resp_headers>Repr-Digest delete' "$RCPTREPRDIGEST"
+caddy_mutation 'Caddy response Etag kept' 'resp_headers>Etag delete' "$RCPTETAG"
+caddy_mutation 'Caddy response Digest kept' 'resp_headers>Digest delete' "$RCPTDIGEST"
+caddy_mutation 'Caddy response Content-Digest kept' 'resp_headers>Content-Digest delete' "$RCPTCONTENTDIGEST"
+caddy_mutation 'Caddy response Repr-Digest kept' 'resp_headers>Repr-Digest delete' "$RCPTREPRDIGEST"
 
 # --- web nginx -----------------------------------------------------------------------------------
 mkdir -p "$W/html" && echo '<!doctype html><title>app</title>' > "$W/html/index.html"
@@ -276,7 +297,8 @@ nginx_mutation 'nginx Cookie logged' "s/\\\$request_time'/\$request_time \"\$htt
 nginx_mutation 'nginx uninitialized-variable warning on (error log)' '/uninitialized_variable_warn off;/d' "$QCODE"
 nginx_mutation 'nginx Authorization logged' "s/\\\$request_time'/\$request_time \"\$http_authorization\"'/" "$AUTHZ"
 nginx_mutation 'nginx Idempotency-Key logged' "s/\\\$request_time'/\$request_time \"\$http_idempotency_key\"'/" "$IDEMKEY"
+nginx_mutation 'nginx webhook signature logged' "s/\\\$request_time'/\$request_time \"\$http_x_hub_signature_256\"'/" "$HUBSIG"
 nginx_mutation 'nginx receipt file name logged' "s/\\\$request_time'/\$request_time \"\$http_x_receipt_file_name\"'/" "$RCPTNAME"
 
-if [ "$FAILED" = 0 ]; then echo "ALL PASS (SEC-001 and SEC-002 access-log canaries, $MODE)"; else echo "SOME CHECKS FAILED"; fi
+if [ "$FAILED" = 0 ]; then echo "ALL PASS (SEC-001, SEC-002 and SEC-003 access-log canaries, $MODE)"; else echo "SOME CHECKS FAILED"; fi
 exit "$FAILED"

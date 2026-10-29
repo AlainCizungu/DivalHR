@@ -45,12 +45,19 @@
 				# SEC-002: an Idempotency-Key value must never be logged (Caddy logs every other
 				# request header verbatim): delete the field.
 				request>headers>Idempotency-Key delete
-				# SEC-003: receipt metadata. The uploaded file name (X-Receipt-File-Name, personal data
-				# the user chose) must never be logged. Receipt downloads and any digest or entity tag
-				# of a receipt are deleted from responses too. The receipt bytes are the request and
+				# SEC-003: receipt metadata and webhook authentication material. The uploaded file name
+				# (X-Receipt-File-Name, personal data the user chose), any digest or entity tag of a
+				# receipt and the webhook signature (X-Hub-Signature-256) are deleted on the request AND
+				# the response side, wherever Caddy could log them. The receipt bytes are the request and
 				# response body, which Caddy never logs.
 				request>headers>X-Receipt-File-Name delete
 				request>headers>Content-Disposition delete
+				request>headers>Etag delete
+				request>headers>Digest delete
+				request>headers>Content-Digest delete
+				request>headers>Repr-Digest delete
+				request>headers>X-Hub-Signature-256 delete
+				resp_headers>X-Receipt-File-Name delete
 				resp_headers>Content-Disposition delete
 				resp_headers>Etag delete
 				resp_headers>Digest delete
