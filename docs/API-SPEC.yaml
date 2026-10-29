@@ -15,7 +15,7 @@ tags:
   - name: documents
     description: Contract templates, issued contracts and acknowledgements (MVP-030)
   - name: payroll
-    description: Payroll preparation from locked approved time (MVP-090A)
+    description: Payroll preparation from locked approved time (MVP-090A) and monthly compensation records (MVP-093A)
   - name: operations
     description: Operational tasks assigned to employees (MVP-080)
   - name: integrations
@@ -9496,6 +9496,301 @@ paths:
           $ref: "#/components/responses/Conflict"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/compensation:
+    get:
+      operationId: getEmployeeCompensation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read an employee's monthly compensation and its history
+      description: >-
+        MVP-093A (ADR 0032). The employee's current MONTHLY base compensation on the organization's
+        business date, the scheduled future changes (at most 10) and the immutable change history,
+        newest first, as a keyset page (default 25, maximum 100; the cursor is bound to the
+        operation, tenant, subject, employee, role and page size, and carries no amount). Amounts are
+        canonical decimal strings next to their currency code; currencies are never converted or
+        combined. Unknown, malformed, foreign and unauthorized employees are the same 404
+        COMPENSATION_NOT_FOUND. A fail-closed disclosure (audit compensation.read for the first page,
+        compensation.history-read for a cursor page; counts only, never an amount). Recording
+        compensation does not calculate payroll or initiate payment. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The compensation record
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompensationRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/compensation/preview:
+    post:
+      operationId: previewEmployeeCompensation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview establishing, changing or correcting monthly compensation
+      description: >-
+        MVP-093A. Validates the command without writing and returns the action, the canonical
+        money, the active effective intervals before and after, warnings, stable blockers, the
+        compensation version, the employment digest, a previewDigest and its expiry (15 minutes).
+        ESTABLISHED is the first record; CHANGED appends a later effective interval and closes the
+        preceding open one on the prior calendar day; CORRECTED replaces a recorded fact and needs a
+        reasonCode, an explanation (10-500 characters, restricted plain text) and
+        acknowledgeRetroactive on commit. Dates are bounded by the organization's business date: a
+        future change at most 366 days ahead, a retroactive reach at most 60 days back (exact
+        boundaries accepted, one day beyond refused) and always inside a qualifying employment
+        interval. A command that breaks a rule is a 200 with blockers (previewDigest and expiresAt
+        null), never a 4xx; an unparsable amount is 400 COMPENSATION_INVALID_AMOUNT. Recorded as a
+        disclosure (audit compensation.read). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompensationCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompensationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/compensation/commit:
+    post:
+      operationId: commitEmployeeCompensation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Commit a previewed monthly compensation command
+      description: >-
+        MVP-093A. Repeats the previewed command with the expectedVersion, employmentDigest,
+        previewDigest and expiresAt the preview returned, confirmed=true and an Idempotency-Key. In one
+        transaction (lock order: idempotency, employment rows FOR SHARE, the employee's compensation
+        lock, deferred checks, audit and outbox) the employment and compensation are re-evaluated: a
+        different compensation version is 409 COMPENSATION_VERSION_CONFLICT; an expired preview or any
+        difference from the preview (including employment drift) is 409 COMPENSATION_PREVIEW_STALE and
+        nothing is written. A rule violation is 422 COMPENSATION_DATE_OUT_OF_RANGE,
+        COMPENSATION_EMPLOYMENT_CONFLICT or COMPENSATION_TRANSITION_NOT_ALLOWED, or 409
+        COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per employee);
+        identical values record nothing (422 COMPENSATION_TRANSITION_NOT_ALLOWED). Nothing is updated
+        in place or deleted. Business rows, the audit record (compensation.establish, .change or
+        .correct) and the internal outbox event commit together; none carries an amount. At most 30
+        commits and cancellations per subject and 300 per tenant per hour. The same Idempotency-Key
+        and payload replays the original 201 without another row, audit or event; a different payload
+        is 409 IDEMPOTENCY_KEY_REUSED. The response is a text-free and amount-free receipt; read the
+        record with getEmployeeCompensation. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitCompensation"
+      responses:
+        "201":
+          description: Recorded, or the original recording replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompensationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/compensation/{changeId}/cancel-preview:
+    post:
+      operationId: previewEmployeeCompensationCancellation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the cancellation of a scheduled compensation change
+      description: >-
+        MVP-093A. Only an active CHANGED fact whose effective date is after the business date can be
+        cancelled (blocker NOT_CANCELLABLE otherwise; an effective or historical change is never
+        cancelled). Returns the intervals before and after (the preceding interval restored through
+        the cancelled interval's former end), the compensation version, the employment digest, a
+        cancellationDigest and its expiry, and writes nothing. Unknown, malformed, foreign and
+        other-employee IDs are the same 404 COMPENSATION_NOT_FOUND. A disclosure (audit
+        compensation.read). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/CompensationChangeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The cancellation preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompensationCancellationPreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/compensation/{changeId}/cancel:
+    post:
+      operationId: cancelEmployeeCompensationChange
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Cancel a scheduled compensation change
+      description: >-
+        MVP-093A. Repeats the expectedVersion, employmentDigest, cancellationDigest and expiresAt of
+        the cancellation preview with confirmed=true and an Idempotency-Key. Everything is
+        re-evaluated under the same lock order as the commit: a different version is 409
+        COMPENSATION_VERSION_CONFLICT, an expired or different result 409 COMPENSATION_PREVIEW_STALE, a
+        change that is not an unstarted CHANGED fact 422 COMPENSATION_TRANSITION_NOT_ALLOWED. The
+        cancellation is itself a recorded change (SCHEDULED_CHANGE_CANCELLED, audit
+        compensation.scheduled-change-cancel) that keeps the cancelled change; it restores the
+        preceding interval through its former end. Same idempotent replay rules and receipt as the
+        commit; the original 201 is replayed. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/CompensationChangeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelCompensationChange"
+      responses:
+        "201":
+          description: Cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompensationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/compensation:
+    get:
+      operationId: getMyCompensation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read my monthly compensation and its history
+      description: >-
+        MVP-093A (ADR 0032). The caller's own current MONTHLY base compensation, scheduled changes and
+        effective-dated history, newest first, as a keyset page (default 25, maximum 100), resolved from
+        the caller's current active employee-access link on every request (403 EMPLOYEE_LINK_REQUIRED
+        otherwise). Nobody else's compensation can be named: managers, substitutes and other employees
+        have no such operation. The administrator's explanation of a correction is never returned; the
+        reason code is. Worked minutes do not automatically change a monthly salary, and no payment is
+        initiated. A fail-closed disclosure (audit compensation.read, or compensation.history-read for
+        a cursor page; counts only). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The caller's own compensation
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyCompensation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /me/expenses:
     post:
       operationId: createMyExpense
@@ -10613,6 +10908,22 @@ components:
       in: path
       required: true
       description: Malformed, unknown and foreign IDs give the same 404 EMPLOYEE_NOT_FOUND.
+      schema:
+        type: string
+    CompensationEmployeeId:
+      name: employeeId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign and unauthorized IDs give the same 404 COMPENSATION_NOT_FOUND.
+      schema:
+        type: string
+    CompensationChangeId:
+      name: changeId
+      in: path
+      required: true
+      description: >-
+        The change that introduced a fact (an interval's originChangeId). Malformed, unknown, foreign
+        and other-employee IDs give the same 404 COMPENSATION_NOT_FOUND.
       schema:
         type: string
     EmploymentChangeId:
@@ -14170,6 +14481,370 @@ components:
     ExpenseState:
       type: string
       enum: [DRAFT, SUBMITTED, APPROVED, RETURNED, WITHDRAWN]
+    CompensationCurrency:
+      type: string
+      description: >-
+        CDF (whole francs, 1 to 1,000,000,000) or USD (two decimals, 0.01 to 100,000.00). The currencies are
+        never converted, compared as one total or combined.
+      enum: [CDF, USD]
+    CompensationAction:
+      type: string
+      description: >-
+        ESTABLISHED (first record), CHANGED (new effective-dated amount or currency), CORRECTED (correction
+        of a recorded fact) or SCHEDULED_CHANGE_CANCELLED. A command uses only the first three.
+      enum: [ESTABLISHED, CHANGED, CORRECTED, SCHEDULED_CHANGE_CANCELLED]
+    CompensationReasonCode:
+      type: string
+      enum: [DATA_ENTRY_ERROR, WRONG_EFFECTIVE_DATE, WRONG_CURRENCY, OTHER_CORRECTION]
+    CompensationBlocker:
+      type: string
+      description: >-
+        Stable preview blockers. A blocked preview has no previewDigest and cannot be committed.
+      enum:
+        - AMOUNT_OUT_OF_RANGE
+        - DATE_OUT_OF_RANGE
+        - EMPLOYMENT_CONFLICT
+        - TRANSITION_NOT_ALLOWED
+        - NO_CHANGE
+        - NOT_CANCELLABLE
+        - LIMIT_REACHED
+    CompensationWarning:
+      type: string
+      enum: [RETROACTIVE, LATER_CHANGE_SCHEDULED]
+    CompensationMoney:
+      type: object
+      additionalProperties: false
+      required: [currency, amount]
+      properties:
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        amount:
+          type: string
+          description: >-
+            Canonical decimal text, never a JSON number: CDF "135000"; USD "1250.00". Input accepts no
+            sign, exponent, grouping separator or excess scale and is never rounded.
+          pattern: "^(0|[1-9][0-9]{0,9})(\\.[0-9]{1,2})?$"
+    CompensationInterval:
+      type: object
+      additionalProperties: false
+      description: One active effective interval of monthly base compensation.
+      required: [originChangeId, money, effectiveFrom, effectiveTo, cancellable]
+      properties:
+        originChangeId:
+          type: string
+          format: uuid
+          description: The change that introduced this value and start; the id used to correct or cancel it.
+        money:
+          $ref: "#/components/schemas/CompensationMoney"
+        frequency:
+          type: string
+          enum: [MONTHLY]
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Inclusive last day, or null for the open-ended last interval.
+        cancellable:
+          type: boolean
+          description: True only for an unstarted CHANGED interval (administrator reads); always false for employees.
+    CompensationChangeView:
+      type: object
+      additionalProperties: false
+      description: One immutable recorded change.
+      required: [changeId, sequence, action, money, effectiveFrom, reasonCode, targetChangeId, retroactive, recordedAt]
+      properties:
+        changeId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+        action:
+          $ref: "#/components/schemas/CompensationAction"
+        money:
+          $ref: "#/components/schemas/CompensationMoney"
+        effectiveFrom:
+          type: string
+          format: date
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationReasonCode"
+            - type: "null"
+        explanation:
+          type: [string, "null"]
+          description: Administrator reads only (never returned to the employee). Restricted text.
+        targetChangeId:
+          type: [string, "null"]
+          format: uuid
+        retroactive:
+          type: boolean
+          description: True when the effective date was before the business date of the recording.
+        recordedAt:
+          type: string
+          format: date-time
+    CompensationRecord:
+      type: object
+      additionalProperties: false
+      required: [version, businessDate, current, scheduled, changes, nextCursor]
+      properties:
+        version:
+          type: integer
+          minimum: 0
+          description: The employee's compensation version (the last change sequence; 0 when none).
+        businessDate:
+          type: string
+          format: date
+        current:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationInterval"
+            - type: "null"
+        scheduled:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/CompensationInterval"
+        changes:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CompensationChangeView"
+        nextCursor:
+          type: [string, "null"]
+    MyCompensation:
+      type: object
+      additionalProperties: false
+      required: [businessDate, current, scheduled, changes, nextCursor]
+      properties:
+        businessDate:
+          type: string
+          format: date
+        current:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationInterval"
+            - type: "null"
+        scheduled:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/CompensationInterval"
+        changes:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CompensationChangeView"
+        nextCursor:
+          type: [string, "null"]
+    CompensationCommand:
+      type: object
+      additionalProperties: false
+      description: >-
+        ESTABLISHED and CHANGED need effectiveFrom, currency and amount only. CORRECTED also needs
+        targetChangeId (the originChangeId of the active fact to correct), reasonCode and explanation.
+      required: [action, effectiveFrom, currency, amount]
+      properties:
+        action:
+          type: string
+          enum: [ESTABLISHED, CHANGED, CORRECTED]
+        effectiveFrom:
+          type: string
+          format: date
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        amount:
+          type: string
+          description: Decimal string, never a JSON number. CDF whole francs 1-1000000000; USD at most two decimals 0.01-100000.00.
+        targetChangeId:
+          type: [string, "null"]
+          format: uuid
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationReasonCode"
+            - type: "null"
+        explanation:
+          type: [string, "null"]
+          minLength: 10
+          maxLength: 500
+          description: Restricted plain text (NFC, no markup, URL, control character or encoded payload).
+    CompensationPreview:
+      type: object
+      additionalProperties: false
+      required:
+        [action, money, effectiveFrom, before, after, warnings, blockers, requiresReason,
+         requiresAcknowledgement, version, employmentDigest, previewDigest, expiresAt]
+      properties:
+        action:
+          type: string
+          enum: [ESTABLISHED, CHANGED, CORRECTED]
+        money:
+          $ref: "#/components/schemas/CompensationMoney"
+        effectiveFrom:
+          type: string
+          format: date
+        before:
+          type: array
+          description: The active intervals that the command touches, as they are now.
+          items:
+            $ref: "#/components/schemas/CompensationInterval"
+        after:
+          type: array
+          description: The same date span after the command.
+          items:
+            $ref: "#/components/schemas/CompensationInterval"
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensationWarning"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensationBlocker"
+        requiresReason:
+          type: boolean
+          description: True for a correction (reasonCode and explanation).
+        requiresAcknowledgement:
+          type: boolean
+          description: True for a correction or a retroactive effective date; the commit must set acknowledgeRetroactive.
+        version:
+          type: integer
+          minimum: 0
+          description: The compensation version to repeat as expectedVersion.
+        employmentDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: Digest of the employee's employment versions and intervals at preview time.
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitCompensation:
+      type: object
+      additionalProperties: false
+      description: The previewed command plus what the preview returned.
+      required:
+        [action, effectiveFrom, currency, amount, expectedVersion, employmentDigest, previewDigest,
+         expiresAt, acknowledgeRetroactive, confirmed]
+      properties:
+        action:
+          type: string
+          enum: [ESTABLISHED, CHANGED, CORRECTED]
+        effectiveFrom:
+          type: string
+          format: date
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        amount:
+          type: string
+        targetChangeId:
+          type: [string, "null"]
+          format: uuid
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationReasonCode"
+            - type: "null"
+        explanation:
+          type: [string, "null"]
+          minLength: 10
+          maxLength: 500
+        expectedVersion:
+          type: integer
+          minimum: 0
+        employmentDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        acknowledgeRetroactive:
+          type: boolean
+        confirmed:
+          type: boolean
+          description: Must be true.
+    CompensationCancellationPreview:
+      type: object
+      additionalProperties: false
+      required:
+        [changeId, before, after, warnings, blockers, version, employmentDigest, cancellationDigest, expiresAt]
+      properties:
+        changeId:
+          type: string
+          format: uuid
+        before:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensationInterval"
+        after:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensationInterval"
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensationWarning"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensationBlocker"
+        version:
+          type: integer
+          minimum: 0
+        employmentDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        cancellationDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CancelCompensationChange:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, employmentDigest, cancellationDigest, expiresAt, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+        employmentDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        cancellationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        confirmed:
+          type: boolean
+          description: Must be true.
+    CompensationReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        Amount-free and text-free receipt (identifiers, action, dates and versions only) so that the
+        idempotency store never holds a salary or an explanation.
+      required: [changeId, sequence, action, effectiveFrom, version]
+      properties:
+        changeId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+        action:
+          $ref: "#/components/schemas/CompensationAction"
+        effectiveFrom:
+          type: string
+          format: date
+        version:
+          type: integer
+          minimum: 1
     ExpenseCurrency:
       type: string
       description: >-
@@ -14797,6 +15472,14 @@ components:
         - EXPENSE_RECEIPT_TOO_LARGE
         - EXPENSE_RECEIPT_UPLOAD_TIMEOUT
         - EXPENSE_RECEIPT_MEDIA_UNSUPPORTED
+        - COMPENSATION_NOT_FOUND
+        - COMPENSATION_INVALID_AMOUNT
+        - COMPENSATION_DATE_OUT_OF_RANGE
+        - COMPENSATION_EMPLOYMENT_CONFLICT
+        - COMPENSATION_PREVIEW_STALE
+        - COMPENSATION_VERSION_CONFLICT
+        - COMPENSATION_TRANSITION_NOT_ALLOWED
+        - COMPENSATION_LIMIT_REACHED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
