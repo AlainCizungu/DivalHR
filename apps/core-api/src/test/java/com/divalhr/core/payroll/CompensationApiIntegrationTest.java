@@ -394,7 +394,7 @@ class CompensationApiIntegrationTest {
     JsonNode versionBefore = w.read(employee);
 
     // The employment really changes through the people API: it now ends on a given day.
-    w.separate(employee, w.today.plusDays(200));
+    w.separate(employee, w.today.plusDays(100));
 
     JsonNode problem =
         w.problem(
