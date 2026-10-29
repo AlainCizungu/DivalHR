@@ -1,8 +1,8 @@
 package com.divalhr.core.payroll.domain;
 
 /**
- * The closed catalogue of compensation changes (MVP-093A, D93-7). The first three are commands;
- * the last records the cancellation of a scheduled change.
+ * The closed catalogue of compensation changes (MVP-093A, D93-7). The first three are commands; the
+ * last records the cancellation of a scheduled change.
  */
 public enum CompensationAction {
   /** The first compensation fact of an employee. */
@@ -13,8 +13,7 @@ public enum CompensationAction {
   CORRECTED("compensation.correct", "payroll.compensation.corrected.v1"),
   /** The cancellation of a change before it starts. */
   SCHEDULED_CHANGE_CANCELLED(
-      "compensation.scheduled-change-cancel",
-      "payroll.compensation.scheduled-change-cancelled.v1");
+      "compensation.scheduled-change-cancel", "payroll.compensation.scheduled-change-cancelled.v1");
 
   private final String auditAction;
   private final String eventType;

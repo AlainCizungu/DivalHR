@@ -50,10 +50,7 @@ class CompensationEvaluatorTest {
 
   private static Command establish(int from, String amount) {
     return new Command(
-        CompensationAction.ESTABLISHED,
-        day(from),
-        parsed(CompensationCurrency.USD, amount),
-        null);
+        CompensationAction.ESTABLISHED, day(from), parsed(CompensationCurrency.USD, amount), null);
   }
 
   private static Command change(int from, String amount) {
@@ -63,10 +60,7 @@ class CompensationEvaluatorTest {
 
   private static Command correct(UUID target, int from, String amount) {
     return new Command(
-        CompensationAction.CORRECTED,
-        day(from),
-        parsed(CompensationCurrency.USD, amount),
-        target);
+        CompensationAction.CORRECTED, day(from), parsed(CompensationCurrency.USD, amount), target);
   }
 
   private static Fact fact(UUID origin, String amount, int from, Integer to, int seq) {
@@ -210,8 +204,7 @@ class CompensationEvaluatorTest {
         CompensationEvaluator.evaluate(correct(recent, -61, "150.00"), edge, change);
     assertThat(tooFar.blockers()).contains(CompensationBlocker.DATE_OUT_OF_RANGE);
     // A correction dated in the future still needs the acknowledgement.
-    Evaluation future =
-        CompensationEvaluator.evaluate(correct(recent, 5, "160.00"), edge, change);
+    Evaluation future = CompensationEvaluator.evaluate(correct(recent, 5, "160.00"), edge, change);
     assertThat(future.retroactive()).isFalse();
     assertThat(future.requiresAcknowledgement()).isTrue();
   }
@@ -287,8 +280,7 @@ class CompensationEvaluatorTest {
         .containsExactly(CompensationBlocker.NOT_CANCELLABLE);
     assertThat(CompensationEvaluator.evaluateCancellation(first, true, context).blockers())
         .containsExactly(CompensationBlocker.NOT_CANCELLABLE);
-    Context full =
-        with(100, fact(first, "100.00", -20, 9, 1), fact(second, "150.00", 10, null, 2));
+    Context full = with(100, fact(first, "100.00", -20, 9, 1), fact(second, "150.00", 10, null, 2));
     assertThat(CompensationEvaluator.evaluateCancellation(second, true, full).blockers())
         .containsExactly(CompensationBlocker.LIMIT_REACHED);
   }

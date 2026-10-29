@@ -51,8 +51,29 @@ class CompensationMoneyTest {
   @Test
   void signExponentGroupingScaleAndShapeAreRefusedNeverRounded() {
     String[] bad = {
-      "1,000", "+5", "1e3", "1E3", "-1", "-0", "1.234", "01", "00", "", " 5", "5 ", "5.", ".5",
-      "5.0.0", "NaN", "Infinity", "0x10", "٣", "5_000", "1 000", "\n5", "5\n"
+      "1,000",
+      "+5",
+      "1e3",
+      "1E3",
+      "-1",
+      "-0",
+      "1.234",
+      "01",
+      "00",
+      "",
+      " 5",
+      "5 ",
+      "5.",
+      ".5",
+      "5.0.0",
+      "NaN",
+      "Infinity",
+      "0x10",
+      "٣",
+      "5_000",
+      "1 000",
+      "\n5",
+      "5\n"
     };
     for (String text : bad) {
       Status usd = status(CompensationCurrency.USD, text);
@@ -93,8 +114,7 @@ class CompensationMoneyTest {
         .isEqualTo("100000.00");
     assertThat(CompensationMoney.parse(CompensationCurrency.CDF, "135000").money().amount())
         .isEqualTo("135000");
-    assertThat(CompensationMoney.ofMinor(CompensationCurrency.USD, 1L).amount())
-        .isEqualTo("0.01");
+    assertThat(CompensationMoney.ofMinor(CompensationCurrency.USD, 1L).amount()).isEqualTo("0.01");
     assertThat(CompensationMoney.ofMinor(CompensationCurrency.CDF, 1250L).amount())
         .isEqualTo("1250");
   }

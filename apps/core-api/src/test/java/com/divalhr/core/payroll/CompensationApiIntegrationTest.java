@@ -175,16 +175,14 @@ class CompensationApiIntegrationTest {
     assertThat(correctionPreview.get("requiresAcknowledgement").asBoolean()).isTrue();
     JsonNode missing =
         w.problem(
-            commitRequest(
-                w.admin, employee, key(), committing(correct, correctionPreview, false)),
+            commitRequest(w.admin, employee, key(), committing(correct, correctionPreview, false)),
             400,
             "VALIDATION_FAILED");
     assertThat(missing.toString()).contains("acknowledgeRetroactive");
     assertThat(w.read(employee).get("version").asInt()).isEqualTo(2);
     JsonNode corrected =
         w.expect(
-            commitRequest(
-                w.admin, employee, key(), committing(correct, correctionPreview, true)),
+            commitRequest(w.admin, employee, key(), committing(correct, correctionPreview, true)),
             201);
     assertThat(corrected.get("action").asText()).isEqualTo("CORRECTED");
     assertThat(corrected.get("sequence").asInt()).isEqualTo(3);
@@ -198,8 +196,7 @@ class CompensationApiIntegrationTest {
 
     // Cancel the scheduled change; the preceding interval is restored open-ended.
     String scheduledId = scheduled.get("changeId").asText();
-    JsonNode cancelPreview =
-        w.expect(cancelPreviewRequest(w.admin, employee, scheduledId), 200);
+    JsonNode cancelPreview = w.expect(cancelPreviewRequest(w.admin, employee, scheduledId), 200);
     assertThat(cancelPreview.get("blockers")).isEmpty();
     assertThat(cancelPreview.get("cancellationDigest").isNull()).isFalse();
     assertThat(cancelPreview.get("after")).hasSize(1);
@@ -222,8 +219,7 @@ class CompensationApiIntegrationTest {
             w.jdbc.queryForList(
                 "SELECT DISTINCT event_type FROM platform.outbox_event WHERE tenant_id = ?"
                     + " AND event_type LIKE 'payroll.compensation.%' ORDER BY 1",
-                String.class,
-                w.tenant()))
+                String.class, w.tenant()))
         .containsExactly(
             "payroll.compensation.changed.v1",
             "payroll.compensation.corrected.v1",
@@ -450,8 +446,7 @@ class CompensationApiIntegrationTest {
         .isEmpty();
 
     // Amounts: out of range is a blocker; a malformed amount is a 400.
-    assertThat(
-            w.preview(employee, command("ESTABLISHED", w.today, "USD", "0.00")).get("blockers"))
+    assertThat(w.preview(employee, command("ESTABLISHED", w.today, "USD", "0.00")).get("blockers"))
         .extracting(JsonNode::asText)
         .contains("AMOUNT_OUT_OF_RANGE");
     assertThat(
@@ -504,8 +499,7 @@ class CompensationApiIntegrationTest {
                 .get("blockers"))
         .extracting(JsonNode::asText)
         .contains("NO_CHANGE");
-    JsonNode anchor =
-        w.preview(employee, command("CHANGED", w.today.plusDays(2), "USD", "11.00"));
+    JsonNode anchor = w.preview(employee, command("CHANGED", w.today.plusDays(2), "USD", "11.00"));
     w.problem(
         commitRequest(w.admin, employee, key(), forced(same, anchor, 1, false)),
         422,
@@ -557,8 +551,7 @@ class CompensationApiIntegrationTest {
         cancelRequest(w.admin, employee, scheduledId, key(), body),
         409,
         "COMPENSATION_VERSION_CONFLICT");
-    JsonNode again =
-        w.expect(cancelPreviewRequest(w.admin, employee, scheduledId), 200);
+    JsonNode again = w.expect(cancelPreviewRequest(w.admin, employee, scheduledId), 200);
     assertThat(again.get("blockers")).extracting(JsonNode::asText).contains("NOT_CANCELLABLE");
   }
 
@@ -646,8 +639,8 @@ class CompensationApiIntegrationTest {
   // ------------------------------------------------------------------------------------------
 
   @Test
-  void noAmountOrExplanationReachesAuditEventsIdempotencyCursorsLogsOrErrors(
-      CapturedOutput output) throws Exception {
+  void noAmountOrExplanationReachesAuditEventsIdempotencyCursorsLogsOrErrors(CapturedOutput output)
+      throws Exception {
     UUID employee = ana.employee();
     JsonNode established = establish(ana, "CDF", "7654321");
     w.record(employee, command("CHANGED", w.today.plusDays(9), "USD", "8765.43"), false);

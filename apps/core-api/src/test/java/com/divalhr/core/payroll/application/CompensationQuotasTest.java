@@ -29,8 +29,7 @@ class CompensationQuotasTest {
     }
     assertThatThrownBy(() -> quotas.requirePreview(TENANT, "subject-a", NOW))
         .isInstanceOfSatisfying(
-            RateLimitedException.class,
-            e -> assertThat(e.retryAfterSeconds()).isEqualTo(2401));
+            RateLimitedException.class, e -> assertThat(e.retryAfterSeconds()).isEqualTo(2401));
     assertThatCode(() -> quotas.requirePreview(TENANT, "subject-b", NOW))
         .doesNotThrowAnyException();
     assertThatCode(() -> quotas.requirePreview(TENANT, "subject-a", NOW.plusSeconds(2400)))
@@ -49,7 +48,6 @@ class CompensationQuotasTest {
         .thenReturn(new Usage(CompensationQuotas.COMMANDS_PER_HOUR, NOW.minusSeconds(600)));
     assertThatThrownBy(() -> quotas.requireCommand(TENANT, "subject-a", NOW))
         .isInstanceOfSatisfying(
-            RateLimitedException.class,
-            e -> assertThat(e.retryAfterSeconds()).isEqualTo(3001));
+            RateLimitedException.class, e -> assertThat(e.retryAfterSeconds()).isEqualTo(3001));
   }
 }

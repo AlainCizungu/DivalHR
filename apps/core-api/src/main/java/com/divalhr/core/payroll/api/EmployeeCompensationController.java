@@ -34,10 +34,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * MVP-093A: monthly base compensation of an employee, for tenant administrators with privileged
- * MFA (ADR 0032). The tenant comes from the verified JWT (never the body or path); every response
- * is {@code Cache-Control: private, no-store}. Recording compensation does not calculate payroll
- * or initiate payment.
+ * MVP-093A: monthly base compensation of an employee, for tenant administrators with privileged MFA
+ * (ADR 0032). The tenant comes from the verified JWT (never the body or path); every response is
+ * {@code Cache-Control: private, no-store}. Recording compensation does not calculate payroll or
+ * initiate payment.
  */
 @RestController
 public class EmployeeCompensationController {

@@ -217,8 +217,7 @@ public class CompensationService {
    * @param body the command
    * @return the preview, after its disclosure audit committed
    */
-  public Preview preview(
-      PayrollCaller caller, String employeeId, CompensationCommandRequest body) {
+  public Preview preview(PayrollCaller caller, String employeeId, CompensationCommandRequest body) {
     return observed(
         PREVIEW,
         () -> {
@@ -630,8 +629,7 @@ public class CompensationService {
   }
 
   private static List<IntervalView> before(Plan plan) {
-    return CompensationReader.intervals(
-        plan.superseded().stream().map(Fact::interval).toList());
+    return CompensationReader.intervals(plan.superseded().stream().map(Fact::interval).toList());
   }
 
   private static MoneyView echo(Draft draft) {

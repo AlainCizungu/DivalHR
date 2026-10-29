@@ -65,8 +65,7 @@ public final class CompensationEvaluator {
    * @param active the active compensation facts
    * @param version the compensation version (the last change sequence, 0 when none)
    */
-  public record Context(
-      LocalDate today, List<Span> employments, List<Fact> active, int version) {
+  public record Context(LocalDate today, List<Span> employments, List<Fact> active, int version) {
 
     /** Copies the lists. */
     public Context {
@@ -131,8 +130,7 @@ public final class CompensationEvaluator {
       Fact target = find(context.active(), command.target());
       if (target != null) {
         dateOk =
-            dateOk
-                && CompensationDates.reachWithinWindow(target.interval().from(), from, today);
+            dateOk && CompensationDates.reachWithinWindow(target.interval().from(), from, today);
       }
     }
     if (!dateOk) {

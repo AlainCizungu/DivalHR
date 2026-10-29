@@ -27,8 +27,8 @@ import java.util.regex.Pattern;
 /**
  * Validation of the compensation requests (MVP-093A): shapes first (one field error per problem,
  * every unknown property named), then the stable amount error. Path identifiers that are malformed
- * are the same safe 404 as unknown ones. Restricted financial and HR data: no record here prints
- * an amount or an explanation.
+ * are the same safe 404 as unknown ones. Restricted financial and HR data: no record here prints an
+ * amount or an explanation.
  */
 final class CompensationCommands {
 
@@ -227,8 +227,7 @@ final class CompensationCommands {
         flag(request.getAcknowledgeRetroactive(), "acknowledgeRetroactive", errors);
     confirmed(request.getConfirmed(), errors);
     errors.throwIfAny();
-    return new Commit(
-        amountChecked(draft), version, employment, preview, expiresAt, acknowledged);
+    return new Commit(amountChecked(draft), version, employment, preview, expiresAt, acknowledged);
   }
 
   static Cancel cancel(String idempotencyKey, UUID changeId, CancelCompensationRequest request) {
@@ -322,7 +321,13 @@ final class CompensationCommands {
     }
     // The amount is parsed after every shape check; a malformed one is a stable amount error.
     return new Draft(
-        action, from, currency, amount, CompensationMoney.parse(currency, amount), target, reason,
+        action,
+        from,
+        currency,
+        amount,
+        CompensationMoney.parse(currency, amount),
+        target,
+        reason,
         explanation);
   }
 
@@ -433,8 +438,7 @@ final class CompensationCommands {
     if (space(first) || space(last)) {
       return false;
     }
-    return !FORBIDDEN_CHARACTERS.matcher(text).find()
-        && !FORBIDDEN_CONSTRUCTS.matcher(text).find();
+    return !FORBIDDEN_CHARACTERS.matcher(text).find() && !FORBIDDEN_CONSTRUCTS.matcher(text).find();
   }
 
   private static boolean space(int codePoint) {

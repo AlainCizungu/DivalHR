@@ -52,7 +52,9 @@ public class PeopleEmploymentIntervals implements EmploymentIntervals {
   }
 
   private List<Interval> intervals(TenantId tenant, UUID employeeId) {
-    return history.employments(tenant, Set.of(employeeId)).getOrDefault(employeeId, List.of())
+    return history
+        .employments(tenant, Set.of(employeeId))
+        .getOrDefault(employeeId, List.of())
         .stream()
         .map(e -> new Interval(e.id(), e.version(), e.start(), e.end()))
         .toList();

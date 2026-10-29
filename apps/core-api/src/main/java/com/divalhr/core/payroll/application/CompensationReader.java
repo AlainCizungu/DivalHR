@@ -157,8 +157,7 @@ public class CompensationReader {
     for (ActiveFact entry : active) {
       Interval interval = entry.fact().interval();
       boolean started = !interval.from().isAfter(today);
-      boolean cancellable =
-          admin && !started && entry.originAction() == CompensationAction.CHANGED;
+      boolean cancellable = admin && !started && entry.originAction() == CompensationAction.CHANGED;
       if (started && (interval.to() == null || !interval.to().isBefore(today))) {
         current = interval(interval, cancellable);
       } else if (!started) {

@@ -15,10 +15,10 @@ import java.util.UUID;
 /**
  * The stateless digests of compensation previews (MVP-093A, D93-8; ADR 0007): a SHA-256 over a
  * versioned canonical text of everything the preview showed and the commit will do. A commit
- * recomputes the digest from the current state; any difference is a stale preview. The change
- * that would be recorded has a fresh identifier on every evaluation, so its origin is written as
- * {@code self}. The digests are only compared and hashed, never logged, audited with their input
- * or stored beside an amount.
+ * recomputes the digest from the current state; any difference is a stale preview. The change that
+ * would be recorded has a fresh identifier on every evaluation, so its origin is written as {@code
+ * self}. The digests are only compared and hashed, never logged, audited with their input or stored
+ * beside an amount.
  */
 final class CompensationDigests {
 

@@ -143,9 +143,7 @@ public class MyCompensationService {
                   caller.tenant(), link.employeeId(), caller.subject(), false, READ, cursor, size);
           recorder.disclosed(
               caller,
-              cursor == null
-                  ? CompensationService.READ
-                  : CompensationService.HISTORY_READ,
+              cursor == null ? CompensationService.READ : CompensationService.HISTORY_READ,
               link.employeeId(),
               "own-record",
               cursor == null,

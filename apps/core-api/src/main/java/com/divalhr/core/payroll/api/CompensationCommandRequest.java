@@ -3,9 +3,9 @@ package com.divalhr.core.payroll.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * MVP-093A: the command to preview (establish, change or correct monthly compensation). Every
- * value is read as {@code Object} so that a wrong type is a field error, never a deserialization
- * failure. Restricted financial data: the amount and the explanation are never logged.
+ * MVP-093A: the command to preview (establish, change or correct monthly compensation). Every value
+ * is read as {@code Object} so that a wrong type is a field error, never a deserialization failure.
+ * Restricted financial data: the amount and the explanation are never logged.
  */
 @Schema(name = "CompensationCommand")
 public class CompensationCommandRequest extends StrictRequest {

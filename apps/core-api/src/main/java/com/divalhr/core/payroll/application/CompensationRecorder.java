@@ -17,11 +17,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Audit records and internal outbox events of monthly compensation (MVP-093A, D93-11). Metadata
- * and event data are an allow-list: stable identifiers, the currency, the frequency, effective
- * dates, the action, the version, whether a reason was supplied and bounded counts. They never
- * carry an amount, an employee number, a name, a contact detail or the explanation. The events
- * are internal: no webhook or WhatsApp type maps them.
+ * Audit records and internal outbox events of monthly compensation (MVP-093A, D93-11). Metadata and
+ * event data are an allow-list: stable identifiers, the currency, the frequency, effective dates,
+ * the action, the version, whether a reason was supplied and bounded counts. They never carry an
+ * amount, an employee number, a name, a contact detail or the explanation. The events are internal:
+ * no webhook or WhatsApp type maps them.
  */
 @Component
 public class CompensationRecorder {

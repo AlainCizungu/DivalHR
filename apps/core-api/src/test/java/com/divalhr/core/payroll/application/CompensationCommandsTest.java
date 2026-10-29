@@ -97,8 +97,7 @@ class CompensationCommandsTest {
     for (String bad : List.of("12,50", "-5", "1e3", " 10", "10.001", "", "0x10", "٣")) {
       assertThatThrownBy(
               () ->
-                  CompensationCommands.draft(
-                      command(with(ESTABLISH, "amount", "\"" + bad + "\""))))
+                  CompensationCommands.draft(command(with(ESTABLISH, "amount", "\"" + bad + "\""))))
           .as("amount %s", bad)
           .isInstanceOfSatisfying(
               ApiException.class,
@@ -136,8 +135,8 @@ class CompensationCommandsTest {
     assertThat(draftProblems(ESTABLISH.replace("}", ",\"tenantId\":\"x\"}")))
         .containsExactly("body:UNKNOWN_PROPERTY");
     assertThat(draftProblems("{}"))
-        .containsExactly("action:REQUIRED", "effectiveFrom:REQUIRED", "currency:REQUIRED",
-            "amount:REQUIRED");
+        .containsExactly(
+            "action:REQUIRED", "effectiveFrom:REQUIRED", "currency:REQUIRED", "amount:REQUIRED");
     assertThatThrownBy(() -> CompensationCommands.draft(command(with(ESTABLISH, "amount", "9.9"))))
         .satisfies(e -> assertThat(e.toString()).doesNotContain("9.9"));
   }
@@ -149,8 +148,11 @@ class CompensationCommandsTest {
     assertThat(draft.reason().name()).isEqualTo("WRONG_CURRENCY");
     assertThat(draft.explanation()).isEqualTo("Devise saisie par erreur");
 
-    String bare = with(with(with(CORRECT, "targetChangeId", "null"), "reasonCode", "null"),
-        "explanation", "null");
+    String bare =
+        with(
+            with(with(CORRECT, "targetChangeId", "null"), "reasonCode", "null"),
+            "explanation",
+            "null");
     assertThat(draftProblems(bare))
         .containsExactly("targetChangeId:REQUIRED", "reasonCode:REQUIRED", "explanation:REQUIRED");
     assertThat(draftProblems(with(CORRECT, "targetChangeId", "\"nope\"")))
@@ -167,8 +169,11 @@ class CompensationCommandsTest {
         .containsExactly("explanation:FORMAT");
 
     String establishWithReason =
-        ESTABLISH.replace("}", ",\"reasonCode\":\"DATA_ENTRY_ERROR\",\"targetChangeId\":\""
-            + TARGET + "\",\"explanation\":\"explication suffisante\"}");
+        ESTABLISH.replace(
+            "}",
+            ",\"reasonCode\":\"DATA_ENTRY_ERROR\",\"targetChangeId\":\""
+                + TARGET
+                + "\",\"explanation\":\"explication suffisante\"}");
     assertThat(draftProblems(establishWithReason))
         .containsExactly("targetChangeId:FORMAT", "reasonCode:FORMAT", "explanation:FORMAT");
   }
@@ -211,10 +216,8 @@ class CompensationCommandsTest {
         .containsExactly("Idempotency-Key:REQUIRED");
     assertThat(problems(() -> CompensationCommands.commit("short", commit(json))))
         .containsExactly("Idempotency-Key:FORMAT");
-    assertThat(commitProblems(json, "confirmed", "false"))
-        .containsExactly("confirmed:REQUIRED");
-    assertThat(commitProblems(json, "confirmed", "\"yes\""))
-        .containsExactly("confirmed:FORMAT");
+    assertThat(commitProblems(json, "confirmed", "false")).containsExactly("confirmed:REQUIRED");
+    assertThat(commitProblems(json, "confirmed", "\"yes\"")).containsExactly("confirmed:FORMAT");
     assertThat(commitProblems(json, "expectedVersion", "-1"))
         .containsExactly("expectedVersion:RANGE");
     assertThat(commitProblems(json, "expectedVersion", "1.5"))
@@ -223,8 +226,7 @@ class CompensationCommandsTest {
         .containsExactly("expectedVersion:FORMAT");
     assertThat(commitProblems(json, "previewDigest", "\"ABC\""))
         .containsExactly("previewDigest:FORMAT");
-    assertThat(commitProblems(json, "expiresAt", "\"demain\""))
-        .containsExactly("expiresAt:FORMAT");
+    assertThat(commitProblems(json, "expiresAt", "\"demain\"")).containsExactly("expiresAt:FORMAT");
     assertThat(commitProblems(json, "acknowledgeRetroactive", "null"))
         .containsExactly("acknowledgeRetroactive:REQUIRED");
   }
@@ -232,8 +234,12 @@ class CompensationCommandsTest {
   @Test
   void aCancellationCarriesTheDigestsOfItsPreview() {
     String json =
-        "{\"expectedVersion\":2,\"employmentDigest\":\"" + DIGEST
-            + "\",\"cancellationDigest\":\"" + DIGEST + "\",\"expiresAt\":\"" + EXPIRES
+        "{\"expectedVersion\":2,\"employmentDigest\":\""
+            + DIGEST
+            + "\",\"cancellationDigest\":\""
+            + DIGEST
+            + "\",\"expiresAt\":\""
+            + EXPIRES
             + "\",\"confirmed\":true}";
     UUID change = UUID.fromString(TARGET);
     CompensationCommands.Cancel cancel =

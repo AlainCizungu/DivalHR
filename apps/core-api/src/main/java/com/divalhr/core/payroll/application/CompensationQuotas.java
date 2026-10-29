@@ -17,10 +17,10 @@ import org.springframework.stereotype.Component;
  * commands or cancellations per verified subject and hour. Commands count the subject's own
  * committed changes in the database, so they hold across instances and restarts and never count a
  * replay or a refused command. A preview writes no row, so its quota is a fixed-hour counter held
- * by the instance (a restart or another instance starts its own count; the per-minute burst
- * limits and the per-tenant hourly buckets are platform limits shared by the cluster). Called
- * inside the command's transaction for a new execution only; an excess is {@code 429
- * RATE_LIMITED} with the time until the window ends.
+ * by the instance (a restart or another instance starts its own count; the per-minute burst limits
+ * and the per-tenant hourly buckets are platform limits shared by the cluster). Called inside the
+ * command's transaction for a new execution only; an excess is {@code 429 RATE_LIMITED} with the
+ * time until the window ends.
  */
 @Component
 public class CompensationQuotas {

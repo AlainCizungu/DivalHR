@@ -157,9 +157,9 @@ class TenantPredicateArchitectureTest {
           .should(TAKE_TENANT_ID);
 
   /**
-   * MVP-093A: the compensation repository follows the same rule, with no exception (every
-   * statement filters on the tenant and the employee). The older payroll-input repositories keep
-   * their MVP-090A shape.
+   * MVP-093A: the compensation repository follows the same rule, with no exception (every statement
+   * filters on the tenant and the employee). The older payroll-input repositories keep their
+   * MVP-090A shape.
    */
   @ArchTest
   static final ArchRule compensationRepositoryRequiresTheVerifiedTenant =

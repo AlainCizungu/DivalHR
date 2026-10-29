@@ -22,9 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * MVP-093A: an employee's own monthly compensation (ADR 0032). Subject, role {@code employee},
- * tenant and an active membership are checked, then the request limit, before any argument is
- * read; the service binds every query to the caller's own active employee-access link. Responses
- * are {@code Cache-Control: private, no-store}.
+ * tenant and an active membership are checked, then the request limit, before any argument is read;
+ * the service binds every query to the caller's own active employee-access link. Responses are
+ * {@code Cache-Control: private, no-store}.
  */
 @RestController
 public class MyCompensationController {

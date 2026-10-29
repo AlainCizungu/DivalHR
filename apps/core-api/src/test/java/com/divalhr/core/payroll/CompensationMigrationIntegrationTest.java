@@ -24,11 +24,11 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * MVP-093A V43 directly against PostgreSQL in a database of its own (D93-6, D93-14): the refusing
- * rollback that restores V42 exactly, and every rule the database enforces whatever the
- * application checks: the tenant and employee binding, the increasing sequence, the legal action
- * shape, the money bounds, the restricted explanation, the append-only evidence, the exclusion of
- * overlapping active facts, the exact deferred match between the latest change and the timeline
- * and the 100-change limit. Each refusal is proved by the constraint it names.
+ * rollback that restores V42 exactly, and every rule the database enforces whatever the application
+ * checks: the tenant and employee binding, the increasing sequence, the legal action shape, the
+ * money bounds, the restricted explanation, the append-only evidence, the exclusion of overlapping
+ * active facts, the exact deferred match between the latest change and the timeline and the
+ * 100-change limit. Each refusal is proved by the constraint it names.
  */
 @IntegrationTest
 class CompensationMigrationIntegrationTest {
@@ -238,7 +238,17 @@ class CompensationMigrationIntegrationTest {
     Shape shape = new Shape(tenant, employee(db.jdbc(), tenant), UUID.randomUUID(), null);
     try (Connection c = connect(db)) {
       change(
-          c, shape, shape.established(), 1, "ESTABLISHED", "USD", 100000, JAN, null, null, null,
+          c,
+          shape,
+          shape.established(),
+          1,
+          "ESTABLISHED",
+          "USD",
+          100000,
+          JAN,
+          null,
+          null,
+          null,
           false);
       fact(c, shape, shape.established(), 1, 100000, JAN, null, "MONTHLY");
       c.commit();
@@ -372,8 +382,7 @@ class CompensationMigrationIntegrationTest {
                 db,
                 "payroll_compensation_change_first",
                 c ->
-                    change(
-                        c, one, next, 2, "ESTABLISHED", "USD", 5, DEC, null, null, null, false));
+                    change(c, one, next, 2, "ESTABLISHED", "USD", 5, DEC, null, null, null, false));
 
             // The tenant and employee binding.
             refuses(
@@ -398,17 +407,13 @@ class CompensationMigrationIntegrationTest {
             refuses(
                 db,
                 "payroll_compensation_change_money",
-                c ->
-                    changed(c, one, next, 2, "USD", 10000001));
+                c -> changed(c, one, next, 2, "USD", 10000001));
             refuses(
                 db,
                 "payroll_compensation_change_money",
-                c ->
-                    changed(c, one, next, 2, "CDF", 1000000001));
+                c -> changed(c, one, next, 2, "CDF", 1000000001));
             refuses(
-                db,
-                "payroll_compensation_change_money",
-                c -> changed(c, one, next, 2, "USD", 0));
+                db, "payroll_compensation_change_money", c -> changed(c, one, next, 2, "USD", 0));
 
             // The legal shape of a correction and its restricted explanation.
             refuses(
@@ -539,9 +544,7 @@ class CompensationMigrationIntegrationTest {
                   fact(c, one, one.established(), 1, 5, LocalDate.of(2030, 1, 1), null, "MONTHLY");
                 });
             refuses(
-                db,
-                "payroll_compensation_change_exact",
-                c -> changed(c, one, next, 2, "USD", 5));
+                db, "payroll_compensation_change_exact", c -> changed(c, one, next, 2, "USD", 5));
             refuses(
                 db,
                 "payroll_compensation_exact",

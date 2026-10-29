@@ -189,8 +189,7 @@ final class CompensationWorld {
         EMPLOYEES + "/" + employee + "/compensation/" + change + "/cancel", bearer, key, body);
   }
 
-  static MockHttpServletRequestBuilder readRequest(
-      String bearer, Object employee, String query) {
+  static MockHttpServletRequestBuilder readRequest(String bearer, Object employee, String query) {
     return get(EMPLOYEES + "/" + employee + "/compensation" + (query == null ? "" : "?" + query))
         .header("Authorization", bearer);
   }
@@ -270,14 +269,12 @@ final class CompensationWorld {
         jdbc.queryForList(
             "SELECT metadata::text || coalesce(after_state_sha256, '')"
                 + " FROM platform.audit_event WHERE tenant_id = ? AND action LIKE 'compensation.%'",
-            String.class,
-            tenant());
+            String.class, tenant());
     rows.addAll(
         jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.compensation.%'",
-            String.class,
-            tenant()));
+            String.class, tenant()));
     rows.addAll(
         jdbc.queryForList(
             "SELECT response_body::text FROM platform.idempotency_record"

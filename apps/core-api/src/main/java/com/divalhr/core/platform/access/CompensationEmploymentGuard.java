@@ -6,9 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * What the people module may ask of payroll before it ends an employment (MVP-093A, ADR 0009,
- * ADR 0032), implemented by {@code payroll}. People never reads payroll's tables; a separation
- * never rewrites compensation.
+ * What the people module may ask of payroll before it ends an employment (MVP-093A, ADR 0009, ADR
+ * 0032), implemented by {@code payroll}. People never reads payroll's tables; a separation never
+ * rewrites compensation.
  */
 public interface CompensationEmploymentGuard {
 
