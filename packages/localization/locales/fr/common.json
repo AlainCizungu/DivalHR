@@ -145,7 +145,7 @@
     "tenant": {
       "eyebrow": "Espace de l’organisation",
       "title": "Administration de l’organisation",
-      "description": "Pilotez vos effectifs et vos opérations quotidiennes — employés, congés, horaires, présences, feuilles de temps, préparation de la paie, tâches, notes de frais et intégrations — et contrôlez votre organisation et ses accès.",
+      "description": "Pilotez vos effectifs et opérations — employés, congés, présences, feuilles de temps, préparation de la paie, tâches et notes de frais — et contrôlez vos accès.",
       "quickActions": "Actions rapides",
       "actions": {
         "importEmployees": "Importer des employés",

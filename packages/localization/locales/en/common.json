@@ -145,7 +145,7 @@
     "tenant": {
       "eyebrow": "Organization workspace",
       "title": "Organization administration",
-      "description": "Run your people and daily operations—employees, leave, schedules, attendance, timesheets, payroll preparation, tasks, expenses and integrations—and control your organization and who has access.",
+      "description": "Run people and daily operations—employees, leave, attendance, timesheets, payroll preparation, tasks and expenses—and control your organization and its access.",
       "quickActions": "Quick actions",
       "actions": {
         "importEmployees": "Import employees",
