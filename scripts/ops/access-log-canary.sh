@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # SEC-001: runtime test that OIDC authorization data never reaches an access log; SEC-002: nor an
-# Idempotency-Key header value.
+# Idempotency-Key header value; SEC-003: nor receipt metadata (the X-Receipt-File-Name header, a
+# receipt Content-Disposition, ETag or digest header, or the receipt bytes).
 #
 #   bash scripts/ops/access-log-canary.sh            # CI: the pinned Caddy and web nginx images
 #   bash scripts/ops/access-log-canary.sh --local    # caddy and nginx binaries on PATH
@@ -8,7 +9,9 @@
 # Unique random canaries are placed where authorization data travels: an /auth/callback query
 # (code, state, session_state), a Referer header, a redirect Location header (Keycloak's redirect
 # to the callback, proxied by Caddy), a Cookie, an Authorization header, a Set-Cookie header and
-# an Idempotency-Key header (SEC-002).
+# an Idempotency-Key header (SEC-002), and, on a receipt upload and download, a unique file name
+# header, request and response Content-Disposition headers, an ETag, Digest, Content-Digest and
+# Repr-Digest header and unique receipt bytes (SEC-003).
 # The committed configuration must keep every canary out of the logs while the method, the path
 # and the status stay visible. Then each required redaction is removed in turn (a mutation): the
 # canary it protects must appear, which proves the check would catch that regression.
@@ -44,7 +47,11 @@ wait_http() { # <url>
 QCODE=$(canary code) QSTATE=$(canary state) QSESSION=$(canary session) REFERER=$(canary referer)
 LOCATION=$(canary location) COOKIE=$(canary cookie) AUTHZ=$(canary authorization) SETCOOKIE=$(canary setcookie)
 IDEMKEY=$(canary idempotency)
-ALL=("$QCODE" "$QSTATE" "$QSESSION" "$REFERER" "$LOCATION" "$COOKIE" "$AUTHZ" "$SETCOOKIE" "$IDEMKEY")
+RCPTNAME=$(canary rcptname) RCPTCDREQ=$(canary rcptcdreq) RCPTCDRESP=$(canary rcptcdresp) RCPTETAG=$(canary rcptetag)
+RCPTDIGEST=$(canary rcptdigest) RCPTCONTENTDIGEST=$(canary rcptcontentdigest) RCPTREPRDIGEST=$(canary rcptreprdigest)
+RCPTBODY=$(canary rcptbody)
+ALL=("$QCODE" "$QSTATE" "$QSESSION" "$REFERER" "$LOCATION" "$COOKIE" "$AUTHZ" "$SETCOOKIE" "$IDEMKEY"
+  "$RCPTNAME" "$RCPTCDREQ" "$RCPTCDRESP" "$RCPTETAG" "$RCPTDIGEST" "$RCPTCONTENTDIGEST" "$RCPTREPRDIGEST" "$RCPTBODY")
 
 requests() { # <base url>: the browser's view of a sign-in, with every canary in place
   local base="$1"
@@ -56,6 +63,14 @@ requests() { # <base url>: the browser's view of a sign-in, with every canary in
   # SEC-002: a command with its idempotency key, as the web app sends one to the Core API.
   curl -s -o /dev/null -X POST -H "Authorization: Bearer $AUTHZ" -H "Idempotency-Key: $IDEMKEY" \
     -H 'Content-Type: application/json' --data '{}' "$base/api/v1/me/attendance/check-in"
+  # SEC-003: a receipt upload as the web app sends it (raw body, percent-encoded file name), and a
+  # receipt download whose response carries disposition, entity tag and digest headers.
+  curl -s -o /dev/null -X PUT -H "Authorization: Bearer $AUTHZ" -H "Idempotency-Key: $IDEMKEY" \
+    -H "X-Receipt-File-Name: $RCPTNAME.png" -H "Content-Disposition: attachment; filename=\"$RCPTCDREQ.png\"" \
+    -H 'Content-Type: image/png' --data-binary "$RCPTBODY" \
+    "$base/api/v1/me/expenses/00000000-0000-4000-8000-000000000001/receipt"
+  curl -s -o /dev/null -H "Authorization: Bearer $AUTHZ" \
+    "$base/api/v1/me/expenses/00000000-0000-4000-8000-000000000001/revisions/1/receipt"
 }
 leaks() { # <log file>: how many canaries appear (never which values)
   local n=0 c
@@ -80,6 +95,11 @@ $(cat "$1")
 # Stand-in for Keycloak: the redirect to the callback carries the code; a session cookie is set.
 http://:$3 {
 	header Set-Cookie "KEYCLOAK_SESSION=$SETCOOKIE; Path=/"
+	header Content-Disposition "attachment; filename=\"$RCPTCDRESP.png\""
+	header ETag "\"$RCPTETAG\""
+	header Digest "sha-256=$RCPTDIGEST"
+	header Content-Digest "sha-256=:$RCPTCONTENTDIGEST:"
+	header Repr-Digest "sha-256=:$RCPTREPRDIGEST:"
 	@auth path /identity/*
 	redir @auth "https://hr-dev.example.test/auth/callback?state=$QSTATE&session_state=$QSESSION&code=$LOCATION" 302
 	respond "app" 200
@@ -131,8 +151,8 @@ if run_caddy "$W/accesslog" "$W/caddy.log"; then
     && pass "Caddy: method, path without query and status are still logged" \
     || fail "Caddy: the safe fields are missing from the access log"
   # The deleted fields are absent altogether (Caddy itself would only write REDACTED for some).
-  present=$(grep -oE '"(Referer|Location|Cookie|Set-Cookie|Authorization|Idempotency-Key)":' "$W/caddy.log" | sort -u | tr -d '":' | tr '\n' ' ')
-  [ -z "$present" ] && pass "Caddy: no Referer, Location, Cookie, Set-Cookie, Authorization or Idempotency-Key field is logged" \
+  present=$(grep -oE '"(Referer|Location|Cookie|Set-Cookie|Authorization|Idempotency-Key|X-Receipt-File-Name|Content-Disposition|Etag|Digest|Content-Digest|Repr-Digest)":' "$W/caddy.log" | sort -u | tr -d '":' | tr '\n' ' ')
+  [ -z "$present" ] && pass "Caddy: no Referer, Location, Cookie, Set-Cookie, Authorization, Idempotency-Key, receipt file name, Content-Disposition, Etag or digest field is logged" \
     || fail "Caddy: logged fields that must be deleted: $present"
 else
   fail "Caddy did not start"
@@ -157,6 +177,14 @@ caddy_mutation 'Caddy Idempotency-Key kept' 'request>headers>Idempotency-Key del
 caddy_mutation 'Caddy Cookie kept' 'request>headers>Cookie delete' '"Cookie":'
 caddy_mutation 'Caddy Authorization kept' 'request>headers>Authorization delete' '"Authorization":'
 caddy_mutation 'Caddy Set-Cookie kept' 'resp_headers>Set-Cookie delete' '"Set-Cookie":'
+# SEC-003: receipt metadata. Each removed deletion must let its unique sentinel through.
+caddy_mutation 'Caddy receipt file name kept' 'request>headers>X-Receipt-File-Name delete' "$RCPTNAME"
+caddy_mutation 'Caddy request Content-Disposition kept' 'request>headers>Content-Disposition delete' "$RCPTCDREQ"
+caddy_mutation 'Caddy response Content-Disposition kept' 'resp_headers>Content-Disposition delete' "$RCPTCDRESP"
+caddy_mutation 'Caddy Etag kept' 'resp_headers>Etag delete' "$RCPTETAG"
+caddy_mutation 'Caddy Digest kept' 'resp_headers>Digest delete' "$RCPTDIGEST"
+caddy_mutation 'Caddy Content-Digest kept' 'resp_headers>Content-Digest delete' "$RCPTCONTENTDIGEST"
+caddy_mutation 'Caddy Repr-Digest kept' 'resp_headers>Repr-Digest delete' "$RCPTREPRDIGEST"
 
 # --- web nginx -----------------------------------------------------------------------------------
 mkdir -p "$W/html" && echo '<!doctype html><title>app</title>' > "$W/html/index.html"
@@ -248,6 +276,7 @@ nginx_mutation 'nginx Cookie logged' "s/\\\$request_time'/\$request_time \"\$htt
 nginx_mutation 'nginx uninitialized-variable warning on (error log)' '/uninitialized_variable_warn off;/d' "$QCODE"
 nginx_mutation 'nginx Authorization logged' "s/\\\$request_time'/\$request_time \"\$http_authorization\"'/" "$AUTHZ"
 nginx_mutation 'nginx Idempotency-Key logged' "s/\\\$request_time'/\$request_time \"\$http_idempotency_key\"'/" "$IDEMKEY"
+nginx_mutation 'nginx receipt file name logged' "s/\\\$request_time'/\$request_time \"\$http_x_receipt_file_name\"'/" "$RCPTNAME"
 
 if [ "$FAILED" = 0 ]; then echo "ALL PASS (SEC-001 and SEC-002 access-log canaries, $MODE)"; else echo "SOME CHECKS FAILED"; fi
 exit "$FAILED"

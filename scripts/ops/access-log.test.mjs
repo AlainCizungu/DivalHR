@@ -8,7 +8,14 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { caddyAccessLogSnippet, checkCaddy, checkNginx } from './access-log-policy.mjs';
+import {
+  REQUEST_HEADERS_DELETED,
+  caddyAccessLogSnippet,
+  checkCaddy,
+  checkNginx,
+  contractRequestHeaders,
+  unclassifiedRequestHeaders,
+} from './access-log-policy.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
@@ -35,6 +42,9 @@ test('the committed Caddyfile deletes the fields that carry OIDC data and drops 
     'request>headers>Referer',
     'resp_headers>Location',
     'request>headers>Idempotency-Key',
+    'request>headers>X-Receipt-File-Name',
+    'resp_headers>Content-Disposition',
+    'resp_headers>Etag',
   ]) {
     assert.match(snippet, new RegExp(`^\\s*${field} delete$`, 'm'), field);
   }
@@ -62,6 +72,25 @@ test('every removed or weakened Caddy redaction is a violation', () => {
       'request>headers>Idempotency-Key delete',
       'request>headers>Idempotency-Key replace REDACTED',
     ),
+    // SEC-003: receipt file name, digest and metadata.
+    'receipt file name kept': without(CADDYFILE, /request>headers>X-Receipt-File-Name delete/),
+    'receipt file name rewritten instead of deleted': replace(
+      CADDYFILE,
+      'request>headers>X-Receipt-File-Name delete',
+      'request>headers>X-Receipt-File-Name replace REDACTED',
+    ),
+    'request Content-Disposition kept': without(
+      CADDYFILE,
+      /request>headers>Content-Disposition delete/,
+    ),
+    'response Content-Disposition kept': without(
+      CADDYFILE,
+      /resp_headers>Content-Disposition delete/,
+    ),
+    'Etag kept': without(CADDYFILE, /resp_headers>Etag delete/),
+    'Digest kept': without(CADDYFILE, /resp_headers>Digest delete/),
+    'Content-Digest kept': without(CADDYFILE, /resp_headers>Content-Digest delete/),
+    'Repr-Digest kept': without(CADDYFILE, /resp_headers>Repr-Digest delete/),
     'query kept': without(CADDYFILE, /request>uri regexp/),
     'Location rewritten instead of deleted': replace(
       CADDYFILE,
@@ -110,6 +139,28 @@ test('every unsafe nginx logging change is a violation', () => {
     'idempotency key': replace(TEMPLATE, '$request_time', '$request_time $http_idempotency_key'),
     'redirect target': replace(TEMPLATE, '$request_time', '$request_time $sent_http_location'),
     'one argument': replace(TEMPLATE, '$request_time', '$request_time $arg_code'),
+    // SEC-003
+    'receipt file name': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $http_x_receipt_file_name',
+    ),
+    'request content disposition': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $http_content_disposition',
+    ),
+    'response content disposition': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $sent_http_content_disposition',
+    ),
+    'response entity tag': replace(TEMPLATE, '$request_time', '$request_time $sent_http_etag'),
+    'any upstream header': replace(
+      TEMPLATE,
+      '$request_time',
+      '$request_time $upstream_http_content_disposition',
+    ),
     'image default format': replace(
       TEMPLATE,
       'access_log /dev/stdout divalhr_safe;',
@@ -157,6 +208,9 @@ test('the runtime canary test runs in CI with the pinned images, and the hr-dev 
     'Cookie',
     'Set-Cookie',
     'Idempotency-Key',
+    'X-Receipt-File-Name',
+    'Content-Disposition',
+    'ETag',
   ]) {
     assert.ok(canary.includes(field), `mutation for ${field}`);
   }
@@ -287,4 +341,84 @@ test('the rehearsal browser step fails when either the suite or the log check fa
   const leaked = hygieneWorld(leaking, 0);
   assert.notEqual(leaked.status, 0, 'a log leak fails the step');
   assert.match(leaked.stdout, /^FAIL secrets or authorization data/m);
+});
+
+// --- SEC-003: receipt metadata in access logs --------------------------------------------------
+const API_SPEC = read('docs/API-SPEC.yaml');
+
+test('SEC-003: every request header of the API contract is classified, so none is logged unreviewed', () => {
+  // A new `in: header` parameter fails here until it is deleted in Caddy or reviewed as diagnostic.
+  assert.deepEqual(unclassifiedRequestHeaders(API_SPEC), []);
+  const declared = contractRequestHeaders(API_SPEC);
+  assert.ok(declared.includes('X-Receipt-File-Name'), 'the receipt header is in the contract');
+  // Every header classified as deleted is deleted in the committed Caddyfile.
+  const snippet = caddyAccessLogSnippet(CADDYFILE);
+  for (const name of REQUEST_HEADERS_DELETED) {
+    assert.match(snippet, new RegExp(`^\\s*request>headers>${name} delete$`, 'm'), name);
+  }
+  // The detector itself works: a contract with an unknown header is reported.
+  const withNew = `${API_SPEC}\n        in: header\n        name: X-Unreviewed-Value\n`;
+  assert.deepEqual(unclassifiedRequestHeaders(withNew), ['X-Unreviewed-Value']);
+});
+
+test('SEC-003: ordinary diagnostic fields stay in the Caddy log, which is never disabled or discarded', () => {
+  const snippet = caddyAccessLogSnippet(CADDYFILE);
+  assert.match(snippet, /^\s*output stdout$/m, 'the access log still goes to stdout');
+  assert.match(snippet, /format filter \{/);
+  for (const kept of ['X-Correlation-Id', 'X-Expected-Version', 'Content-Type', 'User-Agent']) {
+    assert.doesNotMatch(snippet, new RegExp(`${kept}\\s+(delete|replace)`, 'i'), `${kept} stays`);
+  }
+  assert.doesNotMatch(CADDYFILE, /^\s*log\s*\{?\s*(output\s+discard|level\s+OFF)/im);
+  assert.equal((CADDYFILE.match(/^\s*import accesslog$/gm) ?? []).length, 3);
+});
+
+test('SEC-003: the Core API has no request or response logging layer that could record headers or bodies', () => {
+  const main = 'apps/core-api/src/main';
+  const yaml = ['application.yaml', 'application-local.yaml', 'application-test.yaml']
+    .map((name) => {
+      try {
+        return read(`${main}/resources/${name}`);
+      } catch {
+        return '';
+      }
+    })
+    .join('\n');
+  assert.doesNotMatch(yaml, /accesslog/i, 'no Tomcat access log valve');
+  assert.doesNotMatch(
+    yaml,
+    /(org\.springframework\.web|org\.apache\.coyote|org\.apache\.tomcat)[^\n]*:\s*(DEBUG|TRACE)/i,
+    'no web-layer debug logging (it prints headers and parameters)',
+  );
+  assert.doesNotMatch(yaml, /log-request-details|logbook/i);
+  const sources = spawnSync(
+    'grep',
+    [
+      '-rlE',
+      'CommonsRequestLoggingFilter|AbstractRequestLoggingFilter|logbook|HttpTraceRepository|includeHeaders|includePayload',
+      join(ROOT, main, 'java'),
+    ],
+    { encoding: 'utf8' },
+  );
+  assert.equal(sources.stdout.trim(), '', 'no request-logging filter in the Core API sources');
+  // No operations log line names a receipt value.
+  const logged = spawnSync(
+    'grep',
+    [
+      '-rnEi',
+      'addKeyValue\\("(fileName|file_name|receiptName|sha256|digest|contentSha|bytes)"',
+      join(ROOT, main, 'java/com/divalhr/core/operations'),
+    ],
+    { encoding: 'utf8' },
+  );
+  assert.equal(logged.stdout.trim(), '', 'no receipt value is added to a structured log line');
+});
+
+test('SEC-003: log-hygiene fails on a receipt file name header, without printing it', () => {
+  const header = '{"headers":{"X-Receipt-File-Name":["sentinelreceipt0123456789.png"]}}';
+  const result = hygieneWorld({ 'p-caddy-1': CLEAN, 'p-web-1': `${CLEAN}${header}\n` });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^FAIL /m);
+  assert.ok(!result.stdout.includes('sentinelreceipt0123456789'), 'printed a value');
+  const raw = hygieneWorld({ 'p-caddy-1': `${CLEAN}X-Receipt-File-Name: receipt-x.png\n` });
+  assert.equal(raw.status, 1);
 });

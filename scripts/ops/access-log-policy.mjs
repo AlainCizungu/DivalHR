@@ -1,7 +1,8 @@
 // SEC-001: the static access-log policy of the test environment's Caddy and of the web image's
 // nginx. OIDC authorization data (code, state, session_state) travels in callback queries, in
 // referring URLs and in redirect targets, so none of these may reach an access log. SEC-002: nor
-// may an Idempotency-Key request header value.
+// may an Idempotency-Key request header value. SEC-003: nor may receipt metadata (the uploaded
+// file name header, a digest or entity tag, a content disposition).
 // Each check returns a list of violations (empty when the configuration complies).
 
 /** Caddy filter fields that must be deleted outright, never rewritten. */
@@ -12,7 +13,47 @@ export const CADDY_DELETED = [
   'resp_headers>Location',
   'resp_headers>Set-Cookie',
   'request>headers>Idempotency-Key',
+  // SEC-003: receipt file name, digest and metadata.
+  'request>headers>X-Receipt-File-Name',
+  'request>headers>Content-Disposition',
+  'resp_headers>Content-Disposition',
+  'resp_headers>Etag',
+  'resp_headers>Digest',
+  'resp_headers>Content-Digest',
+  'resp_headers>Repr-Digest',
 ];
+
+/**
+ * SEC-003: every request header the API contract (docs/API-SPEC.yaml, `in: header`) declares is
+ * classified here, so a new header cannot reach Caddy's access log unreviewed. Caddy logs every
+ * request header it does not filter.
+ *  - DELETED: carries a credential, a key or user-supplied data; Caddy deletes the field.
+ *  - DIAGNOSTIC: an identifier or version with no personal data; it stays in the log on purpose.
+ */
+export const REQUEST_HEADERS_DELETED = ['Idempotency-Key', 'X-Receipt-File-Name'];
+export const REQUEST_HEADERS_DIAGNOSTIC = [
+  'X-Correlation-Id',
+  'X-Expected-Version',
+  // Reviewed, not changed here (see the SEC-003 issue): an HMAC of a webhook payload.
+  'X-Hub-Signature-256',
+];
+
+/** The header names a contract declares as request headers (`in: header`). */
+export function contractRequestHeaders(apiSpec) {
+  const names = new Set();
+  for (const match of apiSpec.matchAll(
+    /in: header\s*\n\s*name: ([A-Za-z0-9-]+)|name: ([A-Za-z0-9-]+)\n\s*in: header/g,
+  )) {
+    names.add(match[1] ?? match[2]);
+  }
+  return [...names].sort();
+}
+
+/** Declared request headers that are neither deleted in Caddy nor reviewed as diagnostic. */
+export function unclassifiedRequestHeaders(apiSpec) {
+  const known = new Set([...REQUEST_HEADERS_DELETED, ...REQUEST_HEADERS_DIAGNOSTIC]);
+  return contractRequestHeaders(apiSpec).filter((name) => !known.has(name));
+}
 
 /** nginx variables the safe format may use, and only these. */
 export const NGINX_ALLOWED = [
@@ -41,6 +82,12 @@ export const NGINX_FORBIDDEN = [
   'sent_http_set_cookie',
   'request_body',
   'http_idempotency_key',
+  // SEC-003: receipt metadata.
+  'http_x_receipt_',
+  'http_content_disposition',
+  'sent_http_content_disposition',
+  'sent_http_etag',
+  'upstream_http_',
 ];
 
 const withoutComments = (text) =>
