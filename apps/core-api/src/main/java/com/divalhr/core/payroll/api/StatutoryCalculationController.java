@@ -86,8 +86,7 @@ public class StatutoryCalculationController {
       @RequestBody StatutoryCalculationCommandRequest body,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
-    return ok(
-        calculations.preview(caller(authentication, request), legalEntityId, runId, body));
+    return ok(calculations.preview(caller(authentication, request), legalEntityId, runId, body));
   }
 
   /**
@@ -148,8 +147,7 @@ public class StatutoryCalculationController {
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
     return ok(
-        calculations.list(
-            caller(authentication, request), legalEntityId, runId, cursor, limit));
+        calculations.list(caller(authentication, request), legalEntityId, runId, cursor, limit));
   }
 
   /**

@@ -120,8 +120,7 @@ public class StatutoryPackService {
                 if (rows.size() > size) {
                   next =
                       cursors.encode(
-                          scope,
-                          new KeysetPosition(CURSOR_CODE, shown.get(shown.size() - 1).id()));
+                          scope, new KeysetPosition(CURSOR_CODE, shown.get(shown.size() - 1).id()));
                 }
                 recorder.disclosed(
                     caller,

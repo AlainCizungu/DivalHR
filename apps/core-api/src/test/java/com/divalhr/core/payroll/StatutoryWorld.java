@@ -211,16 +211,14 @@ final class StatutoryWorld {
   }
 
   /** Previews and commits a profile entry; returns the receipt. */
-  JsonNode profile(
-      UUID employee, LocalDate from, String classification, boolean cnss, boolean irpp)
+  JsonNode profile(UUID employee, LocalDate from, String classification, boolean cnss, boolean irpp)
       throws Exception {
     Map<String, Object> command =
         profileCommand(from, classification, cnss, irpp, "EMPLOYMENT_CONTRACT");
     JsonNode preview = c.expect(profilePreviewRequest(employee, command), 200);
     assertThat(preview.get("blockers")).isEmpty();
     return c.expect(
-        profileCommitRequest(
-            employee, Organizations.newKey(), profileCommitting(command, preview)),
+        profileCommitRequest(employee, Organizations.newKey(), profileCommitting(command, preview)),
         201);
   }
 
@@ -285,14 +283,12 @@ final class StatutoryWorld {
             "SELECT metadata::text || coalesce(after_state_sha256, '')"
                 + " FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND action LIKE 'statutory-%'",
-            String.class,
-            tenant);
+            String.class, tenant);
     rows.addAll(
         jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.statutory-%'",
-            String.class,
-            tenant));
+            String.class, tenant));
     rows.addAll(
         jdbc.queryForList(
             "SELECT response_body::text FROM platform.idempotency_record"

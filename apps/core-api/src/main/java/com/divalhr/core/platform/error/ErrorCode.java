@@ -682,9 +682,14 @@ public enum ErrorCode {
   STATUTORY_PREVIEW_STALE(HttpStatus.CONFLICT),
   /** MVP-094B: the recalculation equals the current draft, so nothing would change. */
   STATUTORY_CALCULATION_NO_CHANGE(HttpStatus.CONFLICT),
-  /** MVP-094B: another command changed the activations, profile timeline or calculation chain first. */
+  /**
+   * MVP-094B: another command changed the activations, profile timeline or calculation chain first.
+   */
   STATUTORY_VERSION_CONFLICT(HttpStatus.CONFLICT),
-  /** MVP-094B: 60 activations, 100 profile entries, 25 versions of a chain or 5,000 lines would be exceeded. */
+  /**
+   * MVP-094B: 60 activations, 100 profile entries, 25 versions of a chain or 5,000 lines would be
+   * exceeded.
+   */
   STATUTORY_LIMIT_REACHED(HttpStatus.CONFLICT),
   /** MVP-094B: the statutory calculation is unknown or not visible to the caller. */
   STATUTORY_CALCULATION_NOT_FOUND(HttpStatus.NOT_FOUND);

@@ -104,9 +104,7 @@ public final class StatutoryEngine {
       }
     }
     List<StatutoryLineBlocker> blockers =
-        deductions > grossMinor
-            ? List.of(StatutoryLineBlocker.DEDUCTIONS_EXCEED_GROSS)
-            : List.of();
+        deductions > grossMinor ? List.of(StatutoryLineBlocker.DEDUCTIONS_EXCEED_GROSS) : List.of();
     return new StatutoryLine(
         grossMinor,
         components,

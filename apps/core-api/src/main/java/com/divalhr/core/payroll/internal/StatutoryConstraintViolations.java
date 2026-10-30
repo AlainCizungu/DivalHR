@@ -37,14 +37,12 @@ public final class StatutoryConstraintViolations {
   /** The guards that mean the pack is not VERIFIED (or RETIRED) at insertion. */
   public static final Set<String> PACK_NOT_VERIFIED =
       Set.of(
-          "payroll_statutory_activation_pack_verified",
-          "payroll_statutory_calculation_pack_state");
+          "payroll_statutory_activation_pack_verified", "payroll_statutory_calculation_pack_state");
 
   /** The guards that mean the month lies outside the pack interval. */
   public static final Set<String> NOT_APPLICABLE =
       Set.of(
-          "payroll_statutory_activation_interval",
-          "payroll_statutory_calculation_pack_interval");
+          "payroll_statutory_activation_interval", "payroll_statutory_calculation_pack_interval");
 
   /** The guards that mean the source run or the activation changed under the preview. */
   public static final Set<String> STALE =

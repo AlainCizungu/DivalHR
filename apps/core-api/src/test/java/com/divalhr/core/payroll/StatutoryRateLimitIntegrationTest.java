@@ -99,8 +99,7 @@ class StatutoryRateLimitIntegrationTest {
   }
 
   @Test
-  void theEleventhProfilePreviewAndTheSixthProfileCommitOfAMinuteAreRateLimited()
-      throws Exception {
+  void theEleventhProfilePreviewAndTheSixthProfileCommitOfAMinuteAreRateLimited() throws Exception {
     Map<String, Object> command =
         StatutoryWorld.profileCommand(
             w.month.atDay(1).minusDays(30), "STANDARD_RESIDENT", true, true, "EMPLOYMENT_CONTRACT");

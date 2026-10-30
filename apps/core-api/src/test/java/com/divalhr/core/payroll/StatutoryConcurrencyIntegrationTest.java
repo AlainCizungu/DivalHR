@@ -166,8 +166,7 @@ class StatutoryConcurrencyIntegrationTest {
         .isEqualTo(1);
     assertThat(
             w.c.count(
-                "SELECT count(*) FROM payroll.statutory_calculation WHERE tenant_id = ?",
-                w.tenant))
+                "SELECT count(*) FROM payroll.statutory_calculation WHERE tenant_id = ?", w.tenant))
         .isEqualTo(2);
   }
 
@@ -182,7 +181,9 @@ class StatutoryConcurrencyIntegrationTest {
       JsonNode preview = w.c.expect(w.profilePreviewRequest(employee, command), 200);
       calls.add(
           w.profileCommitRequest(
-              employee, Organizations.newKey(), StatutoryWorld.profileCommitting(command, preview)));
+              employee,
+              Organizations.newKey(),
+              StatutoryWorld.profileCommitting(command, preview)));
     }
     int profiles = w.evidence().get(1);
 
@@ -219,7 +220,11 @@ class StatutoryConcurrencyIntegrationTest {
     Map<String, Object> calculation = StatutoryWorld.calculationCommitting(w.preview(run));
     Map<String, Object> command =
         StatutoryWorld.profileCommand(
-            w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false, "EMPLOYER_DECLARATION");
+            w.month.atDay(1).minusDays(10),
+            "STANDARD_RESIDENT",
+            true,
+            false,
+            "EMPLOYER_DECLARATION");
     JsonNode profilePreview = w.c.expect(w.profilePreviewRequest(employee, command), 200);
 
     List<String> outcomes =

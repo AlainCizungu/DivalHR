@@ -136,7 +136,8 @@ class StatutoryApiIntegrationTest {
     String calculation = receipt.get("calculationId").asText();
 
     JsonNode detail =
-        w.c.expect(PayrollRunWorld.get(w.admin, w.calculationsPath(ready.run()) + "/" + calculation), 200);
+        w.c.expect(
+            PayrollRunWorld.get(w.admin, w.calculationsPath(ready.run()) + "/" + calculation), 200);
     assertThat(detail.get("calculation").get("status").asText()).isEqualTo("DRAFT");
     assertThat(amount(detail.get("calculation").get("totals").get("previewNet")))
         .isEqualTo("149040");
@@ -148,10 +149,10 @@ class StatutoryApiIntegrationTest {
 
     // Later corrections never alter a frozen calculation: the profile changes, the stored values
     // stay, and the next preview offers a new version.
-    w.profile(
-        ready.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
+    w.profile(ready.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
     JsonNode again =
-        w.c.expect(PayrollRunWorld.get(w.admin, w.calculationsPath(ready.run()) + "/" + calculation), 200);
+        w.c.expect(
+            PayrollRunWorld.get(w.admin, w.calculationsPath(ready.run()) + "/" + calculation), 200);
     assertThat(again.get("lines")).isEqualTo(detail.get("lines"));
   }
 
@@ -175,7 +176,8 @@ class StatutoryApiIntegrationTest {
           .isEqualTo(Long.toString(expected.employeeDeductionsMinor()));
       assertThat(amount(line.get("employerContributions")))
           .isEqualTo(Long.toString(expected.employerContributionsMinor()));
-      assertThat(amount(line.get("previewNet"))).isEqualTo(Long.toString(expected.previewNetMinor()));
+      assertThat(amount(line.get("previewNet")))
+          .isEqualTo(Long.toString(expected.previewNetMinor()));
       assertThat(amount(line.get("employerCost")))
           .isEqualTo(Long.toString(expected.employerCostMinor()));
     }
@@ -297,7 +299,10 @@ class StatutoryApiIntegrationTest {
     // The pack's interval ended the day before the month starts.
     UUID pack =
         StatutoryWorld.verifiedPack(
-            w.jdbc, StatutoryFixtures.SEED_JSON, "2020-01-01", w.month.atDay(1).minusDays(1).toString());
+            w.jdbc,
+            StatutoryFixtures.SEED_JSON,
+            "2020-01-01",
+            w.month.atDay(1).minusDays(1).toString());
     w.c.problem(
         w.activateRequest(Organizations.newKey(), StatutoryWorld.activation(pack, w.month, 0)),
         409,
@@ -334,8 +339,7 @@ class StatutoryApiIntegrationTest {
   void aChangedProfileCreatesVersionTwoAndSupersedesVersionOne() throws Exception {
     Ready ready = ready();
     JsonNode first = w.create(ready.run());
-    w.profile(
-        ready.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
+    w.profile(ready.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
     JsonNode preview = w.preview(ready.run());
     assertThat(preview.get("status").asText()).isEqualTo("READY");
     assertThat(preview.get("expectedVersion").asInt()).isEqualTo(1);
@@ -429,8 +433,7 @@ class StatutoryApiIntegrationTest {
         "STATUTORY_PREVIEW_STALE");
 
     // A profile change after the preview.
-    w.profile(
-        ready.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
+    w.profile(ready.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
     w.c.problem(
         w.createRequest(
             ready.run(), Organizations.newKey(), StatutoryWorld.calculationCommitting(fresh)),
@@ -474,7 +477,8 @@ class StatutoryApiIntegrationTest {
 
   @Test
   void theSeededReferencePackIsADraftAndNeverActivatable() throws Exception {
-    JsonNode drafts = w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.PACKS + "?status=DRAFT"), 200);
+    JsonNode drafts =
+        w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.PACKS + "?status=DRAFT"), 200);
     JsonNode seeded = null;
     for (JsonNode item : drafts.get("items")) {
       if ("CD-SALARY-PREVIEW".equals(item.get("code").asText())) {
@@ -498,8 +502,7 @@ class StatutoryApiIntegrationTest {
   @Test
   void aVerifiedPackShowsItsEvidenceAndASyntheticDraftNeverActivates() throws Exception {
     UUID verified = StatutoryWorld.verifiedPack(w.jdbc);
-    UUID draft =
-        StatutoryWorld.draftPack(w.jdbc, StatutoryFixtures.SEED_JSON, "2020-01-01", null);
+    UUID draft = StatutoryWorld.draftPack(w.jdbc, StatutoryFixtures.SEED_JSON, "2020-01-01", null);
     JsonNode detail =
         w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.PACKS + "/" + verified), 200);
     assertThat(detail.get("pack").get("status").asText()).isEqualTo("VERIFIED");
@@ -508,7 +511,8 @@ class StatutoryApiIntegrationTest {
         .isEqualTo("Synthetic Test Reviewer");
     assertThat(detail.get("verification").get("attested").asBoolean()).isTrue();
     assertThat(detail.get("sources")).hasSize(2);
-    assertThat(detail.get("components").get(0).get("method").get("type").asText()).isEqualTo("RATE");
+    assertThat(detail.get("components").get(0).get("method").get("type").asText())
+        .isEqualTo("RATE");
     assertThat(detail.get("components").get(4).get("method").get("type").asText())
         .isEqualTo("PROGRESSIVE");
     w.c.problem(
@@ -606,7 +610,8 @@ class StatutoryApiIntegrationTest {
 
     // A stale version, a month already activated, an unknown pack and a missing acknowledgement.
     w.c.problem(
-        w.activateRequest(Organizations.newKey(), StatutoryWorld.activation(pack, w.month.plusMonths(1), 0)),
+        w.activateRequest(
+            Organizations.newKey(), StatutoryWorld.activation(pack, w.month.plusMonths(1), 0)),
         409,
         "STATUTORY_VERSION_CONFLICT");
     w.c.problem(
@@ -615,7 +620,8 @@ class StatutoryApiIntegrationTest {
         "STATUTORY_VERSION_CONFLICT");
     w.c.problem(
         w.activateRequest(
-            Organizations.newKey(), StatutoryWorld.activation(UUID.randomUUID(), w.month.plusMonths(1), 1)),
+            Organizations.newKey(),
+            StatutoryWorld.activation(UUID.randomUUID(), w.month.plusMonths(1), 1)),
         404,
         "STATUTORY_RULE_PACK_NOT_FOUND");
     Map<String, Object> unacknowledged = StatutoryWorld.activation(pack, w.month.plusMonths(1), 1);
@@ -636,7 +642,8 @@ class StatutoryApiIntegrationTest {
         400,
         "VALIDATION_FAILED");
     w.c.problem(
-        PayrollRunWorld.get(w.admin, StatutoryWorld.activationPath(UUID.randomUUID()) + "?month=" + w.month),
+        PayrollRunWorld.get(
+            w.admin, StatutoryWorld.activationPath(UUID.randomUUID()) + "?month=" + w.month),
         404,
         "LEGAL_ENTITY_NOT_FOUND");
   }
@@ -648,7 +655,8 @@ class StatutoryApiIntegrationTest {
   @Test
   void aProfileIsPreviewedRecordedAppendedAndReplayed() throws Exception {
     UUID employee = w.paidInCdf("Mukendi", "100000");
-    JsonNode empty = w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.profilePath(employee)), 200);
+    JsonNode empty =
+        w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.profilePath(employee)), 200);
     assertThat(empty.get("version").asInt()).isZero();
     assertThat(empty.get("current").isNull()).isTrue();
     assertThat(empty.get("timeline")).isEmpty();
@@ -674,23 +682,28 @@ class StatutoryApiIntegrationTest {
     assertThat(replay.getHeader("Idempotent-Replayed")).isEqualTo("true");
     assertThat(w.evidence()).isEqualTo(after);
 
-    JsonNode timeline = w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.profilePath(employee)), 200);
+    JsonNode timeline =
+        w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.profilePath(employee)), 200);
     assertThat(timeline.get("version").asInt()).isEqualTo(1);
-    assertThat(timeline.get("current").get("classification").asText()).isEqualTo("STANDARD_RESIDENT");
+    assertThat(timeline.get("current").get("classification").asText())
+        .isEqualTo("STANDARD_RESIDENT");
     assertThat(timeline.get("current").get("country").asText()).isEqualTo("CD");
 
-    // The identical entry is a NO_CHANGE blocker; a stale version and a tampered digest are refused.
+    // The identical entry is a NO_CHANGE blocker; a stale version and a tampered digest are
+    // refused.
     JsonNode same = w.c.expect(w.profilePreviewRequest(employee, command), 200);
     assertThat(texts(same.get("blockers"))).containsExactly("NO_CHANGE");
     assertThat(same.get("previewDigest").isNull()).isTrue();
     assertThat(same.get("expiresAt").isNull()).isTrue();
     w.c.problem(
-        w.profileCommitRequest(employee, Organizations.newKey(), StatutoryWorld.profileCommitting(command, same)),
+        w.profileCommitRequest(
+            employee, Organizations.newKey(), StatutoryWorld.profileCommitting(command, same)),
         409,
         "STATUTORY_PREVIEW_STALE");
 
     Map<String, Object> next =
-        StatutoryWorld.profileCommand(from.plusDays(5), "STANDARD_RESIDENT", true, false, "PAYROLL_FILE_REVIEW");
+        StatutoryWorld.profileCommand(
+            from.plusDays(5), "STANDARD_RESIDENT", true, false, "PAYROLL_FILE_REVIEW");
     JsonNode nextPreview = w.c.expect(w.profilePreviewRequest(employee, next), 200);
     Map<String, Object> staleVersion = StatutoryWorld.profileCommitting(next, nextPreview);
     staleVersion.put("expectedVersion", 0);
@@ -713,17 +726,20 @@ class StatutoryApiIntegrationTest {
     LocalDate from = w.month.atDay(1).minusDays(30);
     w.c.problem(
         w.profilePreviewRequest(
-            employee, StatutoryWorld.profileCommand(from, "UNSUPPORTED", true, false, "EMPLOYMENT_CONTRACT")),
+            employee,
+            StatutoryWorld.profileCommand(from, "UNSUPPORTED", true, false, "EMPLOYMENT_CONTRACT")),
         400,
         "VALIDATION_FAILED");
     w.c.problem(
         w.profilePreviewRequest(
-            employee, StatutoryWorld.profileCommand(from, "OTHER", true, true, "EMPLOYMENT_CONTRACT")),
+            employee,
+            StatutoryWorld.profileCommand(from, "OTHER", true, true, "EMPLOYMENT_CONTRACT")),
         400,
         "VALIDATION_FAILED");
     w.c.problem(
         w.profilePreviewRequest(
-            employee, StatutoryWorld.profileCommand(from, "STANDARD_RESIDENT", true, true, "FREE_TEXT")),
+            employee,
+            StatutoryWorld.profileCommand(from, "STANDARD_RESIDENT", true, true, "FREE_TEXT")),
         400,
         "VALIDATION_FAILED");
     JsonNode outOfRange =
@@ -731,14 +747,23 @@ class StatutoryApiIntegrationTest {
             w.profilePreviewRequest(
                 employee,
                 StatutoryWorld.profileCommand(
-                    LocalDate.of(1999, 12, 31), "STANDARD_RESIDENT", true, true, "EMPLOYMENT_CONTRACT")),
+                    LocalDate.of(1999, 12, 31),
+                    "STANDARD_RESIDENT",
+                    true,
+                    true,
+                    "EMPLOYMENT_CONTRACT")),
             200);
     assertThat(texts(outOfRange.get("blockers"))).containsExactly("EFFECTIVE_DATE_OUT_OF_RANGE");
     UUID unknown = UUID.randomUUID();
-    w.c.problem(PayrollRunWorld.get(w.admin, StatutoryWorld.profilePath(unknown)), 404, "COMPENSATION_NOT_FOUND");
+    w.c.problem(
+        PayrollRunWorld.get(w.admin, StatutoryWorld.profilePath(unknown)),
+        404,
+        "COMPENSATION_NOT_FOUND");
     w.c.problem(
         w.profilePreviewRequest(
-            unknown, StatutoryWorld.profileCommand(from, "STANDARD_RESIDENT", true, true, "EMPLOYMENT_CONTRACT")),
+            unknown,
+            StatutoryWorld.profileCommand(
+                from, "STANDARD_RESIDENT", true, true, "EMPLOYMENT_CONTRACT")),
         404,
         "COMPENSATION_NOT_FOUND");
     w.c.problem(
@@ -765,7 +790,8 @@ class StatutoryApiIntegrationTest {
     JsonNode first = w.c.expect(PayrollRunWorld.get(w.admin, path + "?limit=2"), 200);
     assertThat(first.get("lines")).hasSize(2);
     String cursor = first.get("nextCursor").asText();
-    JsonNode second = w.c.expect(PayrollRunWorld.get(w.admin, path + "?limit=2&cursor=" + cursor), 200);
+    JsonNode second =
+        w.c.expect(PayrollRunWorld.get(w.admin, path + "?limit=2&cursor=" + cursor), 200);
     assertThat(second.get("lines")).hasSize(1);
     assertThat(second.get("nextCursor").isNull()).isTrue();
     List<String> numbers = new ArrayList<>();
@@ -793,8 +819,7 @@ class StatutoryApiIntegrationTest {
         404,
         "PAYROLL_RUN_NOT_FOUND");
     w.c.problem(
-        PayrollRunWorld.get(
-            w.admin, StatutoryWorld.calculationsPath(UUID.randomUUID(), run)),
+        PayrollRunWorld.get(w.admin, StatutoryWorld.calculationsPath(UUID.randomUUID(), run)),
         404,
         "LEGAL_ENTITY_NOT_FOUND");
   }

@@ -125,7 +125,8 @@ public class PayrollOperations {
           PAYROLL_RUN_NOT_FOUND,
           STATUTORY_RULE_PACK_NOT_FOUND,
           STATUTORY_CALCULATION_NOT_FOUND,
-          COMPENSATION_NOT_FOUND -> Outcome.NOT_FOUND;
+          COMPENSATION_NOT_FOUND ->
+          Outcome.NOT_FOUND;
       case VALIDATION_FAILED, CURSOR_INVALID, PAYROLL_PERIOD_INVALID -> Outcome.VALIDATION_FAILED;
       case RATE_LIMITED -> Outcome.RATE_LIMITED;
       default -> Outcome.STATE_CONFLICT;

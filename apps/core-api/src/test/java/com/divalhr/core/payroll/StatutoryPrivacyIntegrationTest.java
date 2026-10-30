@@ -96,8 +96,7 @@ class StatutoryPrivacyIntegrationTest {
     JsonNode receipt = w.create(run);
     w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.PACKS), 200);
     w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.PACKS + "/" + pack), 200);
-    w.c.expect(
-        PayrollRunWorld.get(w.admin, w.activationPath() + "?month=" + w.month), 200);
+    w.c.expect(PayrollRunWorld.get(w.admin, w.activationPath() + "?month=" + w.month), 200);
     w.c.expect(PayrollRunWorld.get(w.admin, StatutoryWorld.profilePath(employee)), 200);
     w.c.expect(PayrollRunWorld.get(w.admin, w.calculationsPath(run)), 200);
     w.c.expect(
@@ -109,8 +108,7 @@ class StatutoryPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT DISTINCT action FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND action LIKE 'statutory-%' ORDER BY action",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(actions)
         .containsExactly(
             "statutory-activation.create",
@@ -124,8 +122,7 @@ class StatutoryPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT metadata::text FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND action LIKE 'statutory-%'",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     for (String row : metadata) {
       assertThat(StatutoryRecorder.ALLOWED).containsAll(keys(json(row)));
     }
@@ -133,8 +130,7 @@ class StatutoryPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT event_type || '|' || envelope::text FROM platform.outbox_event"
                 + " WHERE tenant_id = ? AND event_type LIKE 'payroll.statutory-%'",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(events).hasSize(3);
     for (String row : events) {
       String type = row.substring(0, row.indexOf('|'));
@@ -225,8 +221,7 @@ class StatutoryPrivacyIntegrationTest {
       }
     }
     for (String digest :
-        List.of(
-            "sourceRunDigest", "profileDigest", "rulePackDigest", "calculationDigest")) {
+        List.of("sourceRunDigest", "profileDigest", "rulePackDigest", "calculationDigest")) {
       String value = preview.get(digest).asText();
       assertThat(evidence).as(digest).doesNotContain(value);
       assertThat(output.getAll()).as(digest).doesNotContain(value);

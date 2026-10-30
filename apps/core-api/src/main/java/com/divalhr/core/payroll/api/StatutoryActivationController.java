@@ -102,8 +102,7 @@ public class StatutoryActivationController {
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
     IdempotentOperation.Result<ActivationReceipt> result =
-        activations.activate(
-            caller(authentication, request), legalEntityId, idempotencyKey, body);
+        activations.activate(caller(authentication, request), legalEntityId, idempotencyKey, body);
     ResponseEntity.BodyBuilder response =
         ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL);
     if (result.replayed()) {

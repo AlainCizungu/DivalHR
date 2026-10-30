@@ -219,8 +219,7 @@ public class StatutoryActivationService {
     PackRow pack =
         packs
             .pack(command.packId())
-            .orElseThrow(
-                () -> new ApiException(ErrorCode.STATUTORY_RULE_PACK_NOT_FOUND, Map.of()));
+            .orElseThrow(() -> new ApiException(ErrorCode.STATUTORY_RULE_PACK_NOT_FOUND, Map.of()));
     if (!"VERIFIED".equals(pack.status())) {
       throw new ApiException(ErrorCode.STATUTORY_RULE_PACK_NOT_VERIFIED, Map.of());
     }
@@ -245,13 +244,7 @@ public class StatutoryActivationService {
       statutory.insertActivation(
           tenant,
           new NewActivation(
-              id,
-              entity,
-              sequence,
-              pack.id(),
-              command.fromMonth().first(),
-              now,
-              caller.subject()));
+              id, entity, sequence, pack.id(), command.fromMonth().first(), now, caller.subject()));
       statutory.checkDeferred(tenant);
     } catch (DataIntegrityViolationException violated) {
       throw integrity(violated);

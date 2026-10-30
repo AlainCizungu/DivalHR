@@ -33,8 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * MVP-094B: the effective-dated statutory profile of an employee (classification, CNSS and IRPP
- * subject flags, a closed evidence code), for tenant administrators with privileged MFA (ADR
- * 0034). Restricted HR data: every response is {@code Cache-Control: private, no-store}.
+ * subject flags, a closed evidence code), for tenant administrators with privileged MFA (ADR 0034).
+ * Restricted HR data: every response is {@code Cache-Control: private, no-store}.
  */
 @RestController
 public class StatutoryProfileController {

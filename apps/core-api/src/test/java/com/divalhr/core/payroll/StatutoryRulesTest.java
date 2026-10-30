@@ -293,12 +293,12 @@ class StatutoryRulesTest {
     rejects("\"upToAnnual\": 1944000", "\"upToAnnual\": 0", Reason.INVALID_BRACKETS);
     rejects("\"upToAnnual\": 1944000", "\"upToAnnual\": -1", Reason.INVALID_BRACKETS);
     refused(
-        variant(
-            "\"upToAnnual\": 1944000",
-            "\"upToAnnual\": 1000000000000001"), Reason.INVALID_BRACKETS);
+        variant("\"upToAnnual\": 1944000", "\"upToAnnual\": 1000000000000001"),
+        Reason.INVALID_BRACKETS);
     // At least one bracket, at most twelve.
-    String none = StatutoryFixtures.document(
-        StatutoryFixtures.progressive("EMPTY_TAX", 1, "GROSS", 12, null, "[]", "HALF_UP"));
+    String none =
+        StatutoryFixtures.document(
+            StatutoryFixtures.progressive("EMPTY_TAX", 1, "GROSS", 12, null, "[]", "HALF_UP"));
     refused(none, Reason.INVALID_BRACKETS);
     StringBuilder many = new StringBuilder("[");
     for (int i = 1; i <= 13; i++) {
@@ -323,8 +323,13 @@ class StatutoryRulesTest {
             StatutoryFixtures.rate("ER_PENSION", "EMPLOYER", 1, "CNSS_SUBJECT", "GROSS", 500, "UP")
                 + ","
                 + StatutoryFixtures.progressive(
-                    "TAX_AFTER", 2, LESS, 12, null,
-                    "[{\"upToAnnual\": null, \"rateBp\": 100}]", "UP"));
+                    "TAX_AFTER",
+                    2,
+                    LESS,
+                    12,
+                    null,
+                    "[{\"upToAnnual\": null, \"rateBp\": 100}]",
+                    "UP"));
     refused(employerOnly, Reason.INVALID_BASE_DEPENDENCY);
     // A higher order does not count.
     String later =
@@ -339,8 +344,13 @@ class StatutoryRulesTest {
             StatutoryFixtures.rate("EE_PENSION", "EMPLOYEE", 1, "CNSS_SUBJECT", "GROSS", 500, "UP")
                 + ","
                 + StatutoryFixtures.progressive(
-                    "TAX_AFTER", 2, LESS, 12, null,
-                    "[{\"upToAnnual\": null, \"rateBp\": 100}]", "UP"));
+                    "TAX_AFTER",
+                    2,
+                    LESS,
+                    12,
+                    null,
+                    "[{\"upToAnnual\": null, \"rateBp\": 100}]",
+                    "UP"));
     StatutoryRules.parse(ok);
   }
 

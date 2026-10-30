@@ -144,7 +144,8 @@ class JdbcStatutoryRepositoryTenantTest {
       assertThat(StatutoryConstraintViolations.answer(name))
           .contains(ErrorCode.STATUTORY_PREVIEW_STALE);
     }
-    assertThat(StatutoryConstraintViolations.answer("payroll_statutory_calculation_exact")).isEmpty();
+    assertThat(StatutoryConstraintViolations.answer("payroll_statutory_calculation_exact"))
+        .isEmpty();
     assertThat(StatutoryConstraintViolations.answer("something_else")).isEmpty();
     assertThat(StatutoryConstraintViolations.constraint(new IllegalStateException("x"))).isEmpty();
   }

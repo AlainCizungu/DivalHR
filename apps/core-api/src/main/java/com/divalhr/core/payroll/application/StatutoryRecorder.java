@@ -295,8 +295,7 @@ public class StatutoryRecorder {
                     + "\nsequence="
                     + recorded.sequence()
                     + "\n")));
-    outbox.append(
-        envelope(caller, PROFILE_EVENT, recorded.employeeId(), recorded.at(), metadata));
+    outbox.append(envelope(caller, PROFILE_EVENT, recorded.employeeId(), recorded.at(), metadata));
   }
 
   /**

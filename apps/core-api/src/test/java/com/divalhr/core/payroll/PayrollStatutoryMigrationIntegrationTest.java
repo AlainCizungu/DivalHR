@@ -145,9 +145,9 @@ class PayrollStatutoryMigrationIntegrationTest {
   private record Db(String url, JdbcTemplate jdbc) {}
 
   /**
-   * Two tenants with a legal entity each, three employees, one CDF run of the first tenant with
-   * two full-month lines (162,000 and 500,000), and four synthetic packs (VERIFIED for 2026,
-   * DRAFT, RETIRED, VERIFIED for January to June) of which the first and the last are activated.
+   * Two tenants with a legal entity each, three employees, one CDF run of the first tenant with two
+   * full-month lines (162,000 and 500,000), and four synthetic packs (VERIFIED for 2026, DRAFT,
+   * RETIRED, VERIFIED for January to June) of which the first and the last are activated.
    */
   private record World(
       UUID tenant,
@@ -326,8 +326,8 @@ class PayrollStatutoryMigrationIntegrationTest {
   }
 
   /**
-   * A synthetic pack with the rules of the seed and two hashed sources (the two keys its
-   * components cite), brought to the given final status through the legal updates.
+   * A synthetic pack with the rules of the seed and two hashed sources (the two keys its components
+   * cite), brought to the given final status through the legal updates.
    */
   private void syntheticPack(
       Connection c, String rules, UUID id, String code, String from, String to, String status)
@@ -498,8 +498,19 @@ class PayrollStatutoryMigrationIntegrationTest {
         true);
     if (fault.equals("excludedComponent")) {
       exec(
-          c, COMPONENT, w.tenant(), id, excluded, 1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE",
-          "SOCIAL_CONTRIBUTION", 0L, 0L, "NOT_SUBJECT", null);
+          c,
+          COMPONENT,
+          w.tenant(),
+          id,
+          excluded,
+          1,
+          "CNSS_EMPLOYEE_PENSION",
+          "EMPLOYEE",
+          "SOCIAL_CONTRIBUTION",
+          0L,
+          0L,
+          "NOT_SUBJECT",
+          null);
     }
     component(c, w, id, supported, 1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", 8_100L);
     component(c, w, id, supported, 2, "CNSS_EMPLOYER_PENSION", "EMPLOYER", 8_100L);
@@ -510,8 +521,18 @@ class PayrollStatutoryMigrationIntegrationTest {
       component(c, w, id, supported, 4, family, "EMPLOYER", 10_530L);
     }
     exec(
-        c, COMPONENT, w.tenant(), id, supported, 5, "IRPP_SALARY_WITHHOLDING", "EMPLOYEE",
-        "INCOME_TAX", 162_000L, 4_860L, "PROGRESSIVE_APPLIED,BASE_GROSS",
+        c,
+        COMPONENT,
+        w.tenant(),
+        id,
+        supported,
+        5,
+        "IRPP_SALARY_WITHHOLDING",
+        "EMPLOYEE",
+        "INCOME_TAX",
+        162_000L,
+        4_860L,
+        "PROGRESSIVE_APPLIED,BASE_GROSS",
         "{\"annualBase\": 1944000, \"numerator\": 583200000, \"capApplied\": false}");
   }
 
@@ -526,8 +547,19 @@ class PayrollStatutoryMigrationIntegrationTest {
       long amount)
       throws SQLException {
     exec(
-        c, COMPONENT, w.tenant(), calculation, line, seq, id, party, "SOCIAL_CONTRIBUTION",
-        162_000L, amount, "RATE_APPLIED,BASE_GROSS", null);
+        c,
+        COMPONENT,
+        w.tenant(),
+        calculation,
+        line,
+        seq,
+        id,
+        party,
+        "SOCIAL_CONTRIBUTION",
+        162_000L,
+        amount,
+        "RATE_APPLIED,BASE_GROSS",
+        null);
   }
 
   private UUID committedCalculation(Db db, World w, int version) throws SQLException {
@@ -673,8 +705,19 @@ class PayrollStatutoryMigrationIntegrationTest {
           commit(
               db,
               c ->
-                  exec(c, PROFILE, tenant, employee, UUID.randomUUID(), 1, LocalDate.of(2026, 1, 1),
-                      "CD", "STANDARD_RESIDENT", true, true, "EMPLOYMENT_CONTRACT"));
+                  exec(
+                      c,
+                      PROFILE,
+                      tenant,
+                      employee,
+                      UUID.randomUUID(),
+                      1,
+                      LocalDate.of(2026, 1, 1),
+                      "CD",
+                      "STANDARD_RESIDENT",
+                      true,
+                      true,
+                      "EMPLOYMENT_CONTRACT"));
           assertThatThrownBy(() -> script(db, resource("db/rollback/V45__rollback.sql")))
               .isInstanceOf(DataAccessException.class)
               .hasMessageContaining("V45 rollback refused: statutory activation, profile");
@@ -695,8 +738,14 @@ class PayrollStatutoryMigrationIntegrationTest {
           commit(
               db,
               c ->
-                  syntheticPack(c, rules, UUID.randomUUID(), "SYNTHETIC-TEST-X", "2026-01-01",
-                      "2026-12-31", "DRAFT"));
+                  syntheticPack(
+                      c,
+                      rules,
+                      UUID.randomUUID(),
+                      "SYNTHETIC-TEST-X",
+                      "2026-01-01",
+                      "2026-12-31",
+                      "DRAFT"));
           assertThatThrownBy(() -> script(db, resource("db/rollback/V45__rollback.sql")))
               .isInstanceOf(DataAccessException.class)
               .hasMessageContaining("V45 rollback refused: rule pack evidence");
@@ -705,8 +754,14 @@ class PayrollStatutoryMigrationIntegrationTest {
           commit(
               db,
               c ->
-                  syntheticPack(c, rules, UUID.randomUUID(), "SYNTHETIC-TEST-Y", "2026-01-01",
-                      "2026-12-31", "VERIFIED"));
+                  syntheticPack(
+                      c,
+                      rules,
+                      UUID.randomUUID(),
+                      "SYNTHETIC-TEST-Y",
+                      "2026-01-01",
+                      "2026-12-31",
+                      "VERIFIED"));
           assertThatThrownBy(() -> script(db, resource("db/rollback/V45__rollback.sql")))
               .isInstanceOf(DataAccessException.class)
               .hasMessageContaining("V45 rollback refused: rule pack evidence");
@@ -759,30 +814,38 @@ class PayrollStatutoryMigrationIntegrationTest {
           String code = "SYNTHETIC-TEST-1";
           commit(db, c -> draft(c, "SYNTHETIC-TEST-OK", ok));
           refuses(
-              db, NAME + "forward",
+              db,
+              NAME + "forward",
               c -> insertPack(c, code, "CD", "CDF", "VERIFIED", "2026-01-01", null, "1", ok));
           refuses(
-              db, NAME + "forward",
+              db,
+              NAME + "forward",
               c -> insertPack(c, code, "CD", "CDF", "RETIRED", "2026-01-01", null, "1", ok));
           refuses(
-              db, NAME + "status",
+              db,
+              NAME + "status",
               c -> insertPack(c, code, "CD", "CDF", "ACTIVE", "2026-01-01", null, "1", ok));
           refuses(db, NAME + "code_version_unique", c -> draft(c, "SYNTHETIC-TEST-OK", ok));
           refuses(db, NAME + "code", c -> draft(c, "lower-case", ok));
           refuses(
-              db, NAME + "country",
+              db,
+              NAME + "country",
               c -> insertPack(c, code, "FR", "CDF", "DRAFT", "2026-01-01", null, "1", ok));
           refuses(
-              db, NAME + "currency",
+              db,
+              NAME + "currency",
               c -> insertPack(c, code, "CD", "USD", "DRAFT", "2026-01-01", null, "1", ok));
           refuses(
-              db, NAME + "interval",
+              db,
+              NAME + "interval",
               c -> insertPack(c, code, "CD", "CDF", "DRAFT", "2026-01-01", "2025-12-31", "1", ok));
           refuses(
-              db, NAME + "interval",
+              db,
+              NAME + "interval",
               c -> insertPack(c, code, "CD", "CDF", "DRAFT", "1999-12-31", null, "1", ok));
           refuses(
-              db, NAME + "method",
+              db,
+              NAME + "method",
               c -> insertPack(c, code, "CD", "CDF", "DRAFT", "2026-01-01", null, "2", ok));
           for (String rules :
               List.of(
@@ -797,17 +860,27 @@ class PayrollStatutoryMigrationIntegrationTest {
           }
           // A DRAFT pack carries no evidence at all.
           refuses(
-              db, NAME + "evidence",
+              db,
+              NAME + "evidence",
               c ->
                   exec(
                       c,
                       PACK.replace("created_at)", "created_at, reviewer_name)")
                           .replace("now())", "now(), 'Someone')"),
-                      UUID.randomUUID(), code, 1, "CD", "CDF", "DRAFT", "2026-01-01", null, "1",
+                      UUID.randomUUID(),
+                      code,
+                      1,
+                      "CD",
+                      "CDF",
+                      "DRAFT",
+                      "2026-01-01",
+                      null,
+                      "1",
                       ok));
           // The digest is generated: it cannot be written.
           refusesWithState(
-              db, "428C9",
+              db,
+              "428C9",
               c ->
                   exec(
                       c,
@@ -826,8 +899,19 @@ class PayrollStatutoryMigrationIntegrationTest {
           commit(
               db,
               c -> {
-                exec(c, PACK, id, "SYNTHETIC-TEST-E", 1, "CD", "CDF", "DRAFT", "2026-01-01",
-                    "2026-12-31", "1", rules);
+                exec(
+                    c,
+                    PACK,
+                    id,
+                    "SYNTHETIC-TEST-E",
+                    1,
+                    "CD",
+                    "CDF",
+                    "DRAFT",
+                    "2026-01-01",
+                    "2026-12-31",
+                    "1",
+                    rules);
                 exec(c, SOURCE, id, 1, "CNSS_RATES", "CNSS rates", CNSS_URL, HASH_A);
                 exec(c, SOURCE, id, 2, "DGI_IRPP", "DGI IRPP", DGI_URL, HASH_B);
               });
@@ -835,27 +919,43 @@ class PayrollStatutoryMigrationIntegrationTest {
           String organization = "Test Only";
           // Each element of the evidence is required, and bounded.
           refuses(
-              db, NAME + "evidence",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET status = 'VERIFIED'"
-                  + " WHERE id = ?", id));
-          refuses(db, NAME + "evidence",
+              db,
+              NAME + "evidence",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET status = 'VERIFIED'"
+                          + " WHERE id = ?",
+                      id));
+          refuses(
+              db,
+              NAME + "evidence",
               c -> exec(c, VERIFY_WITH, null, organization, "2026-10-01", true, id));
-          refuses(db, NAME + "evidence",
+          refuses(
+              db,
+              NAME + "evidence",
               c -> exec(c, VERIFY_WITH, "", organization, "2026-10-01", true, id));
-          refuses(db, NAME + "evidence",
+          refuses(
+              db,
+              NAME + "evidence",
               c -> exec(c, VERIFY_WITH, "R".repeat(201), organization, "2026-10-01", true, id));
-          refuses(db, NAME + "evidence",
-              c -> exec(c, VERIFY_WITH, name, null, "2026-10-01", true, id));
-          refuses(db, NAME + "evidence",
-              c -> exec(c, VERIFY_WITH, name, "", "2026-10-01", true, id));
-          refuses(db, NAME + "evidence",
+          refuses(
+              db, NAME + "evidence", c -> exec(c, VERIFY_WITH, name, null, "2026-10-01", true, id));
+          refuses(
+              db, NAME + "evidence", c -> exec(c, VERIFY_WITH, name, "", "2026-10-01", true, id));
+          refuses(
+              db,
+              NAME + "evidence",
               c -> exec(c, VERIFY_WITH, name, "O".repeat(201), "2026-10-01", true, id));
-          refuses(db, NAME + "evidence",
-              c -> exec(c, VERIFY_WITH, name, organization, null, true, id));
-          refuses(db, NAME + "evidence",
+          refuses(
+              db, NAME + "evidence", c -> exec(c, VERIFY_WITH, name, organization, null, true, id));
+          refuses(
+              db,
+              NAME + "evidence",
               c -> exec(c, VERIFY_WITH, name, organization, "2026-10-01", false, id));
           refuses(
-              db, NAME + "evidence",
+              db,
+              NAME + "evidence",
               c ->
                   exec(
                       c,
@@ -865,7 +965,8 @@ class PayrollStatutoryMigrationIntegrationTest {
                       id));
           // RETIRED straight from DRAFT is not a legal move.
           refuses(
-              db, NAME + "forward",
+              db,
+              NAME + "forward",
               c ->
                   exec(
                       c,
@@ -875,8 +976,9 @@ class PayrollStatutoryMigrationIntegrationTest {
                           + " verified_at = now(), retired_at = now() WHERE id = ?",
                       id));
           // 200 characters are allowed.
-          commit(db, c -> exec(c, VERIFY_WITH, "R".repeat(200), "O".repeat(200), "2026-10-01",
-              true, id));
+          commit(
+              db,
+              c -> exec(c, VERIFY_WITH, "R".repeat(200), "O".repeat(200), "2026-10-01", true, id));
           assertThat(
                   db.jdbc()
                       .queryForObject(
@@ -885,33 +987,84 @@ class PayrollStatutoryMigrationIntegrationTest {
                           id))
               .isEqualTo("VERIFIED");
           // Once verified: the evidence, the content and the sources are frozen, forward only.
-          refuses(db, NAME + "evidence_immutable",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET reviewer_name = 'Other'"
-                  + " WHERE id = ?", id));
-          refuses(db, NAME + "forward",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET status = 'DRAFT',"
-                  + " reviewer_name = NULL, reviewer_organization = NULL, reviewed_on = NULL,"
-                  + " attested = false, verified_at = NULL WHERE id = ?", id));
-          refuses(db, NAME + "immutable",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET effective_to = DATE"
-                  + " '2027-01-01' WHERE id = ?", id));
-          refuses(db, NAME + "immutable",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET code = 'SYNTHETIC-TEST-Z'"
-                  + " WHERE id = ?", id));
-          refuses(db, NAME + "immutable",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET rules ="
-                  + " '{\"schemaVersion\": 1, \"components\": [{\"a\": 1}]}' WHERE id = ?", id));
-          refuses(db, NAME + "source_state",
-              c -> exec(c, SOURCE, id, 3, "BUDGET_2026", "Budget", "https://budget.gouv.cd/b",
-                  HASH_A));
+          refuses(
+              db,
+              NAME + "evidence_immutable",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET reviewer_name = 'Other'"
+                          + " WHERE id = ?",
+                      id));
+          refuses(
+              db,
+              NAME + "forward",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET status = 'DRAFT',"
+                          + " reviewer_name = NULL, reviewer_organization = NULL, reviewed_on = NULL,"
+                          + " attested = false, verified_at = NULL WHERE id = ?",
+                      id));
+          refuses(
+              db,
+              NAME + "immutable",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET effective_to = DATE"
+                          + " '2027-01-01' WHERE id = ?",
+                      id));
+          refuses(
+              db,
+              NAME + "immutable",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET code = 'SYNTHETIC-TEST-Z'"
+                          + " WHERE id = ?",
+                      id));
+          refuses(
+              db,
+              NAME + "immutable",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET rules ="
+                          + " '{\"schemaVersion\": 1, \"components\": [{\"a\": 1}]}' WHERE id = ?",
+                      id));
+          refuses(
+              db,
+              NAME + "source_state",
+              c ->
+                  exec(
+                      c,
+                      SOURCE,
+                      id,
+                      3,
+                      "BUDGET_2026",
+                      "Budget",
+                      "https://budget.gouv.cd/b",
+                      HASH_A));
           // Retirement needs its time, then is final.
-          refuses(db, NAME + "evidence",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET status = 'RETIRED'"
-                  + " WHERE id = ?", id));
+          refuses(
+              db,
+              NAME + "evidence",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET status = 'RETIRED'" + " WHERE id = ?",
+                      id));
           commit(db, c -> exec(c, RETIRE, id));
-          refuses(db, NAME + "forward",
-              c -> exec(c, "UPDATE payroll.statutory_rule_pack SET status = 'VERIFIED',"
-                  + " retired_at = NULL WHERE id = ?", id));
+          refuses(
+              db,
+              NAME + "forward",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE payroll.statutory_rule_pack SET status = 'VERIFIED',"
+                          + " retired_at = NULL WHERE id = ?",
+                      id));
         });
   }
 
@@ -928,17 +1081,61 @@ class PayrollStatutoryMigrationIntegrationTest {
           commit(
               db,
               c -> {
-                exec(c, PACK, none, "SYNTHETIC-TEST-N", 1, "CD", "CDF", "DRAFT", "2026-01-01",
-                    "2026-12-31", "1", rules);
-                exec(c, PACK, unhashed, "SYNTHETIC-TEST-U", 1, "CD", "CDF", "DRAFT",
-                    "2026-01-01", "2026-12-31", "1", rules);
+                exec(
+                    c,
+                    PACK,
+                    none,
+                    "SYNTHETIC-TEST-N",
+                    1,
+                    "CD",
+                    "CDF",
+                    "DRAFT",
+                    "2026-01-01",
+                    "2026-12-31",
+                    "1",
+                    rules);
+                exec(
+                    c,
+                    PACK,
+                    unhashed,
+                    "SYNTHETIC-TEST-U",
+                    1,
+                    "CD",
+                    "CDF",
+                    "DRAFT",
+                    "2026-01-01",
+                    "2026-12-31",
+                    "1",
+                    rules);
                 exec(c, SOURCE, unhashed, 1, "CNSS_RATES", "CNSS rates", CNSS_URL, HASH_A);
                 exec(c, SOURCE, unhashed, 2, "DGI_IRPP", "DGI IRPP", DGI_URL, null);
-                exec(c, PACK, missingKey, "SYNTHETIC-TEST-K", 1, "CD", "CDF", "DRAFT",
-                    "2026-01-01", "2026-12-31", "1", rules);
+                exec(
+                    c,
+                    PACK,
+                    missingKey,
+                    "SYNTHETIC-TEST-K",
+                    1,
+                    "CD",
+                    "CDF",
+                    "DRAFT",
+                    "2026-01-01",
+                    "2026-12-31",
+                    "1",
+                    rules);
                 exec(c, SOURCE, missingKey, 1, "CNSS_RATES", "CNSS rates", CNSS_URL, HASH_A);
-                exec(c, PACK, complete, "SYNTHETIC-TEST-C", 1, "CD", "CDF", "DRAFT",
-                    "2026-01-01", "2026-12-31", "1", rules);
+                exec(
+                    c,
+                    PACK,
+                    complete,
+                    "SYNTHETIC-TEST-C",
+                    1,
+                    "CD",
+                    "CDF",
+                    "DRAFT",
+                    "2026-01-01",
+                    "2026-12-31",
+                    "1",
+                    rules);
               });
           refuses(db, NAME + "sources", c -> exec(c, VERIFY, none));
           refuses(db, NAME + "sources", c -> exec(c, VERIFY, unhashed));
@@ -979,22 +1176,44 @@ class PayrollStatutoryMigrationIntegrationTest {
                   "https://sub.dgi.gouv.cd/x",
                   "https://dgi.gouv.cd/a b")) {
             refuses(
-                db, source + "url",
+                db,
+                source + "url",
                 c -> {
-                  exec(c, PACK, id, "SYNTHETIC-TEST-S", 1, "CD", "CDF", "DRAFT", "2026-01-01",
-                      null, "1", rules);
+                  exec(
+                      c,
+                      PACK,
+                      id,
+                      "SYNTHETIC-TEST-S",
+                      1,
+                      "CD",
+                      "CDF",
+                      "DRAFT",
+                      "2026-01-01",
+                      null,
+                      "1",
+                      rules);
                   exec(c, SOURCE, id, 1, "DGI_IRPP", "Title", url, null);
                 });
           }
-          refuses(db, source + "key",
+          refuses(
+              db,
+              source + "key",
               c -> sourceOnNewPack(c, id, rules, 1, "OTHER", "Title", DGI_URL, null));
-          refuses(db, source + "sha256",
+          refuses(
+              db,
+              source + "sha256",
               c -> sourceOnNewPack(c, id, rules, 1, "DGI_IRPP", "Title", DGI_URL, "ABC"));
-          refuses(db, source + "title",
+          refuses(
+              db,
+              source + "title",
               c -> sourceOnNewPack(c, id, rules, 1, "DGI_IRPP", "", DGI_URL, null));
-          refuses(db, source + "pack",
+          refuses(
+              db,
+              source + "pack",
               c -> exec(c, SOURCE, UUID.randomUUID(), 1, "DGI_IRPP", "Title", DGI_URL, null));
-          refuses(db, source + "key_unique",
+          refuses(
+              db,
+              source + "key_unique",
               c -> {
                 sourceOnNewPack(c, id, rules, 1, "DGI_IRPP", "Title", DGI_URL, null);
                 exec(c, SOURCE, id, 2, "DGI_IRPP", "Title", "https://cnss.cd/", null);
@@ -1009,15 +1228,25 @@ class PayrollStatutoryMigrationIntegrationTest {
                 exec(c, SOURCE, id, 3, "BUDGET_2026", "Budget", "https://budget.gouv.cd/b", null);
               });
           // Nothing is updated, deleted or truncated, the seed included.
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "UPDATE payroll.statutory_rule_pack_source SET title = 'x'"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "DELETE FROM payroll.statutory_rule_pack_source"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "TRUNCATE payroll.statutory_rule_pack_source CASCADE"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "DELETE FROM payroll.statutory_rule_pack"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "TRUNCATE payroll.statutory_rule_pack CASCADE"));
         });
   }
@@ -1043,7 +1272,15 @@ class PayrollStatutoryMigrationIntegrationTest {
   private static void activate(
       Connection c, World w, int sequence, UUID pack, LocalDate month, boolean acknowledged)
       throws SQLException {
-    exec(c, ACTIVATION, w.tenant(), w.entity(), UUID.randomUUID(), sequence, pack, month,
+    exec(
+        c,
+        ACTIVATION,
+        w.tenant(),
+        w.entity(),
+        UUID.randomUUID(),
+        sequence,
+        pack,
+        month,
         acknowledged);
   }
 
@@ -1058,30 +1295,54 @@ class PayrollStatutoryMigrationIntegrationTest {
           LocalDate april = LocalDate.of(2026, 4, 1);
           refuses(db, name + "pack_verified", c -> activate(c, w, 3, w.draft(), april, true));
           refuses(db, name + "pack_verified", c -> activate(c, w, 3, w.retired(), april, true));
-          refuses(db, name + "interval",
+          refuses(
+              db,
+              name + "interval",
               c -> activate(c, w, 3, w.verified(), LocalDate.of(2027, 1, 1), true));
-          refuses(db, name + "interval",
+          refuses(
+              db,
+              name + "interval",
               c -> activate(c, w, 3, w.verified(), LocalDate.of(2025, 12, 1), true));
-          refuses(db, name + "interval",
+          refuses(
+              db,
+              name + "interval",
               c -> activate(c, w, 3, w.firstHalf(), LocalDate.of(2026, 7, 1), true));
-          refuses(db, name + "month",
+          refuses(
+              db,
+              name + "month",
               c -> activate(c, w, 3, w.verified(), LocalDate.of(2026, 4, 15), true));
           refuses(db, name + "acknowledged", c -> activate(c, w, 3, w.verified(), april, false));
           refuses(db, name + "sequence", c -> activate(c, w, 5, w.verified(), april, true));
           refuses(db, name + "sequence", c -> activate(c, w, 1, w.verified(), april, true));
           refuses(db, name + "month_unique", c -> activate(c, w, 3, w.verified(), january, true));
-          refuses(db, name + "legal_entity",
-              c -> exec(c, ACTIVATION, w.tenant(), w.otherEntity(), UUID.randomUUID(), 1,
-                  w.verified(), april, true));
-          refuses(db, name + "pack",
-              c -> activate(c, w, 3, UUID.randomUUID(), april, true));
+          refuses(
+              db,
+              name + "legal_entity",
+              c ->
+                  exec(
+                      c,
+                      ACTIVATION,
+                      w.tenant(),
+                      w.otherEntity(),
+                      UUID.randomUUID(),
+                      1,
+                      w.verified(),
+                      april,
+                      true));
+          refuses(db, name + "pack", c -> activate(c, w, 3, UUID.randomUUID(), april, true));
           commit(db, c -> activate(c, w, 3, w.verified(), april, true));
           assertThat(count(db, "payroll.statutory_activation")).isEqualTo(3);
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "UPDATE payroll.statutory_activation SET acknowledged = true"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "DELETE FROM payroll.statutory_activation"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "TRUNCATE payroll.statutory_activation CASCADE"));
         });
   }
@@ -1102,8 +1363,19 @@ class PayrollStatutoryMigrationIntegrationTest {
       boolean irpp,
       String evidence)
       throws SQLException {
-    exec(c, PROFILE, tenant, employee, UUID.randomUUID(), sequence, from, country, classification,
-        cnss, irpp, evidence);
+    exec(
+        c,
+        PROFILE,
+        tenant,
+        employee,
+        UUID.randomUUID(),
+        sequence,
+        from,
+        country,
+        classification,
+        cnss,
+        irpp,
+        evidence);
   }
 
   private void refusesProfile(
@@ -1123,7 +1395,15 @@ class PayrollStatutoryMigrationIntegrationTest {
         constraint,
         c ->
             profile(
-                c, tenant, employee, sequence, from, country, classification, cnss, irpp,
+                c,
+                tenant,
+                employee,
+                sequence,
+                from,
+                country,
+                classification,
+                cnss,
+                irpp,
                 evidence));
   }
 
@@ -1141,40 +1421,72 @@ class PayrollStatutoryMigrationIntegrationTest {
           UUID e = w.employeeOne();
           refusesProfile(db, name + "sequence", t, e, 2, day, "CD", standard, true, true, contract);
           refusesProfile(
-              db, name + "sequence", t, e, 101, day,
-              "CD", standard, true, true, contract);
+              db, name + "sequence", t, e, 101, day, "CD", standard, true, true, contract);
           refusesProfile(
-              db, name + "unsupported", t, e, 1, day,
-              "CD", "UNSUPPORTED", true, false, contract);
+              db, name + "unsupported", t, e, 1, day, "CD", "UNSUPPORTED", true, false, contract);
           refusesProfile(
-              db, name + "unsupported", t, e, 1, day,
-              "CD", "UNSUPPORTED", false, true, contract);
+              db, name + "unsupported", t, e, 1, day, "CD", "UNSUPPORTED", false, true, contract);
           refusesProfile(db, name + "country", t, e, 1, day, "FR", standard, true, true, contract);
           refusesProfile(
-              db, name + "classification", t, e, 1, day,
-              "CD", "EXPAT", true, true, contract);
+              db, name + "classification", t, e, 1, day, "CD", "EXPAT", true, true, contract);
           refusesProfile(db, name + "evidence", t, e, 1, day, "CD", standard, true, true, "NOTE");
           refusesProfile(
-              db, name + "effective_range", t, e, 1, LocalDate.of(1999, 12,
-              31), "CD", standard, true, true, contract);
+              db,
+              name + "effective_range",
+              t,
+              e,
+              1,
+              LocalDate.of(1999, 12, 31),
+              "CD",
+              standard,
+              true,
+              true,
+              contract);
           refusesProfile(
-              db, name + "employee", w.otherTenant(), e, 1, day,
-              "CD", standard, true, true, contract);
+              db,
+              name + "employee",
+              w.otherTenant(),
+              e,
+              1,
+              day,
+              "CD",
+              standard,
+              true,
+              true,
+              contract);
           commit(
               db,
               c -> {
                 profile(c, t, e, 1, day, "CD", standard, true, true, contract);
-                profile(c, t, w.employeeTwo(), 1, day, "CD", standard, false, false,
+                profile(
+                    c,
+                    t,
+                    w.employeeTwo(),
+                    1,
+                    day,
+                    "CD",
+                    standard,
+                    false,
+                    false,
                     "PAYROLL_FILE_REVIEW");
               });
-          commit(db, c -> profile(c, t, e, 2, day, "CD", "UNSUPPORTED", false, false,
-              "PROFESSIONAL_REVIEW"));
+          commit(
+              db,
+              c ->
+                  profile(
+                      c, t, e, 2, day, "CD", "UNSUPPORTED", false, false, "PROFESSIONAL_REVIEW"));
           assertThat(count(db, "payroll.statutory_profile")).isEqualTo(3);
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "UPDATE payroll.statutory_profile SET cnss_subject = false"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "DELETE FROM payroll.statutory_profile"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "TRUNCATE payroll.statutory_profile CASCADE"));
         });
   }
@@ -1185,9 +1497,11 @@ class PayrollStatutoryMigrationIntegrationTest {
 
   private static final String CALC = "payroll_statutory_calculation_";
 
-  private void refusesCalculation(Db db, World w, String constraint, UUID pack, UUID activation,
-      int version, String fault) {
-    refuses(db, constraint,
+  private void refusesCalculation(
+      Db db, World w, String constraint, UUID pack, UUID activation, int version, String fault) {
+    refuses(
+        db,
+        constraint,
         c -> calculation(c, w, UUID.randomUUID(), pack, activation, version, fault));
   }
 
@@ -1227,10 +1541,23 @@ class PayrollStatutoryMigrationIntegrationTest {
                   + " created_by) VALUES (?, ?, ?, ?, 1, DATE '2026-09-01', 'CDF', ?, ?, 1,"
                   + " 'DRAFT', 1, 0, 0, 1, 0, 0, 1, 1, ?, repeat('a', 64), repeat('a', 64),"
                   + " repeat('a', 64), now(), 'subject')";
-          refuses(db, CALC + "run",
-              c -> exec(c, raw, w.otherTenant(), w.otherEntity(), UUID.randomUUID(), w.run(), v, a,
-                  HASH_A));
-          refuses(db, CALC + "digests",
+          refuses(
+              db,
+              CALC + "run",
+              c ->
+                  exec(
+                      c,
+                      raw,
+                      w.otherTenant(),
+                      w.otherEntity(),
+                      UUID.randomUUID(),
+                      w.run(),
+                      v,
+                      a,
+                      HASH_A));
+          refuses(
+              db,
+              CALC + "digests",
               c -> exec(c, raw, w.tenant(), w.entity(), UUID.randomUUID(), w.run(), v, a, "zz"));
           // The complete, exact calculation is accepted.
           UUID id = committedCalculation(db, w, 1);
@@ -1256,29 +1583,54 @@ class PayrollStatutoryMigrationIntegrationTest {
           String table = "payroll.statutory_calculation";
           // One DRAFT per run and pack.
           refusesCalculation(db, w, CALC + "one_draft", w.verified(), w.activation(), 2, "");
-          refuses(db, CALC + "supersession_only",
+          refuses(
+              db,
+              CALC + "supersession_only",
               c -> exec(c, "UPDATE " + table + " SET gross_total_minor = 1"));
           // The successor must exist when the transaction ends.
-          refuses(db, CALC + "successor",
-              c -> exec(c, "UPDATE " + table + " SET status = 'SUPERSEDED', superseded_at = now(),"
-                  + " superseded_by_id = ? WHERE id = ?", UUID.randomUUID(), first));
+          refuses(
+              db,
+              CALC + "successor",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE "
+                          + table
+                          + " SET status = 'SUPERSEDED', superseded_at = now(),"
+                          + " superseded_by_id = ? WHERE id = ?",
+                      UUID.randomUUID(),
+                      first));
           refuses(db, "payroll_statutory_immutable", c -> exec(c, "DELETE FROM " + table));
-          refuses(db, "payroll_statutory_immutable",
-              c -> exec(c, "TRUNCATE " + table + " CASCADE"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db, "payroll_statutory_immutable", c -> exec(c, "TRUNCATE " + table + " CASCADE"));
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "UPDATE payroll.statutory_calculation_line SET excluded = false"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "DELETE FROM payroll.statutory_calculation_component"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "UPDATE payroll.statutory_calculation_component SET trace = NULL"));
-          refuses(db, "payroll_statutory_immutable",
+          refuses(
+              db,
+              "payroll_statutory_immutable",
               c -> exec(c, "TRUNCATE payroll.statutory_calculation_line CASCADE"));
           // Legal: supersede the first and insert the second in the same transaction.
           commit(
               db,
               c -> {
-                exec(c, "UPDATE " + table + " SET status = 'SUPERSEDED', superseded_at = now(),"
-                    + " superseded_by_id = ? WHERE id = ?", second, first);
+                exec(
+                    c,
+                    "UPDATE "
+                        + table
+                        + " SET status = 'SUPERSEDED', superseded_at = now(),"
+                        + " superseded_by_id = ? WHERE id = ?",
+                    second,
+                    first);
                 calculation(c, w, second, w.verified(), w.activation(), 2, "");
               });
           assertThat(
@@ -1288,16 +1640,50 @@ class PayrollStatutoryMigrationIntegrationTest {
                           String.class))
               .containsExactly("1:SUPERSEDED", "2:DRAFT");
           // A superseded calculation is final, takes no line, and the chain cannot loop back.
-          refuses(db, CALC + "supersession_only",
-              c -> exec(c, "UPDATE " + table + " SET status = 'SUPERSEDED', superseded_at = now(),"
-                  + " superseded_by_id = ? WHERE id = ?", second, first));
-          refuses(db, CALC + "line_state",
-              c -> exec(c, CALCULATION_LINE, w.tenant(), first, UUID.randomUUID(), w.run(),
-                  w.lineOne(), w.employeeOne(), "E-1", 162_000L, 0L, 0L, 162_000L, 162_000L,
-                  false));
-          refuses(db, CALC + "chain",
-              c -> exec(c, "UPDATE " + table + " SET status = 'SUPERSEDED', superseded_at = now(),"
-                  + " superseded_by_id = ? WHERE id = ?", first, second));
+          refuses(
+              db,
+              CALC + "supersession_only",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE "
+                          + table
+                          + " SET status = 'SUPERSEDED', superseded_at = now(),"
+                          + " superseded_by_id = ? WHERE id = ?",
+                      second,
+                      first));
+          refuses(
+              db,
+              CALC + "line_state",
+              c ->
+                  exec(
+                      c,
+                      CALCULATION_LINE,
+                      w.tenant(),
+                      first,
+                      UUID.randomUUID(),
+                      w.run(),
+                      w.lineOne(),
+                      w.employeeOne(),
+                      "E-1",
+                      162_000L,
+                      0L,
+                      0L,
+                      162_000L,
+                      162_000L,
+                      false));
+          refuses(
+              db,
+              CALC + "chain",
+              c ->
+                  exec(
+                      c,
+                      "UPDATE "
+                          + table
+                          + " SET status = 'SUPERSEDED', superseded_at = now(),"
+                          + " superseded_by_id = ? WHERE id = ?",
+                      first,
+                      second));
         });
   }
 
@@ -1320,64 +1706,346 @@ class PayrollStatutoryMigrationIntegrationTest {
           UUID t = w.tenant();
           UUID run = w.run();
           // Lines: amounts, arithmetic, the excluded shape, the source employee, one per source.
-          refuses(db, line + "amounts",
-              c -> exec(c, CALCULATION_LINE, t, calculation, UUID.randomUUID(), run, w.lineOne(),
-                  w.employeeOne(), "E-1", 162_000L, 162_001L, 0L, -1L, 162_000L, false));
-          refuses(db, line + "arithmetic",
-              c -> exec(c, CALCULATION_LINE, t, calculation, UUID.randomUUID(), run, w.lineOne(),
-                  w.employeeOne(), "E-1", 162_000L, 100L, 0L, 162_000L, 162_000L, false));
-          refuses(db, line + "arithmetic",
-              c -> exec(c, CALCULATION_LINE, t, calculation, UUID.randomUUID(), run, w.lineOne(),
-                  w.employeeOne(), "E-1", 162_000L, 0L, 100L, 162_000L, 162_000L, false));
-          refuses(db, line + "excluded",
-              c -> exec(c, CALCULATION_LINE, t, calculation, UUID.randomUUID(), run, w.lineOne(),
-                  w.employeeOne(), "E-1", 162_000L, 100L, 0L, 161_900L, 162_000L, true));
-          refuses(db, line + "gross",
-              c -> exec(c, CALCULATION_LINE, t, calculation, UUID.randomUUID(), run, w.lineOne(),
-                  w.employeeTwo(), "E-1", 162_000L, 0L, 0L, 162_000L, 162_000L, false));
-          refuses(db, line + "source_unique",
-              c -> exec(c, CALCULATION_LINE, t, calculation, UUID.randomUUID(), run, w.lineOne(),
-                  w.employeeOne(), "E-1", 162_000L, 0L, 0L, 162_000L, 162_000L, false));
+          refuses(
+              db,
+              line + "amounts",
+              c ->
+                  exec(
+                      c,
+                      CALCULATION_LINE,
+                      t,
+                      calculation,
+                      UUID.randomUUID(),
+                      run,
+                      w.lineOne(),
+                      w.employeeOne(),
+                      "E-1",
+                      162_000L,
+                      162_001L,
+                      0L,
+                      -1L,
+                      162_000L,
+                      false));
+          refuses(
+              db,
+              line + "arithmetic",
+              c ->
+                  exec(
+                      c,
+                      CALCULATION_LINE,
+                      t,
+                      calculation,
+                      UUID.randomUUID(),
+                      run,
+                      w.lineOne(),
+                      w.employeeOne(),
+                      "E-1",
+                      162_000L,
+                      100L,
+                      0L,
+                      162_000L,
+                      162_000L,
+                      false));
+          refuses(
+              db,
+              line + "arithmetic",
+              c ->
+                  exec(
+                      c,
+                      CALCULATION_LINE,
+                      t,
+                      calculation,
+                      UUID.randomUUID(),
+                      run,
+                      w.lineOne(),
+                      w.employeeOne(),
+                      "E-1",
+                      162_000L,
+                      0L,
+                      100L,
+                      162_000L,
+                      162_000L,
+                      false));
+          refuses(
+              db,
+              line + "excluded",
+              c ->
+                  exec(
+                      c,
+                      CALCULATION_LINE,
+                      t,
+                      calculation,
+                      UUID.randomUUID(),
+                      run,
+                      w.lineOne(),
+                      w.employeeOne(),
+                      "E-1",
+                      162_000L,
+                      100L,
+                      0L,
+                      161_900L,
+                      162_000L,
+                      true));
+          refuses(
+              db,
+              line + "gross",
+              c ->
+                  exec(
+                      c,
+                      CALCULATION_LINE,
+                      t,
+                      calculation,
+                      UUID.randomUUID(),
+                      run,
+                      w.lineOne(),
+                      w.employeeTwo(),
+                      "E-1",
+                      162_000L,
+                      0L,
+                      0L,
+                      162_000L,
+                      162_000L,
+                      false));
+          refuses(
+              db,
+              line + "source_unique",
+              c ->
+                  exec(
+                      c,
+                      CALCULATION_LINE,
+                      t,
+                      calculation,
+                      UUID.randomUUID(),
+                      run,
+                      w.lineOne(),
+                      w.employeeOne(),
+                      "E-1",
+                      162_000L,
+                      0L,
+                      0L,
+                      162_000L,
+                      162_000L,
+                      false));
           // Components: closed values, amounts, one trace shape.
           UUID anyLine = UUID.randomUUID();
           String pension = "CNSS_EMPLOYEE_PENSION";
           String social = "SOCIAL_CONTRIBUTION";
-          refuses(db, component + "amounts",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", social,
-                  100L, 101L, "RATE_APPLIED", null));
-          refuses(db, component + "amounts",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", social,
-                  -1L, 0L, "RATE_APPLIED", null));
-          refuses(db, component + "not_subject",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", social,
-                  100L, 5L, "NOT_SUBJECT", null));
-          refuses(db, component + "explanation",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", social,
-                  100L, 5L, "BOGUS", null));
-          refuses(db, component + "explanation",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", social,
-                  100L, 5L, "", null));
-          refuses(db, component + "trace",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", social,
-                  100L, 5L, "RATE_APPLIED", "[1]"));
-          refuses(db, component + "party",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "OTHER", social,
-                  100L, 5L, "RATE_APPLIED", null));
-          refuses(db, component + "category",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", "OTHER",
-                  100L, 5L, "RATE_APPLIED", null));
-          refuses(db, component + "id_format",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, "bad id", "EMPLOYEE", social,
-                  100L, 5L, "RATE_APPLIED", null));
-          refuses(db, component + "seq",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 13, pension, "EMPLOYEE", social,
-                  100L, 5L, "RATE_APPLIED", null));
-          refuses(db, component + "line",
-              c -> exec(c, COMPONENT, t, calculation, anyLine, 1, pension, "EMPLOYEE", social,
-                  100L, 5L, "RATE_APPLIED", null));
-          refuses(db, component + "pkey",
-              c -> exec(c, COMPONENT, t, calculation, supported, 1, pension, "EMPLOYEE", social,
-                  162_000L, 8_100L, "RATE_APPLIED", null));
+          refuses(
+              db,
+              component + "amounts",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      101L,
+                      "RATE_APPLIED",
+                      null));
+          refuses(
+              db,
+              component + "amounts",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      -1L,
+                      0L,
+                      "RATE_APPLIED",
+                      null));
+          refuses(
+              db,
+              component + "not_subject",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      5L,
+                      "NOT_SUBJECT",
+                      null));
+          refuses(
+              db,
+              component + "explanation",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      5L,
+                      "BOGUS",
+                      null));
+          refuses(
+              db,
+              component + "explanation",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      5L,
+                      "",
+                      null));
+          refuses(
+              db,
+              component + "trace",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      5L,
+                      "RATE_APPLIED",
+                      "[1]"));
+          refuses(
+              db,
+              component + "party",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "OTHER",
+                      social,
+                      100L,
+                      5L,
+                      "RATE_APPLIED",
+                      null));
+          refuses(
+              db,
+              component + "category",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      "OTHER",
+                      100L,
+                      5L,
+                      "RATE_APPLIED",
+                      null));
+          refuses(
+              db,
+              component + "id_format",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      "bad id",
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      5L,
+                      "RATE_APPLIED",
+                      null));
+          refuses(
+              db,
+              component + "seq",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      13,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      5L,
+                      "RATE_APPLIED",
+                      null));
+          refuses(
+              db,
+              component + "line",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      anyLine,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      100L,
+                      5L,
+                      "RATE_APPLIED",
+                      null));
+          refuses(
+              db,
+              component + "pkey",
+              c ->
+                  exec(
+                      c,
+                      COMPONENT,
+                      t,
+                      calculation,
+                      supported,
+                      1,
+                      pension,
+                      "EMPLOYEE",
+                      social,
+                      162_000L,
+                      8_100L,
+                      "RATE_APPLIED",
+                      null));
         });
   }
 }

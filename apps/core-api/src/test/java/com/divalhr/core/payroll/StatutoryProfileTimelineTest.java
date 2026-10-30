@@ -178,8 +178,7 @@ class StatutoryProfileTimelineTest {
             StatutoryLineBlocker.PROFILE_UNSUPPORTED,
             StatutoryLineBlocker.PROFILE_CHANGES_IN_MONTH);
     assertThatThrownBy(
-            () ->
-                StatutoryProfileTimeline.forPeriod(List.of(), d("2026-09-30"), d("2026-09-01")))
+            () -> StatutoryProfileTimeline.forPeriod(List.of(), d("2026-09-30"), d("2026-09-01")))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -291,8 +290,7 @@ class StatutoryProfileTimelineTest {
         StatutoryProfileTimeline.plan(rows, resident(101, "1990-01-01", false, false), TODAY);
     assertThat(several.blockers())
         .containsExactly(Blocker.EFFECTIVE_DATE_OUT_OF_RANGE, Blocker.LIMIT_REACHED);
-    Plan all =
-        StatutoryProfileTimeline.plan(rows, resident(101, "2026-03-01", true, true), TODAY);
+    Plan all = StatutoryProfileTimeline.plan(rows, resident(101, "2026-03-01", true, true), TODAY);
     assertThat(all.blockers()).containsExactly(Blocker.NO_CHANGE, Blocker.LIMIT_REACHED);
   }
 }

@@ -320,11 +320,9 @@ class StatutoryCalculatorTest {
   @Test
   void aSourceLineNeedsOrderedDaysAndANonNegativeGross() {
     UUID employee = UUID.randomUUID();
-    assertThatThrownBy(
-            () -> new SourceLine(UUID.randomUUID(), employee, "E-9", -1, FIRST, LAST))
+    assertThatThrownBy(() -> new SourceLine(UUID.randomUUID(), employee, "E-9", -1, FIRST, LAST))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(
-            () -> new SourceLine(UUID.randomUUID(), employee, "E-9", 1, LAST, FIRST))
+    assertThatThrownBy(() -> new SourceLine(UUID.randomUUID(), employee, "E-9", 1, LAST, FIRST))
         .isInstanceOf(IllegalArgumentException.class);
   }
 }

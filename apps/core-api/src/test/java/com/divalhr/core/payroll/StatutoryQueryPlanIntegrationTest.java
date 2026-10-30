@@ -27,10 +27,10 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>The platform rule pack list has no dedicated index (the table holds a handful of rows and is
  * not tenant data); its plan is only asserted to be bounded by the limit.
  *
- * <p>The statements mirror the ones of {@code JdbcStatutoryRepository} (the same predicates,
- * orders and parameters; the column lists are shortened). The rows are written set-based with
- * {@code session_replication_role = replica} (no triggers or foreign keys; the plan depends on the
- * indexes and statistics only).
+ * <p>The statements mirror the ones of {@code JdbcStatutoryRepository} (the same predicates, orders
+ * and parameters; the column lists are shortened). The rows are written set-based with {@code
+ * session_replication_role = replica} (no triggers or foreign keys; the plan depends on the indexes
+ * and statistics only).
  */
 @IntegrationTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -374,7 +374,8 @@ class StatutoryQueryPlanIntegrationTest {
             + " JOIN payroll.statutory_rule_pack p ON p.id = c.pack_id"
             + " WHERE c.tenant_id = :tenant AND c.legal_entity_id = :entity AND c.run_id = :run"
             + " ORDER BY c.version DESC, c.id LIMIT :limit";
-    Map<String, Object> params = Map.of("tenant", tenant, "entity", entity, "run", run, "limit", 26);
+    Map<String, Object> params =
+        Map.of("tenant", tenant, "entity", entity, "run", run, "limit", 26);
     driven("first page", firstPage, params, "payroll_statutory_calculation_history");
     assertThat(plan(firstPage, params)).doesNotContain("Sort");
 
@@ -386,8 +387,8 @@ class StatutoryQueryPlanIntegrationTest {
             + " ORDER BY c.version DESC, c.id LIMIT :limit";
     Map<String, Object> next =
         Map.of(
-            "tenant", tenant, "entity", entity, "run", run, "version", 20, "after", first,
-            "limit", 26);
+            "tenant", tenant, "entity", entity, "run", run, "version", 20, "after", first, "limit",
+            26);
     driven("keyset", keyset, next, "payroll_statutory_calculation_history");
     assertThat(plan(keyset, next)).doesNotContain("Sort");
   }
@@ -412,8 +413,16 @@ class StatutoryQueryPlanIntegrationTest {
             + " ORDER BY (employee_number COLLATE \"C\"), id LIMIT :limit";
     Map<String, Object> next =
         Map.of(
-            "tenant", tenant, "calculation", latest, "number", "PLAN001500", "after", line,
-            "limit", 51);
+            "tenant",
+            tenant,
+            "calculation",
+            latest,
+            "number",
+            "PLAN001500",
+            "after",
+            line,
+            "limit",
+            51);
     driven("keyset", keyset, next, "payroll_statutory_calculation_line_page");
     assertThat(plan(keyset, next)).doesNotContain("Sort");
     driven(

@@ -80,7 +80,10 @@ class StatutoryAuthorityIntegrationTest {
 
   /** One operation for a given bearer, with the answer a foreign tenant's administrator gets. */
   private record Operation(
-      String name, MockHttpServletRequestBuilder request, Integer foreignStatus, String foreignCode) {}
+      String name,
+      MockHttpServletRequestBuilder request,
+      Integer foreignStatus,
+      String foreignCode) {}
 
   @BeforeEach
   void world() throws Exception {
@@ -137,7 +140,10 @@ class StatutoryAuthorityIntegrationTest {
     List<Operation> calls = new ArrayList<>();
     calls.add(
         new Operation(
-            "listStatutoryRulePacks", PayrollRunWorld.get(bearer, StatutoryWorld.PACKS), 200, null));
+            "listStatutoryRulePacks",
+            PayrollRunWorld.get(bearer, StatutoryWorld.PACKS),
+            200,
+            null));
     calls.add(
         new Operation(
             "getStatutoryRulePack",
@@ -162,7 +168,10 @@ class StatutoryAuthorityIntegrationTest {
             "LEGAL_ENTITY_NOT_FOUND"));
     calls.add(
         new Operation(
-            "getStatutoryProfile", PayrollRunWorld.get(bearer, profile), 404, "COMPENSATION_NOT_FOUND"));
+            "getStatutoryProfile",
+            PayrollRunWorld.get(bearer, profile),
+            404,
+            "COMPENSATION_NOT_FOUND"));
     calls.add(
         new Operation(
             "previewStatutoryProfile",
@@ -254,10 +263,7 @@ class StatutoryAuthorityIntegrationTest {
       assertThat(response.getStatus()).as(call.name()).isEqualTo(call.foreignStatus());
       if (call.foreignCode() != null) {
         assertThat(
-                CompensationWorld.JSON
-                    .readTree(response.getContentAsString())
-                    .get("code")
-                    .asText())
+                CompensationWorld.JSON.readTree(response.getContentAsString()).get("code").asText())
             .as(call.name())
             .isEqualTo(call.foreignCode());
       }

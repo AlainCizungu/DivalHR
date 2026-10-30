@@ -25,9 +25,9 @@ import org.junit.jupiter.api.Test;
 /**
  * MVP-094B (D94B-5, ADR 0034 section 3 and 6): the exact statutory calculation of one line.
  *
- * <p>Every expected number below was computed by hand and re-checked with an independent
- * {@code fractions.Fraction} implementation in Python: the comments show the arithmetic. The seed
- * rules are the DRAFT reference pack; the other packs are synthetic. Money is whole CDF francs.
+ * <p>Every expected number below was computed by hand and re-checked with an independent {@code
+ * fractions.Fraction} implementation in Python: the comments show the arithmetic. The seed rules
+ * are the DRAFT reference pack; the other packs are synthetic. Money is whole CDF francs.
  */
 class StatutoryEngineTest {
 
@@ -213,15 +213,13 @@ class StatutoryEngineTest {
     assertThat(top.slices())
         .containsExactly(
             new StatutoryLine.Slice(0, 1_944_000L, 300, BigInteger.valueOf(1_944_000L)),
-            new StatutoryLine.Slice(
-                1_944_000L, 21_600_000L, 1500, BigInteger.valueOf(19_656_000L)),
+            new StatutoryLine.Slice(1_944_000L, 21_600_000L, 1500, BigInteger.valueOf(19_656_000L)),
             new StatutoryLine.Slice(
                 21_600_000L, 43_200_000L, 3000, BigInteger.valueOf(21_600_000L)),
             new StatutoryLine.Slice(43_200_000L, null, 4000, BigInteger.valueOf(12L)));
 
     // A zero base has no slice at all.
-    StatutoryLine.Trace zero =
-        component(seeded(false, true, 0), "IRPP_SALARY_WITHHOLDING").trace();
+    StatutoryLine.Trace zero = component(seeded(false, true, 0), "IRPP_SALARY_WITHHOLDING").trace();
     assertThat(zero.annualBase()).isEqualTo(BigInteger.ZERO);
     assertThat(zero.slices()).isEmpty();
     assertThat(zero.numerator()).isEqualTo(BigInteger.ZERO);
@@ -389,8 +387,7 @@ class StatutoryEngineTest {
         document(
             rate("EE_PENSION", "EMPLOYEE", 1, "CNSS_SUBJECT", "GROSS", 500, "HALF_UP")
                 + ","
-                + progressive(
-                    "TAX_NET", 2, LESS, 12, 3000, SEED_BRACKETS, "HALF_UP"));
+                + progressive("TAX_NET", 2, LESS, 12, 3000, SEED_BRACKETS, "HALF_UP"));
     StatutoryLine both = calculate(json, true, true, 162000);
     // CNSS = 8100; the tax base = 162000 - 8100 = 153900; A = 1,846,800; N = 1,846,800 * 300
     // = 554,040,000; /120000 = 4617.
@@ -621,16 +618,14 @@ class StatutoryEngineTest {
     assertThat(capped.amountMinor()).isEqualTo(1620L);
     assertThat(capped.trace().capApplied()).isTrue();
     // The periods 12 -> 1: the monthly base is taken as the year; 1,800,000 * 3% = 54,000.
-    String changedPeriods =
-        SEED.replace("\"periodsPerYear\": 12", "\"periodsPerYear\": 1");
+    String changedPeriods = SEED.replace("\"periodsPerYear\": 12", "\"periodsPerYear\": 1");
     assertThat(
             component(calculate(changedPeriods, false, true, 1_800_000), "IRPP_SALARY_WITHHOLDING")
                 .amountMinor())
         .isEqualTo(54_000L);
     // A bracket threshold 1,944,000 -> 1,000,000 moves the boundary: at 162000 (A = 1,944,000):
     // 1,000,000 * 3% + 944,000 * 15% = 30,000 + 141,600 = 171,600 a year; /12 = 14,300.
-    String changedBracket =
-        SEED.replace("\"upToAnnual\": 1944000", "\"upToAnnual\": 1000000");
+    String changedBracket = SEED.replace("\"upToAnnual\": 1944000", "\"upToAnnual\": 1000000");
     assertThat(
             component(calculate(changedBracket, false, true, 162000), "IRPP_SALARY_WITHHOLDING")
                 .amountMinor())
@@ -649,14 +644,7 @@ class StatutoryEngineTest {
     // Invented rules: an employer levy of 77.77% (order 3) and a two-bracket annual schedule.
     String json =
         document(
-            progressive(
-                    "BETA_LEVY",
-                    1,
-                    "GROSS",
-                    1,
-                    null,
-                    TWO_BRACKETS,
-                    "DOWN")
+            progressive("BETA_LEVY", 1, "GROSS", 1, null, TWO_BRACKETS, "DOWN")
                 + ","
                 + rate("ALPHA_FEE", "EMPLOYER", 3, "IRPP_SUBJECT", "GROSS", 7777, "HALF_UP"));
     StatutoryLine line = calculate(json, false, true, 700);

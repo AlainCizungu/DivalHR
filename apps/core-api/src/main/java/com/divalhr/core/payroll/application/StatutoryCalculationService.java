@@ -106,8 +106,7 @@ public class StatutoryCalculationService {
   private static final String CALCULATION_CODE = "CALC";
   private static final String LINE_CODE = "L1";
   private static final IdempotentOperation.Spec CREATE_SPEC =
-      new IdempotentOperation.Spec(
-          CREATE, "statutory_calculation", "create", "created", 201);
+      new IdempotentOperation.Spec(CREATE, "statutory_calculation", "create", "created", 201);
 
   private final IdempotentOperation operations;
   private final JdbcStatutoryRepository statutory;
@@ -501,8 +500,7 @@ public class StatutoryCalculationService {
       // Supersede the old DRAFT first, naming the successor (its key is checked at commit), then
       // insert the successor, its lines and components.
       if (current != null) {
-        int changed =
-            statutory.supersede(tenant, entity, current.id(), calculationId, now);
+        int changed = statutory.supersede(tenant, entity, current.id(), calculationId, now);
         if (changed != 1) {
           throw new ApiException(ErrorCode.STATUTORY_VERSION_CONFLICT, Map.of());
         }

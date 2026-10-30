@@ -15,13 +15,12 @@ import org.springframework.stereotype.Repository;
  * Read-only storage of the platform-owned statutory rule packs and their official sources
  * (MVP-094B; V45, ADR 0034 section 2). Rule packs are shared reference data: the tables have no
  * tenant column, which is why this repository takes no {@code TenantId} (the single, explicit
- * exception of the tenant-predicate architecture test, which asserts that no statement here names
- * a tenant table).
- * The application has no write path to these tables: a pack enters by migration or by the
- * operational procedure that supplies the professional approval evidence.
+ * exception of the tenant-predicate architecture test, which asserts that no statement here names a
+ * tenant table). The application has no write path to these tables: a pack enters by migration or
+ * by the operational procedure that supplies the professional approval evidence.
  *
- * <p>The verification evidence (reviewer name and organization) is restricted operational
- * evidence: no record here prints it.
+ * <p>The verification evidence (reviewer name and organization) is restricted operational evidence:
+ * no record here prints it.
  */
 @Repository
 public class JdbcStatutoryRulePackRepository {
@@ -131,9 +130,7 @@ public class JdbcStatutoryRulePackRepository {
    */
   public Optional<PackRow> pack(UUID packId) {
     return jdbc.sql(
-            "SELECT "
-                + PACK_COLUMNS
-                + " FROM payroll.statutory_rule_pack p WHERE p.id = :id")
+            "SELECT " + PACK_COLUMNS + " FROM payroll.statutory_rule_pack p WHERE p.id = :id")
         .param("id", packId)
         .query(JdbcStatutoryRulePackRepository::pack)
         .optional();
@@ -152,8 +149,7 @@ public class JdbcStatutoryRulePackRepository {
                 + ", p.rules::text AS rules_text FROM payroll.statutory_rule_pack p"
                 + " WHERE p.id = :id")
         .param("id", packId)
-        .query(
-            (rs, row) -> new PackWithRules(pack(rs, row), rs.getString("rules_text")))
+        .query((rs, row) -> new PackWithRules(pack(rs, row), rs.getString("rules_text")))
         .optional();
   }
 

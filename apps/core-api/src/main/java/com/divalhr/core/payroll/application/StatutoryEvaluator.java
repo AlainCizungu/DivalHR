@@ -32,9 +32,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Reads everything a statutory calculation depends on and calculates it (MVP-094B, ADR 0034
- * section 6): the frozen source run and its lines, the activation and pack in effect for the month,
- * the employees' profiles and the unmodeled earnings, then applies {@link StatutoryCalculator} and
+ * Reads everything a statutory calculation depends on and calculates it (MVP-094B, ADR 0034 section
+ * 6): the frozen source run and its lines, the activation and pack in effect for the month, the
+ * employees' profiles and the unmodeled earnings, then applies {@link StatutoryCalculator} and
  * computes the three digests. It is shared by the preview (a consistent best effort in a read
  * transaction) and by the commit (under the locks of ADR 0034 section 7, where the result is
  * stable). Restricted financial and HR data: nothing here is logged.
@@ -189,8 +189,8 @@ public class StatutoryEvaluator {
   }
 
   /**
-   * Whether the pack in effect can produce amounts for the month: VERIFIED, parsed and covering
-   * the month.
+   * Whether the pack in effect can produce amounts for the month: VERIFIED, parsed and covering the
+   * month.
    *
    * @param resolved the pack in effect
    * @param month first day of the month

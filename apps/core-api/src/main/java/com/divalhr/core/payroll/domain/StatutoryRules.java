@@ -11,10 +11,10 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * The typed, validated rules of a statutory rule pack (MVP-094B, ADR 0034 section 3, schema
- * version 1). The rules are data: components with a party, a category, an order, a requirement on
- * the employee's profile, a base, a method (a flat rate or a progressive schedule with an optional
- * cap) and a rounding. Nothing is executed; {@link StatutoryEngine} interprets the data.
+ * The typed, validated rules of a statutory rule pack (MVP-094B, ADR 0034 section 3, schema version
+ * 1). The rules are data: components with a party, a category, an order, a requirement on the
+ * employee's profile, a base, a method (a flat rate or a progressive schedule with an optional cap)
+ * and a rounding. Nothing is executed; {@link StatutoryEngine} interprets the data.
  *
  * <p>Every constructor validates and raises {@link StatutoryRulesException} (fail closed, no input
  * echoed), so a value of this type is always a valid pack whether it came from {@link
@@ -65,8 +65,7 @@ public record StatutoryRules(List<Component> components) {
           "method",
           "rounding");
   private static final Set<String> RATE_KEYS = Set.of("type", "rateBp");
-  private static final Set<String> PROGRESSIVE_KEYS =
-      Set.of("type", "periodsPerYear", "brackets");
+  private static final Set<String> PROGRESSIVE_KEYS = Set.of("type", "periodsPerYear", "brackets");
   private static final Set<String> BRACKET_KEYS = Set.of("upToAnnual", "rateBp");
 
   /** Who bears a component: it is deducted from the employee, or added to the employer's cost. */

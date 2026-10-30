@@ -192,8 +192,8 @@ class TenantPredicateArchitectureTest {
           .should(TAKE_TENANT_ID);
 
   /**
-   * MVP-094B: the tenant-owned statutory repository follows the same rule, with no exception
-   * (every statement filters on the tenant).
+   * MVP-094B: the tenant-owned statutory repository follows the same rule, with no exception (every
+   * statement filters on the tenant).
    */
   @ArchTest
   static final ArchRule statutoryRepositoryRequiresTheVerifiedTenant =
