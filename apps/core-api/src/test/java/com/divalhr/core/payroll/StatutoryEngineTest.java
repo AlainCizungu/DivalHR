@@ -606,7 +606,8 @@ class StatutoryEngineTest {
   @Test
   void everyNumberComesFromTheRulesNotFromTheEngine() {
     // The employee pension rate 500 -> 1234: 162000 * 1234 / 10000 = 19,990.8 -> 19,991.
-    String changedRate = StatutoryFixtures.SEED_JSON.replaceFirst("\"rateBp\": 500", "\"rateBp\": 1234");
+    String changedRate =
+        StatutoryFixtures.SEED_JSON.replaceFirst("\"rateBp\": 500", "\"rateBp\": 1234");
     StatutoryLine changed = calculate(changedRate, true, false, 162000);
     assertThat(component(changed, "CNSS_EMPLOYEE_PENSION").amountMinor()).isEqualTo(19_991L);
     assertThat(component(changed, "CNSS_EMPLOYER_PENSION").amountMinor()).isEqualTo(8100L);
@@ -617,20 +618,24 @@ class StatutoryEngineTest {
     assertThat(capped.amountMinor()).isEqualTo(1620L);
     assertThat(capped.trace().capApplied()).isTrue();
     // The periods 12 -> 1: the monthly base is taken as the year; 1,800,000 * 3% = 54,000.
-    String changedPeriods = StatutoryFixtures.SEED_JSON.replace("\"periodsPerYear\": 12", "\"periodsPerYear\": 1");
+    String changedPeriods =
+        StatutoryFixtures.SEED_JSON.replace("\"periodsPerYear\": 12", "\"periodsPerYear\": 1");
     assertThat(
             component(calculate(changedPeriods, false, true, 1_800_000), "IRPP_SALARY_WITHHOLDING")
                 .amountMinor())
         .isEqualTo(54_000L);
     // A bracket threshold 1,944,000 -> 1,000,000 moves the boundary: at 162000 (A = 1,944,000):
     // 1,000,000 * 3% + 944,000 * 15% = 30,000 + 141,600 = 171,600 a year; /12 = 14,300.
-    String changedBracket = StatutoryFixtures.SEED_JSON.replace("\"upToAnnual\": 1944000", "\"upToAnnual\": 1000000");
+    String changedBracket =
+        StatutoryFixtures.SEED_JSON.replace("\"upToAnnual\": 1944000", "\"upToAnnual\": 1000000");
     assertThat(
             component(calculate(changedBracket, false, true, 162000), "IRPP_SALARY_WITHHOLDING")
                 .amountMinor())
         .isEqualTo(14_300L);
     // The rounding HALF_UP -> UP on the tax: 162001 gives 4860.15 -> 4861 instead of 4860.
-    String rounded = StatutoryFixtures.SEED_JSON.replace("\"rounding\": \"HALF_UP\"}\n  ]", "\"rounding\": \"UP\"}\n  ]");
+    String rounded =
+        StatutoryFixtures.SEED_JSON.replace(
+            "\"rounding\": \"HALF_UP\"}\n  ]", "\"rounding\": \"UP\"}\n  ]");
     assertThat(rounded).isNotEqualTo(StatutoryFixtures.SEED_JSON);
     assertThat(
             component(calculate(rounded, false, true, 162001), "IRPP_SALARY_WITHHOLDING")
