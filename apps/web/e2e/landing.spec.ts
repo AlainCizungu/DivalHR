@@ -99,9 +99,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(stored.every((key) => /^divalhr\.(locale|theme|sidebar)$/u.test(key))).toBe(true);
 
         // D93-14: no page text claims calculation, payslips, payment, loans or a partnership today.
-        const available = await page.getByTestId('landing-today').innerText();
-        expect(available).not.toMatch(
+        // D94A-12: the only calculation named is draft contractual gross, labelled as a draft.
+        const today = page.getByTestId('landing-today');
+        await expect(today.locator('li[data-module="payrollRuns"]')).toContainText(/draft/iu);
+        const others = (
+          await today.locator('li:not([data-module="payrollRuns"])').allInnerTexts()
+        ).join(' ');
+        expect(others).not.toMatch(
           /calcul|gross|payslip|bulletin|disburs|versement|loan|prêt|partnership|partenariat/iu,
+        );
+        expect(await today.innerText()).not.toMatch(
+          /net pay|payslip|bulletin|disburs|versement|loan|prêt|partnership|partenariat|complian|filing/iu,
         );
         await expectAccessible(page);
       });
