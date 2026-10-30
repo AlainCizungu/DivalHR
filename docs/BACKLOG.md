@@ -20,7 +20,7 @@ A story is ready when it has a business owner, French and English copy, acceptan
 
 Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a story is **Merged** when its pull request's merge commit is on the first-parent history of `main` (`git log --merges --first-parent origin/main`), and its merge commit, pull-request number and date are the ones Git records (`git show -s --format=%cI`). "Complete" on older stories keeps its earlier meaning (issue closed as completed and pull request merged); this refresh checked Git only, not the issue tracker, so it does not re-assert whether an issue is closed.
 
-**Deployed hr-dev release (as of 2026-10-29).** `https://hr-dev.dival.ai` runs `main` at `5d4cd1068b63b84e33671123405d6bef1178b6aa` (merge of PR #174, SEC-003, merged 2026-10-29T07:42:43-05:00; deployed 2026-10-29). It was preceded by `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (merge of PR #170, MVP-081, merged 2026-10-28), which was deployed first. The test environment runs one released commit of `main` at a time and holds synthetic data only. Deployment dates of earlier releases are recorded in the story sections where this backlog already stated them; for every other story the deployed fact derived from Git is that its merge commit is an ancestor of the deployed release `1d910234…` (and so of `5d4cd106…`), shown as "contained" below. Where Git cannot show a deployment, this backlog says "merged", not "deployed".
+**Deployed hr-dev release (as of 2026-10-29).** `https://hr-dev.dival.ai` runs `main` at `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, merged 2026-10-29T16:02:19-05:00; deployed 2026-10-29, V43 applied; one full AWS verification run `20261029T200838Z-18c840389771`). It was preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (merge of PR #174, SEC-003, merged 2026-10-29T07:42:43-05:00; deployed 2026-10-29) and, before that, `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (merge of PR #170, MVP-081, merged 2026-10-28). The test environment runs one released commit of `main` at a time and holds synthetic data only. Deployment dates of earlier releases are recorded in the story sections where this backlog already stated them; for every other story the deployed fact derived from Git is that its merge commit is an ancestor of the deployed release `1d910234…` (and so of `5d4cd106…` and `3223454…`), shown as "contained" below. Where Git cannot show a deployment, this backlog says "merged", not "deployed". MVP-094A is **not** deployed: the payroll release train (094A, 094B, 094C) is verified and deployed once, after the third story.
 
 ### Git evidence for the stories reconciled by MVP-093A
 
@@ -40,6 +40,7 @@ Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a stor
 | MVP-080  | #168 | `77e1f89d5de63d33203986e1d592728a0c026015` | 2026-10-27 | contained |
 | MVP-081  | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
 | SEC-003  | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
+| MVP-093A | #176 | `3223454379a9b6342fe3c6b2728d8f17680466e7` | 2026-10-29 | deployed  |
 
 Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.
 
@@ -385,13 +386,22 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-093A Configure monthly compensation
 
-**Issue #175. In progress (not merged, not deployed).** Branch `feature/175-mvp-093a-monthly-compensation`, created from `main` at `5d4cd10` (which contains the SEC-003 merge). Decisions D93-1 to D93-16 of the architect-approved plan on Issue #175.
+**Issue #175. Merged (PR #176, merge commit `3223454379a9b6342fe3c6b2728d8f17680466e7`, 2026-10-29); deployed to hr-dev on 2026-10-29 (V43 applied; focused English administrator and French employee journeys, authority, image provenance and privacy checks passed).** Decisions D93-1 to D93-16 of the architect-approved plan on Issue #175.
 
 - **Outcome.** A tenant administrator with exact MFA records an employee's effective-dated **monthly base compensation** in CDF or USD without destroying history; a linked employee reads only their own current compensation and history at `/me/compensation`. Recording compensation does not calculate payroll or initiate payment.
 - **Boundary.** Compensation facts only: frequency exactly `MONTHLY`, one amount, currency `CDF` or `USD`, no conversion. Worked minutes never change a monthly salary. Restricted financial and HR data: no amount in logs, metrics, audit metadata, outbox payloads, cursors, URLs or error bodies.
 - **Data.** Migration V43 in the payroll module (current timeline plus append-only change evidence); rollback refuses while any V43 row exists.
 - **Truthfulness refresh (D93-13 to D93-16).** This backlog, the public landing page (three states: « Disponible maintenant » / "Available now", « Fonctionnalités disponibles » / "Capabilities available", « Prochainement » / "Coming next") and the administrator and employee homes are reconciled with what is shipped, without claiming salary calculation, statutory payroll, payslips or payment.
 - **Not included:** gross or net payroll calculation, hourly rates, overtime, deductions, tax and DRC statutory rules, payslips, payment files and money movement, salary advances and loans, currency conversion, manager access to compensation, bulk import or export, external compensation providers, webhook or WhatsApp compensation events, deletion or retention policy, AI recommendations, native mobile.
+
+### MVP-094A Create monthly payroll runs and calculate contractual gross
+
+**Issue #177. In progress (not merged, not deployed).** Branch `feature/177-mvp-094a-monthly-payroll-foundation`, created from `main` at `3223454`. ADR 0033, decisions D94A-1 to D94A-13. First story of the payroll release train: MVP-094A (monthly run and contractual gross), MVP-094B (approved country statutory rule pack), MVP-094C (review, approval and employee payslip). One combined full verification and one hr-dev deployment follow the train.
+
+- **Outcome.** A tenant administrator with exact MFA configures a legal entity's effective-dated monthly payroll policy (pay day, proration method) and creates reproducible **draft** payroll runs for a closed month and one currency whose **contractual gross** (monthly base compensation after the proration policy, rounded once HALF_UP in the currency minor unit) is frozen with its evidence.
+- **Boundary.** Contractual gross is not taxable gross, net pay or money owed. Attendance and timesheets never scale a monthly salary. Draft only: no approval, locking, payslip, payment, statutory deduction or employee-facing payroll page. Employer policies, not compliance claims.
+- **Data and API.** Migration V44 (policy, run, immutable lines, ranges and source evidence; rollback refuses while rows exist); seven operations under `/api/v1/legal-entities/{legalEntityId}/payroll-policy` and `/payroll-runs`.
+- **Not included:** statutory rates and filings, taxable-gross classification, allowances, bonuses, overtime, unpaid-leave deduction, retro pay, payslips, approval and locking, accounting posting, bank or mobile-money transfers, loans and advances, exchange rates, bulk policy import or export, deletion.
 
 ## Epic 11 Dashboards and AI
 

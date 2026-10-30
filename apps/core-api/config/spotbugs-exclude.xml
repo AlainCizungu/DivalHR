@@ -137,6 +137,12 @@
       <Class name="com.divalhr.core.payroll.api.EmployeeCompensationController"/>
       <Class name="com.divalhr.core.payroll.api.MyCompensationController"/>
       <Class name="com.divalhr.core.people.application.PeopleEmploymentIntervals"/>
+      <Class name="com.divalhr.core.people.application.PeoplePayrollPopulation"/>
+      <!-- MVP-094A: monthly payroll policies and runs hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.application\.Payroll(Policy|Run|Entities|Operations|Recorder)[A-Za-z]*"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPayrollRunRepository"/>
+      <Class name="com.divalhr.core.payroll.api.PayrollPolicyController"/>
+      <Class name="com.divalhr.core.payroll.api.PayrollRunController"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
       <Class name="com.divalhr.core.integrations.application.WebhookService"/>

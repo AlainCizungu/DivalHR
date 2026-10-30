@@ -177,6 +177,7 @@ const TENANT_GROUPS: {
         'payroll',
         'home-card-payroll-preparation',
       ),
+      tenantCard('payrollRuns', '/admin/payroll-runs', 'payroll', 'home-card-payroll-runs'),
       tenantCard('tasks', '/admin/tasks', 'check', 'home-card-tasks'),
       tenantCard('expenses', '/admin/expenses', 'payroll', 'home-card-expenses'),
     ],
@@ -209,6 +210,7 @@ const TENANT_GROUPS: {
  */
 const PROGRESS: { id: string; icon: IconName }[] = [
   { id: 'payroll', icon: 'payroll' },
+  { id: 'payrollRuns', icon: 'payroll' },
   { id: 'compensation', icon: 'contract' },
   { id: 'briefing', icon: 'pulse' },
   { id: 'integrations', icon: 'network' },

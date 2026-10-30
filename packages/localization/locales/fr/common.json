@@ -56,7 +56,8 @@
     "expenses": "Notes de frais",
     "myExpenses": "Mes notes de frais",
     "myCompensation": "Ma rémunération",
-    "expenseApprovals": "Notes de frais à approuver"
+    "expenseApprovals": "Notes de frais à approuver",
+    "payrollRuns": "Exécutions de paie"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -84,7 +85,8 @@
     "crumb": {
       "employeeRecord": "Dossier de l’employé",
       "contractTemplate": "Modèle de contrat",
-      "contract": "Contrat"
+      "contract": "Contrat",
+      "payrollRun": "Exécution de paie"
     }
   },
   "locale": {
@@ -239,6 +241,10 @@
         "whatsapp": {
           "title": "WhatsApp Business",
           "description": "Configurez le connecteur WhatsApp Business, ses destinataires consentants et les messages de test."
+        },
+        "payrollRuns": {
+          "title": "Exécutions de paie",
+          "description": "Définissez la politique de paie mensuelle et créez des exécutions en brouillon avec brut contractuel pour les mois clos."
         }
       },
       "attention": {
@@ -258,7 +264,7 @@
         "items": {
           "payroll": {
             "title": "Préparation, verrouillage et export de la paie",
-            "description": "Verrouillez les périodes approuvées, générez des données de paie traçables, examinez les écarts et exportez un fichier verrouillé. DivalHR ne calcule pas la paie."
+            "description": "Verrouillez les périodes approuvées, générez des données de paie traçables, examinez les écarts et exportez un fichier verrouillé. Ces données de temps travaillé ne contiennent aucun montant de paie."
           },
           "compensation": {
             "title": "Rémunérations mensuelles",
@@ -275,6 +281,10 @@
           "tasksExpenses": {
             "title": "Tâches et notes de frais",
             "description": "Tâches opérationnelles avec historique immuable, et notes de frais des employés approuvées par les responsables. L’approbation n’est pas un paiement."
+          },
+          "payrollRuns": {
+            "title": "Exécutions de paie mensuelles",
+            "description": "Créez des exécutions en brouillon pour un mois clos avec le brut contractuel issu de la rémunération mensuelle, et consultez les preuves figées. Un brouillon, pas une paie statutaire."
           }
         }
       }
@@ -340,12 +350,12 @@
         "description": "Accédez à vos bulletins une fois la paie calculée."
       },
       "statutoryCalculation": {
-        "title": "Calcul de la paie et règles légales",
-        "description": "Paie brute et nette à partir du temps approuvé et de la rémunération, avec retenues légales et déclarations de la RDC."
+        "title": "Retenues légales et net à payer",
+        "description": "Retenues légales et net à payer selon les règles de la RDC, à partir du brut contractuel en brouillon."
       },
       "payslipApproval": {
         "title": "Bulletins de paie et approbation du net à payer",
-        "description": "Examinez, approuvez et publiez les bulletins de paie une fois la paie calculée."
+        "description": "Examinez, approuvez et publiez les bulletins de paie une fois le net à payer approuvé."
       },
       "salaryAdvances": {
         "title": "Avances sur salaire",
@@ -633,7 +643,15 @@
     "COMPENSATION_PREVIEW_STALE": "L’aperçu n’est plus à jour : le dossier ou l’emploi a changé, ou l’aperçu a expiré. Faites un nouvel aperçu avant de confirmer.",
     "COMPENSATION_VERSION_CONFLICT": "La rémunération a changé depuis son ouverture. Le dernier état est affiché ; faites un nouvel aperçu du changement.",
     "COMPENSATION_TRANSITION_NOT_ALLOWED": "Cette action n’est pas autorisée dans l’état actuel de la rémunération. Seul un changement qui n’a pas encore commencé peut être annulé.",
-    "COMPENSATION_LIMIT_REACHED": "La limite de changements ou de changements programmés pour cet employé est atteinte."
+    "COMPENSATION_LIMIT_REACHED": "La limite de changements ou de changements programmés pour cet employé est atteinte.",
+    "PAYROLL_POLICY_NOT_FOUND": "Aucune politique de paie ne s’applique à cette entité juridique pour ce mois. Ajoutez une politique qui commence au plus tard le dernier jour du mois, puis relancez l’aperçu.",
+    "PAYROLL_POLICY_CONFLICT": "La chronologie des politiques a changé, ou cette politique est identique à celle déjà en vigueur ou utilise une date déjà prise. Vérifiez la chronologie, puis relancez l’aperçu.",
+    "PAYROLL_PERIOD_INVALID": "Le mois ou la date est hors de la plage autorisée : seuls les mois entièrement clos des 24 derniers mois, et des dates de politique de 24 mois en arrière à 366 jours en avant.",
+    "PAYROLL_RUN_NOT_FOUND": "Cette exécution de paie ou cette entité juridique n’existe pas ou ne vous est pas accessible.",
+    "PAYROLL_RUN_BLOCKED": "Au moins un employé a un blocage : l’exécution ne peut pas être créée. Résolvez les blocages affichés dans l’aperçu, puis relancez l’aperçu.",
+    "PAYROLL_RUN_PREVIEW_STALE": "L’aperçu n’est plus à jour : la politique, les employés, les affectations ou les rémunérations ont changé, l’aperçu a expiré, ou un brouillon identique existe déjà. Relancez l’aperçu.",
+    "PAYROLL_RUN_VERSION_CONFLICT": "Une autre version de cette exécution a été créée entre-temps. Rechargez la liste et relancez l’aperçu avant de créer une nouvelle version.",
+    "PAYROLL_RUN_LIMIT_REACHED": "Une limite est atteinte : au plus 5 000 employés par exécution, 25 versions par mois et par devise, et 60 politiques par entité juridique."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2823,7 +2841,7 @@
       "eyebrow": "La plateforme de gestion des effectifs pour l’Afrique",
       "line1": "Gérez vos talents.",
       "line2": "Pilotez vos opérations.",
-      "intro": "DivalHR est la plateforme de gestion des effectifs et des opérations des organisations africaines : dossiers employés, congés, horaires, présences, feuilles de temps, préparation de la paie, rémunérations mensuelles, tâches et notes de frais dans un seul système connecté ; le calcul de la paie, les bulletins de paie et les paiements arrivent prochainement.",
+      "intro": "DivalHR est la plateforme de gestion des effectifs et des opérations des organisations africaines : dossiers employés, congés, horaires, présences, feuilles de temps, préparation de la paie, rémunérations mensuelles, exécutions de paie mensuelles en brouillon, tâches et notes de frais dans un seul système connecté ; les retenues légales, les bulletins de paie et les paiements arrivent prochainement.",
       "signIn": "Se connecter à DivalHR",
       "note": "Déjà client ? Connectez-vous en toute sécurité."
     },
@@ -2898,7 +2916,7 @@
         },
         "pay": {
           "title": "Du temps à la paie",
-          "description": "Temps approuvé verrouillé, préparé et exporté pour la paie, et rémunérations mensuelles enregistrées dès aujourd’hui ; calcul de la paie, bulletins de paie et paiements prochainement."
+          "description": "Temps approuvé verrouillé, préparé et exporté pour la paie, rémunérations mensuelles enregistrées et brut contractuel en brouillon dès aujourd’hui ; retenues légales, bulletins de paie et paiements prochainement."
         },
         "intelligence": {
           "title": "Intelligence",
@@ -2925,8 +2943,8 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé et rémunérations mensuelles.",
-          "remaining": "Calcul de la paie brute et nette, retenues légales, bulletins de paie et paiement."
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel.",
+          "remaining": "Retenues légales, bulletins de paie, approbation du net à payer et paiement."
         },
         "loans": {
           "title": "Prêts et avances sur salaire",
@@ -3014,12 +3032,12 @@
         "integrations": "Webhooks signés et connecteur WhatsApp Business",
         "tasks": "Tâches opérationnelles",
         "expenses": "Notes de frais des employés et approbation par le responsable",
-        "languages": "Anglais et français"
+        "languages": "Anglais et français",
+        "payrollRuns": "Exécutions de paie mensuelles en brouillon avec brut contractuel"
       },
       "next": {
-        "payrollCalculation": "Calcul de la paie brute et nette",
         "statutory": "Pack légal pays pour la RDC",
-        "payslips": "Bulletins de paie",
+        "payslips": "Bulletins de paie et approbation du net à payer",
         "disbursement": "Versement par banque et mobile money, et rapprochement",
         "advances": "Avances sur salaire et prêts via des partenaires",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
@@ -3029,8 +3047,8 @@
     },
     "payroll": {
       "kicker": "Du temps approuvé à la préparation de la paie",
-      "title": "Préparez les données de paie. Enregistrez les rémunérations mensuelles.",
-      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. Le calcul de la paie brute et nette, les retenues légales, les bulletins de paie et le paiement arrivent prochainement.",
+      "title": "Préparez les données de paie. Enregistrez les rémunérations. Brut contractuel en brouillon.",
+      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. Les retenues légales, les bulletins de paie, l’approbation du net à payer et le paiement arrivent prochainement.",
       "steps": {
         "preparation": {
           "title": "Préparation de la paie",
@@ -3041,19 +3059,23 @@
           "description": "Montants de base mensuels datés en CDF ou en USD, avec historique. Enregistrer une rémunération ne calcule pas la paie et ne déclenche aucun paiement."
         },
         "calculation": {
-          "title": "Calcul et bulletins",
-          "description": "Paie brute et nette, retenues légales et bulletins de paie."
+          "title": "Retenues et bulletins",
+          "description": "Retenues légales, approbation du net à payer et bulletins de paie."
         },
         "payment": {
           "title": "Paiement et rapprochement",
           "description": "Instructions de paiement par mobile money ou banque, et rapprochement des résultats."
+        },
+        "runs": {
+          "title": "Exécutions mensuelles en brouillon",
+          "description": "Brut contractuel issu de la rémunération mensuelle et de votre politique de proratisation, avec des preuves figées par employé. Un brouillon, pas une paie statutaire."
         }
       },
       "railsLabel": "Canaux de paiement prévus",
       "bankAccount": "Compte bancaire",
       "bankFile": "Fichier bancaire",
       "note": "Les paiements ne sont pas disponibles aujourd’hui. Lorsqu’ils arriveront, ils seront exécutés par votre banque ou un prestataire de paiement agréé, et DivalHR ne détiendra pas les fonds des employés. Votre organisation reste responsable de ses décisions de paie et de ses obligations légales. Les versements et les canaux de paiement sont prévus et arriveront plus tard.",
-      "activeMessage": "La préparation de la paie et les rémunérations mensuelles sont actives. Le calcul des salaires, les règles légales et le paiement ne le sont pas encore."
+      "activeMessage": "La préparation de la paie, les rémunérations mensuelles et le brut contractuel en brouillon sont actifs. Les retenues légales et le paiement ne le sont pas encore."
     },
     "integrations": {
       "kicker": "Écosystème connecté",
@@ -3150,7 +3172,7 @@
         },
         "finance": {
           "title": "Finance",
-          "description": "Exports du temps approuvé, préparation de la paie et rémunérations mensuelles dès aujourd’hui ; calcul de la paie prochainement."
+          "description": "Exports du temps approuvé, préparation de la paie, rémunérations mensuelles et brut contractuel en brouillon dès aujourd’hui ; retenues légales prochainement."
         },
         "employees": {
           "title": "Employés",
@@ -5176,6 +5198,177 @@
       "notice": "Les minutes travaillées ne modifient pas automatiquement un salaire mensuel, et aucun paiement n’est initié.",
       "privacy": "Vous seul et les administrateurs de votre organisation pouvez la consulter. DivalHR n’en conserve aucune copie dans votre navigateur.",
       "empty": "Aucune rémunération n’a encore été enregistrée pour vous."
+    }
+  },
+  "payrollRuns": {
+    "title": "Exécutions de paie",
+    "description": "Définissez la politique de paie mensuelle d’une entité juridique, simulez et créez une exécution en brouillon pour un mois clos, et consultez les preuves figées de chaque brut contractuel.",
+    "notice": "Le brut contractuel est la rémunération mensuelle de base après votre politique de proratisation. C’est un brouillon : ni brut imposable, ni net à payer, ni bulletin de paie, ni paiement, et pas une paie statutaire.",
+    "unauthorized": "Seul un administrateur de l’organisation avec authentification multifacteur peut gérer les exécutions de paie.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour gérer les exécutions de paie.",
+    "validation": "Vérifiez les champs signalés et réessayez.",
+    "forbidden": "Vous n’êtes pas autorisé à effectuer cette action.",
+    "draftLabel": "Brouillon — pas une paie statutaire",
+    "contractualGross": "Brut contractuel",
+    "employeeCount": "Employés",
+    "blockedCount": "Employés bloqués",
+    "loading": "Chargement…",
+    "loadingMore": "Chargement…",
+    "loadMore": "Charger plus d’exécutions",
+    "loadMoreLines": "Charger plus d’employés",
+    "previewing": "Calcul de l’aperçu…",
+    "saving": "Enregistrement…",
+    "close": "Fermer",
+    "status": {
+      "DRAFT": "Brouillon — pas une paie statutaire",
+      "SUPERSEDED": "Remplacée"
+    },
+    "payDay": {
+      "DAY": "Le {{day}} du mois",
+      "LAST_DAY": "Dernier jour du mois"
+    },
+    "proration": {
+      "CALENDAR_DAYS": "Jours calendaires",
+      "FIXED_30_DAYS": "30 jours fixes",
+      "NONE": "Aucune proratisation"
+    },
+    "prorationHelp": {
+      "CALENDAR_DAYS": "Jours calendaires éligibles divisés par le nombre de jours du mois.",
+      "FIXED_30_DAYS": "Jours éligibles divisés par 30, sans jamais dépasser un mois complet.",
+      "NONE": "Un mois partiel est un blocage : seuls les mois complets peuvent être calculés."
+    },
+    "employeeBlockers": {
+      "COMPENSATION_MISSING": "La rémunération manque pour une partie de l’emploi dans cette entité juridique.",
+      "CURRENCY_MISMATCH": "La rémunération est enregistrée dans une autre devise.",
+      "FOREIGN_PLACEMENT": "L’employé est affecté à une autre entité juridique pendant une partie du mois.",
+      "OVERLAPPING_EVIDENCE": "Des emplois, affectations ou rémunérations qui se chevauchent doivent être corrigés.",
+      "MULTIPLE_MONTHLY_AMOUNTS": "Le montant mensuel change dans le mois. Alignez la date d’effet.",
+      "PARTIAL_MONTH_NOT_ALLOWED": "La politique ne proratise pas et l’employé n’est éligible que pour une partie du mois."
+    },
+    "explanation": {
+      "FULL_MONTH": "Mois complet : le montant mensuel exact",
+      "PRORATED_CALENDAR_DAYS": "Proratisé en jours calendaires",
+      "PRORATED_FIXED_30_DAYS": "Proratisé sur 30 jours fixes",
+      "CAPPED_AT_FULL_MONTH": "Plafonné à un mois complet",
+      "STARTED_IN_MONTH": "Entré dans le mois",
+      "ENDED_IN_MONTH": "Sorti dans le mois",
+      "MULTIPLE_PERIODS": "Plusieurs périodes éligibles"
+    },
+    "sourceKind": {
+      "EMPLOYMENT": "Emploi",
+      "PLACEMENT": "Affectation",
+      "COMPENSATION": "Rémunération"
+    },
+    "entity": {
+      "title": "Entité juridique",
+      "label": "Entité juridique",
+      "choose": "Choisissez une entité juridique",
+      "none": "Votre organisation n’a pas encore d’entité juridique.",
+      "unavailable": "Les entités juridiques n’ont pas pu être chargées. Réessayez plus tard."
+    },
+    "policy": {
+      "title": "Politique de paie mensuelle",
+      "advisory": "Ce sont les politiques d’employeur de votre organisation, et non un avis juridique ni une déclaration de conformité. Faites-les examiner par vos conseillers en paie et en droit avant de vous y fier.",
+      "current": "Politique en vigueur aujourd’hui",
+      "currentText": "Jour de paie : {{payDay}}. Proratisation : {{proration}}. En vigueur depuis le {{from}}.",
+      "none": "Aucune politique n’est configurée. Ajoutez-en une avant de créer une exécution.",
+      "timeline": "Chronologie des politiques",
+      "open": "Sans fin",
+      "columns": {
+        "sequence": "Version",
+        "effectiveFrom": "En vigueur du",
+        "effectiveTo": "Jusqu’au",
+        "payDay": "Jour de paie",
+        "proration": "Proratisation"
+      },
+      "add": "Ajouter une politique",
+      "formTitle": "Ajouter une politique de paie",
+      "formHelp": "Les politiques sont ajoutées, jamais modifiées. Une exécution créée conserve la politique avec laquelle elle a été calculée. Vous verrez un aperçu avant tout enregistrement.",
+      "effectiveFrom": "Date d’effet",
+      "effectiveFromHelp": "Le premier jour d’application de cette politique ; de 24 mois en arrière à 366 jours en avant.",
+      "payDay": "Jour de paie",
+      "proration": "Méthode de proratisation",
+      "preview": "Aperçu",
+      "before": "Chronologie avant",
+      "after": "Chronologie après",
+      "nothing": "Rien.",
+      "blockersTitle": "Cette politique ne peut pas être enregistrée",
+      "blockers": {
+        "NO_CHANGE": "Cette politique est identique à celle déjà en vigueur à cette date. Rien ne changerait.",
+        "LIMIT_REACHED": "La limite de 60 politiques pour cette entité juridique est atteinte."
+      },
+      "confirm": "Confirmer et enregistrer",
+      "announce": "Politique de paie enregistrée.",
+      "problems": {
+        "effectiveFrom": "Saisissez une date d’effet valide."
+      }
+    },
+    "preview": {
+      "title": "Aperçu",
+      "expires": "Cet aperçu est valable jusqu’au {{at}}.",
+      "heading": "Aperçu pour {{period}} en {{currency}}",
+      "policy": "Politique appliquée",
+      "policyText": "Version {{sequence}} : jour de paie {{payDay}} ; proratisation {{proration}}.",
+      "blocked_one": "{{count}} employé est bloqué. Aucune exécution ne peut être créée tant que le blocage n’est pas résolu.",
+      "blocked_other": "{{count}} employés sont bloqués. Aucune exécution ne peut être créée tant que les blocages ne sont pas résolus.",
+      "identical": "Le brouillon actuel est déjà identique à ce calcul. Rien ne change.",
+      "openExisting": "Ouvrir le brouillon actuel (version {{version}})",
+      "existing": "Un brouillon actuel (version {{version}}) existe. Créer une exécution ajoute une nouvelle version et le remplace.",
+      "noLines": "Aucun employé n’est éligible pour ce mois et cette devise.",
+      "linesCaption": "Brut contractuel par employé (aperçu)"
+    },
+    "create": {
+      "title": "Créer une exécution mensuelle",
+      "help": "Choisissez un mois clos et une devise. Vous verrez le calcul de chaque employé avant la création de l’exécution.",
+      "unavailable": "La politique doit être chargée avant de pouvoir simuler une exécution.",
+      "period": "Mois",
+      "periodHelp": "Uniquement les mois entièrement clos des 24 derniers mois.",
+      "currency": "Devise",
+      "currencyHelp": "Les devises ne sont jamais converties ni combinées.",
+      "preview": "Simuler l’exécution",
+      "confirm": "Confirmer et créer l’exécution en brouillon",
+      "whyIdentical": "Le brouillon actuel est identique : il n’y a rien à créer.",
+      "whyBlocked": "Résolvez d’abord les blocages. Une exécution exige zéro employé bloqué."
+    },
+    "list": {
+      "title": "Exécutions créées",
+      "empty": "Aucune exécution de paie n’a encore été créée pour cette entité juridique.",
+      "period": "Mois",
+      "currency": "Devise",
+      "version": "Version",
+      "status": "Statut",
+      "actions": "Actions",
+      "open": "Ouvrir",
+      "openContext": "exécution de paie {{period}}, {{currency}}, version {{version}}",
+      "tableLabel": "Tableau des exécutions de paie"
+    },
+    "lines": {
+      "employee": "Matricule",
+      "eligible": "Jours et plages éligibles",
+      "denominator": "Dénominateur",
+      "monthly": "Montant mensuel",
+      "explanation": "Explication",
+      "sources": "Enregistrements sources",
+      "blockers": "Blocages",
+      "range": "du {{from}} au {{to}}",
+      "source": "{{kind}} {{id}}, version {{version}} (du {{from}} au {{to}})",
+      "days_one": "{{count}} jour",
+      "days_other": "{{count}} jours",
+      "fullMonth": "Aucun (mois complet)"
+    },
+    "detail": {
+      "title": "Exécution de paie {{period}}, {{currency}}, version {{version}}",
+      "fallbackTitle": "Exécution de paie",
+      "description": "La politique figée, les totaux et les preuves de calcul de cette exécution. Les corrections ultérieures des enregistrements sources ne la modifient jamais.",
+      "back": "Retour aux exécutions de paie",
+      "summary": "Résumé de l’exécution",
+      "createdAt": "Créée",
+      "superseded": "Une version ultérieure a remplacé cette exécution.",
+      "openLatest": "Ouvrir la version ultérieure",
+      "policy": "Politique figée",
+      "lines": "Employés",
+      "noLines": "Cette exécution ne contient aucune ligne d’employé.",
+      "linesCaption": "Brut contractuel et enregistrements sources par employé"
     }
   }
 }

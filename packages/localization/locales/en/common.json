@@ -56,7 +56,8 @@
     "expenses": "Expenses",
     "myExpenses": "My expenses",
     "myCompensation": "My compensation",
-    "expenseApprovals": "Expense approvals"
+    "expenseApprovals": "Expense approvals",
+    "payrollRuns": "Payroll runs"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -84,7 +85,8 @@
     "crumb": {
       "employeeRecord": "Employee record",
       "contractTemplate": "Contract template",
-      "contract": "Contract"
+      "contract": "Contract",
+      "payrollRun": "Payroll run"
     }
   },
   "locale": {
@@ -239,6 +241,10 @@
         "whatsapp": {
           "title": "WhatsApp Business",
           "description": "Set up the WhatsApp Business connector, its opted-in recipients and test messages."
+        },
+        "payrollRuns": {
+          "title": "Payroll runs",
+          "description": "Set the monthly payroll policy and create draft runs with contractual gross for closed months."
         }
       },
       "attention": {
@@ -258,7 +264,7 @@
         "items": {
           "payroll": {
             "title": "Payroll preparation, locking and export",
-            "description": "Lock approved periods, generate traceable payroll inputs, review variance and export a locked file. DivalHR does not calculate pay."
+            "description": "Lock approved periods, generate traceable payroll inputs, review variance and export a locked file. These worked-time inputs carry no pay amount."
           },
           "compensation": {
             "title": "Monthly compensation records",
@@ -275,6 +281,10 @@
           "tasksExpenses": {
             "title": "Tasks and expenses",
             "description": "Operational tasks with an immutable history, and employee expenses approved by managers. Approval is not payment."
+          },
+          "payrollRuns": {
+            "title": "Monthly payroll runs",
+            "description": "Create draft runs for a closed month with contractual gross from monthly compensation, and read the frozen evidence. A draft, not statutory payroll."
           }
         }
       }
@@ -340,12 +350,12 @@
         "description": "Access your payslips once payroll is calculated."
       },
       "statutoryCalculation": {
-        "title": "Payroll calculation and statutory rules",
-        "description": "Gross and net pay from approved time and compensation, with DRC statutory deductions and reporting."
+        "title": "Statutory deductions and net pay",
+        "description": "Statutory deductions and net pay with DRC rules, building on the draft contractual gross."
       },
       "payslipApproval": {
         "title": "Payslips and net-pay approval",
-        "description": "Review, approve and publish payslips once payroll is calculated."
+        "description": "Review, approve and publish payslips once net pay is approved."
       },
       "salaryAdvances": {
         "title": "Salary advances",
@@ -633,7 +643,15 @@
     "COMPENSATION_PREVIEW_STALE": "The preview is out of date because the record or the employment changed or the preview expired. Preview the change again before confirming.",
     "COMPENSATION_VERSION_CONFLICT": "The compensation changed since you opened it. The latest record is shown; preview the change again.",
     "COMPENSATION_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current state of the compensation. Only a change that has not started yet can be cancelled.",
-    "COMPENSATION_LIMIT_REACHED": "The limit of changes or scheduled changes for this employee has been reached."
+    "COMPENSATION_LIMIT_REACHED": "The limit of changes or scheduled changes for this employee has been reached.",
+    "PAYROLL_POLICY_NOT_FOUND": "No payroll policy applies to this legal entity for that month. Add a policy that starts on or before the last day of the month, then preview again.",
+    "PAYROLL_POLICY_CONFLICT": "The policy timeline changed, or this policy is identical to the one already in force or uses a date already taken. Review the timeline and preview again.",
+    "PAYROLL_PERIOD_INVALID": "The month or date is outside the allowed range: only fully closed months of the past 24 months, and policy dates from 24 months back to 366 days ahead.",
+    "PAYROLL_RUN_NOT_FOUND": "This payroll run or legal entity does not exist or is not available to you.",
+    "PAYROLL_RUN_BLOCKED": "At least one employee has a blocker, so the run cannot be created. Resolve the blockers shown in the preview, then preview again.",
+    "PAYROLL_RUN_PREVIEW_STALE": "The preview is out of date because the policy, employees, placements or compensation changed, the preview expired, or an identical draft already exists. Preview again.",
+    "PAYROLL_RUN_VERSION_CONFLICT": "Another version of this run was created in the meantime. Reload the list and preview again before creating a new version.",
+    "PAYROLL_RUN_LIMIT_REACHED": "A limit was reached: at most 5,000 employees per run, 25 versions per month and currency, and 60 policies per legal entity."
   },
   "notFound": {
     "title": "Page not found",
@@ -2823,7 +2841,7 @@
       "eyebrow": "The workforce operating platform for Africa",
       "line1": "Run your people.",
       "line2": "Power your operations.",
-      "intro": "DivalHR is the workforce and operations platform for African organizations: employee records, leave, schedules, attendance, timesheets, payroll-input preparation, monthly compensation records, tasks and expenses in one connected system—with payroll calculation, payslips and payments coming next.",
+      "intro": "DivalHR is the workforce and operations platform for African organizations: employee records, leave, schedules, attendance, timesheets, payroll-input preparation, monthly compensation records, monthly draft payroll runs, tasks and expenses in one connected system—with statutory deductions, payslips and payments coming next.",
       "signIn": "Sign in to DivalHR",
       "note": "Already a customer? Sign in securely."
     },
@@ -2898,7 +2916,7 @@
         },
         "pay": {
           "title": "Time to pay",
-          "description": "Approved time locked, prepared and exported for payroll, with monthly compensation records today; payroll calculation, payslips and payments next."
+          "description": "Approved time locked, prepared and exported for payroll, with monthly compensation records and draft contractual gross today; statutory deductions, payslips and payments next."
         },
         "intelligence": {
           "title": "Intelligence",
@@ -2925,8 +2943,8 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Period locking, payroll-input generation, variance review, locked input export and monthly compensation records.",
-          "remaining": "Gross and net calculation, statutory deductions, payslips and payment."
+          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross.",
+          "remaining": "Statutory deductions, payslips, net-pay approval and payment."
         },
         "loans": {
           "title": "Loans & Salary Advances",
@@ -3014,12 +3032,12 @@
         "integrations": "Signed webhooks and a WhatsApp Business connector",
         "tasks": "Operational tasks",
         "expenses": "Employee expenses and manager approval",
-        "languages": "English and French"
+        "languages": "English and French",
+        "payrollRuns": "Monthly draft payroll runs with contractual gross"
       },
       "next": {
-        "payrollCalculation": "Gross and net payroll calculation",
         "statutory": "DRC statutory country pack",
-        "payslips": "Payslips",
+        "payslips": "Payslips and net-pay approval",
         "disbursement": "Bank and mobile-money disbursement and reconciliation",
         "advances": "Salary advances and partner loans",
         "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
@@ -3029,8 +3047,8 @@
     },
     "payroll": {
       "kicker": "From approved time to payroll preparation",
-      "title": "Prepare payroll inputs. Record monthly compensation.",
-      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. Gross and net calculation, statutory deductions, payslips and payment come next.",
+      "title": "Prepare payroll inputs. Record compensation. Draft contractual gross.",
+      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. From it, administrators create monthly draft runs that show contractual gross with the evidence behind every amount. Statutory deductions, payslips, net-pay approval and payment come next.",
       "steps": {
         "preparation": {
           "title": "Payroll preparation",
@@ -3041,19 +3059,23 @@
           "description": "Effective-dated monthly base amounts in CDF or USD, with history. Recording compensation does not calculate payroll or initiate payment."
         },
         "calculation": {
-          "title": "Calculation and payslips",
-          "description": "Gross and net pay, statutory deductions and payslips."
+          "title": "Deductions and payslips",
+          "description": "Statutory deductions, net-pay approval and payslips."
         },
         "payment": {
           "title": "Payment and reconciliation",
           "description": "Payment instructions by mobile money or bank, and reconciliation of results."
+        },
+        "runs": {
+          "title": "Monthly draft runs",
+          "description": "Contractual gross from monthly compensation and your proration policy, with frozen evidence per employee. A draft, not statutory payroll."
         }
       },
       "railsLabel": "Planned payment rails",
       "bankAccount": "Bank account",
       "bankFile": "Bank file",
       "note": "Payments are not available today. When they arrive, they will be executed by your bank or a licensed payment provider, and DivalHR will not hold employee funds. Your organization remains responsible for its payroll decisions and legal obligations. Payouts and payment rails are planned and coming later.",
-      "activeMessage": "Payroll preparation and monthly compensation records are active. Salary calculation, statutory rules and payment are not."
+      "activeMessage": "Payroll preparation, monthly compensation records and draft contractual gross are active. Statutory deductions and payment are not."
     },
     "integrations": {
       "kicker": "Connected ecosystem",
@@ -3150,7 +3172,7 @@
         },
         "finance": {
           "title": "Finance",
-          "description": "Approved-time exports, payroll-input preparation and monthly compensation records today; payroll calculation next."
+          "description": "Approved-time exports, payroll-input preparation, monthly compensation records and draft contractual gross today; statutory deductions next."
         },
         "employees": {
           "title": "Employees",
@@ -5176,6 +5198,177 @@
       "notice": "Worked minutes do not automatically change a monthly salary, and no payment is initiated.",
       "privacy": "Only you and the administrators of your organization can read this. DivalHR keeps no copy of it in your browser.",
       "empty": "No compensation has been recorded for you yet."
+    }
+  },
+  "payrollRuns": {
+    "title": "Payroll runs",
+    "description": "Set a legal entity’s monthly payroll policy, preview and create a draft run for a closed month, and read the frozen evidence behind each contractual gross amount.",
+    "notice": "Contractual gross is monthly base compensation after your proration policy. It is a draft: not taxable gross, net pay, a payslip or a payment, and not statutory payroll.",
+    "unauthorized": "Only a tenant administrator with multi-factor authentication can manage payroll runs.",
+    "signInRequired": "Sign in as a tenant administrator to manage payroll runs.",
+    "validation": "Check the highlighted fields and try again.",
+    "forbidden": "You are not allowed to do this.",
+    "draftLabel": "Draft—not statutory payroll",
+    "contractualGross": "Contractual gross",
+    "employeeCount": "Employees",
+    "blockedCount": "Blocked employees",
+    "loading": "Loading…",
+    "loadingMore": "Loading…",
+    "loadMore": "Load more runs",
+    "loadMoreLines": "Load more employees",
+    "previewing": "Previewing…",
+    "saving": "Saving…",
+    "close": "Close",
+    "status": {
+      "DRAFT": "Draft—not statutory payroll",
+      "SUPERSEDED": "Superseded"
+    },
+    "payDay": {
+      "DAY": "Day {{day}} of the month",
+      "LAST_DAY": "Last day of the month"
+    },
+    "proration": {
+      "CALENDAR_DAYS": "Calendar days",
+      "FIXED_30_DAYS": "Fixed 30 days",
+      "NONE": "No proration"
+    },
+    "prorationHelp": {
+      "CALENDAR_DAYS": "Eligible calendar days divided by the calendar days of the month.",
+      "FIXED_30_DAYS": "Eligible days divided by 30, never more than a full month.",
+      "NONE": "A partial month is a blocker: only full months can be calculated."
+    },
+    "employeeBlockers": {
+      "COMPENSATION_MISSING": "Compensation is missing for part of the employment in this legal entity.",
+      "CURRENCY_MISMATCH": "Compensation is recorded in another currency.",
+      "FOREIGN_PLACEMENT": "The employee is placed in another legal entity for part of the month.",
+      "OVERLAPPING_EVIDENCE": "Overlapping employment, placement or compensation records need correcting.",
+      "MULTIPLE_MONTHLY_AMOUNTS": "The monthly amount changes inside the month. Align the effective date.",
+      "PARTIAL_MONTH_NOT_ALLOWED": "The policy does not prorate and the employee is eligible for only part of the month."
+    },
+    "explanation": {
+      "FULL_MONTH": "Full month: the exact monthly amount",
+      "PRORATED_CALENDAR_DAYS": "Prorated by calendar days",
+      "PRORATED_FIXED_30_DAYS": "Prorated on a fixed 30 days",
+      "CAPPED_AT_FULL_MONTH": "Capped at a full month",
+      "STARTED_IN_MONTH": "Started in the month",
+      "ENDED_IN_MONTH": "Ended in the month",
+      "MULTIPLE_PERIODS": "Several eligible periods"
+    },
+    "sourceKind": {
+      "EMPLOYMENT": "Employment",
+      "PLACEMENT": "Placement",
+      "COMPENSATION": "Compensation"
+    },
+    "entity": {
+      "title": "Legal entity",
+      "label": "Legal entity",
+      "choose": "Choose a legal entity",
+      "none": "Your organization has no legal entity yet.",
+      "unavailable": "Legal entities could not be loaded. Try again later."
+    },
+    "policy": {
+      "title": "Monthly payroll policy",
+      "advisory": "These are your organization’s employer policies, not legal advice or a compliance claim. Have your payroll and legal advisers review them before you rely on them.",
+      "current": "Policy in force today",
+      "currentText": "Pay day: {{payDay}}. Proration: {{proration}}. Effective {{from}}.",
+      "none": "No policy is configured. Add one before creating a run.",
+      "timeline": "Policy timeline",
+      "open": "Open-ended",
+      "columns": {
+        "sequence": "Version",
+        "effectiveFrom": "Effective from",
+        "effectiveTo": "Effective to",
+        "payDay": "Pay day",
+        "proration": "Proration"
+      },
+      "add": "Add a policy",
+      "formTitle": "Add a payroll policy",
+      "formHelp": "Policies are added, never edited. A created run keeps the policy it was calculated with. You will see a preview before anything is recorded.",
+      "effectiveFrom": "Effective date",
+      "effectiveFromHelp": "The first day this policy applies; from 24 months ago to 366 days ahead.",
+      "payDay": "Pay day",
+      "proration": "Proration method",
+      "preview": "Preview",
+      "before": "Timeline before",
+      "after": "Timeline after",
+      "nothing": "Nothing.",
+      "blockersTitle": "This policy cannot be recorded",
+      "blockers": {
+        "NO_CHANGE": "This policy is identical to the one already in force on that date. Nothing would change.",
+        "LIMIT_REACHED": "The limit of 60 policies for this legal entity has been reached."
+      },
+      "confirm": "Confirm and record",
+      "announce": "Payroll policy recorded.",
+      "problems": {
+        "effectiveFrom": "Enter a valid effective date."
+      }
+    },
+    "preview": {
+      "title": "Preview",
+      "expires": "This preview is valid until {{at}}.",
+      "heading": "Preview for {{period}} in {{currency}}",
+      "policy": "Policy applied",
+      "policyText": "Version {{sequence}}: pay day {{payDay}}; proration {{proration}}.",
+      "blocked_one": "{{count}} employee is blocked. No run can be created until the blocker is resolved.",
+      "blocked_other": "{{count}} employees are blocked. No run can be created until the blockers are resolved.",
+      "identical": "The current draft is already identical to this calculation. Nothing changes.",
+      "openExisting": "Open the current draft (version {{version}})",
+      "existing": "A current draft (version {{version}}) exists. Creating a run adds a new version and supersedes it.",
+      "noLines": "No employee is eligible for this month and currency.",
+      "linesCaption": "Contractual gross per employee (preview)"
+    },
+    "create": {
+      "title": "Create a monthly run",
+      "help": "Choose a closed month and a currency. You will see the calculation for every employee before the run is created.",
+      "unavailable": "The policy must load before a run can be previewed.",
+      "period": "Month",
+      "periodHelp": "Only fully closed months of the past 24 months.",
+      "currency": "Currency",
+      "currencyHelp": "Currencies are never converted or combined.",
+      "preview": "Preview the run",
+      "confirm": "Confirm and create the draft run",
+      "whyIdentical": "The current draft is identical, so there is nothing to create.",
+      "whyBlocked": "Resolve the blockers first. A run needs zero blocked employees."
+    },
+    "list": {
+      "title": "Created runs",
+      "empty": "No payroll run has been created yet for this legal entity.",
+      "period": "Month",
+      "currency": "Currency",
+      "version": "Version",
+      "status": "Status",
+      "actions": "Actions",
+      "open": "Open",
+      "openContext": "payroll run {{period}}, {{currency}}, version {{version}}",
+      "tableLabel": "Table of payroll runs"
+    },
+    "lines": {
+      "employee": "Employee number",
+      "eligible": "Eligible days and ranges",
+      "denominator": "Denominator",
+      "monthly": "Monthly amount",
+      "explanation": "Explanation",
+      "sources": "Source records",
+      "blockers": "Blockers",
+      "range": "{{from}} to {{to}}",
+      "source": "{{kind}} {{id}}, version {{version}} ({{from}} to {{to}})",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "fullMonth": "None (full month)"
+    },
+    "detail": {
+      "title": "Payroll run {{period}}, {{currency}}, version {{version}}",
+      "fallbackTitle": "Payroll run",
+      "description": "The frozen policy, totals and calculation evidence of this run. Later corrections to the source records never change it.",
+      "back": "Back to payroll runs",
+      "summary": "Run summary",
+      "createdAt": "Created",
+      "superseded": "A later version replaced this run.",
+      "openLatest": "Open the later version",
+      "policy": "Frozen policy",
+      "lines": "Employees",
+      "noLines": "This run has no employee line.",
+      "linesCaption": "Contractual gross and source records per employee"
     }
   }
 }

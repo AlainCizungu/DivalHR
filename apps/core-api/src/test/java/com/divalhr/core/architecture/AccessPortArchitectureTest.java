@@ -8,6 +8,7 @@ import com.divalhr.core.platform.access.EmployeeAccessLinks;
 import com.divalhr.core.platform.access.EmploymentContractFacts;
 import com.divalhr.core.platform.access.EmploymentIntervals;
 import com.divalhr.core.platform.access.LockedApprovedTime;
+import com.divalhr.core.platform.access.PayrollPopulation;
 import com.divalhr.core.platform.access.ReportingLines;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -110,6 +111,26 @@ class AccessPortArchitectureTest {
           .and()
           .haveName("lockShared")
           .should(JOIN_THE_CALLER);
+
+  /** MVP-094A: the shared employment locks of a payroll run creation join its transaction. */
+  @ArchTest
+  static final ArchRule payrollPopulationLockJoinsTheCoordinatorsTransaction =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .implement(PayrollPopulation.class)
+          .and()
+          .haveName("lockShared")
+          .should(JOIN_THE_CALLER);
+
+  @Test
+  void thePayrollPopulationPortReadsAndLocksOnlyThroughItsDeclaredMethods() {
+    assertThat(
+            Stream.of(PayrollPopulation.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactlyInAnyOrder("read", "lockShared");
+  }
 
   @Test
   void theCompensationPortsReadAndLockOnlyThroughTheirDeclaredMethods() {

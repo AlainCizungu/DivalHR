@@ -123,20 +123,14 @@ describe('catalogue (UI2-1, UI2-2, D93-14)', () => {
       'timesheets',
       'payrollPreparation',
       'compensation',
+      'payrollRuns',
       'operations',
       'integrations',
       'tasks',
       'expenses',
       'languages',
     ]);
-    expect(COMING_NEXT).toEqual([
-      'payrollCalculation',
-      'statutory',
-      'payslips',
-      'disbursement',
-      'advances',
-      'platform',
-    ]);
+    expect(COMING_NEXT).toEqual(['statutory', 'payslips', 'disbursement', 'advances', 'platform']);
     expect(MODULES.find((module) => module.id === 'scheduling')?.vision).toBe(false);
     expect(new Set(MODULES.map((module) => module.id)).size).toBe(MODULES.length);
   });
@@ -286,7 +280,7 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     // Test 14: payment, statutory, payslip, loan, benefit, performance, general-document and
     // mobile claims are never in "Available now".
     expect(now).not.toMatch(
-      /calcul|gross|brute|net pay|payslip|bulletin|statut|légal|disburs|versement|reconcil|rapproch|advance|avance|loan|prêt|benefit|avantage|performance|e-?signature|signature|mobile|native|natives/iu,
+      /net pay|payslip|bulletin|statut|légal|disburs|versement|reconcil|rapproch|advance|avance|loan|prêt|benefit|avantage|performance|e-?signature|signature|mobile|native|natives/iu,
     );
     // ...and appear in "Coming next" (and, for payroll, only as planned on the payroll card).
     for (const id of COMING_NEXT) {
@@ -308,6 +302,7 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
       strings.landing.payroll.activeMessage,
       strings.landing.payroll.steps.preparation.description,
       strings.landing.payroll.steps.compensation.description,
+      strings.landing.payroll.steps.runs.description,
     ].join(' ');
     expect(active).not.toMatch(/payslip|bulletin|net pay|paie nette|disburs|versement/iu);
   });
@@ -319,7 +314,7 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     expect(message).toHaveTextContent(strings.landing.modules.capabilities);
     const section = container.querySelector('#payroll') as HTMLElement;
     const step = (key: string) => section.querySelector(`li[data-step="${key}"]`) as HTMLElement;
-    for (const key of ['preparation', 'compensation']) {
+    for (const key of ['preparation', 'compensation', 'runs']) {
       expect(step(key)).toHaveTextContent(strings.landing.modules.available);
       expect(step(key)).not.toHaveTextContent(strings.landing.modules.later);
     }
@@ -351,6 +346,19 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     // U4-1 kept: no text claims that DivalHR calculates payroll, moves money or lends today.
     const now = AVAILABLE_NOW.map((id) => strings.landing.modules.now[id]).join(' ');
     expect(now).not.toMatch(/calcul|payout|versement|disburse|loan|prêt|credit|crédit/iu);
+    // D94A-12: draft contractual gross is the only payroll calculation named as available.
+    expect(strings.landing.modules.now.payrollRuns).toMatch(
+      locale === 'en' ? /draft contractual gross|contractual gross/iu : /brut contractuel/iu,
+    );
+    expect(strings.landing.modules.now.payrollRuns).toMatch(
+      locale === 'en' ? /draft/iu : /brouillon/iu,
+    );
+    const claims = JSON.stringify([
+      strings.landing.modules.items.payroll,
+      strings.landing.payroll,
+      strings.landing.modules.now,
+    ]);
+    expect(claims).not.toMatch(/complian|conform|filing|déclar/iu);
   });
 
   it('describes Dival AI as the governed, grounded daily briefing only (D93-14)', async () => {

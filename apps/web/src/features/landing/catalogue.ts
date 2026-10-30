@@ -28,8 +28,8 @@ export const MODULES: readonly ModuleEntry[] = [
   // substitute approvers (MVP-040 to MVP-041G). Balances and team calendars are not built.
   { id: 'leave', icon: 'calendar', status: 'available', vision: true },
   // Period locking, payroll-input generation, variance review, locked export (MVP-071 to MVP-092)
-  // and monthly compensation records (MVP-093A). Calculation, statutory rules, payslips and
-  // payment are not built.
+  // monthly compensation records (MVP-093A) and monthly draft runs with contractual gross
+  // (MVP-094A). Statutory deductions, payslips, net-pay approval and payment are not built.
   { id: 'payroll', icon: 'payroll', status: 'capabilities', vision: true },
   { id: 'loans', icon: 'bank', status: 'later', vision: true },
   { id: 'benefits', icon: 'benefits', status: 'later', vision: true },
@@ -78,6 +78,7 @@ export const AVAILABLE_NOW = [
   'timesheets',
   'payrollPreparation',
   'compensation',
+  'payrollRuns',
   'operations',
   'integrations',
   'tasks',
@@ -86,7 +87,6 @@ export const AVAILABLE_NOW = [
 ] as const;
 
 export const COMING_NEXT = [
-  'payrollCalculation',
   'statutory',
   'payslips',
   'disbursement',
@@ -191,10 +191,11 @@ export const PLATFORM_STEPS: readonly StepDef[] = [
   { key: 'intelligence', icon: 'spark' },
 ];
 
-/** MVP-093A (D93-14): preparation and compensation records are active; the rest is planned. */
+/** MVP-094A (D94A-12): preparation, compensation and draft contractual gross are active; the rest is planned. */
 export const PAYROLL_STEPS: readonly StepDef[] = [
   { key: 'preparation', icon: 'check', state: 'available' },
   { key: 'compensation', icon: 'payroll', state: 'available' },
+  { key: 'runs', icon: 'workflow', state: 'available' },
   { key: 'calculation', icon: 'workflow', state: 'later' },
   { key: 'payment', icon: 'phone', state: 'later' },
 ];

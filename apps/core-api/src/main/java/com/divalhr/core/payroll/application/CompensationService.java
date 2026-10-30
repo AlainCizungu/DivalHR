@@ -27,6 +27,7 @@ import com.divalhr.core.payroll.internal.CompensationConstraintViolations;
 import com.divalhr.core.payroll.internal.JdbcCompensationRepository;
 import com.divalhr.core.payroll.internal.JdbcCompensationRepository.ActiveFact;
 import com.divalhr.core.payroll.internal.JdbcCompensationRepository.NewChange;
+import com.divalhr.core.payroll.internal.JdbcPayrollRunRepository;
 import com.divalhr.core.platform.access.EmploymentIntervals;
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
@@ -64,7 +65,10 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>Every command runs in one idempotent transaction in the global lock order: the idempotency
  * reservation, the employee's employment rows {@code FOR SHARE} through the people port, the
- * employee's compensation advisory lock, then the deferred checks, audit and outbox. Under the
+ * tenant payroll-population advisory lock in SHARED mode (5c, MVP-094A, ADR 0033 section 8: a
+ * payroll run creation takes it exclusive, so no compensation command interleaves with a run's
+ * recalculation), the employee's compensation advisory lock (5d), then the deferred checks, audit
+ * and outbox. Under the
  * locks it re-reads the state, compares the version, the expiry and the digests, evaluates the
  * rules again and only then writes. Restricted financial and HR data: the amount, the explanation
  * and the before and after values never enter logs, metrics, audit metadata, outbox events,
@@ -116,6 +120,7 @@ public class CompensationService {
   private final IdempotentOperation operations;
   private final EmploymentIntervals employments;
   private final JdbcCompensationRepository compensation;
+  private final JdbcPayrollRunRepository payrollRuns;
   private final CompensationReader reader;
   private final CompensationCalendar calendar;
   private final CompensationQuotas quotas;
@@ -129,6 +134,7 @@ public class CompensationService {
    * @param operations shared idempotent command flow
    * @param employments the people module's employment port
    * @param compensation compensation storage
+   * @param payrollRuns payroll storage (the tenant payroll-population lock)
    * @param reader read model
    * @param calendar business date and preview window
    * @param quotas hourly quotas
@@ -140,6 +146,7 @@ public class CompensationService {
       IdempotentOperation operations,
       EmploymentIntervals employments,
       JdbcCompensationRepository compensation,
+      JdbcPayrollRunRepository payrollRuns,
       CompensationReader reader,
       CompensationCalendar calendar,
       CompensationQuotas quotas,
@@ -149,6 +156,7 @@ public class CompensationService {
     this.operations = operations;
     this.employments = employments;
     this.compensation = compensation;
+    this.payrollRuns = payrollRuns;
     this.reader = reader;
     this.calendar = calendar;
     this.quotas = quotas;
@@ -588,7 +596,10 @@ public class CompensationService {
   // State and mapping
   // ------------------------------------------------------------------------------------------
 
-  /** The employee's employment and compensation state; a command holds its locks (step 2, 5d). */
+  /**
+   * The employee's employment and compensation state; a command holds its locks (steps 2, 5c and
+   * 5d of ADR 0033 section 8).
+   */
   private record State(Context context, List<ActiveFact> active, String employmentDigest) {}
 
   private State state(TenantId tenant, UUID employee, boolean lock) {
@@ -596,6 +607,9 @@ public class CompensationService {
         (lock ? employments.lockShared(tenant, employee) : employments.read(tenant, employee))
             .orElseThrow(CompensationCommands::notFound);
     if (lock) {
+      // 5c: shared with every other compensation command, exclusive for a payroll run creation.
+      payrollRuns.lockPopulation(tenant, true);
+      // 5d: the employee's compensation lock.
       compensation.lock(tenant, employee);
     }
     List<Span> spans = new ArrayList<>();

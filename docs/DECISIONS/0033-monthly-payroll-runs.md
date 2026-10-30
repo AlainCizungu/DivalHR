@@ -25,8 +25,12 @@ All seven operations are `@TenantAdminOperation` with exact MFA (role and assura
 platform before any lookup: employees, managers and platform administrators get the platform's 403).
 The legal entity comes from the path but is resolved in the verified tenant through
 `OrganizationPlacementDirectory.resolveIds` (kind LEGAL_ENTITY). A malformed, unknown, foreign or
-wrong-kind id is one safe `404 PAYROLL_RUN_NOT_FOUND` on every operation (policy operations too).
+wrong-kind id is one safe `404 LEGAL_ENTITY_NOT_FOUND` on every operation (policy operations too);
+a malformed, unknown, foreign-tenant or foreign-entity **run** id is one safe `404 PAYROLL_RUN_NOT_FOUND`.
 Tenant comes only from the verified context.
+
+*Implementation note (deviation from the first draft of this ADR, matching API-SPEC.yaml):* the entity
+and the run have different codes. The draft said `PAYROLL_RUN_NOT_FOUND` for every operation.
 
 ## 3. Effective-dated policy (D94A-3)
 
@@ -174,13 +178,16 @@ creation, SHARED for every compensation command, which then takes its employee l
 **5e** the entity run lock `payroll.run:{tenant}:{entity}` (policy commit and run creation, both
 EXCLUSIVE); then deferred checks, audit, outbox (6). Policy commit takes only 5e. No path takes
 a lower number after a higher one. `CompensationService` and `MyCompensationService` change only by
-taking 5c shared before 5d.
+taking 5c shared before 5d. *(Implementation: `MyCompensationService` is a read of the employee's own
+record and takes no lock; it is unchanged. Only `CompensationService` takes 5c shared.)*
 
 ## 9. Ports (modular monolith)
 
 `platform/access/PayrollPopulation`, implemented by `people` (`PeoplePayrollPopulation`): `lockShared
-(tenant, from, to)` (MANDATORY transaction) and `read(tenant, legalEntityId, from, to)` returning
+(tenant, from, to)` (MANDATORY transaction) and `read(tenant, legalEntityId, from, to, limit)` returning
 members (employee id, employee number, employments, placements), exactly the data of section 4,
+*(implementation: `read` also takes a `limit`; payroll asks for 5,001 members so that it can refuse a
+larger population with `PAYROLL_RUN_LIMIT_REACHED` without reading it all)*,
 without names or any other attribute. Payroll never reads people tables; people never reads payroll
 tables. Legal entity existence and the organization's business timezone come from the existing
 `OrganizationPlacementDirectory` and `OrganizationDirectory`. ArchUnit rules cover the new port.
@@ -195,7 +202,9 @@ status, employee count). Audit actions (fail-closed): `payroll-policy.read`,
 Metadata allow-list: `legalEntityId`, `runId`, `version`, `period`, `currency`, `status`,
 `policySequence`, `employeeCount`, `blockedCount`, `supersededRunId`, `view`, `page`,
 `resultCount`, `schemaVersion`. Outbox (internal, never delivered to webhooks or WhatsApp):
-`payroll.payroll-policy.changed.v1` and `payroll.payroll-run.created.v1`, same allow-list. Metrics:
+`payroll.payroll-policy.changed.v1` and `payroll.payroll-run.created.v1`, same allow-list (a policy
+event has only `schemaVersion`, `legalEntityId`, `version`, `policySequence`; the audit `after_state`
+hash of a run covers a text that contains the input digest, never the digest itself). Metrics:
 operation, outcome, employee-count bucket, blocker-count bucket.
 
 ## 11. Limits (D94A-13)
@@ -203,8 +212,12 @@ operation, outcome, employee-count bucket, blocker-count bucket.
 Preview 5 per subject per minute and 60 per tenant per hour; create 2 per subject per minute and
 20 per tenant per hour (platform buckets `payroll-run-preview`, `payroll-run-create`); policy
 reads 60/min, policy preview 10/min, policy commit 5/min per subject; run reads 60/min.
-Hourly quotas are counted like MVP-093A (commit counts from the evidence table; previews by the
-platform buckets only). Explicit request and database timeouts (`DatabaseTimeouts`), no job.
+*Implementation note (deviation):* there is **no database-counted hourly quota**. The per-tenant hourly
+limits are the platform tenant buckets (`payroll-run-preview` 60 and `payroll-run-create` 20 per hour,
+window 1h); the per-subject limits are the per-minute buckets above. Counting evidence rows would add a
+read to every command for a limit the platform buckets already enforce. At most 25 versions per chain
+and 60 policies per entity are enforced by the database and answered `409 PAYROLL_RUN_LIMIT_REACHED`.
+Explicit request and database timeouts (`DatabaseTimeouts`), no job.
 
 ## 12. Out of scope and assumptions to confirm at review
 
@@ -212,4 +225,9 @@ Out of scope as in the issue. Assumptions made where the issue is silent (each i
 rule that review can change): (a) a compensation change inside the month is the blocker
 `MULTIPLE_MONTHLY_AMOUNTS`; (b) a transfer to another legal entity inside the month is the blocker
 `FOREIGN_PLACEMENT`; (c) the policy of a run is the one in force on the month's last day; (d) an
-identical recalculation records nothing and is refused as already current; (e) a run needs at least one employee with a gross.
+identical recalculation records nothing and is refused as already current (`409
+PAYROLL_RUN_PREVIEW_STALE`, preview field `identicalToCurrent`); (e) a run needs at least one employee
+with a gross; (f) a policy preview on a date already used by a policy is the blocker `NO_CHANGE` (a
+different rule on a used date is a conflict, not a replacement: policies are append-only); (g) a line
+whose proration rounds to zero minor units is kept with gross 0 (the database allows 0) and is not a
+blocker; the monetary text of a zero gross is `0` or `0.00`.

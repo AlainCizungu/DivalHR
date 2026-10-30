@@ -173,4 +173,21 @@ class TenantPredicateArchitectureTest {
           .and()
           .arePublic()
           .should(TAKE_TENANT_ID);
+
+  /**
+   * MVP-094A: the payroll run repository follows the same rule, with no exception (every statement
+   * filters on the tenant and the legal entity or run).
+   */
+  @ArchTest
+  static final ArchRule payrollRunRepositoryRequiresTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.payroll.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleName("JdbcPayrollRunRepository")
+          .and()
+          .arePublic()
+          .should(TAKE_TENANT_ID);
 }

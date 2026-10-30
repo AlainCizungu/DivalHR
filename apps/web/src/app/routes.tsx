@@ -39,6 +39,8 @@ import { ScheduleSubstitutionApprovalsPage } from '../features/schedules/Schedul
 import { TeamAttendancePage } from '../features/schedules/TeamAttendancePage';
 import { TimeApprovalsPage } from '../features/schedules/TimeApprovalsPage';
 import { PayrollPreparationPage } from '../features/payroll/PayrollPreparationPage';
+import { PayrollRunDetailPage } from '../features/payrollRuns/PayrollRunDetailPage';
+import { PayrollRunsPage } from '../features/payrollRuns/PayrollRunsPage';
 import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
 import { TimesheetsPage } from '../features/schedules/TimesheetsPage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
@@ -234,6 +236,23 @@ export const ROUTES: AppRoute[] = [
     element: <PayrollPreparationPage />,
     access: tenantAdmin('payrollPreparation.unauthorized', 'payrollPreparation.signInRequired'),
     crumbs: [HOME, PAYROLL, { key: 'nav.payrollPreparation' }],
+  },
+  {
+    path: '/admin/payroll-runs',
+    element: <PayrollRunsPage />,
+    access: tenantAdmin('payrollRuns.unauthorized', 'payrollRuns.signInRequired'),
+    crumbs: [HOME, PAYROLL, { key: 'nav.payrollRuns' }],
+  },
+  {
+    path: '/admin/payroll-runs/:legalEntityId/:runId',
+    element: <PayrollRunDetailPage />,
+    access: tenantAdmin('payrollRuns.unauthorized', 'payrollRuns.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollRuns', to: '/admin/payroll-runs' },
+      { key: 'shell.crumb.payrollRun' },
+    ],
   },
   {
     path: '/admin/contract-templates',
