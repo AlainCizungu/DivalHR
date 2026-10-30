@@ -839,6 +839,14 @@ describe.each(['en', 'fr'] as const)('MVP-094B statutory calculation (%s)', (loc
       expect(within(frozen).getByTestId('statutory-frozen-lines')).toBeInTheDocument();
     });
     expect(within(frozen).getAllByRole('heading', { level: 3 })[0]).toHaveFocus();
+    // MVP-094C: only a current (DRAFT) calculation links to the approval review, by opaque ids.
+    const approval = within(frozen).getByTestId('statutory-approval-link');
+    expect(approval.getAttribute('href')).toMatch(
+      new RegExp(
+        `^/admin/payroll-runs/${ENTITY_ID}/${RUN_ID}/statutory/[0-9a-f-]{36}/approval$`,
+        'u',
+      ),
+    );
     expect(within(frozen).getAllByTestId('statutory-line')).toHaveLength(1);
     await user.click(within(frozen).getByTestId('statutory-frozen-more'));
     await waitFor(() => {

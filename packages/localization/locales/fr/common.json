@@ -57,7 +57,9 @@
     "myExpenses": "Mes notes de frais",
     "myCompensation": "Ma rémunération",
     "expenseApprovals": "Notes de frais à approuver",
-    "payrollRuns": "Exécutions de paie"
+    "payrollRuns": "Exécutions de paie",
+    "payrollPackages": "Paie approuvée",
+    "myPayslips": "Mes bulletins de paie"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -88,7 +90,10 @@
       "contract": "Contrat",
       "payrollRun": "Exécution de paie",
       "statutoryPreview": "Aperçu statutaire",
-      "statutoryProfile": "Profil statutaire"
+      "statutoryProfile": "Profil statutaire",
+      "payrollApproval": "Revue de l’approbation",
+      "payrollPackage": "Paie approuvée",
+      "payslip": "Bulletin de paie"
     }
   },
   "locale": {
@@ -247,6 +252,10 @@
         "payrollRuns": {
           "title": "Exécutions de paie",
           "description": "Définissez la politique de paie mensuelle et créez des exécutions en brouillon avec brut contractuel pour les mois clos."
+        },
+        "payrollPackages": {
+          "title": "Paie approuvée",
+          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun paiement n’existe. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
         }
       },
       "attention": {
@@ -306,7 +315,8 @@
         "tasks": "Suivez les tâches qui vous sont confiées, démarrez-les et marquez-les comme terminées.",
         "expenses": "Enregistrez vos dépenses en CDF ou en USD avec un justificatif, soumettez-les à votre responsable et suivez chaque décision. L’approbation n’est pas un paiement.",
         "compensationTitle": "Ma rémunération",
-        "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement."
+        "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement.",
+        "payslips": "Lisez vos bulletins de paie et téléchargez-les en PDF en français ou en anglais. Un bulletin de paie ne constitue pas une preuve de paiement."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -348,20 +358,24 @@
         "description": "Consultez les avantages auxquels vous êtes inscrit."
       },
       "payslips": {
-        "title": "Paie et bulletins",
-        "description": "Accédez à vos bulletins une fois la paie calculée."
+        "title": "Bulletins sur un jeu de règles vérifié",
+        "description": "Vos bulletins de paie apparaissent sous Mes bulletins de paie dès que votre organisation approuve une paie sur un jeu de règles statutaire vérifié par un professionnel. Indisponible pour la RDC tant que ce jeu n’est pas vérifié."
       },
       "statutoryCalculation": {
         "title": "Retenues légales et net à payer",
         "description": "Retenues légales et net à payer selon les règles de la RDC, à partir du brut contractuel en brouillon."
       },
       "payslipApproval": {
-        "title": "Bulletins de paie et approbation du net à payer",
-        "description": "Examinez, approuvez et publiez les bulletins de paie une fois le net à payer approuvé."
+        "title": "Bulletins de paie opérationnels pour la RDC",
+        "description": "La revue, l’approbation de la paie et les bulletins de paie bilingues existent et ne fonctionnent que sur un jeu de règles statutaire vérifié par un professionnel. Celui de la RDC n’est pas encore vérifié : pilote et préparation uniquement."
       },
       "salaryAdvances": {
         "title": "Avances sur salaire",
         "description": "Avances via des partenaires agréés, avec le consentement de l’employé, remboursées via la paie."
+      },
+      "filingAccounting": {
+        "title": "Déclarations et écritures comptables",
+        "description": "Déclarations de paie et écritures comptables préparées à partir de la paie approuvée."
       }
     }
   },
@@ -2969,8 +2983,8 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel.",
-          "remaining": "Retenues légales, bulletins de paie, approbation du net à payer et paiement."
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation).",
+          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et versement par banque et mobile money."
         },
         "loans": {
           "title": "Prêts et avances sur salaire",
@@ -3062,8 +3076,8 @@
         "payrollRuns": "Exécutions de paie mensuelles en brouillon avec brut contractuel"
       },
       "next": {
-        "statutory": "Pack légal pays pour la RDC",
-        "payslips": "Bulletins de paie et approbation du net à payer",
+        "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
+        "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et écritures comptables",
         "disbursement": "Versement par banque et mobile money, et rapprochement",
         "advances": "Avances sur salaire et prêts via des partenaires",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
@@ -3074,7 +3088,7 @@
     "payroll": {
       "kicker": "Du temps approuvé à la préparation de la paie",
       "title": "Préparez les données de paie. Enregistrez les rémunérations. Brut contractuel en brouillon.",
-      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. Les retenues légales, les bulletins de paie, l’approbation du net à payer et le paiement arrivent prochainement.",
+      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. La revue et l’approbation de la paie et les bulletins de paie bilingues existent comme socle : ils ne fonctionnent que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif, et celui de la RDC ne l’est pas encore ; il s’agit donc d’un pilote et d’une préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement. Les déclarations, les écritures comptables, le versement par banque et mobile money et les avances sur salaire arrivent prochainement.",
       "steps": {
         "preparation": {
           "title": "Préparation de la paie",
@@ -3086,7 +3100,7 @@
         },
         "calculation": {
           "title": "Retenues et bulletins",
-          "description": "Retenues légales, approbation du net à payer et bulletins de paie."
+          "description": "Les retenues légales, l’approbation de la paie et les bulletins de paie bilingues exigent un jeu de règles vérifié par un professionnel. Celui de la RDC n’est pas encore vérifié : pilote et préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement."
         },
         "payment": {
           "title": "Paiement et rapprochement",
@@ -5667,6 +5681,237 @@
       "problems": {
         "effectiveFrom": "Saisissez une date d’effet valide."
       }
+    }
+  },
+  "payrollPackages": {
+    "label": "Paie approuvée—Ne constitue pas une preuve de paiement",
+    "notProofOfPayment": "Ne constitue pas une preuve de paiement",
+    "rulePackStatement": "Calcul statutaire fondé sur le jeu de règles {{code}} v{{version}}",
+    "packTitle": "{{code}} v{{version}}",
+    "loading": "Chargement…",
+    "unauthorized": "Seul un administrateur de l’organisation avec authentification multifacteur peut utiliser la paie approuvée. Connectez-vous en tant qu’administrateur pour continuer.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de l’organisation pour utiliser la paie approuvée.",
+    "validation": "Des informations sont manquantes ou invalides.",
+    "forbidden": "Vous n’avez pas accès à la paie approuvée.",
+    "title": "Paie approuvée",
+    "description": "Les dossiers de paie approuvés d’une entité juridique : approuvés et annulés, avec leurs bulletins de paie.",
+    "notice": "Une paie approuvée est un dossier de revue. Ce n’est ni un paiement, ni une instruction bancaire, ni une déclaration, ni une écriture comptable. Un dossier est créé à partir d’un calcul statutaire sous Exécutions de paie et exige un jeu de règles vérifié par un professionnel.",
+    "status": {
+      "APPROVED": "Paie approuvée",
+      "VOIDED": "Annulée"
+    },
+    "previewStatus": {
+      "READY": "Prête à approuver",
+      "BLOCKED": "Bloquée",
+      "NO_CHANGE": "Déjà approuvée"
+    },
+    "synthetic": {
+      "badge": "Synthétique / test",
+      "notice": "Ce dossier utilise un jeu de règles synthétique de test. Il sert uniquement aux essais et n’est pas un résultat statutaire."
+    },
+    "totals": {
+      "employerContributions": "Cotisations patronales (séparées)",
+      "approvedNet": "Net approuvé"
+    },
+    "lines": {
+      "employerSeparate": "Cotisations patronales (séparées)",
+      "employerNote": "Les cotisations patronales sont indiquées séparément et ne réduisent pas le net du salarié.",
+      "showMore": "Afficher plus d’employés ({{count}} restants)"
+    },
+    "samePreparer": {
+      "warning": "Vous avez préparé cette exécution de paie ou son calcul statutaire, et vous l’approuvez aussi. Cette version l’autorise et l’enregistre. La séparation entre préparateur et approbateur est prévue dans une version ultérieure.",
+      "recorded": "L’approbateur a aussi préparé l’exécution de paie ou son calcul statutaire. Cela est enregistré."
+    },
+    "link": {
+      "title": "Approuver la paie",
+      "description": "Examinez ce calcul comme un dossier de paie, confirmez-le et publiez les bulletins de paie. Seul un calcul fondé sur un jeu de règles vérifié peut être approuvé.",
+      "action": "Examiner l’approbation de la version {{version}}"
+    },
+    "review": {
+      "title": "Revue de l’approbation de la paie",
+      "description": "Vérifiez les sources, le jeu de règles, les totaux et chaque employé avant d’approuver un dossier de paie.",
+      "back": "Retour à l’aperçu statutaire",
+      "prepareTitle": "Préparer l’approbation",
+      "prepareHelp": "La revue lit l’exécution de paie et le calcul statutaire actuels et montre ce qui serait approuvé. Rien n’est enregistré avant votre confirmation.",
+      "preview": "Examiner l’approbation",
+      "previewAgain": "Examiner à nouveau",
+      "staleRefresh": "La revue n’est plus à jour. Rien n’a été approuvé. Examinez à nouveau l’approbation et confirmez les nouveaux chiffres.",
+      "heading": "Revue de l’approbation pour {{period}} en {{currency}}",
+      "run": "Exécution de paie",
+      "calculation": "Calcul statutaire",
+      "versionOf": "version {{version}}",
+      "entity": "Entité juridique",
+      "period": "Période",
+      "currency": "Devise",
+      "policy": "Version de la politique de paie",
+      "payslipCount": "Bulletins de paie",
+      "excludedCount": "Employés sans composante statutaire",
+      "blockersTitle": "Résolvez ces blocages avant de pouvoir approuver :",
+      "warningsTitle": "Avertissements à lire avant d’approuver",
+      "noTotals": "Aucun total n’est disponible pour cette revue.",
+      "identical": "Cette exécution de paie et ce calcul statutaire sont déjà approuvés. Rien ne change.",
+      "openExisting": "Ouvrir la paie approuvée (version {{version}})",
+      "noLines": "Aucune ligne d’employé à examiner.",
+      "linesHeading": "Employés",
+      "linesCaption": "Montants par employé du dossier de paie proposé",
+      "whyBlocked": "L’approbation est indisponible tant qu’un blocage subsiste ou que la revue n’est pas prête.",
+      "whyNoChange": "L’approbation est indisponible : cette paie est déjà approuvée.",
+      "whyConfirm": "Cochez les trois confirmations pour approuver.",
+      "commit": "Approuver la paie et publier les bulletins de paie",
+      "announce": "Paie approuvée. Les bulletins de paie sont publiés pour les employés rattachés."
+    },
+    "confirm": {
+      "legend": "Confirmez avant d’approuver",
+      "help": "Les trois confirmations sont obligatoires.",
+      "totals": "J’ai examiné les totaux et les lignes des employés.",
+      "exceptions": "J’ai examiné les avertissements et les employés sans composante statutaire.",
+      "noPayment": "Je comprends qu’approuver la paie ne règle personne et qu’un bulletin de paie ne constitue pas une preuve de paiement."
+    },
+    "receipt": {
+      "title": "Paie approuvée",
+      "open": "Ouvrir la paie approuvée et ses bulletins de paie"
+    },
+    "blockers": {
+      "SOURCE_RUN_NOT_CURRENT": "L’exécution de paie n’est plus le brouillon courant.",
+      "CALCULATION_NOT_CURRENT": "Le calcul statutaire n’est plus le calcul courant.",
+      "CALCULATION_INCOMPLETE": "Le calcul statutaire est incomplet.",
+      "RULE_PACK_NOT_VERIFIED": "Le jeu de règles n’est pas vérifié par un professionnel : la paie ne peut pas être approuvée.",
+      "POLICY_CHANGED": "La politique de paie a changé après le calcul.",
+      "PROFILE_CHANGED": "Un profil statutaire a changé après le calcul.",
+      "RULE_PACK_CHANGED": "Le jeu de règles actif a changé après le calcul.",
+      "SOURCE_CHANGED": "Les sources de paie ont changé après la création de l’exécution.",
+      "CURRENCY_NOT_SUPPORTED": "Seule la paie en CDF peut être approuvée.",
+      "NO_PAYABLE_LINES": "Aucun employé n’a un net supérieur à zéro.",
+      "ARITHMETIC_MISMATCH": "Un montant ne correspond pas à sa source. Examinez à nouveau l’exécution de paie.",
+      "ALREADY_APPROVED": "Une autre paie est déjà approuvée pour cette entité juridique et ce mois.",
+      "SOURCE_ALREADY_VOIDED": "Ces sources appartenaient à une paie annulée. Une exécution de paie et un calcul corrigés sont nécessaires.",
+      "SOURCE_MISSING": "Une source requise est manquante.",
+      "LIMIT_REACHED": "Une limite de paies approuvées ou de bulletins de paie est atteinte."
+    },
+    "warnings": {
+      "SAME_PREPARER_AND_APPROVER": "Vous avez aussi préparé cette paie.",
+      "SYNTHETIC_RULE_PACK": "Le jeu de règles est un jeu synthétique de test. Utilisez-le uniquement pour des essais.",
+      "EXCLUDED_LINES_PRESENT": "Certains employés n’ont aucune composante statutaire et reçoivent un bulletin de paie sans retenues.",
+      "ZERO_NET_LINES_PRESENT": "Certains employés ont un net de zéro."
+    },
+    "list": {
+      "title": "Dossiers de paie",
+      "filter": "Statut",
+      "allStatuses": "Tous les statuts",
+      "empty": "Aucune paie approuvée pour cette entité juridique pour le moment.",
+      "tableLabel": "Dossiers de paie approuvés",
+      "version": "Version",
+      "status": "Statut",
+      "pack": "Jeu de règles",
+      "actions": "Actions",
+      "open": "Ouvrir",
+      "openContext": "dossier de {{period}}, version {{version}}",
+      "loadMore": "Charger d’autres dossiers"
+    },
+    "detail": {
+      "title": "Paie approuvée de {{period}}, version {{version}}",
+      "fallbackTitle": "Paie approuvée",
+      "description": "Les sources, les totaux et les bulletins de paie de ce dossier.",
+      "back": "Retour aux dossiers de paie",
+      "summary": "Résumé du dossier",
+      "approvedAt": "Approuvée le",
+      "confirmations": "Confirmations",
+      "confirmationsDone": "Totaux examinés, exceptions examinées, absence de paiement comprise.",
+      "voidedBanner": "ANNULÉ : ce dossier de paie a été annulé. Ses bulletins de paie restent lisibles comme copies annulées.",
+      "voidedAt": "Annulé le {{at}}.",
+      "explanation": "Explication de l’administrateur : {{text}}"
+    },
+    "payslips": {
+      "title": "Bulletins de paie de ce dossier",
+      "help": "Ouvrez le bulletin de paie ou téléchargez son PDF dans votre langue.",
+      "tableLabel": "Bulletins de paie du dossier",
+      "loadMore": "Charger d’autres bulletins de paie"
+    },
+    "voidReason": {
+      "SOURCE_CORRECTION": "Correction des sources de paie",
+      "PROFILE_CORRECTION": "Correction d’un profil statutaire",
+      "RULE_PACK_CORRECTION": "Correction du jeu de règles",
+      "ADMINISTRATIVE_ERROR": "Erreur administrative",
+      "OTHER_CONTROLLED": "Autre motif contrôlé"
+    },
+    "voidBlockers": {
+      "ALREADY_VOIDED": "Ce dossier de paie est déjà annulé.",
+      "PAYMENT_EXISTS": "Un enregistrement de paiement existe pour ce dossier : il ne peut pas être annulé."
+    },
+    "void": {
+      "title": "Annuler cette paie",
+      "help": "L’annulation conserve chaque bulletin de paie comme copie visiblement annulée et permet d’approuver une exécution de paie et un calcul corrigés. Rien n’est supprimé ni modifié.",
+      "reason": "Motif",
+      "choose": "Choisir un motif",
+      "explanation": "Explication (obligatoire pour ce motif)",
+      "explanationHelp": "De {{min}} à {{max}} caractères. Seuls les administrateurs la lisent ; les employés voient uniquement le motif.",
+      "preview": "Examiner l’annulation",
+      "previewHeading": "Revue de l’annulation",
+      "reasonIs": "Motif : {{reason}}",
+      "affects_one": "{{count}} bulletin de paie sera affiché comme annulé.",
+      "affects_other": "{{count}} bulletins de paie seront affichés comme annulés.",
+      "acknowledge": "Je confirme qu’aucun paiement ni aucun versement n’a été effectué à partir de cette paie.",
+      "commit": "Annuler cette paie",
+      "whyBlocked": "L’annulation est indisponible tant qu’un blocage subsiste.",
+      "whyAcknowledge": "Cochez la confirmation pour annuler.",
+      "staleRefresh": "La revue de l’annulation n’est plus à jour. Rien n’a été modifié. Examinez à nouveau l’annulation.",
+      "announce": "Le dossier de paie est annulé."
+    }
+  },
+  "payslips": {
+    "downloadPdf": "Télécharger le PDF",
+    "downloading": "Téléchargement…",
+    "downloadLanguage": "en {{language}}",
+    "downloaded": "Le PDF du bulletin de paie a été téléchargé.",
+    "my": {
+      "title": "Mes bulletins de paie",
+      "description": "Vos propres bulletins de paie, du plus récent au plus ancien. Chacun est le relevé d’une paie approuvée.",
+      "unauthorized": "Seul un employé rattaché à un dossier employé peut lire des bulletins de paie.",
+      "signInRequired": "Connectez-vous en tant qu’employé pour lire vos bulletins de paie.",
+      "empty": "Aucun bulletin de paie n’a encore été publié pour vous.",
+      "listTitle": "Bulletins de paie publiés",
+      "tableLabel": "Vos bulletins de paie, du plus récent au plus ancien",
+      "voided": "ANNULÉ",
+      "context": "de {{period}}",
+      "loadMore": "Charger d’autres bulletins de paie"
+    },
+    "view": {
+      "title": "Bulletin de paie",
+      "open": "Ouvrir",
+      "openContext": "bulletin de paie de l’employé {{number}}",
+      "backMine": "Retour à mes bulletins de paie",
+      "backPackage": "Retour au dossier de paie",
+      "language": "Langue du document",
+      "languages": {
+        "en": "English",
+        "fr": "Français"
+      }
+    },
+    "doc": {
+      "period": "Période",
+      "employeeNumber": "Numéro d’employé",
+      "approvedAt": "Approuvée le",
+      "voided": "ANNULÉ : cette paie a été annulée. Cette copie est conservée pour mémoire.",
+      "voidReason": "Motif : {{reason}}",
+      "excluded": "Aucune composante statutaire ne s’applique à cet employé.",
+      "amountsCaption": "Montants du bulletin de paie en CDF",
+      "item": "Rubrique",
+      "amount": "Montant",
+      "rows": {
+        "gross": "Brut contractuel",
+        "cnss": "Cotisation CNSS du salarié",
+        "irpp": "Retenue IRPP",
+        "deductions": "Total des retenues du salarié",
+        "net": "Net approuvé"
+      },
+      "employerHeading": "Cotisations patronales",
+      "employerContributions": "Cotisations patronales (séparées)",
+      "componentsHeading": "Composantes",
+      "componentsCaption": "Composantes statutaires de ce bulletin de paie",
+      "component": "Composante",
+      "party": "À la charge de",
+      "base": "Base",
+      "digest": "Empreinte du document (SHA-256) :"
     }
   }
 }

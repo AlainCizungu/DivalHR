@@ -20,7 +20,7 @@ const LANDING = {
     capabilities: 'Capabilities available',
     later: 'Coming next',
     compensation: 'Monthly compensation records',
-    next: 'DRC statutory country pack',
+    next: 'DRC statutory country pack (awaiting professional verification)',
     active:
       'Payroll preparation, monthly compensation records and draft contractual gross are active. Statutory deductions and payment are not.',
   },
@@ -30,7 +30,7 @@ const LANDING = {
     capabilities: 'Fonctionnalités disponibles',
     later: 'Prochainement',
     compensation: 'Rémunérations mensuelles enregistrées',
-    next: 'Pack légal pays pour la RDC',
+    next: 'Pack légal pays pour la RDC (en attente de vérification professionnelle)',
     active:
       'La préparation de la paie, les rémunérations mensuelles et le brut contractuel en brouillon sont actifs. Les retenues légales et le paiement ne le sont pas encore.',
   },
@@ -159,7 +159,7 @@ test.describe('organization administrator home', () => {
     await expect(progress).toContainText('Payroll preparation, locking and export');
     await expect(progress.locator('a, button')).toHaveCount(0);
     const roadmap = page.getByTestId('roadmap');
-    await expect(roadmap.getByRole('listitem')).toHaveCount(4);
+    await expect(roadmap.getByRole('listitem')).toHaveCount(5);
     await expect(roadmap).toContainText('Coming next');
     await expect(roadmap).not.toContainText('locking');
     await expect(roadmap).not.toContainText('Leave');
@@ -209,6 +209,7 @@ test.describe('organization administrator home', () => {
           ['Time exports', '/admin/time-exports'],
           ['Payroll preparation', '/admin/payroll-preparation'],
           ['Payroll runs', '/admin/payroll-runs'],
+          ['Approved payroll', '/admin/payroll-packages'],
           ['Tasks', '/admin/tasks'],
           ['Expenses', '/admin/expenses'],
         ],
@@ -313,6 +314,7 @@ test.describe('employee home', () => {
       ['Mes tâches', '/me/tasks'],
       ['Mes notes de frais', '/me/expenses'],
       ['Ma rémunération', '/me/compensation'],
+      ['Mes bulletins de paie', '/me/payslips'],
       ['Mes contrats', '/me/contracts'],
     ] as const) {
       await page.getByTestId('home-my-work').getByRole('link', { name, exact: true }).click();

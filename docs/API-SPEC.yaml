@@ -10728,7 +10728,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations/{calculationId}/approval/preview:
     post:
       operationId: previewPayrollApproval
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -10785,7 +10785,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations/{calculationId}/approval:
     post:
       operationId: commitPayrollApproval
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -10848,7 +10848,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-packages:
     get:
       operationId: listPayrollPackages
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -10891,7 +10891,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-packages/{packageId}:
     get:
       operationId: getPayrollPackage
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -10932,7 +10932,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-packages/{packageId}/void/preview:
     post:
       operationId: previewPayrollVoid
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -10982,7 +10982,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-packages/{packageId}/void:
     post:
       operationId: commitPayrollVoid
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -11038,7 +11038,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-packages/{packageId}/payslips:
     get:
       operationId: listPackagePayslips
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -11079,7 +11079,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-packages/{packageId}/payslips/{payslipId}:
     get:
       operationId: getPackagePayslip
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -11123,7 +11123,7 @@ paths:
   /legal-entities/{legalEntityId}/payroll-packages/{packageId}/payslips/{payslipId}.pdf:
     get:
       operationId: downloadPackagePayslipPdf
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -11179,7 +11179,7 @@ paths:
   /me/payslips:
     get:
       operationId: listMyPayslips
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: List my payslips
@@ -11218,7 +11218,7 @@ paths:
   /me/payslips/{payslipId}:
     get:
       operationId: getMyPayslip
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Read one of my payslips
@@ -11256,7 +11256,7 @@ paths:
   /me/payslips/{payslipId}.pdf:
     get:
       operationId: downloadMyPayslipPdf
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Download one of my payslips as a PDF

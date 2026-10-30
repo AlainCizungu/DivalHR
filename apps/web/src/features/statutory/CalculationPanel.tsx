@@ -7,6 +7,7 @@ import type {
 } from '@divalhr/api-client';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { useApi } from '../../app/ApiProvider';
 import { StatusBadge } from '../../ui/primitives';
 import { formatInstant } from '../compensation/compensation';
@@ -178,6 +179,19 @@ function FrozenCalculation({
           </h3>
           <StatutoryLabel testId="statutory-frozen-label" />
           <CalculationStatus status={detail.calculation.status} />
+          {detail.calculation.status === 'DRAFT' && (
+            <aside className="card" data-testid="statutory-approval-card">
+              <h4>{t('payrollPackages.link.title')}</h4>
+              <p className="muted">{t('payrollPackages.link.description')}</p>
+              <Link
+                className="button button--secondary"
+                to={`/admin/payroll-runs/${legalEntityId}/${runId}/statutory/${calculationId}/approval`}
+                data-testid="statutory-approval-link"
+              >
+                {t('payrollPackages.link.action', { version: detail.calculation.version })}
+              </Link>
+            </aside>
+          )}
           <p data-testid="statutory-frozen-pack">
             {t('statutory.frozen.pack', {
               pack: t('statutory.pack.title', {

@@ -178,6 +178,12 @@ const TENANT_GROUPS: {
         'home-card-payroll-preparation',
       ),
       tenantCard('payrollRuns', '/admin/payroll-runs', 'payroll', 'home-card-payroll-runs'),
+      tenantCard(
+        'payrollPackages',
+        '/admin/payroll-packages',
+        'contract',
+        'home-card-payroll-packages',
+      ),
       tenantCard('tasks', '/admin/tasks', 'check', 'home-card-tasks'),
       tenantCard('expenses', '/admin/expenses', 'payroll', 'home-card-expenses'),
     ],
@@ -347,6 +353,13 @@ const EMPLOYEE_CARDS: CardDef[] = [
     titleKey: 'home.employee.cards.compensationTitle',
     descriptionKey: 'home.employee.cards.compensation',
     testId: 'home-card-my-compensation',
+  },
+  {
+    to: '/me/payslips',
+    icon: 'contract',
+    titleKey: 'nav.myPayslips',
+    descriptionKey: 'home.employee.cards.payslips',
+    testId: 'home-card-my-payslips',
   },
   {
     to: '/me/team-operations',
