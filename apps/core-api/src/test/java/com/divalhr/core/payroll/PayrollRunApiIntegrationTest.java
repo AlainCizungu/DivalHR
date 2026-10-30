@@ -474,7 +474,8 @@ class PayrollRunApiIntegrationTest {
     UUID ana = w.paid("Mukendi", beforeMonth(), "USD", "1250.00");
     JsonNode usd = w.createRun("USD");
     assertThat(usd.get("version").asInt()).isEqualTo(1);
-    // The other currency is its own chain (version 0, nothing shared) and, because the employee is paid
+    // The other currency is its own chain (version 0, nothing shared) and, because the employee is
+    // paid
     // in USD, it is blocked rather than converted or combined.
     JsonNode cdf = w.runPreview("CDF");
     assertThat(cdf.get("expectedVersion").asInt()).isZero();
