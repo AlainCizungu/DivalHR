@@ -202,6 +202,8 @@ public final class PayrollCalculator {
    * @param explanations stable explanation codes (empty when blocked)
    * @param blockers stable blockers in declaration order
    * @param sources the records that fed the gross (empty when blocked)
+   * @param excludedOtherCurrency whether the employee is paid, on every day they are employed and
+   *     placed here, in the other currency only: not part of this run, and not a blocker
    */
   public record Line(
       UUID employeeId,
@@ -214,7 +216,8 @@ public final class PayrollCalculator {
       Long grossMinor,
       List<PayrollExplanation> explanations,
       List<PayrollBlocker> blockers,
-      List<Source> sources) {
+      List<Source> sources,
+      boolean excludedOtherCurrency) {
 
     /** Copies the lists. */
     public Line {
@@ -352,10 +355,14 @@ public final class PayrollCalculator {
     long here = employed & placedHere;
     long eligible = here & coveredRun;
     Set<PayrollBlocker> blockers = EnumSet.noneOf(PayrollBlocker.class);
+    // An employee paid only in the other currency on every day they are employed and placed here
+    // is simply not part of this run (R178-1); one who is missing a fact still blocks, and one who
+    // switches currency inside the month stays blocked in MVP-094A.
+    boolean otherCurrencyOnly = here != 0 && (here & coveredRun) == 0 && (here & ~coveredAny) == 0;
     if ((here & ~coveredAny) != 0) {
       blockers.add(PayrollBlocker.COMPENSATION_MISSING);
     }
-    if ((here & coveredAny & ~coveredRun) != 0) {
+    if ((here & coveredRun) != 0 && (here & coveredAny & ~coveredRun) != 0) {
       blockers.add(PayrollBlocker.CURRENCY_MISMATCH);
     }
     if ((employed & placedElsewhere) != 0) {
@@ -398,7 +405,8 @@ public final class PayrollCalculator {
           null,
           List.of(),
           ordered,
-          List.of());
+          List.of(),
+          otherCurrencyOnly && ordered.isEmpty());
     }
 
     long monthly = amounts.iterator().next();
@@ -455,7 +463,8 @@ public final class PayrollCalculator {
         gross,
         explanations,
         ordered,
-        sources);
+        sources,
+        false);
   }
 
   // ------------------------------------------------------------------------------------------

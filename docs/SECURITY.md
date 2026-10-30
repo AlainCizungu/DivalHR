@@ -856,6 +856,11 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - **Database authority.** V44 recomputes each line's gross (HALF_UP once), freezes the policy in force,
   allows one DRAFT per month, entity and currency, never updates or deletes evidence and checks
   totals, ranges and sources at commit. Lock order is documented in ADR 0033 section 8.
+- **Mixed currencies and no-change (R178-1).** An employee paid only in the other currency is left
+  out of a run (counted, never a blocker); one who switches currency inside the month stays
+  blocked. The exclusion count and the `NO_CHANGE` status are counts and codes only: no amount,
+  employee number or digest reaches audit, outbox, logs or errors. An identical recalculation is
+  `409 PAYROLL_RUN_NO_CHANGE`; a replay of the original creation still returns its receipt.
 - **Limits.** Subject per minute: policy read 60, preview 10, commit 5; run read 60, preview 5, create 2.
   Tenant per hour: run preview 60, create 20. At most 5,000 employees, 25 versions per month and
   currency, 60 policies per entity.

@@ -222,11 +222,94 @@ class PayrollRunApiIntegrationTest {
   }
 
   @Test
-  void aCompensationInAnotherCurrencyIsABlocker() throws Exception {
+  void aCompensationInAnotherCurrencyIsExcludedNotABlocker() throws Exception {
     w.policy("CALENDAR_DAYS");
     UUID ana = w.paid("Mukendi", beforeMonth(), "CDF", "450000");
-    JsonNode line = w.line(w.runPreview("USD"), ana);
-    assertThat(texts(line.get("blockers"))).contains("CURRENCY_MISMATCH");
+    JsonNode preview = w.runPreview("USD");
+    JsonNode line = w.line(preview, ana);
+    assertThat(line.get("excludedOtherCurrency").asBoolean()).isTrue();
+    assertThat(line.get("blockers")).isEmpty();
+    assertThat(preview.get("excludedEmployeeCount").asInt()).isEqualTo(1);
+    assertThat(preview.get("blockedEmployeeCount").asInt()).isZero();
+    // Nobody is left to pay in USD, so there is nothing to create; that is not a stale preview.
+    assertThat(preview.get("status").asText()).isEqualTo("BLOCKED");
+    assertThat(preview.get("previewDigest").isNull()).isTrue();
+  }
+
+  @Test
+  void aMixedOrganizationRunsEachCurrencyWithoutBlocking() throws Exception {
+    w.policy("CALENDAR_DAYS");
+    UUID ana = w.paid("Mukendi", beforeMonth(), "CDF", "450000");
+    UUID bob = w.paid("Kalala", beforeMonth(), "USD", "1250.00");
+
+    JsonNode usdPreview = w.runPreview("USD");
+    assertThat(usdPreview.get("status").asText()).isEqualTo("READY");
+    assertThat(usdPreview.get("employeeCount").asInt()).isEqualTo(1);
+    assertThat(usdPreview.get("excludedEmployeeCount").asInt()).isEqualTo(1);
+    assertThat(usdPreview.get("blockedEmployeeCount").asInt()).isZero();
+    assertThat(w.line(usdPreview, ana).get("excludedOtherCurrency").asBoolean()).isTrue();
+    assertThat(w.line(usdPreview, bob).get("excludedOtherCurrency").asBoolean()).isFalse();
+    JsonNode usd = w.createRun("USD");
+    assertThat(usd.get("employeeCount").asInt()).isEqualTo(1);
+
+    JsonNode cdfPreview = w.runPreview("CDF");
+    assertThat(cdfPreview.get("status").asText()).isEqualTo("READY");
+    assertThat(cdfPreview.get("expectedVersion").asInt()).isZero();
+    assertThat(cdfPreview.get("excludedEmployeeCount").asInt()).isEqualTo(1);
+    assertThat(w.line(cdfPreview, bob).get("excludedOtherCurrency").asBoolean()).isTrue();
+    JsonNode cdf = w.createRun("CDF");
+    assertThat(cdf.get("employeeCount").asInt()).isEqualTo(1);
+
+    // The run records who was left out and has a line only for the employee it pays.
+    JsonNode detail =
+        w.c.expect(PayrollRunWorld.get(w.admin, w.runsPath() + "/" + usd.get("runId").asText()), 200);
+    assertThat(detail.get("run").get("excludedEmployeeCount").asInt()).isEqualTo(1);
+    assertThat(detail.get("lines")).hasSize(1);
+    assertThat(
+            w.c.count(
+                "SELECT count(*) FROM payroll.pay_run WHERE tenant_id = ?"
+                    + " AND excluded_other_currency_count = 1",
+                w.tenant))
+        .isEqualTo(2);
+  }
+
+  @Test
+  void anEmployeeWhoSwitchesCurrencyInsideTheMonthStaysBlocked() throws Exception {
+    w.policy("CALENDAR_DAYS");
+    UUID ana = w.paid("Mukendi", beforeMonth(), "CDF", "450000");
+    w.change(ana, w.month.atDay(16), "USD", "1250.00");
+    for (String currency : List.of("USD", "CDF")) {
+      JsonNode preview = w.runPreview(currency);
+      JsonNode line = w.line(preview, ana);
+      assertThat(texts(line.get("blockers"))).contains("CURRENCY_MISMATCH");
+      assertThat(line.get("excludedOtherCurrency").asBoolean()).isFalse();
+      assertThat(preview.get("status").asText()).isEqualTo("BLOCKED");
+      assertThat(preview.get("previewDigest").isNull()).isTrue();
+    }
+  }
+
+  @Test
+  void aCurrencyChangeOfAnExcludedEmployeeMakesThePreviewStale() throws Exception {
+    w.policy("CALENDAR_DAYS");
+    w.paid("Kalala", beforeMonth(), "USD", "1250.00");
+    UUID ana = w.hire("Mukendi", beforeMonth());
+    JsonNode established = w.compensate(ana, beforeMonth(), "CDF", "450000");
+    // Ana is left out of the USD run; correcting her currency to USD changes who is paid.
+    assertStaleAfter(
+        () ->
+            w.correct(ana, established.get("changeId").asText(), beforeMonth(), "USD", "900.00"));
+  }
+
+  @Test
+  void aCurrencyChangeOfAnEmployeeInTheRunMakesThePreviewStale() throws Exception {
+    w.policy("CALENDAR_DAYS");
+    w.paid("Kalala", beforeMonth(), "USD", "1250.00");
+    UUID ana = w.hire("Mukendi", beforeMonth());
+    JsonNode established = w.compensate(ana, beforeMonth(), "USD", "900.00");
+    // Ana is in the USD run; correcting her to CDF removes her, which the old preview did not show.
+    assertStaleAfter(
+        () ->
+            w.correct(ana, established.get("changeId").asText(), beforeMonth(), "CDF", "450000"));
   }
 
   @Test
@@ -425,13 +508,15 @@ class PayrollRunApiIntegrationTest {
 
     // Nothing changed: the preview says so and the creation records no new version.
     JsonNode same = w.runPreview("USD");
-    assertThat(same.get("identicalToCurrent").asBoolean()).isTrue();
+    assertThat(same.get("status").asText()).isEqualTo("NO_CHANGE");
+    assertThat(same.get("previewDigest").isNull()).isTrue();
     assertThat(same.get("expectedVersion").asInt()).isEqualTo(1);
     List<Integer> before = w.evidence();
+    // A forced creation is its own error, not a stale preview, and records nothing.
     w.c.problem(
         w.runCommitRequest(Organizations.newKey(), runCommitting(runCommand(w.month, "USD"), same)),
         409,
-        "PAYROLL_RUN_PREVIEW_STALE");
+        "PAYROLL_RUN_NO_CHANGE");
     assertThat(w.evidence()).isEqualTo(before);
 
     w.paid("Kalala", beforeMonth(), "USD", "900.00");
@@ -474,15 +559,15 @@ class PayrollRunApiIntegrationTest {
     UUID ana = w.paid("Mukendi", beforeMonth(), "USD", "1250.00");
     JsonNode usd = w.createRun("USD");
     assertThat(usd.get("version").asInt()).isEqualTo(1);
-    // The other currency is its own chain (version 0, nothing shared) and, because the employee is
-    // paid
-    // in USD, it is blocked rather than converted or combined.
+    // The other currency is its own chain (version 0, nothing shared); the employee is paid in
+    // USD, so she is left out of it rather than converted, combined or blocked.
     JsonNode cdf = w.runPreview("CDF");
     assertThat(cdf.get("expectedVersion").asInt()).isZero();
     assertThat(cdf.get("existingRun").isNull()).isTrue();
-    assertThat(texts(w.line(cdf, ana).get("blockers"))).contains("CURRENCY_MISMATCH");
+    assertThat(w.line(cdf, ana).get("excludedOtherCurrency").asBoolean()).isTrue();
+    assertThat(cdf.get("blockedEmployeeCount").asInt()).isZero();
     assertThat(cdf.get("previewDigest").isNull()).isTrue();
-    assertThat(w.runPreview("USD").get("identicalToCurrent").asBoolean()).isTrue();
+    assertThat(w.runPreview("USD").get("status").asText()).isEqualTo("NO_CHANGE");
   }
 
   // ------------------------------------------------------------------------------------------

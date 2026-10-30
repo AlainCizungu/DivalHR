@@ -143,6 +143,7 @@ export interface LineView {
   gross: CompensationMoney | null;
   explanationCodes: PayrollExplanationCode[];
   blockers?: PayrollEmployeeBlocker[];
+  excludedOtherCurrency?: boolean;
   sources?: PayrollSourceReference[];
 }
 
@@ -186,6 +187,7 @@ export function LinesTable({
               key={line.employeeId}
               data-testid="payroll-line"
               data-blocked={(line.blockers?.length ?? 0) > 0 ? 'true' : 'false'}
+              data-excluded={line.excludedOtherCurrency ? 'true' : 'false'}
             >
               <th scope="row">{line.employeeNumber}</th>
               <td>
@@ -221,6 +223,8 @@ export function LinesTable({
               <td>
                 {withSources ? (
                   <Sources sources={line.sources ?? []} />
+                ) : line.excludedOtherCurrency ? (
+                  <span data-testid="payroll-line-excluded">{t('payrollRuns.lines.excluded')}</span>
                 ) : (line.blockers?.length ?? 0) === 0 ? (
                   '—'
                 ) : (

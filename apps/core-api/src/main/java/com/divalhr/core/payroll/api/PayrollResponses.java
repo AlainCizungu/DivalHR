@@ -161,6 +161,8 @@ public final class PayrollResponses {
    * @param gross contractual gross, or {@code null} when blocked
    * @param explanationCodes stable explanation codes
    * @param blockers stable employee blockers
+   * @param excludedOtherCurrency whether the employee is paid only in the other currency and so is
+   *     not part of this run
    */
   @Schema(name = "PayrollPreviewLine")
   public record PreviewLine(
@@ -173,7 +175,8 @@ public final class PayrollResponses {
       MoneyView monthly,
       MoneyView gross,
       List<String> explanationCodes,
-      List<String> blockers) {
+      List<String> blockers,
+      boolean excludedOtherCurrency) {
 
     /** Copies the lists. */
     public PreviewLine {
@@ -199,6 +202,7 @@ public final class PayrollResponses {
    * @param status {@code DRAFT} or {@code SUPERSEDED}
    * @param policySequence frozen policy sequence
    * @param employeeCount employees with a gross
+   * @param excludedEmployeeCount employees paid only in the other currency, left out of the run
    * @param total total contractual gross
    * @param createdAt creation instant
    * @param supersededAt supersession instant, or {@code null}
@@ -214,6 +218,7 @@ public final class PayrollResponses {
       String status,
       int policySequence,
       int employeeCount,
+      int excludedEmployeeCount,
       MoneyView total,
       Instant createdAt,
       Instant supersededAt,
@@ -235,9 +240,11 @@ public final class PayrollResponses {
    * @param policy policy in force on the last day of the month
    * @param expectedVersion current chain version (0 when none) to repeat on creation
    * @param existingRun the current draft, or {@code null}
-   * @param identicalToCurrent whether the recalculation equals the current draft
+   * @param status {@code READY}, {@code BLOCKED} (a blocker exists or no employee has a gross) or
+   *     {@code NO_CHANGE} (the recalculation equals the current draft)
    * @param employeeCount employees without a blocker
    * @param blockedEmployeeCount employees with a blocker
+   * @param excludedEmployeeCount employees paid only in the other currency, left out of this run
    * @param total sum of the contractual gross of the employees without a blocker
    * @param lines one line per member of the population
    * @param inputDigest digest of the inputs
@@ -252,9 +259,10 @@ public final class PayrollResponses {
       PolicyAppliedView policy,
       int expectedVersion,
       RunSummary existingRun,
-      boolean identicalToCurrent,
+      String status,
       int employeeCount,
       int blockedEmployeeCount,
+      int excludedEmployeeCount,
       MoneyView total,
       List<PreviewLine> lines,
       String inputDigest,

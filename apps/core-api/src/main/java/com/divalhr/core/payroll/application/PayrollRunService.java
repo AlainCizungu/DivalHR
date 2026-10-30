@@ -189,6 +189,10 @@ public class PayrollRunService {
       return (int) lines.stream().filter(Line::blocked).count();
     }
 
+    int excluded() {
+      return (int) lines.stream().filter(Line::excludedOtherCurrency).count();
+    }
+
     long total() {
       long total = 0;
       for (Line line : lines) {
@@ -300,8 +304,9 @@ public class PayrollRunService {
                           current
                               .filter(row -> row.inputDigest().equals(computation.inputDigest()))
                               .isPresent();
-                      boolean creatable =
-                          computation.blocked() == 0 && computation.withGross() > 0 && !identical;
+                      boolean blocked = computation.blocked() > 0 || computation.withGross() == 0;
+                      boolean creatable = !blocked && !identical;
+                      String status = blocked ? "BLOCKED" : identical ? "NO_CHANGE" : "READY";
                       Instant expiresAt = CompensationCalendar.expiry(now);
                       String previewDigest =
                           creatable
@@ -335,9 +340,10 @@ public class PayrollRunService {
                           PayrollViews.applied(computation.policy()),
                           version,
                           current.map(PayrollViews::summary).orElse(null),
-                          identical,
+                          status,
                           computation.withGross(),
                           computation.blocked(),
+                          computation.excluded(),
                           PayrollViews.money(draft.currency(), computation.total()),
                           lines,
                           computation.inputDigest(),
@@ -364,7 +370,8 @@ public class PayrollRunService {
         line.hasGross() ? PayrollViews.money(currency, line.monthlyMinor()) : null,
         line.hasGross() ? PayrollViews.money(currency, line.grossMinor()) : null,
         line.explanations().stream().map(PayrollExplanation::name).toList(),
-        line.blockers().stream().map(PayrollBlocker::name).toList());
+        line.blockers().stream().map(PayrollBlocker::name).toList(),
+        line.excludedOtherCurrency());
   }
 
   private static List<RangeView> ranges(List<Range> ranges) {
@@ -443,6 +450,12 @@ public class PayrollRunService {
     if (computation.blocked() > 0 || computation.withGross() == 0) {
       throw new ApiException(ErrorCode.PAYROLL_RUN_BLOCKED, Map.of());
     }
+    if (current.isPresent() && current.get().inputDigest().equals(computation.inputDigest())) {
+      // Nothing changed since the current draft: nothing is recorded and no version is created.
+      // A replay of the creation that made that draft never gets here: the idempotency store
+      // answers it with the original receipt before this code runs.
+      throw new ApiException(ErrorCode.PAYROLL_RUN_NO_CHANGE, Map.of());
+    }
     Instant expiresAt = command.expiresAt();
     String previewDigest =
         PayrollDigests.run(
@@ -458,10 +471,6 @@ public class PayrollRunService {
         || !CompensationCalendar.onGrid(expiresAt)
         || !computation.inputDigest().equals(command.inputDigest())
         || !previewDigest.equals(command.previewDigest())) {
-      throw new ApiException(ErrorCode.PAYROLL_RUN_PREVIEW_STALE, Map.of());
-    }
-    if (current.isPresent() && current.get().inputDigest().equals(computation.inputDigest())) {
-      // Nothing changed since the current draft: nothing is recorded, no version is created.
       throw new ApiException(ErrorCode.PAYROLL_RUN_PREVIEW_STALE, Map.of());
     }
     if (version >= MAX_VERSIONS) {
@@ -484,6 +493,7 @@ public class PayrollRunService {
             version + 1,
             computation.policy(),
             computation.withGross(),
+            computation.excluded(),
             computation.total(),
             computation.inputDigest(),
             now,

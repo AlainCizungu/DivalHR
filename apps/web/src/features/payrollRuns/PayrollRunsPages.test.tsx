@@ -10,9 +10,11 @@ import {
   RUN_ID,
   RUN_ID_2,
   blockedLine,
+  excludedLine,
   noPolicyView,
   policyPreview,
   policyView,
+  previewLine,
   problem,
   receipt,
   runDetail,
@@ -249,7 +251,7 @@ describe.each(['en', 'fr'] as const)('MVP-094A payroll runs page (%s)', (locale)
           ? {
               status: 200,
               body: runPreview({
-                identicalToCurrent: true,
+                status: 'NO_CHANGE',
                 existingRun: summary(),
                 previewDigest: null,
                 expiresAt: null,
@@ -268,6 +270,60 @@ describe.each(['en', 'fr'] as const)('MVP-094A payroll runs page (%s)', (locale)
     expect(screen.getByTestId('payroll-create-disabled-why')).toHaveTextContent(
       k.create.whyIdentical,
     );
+  });
+
+  it('shows employees paid only in the other currency as left out, never as blocked', async () => {
+    const user = userEvent.setup();
+    stub(
+      routes((request) =>
+        request.path.endsWith('/payroll-runs/preview')
+          ? {
+              status: 200,
+              body: runPreview({
+                excludedEmployeeCount: 1,
+                lines: [previewLine(), excludedLine()],
+                employeeCount: 1,
+              }),
+            }
+          : undefined,
+      ),
+    );
+    await show(locale);
+    await screen.findByTestId('payroll-policy-current');
+    await user.click(screen.getByTestId('payroll-create-preview'));
+    expect(await screen.findByTestId('payroll-preview-excluded-note')).toHaveTextContent(
+      locale === 'en'
+        ? /1 employee paid only in the other currency/u
+        : /1 employé payé uniquement/u,
+    );
+    const lines = screen.getAllByTestId('payroll-line');
+    expect(lines[1]).toHaveAttribute('data-excluded', 'true');
+    expect(lines[1]).toHaveAttribute('data-blocked', 'false');
+    expect(screen.getByTestId('payroll-line-excluded')).toHaveTextContent(k.lines.excluded);
+    expect(screen.queryByTestId('payroll-preview-blocked-note')).toBeNull();
+    expect(screen.getByTestId('payroll-create-confirm')).toBeEnabled();
+  });
+
+  it('a no-change creation is its own error, not a stale preview', async () => {
+    const user = userEvent.setup();
+    stub(
+      routes((request) => {
+        if (request.path.endsWith('/payroll-runs/preview')) {
+          return { status: 200, body: runPreview() };
+        }
+        if (request.method === 'POST' && request.path.endsWith('/payroll-runs')) {
+          return { status: 409, body: problem('PAYROLL_RUN_NO_CHANGE', 409) };
+        }
+        return undefined;
+      }),
+    );
+    await show(locale);
+    await screen.findByTestId('payroll-policy-current');
+    await user.click(screen.getByTestId('payroll-create-preview'));
+    await user.click(await screen.findByTestId('payroll-create-confirm'));
+    const failure = await screen.findByTestId('payroll-create-failure');
+    expect(failure).toHaveAttribute('data-code', 'PAYROLL_RUN_NO_CHANGE');
+    expect(failure).toHaveTextContent(resources[locale].common.errors.PAYROLL_RUN_NO_CHANGE);
   });
 
   it('creates the run with an Idempotency-Key, reuses it on retry and navigates without amounts', async () => {

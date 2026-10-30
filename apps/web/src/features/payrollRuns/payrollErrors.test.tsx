@@ -66,9 +66,9 @@ afterEach(() => {
 });
 
 describe('payroll error messages', () => {
-  it('covers all eight payroll codes of the contract and of the shared schema', () => {
+  it('covers all nine payroll codes of the contract and of the shared schema', () => {
     expect(CODES.sort()).toEqual([...PAYROLL_CODES].sort());
-    expect(CODES).toHaveLength(8);
+    expect(CODES).toHaveLength(9);
   });
 
   it.each([...PAYROLL_CODES])(

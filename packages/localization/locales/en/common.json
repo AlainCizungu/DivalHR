@@ -649,7 +649,8 @@
     "PAYROLL_PERIOD_INVALID": "The month or date is outside the allowed range: only fully closed months of the past 24 months, and policy dates from 24 months back to 366 days ahead.",
     "PAYROLL_RUN_NOT_FOUND": "This payroll run or legal entity does not exist or is not available to you.",
     "PAYROLL_RUN_BLOCKED": "At least one employee has a blocker, so the run cannot be created. Resolve the blockers shown in the preview, then preview again.",
-    "PAYROLL_RUN_PREVIEW_STALE": "The preview is out of date because the policy, employees, placements or compensation changed, the preview expired, or an identical draft already exists. Preview again.",
+    "PAYROLL_RUN_PREVIEW_STALE": "The preview is out of date because the policy, employees, placements or compensation changed, or the preview expired. Preview again.",
+    "PAYROLL_RUN_NO_CHANGE": "The current draft already matches this calculation, so nothing was created. Open the current draft instead.",
     "PAYROLL_RUN_VERSION_CONFLICT": "Another version of this run was created in the meantime. Reload the list and preview again before creating a new version.",
     "PAYROLL_RUN_LIMIT_REACHED": "A limit was reached: at most 5,000 employees per run, 25 versions per month and currency, and 60 policies per legal entity."
   },
@@ -5211,6 +5212,7 @@
     "draftLabel": "Draft—not statutory payroll",
     "contractualGross": "Contractual gross",
     "employeeCount": "Employees",
+    "excludedCount": "Left out (paid in the other currency)",
     "blockedCount": "Blocked employees",
     "loading": "Loading…",
     "loadingMore": "Loading…",
@@ -5239,7 +5241,7 @@
     },
     "employeeBlockers": {
       "COMPENSATION_MISSING": "Compensation is missing for part of the employment in this legal entity.",
-      "CURRENCY_MISMATCH": "Compensation is recorded in another currency.",
+      "CURRENCY_MISMATCH": "Compensation changes currency inside the month. Align the effective date.",
       "FOREIGN_PLACEMENT": "The employee is placed in another legal entity for part of the month.",
       "OVERLAPPING_EVIDENCE": "Overlapping employment, placement or compensation records need correcting.",
       "MULTIPLE_MONTHLY_AMOUNTS": "The monthly amount changes inside the month. Align the effective date.",
@@ -5312,6 +5314,8 @@
       "blocked_one": "{{count}} employee is blocked. No run can be created until the blocker is resolved.",
       "blocked_other": "{{count}} employees are blocked. No run can be created until the blockers are resolved.",
       "identical": "The current draft is already identical to this calculation. Nothing changes.",
+      "excluded_one": "{{count}} employee paid only in the other currency is not part of this run.",
+      "excluded_other": "{{count}} employees paid only in the other currency are not part of this run.",
       "openExisting": "Open the current draft (version {{version}})",
       "existing": "A current draft (version {{version}}) exists. Creating a run adds a new version and supersedes it.",
       "noLines": "No employee is eligible for this month and currency.",
@@ -5354,7 +5358,8 @@
       "source": "{{kind}} {{id}}, version {{version}} ({{from}} to {{to}})",
       "days_one": "{{count}} day",
       "days_other": "{{count}} days",
-      "fullMonth": "None (full month)"
+      "fullMonth": "None (full month)",
+      "excluded": "Paid only in the other currency: not part of this run."
     },
     "detail": {
       "title": "Payroll run {{period}}, {{currency}}, version {{version}}",

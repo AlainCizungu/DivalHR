@@ -26,6 +26,7 @@ class PayrollRunErrorCodesTest {
           "PAYROLL_RUN_NOT_FOUND", HttpStatus.NOT_FOUND,
           "PAYROLL_RUN_BLOCKED", HttpStatus.CONFLICT,
           "PAYROLL_RUN_PREVIEW_STALE", HttpStatus.CONFLICT,
+          "PAYROLL_RUN_NO_CHANGE", HttpStatus.CONFLICT,
           "PAYROLL_RUN_VERSION_CONFLICT", HttpStatus.CONFLICT,
           "PAYROLL_RUN_LIMIT_REACHED", HttpStatus.CONFLICT);
 

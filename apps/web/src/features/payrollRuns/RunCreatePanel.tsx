@@ -83,7 +83,8 @@ export function RunCreatePanel({
   const cannotCreate =
     preview !== null &&
     (preview.blockedEmployeeCount > 0 ||
-      preview.identicalToCurrent ||
+      preview.status === 'NO_CHANGE' ||
+      preview.status === 'BLOCKED' ||
       preview.previewDigest === null ||
       preview.expiresAt === null);
 
@@ -242,7 +243,12 @@ export function RunCreatePanel({
               <p>{t('payrollRuns.preview.blocked', { count: preview.blockedEmployeeCount })}</p>
             </div>
           )}
-          {preview.identicalToCurrent && (
+          {preview.excludedEmployeeCount > 0 && (
+            <p className="muted" role="status" data-testid="payroll-preview-excluded-note">
+              {t('payrollRuns.preview.excluded', { count: preview.excludedEmployeeCount })}
+            </p>
+          )}
+          {preview.status === 'NO_CHANGE' && (
             <div className="card" role="status" data-testid="payroll-preview-identical">
               <p>{t('payrollRuns.preview.identical')}</p>
               {preview.existingRun && (
@@ -255,7 +261,7 @@ export function RunCreatePanel({
               )}
             </div>
           )}
-          {!preview.identicalToCurrent && preview.existingRun && (
+          {preview.status !== 'NO_CHANGE' && preview.existingRun && (
             <p className="muted" data-testid="payroll-preview-existing">
               {t('payrollRuns.preview.existing', { version: preview.existingRun.version })}
             </p>
@@ -291,7 +297,7 @@ export function RunCreatePanel({
           </div>
           {cannotCreate && (
             <p id={`${ids}-why`} className="muted" data-testid="payroll-create-disabled-why">
-              {preview.identicalToCurrent
+              {preview.status === 'NO_CHANGE'
                 ? t('payrollRuns.create.whyIdentical')
                 : t('payrollRuns.create.whyBlocked')}
             </p>

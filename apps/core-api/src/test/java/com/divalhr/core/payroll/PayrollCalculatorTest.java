@@ -433,19 +433,79 @@ class PayrollCalculatorTest {
   }
 
   @Test
-  void compensationInAnotherCurrencyIsAMismatchNotMissing() {
-    Line line =
+  void anEmployeePaidOnlyInTheOtherCurrencyIsExcludedNotBlocked() {
+    // R178-1: a mixed CDF/USD organization runs each currency; the other currency's staff are
+    // left out of the run, never a blocker.
+    Line usdRun =
         calculate(
             context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS),
             hiredOn(LONG_AGO, CompensationCurrency.CDF, 450_000));
-    assertThat(line.blockers()).containsExactly(PayrollBlocker.CURRENCY_MISMATCH);
-    assertThat(line.hasGross()).isFalse();
-    // A CDF run on the same employee is fine.
+    assertThat(usdRun.blockers()).isEmpty();
+    assertThat(usdRun.excludedOtherCurrency()).isTrue();
+    assertThat(usdRun.hasGross()).isFalse();
+    assertThat(usdRun.eligibleDays()).isZero();
+    assertThat(usdRun.sources()).isEmpty();
+    // The reverse: a CDF run leaves out the employee paid exclusively in USD.
+    Line cdfRun =
+        calculate(
+            context("2026-03", CompensationCurrency.CDF, PayrollProration.CALENDAR_DAYS),
+            hiredOn(LONG_AGO, CompensationCurrency.USD, 125_000));
+    assertThat(cdfRun.blockers()).isEmpty();
+    assertThat(cdfRun.excludedOtherCurrency()).isTrue();
+    // An employee paid in the run currency is calculated, not excluded.
     Line cdf =
         calculate(
             context("2026-03", CompensationCurrency.CDF, PayrollProration.CALENDAR_DAYS),
             hiredOn(LONG_AGO, CompensationCurrency.CDF, 450_000));
     assertThat(cdf.blockers()).isEmpty();
+    assertThat(cdf.excludedOtherCurrency()).isFalse();
+    assertThat(cdf.grossMinor()).isEqualTo(450_000L);
+  }
+
+  @Test
+  void missingCompensationStillBlocksAnEmployeeOfTheOtherCurrency() {
+    // Paid in CDF for the first half of March only: the second half has no fact at all.
+    Employee gapped =
+        employee(
+            List.of(employed(LONG_AGO, null)),
+            List.of(placed(ENTITY, LONG_AGO, null)),
+            List.of(paid(CompensationCurrency.CDF, 450_000, LONG_AGO, "2026-03-15")));
+    Line usd =
+        calculate(
+            context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS), gapped);
+    assertThat(usd.blockers()).containsExactly(PayrollBlocker.COMPENSATION_MISSING);
+    assertThat(usd.excludedOtherCurrency()).isFalse();
+  }
+
+  @Test
+  void anEmployeeWithNoDaysInThisEntityIsNeitherExcludedNorBlocked() {
+    Employee elsewhereOnly =
+        employee(
+            List.of(employed("2026-04-01", null)),
+            List.of(placed(ENTITY, LONG_AGO, null)),
+            List.of(paid(CompensationCurrency.CDF, 450_000, LONG_AGO, null)));
+    Line line =
+        calculate(
+            context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS),
+            elsewhereOnly);
+    assertThat(line.blockers()).isEmpty();
+    assertThat(line.excludedOtherCurrency()).isFalse();
+    assertThat(line.eligibleDays()).isZero();
+  }
+
+  @Test
+  void anExcludedEmployeeStillBlocksOnAForeignPlacement() {
+    Employee transferred =
+        employee(
+            List.of(employed(LONG_AGO, null)),
+            List.of(placed(ENTITY, LONG_AGO, "2026-03-20"), placed(OTHER, "2026-03-21", null)),
+            List.of(paid(CompensationCurrency.CDF, 450_000, LONG_AGO, null)));
+    Line line =
+        calculate(
+            context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS),
+            transferred);
+    assertThat(line.blockers()).containsExactly(PayrollBlocker.FOREIGN_PLACEMENT);
+    assertThat(line.excludedOtherCurrency()).isFalse();
   }
 
   @Test
@@ -460,8 +520,15 @@ class PayrollCalculatorTest {
     Line usd =
         calculate(
             context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS), mixed);
+    // An employee who switches currency inside the month stays blocked in MVP-094A, in either run.
     assertThat(usd.blockers()).containsExactly(PayrollBlocker.CURRENCY_MISMATCH);
     assertThat(usd.eligibleDays()).isEqualTo(16);
+    assertThat(usd.excludedOtherCurrency()).isFalse();
+    Line cdf =
+        calculate(
+            context("2026-03", CompensationCurrency.CDF, PayrollProration.CALENDAR_DAYS), mixed);
+    assertThat(cdf.blockers()).containsExactly(PayrollBlocker.CURRENCY_MISMATCH);
+    assertThat(cdf.excludedOtherCurrency()).isFalse();
   }
 
   @Test
@@ -565,7 +632,9 @@ class PayrollCalculatorTest {
         employee(
             List.of(employed(LONG_AGO, null)),
             List.of(placed(ENTITY, LONG_AGO, "2026-03-20"), placed(OTHER, "2026-03-15", null)),
-            List.of(paid(CompensationCurrency.CDF, 450_000, "2026-03-05", "2026-03-10")));
+            List.of(
+                paid(CompensationCurrency.USD, 125_000, "2026-03-01", "2026-03-04"),
+                paid(CompensationCurrency.CDF, 450_000, "2026-03-05", "2026-03-10")));
     Line line =
         calculate(context("2026-03", CompensationCurrency.USD, PayrollProration.NONE), tangled);
     assertThat(line.blockers())
@@ -573,7 +642,8 @@ class PayrollCalculatorTest {
             PayrollBlocker.COMPENSATION_MISSING,
             PayrollBlocker.CURRENCY_MISMATCH,
             PayrollBlocker.FOREIGN_PLACEMENT,
-            PayrollBlocker.OVERLAPPING_EVIDENCE);
+            PayrollBlocker.OVERLAPPING_EVIDENCE,
+            PayrollBlocker.PARTIAL_MONTH_NOT_ALLOWED);
   }
 
   // ------------------------------------------------------------------------------------------

@@ -8,6 +8,8 @@
 # Usage: scripts/dev/payroll-run-mutations.sh [mutation-number ...]   (default: all)
 # Mutations 1 to 3 are killed by PayrollCalculatorTest (and by the API integration test, which needs
 # Docker), mutation 4 only by PayrollRunApiIntegrationTest, mutation 5 by JdbcPayrollRunRepositoryTenantTest.
+# Mutations 6 and 7 (R178-1, currency rules) are killed by PayrollCalculatorTest and the API test;
+# mutations 8 and 9 (R178-1, NO_CHANGE) by PayrollRunApiIntegrationTest.
 # Needs a working Gradle build of apps/core-api (the integration tests need Docker/Testcontainers).
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -105,6 +107,30 @@ run 5 "chainVersion() ignores the tenant" "*JdbcPayrollRunRepositoryTenantTest" 
                 + " AND legal_entity_id = :entity AND period_start = :period"' \
   'FROM payroll.pay_run WHERE true"
                 + " AND legal_entity_id = :entity AND period_start = :period"'
+
+run 6 "a currency mismatch blocks an employee paid only in the other currency again" \
+  "*PayrollCalculatorTest *PayrollRunApiIntegrationTest" \
+  mutate "$SRC/domain/PayrollCalculator.java" \
+  'if ((here & coveredRun) != 0 && (here & coveredAny & ~coveredRun) != 0) {' \
+  'if ((here & coveredAny & ~coveredRun) != 0) {'
+
+run 7 "an employee who switches currency inside the month no longer blocks" \
+  "*PayrollCalculatorTest *PayrollRunApiIntegrationTest" \
+  mutate "$SRC/domain/PayrollCalculator.java" \
+  'if ((here & coveredRun) != 0 && (here & coveredAny & ~coveredRun) != 0) {' \
+  'if ((here & coveredRun) == 0 && (here & coveredAny & ~coveredRun) != 0) {'
+
+run 8 "an identical recalculation is reported as a stale preview again" \
+  "*PayrollRunApiIntegrationTest" \
+  mutate "$SRC/application/PayrollRunService.java" \
+  'throw new ApiException(ErrorCode.PAYROLL_RUN_NO_CHANGE, Map.of());' \
+  'throw new ApiException(ErrorCode.PAYROLL_RUN_PREVIEW_STALE, Map.of());'
+
+run 9 "the preview of an identical draft says READY" \
+  "*PayrollRunApiIntegrationTest" \
+  mutate "$SRC/application/PayrollRunService.java" \
+  'String status = blocked ? "BLOCKED" : identical ? "NO_CHANGE" : "READY";' \
+  'String status = blocked ? "BLOCKED" : "READY";'
 
 echo
 if [ "$survivors" -ne 0 ]; then

@@ -72,7 +72,14 @@ For each employee the calculator (pure, `payroll/domain`) computes, per calendar
   employments fall out of the set arithmetic).
 - **Blockers** (employee level, stable codes, all reported; any blocker forbids creation):
   - `COMPENSATION_MISSING`: an employed and placedHere day with no compensation fact (a gap or none).
-  - `CURRENCY_MISMATCH`: an employed and placedHere day covered only by a fact in another currency.
+  - `CURRENCY_MISMATCH`: the employee has employed and placedHere days covered by a fact in the run
+    currency and other such days covered only by a fact in the other currency (a currency switch
+    inside the month needs payroll review in MVP-094A). An employee covered only in the other
+    currency on every such day is **excluded** from the run, not blocked (R178-1): a CDF run leaves
+    out employees paid exclusively in USD and a USD run the reverse, so a mixed CDF/USD
+    organization can run both currencies. A missing fact still blocks. Exclusions are counted on the
+    preview and on the run (`excludedEmployeeCount`) and shown by employee in the preview. A
+    currency change of any fact changes the input digest, so it makes a preview stale.
   - `FOREIGN_PLACEMENT`: the employee has an employed day in the month placed in another legal
     entity (a transfer inside the month needs payroll review; nothing is silently split).
   - `OVERLAPPING_EVIDENCE`: overlapping employments, overlapping placements, or overlapping
@@ -124,7 +131,8 @@ Reference vectors (the unit tests and the migration trigger must agree):
   population member (employee id and number, eligible ranges and days, denominator, monthly amount,
   contractual gross, explanation codes, employee blockers), `inputDigest`, `previewDigest` and
   `expiresAt` (15 minutes; `previewDigest` and `expiresAt` null while blockers exist or when an
-  identical draft already exists, shown as `identicalToCurrent = true`).
+  identical draft already exists). The preview `status` is `READY`, `BLOCKED` or `NO_CHANGE` (an
+  identical recalculation, R178-1).
 - `inputDigest` = SHA-256 over a versioned canonical text of: tenant, entity, period, currency,
   policy id and sequence, and for every population member the employment, placement and
   compensation source records that fed the calculation (ids, versions, ranges, currency, minor
@@ -136,8 +144,10 @@ Reference vectors (the unit tests and the migration trigger must agree):
   of the inputs, an expired preview or a tampered digest is `409 PAYROLL_RUN_PREVIEW_STALE` and
   nothing is written; blockers are `409 PAYROLL_RUN_BLOCKED` (the preview already showed them).
   When the recalculated `inputDigest` equals the current draft's, nothing is recorded and no new
-  version is created: `409 PAYROLL_RUN_PREVIEW_STALE` (the draft is already current; the preview
-  of such a month says `identicalToCurrent = true` and carries no digest).
+  version is created: `409 PAYROLL_RUN_NO_CHANGE` (R178-1; the draft is already current and the
+  preview of such a month says `status = NO_CHANGE` and carries no digest). This is not a stale
+  preview. A replay of the creation that made the current draft, with the same Idempotency-Key,
+  still returns the original receipt: the idempotency store answers before any recalculation.
 - Run, lines, ranges, sources, audit and outbox commit in one transaction. Totals and counts are
   checked by deferred database constraints.
 - **Lifecycle:** `DRAFT -> SUPERSEDED` only. One current draft per (entity, month, currency); a
@@ -226,7 +236,7 @@ rule that review can change): (a) a compensation change inside the month is the 
 `MULTIPLE_MONTHLY_AMOUNTS`; (b) a transfer to another legal entity inside the month is the blocker
 `FOREIGN_PLACEMENT`; (c) the policy of a run is the one in force on the month's last day; (d) an
 identical recalculation records nothing and is refused as already current (`409
-PAYROLL_RUN_PREVIEW_STALE`, preview field `identicalToCurrent`); (e) a run needs at least one employee
+PAYROLL_RUN_NO_CHANGE`, preview `status = NO_CHANGE`); (e) a run needs at least one employee
 with a gross; (f) a policy preview on a date already used by a policy is the blocker `NO_CHANGE` (a
 different rule on a used date is a conflict, not a replacement: policies are append-only); (g) a line
 whose proration rounds to zero minor units is kept with gross 0 (the database allows 0) and is not a

@@ -59,6 +59,7 @@ final class PayrollViews {
         run.status(),
         run.policySequence(),
         run.employeeCount(),
+        run.excludedCount(),
         money(run.currency(), run.totalMinor()),
         run.createdAt(),
         run.supersededAt(),

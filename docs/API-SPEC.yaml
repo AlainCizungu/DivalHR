@@ -9964,7 +9964,9 @@ paths:
         gross is monthly base compensation after the approved proration policy; it is not taxable gross,
         net pay or money owed. Attendance, schedules and timesheets never scale it. Nothing is
         written. inputDigest identifies the inputs; previewDigest and expiresAt (15 minutes) are null
-        while any blocker exists or when the draft is already identical (identicalToCurrent). More
+        while any blocker exists or when the draft is already identical (status NO_CHANGE). Employees
+        paid only in the other currency are left out of the run, are not blockers and are counted in
+        excludedEmployeeCount; an employee who changes currency inside the month stays blocked. More
         than 5,000 employees is 409 PAYROLL_RUN_LIMIT_REACHED. At most 5 previews per subject per
         minute and 60 per tenant per hour. A disclosure (audit payroll-run.read; counts only, never an
         amount). Cache-Control private, no-store.
@@ -10060,8 +10062,10 @@ paths:
         population lock exclusive, the legal entity's payroll lock, deferred checks, audit and outbox)
         the policy, population, employment, placement and compensation are re-read and recalculated.
         A different current version is 409 PAYROLL_RUN_VERSION_CONFLICT; an expired preview, any change
-        of the inputs, a tampered digest or an identical recalculation is 409 PAYROLL_RUN_PREVIEW_STALE
-        and nothing is written; any blocker is 409 PAYROLL_RUN_BLOCKED; 25 versions of a chain or
+        of the inputs (including a change of currency of any compensation), or a tampered digest is 409
+        PAYROLL_RUN_PREVIEW_STALE and nothing is written; a recalculation identical to the current
+        draft is 409 PAYROLL_RUN_NO_CHANGE and nothing is written (a replay of the creation that made
+        that draft, with the same Idempotency-Key, returns the original receipt); any blocker is 409 PAYROLL_RUN_BLOCKED; 25 versions of a chain or
         more than 5,000 employees is 409 PAYROLL_RUN_LIMIT_REACHED. The run, its lines, eligible ranges
         and source references, the audit record (payroll-run.create) and the internal outbox event
         commit together; a changed recalculation creates version N+1 and supersedes version N in the
@@ -11032,8 +11036,9 @@ components:
         MVP-094A: PAYROLL_POLICY_NOT_FOUND (no payroll policy is in force on the month's last day),
         PAYROLL_POLICY_CONFLICT (the policy version moved, the policy equals the one in force or the
         effective date is used), PAYROLL_RUN_BLOCKED (an employee blocker exists),
-        PAYROLL_RUN_PREVIEW_STALE (the preview expired, the inputs changed or the draft is already
-        identical), PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or
+        PAYROLL_RUN_PREVIEW_STALE (the preview expired or the inputs changed),
+        PAYROLL_RUN_NO_CHANGE (the recalculation equals the current draft),
+        PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or
         PAYROLL_RUN_LIMIT_REACHED (60 policies, 25 versions of a chain or 5,000 employees). No params.
       content:
         application/problem+json:
@@ -15444,7 +15449,8 @@ components:
       type: string
       description: >-
         Stable employee blockers; any blocker forbids creating the run. COMPENSATION_MISSING (an employed day in
-        this legal entity without compensation), CURRENCY_MISMATCH (compensation in another currency),
+        this legal entity without compensation), CURRENCY_MISMATCH (the employee is paid in both currencies inside the month; an employee paid only in
+        the other currency is left out of the run instead, never blocked),
         FOREIGN_PLACEMENT (placed in another legal entity for part of the month), OVERLAPPING_EVIDENCE
         (inconsistent overlapping source records), MULTIPLE_MONTHLY_AMOUNTS (the monthly amount changes inside
         the month; correct or align the effective date), PARTIAL_MONTH_NOT_ALLOWED (the policy method NONE and a
@@ -15521,7 +15527,7 @@ components:
       description: >-
         One employee of the population. With any blocker, denominator, monthly and gross are null. Contractual
         gross is not taxable gross, net pay or money owed.
-      required: [employeeId, employeeNumber, eligibleDays, ranges, denominator, fullMonth, monthly, gross, explanationCodes, blockers]
+      required: [employeeId, employeeNumber, eligibleDays, ranges, denominator, fullMonth, monthly, gross, explanationCodes, blockers, excludedOtherCurrency]
       properties:
         employeeId:
           type: string
@@ -15562,12 +15568,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PayrollEmployeeBlocker"
+        excludedOtherCurrency:
+          type: boolean
+          description: True when the employee is paid only in the other currency and is not part of this run.
     PayrollRunSummary:
       type: object
       additionalProperties: false
       required:
-        [runId, legalEntityId, period, currency, version, status, policySequence, employeeCount, total,
-         createdAt, supersededAt, supersededByRunId]
+        [runId, legalEntityId, period, currency, version, status, policySequence, employeeCount,
+         excludedEmployeeCount, total, createdAt, supersededAt, supersededByRunId]
       properties:
         runId:
           type: string
@@ -15594,6 +15603,11 @@ components:
           type: integer
           minimum: 1
           maximum: 5000
+        excludedEmployeeCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          description: Employees paid only in the other currency, left out of this run.
         total:
           $ref: "#/components/schemas/CompensationMoney"
         createdAt:
@@ -15609,8 +15623,8 @@ components:
       type: object
       additionalProperties: false
       required:
-        [legalEntityId, period, currency, policy, expectedVersion, existingRun, identicalToCurrent,
-         employeeCount, blockedEmployeeCount, total, lines, inputDigest, previewDigest, expiresAt]
+        [legalEntityId, period, currency, policy, expectedVersion, existingRun, status,
+         employeeCount, blockedEmployeeCount, excludedEmployeeCount, total, lines, inputDigest, previewDigest, expiresAt]
       properties:
         legalEntityId:
           type: string
@@ -15630,9 +15644,12 @@ components:
           oneOf:
             - $ref: "#/components/schemas/PayrollRunSummary"
             - type: "null"
-        identicalToCurrent:
-          type: boolean
-          description: True when the recalculation equals the current draft; nothing can be created.
+        status:
+          type: string
+          description: >-
+            READY (a run can be created), BLOCKED (an employee blocker exists, or no employee has a gross) or
+            NO_CHANGE (the recalculation equals the current draft; nothing can be created).
+          enum: [READY, BLOCKED, NO_CHANGE]
         employeeCount:
           type: integer
           minimum: 0
@@ -15641,6 +15658,11 @@ components:
           type: integer
           minimum: 0
           maximum: 5000
+        excludedEmployeeCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          description: Employees paid only in the other currency on every day they are employed in this legal entity; left out of this run, never a blocker.
         total:
           description: Sum of the contractual gross of the employees without a blocker, in the run currency only.
           $ref: "#/components/schemas/CompensationMoney"
@@ -16428,6 +16450,7 @@ components:
         - PAYROLL_RUN_NOT_FOUND
         - PAYROLL_RUN_BLOCKED
         - PAYROLL_RUN_PREVIEW_STALE
+        - PAYROLL_RUN_NO_CHANGE
         - PAYROLL_RUN_VERSION_CONFLICT
         - PAYROLL_RUN_LIMIT_REACHED
     WhatsAppNotificationType:

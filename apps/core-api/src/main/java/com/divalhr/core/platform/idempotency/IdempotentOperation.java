@@ -430,6 +430,7 @@ public class IdempotentOperation {
           PAYROLL_POLICY_CONFLICT,
           PAYROLL_RUN_BLOCKED,
           PAYROLL_RUN_PREVIEW_STALE,
+          PAYROLL_RUN_NO_CHANGE,
           PAYROLL_RUN_VERSION_CONFLICT,
           PAYROLL_RUN_LIMIT_REACHED ->
           Outcome.STATE_CONFLICT;

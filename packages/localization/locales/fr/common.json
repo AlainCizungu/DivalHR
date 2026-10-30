@@ -649,7 +649,8 @@
     "PAYROLL_PERIOD_INVALID": "Le mois ou la date est hors de la plage autorisée : seuls les mois entièrement clos des 24 derniers mois, et des dates de politique de 24 mois en arrière à 366 jours en avant.",
     "PAYROLL_RUN_NOT_FOUND": "Cette exécution de paie ou cette entité juridique n’existe pas ou ne vous est pas accessible.",
     "PAYROLL_RUN_BLOCKED": "Au moins un employé a un blocage : l’exécution ne peut pas être créée. Résolvez les blocages affichés dans l’aperçu, puis relancez l’aperçu.",
-    "PAYROLL_RUN_PREVIEW_STALE": "L’aperçu n’est plus à jour : la politique, les employés, les affectations ou les rémunérations ont changé, l’aperçu a expiré, ou un brouillon identique existe déjà. Relancez l’aperçu.",
+    "PAYROLL_RUN_PREVIEW_STALE": "L’aperçu n’est plus à jour : la politique, les employés, les affectations ou les rémunérations ont changé, ou l’aperçu a expiré. Relancez l’aperçu.",
+    "PAYROLL_RUN_NO_CHANGE": "Le brouillon actuel correspond déjà à ce calcul : rien n’a été créé. Ouvrez plutôt le brouillon actuel.",
     "PAYROLL_RUN_VERSION_CONFLICT": "Une autre version de cette exécution a été créée entre-temps. Rechargez la liste et relancez l’aperçu avant de créer une nouvelle version.",
     "PAYROLL_RUN_LIMIT_REACHED": "Une limite est atteinte : au plus 5 000 employés par exécution, 25 versions par mois et par devise, et 60 politiques par entité juridique."
   },
@@ -5211,6 +5212,7 @@
     "draftLabel": "Brouillon — pas une paie statutaire",
     "contractualGross": "Brut contractuel",
     "employeeCount": "Employés",
+    "excludedCount": "Exclus (payés dans l’autre devise)",
     "blockedCount": "Employés bloqués",
     "loading": "Chargement…",
     "loadingMore": "Chargement…",
@@ -5239,7 +5241,7 @@
     },
     "employeeBlockers": {
       "COMPENSATION_MISSING": "La rémunération manque pour une partie de l’emploi dans cette entité juridique.",
-      "CURRENCY_MISMATCH": "La rémunération est enregistrée dans une autre devise.",
+      "CURRENCY_MISMATCH": "La rémunération change de devise dans le mois. Alignez la date d’effet.",
       "FOREIGN_PLACEMENT": "L’employé est affecté à une autre entité juridique pendant une partie du mois.",
       "OVERLAPPING_EVIDENCE": "Des emplois, affectations ou rémunérations qui se chevauchent doivent être corrigés.",
       "MULTIPLE_MONTHLY_AMOUNTS": "Le montant mensuel change dans le mois. Alignez la date d’effet.",
@@ -5312,6 +5314,8 @@
       "blocked_one": "{{count}} employé est bloqué. Aucune exécution ne peut être créée tant que le blocage n’est pas résolu.",
       "blocked_other": "{{count}} employés sont bloqués. Aucune exécution ne peut être créée tant que les blocages ne sont pas résolus.",
       "identical": "Le brouillon actuel est déjà identique à ce calcul. Rien ne change.",
+      "excluded_one": "{{count}} employé payé uniquement dans l’autre devise ne fait pas partie de cette exécution.",
+      "excluded_other": "{{count}} employés payés uniquement dans l’autre devise ne font pas partie de cette exécution.",
       "openExisting": "Ouvrir le brouillon actuel (version {{version}})",
       "existing": "Un brouillon actuel (version {{version}}) existe. Créer une exécution ajoute une nouvelle version et le remplace.",
       "noLines": "Aucun employé n’est éligible pour ce mois et cette devise.",
@@ -5354,7 +5358,8 @@
       "source": "{{kind}} {{id}}, version {{version}} (du {{from}} au {{to}})",
       "days_one": "{{count}} jour",
       "days_other": "{{count}} jours",
-      "fullMonth": "Aucun (mois complet)"
+      "fullMonth": "Aucun (mois complet)",
+      "excluded": "Payé uniquement dans l’autre devise : ne fait pas partie de cette exécution."
     },
     "detail": {
       "title": "Exécution de paie {{period}}, {{currency}}, version {{version}}",

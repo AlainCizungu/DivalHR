@@ -287,6 +287,8 @@ number or token is ever used in hr-dev.
 - Mutation checks: `scripts/dev/payroll-run-mutations.sh [n ...]` (needs Gradle; 4 needs Docker):
   1 hours-style scaling, 2 wrong denominator, 3 early rounding (`PayrollCalculatorTest`,
   `PayrollRunApiIntegrationTest`), 4 removed source-drift check (`PayrollRunApiIntegrationTest`),
-  5 removed tenant predicate (`JdbcPayrollRunRepositoryTenantTest`). A surviving mutation exits
+  5 removed tenant predicate (`JdbcPayrollRunRepositoryTenantTest`), 6 and 7 currency rules of
+  the calculator (R178-1: other-currency staff excluded, a switch inside the month blocked), 8 and 9
+  `NO_CHANGE` (`PayrollRunApiIntegrationTest`). A surviving mutation exits
   non-zero. Dev data contains no real salary; never paste amounts into issues, logs or tickets.
 

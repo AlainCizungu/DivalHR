@@ -183,6 +183,22 @@ final class PayrollRunWorld {
         201);
   }
 
+  /** Records a change of the monthly compensation (and possibly of its currency) from a date. */
+  JsonNode change(UUID employee, LocalDate from, String currency, String amount)
+      throws Exception {
+    Map<String, Object> command = CompensationWorld.command("CHANGED", from, currency, amount);
+    JsonNode preview = c.preview(employee, command);
+    assertThat(preview.get("blockers")).isEmpty();
+    return c.expect(
+        CompensationWorld.commitRequest(
+            admin,
+            employee,
+            Organizations.newKey(),
+            CompensationWorld.committing(
+                command, preview, preview.get("requiresAcknowledgement").asBoolean())),
+        201);
+  }
+
   /** Corrects the established compensation (same date, other amount). */
   JsonNode correct(UUID employee, String changeId, LocalDate from, String currency, String amount)
       throws Exception {

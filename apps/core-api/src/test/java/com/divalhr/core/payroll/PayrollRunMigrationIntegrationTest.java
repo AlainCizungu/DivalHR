@@ -691,6 +691,15 @@ class PayrollRunMigrationIntegrationTest {
                 c -> exec(c, "UPDATE payroll.pay_run SET employee_count = 2 WHERE id = ?", first));
             refuses(
                 db,
+                "payroll_pay_run_supersession_only",
+                c ->
+                    exec(
+                        c,
+                        "UPDATE payroll.pay_run SET excluded_other_currency_count = 1"
+                            + " WHERE id = ?",
+                        first));
+            refuses(
+                db,
                 "payroll_run_immutable",
                 c -> exec(c, "DELETE FROM payroll.pay_run WHERE id = ?", first));
             refuses(db, "payroll_run_immutable", c -> exec(c, "TRUNCATE payroll.pay_run CASCADE"));

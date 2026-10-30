@@ -56,6 +56,7 @@ export const summary = (overrides: Record<string, unknown> = {}) => ({
   status: 'DRAFT',
   policySequence: 1,
   employeeCount: 2,
+  excludedEmployeeCount: 0,
   total: usd('1875.00'),
   createdAt: '2026-10-01T08:00:00Z',
   supersededAt: null,
@@ -73,6 +74,7 @@ export const previewLine = (overrides: Record<string, unknown> = {}) => ({
   gross: usd('1250.00'),
   explanationCodes: ['FULL_MONTH'],
   blockers: [],
+  excludedOtherCurrency: false,
   ...overrides,
 });
 export const partialLine = () =>
@@ -85,6 +87,19 @@ export const partialLine = () =>
     fullMonth: false,
     gross: usd('625.00'),
     explanationCodes: ['STARTED_IN_MONTH', 'PRORATED_CALENDAR_DAYS'],
+  });
+export const excludedLine = () =>
+  previewLine({
+    employeeId: '22222222-0000-4000-8000-000000000004',
+    employeeNumber: 'E-0004',
+    eligibleDays: 0,
+    ranges: [],
+    denominator: null,
+    fullMonth: false,
+    monthly: null,
+    gross: null,
+    explanationCodes: [],
+    excludedOtherCurrency: true,
   });
 export const blockedLine = () =>
   previewLine({
@@ -111,9 +126,10 @@ export const runPreview = (overrides: Record<string, unknown> = {}) => ({
   },
   expectedVersion: 0,
   existingRun: null,
-  identicalToCurrent: false,
+  status: 'READY',
   employeeCount: 2,
   blockedEmployeeCount: 0,
+  excludedEmployeeCount: 0,
   total: usd('1875.00'),
   lines: [previewLine(), partialLine()],
   inputDigest: DIGEST,

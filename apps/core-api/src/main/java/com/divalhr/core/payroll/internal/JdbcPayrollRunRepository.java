@@ -44,8 +44,8 @@ public class JdbcPayrollRunRepository {
 
   private static final String RUN_COLUMNS =
       "id, legal_entity_id, period_start, currency, version, status, policy_id, policy_sequence,"
-          + " pay_day_kind, pay_day, proration_method, employee_count, total_gross_minor,"
-          + " input_digest, created_at, superseded_at, superseded_by_run_id";
+          + " pay_day_kind, pay_day, proration_method, employee_count, excluded_other_currency_count,"
+          + " total_gross_minor, input_digest, created_at, superseded_at, superseded_by_run_id";
 
   private static final String LINE_COLUMNS =
       "id, employee_id, employee_number, eligible_days, denominator, full_month, monthly_minor,"
@@ -79,6 +79,7 @@ public class JdbcPayrollRunRepository {
    * @param payDay frozen pay day
    * @param method frozen proration method
    * @param employeeCount lines
+   * @param excludedCount employees left out because they are paid only in the other currency
    * @param totalMinor total contractual gross in minor units
    * @param inputDigest digest of the inputs
    * @param createdAt creation instant
@@ -97,6 +98,7 @@ public class JdbcPayrollRunRepository {
       PayrollPayDay payDay,
       PayrollProration method,
       int employeeCount,
+      int excludedCount,
       long totalMinor,
       String inputDigest,
       Instant createdAt,
@@ -119,6 +121,7 @@ public class JdbcPayrollRunRepository {
    * @param version next version of the chain
    * @param policy the frozen policy
    * @param employeeCount lines
+   * @param excludedCount employees left out because they are paid only in the other currency
    * @param totalMinor total in minor units
    * @param inputDigest digest of the inputs
    * @param createdAt server instant
@@ -132,6 +135,7 @@ public class JdbcPayrollRunRepository {
       int version,
       PayrollPolicy policy,
       int employeeCount,
+      int excludedCount,
       long totalMinor,
       String inputDigest,
       Instant createdAt,
@@ -568,10 +572,10 @@ public class JdbcPayrollRunRepository {
     jdbc.sql(
             "INSERT INTO payroll.pay_run (tenant_id, legal_entity_id, id, period_start, currency,"
                 + " version, status, policy_id, policy_sequence, pay_day_kind, pay_day,"
-                + " proration_method, employee_count, total_gross_minor, input_digest, created_at,"
-                + " created_by) VALUES (:tenant, :entity, :id, :period, :currency, :version,"
-                + " 'DRAFT', :policy, :sequence, :kind, :day, :method, :count, :total, :digest,"
-                + " :at, :actor)")
+                + " proration_method, employee_count, excluded_other_currency_count, total_gross_minor,"
+                + " input_digest, created_at, created_by) VALUES (:tenant, :entity, :id, :period,"
+                + " :currency, :version, 'DRAFT', :policy, :sequence, :kind, :day, :method, :count,"
+                + " :excluded, :total, :digest, :at, :actor)")
         .param("tenant", tenant.value())
         .param("entity", run.legalEntityId())
         .param("id", run.id())
@@ -584,6 +588,7 @@ public class JdbcPayrollRunRepository {
         .param("day", policy.payDay().day() == null ? null : policy.payDay().day().shortValue())
         .param("method", policy.method().name())
         .param("count", run.employeeCount())
+        .param("excluded", run.excludedCount())
         .param("total", run.totalMinor())
         .param("digest", run.inputDigest())
         .param("at", Timestamp.from(run.createdAt()))
@@ -835,6 +840,7 @@ public class JdbcPayrollRunRepository {
         payDay,
         PayrollProration.valueOf(rs.getString("proration_method")),
         rs.getInt("employee_count"),
+        rs.getInt("excluded_other_currency_count"),
         rs.getLong("total_gross_minor"),
         rs.getString("input_digest"),
         rs.getTimestamp("created_at").toInstant(),

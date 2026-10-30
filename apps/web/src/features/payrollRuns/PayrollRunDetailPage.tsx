@@ -175,6 +175,12 @@ function RunDetail({ legalEntityId, runId }: { legalEntityId: string; runId: str
               <dd>{run.version}</dd>
               <dt>{t('payrollRuns.employeeCount')}</dt>
               <dd data-testid="payroll-detail-count">{run.employeeCount}</dd>
+              {run.excludedEmployeeCount > 0 && (
+                <>
+                  <dt>{t('payrollRuns.excludedCount')}</dt>
+                  <dd data-testid="payroll-detail-excluded">{run.excludedEmployeeCount}</dd>
+                </>
+              )}
               <dt>{t('payrollRuns.contractualGross')}</dt>
               <dd data-testid="payroll-detail-total">
                 <Money money={run.total} />

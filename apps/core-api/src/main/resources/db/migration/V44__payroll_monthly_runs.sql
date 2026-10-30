@@ -117,6 +117,7 @@ CREATE TABLE payroll.pay_run (
     pay_day             smallint,
     proration_method    text        NOT NULL,
     employee_count      integer     NOT NULL,
+    excluded_other_currency_count integer NOT NULL DEFAULT 0,
     total_gross_minor   bigint      NOT NULL,
     input_digest        char(64)    NOT NULL,
     created_at          timestamptz NOT NULL,
@@ -149,6 +150,7 @@ CREATE TABLE payroll.pay_run (
     CONSTRAINT payroll_pay_run_method
         CHECK (proration_method IN ('CALENDAR_DAYS', 'FIXED_30_DAYS', 'NONE')),
     CONSTRAINT payroll_pay_run_employee_count CHECK (employee_count BETWEEN 1 AND 5000),
+    CONSTRAINT payroll_pay_run_excluded_count CHECK (excluded_other_currency_count BETWEEN 0 AND 5000),
     -- 5,000 employees at the largest monthly amount of the currency (CDF 1,000,000,000; USD 10,000,000 minor).
     CONSTRAINT payroll_pay_run_total CHECK (
         total_gross_minor >= 0
@@ -206,7 +208,9 @@ BEGIN
         OR NEW.version <> OLD.version OR NEW.policy_id <> OLD.policy_id
         OR NEW.policy_sequence <> OLD.policy_sequence OR NEW.pay_day_kind <> OLD.pay_day_kind
         OR NEW.pay_day IS DISTINCT FROM OLD.pay_day OR NEW.proration_method <> OLD.proration_method
-        OR NEW.employee_count <> OLD.employee_count OR NEW.total_gross_minor <> OLD.total_gross_minor
+        OR NEW.employee_count <> OLD.employee_count
+        OR NEW.excluded_other_currency_count <> OLD.excluded_other_currency_count
+        OR NEW.total_gross_minor <> OLD.total_gross_minor
         OR NEW.input_digest <> OLD.input_digest OR NEW.created_at <> OLD.created_at
         OR NEW.created_by <> OLD.created_by THEN
         RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_pay_run_supersession_only',

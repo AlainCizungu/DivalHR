@@ -35,7 +35,7 @@ export const POLICY_BLOCKERS = ['NO_CHANGE', 'LIMIT_REACHED'] as const;
 export const SOURCE_KINDS = ['EMPLOYMENT', 'PLACEMENT', 'COMPENSATION'] as const;
 export const RUN_STATUSES = ['DRAFT', 'SUPERSEDED'] as const;
 
-/** The eight stable Problem Details codes of this feature (D94A-10). */
+/** The nine stable Problem Details codes of this feature (D94A-10). */
 export const PAYROLL_CODES = [
   'PAYROLL_POLICY_NOT_FOUND',
   'PAYROLL_POLICY_CONFLICT',
@@ -43,6 +43,7 @@ export const PAYROLL_CODES = [
   'PAYROLL_RUN_NOT_FOUND',
   'PAYROLL_RUN_BLOCKED',
   'PAYROLL_RUN_PREVIEW_STALE',
+  'PAYROLL_RUN_NO_CHANGE',
   'PAYROLL_RUN_VERSION_CONFLICT',
   'PAYROLL_RUN_LIMIT_REACHED',
 ] as const;
