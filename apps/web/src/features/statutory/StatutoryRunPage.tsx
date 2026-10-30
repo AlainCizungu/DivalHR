@@ -67,7 +67,11 @@ function Statutory({ legalEntityId, runId }: { legalEntityId: string; runId: str
 
   const run = load.kind === 'ready' ? load.run : null;
   return (
-    <section aria-labelledby={`${ids}-title`} data-testid="statutory-run">
+    <section
+      className="statutory-page"
+      aria-labelledby={`${ids}-title`}
+      data-testid="statutory-run"
+    >
       <PageHeader
         titleId={`${ids}-title`}
         title={

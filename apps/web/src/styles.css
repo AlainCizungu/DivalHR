@@ -746,3 +746,29 @@ fieldset.field {
 .statutory-totals strong {
   display: block;
 }
+
+/* MVP-094B: nothing on a statutory page may widen the page at 320 px, 390 px, 640 px or 200 % zoom:
+   long codes, titles, hashes and translated labels wrap inside their card; wide tables scroll
+   inside their own region. */
+.statutory-page,
+.statutory-page .card,
+.statutory-page fieldset {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.statutory-page :where(h1, h2, h3, h4, h5, p, li, dt, dd, label, legend, summary, a, span, code) {
+  overflow-wrap: anywhere;
+}
+
+.statutory-page code {
+  word-break: break-all;
+}
+
+.statutory-page .choice > label {
+  min-inline-size: 0;
+}
+
+.statutory-page .dialog-actions > * {
+  max-inline-size: 100%;
+}

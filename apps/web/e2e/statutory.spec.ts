@@ -128,10 +128,18 @@ async function noOverflow(page: Page) {
     { width: 640, height: 400 },
   ]) {
     await page.setViewportSize(viewport);
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      `no horizontal overflow at ${viewport.width} px`,
-    ).toBe(true);
+    const wide = await page.evaluate(() =>
+      document.documentElement.scrollWidth <= window.innerWidth
+        ? []
+        : Array.from(document.body.querySelectorAll('*'))
+            .filter((element) => element.getBoundingClientRect().right > window.innerWidth + 1)
+            .slice(0, 6)
+            .map(
+              (element) =>
+                `${element.tagName.toLowerCase()}[${element.getAttribute('data-testid') ?? String(element.className)}]=${String(Math.round(element.getBoundingClientRect().right))}`,
+            ),
+    );
+    expect(wide, `no horizontal overflow at ${viewport.width} px`).toEqual([]);
   }
   await page.setViewportSize({ width: 1280, height: 800 });
 }

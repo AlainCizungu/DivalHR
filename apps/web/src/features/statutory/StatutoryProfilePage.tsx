@@ -250,7 +250,11 @@ function Profile({ employeeId }: { employeeId: string }) {
   };
 
   return (
-    <section aria-labelledby={`${ids}-title`} data-testid="statutory-profile">
+    <section
+      className="statutory-page"
+      aria-labelledby={`${ids}-title`}
+      data-testid="statutory-profile"
+    >
       <PageHeader
         titleId={`${ids}-title`}
         title={t('statutory.profile.title')}
