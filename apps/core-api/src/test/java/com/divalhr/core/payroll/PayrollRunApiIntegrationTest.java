@@ -262,7 +262,8 @@ class PayrollRunApiIntegrationTest {
 
     // The run records who was left out and has a line only for the employee it pays.
     JsonNode detail =
-        w.c.expect(PayrollRunWorld.get(w.admin, w.runsPath() + "/" + usd.get("runId").asText()), 200);
+        w.c.expect(
+            PayrollRunWorld.get(w.admin, w.runsPath() + "/" + usd.get("runId").asText()), 200);
     assertThat(detail.get("run").get("excludedEmployeeCount").asInt()).isEqualTo(1);
     assertThat(detail.get("lines")).hasSize(1);
     assertThat(
@@ -296,8 +297,7 @@ class PayrollRunApiIntegrationTest {
     JsonNode established = w.compensate(ana, beforeMonth(), "CDF", "450000");
     // Ana is left out of the USD run; correcting her currency to USD changes who is paid.
     assertStaleAfter(
-        () ->
-            w.correct(ana, established.get("changeId").asText(), beforeMonth(), "USD", "900.00"));
+        () -> w.correct(ana, established.get("changeId").asText(), beforeMonth(), "USD", "900.00"));
   }
 
   @Test
@@ -308,8 +308,7 @@ class PayrollRunApiIntegrationTest {
     JsonNode established = w.compensate(ana, beforeMonth(), "USD", "900.00");
     // Ana is in the USD run; correcting her to CDF removes her, which the old preview did not show.
     assertStaleAfter(
-        () ->
-            w.correct(ana, established.get("changeId").asText(), beforeMonth(), "CDF", "450000"));
+        () -> w.correct(ana, established.get("changeId").asText(), beforeMonth(), "CDF", "450000"));
   }
 
   @Test

@@ -184,8 +184,7 @@ final class PayrollRunWorld {
   }
 
   /** Records a change of the monthly compensation (and possibly of its currency) from a date. */
-  JsonNode change(UUID employee, LocalDate from, String currency, String amount)
-      throws Exception {
+  JsonNode change(UUID employee, LocalDate from, String currency, String amount) throws Exception {
     Map<String, Object> command = CompensationWorld.command("CHANGED", from, currency, amount);
     JsonNode preview = c.preview(employee, command);
     assertThat(preview.get("blockers")).isEmpty();
