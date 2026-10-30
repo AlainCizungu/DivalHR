@@ -647,7 +647,25 @@ public enum ErrorCode {
   /** MVP-093A: the action is not legal in the current timeline. */
   COMPENSATION_TRANSITION_NOT_ALLOWED(HttpStatus.UNPROCESSABLE_CONTENT),
   /** MVP-093A: the per-employee limit of changes or scheduled changes is reached. */
-  COMPENSATION_LIMIT_REACHED(HttpStatus.CONFLICT);
+  COMPENSATION_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-094A: no payroll policy is in force on the last day of the month. */
+  PAYROLL_POLICY_NOT_FOUND(HttpStatus.CONFLICT),
+  /** MVP-094A: the policy version moved, the policy is identical, or its effective date is used. */
+  PAYROLL_POLICY_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-094A: the month is not a fully closed month of the prior 24, or a date is out of range. */
+  PAYROLL_PERIOD_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-094A: the payroll run is unknown or not visible to the caller. */
+  PAYROLL_RUN_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-094A: an employee blocker forbids creating the run. */
+  PAYROLL_RUN_BLOCKED(HttpStatus.CONFLICT),
+  /** MVP-094A: the preview expired or the inputs changed since it was shown. */
+  PAYROLL_RUN_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-094A (R178-1): the recalculation equals the current draft, so nothing would change. */
+  PAYROLL_RUN_NO_CHANGE(HttpStatus.CONFLICT),
+  /** MVP-094A: another command changed the run chain first. */
+  PAYROLL_RUN_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-094A: 60 policies, 25 versions of a chain, or 5,000 employees would be exceeded. */
+  PAYROLL_RUN_LIMIT_REACHED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

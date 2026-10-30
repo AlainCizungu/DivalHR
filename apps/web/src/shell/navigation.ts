@@ -145,6 +145,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'payroll',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/payroll-runs',
+        labelKey: 'nav.payrollRuns',
+        icon: 'payroll',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

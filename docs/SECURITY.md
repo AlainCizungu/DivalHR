@@ -836,3 +836,33 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - **Limits.** Previews 60 per hour (subject, in-process) and 600 per tenant; commands 30 per subject
   and 300 per tenant per hour; 100 changes and 10 scheduled changes per employee.
 - **Events are internal.** `payroll.compensation.*` events are not mapped to webhooks or WhatsApp.
+
+## Monthly payroll policies and runs (MVP-094A, ADR 0033)
+
+- **Restricted financial and HR data.** Amounts (monthly and gross), employee numbers with day counts,
+  eligible ranges, source versions, digests and names never enter logs, metrics, audit metadata,
+  outbox payloads, idempotency receipts, cursors, URLs or error bodies. Audit and events carry the
+  legal entity, run id, version, period, currency, status, policy sequence and bounded counts only
+  (allow-list in `PayrollRecorder`). A run is a DRAFT of the **contractual** gross, not statutory payroll.
+- **Authority.** Tenant administrator with exact MFA (`TenantAdminOperation`) for all seven operations
+  (`getPayrollPolicy`, `previewPayrollPolicy`, `commitPayrollPolicy`, `previewPayrollRun`,
+  `listPayrollRuns`, `commitPayrollRun`, `getPayrollRun`). Employees, managers and platform
+  administrators are denied by role. A malformed, unknown, foreign or wrong-kind legal entity is one
+  `404 LEGAL_ENTITY_NOT_FOUND`; a malformed, unknown, foreign-tenant or foreign-entity run is one
+  `404 PAYROLL_RUN_NOT_FOUND`. Cursors are bound to tenant, subject, role, entity, run and page size.
+- **Disclosure audit.** Every policy read and preview and every run list, read and preview is audited
+  fail-closed (`payroll-policy.read`, `payroll-run.read`); commits are `payroll-policy.change` and
+  `payroll-run.create`. Responses are `Cache-Control: private, no-store`.
+- **Database authority.** V44 recomputes each line's gross (HALF_UP once), freezes the policy in force,
+  allows one DRAFT per month, entity and currency, never updates or deletes evidence and checks
+  totals, ranges and sources at commit. Lock order is documented in ADR 0033 section 8.
+- **Mixed currencies and no-change (R178-1).** An employee paid only in the other currency is left
+  out of a run (counted, never a blocker); one who switches currency inside the month stays
+  blocked. The exclusion count and the `NO_CHANGE` status are counts and codes only: no amount,
+  employee number or digest reaches audit, outbox, logs or errors. An identical recalculation is
+  `409 PAYROLL_RUN_NO_CHANGE`; a replay of the original creation still returns its receipt.
+- **Limits.** Subject per minute: policy read 60, preview 10, commit 5; run read 60, preview 5, create 2.
+  Tenant per hour: run preview 60, create 20. At most 5,000 employees, 25 versions per month and
+  currency, 60 policies per entity.
+- **Events are internal.** `payroll.payroll-policy.changed.v1` and `payroll.payroll-run.created.v1` are
+  not mapped to webhooks or WhatsApp (`PayrollEventsNotDeliveredTest`).

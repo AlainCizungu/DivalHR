@@ -170,6 +170,14 @@ divalhr:
       compensation-self-read: ${DIVALHR_COMPENSATION_SELF_READ_REQUESTS_PER_MINUTE:60}
       compensation-preview: ${DIVALHR_COMPENSATION_PREVIEW_REQUESTS_PER_MINUTE:20}
       compensation-write: ${DIVALHR_COMPENSATION_WRITE_REQUESTS_PER_MINUTE:10}
+      # MVP-094A: monthly payroll policies and runs (ADR 0033, D94A-13). Per subject per minute:
+      # policy reads 60, previews 10, commits 5; run reads 60, previews 5, creations 2.
+      payroll-policy-read: ${DIVALHR_PAYROLL_POLICY_READ_REQUESTS_PER_MINUTE:60}
+      payroll-policy-preview: ${DIVALHR_PAYROLL_POLICY_PREVIEW_REQUESTS_PER_MINUTE:10}
+      payroll-policy-write: ${DIVALHR_PAYROLL_POLICY_WRITE_REQUESTS_PER_MINUTE:5}
+      payroll-run-read: ${DIVALHR_PAYROLL_RUN_READ_REQUESTS_PER_MINUTE:60}
+      payroll-run-preview: ${DIVALHR_PAYROLL_RUN_PREVIEW_REQUESTS_PER_MINUTE:5}
+      payroll-run-create: ${DIVALHR_PAYROLL_RUN_CREATE_REQUESTS_PER_MINUTE:2}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -246,6 +254,13 @@ divalhr:
         window: 1h
       compensation-write:
         requests: ${DIVALHR_COMPENSATION_TENANT_WRITES:300}
+        window: 1h
+      # MVP-094A: monthly payroll runs (D94A-13): 60 previews and 20 creations per tenant per hour.
+      payroll-run-preview:
+        requests: ${DIVALHR_PAYROLL_RUN_TENANT_PREVIEWS:60}
+        window: 1h
+      payroll-run-create:
+        requests: ${DIVALHR_PAYROLL_RUN_TENANT_CREATES:20}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.

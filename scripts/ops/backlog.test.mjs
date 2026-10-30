@@ -16,9 +16,10 @@ const backlog = readFileSync(`${root}docs/BACKLOG.md`, 'utf8');
 /** The two releases that hr-dev ran, in deployment order (known deployment facts). */
 const DEPLOYED = [
   '1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf', // MVP-081, PR #170: deployed first
-  '5d4cd1068b63b84e33671123405d6bef1178b6aa', // SEC-003, PR #174: the running release
+  '5d4cd1068b63b84e33671123405d6bef1178b6aa', // SEC-003, PR #174: deployed second
+  '3223454379a9b6342fe3c6b2728d8f17680466e7', // MVP-093A, PR #176: the running release
 ];
-const RUNNING = DEPLOYED[1];
+const RUNNING = DEPLOYED[2];
 /** Stories that D93-13 requires to carry a real merged or deployed status. */
 const REQUIRED = [
   'MVP-080',
@@ -85,8 +86,9 @@ test('the header names the deployed hr-dev release and the one deployed before i
   const header = backlog.split('## Epic 1')[0];
   for (const sha of DEPLOYED) assert.ok(header.includes(sha), `the header names ${sha}`);
   assert.match(header, new RegExp(`runs \`main\` at \`${RUNNING}\``, 'u'));
-  assert.match(header, /PR #174/u);
+  assert.match(header, /PR #176/u);
   assert.match(header, /deployed 2026-10-29/u);
+  assert.match(header, /MVP-094A is \*\*not\*\* deployed/u);
 });
 
 test('every listed story has a status', () => {
@@ -113,11 +115,17 @@ test('the required stories carry a merged or deployed status, and none is still 
   assert.match(sections.get('SEC-003').body, /deployed to hr-dev on 2026-10-29/u);
 });
 
-test('MVP-093A is listed under Epic 10 as in progress for Issue #175', () => {
+test('MVP-093A is merged and deployed; MVP-094A is listed as in progress for Issue #177', () => {
   const epic10 = backlog.split('## Epic 10')[1].split('\n## ')[0];
   assert.match(epic10, /### MVP-093A /u);
-  const section = storySections().find((entry) => entry.id === 'MVP-093A');
-  assert.match(section.body, /Issue #175\. In progress/u);
+  assert.match(epic10, /### MVP-094A /u);
+  const sections = storySections();
+  const done = sections.find((entry) => entry.id === 'MVP-093A');
+  assert.match(done.body, /Issue #175\. Merged \(PR #176/u);
+  assert.match(done.body, /deployed to hr-dev on 2026-10-29/u);
+  const next = sections.find((entry) => entry.id === 'MVP-094A');
+  assert.match(next.body, /Issue #177\. In progress \(not merged, not deployed\)/u);
+  assert.match(next.body, /not taxable gross, net pay or money owed/u);
 });
 
 test('open maintenance is separate and names Issues #151 and #173 as duplicates, without closing them', () => {

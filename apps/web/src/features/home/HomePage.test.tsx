@@ -85,6 +85,7 @@ const TENANT_DESTINATIONS = {
     ['timesheets', '/admin/timesheets'],
     ['timeExports', '/admin/time-exports'],
     ['payrollPreparation', '/admin/payroll-preparation'],
+    ['payrollRuns', '/admin/payroll-runs'],
     ['tasks', '/admin/tasks'],
     ['expenses', '/admin/expenses'],
   ],
@@ -171,6 +172,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     const delivered = within(progress).getAllByRole('listitem');
     const progressIds = [
       'payroll',
+      'payrollRuns',
       'compensation',
       'briefing',
       'integrations',
@@ -246,6 +248,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     for (const text of [
       c.nav.timeExports,
       c.nav.payrollPreparation,
+      c.nav.payrollRuns,
       c.nav.attendanceReview,
       c.nav.operationsStatus,
       c.nav.timesheets,

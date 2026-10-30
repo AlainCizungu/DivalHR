@@ -266,7 +266,14 @@ class AuthorizationDenialAuditIntegrationTest {
           "compensation.preview",
           "compensation.commit",
           "compensation.cancel-preview",
-          "compensation.scheduled-change-cancel");
+          "compensation.scheduled-change-cancel",
+          // MVP-094A: monthly payroll policies and runs (administrator).
+          "payroll-policy.read",
+          "payroll-policy.preview",
+          "payroll-policy.commit",
+          "payroll-run.preview",
+          "payroll-run.read",
+          "payroll-run.create");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -774,7 +781,8 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-080 four more (assign, list, read and cancel a task).
     // MVP-081 three more (the administrator's expense list, read and receipt download).
     // MVP-093A five more (read, preview, commit, cancellation preview and cancellation).
-    assertThat(handlers).hasSize(163);
+    // MVP-094A seven more (policy read, preview and commit; run preview, list, creation and read).
+    assertThat(handlers).hasSize(170);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

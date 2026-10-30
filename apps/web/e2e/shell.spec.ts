@@ -61,6 +61,7 @@ test.describe('desktop', () => {
       'Timesheets',
       'Time exports',
       'Payroll preparation',
+      'Payroll runs',
       'Organizational structure',
       'Contract templates',
       'Contract expirations',
@@ -207,7 +208,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(22);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(23);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

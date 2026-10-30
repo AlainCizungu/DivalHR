@@ -20,9 +20,9 @@ const LANDING = {
     capabilities: 'Capabilities available',
     later: 'Coming next',
     compensation: 'Monthly compensation records',
-    next: 'Gross and net payroll calculation',
+    next: 'DRC statutory country pack',
     active:
-      'Payroll preparation and monthly compensation records are active. Salary calculation, statutory rules and payment are not.',
+      'Payroll preparation, monthly compensation records and draft contractual gross are active. Statutory deductions and payment are not.',
   },
   fr: {
     language: 'Français',
@@ -30,9 +30,9 @@ const LANDING = {
     capabilities: 'Fonctionnalités disponibles',
     later: 'Prochainement',
     compensation: 'Rémunérations mensuelles enregistrées',
-    next: 'Calcul de la paie brute et nette',
+    next: 'Pack légal pays pour la RDC',
     active:
-      'La préparation de la paie et les rémunérations mensuelles sont actives. Le calcul des salaires, les règles légales et le paiement ne le sont pas encore.',
+      'La préparation de la paie, les rémunérations mensuelles et le brut contractuel en brouillon sont actifs. Les retenues légales et le paiement ne le sont pas encore.',
   },
 } as const;
 
@@ -101,21 +101,19 @@ for (const locale of ['en', 'fr'] as const) {
     await expect(modules.locator('[data-testid="landing-remaining"]')).toHaveCount(5);
     // The two plain lists (no link, button or figure): Available now grouped, Coming next.
     const today = page.getByTestId('landing-today');
-    await expect(today.getByRole('listitem')).toHaveCount(12);
+    await expect(today.getByRole('listitem')).toHaveCount(13);
     await expect(today.locator('li[data-module="compensation"]')).toHaveText(
       LANDING[locale].compensation,
     );
     const next = page.getByTestId('landing-next');
-    await expect(next.getByRole('listitem')).toHaveCount(6);
-    await expect(next.locator('li[data-module="payrollCalculation"]')).toHaveText(
-      LANDING[locale].next,
-    );
+    await expect(next.getByRole('listitem')).toHaveCount(5);
+    await expect(next.locator('li[data-module="statutory"]')).toHaveText(LANDING[locale].next);
     await expect(today.locator('a, button')).toHaveCount(0);
     await expect(next.locator('a, button')).toHaveCount(0);
-    // Payroll: preparation and compensation active, calculation and payment planned.
+    // Payroll: preparation, compensation and draft runs active, statutory calculation and payment planned.
     await expect(page.getByTestId('landing-payroll-active')).toContainText(LANDING[locale].active);
     const payroll = page.locator('#payroll');
-    for (const step of ['preparation', 'compensation']) {
+    for (const step of ['preparation', 'compensation', 'runs']) {
       await expect(payroll.locator(`li[data-step="${step}"]`)).toContainText(
         LANDING[locale].available,
       );
@@ -156,7 +154,7 @@ test.describe('organization administrator home', () => {
     await expect(page.locator('main a[href^="/me/"]')).toHaveCount(0);
     // U4-3: the progress panel is static text with no control; the roadmap names what comes next.
     const progress = page.getByTestId('home-progress');
-    await expect(progress.getByRole('listitem')).toHaveCount(5);
+    await expect(progress.getByRole('listitem')).toHaveCount(6);
     await expect(progress).toContainText('Monthly compensation records');
     await expect(progress).toContainText('Payroll preparation, locking and export');
     await expect(progress.locator('a, button')).toHaveCount(0);
@@ -210,6 +208,7 @@ test.describe('organization administrator home', () => {
           ['Timesheets', '/admin/timesheets'],
           ['Time exports', '/admin/time-exports'],
           ['Payroll preparation', '/admin/payroll-preparation'],
+          ['Payroll runs', '/admin/payroll-runs'],
           ['Tasks', '/admin/tasks'],
           ['Expenses', '/admin/expenses'],
         ],

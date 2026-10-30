@@ -692,3 +692,10 @@ fieldset.field {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* MVP-094A: a link inside a table cell is a full-height target (WCAG 2.2 target size). */
+.table-link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.5rem;
+}

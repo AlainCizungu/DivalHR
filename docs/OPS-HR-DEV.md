@@ -270,3 +270,25 @@ number or token is ever used in hr-dev.
 - Mutation checks: `scripts/dev/compensation-mutations.sh [n ...]` (needs Gradle and Docker); a
   surviving mutation exits non-zero. Dev data contains no real salary; never paste amounts into
   issues, logs or support tickets.
+
+## MVP-094A monthly payroll runs
+
+- Seven operations (`getPayrollPolicy`, `previewPayrollPolicy`, `commitPayrollPolicy`,
+  `previewPayrollRun`, `listPayrollRuns`, `commitPayrollRun`, `getPayrollRun`). Subject buckets per
+  minute (`application.yaml`, environment `DIVALHR_PAYROLL_*_REQUESTS_PER_MINUTE`): `payroll-policy-read`
+  60, `-preview` 10, `-write` 5; `payroll-run-read` 60, `-preview` 5, `-create` 2. Tenant buckets per
+  hour: `payroll-run-preview` 60, `payroll-run-create` 20. There is no scheduled job.
+- Limits: 5,000 employees per run (`409 PAYROLL_RUN_LIMIT_REACHED` before anything is calculated),
+  25 versions per month and currency, 60 policies per legal entity. Timeouts surface as
+  `503 EMPLOYMENT_CHANGE_TIMEOUT`.
+- Migration V44 is additive. Rollback `db/rollback/V44__rollback.sql` is manual, never run by Flyway,
+  and refuses while any policy or run row exists (there is no override); it does not edit
+  `flyway_schema_history`. Prefer rolling back only the application.
+- Mutation checks: `scripts/dev/payroll-run-mutations.sh [n ...]` (needs Gradle; 4 needs Docker):
+  1 hours-style scaling, 2 wrong denominator, 3 early rounding (`PayrollCalculatorTest`,
+  `PayrollRunApiIntegrationTest`), 4 removed source-drift check (`PayrollRunApiIntegrationTest`),
+  5 removed tenant predicate (`JdbcPayrollRunRepositoryTenantTest`), 6 and 7 currency rules of
+  the calculator (R178-1: other-currency staff excluded, a switch inside the month blocked), 8 and 9
+  `NO_CHANGE` (`PayrollRunApiIntegrationTest`). A surviving mutation exits
+  non-zero. Dev data contains no real salary; never paste amounts into issues, logs or tickets.
+

@@ -349,6 +349,165 @@ public class JdbcEmploymentHistoryRepository {
   }
 
   /**
+   * An employee of a payroll population (Confidential).
+   *
+   * @param id employee ID
+   * @param employeeNumber employee number
+   */
+  public record PopulationEmployee(UUID id, String employeeNumber) {
+
+    @Override
+    public String toString() {
+      return "PopulationEmployee[" + id + "]";
+    }
+  }
+
+  /**
+   * An active placement of an employee in a legal entity (Restricted HR).
+   *
+   * @param id assignment ID
+   * @param employeeId employee
+   * @param legalEntityId legal entity placed in
+   * @param start first day
+   * @param end last day, or {@code null}
+   */
+  public record PlacementRecord(
+      UUID id, UUID employeeId, UUID legalEntityId, LocalDate start, LocalDate end) {}
+
+  /**
+   * Locks {@code FOR SHARE}, in identifier order, every employment of the tenant that overlaps a
+   * period (MVP-094A payroll runs): changes, corrections and separations lock them {@code FOR
+   * UPDATE} and wait until the caller commits.
+   *
+   * @param tenant verified tenant
+   * @param from first day of the period
+   * @param to last day of the period
+   * @return the number of rows locked
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public int shareEmploymentsOverlapping(TenantId tenant, LocalDate from, LocalDate to) {
+    return jdbc.sql(
+            "SELECT id FROM people.employment WHERE tenant_id = :tenant"
+                + " AND effective_from <= :to AND (effective_to IS NULL OR effective_to >= :from)"
+                + " ORDER BY id FOR SHARE")
+        .param("tenant", tenant.value())
+        .param("from", from)
+        .param("to", to)
+        .query(UUID.class)
+        .list()
+        .size();
+  }
+
+  /**
+   * The employees that have an active {@code PLACEMENT} assignment in a legal entity overlapping
+   * one of their employments within a period, by employee number in byte order then ID.
+   *
+   * @param tenant verified tenant
+   * @param legalEntityId legal entity
+   * @param from first day of the period
+   * @param to last day of the period
+   * @param limit most rows to return
+   * @return the employees
+   */
+  public List<PopulationEmployee> populationEmployees(
+      TenantId tenant, UUID legalEntityId, LocalDate from, LocalDate to, int limit) {
+    return jdbc.sql(
+            "SELECT e.id, e.employee_number FROM people.employee e WHERE e.tenant_id = :tenant"
+                + " AND EXISTS (SELECT 1 FROM people.employment m"
+                + " JOIN people.employment_assignment a ON a.tenant_id = m.tenant_id"
+                + " AND a.employment_id = m.id AND a.employee_id = m.employee_id"
+                + " WHERE m.tenant_id = e.tenant_id AND m.employee_id = e.id"
+                + " AND m.effective_from <= :to AND (m.effective_to IS NULL OR m.effective_to >="
+                + " :from)"
+                + " AND a.kind = 'PLACEMENT' AND a.superseded_by_change_id IS NULL"
+                + " AND a.legal_entity_id = :entity"
+                + " AND a.effective_from <= :to AND (a.effective_to IS NULL OR a.effective_to >="
+                + " :from)"
+                + " AND (m.effective_to IS NULL OR a.effective_from <= m.effective_to)"
+                + " AND (a.effective_to IS NULL OR a.effective_to >= m.effective_from))"
+                + " ORDER BY e.employee_number COLLATE \"C\", e.id LIMIT :limit")
+        .param("tenant", tenant.value())
+        .param("entity", legalEntityId)
+        .param("from", from)
+        .param("to", to)
+        .param("limit", limit)
+        .query(
+            (rs, row) ->
+                new PopulationEmployee(
+                    rs.getObject("id", UUID.class), rs.getString("employee_number")))
+        .list();
+  }
+
+  /**
+   * Employments overlapping a period, of many employees.
+   *
+   * @param tenant verified tenant
+   * @param employeeIds employees
+   * @param from first day of the period
+   * @param to last day of the period
+   * @return their employments, by employee, by start date
+   */
+  public Map<UUID, List<EmploymentRecord>> employmentsOverlapping(
+      TenantId tenant, Set<UUID> employeeIds, LocalDate from, LocalDate to) {
+    Map<UUID, List<EmploymentRecord>> found = new HashMap<>();
+    if (employeeIds.isEmpty()) {
+      return found;
+    }
+    jdbc.sql(
+            "SELECT id, employee_id, effective_from, effective_to, version FROM people.employment"
+                + " WHERE tenant_id = :tenant AND employee_id = ANY(:ids)"
+                + " AND effective_from <= :to AND (effective_to IS NULL OR effective_to >= :from)"
+                + " ORDER BY effective_from, id")
+        .param("tenant", tenant.value())
+        .param("ids", employeeIds.toArray(UUID[]::new))
+        .param("from", from)
+        .param("to", to)
+        .query(JdbcEmploymentHistoryRepository::employment)
+        .list()
+        .forEach(e -> found.computeIfAbsent(e.employeeId(), k -> new ArrayList<>()).add(e));
+    return found;
+  }
+
+  /**
+   * Active placements overlapping a period, of many employees, in any legal entity.
+   *
+   * @param tenant verified tenant
+   * @param employeeIds employees
+   * @param from first day of the period
+   * @param to last day of the period
+   * @return their placements, by employee, by start date
+   */
+  public Map<UUID, List<PlacementRecord>> placementsOverlapping(
+      TenantId tenant, Set<UUID> employeeIds, LocalDate from, LocalDate to) {
+    Map<UUID, List<PlacementRecord>> found = new HashMap<>();
+    if (employeeIds.isEmpty()) {
+      return found;
+    }
+    jdbc.sql(
+            "SELECT id, employee_id, legal_entity_id, effective_from, effective_to"
+                + " FROM people.employment_assignment WHERE tenant_id = :tenant"
+                + " AND employee_id = ANY(:ids) AND kind = 'PLACEMENT'"
+                + " AND superseded_by_change_id IS NULL AND legal_entity_id IS NOT NULL"
+                + " AND effective_from <= :to AND (effective_to IS NULL OR effective_to >= :from)"
+                + " ORDER BY effective_from, id")
+        .param("tenant", tenant.value())
+        .param("ids", employeeIds.toArray(UUID[]::new))
+        .param("from", from)
+        .param("to", to)
+        .query(
+            (rs, row) ->
+                new PlacementRecord(
+                    rs.getObject("id", UUID.class),
+                    rs.getObject("employee_id", UUID.class),
+                    rs.getObject("legal_entity_id", UUID.class),
+                    rs.getObject("effective_from", LocalDate.class),
+                    rs.getObject("effective_to", LocalDate.class)))
+        .list()
+        .forEach(p -> found.computeIfAbsent(p.employeeId(), k -> new ArrayList<>()).add(p));
+    return found;
+  }
+
+  /**
    * Takes the tenant's manager-graph transaction lock (the same key the V14 trigger takes).
    *
    * @param tenant verified tenant
