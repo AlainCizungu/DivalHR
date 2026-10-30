@@ -866,3 +866,81 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
   currency, 60 policies per entity.
 - **Events are internal.** `payroll.payroll-policy.changed.v1` and `payroll.payroll-run.created.v1` are
   not mapped to webhooks or WhatsApp (`PayrollEventsNotDeliveredTest`).
+
+## Statutory preview (MVP-094B, ADR 0034)
+
+- **Database authority (V45).** Seven `payroll.statutory_*` tables enforce the rules whatever the
+  application checks. Constraint violations raise SQLSTATE 23514 with the constraint named
+  `payroll_statutory_*`; as in V43 and V44 no `GRANT` or `REVOKE` is issued and authority comes from
+  triggers, not from roles.
+- **A rule pack cannot become authoritative by itself.** The only seeded pack
+  (`CD-SALARY-PREVIEW` v1, 2026) is a DRAFT: no reviewer, no review date, no attestation, no
+  verification time and no source hash. Status moves forward only (DRAFT, VERIFIED, RETIRED); a
+  VERIFIED pack needs a named reviewer and organization, a review date, an attestation, at least
+  one source, every source hashed (SHA-256) and every source key its rules cite present. These
+  checks are deferred to commit. Content, rules, interval and evidence are immutable once
+  verified; the rules digest is a generated column.
+- **Sources.** Only `https` addresses on `dgi.gouv.cd`, `desec.dgi.gouv.cd`, `cnss.cd` and
+  `budget.gouv.cd` (no port, user information, space or other host) from a closed key list; a
+  source is added only while its pack is DRAFT and is never changed or deleted.
+- **Activation, profile and calculation are append-only.** An activation needs a VERIFIED pack
+  covering its month, an acknowledgement and a gap-free sequence. A profile is appended per
+  employee (at most 100, an UNSUPPORTED profile has both flags false, closed classification and
+  evidence codes, same tenant). A calculation needs a VERIFIED pack in force through the entity's
+  activation, a CDF run, exact arithmetic, one component per rule for every supported line and
+  none for an excluded line, and totals equal to the sum of its lines (all deferred). One DRAFT
+  per run and pack; it is superseded only by its successor, in the same transaction. Nothing is
+  deleted or truncated.
+- **Rollback refuses to erase evidence.** `V45__rollback.sql` stops while any activation, profile,
+  calculation, any pack other than the unverified seed, any hashed source or any source of another
+  pack exists. Restoring V44 exactly is possible only on an empty data set.
+- **Restricted data.** Amounts, employee numbers and traces stay out of logs, metrics, audit,
+  events and errors as for runs; the database messages name constraints only.
+- **Authority.** The eleven operations (`listStatutoryRulePacks`, `getStatutoryRulePack`,
+  `getStatutoryActivation`, `activateStatutoryRulePack`, `getStatutoryProfile`,
+  `previewStatutoryProfile`, `commitStatutoryProfile`, `previewStatutoryCalculation`,
+  `commitStatutoryCalculation`, `listStatutoryCalculations`, `getStatutoryCalculation`) are
+  `@TenantAdminOperation`: role `tenant-admin`, exact MFA assurance, active membership, checked
+  before any processing and recorded as durable denial evidence. Tenant, actor and scope come from
+  the verified token only. Employees, managers, platform administrators and every insufficient
+  `acr` are refused (`StatutoryAuthorityIntegrationTest`).
+- **No operation verifies a pack.** The application can only read rule packs and activate a
+  VERIFIED one; it has no operation that creates, edits, verifies or retires a pack, or that changes
+  a rate, a bracket or a formula. A pack becomes VERIFIED only through the operational procedure of
+  `OPS-HR-DEV.md` with the reviewer's evidence. Repository tests use `SYNTHETIC-TEST-*` packs
+  (reviewer "Synthetic Test Reviewer", organization "Test Only") created through the test
+  connection; they never enter a migration, a seed or a dev script. The reviewer identity is
+  restricted operational evidence: returned to the administrator, never audited, logged or counted.
+- **Safe 404s.** An unknown or malformed pack is `STATUTORY_RULE_PACK_NOT_FOUND`; an unknown, foreign
+  or unauthorized employee is `COMPENSATION_NOT_FOUND` (as for compensation); a legal entity is
+  `LEGAL_ENTITY_NOT_FOUND`, a run `PAYROLL_RUN_NOT_FOUND`, and any calculation read that does not
+  resolve is `STATUTORY_CALCULATION_NOT_FOUND`. Rule packs are shared platform reference data (no
+  tenant column), so they are readable by every tenant administrator; the repository that reads
+  them takes no tenant and its statements name no tenant table (asserted by
+  `TenantPredicateArchitectureTest` and `JdbcStatutoryRepositoryTenantTest`). Every tenant
+  statement carries the tenant predicate.
+- **Concurrency.** Lock order (ADR 0034 section 7): idempotency reservation, employment rows
+  `FOR SHARE` (profile commit), the tenant statutory advisory lock (shared for profile and
+  activation commits, exclusive for a calculation commit), the entity or employee chain lock, the
+  source run row `FOR SHARE` (calculation commit), then the re-read of the run, activation, pack and
+  profiles, the deferred checks, audit and outbox. The commit checks run in the contract's order
+  and compare the source-run, profile, rule-pack and calculation digests only after the state checks.
+  Racing commands record one row and one stable conflict (`StatutoryConcurrencyIntegrationTest`).
+- **Audit and events are an allow-list** (`StatutoryRecorder.ALLOWED`, enforced at runtime):
+  identifiers, pack version, period, currency, status, version and aggregate counts. Never an
+  amount, employee number, classification, flag, reviewer, digest, rule or trace. Disclosures
+  (`statutory-rule-pack.read`, `statutory-activation.read`, `statutory-profile.read`,
+  `statutory-calculation.read`) are fail-closed: the read fails if its audit record cannot be
+  written. `payroll.statutory-activation.created.v1`, `payroll.statutory-profile.changed.v1` and
+  `payroll.statutory-calculation.created.v1` are internal and not mapped to webhooks or WhatsApp
+  (`StatutoryEventsNotDeliveredTest`). `StatutoryPrivacyIntegrationTest` plants sentinel amounts to
+  prove no leak to audit, outbox, idempotency receipts, cursors, logs or errors.
+- **Limits.** Subject per minute: reads 60, calculation preview 5, creation 2, profile preview 10,
+  profile commit 5, activation 2. Tenant per hour: calculation preview 60, creation 20. At most
+  5,000 source lines, 25 versions per run and pack, 60 activations per entity, 100 profile entries
+  per employee. All responses are `Cache-Control: private, no-store`.
+- **Boundary.** A statutory calculation is a preview of deductions, contributions and a preview net
+  on a frozen contractual gross. It is not a payslip, a payment, an approval or a filing, and it
+  makes no legal-compliance claim. An employee's earnings that the preview does not model block the
+  calculation through the `StatutoryEarningsGuard` port (no other earning type exists today, so the
+  default implementation reports none).

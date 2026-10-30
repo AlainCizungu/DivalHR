@@ -41,6 +41,8 @@ import { TimeApprovalsPage } from '../features/schedules/TimeApprovalsPage';
 import { PayrollPreparationPage } from '../features/payroll/PayrollPreparationPage';
 import { PayrollRunDetailPage } from '../features/payrollRuns/PayrollRunDetailPage';
 import { PayrollRunsPage } from '../features/payrollRuns/PayrollRunsPage';
+import { StatutoryProfilePage } from '../features/statutory/StatutoryProfilePage';
+import { StatutoryRunPage } from '../features/statutory/StatutoryRunPage';
 import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
 import { TimesheetsPage } from '../features/schedules/TimesheetsPage';
 import { WorkSchedulesPage } from '../features/schedules/WorkSchedulesPage';
@@ -252,6 +254,28 @@ export const ROUTES: AppRoute[] = [
       PAYROLL,
       { key: 'nav.payrollRuns', to: '/admin/payroll-runs' },
       { key: 'shell.crumb.payrollRun' },
+    ],
+  },
+  {
+    path: '/admin/payroll-runs/:legalEntityId/:runId/statutory',
+    element: <StatutoryRunPage />,
+    access: tenantAdmin('statutory.unauthorized', 'statutory.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollRuns', to: '/admin/payroll-runs' },
+      { key: 'shell.crumb.statutoryPreview' },
+    ],
+  },
+  {
+    path: '/admin/people/:employeeId/statutory-profile',
+    element: <StatutoryProfilePage />,
+    access: tenantAdmin('statutory.unauthorized', 'statutory.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollRuns', to: '/admin/payroll-runs' },
+      { key: 'shell.crumb.statutoryProfile' },
     ],
   },
   {

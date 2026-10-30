@@ -178,6 +178,13 @@ divalhr:
       payroll-run-read: ${DIVALHR_PAYROLL_RUN_READ_REQUESTS_PER_MINUTE:60}
       payroll-run-preview: ${DIVALHR_PAYROLL_RUN_PREVIEW_REQUESTS_PER_MINUTE:5}
       payroll-run-create: ${DIVALHR_PAYROLL_RUN_CREATE_REQUESTS_PER_MINUTE:2}
+      # MVP-094B: statutory preview (ADR 0034): reads share one bucket.
+      statutory-read: ${DIVALHR_STATUTORY_READ_REQUESTS_PER_MINUTE:60}
+      statutory-calculation-preview: ${DIVALHR_STATUTORY_CALCULATION_PREVIEW_REQUESTS_PER_MINUTE:5}
+      statutory-calculation-create: ${DIVALHR_STATUTORY_CALCULATION_CREATE_REQUESTS_PER_MINUTE:2}
+      statutory-profile-preview: ${DIVALHR_STATUTORY_PROFILE_PREVIEW_REQUESTS_PER_MINUTE:10}
+      statutory-profile-write: ${DIVALHR_STATUTORY_PROFILE_WRITE_REQUESTS_PER_MINUTE:5}
+      statutory-activation-write: ${DIVALHR_STATUTORY_ACTIVATION_WRITE_REQUESTS_PER_MINUTE:2}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -261,6 +268,14 @@ divalhr:
         window: 1h
       payroll-run-create:
         requests: ${DIVALHR_PAYROLL_RUN_TENANT_CREATES:20}
+        window: 1h
+      # MVP-094B: statutory calculations (ADR 0034): 60 previews and 20 creations per tenant per
+      # hour.
+      statutory-calculation-preview:
+        requests: ${DIVALHR_STATUTORY_CALCULATION_TENANT_PREVIEWS:60}
+        window: 1h
+      statutory-calculation-create:
+        requests: ${DIVALHR_STATUTORY_CALCULATION_TENANT_CREATES:20}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.

@@ -665,7 +665,34 @@ public enum ErrorCode {
   /** MVP-094A: another command changed the run chain first. */
   PAYROLL_RUN_VERSION_CONFLICT(HttpStatus.CONFLICT),
   /** MVP-094A: 60 policies, 25 versions of a chain, or 5,000 employees would be exceeded. */
-  PAYROLL_RUN_LIMIT_REACHED(HttpStatus.CONFLICT);
+  PAYROLL_RUN_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-094B: the statutory rule pack is unknown or malformed. */
+  STATUTORY_RULE_PACK_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-094B: the rule pack is DRAFT or RETIRED, or no verified pack is in effect. */
+  STATUTORY_RULE_PACK_NOT_VERIFIED(HttpStatus.CONFLICT),
+  /** MVP-094B: the month is outside the pack interval, or its country or currency differs. */
+  STATUTORY_RULE_PACK_NOT_APPLICABLE(HttpStatus.CONFLICT),
+  /** MVP-094B: an employee of the run has no statutory profile in force. */
+  STATUTORY_PROFILE_MISSING(HttpStatus.CONFLICT),
+  /** MVP-094B: an employee of the run has an unsupported statutory classification. */
+  STATUTORY_PROFILE_UNSUPPORTED(HttpStatus.CONFLICT),
+  /** MVP-094B: a blocker other than a missing or unsupported profile forbids the calculation. */
+  STATUTORY_CALCULATION_BLOCKED(HttpStatus.CONFLICT),
+  /** MVP-094B: the preview expired or the run, profiles or rule pack changed since it was shown. */
+  STATUTORY_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-094B: the recalculation equals the current draft, so nothing would change. */
+  STATUTORY_CALCULATION_NO_CHANGE(HttpStatus.CONFLICT),
+  /**
+   * MVP-094B: another command changed the activations, profile timeline or calculation chain first.
+   */
+  STATUTORY_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /**
+   * MVP-094B: 60 activations, 100 profile entries, 25 versions of a chain or 5,000 lines would be
+   * exceeded.
+   */
+  STATUTORY_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-094B: the statutory calculation is unknown or not visible to the caller. */
+  STATUTORY_CALCULATION_NOT_FOUND(HttpStatus.NOT_FOUND);
 
   private final HttpStatus status;
 

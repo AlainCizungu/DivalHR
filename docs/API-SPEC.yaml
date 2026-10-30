@@ -15,7 +15,7 @@ tags:
   - name: documents
     description: Contract templates, issued contracts and acknowledgements (MVP-030)
   - name: payroll
-    description: Payroll preparation from locked approved time (MVP-090A) and monthly compensation records (MVP-093A)
+    description: Payroll preparation from locked approved time (MVP-090A), monthly compensation records (MVP-093A), monthly payroll runs (MVP-094A) and source-versioned DRC statutory previews (MVP-094B)
   - name: operations
     description: Operational tasks assigned to employees (MVP-080)
   - name: integrations
@@ -10160,6 +10160,571 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /statutory-rule-packs:
+    get:
+      operationId: listStatutoryRulePacks
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the platform's statutory rule packs
+      description: >-
+        MVP-094B (ADR 0034). The immutable, platform-owned DRC statutory rule packs, newest effective
+        date first then code and version, as a keyset page (default 25, maximum 100; the cursor is bound
+        to the operation, tenant, subject, status filter, role and page size and carries no rule, source
+        or reviewer data), optionally filtered by status (DRAFT, VERIFIED or RETIRED). Rule packs are
+        shared platform reference data: there is no operation that creates, edits or verifies a pack or
+        changes a rate, bracket or formula. A DRAFT pack can be inspected but never produces a
+        committable calculation. A fail-closed disclosure (audit statutory-rule-pack.read; counts only).
+        At most 60 reads per subject per minute. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryRulePackStatusFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of rule packs
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryRulePackPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /statutory-rule-packs/{packId}:
+    get:
+      operationId: getStatutoryRulePack
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read one statutory rule pack with its sources and rules
+      description: >-
+        MVP-094B. One rule pack: its identity, status, effective interval, calculation-method version
+        and rules digest, the official-source citations (key, title, https URL on an allow-listed
+        official host, SHA-256 of the retrieved document when a reviewer hashed it, retrieval date), the
+        structured rule components exactly as the calculation engine reads them (for transparency; no
+        script or expression language exists) and, for a VERIFIED or RETIRED pack, the professional-
+        review verification evidence (reviewer name and organization, review date, attestation,
+        verification time), which is restricted operational evidence. A DRAFT pack has verification
+        null. Unknown and malformed pack ids are the same 404 STATUTORY_RULE_PACK_NOT_FOUND. A fail-
+        closed disclosure (audit statutory-rule-pack.read; counts only, never a rule or reviewer
+        identity). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The rule pack
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryRulePackDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/statutory-rule-pack:
+    get:
+      operationId: getStatutoryActivation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a legal entity's statutory rule-pack activations
+      description: >-
+        MVP-094B. The activation history of one legal entity (newest first, at most 60) and, for the
+        requested month (YYYY-MM), the activation and rule pack in effect: the activation with the
+        greatest fromMonth not after the month (then the greatest sequence) whose pack interval covers
+        the month and whose pack is VERIFIED. inEffect is null and verificationRequired is true when no
+        VERIFIED applicable pack is in effect for the month ("Professional verification required"). The
+        version is the number of activations (0 when none); repeat it as expectedVersion on activation.
+        A malformed month is 400 VALIDATION_FAILED. Unknown, malformed, foreign and unauthorized legal
+        entities are the same 404 LEGAL_ENTITY_NOT_FOUND. A fail-closed disclosure (audit statutory-
+        activation.read; counts only). At most 60 reads per subject per minute. Cache-Control private,
+        no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/StatutoryMonth"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The activation view
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryActivationView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/statutory-rule-pack/activation:
+    post:
+      operationId: activateStatutoryRulePack
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Activate a verified statutory rule pack for a legal entity
+      description: >-
+        MVP-094B. Activates a VERIFIED rule pack for a legal entity from a month (YYYY-MM) with the
+        expectedVersion the read returned, acknowledged=true (the employer remains responsible for legal
+        review) and an Idempotency-Key. In one transaction (lock order ADR 0034: idempotency, the tenant
+        statutory lock shared, the legal entity's activation lock exclusive, deferred checks, audit and
+        outbox) the activations are re-read: an unknown pack is 404 STATUTORY_RULE_PACK_NOT_FOUND; a
+        DRAFT or RETIRED pack is 409 STATUTORY_RULE_PACK_NOT_VERIFIED; a month outside the pack
+        interval, or a pack of another country or currency, is 409 STATUTORY_RULE_PACK_NOT_APPLICABLE; a
+        different version, or a month already activated, is 409 STATUTORY_VERSION_CONFLICT; 60
+        activations per legal entity is 409 STATUTORY_LIMIT_REACHED; acknowledged other than true is 400
+        VALIDATION_FAILED. Activations are appended, never edited or deleted, and never change a frozen
+        calculation. Business row, audit record (statutory-activation.create) and internal outbox event
+        commit together and carry no rule, amount or reviewer identity. At most 2 activations per
+        subject per minute. The same Idempotency-Key and payload replays the original 201; a different
+        payload is 409 IDEMPOTENCY_KEY_REUSED. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivateStatutoryRulePack"
+      responses:
+        "201":
+          description: Activated, or the original activation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryActivationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/statutory-profile:
+    get:
+      operationId: getStatutoryProfile
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read an employee's statutory profile timeline
+      description: >-
+        MVP-094B (ADR 0034). The effective-dated statutory profile of one employee (country,
+        classification, CNSS and IRPP subject flags and an evidence code from a closed list; no
+        identifier, citizenship, dependant, health data or free text), newest first, at most 100
+        entries, and the entry in force on the organization's business date (null when none). The
+        version is the number of entries (0 when none); repeat it as expectedVersion. Unknown,
+        malformed, foreign and unauthorized employees are the same 404 COMPENSATION_NOT_FOUND, as for
+        the compensation operations. A fail-closed disclosure (audit statutory-profile.read; counts
+        only, never a classification or flag). At most 60 reads per subject per minute. Cache-Control
+        private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The profile timeline
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryProfileView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: commitStatutoryProfile
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Commit a previewed statutory profile
+      description: >-
+        MVP-094B. Repeats the previewed profile with the expectedVersion, previewDigest and expiresAt
+        the preview returned, confirmed=true and an Idempotency-Key. In one transaction (lock order ADR
+        0034: idempotency, the employee row FOR SHARE, the tenant statutory lock shared, the employee's
+        profile chain, deferred checks, audit and outbox) the timeline is re-read: a different version
+        is 409 STATUTORY_VERSION_CONFLICT; an expired preview, a different or tampered preview, or a
+        command that is blocked when re-evaluated (effective date out of range, or identical to the
+        profile in force) is 409 STATUTORY_PREVIEW_STALE and nothing is written; 100 entries per
+        employee is 409 STATUTORY_LIMIT_REACHED. A profile is appended, never edited or deleted; a
+        correction is a new entry. Business row, audit record (statutory-profile.change; employee id,
+        sequence and codes only) and internal outbox event commit together. At most 5 commits per
+        subject per minute. The same Idempotency-Key and payload replays the original 201; a different
+        payload is 409 IDEMPOTENCY_KEY_REUSED. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitStatutoryProfile"
+      responses:
+        "201":
+          description: Recorded, or the original recording replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryProfileReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/statutory-profile/preview:
+    post:
+      operationId: previewStatutoryProfile
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview adding a statutory profile entry
+      description: >-
+        MVP-094B. Validates the profile without writing and returns the timeline before and after, the
+        stable blockers (EFFECTIVE_DATE_OUT_OF_RANGE outside 2000-01-01 to 366 days after the business
+        date, NO_CHANGE when the profile in force on that date is identical, LIMIT_REACHED at 100
+        entries), the profile version, a previewDigest and its expiry (15 minutes). A blocked preview
+        has a null previewDigest and expiresAt. An UNSUPPORTED classification with a true subject flag
+        is 400 VALIDATION_FAILED. At most 10 previews per subject per minute. Recorded as a disclosure
+        (audit statutory-profile.read). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CompensationEmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryProfileCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryProfilePreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations/preview:
+    post:
+      operationId: previewStatutoryCalculation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the statutory calculation of a frozen payroll run
+      description: >-
+        MVP-094B (ADR 0034). Applies the rule pack in effect for the run's month to the frozen lines of
+        one MVP-094A payroll run and returns, per employee, contractual gross, employee deductions,
+        employer contributions, preview net and employer cost with every component, stable explanation
+        codes and a restricted trace, plus the totals, the pack and its digests. A statutory preview is
+        not a payslip, a payment, an approval or a filing, and makes no legal-compliance claim. Nothing
+        is written. A preview never fails for a blocker: status is READY, BLOCKED or NO_CHANGE.
+        runBlockers (SOURCE_RUN_NOT_CURRENT, CURRENCY_NOT_SUPPORTED, RULE_PACK_MISSING,
+        RULE_PACK_NOT_VERIFIED) forbid every amount: the totals are null and the lines carry only gross
+        and their employee blockers. Employee blockers (PROFILE_MISSING, PROFILE_UNSUPPORTED,
+        PROFILE_CHANGES_IN_MONTH, UNMODELED_EARNINGS, DEDUCTIONS_EXCEED_GROSS) are reported even then so
+        that profiles can be completed. An employee subject to neither CNSS nor IRPP is kept as excluded
+        with zero components. The digests sourceRunDigest and profileDigest are always present;
+        rulePackDigest is null when no pack is in effect; the calculationDigest and expiresAt (15
+        minutes) are null while the status is BLOCKED or NO_CHANGE, so nothing can be committed from
+        them. More than 5,000 source lines is 409 STATUTORY_LIMIT_REACHED. At most 5 previews per
+        subject per minute and 60 per tenant per hour. A disclosure (audit statutory-calculation.read;
+        counts only, never an amount). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollRunId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryCalculationCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryCalculationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations:
+    post:
+      operationId: commitStatutoryCalculation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a previewed statutory calculation
+      description: >-
+        MVP-094B. Repeats the evidence the preview returned (expectedVersion, sourceRunDigest,
+        profileDigest, rulePackDigest, calculationDigest, expiresAt), confirmed=true and an Idempotency-
+        Key. In one transaction (lock order ADR 0034: idempotency, the tenant statutory lock exclusive,
+        the legal entity's calculation lock, then the run, activation, pack and profiles are re-read,
+        deferred checks, audit and outbox) the checks run in this order: a different chain version is
+        409 STATUTORY_VERSION_CONFLICT; no activation in effect or a pack that is not VERIFIED is 409
+        STATUTORY_RULE_PACK_NOT_VERIFIED; a pack that does not cover the month or currency is 409
+        STATUTORY_RULE_PACK_NOT_APPLICABLE; an employee with an unsupported profile is 409
+        STATUTORY_PROFILE_UNSUPPORTED, else one without a profile is 409 STATUTORY_PROFILE_MISSING; any
+        other blocker is 409 STATUTORY_CALCULATION_BLOCKED; a recalculation identical to the current
+        draft is 409 STATUTORY_CALCULATION_NO_CHANGE and nothing is written; an expired preview, or a
+        source run, profile or rule-pack change since the preview, is 409 STATUTORY_PREVIEW_STALE; 25
+        versions of a chain or more than 5,000 lines is 409 STATUTORY_LIMIT_REACHED. A DRAFT or RETIRED
+        pack never produces a calculation. The calculation, its lines and components, the audit record
+        (statutory-calculation.create) and the internal outbox event commit together; a changed
+        recalculation creates version N+1 and supersedes version N in the same transaction. Nothing is
+        edited or deleted. Neither audit nor outbox carries an amount, number, flag, digest or trace. At
+        most 2 creations per subject per minute and 20 per tenant per hour. The same Idempotency-Key and
+        payload replays the original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED. The
+        response is an amount-free receipt; read the calculation with getStatutoryCalculation. Not a
+        payslip, approval, filing or payment. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollRunId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitStatutoryCalculation"
+      responses:
+        "201":
+          description: Created, or the original creation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryCalculationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: listStatutoryCalculations
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the statutory calculations of a payroll run
+      description: >-
+        MVP-094B. The statutory calculation versions of one payroll run, newest first then pack version
+        descending, as a keyset page (default 25, maximum 100; the cursor is bound to the operation,
+        tenant, subject, run, role and page size and carries no amount or digest). Each item is a
+        summary with its status (DRAFT or SUPERSEDED), counts and totals. Unknown, malformed, foreign-
+        tenant and foreign-entity runs are the same 404 PAYROLL_RUN_NOT_FOUND; an unknown legal entity
+        is LEGAL_ENTITY_NOT_FOUND. A fail-closed disclosure (audit statutory-calculation.read; counts
+        only). At most 60 reads per subject per minute. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollRunId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of calculations
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryCalculationPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations/{calculationId}:
+    get:
+      operationId: getStatutoryCalculation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a frozen statutory calculation and its evidence
+      description: >-
+        MVP-094B. One statutory calculation version with its rule pack, the pack's official-source
+        citations and, as a keyset page ordered by employee number (byte order) then id (default 50,
+        maximum 200; the cursor is bound to the operation, tenant, subject, calculation, role and page
+        size and carries no amount or number), each employee's contractual gross, employee deductions,
+        employer contributions, preview net, employer cost, components with explanation codes and trace.
+        The calculation never changes after creation; later source, profile or rule-pack corrections do
+        not alter it. Unknown, malformed, foreign-tenant and foreign-entity calculations are the same
+        404 STATUTORY_CALCULATION_NOT_FOUND. A fail-closed disclosure (audit statutory-calculation.read
+        for the first page; counts only). Statutory preview, not a payslip or a payment. Cache-Control
+        private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollRunId"
+        - $ref: "#/components/parameters/StatutoryCalculationId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PayrollLineLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The calculation and a page of its lines
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryCalculationDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /me/expenses:
     post:
       operationId: createMyExpense
@@ -11040,6 +11605,15 @@ components:
         PAYROLL_RUN_NO_CHANGE (the recalculation equals the current draft),
         PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or
         PAYROLL_RUN_LIMIT_REACHED (60 policies, 25 versions of a chain or 5,000 employees). No params.
+        MVP-094B: STATUTORY_RULE_PACK_NOT_VERIFIED (the rule pack is DRAFT or RETIRED, or none is in
+        effect), STATUTORY_RULE_PACK_NOT_APPLICABLE (the month is outside the pack interval, or the country
+        or currency differs), STATUTORY_PROFILE_MISSING and STATUTORY_PROFILE_UNSUPPORTED (an employee
+        of the run has no profile, or an unsupported one), STATUTORY_CALCULATION_BLOCKED (another
+        blocker exists), STATUTORY_PREVIEW_STALE (the preview expired, or the run, profiles or rule
+        pack changed), STATUTORY_CALCULATION_NO_CHANGE (the recalculation equals the current draft),
+        STATUTORY_VERSION_CONFLICT (another command changed the activations, the profile timeline or
+        the calculation chain first, or the month is already activated) or STATUTORY_LIMIT_REACHED
+        (60 activations, 100 profile entries, 25 versions of a chain or 5,000 lines). No params.
       content:
         application/problem+json:
           schema:
@@ -11062,6 +11636,11 @@ components:
         MVP-094A: PAYROLL_RUN_NOT_FOUND - the run is malformed, unknown, foreign-tenant, foreign-entity or
         not visible to the caller; the cases are indistinguishable. A legal entity that is malformed,
         unknown or foreign is LEGAL_ENTITY_NOT_FOUND. No params.
+        MVP-094B: STATUTORY_RULE_PACK_NOT_FOUND - the rule pack is malformed or unknown;
+        STATUTORY_CALCULATION_NOT_FOUND - the statutory calculation is malformed, unknown, foreign-tenant or
+        belongs to another run or legal entity; the cases are indistinguishable. The statutory
+        profile operations answer an unknown, malformed, foreign or unauthorized employee with
+        COMPENSATION_NOT_FOUND, and the run and legal entity as above. No params.
       content:
         application/problem+json:
           schema:
@@ -11342,6 +11921,34 @@ components:
         minimum: 1
         maximum: 200
         default: 50
+    StatutoryPackId:
+      name: packId
+      in: path
+      required: true
+      description: Malformed and unknown IDs give the same 404 STATUTORY_RULE_PACK_NOT_FOUND.
+      schema:
+        type: string
+    StatutoryCalculationId:
+      name: calculationId
+      in: path
+      required: true
+      description: >-
+        Malformed, unknown, foreign-tenant and foreign-run IDs give the same 404 STATUTORY_CALCULATION_NOT_FOUND.
+      schema:
+        type: string
+    StatutoryRulePackStatusFilter:
+      name: status
+      in: query
+      description: Optional rule-pack status filter.
+      schema:
+        $ref: "#/components/schemas/StatutoryRulePackStatus"
+    StatutoryMonth:
+      name: month
+      in: query
+      required: true
+      description: The payroll month (YYYY-MM) whose rule pack in effect is requested.
+      schema:
+        $ref: "#/components/schemas/PayrollPeriod"
     CompensationChangeId:
       name: changeId
       in: path
@@ -15809,6 +16416,962 @@ components:
             $ref: "#/components/schemas/PayrollRunLine"
         nextCursor:
           type: [string, "null"]
+    StatutoryRulePackStatus:
+      type: string
+      description: >-
+        Rule-pack lifecycle, forward only. Only a VERIFIED pack (professional-review evidence recorded) can be activated
+        or produce a calculation; DRAFT is inspectable only and RETIRED ends use for new calculations.
+      enum: [DRAFT, VERIFIED, RETIRED]
+    StatutorySourceKey:
+      type: string
+      description: The closed list of official source documents a pack can cite.
+      enum: [DGI_IRPP, DGI_NOTICE_2026, DGI_PORTAL, CNSS_RATES, CNSS_DECLARATION, BUDGET_2026]
+    StatutoryParty:
+      type: string
+      enum: [EMPLOYEE, EMPLOYER]
+    StatutoryCategory:
+      type: string
+      enum: [SOCIAL_CONTRIBUTION, INCOME_TAX]
+    StatutoryRulePackSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [packId, code, version, country, currency, status, effectiveFrom, effectiveTo, methodVersion, rulesDigest, sourceCount]
+      properties:
+        packId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[A-Z0-9-]{3,48}$"
+        version:
+          type: integer
+          minimum: 1
+        country:
+          type: string
+          enum: [CD]
+        currency:
+          type: string
+          enum: [CDF]
+        status:
+          $ref: "#/components/schemas/StatutoryRulePackStatus"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+          description: Inclusive last day; null when open.
+        methodVersion:
+          type: integer
+          minimum: 1
+          description: The calculation-method version the pack requires.
+        rulesDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: SHA-256 of the structured rules.
+        sourceCount:
+          type: integer
+          minimum: 1
+          maximum: 12
+    StatutoryRulePackPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StatutoryRulePackSummary"
+        nextCursor:
+          type: [string, "null"]
+    StatutorySource:
+      type: object
+      additionalProperties: false
+      description: One official source of a rule pack. Sources are public documents.
+      required: [key, title, url, sha256, retrievedOn]
+      properties:
+        key:
+          $ref: "#/components/schemas/StatutorySourceKey"
+        title:
+          type: string
+          maxLength: 200
+        url:
+          type: string
+          format: uri
+          maxLength: 500
+          description: https only, on an allow-listed official host.
+        sha256:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+          description: SHA-256 of the retrieved document; null only while the pack is DRAFT and nothing was hashed.
+        retrievedOn:
+          type: string
+          format: date
+    StatutoryRuleBracket:
+      type: object
+      additionalProperties: false
+      required: [upToAnnual, rateBp]
+      properties:
+        upToAnnual:
+          type: [string, "null"]
+          pattern: "^(0|[1-9][0-9]{0,15})$"
+          description: Inclusive annual upper bound in whole francs; null for the last, open bracket.
+        rateBp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Rate in basis points (1 bp = 0.01%).
+    StatutoryRuleMethod:
+      type: object
+      additionalProperties: false
+      description: >-
+        RATE uses rateBp. PROGRESSIVE uses periodsPerYear, brackets and an optional capBp. Fields of the other type are
+        absent.
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [RATE, PROGRESSIVE]
+        rateBp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        periodsPerYear:
+          type: integer
+          enum: [1, 12]
+        capBp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Cap on the result as basis points of the component base.
+        brackets:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/StatutoryRuleBracket"
+    StatutoryRuleComponent:
+      type: object
+      additionalProperties: false
+      description: One structured rule of a pack, shown for transparency. No script, formula text or expression exists.
+      required: [id, party, category, order, requires, base, sourceKey, rounding, method]
+      properties:
+        id:
+          type: string
+          pattern: "^[A-Z_]{3,48}$"
+        party:
+          $ref: "#/components/schemas/StatutoryParty"
+        category:
+          $ref: "#/components/schemas/StatutoryCategory"
+        order:
+          type: integer
+          minimum: 1
+          maximum: 12
+        requires:
+          type: string
+          description: The employee profile flag that makes the component apply.
+          enum: [CNSS_SUBJECT, IRPP_SUBJECT]
+        base:
+          type: string
+          description: >-
+            GROSS, or GROSS_LESS_EMPLOYEE_SOCIAL (gross minus the amounts of the employee social contributions of a lower
+            order).
+          enum: [GROSS, GROSS_LESS_EMPLOYEE_SOCIAL]
+        sourceKey:
+          $ref: "#/components/schemas/StatutorySourceKey"
+        rounding:
+          type: string
+          enum: [HALF_UP, DOWN, UP]
+        method:
+          $ref: "#/components/schemas/StatutoryRuleMethod"
+    StatutoryVerification:
+      type: object
+      additionalProperties: false
+      description: Professional-review evidence of a VERIFIED or RETIRED pack; restricted operational evidence.
+      required: [reviewerName, reviewerOrganization, reviewedOn, attested, verifiedAt]
+      properties:
+        reviewerName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        reviewerOrganization:
+          type: string
+          minLength: 1
+          maxLength: 200
+        reviewedOn:
+          type: string
+          format: date
+        attested:
+          type: boolean
+          description: Always true on a stored verification.
+        verifiedAt:
+          type: string
+          format: date-time
+    StatutoryRulePackDetail:
+      type: object
+      additionalProperties: false
+      description: A rule pack summary with its sources, structured rules and verification evidence.
+      required: [pack, sources, components, verification]
+      properties:
+        pack:
+          $ref: "#/components/schemas/StatutoryRulePackSummary"
+        sources:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/StatutorySource"
+        components:
+          type: array
+          maxItems: 12
+          description: Ascending by order.
+          items:
+            $ref: "#/components/schemas/StatutoryRuleComponent"
+        verification:
+          oneOf:
+            - $ref: "#/components/schemas/StatutoryVerification"
+            - type: "null"
+          description: Null while the pack is DRAFT.
+    StatutoryActivationEntry:
+      type: object
+      additionalProperties: false
+      required: [activationId, sequence, fromMonth, packId, packCode, packVersion, activatedAt]
+      properties:
+        activationId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+        fromMonth:
+          $ref: "#/components/schemas/PayrollPeriod"
+        packId:
+          type: string
+          format: uuid
+        packCode:
+          type: string
+        packVersion:
+          type: integer
+          minimum: 1
+        activatedAt:
+          type: string
+          format: date-time
+    StatutoryInEffect:
+      type: object
+      additionalProperties: false
+      required: [activationId, sequence, fromMonth, pack]
+      properties:
+        activationId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+        fromMonth:
+          $ref: "#/components/schemas/PayrollPeriod"
+        pack:
+          $ref: "#/components/schemas/StatutoryRulePackSummary"
+    StatutoryActivationView:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, month, version, verificationRequired, inEffect, activations]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        month:
+          $ref: "#/components/schemas/PayrollPeriod"
+        version:
+          type: integer
+          minimum: 0
+          maximum: 60
+          description: The number of activations of the legal entity; repeat it as expectedVersion.
+        verificationRequired:
+          type: boolean
+          description: True when no VERIFIED applicable pack is in effect for the month.
+        inEffect:
+          oneOf:
+            - $ref: "#/components/schemas/StatutoryInEffect"
+            - type: "null"
+        activations:
+          type: array
+          maxItems: 60
+          description: Newest first.
+          items:
+            $ref: "#/components/schemas/StatutoryActivationEntry"
+    ActivateStatutoryRulePack:
+      type: object
+      additionalProperties: false
+      required: [packId, fromMonth, expectedVersion, acknowledged]
+      properties:
+        packId:
+          type: string
+          format: uuid
+        fromMonth:
+          $ref: "#/components/schemas/PayrollPeriod"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 60
+        acknowledged:
+          type: boolean
+          description: Must be true. The employer remains responsible for legal review of the rule pack.
+    StatutoryActivationReceipt:
+      type: object
+      additionalProperties: false
+      description: Receipt of identifiers and codes only.
+      required: [activationId, legalEntityId, packId, packCode, packVersion, fromMonth, sequence]
+      properties:
+        activationId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        packId:
+          type: string
+          format: uuid
+        packCode:
+          type: string
+        packVersion:
+          type: integer
+          minimum: 1
+        fromMonth:
+          $ref: "#/components/schemas/PayrollPeriod"
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+    StatutoryClassification:
+      type: string
+      description: UNSUPPORTED (expatriate, nonresident, unknown or other regime) blocks every calculation of the employee.
+      enum: [STANDARD_RESIDENT, UNSUPPORTED]
+    StatutoryEvidenceCode:
+      type: string
+      description: Where the profile comes from, from a closed list.
+      enum: [EMPLOYMENT_CONTRACT, PAYROLL_FILE_REVIEW, EMPLOYER_DECLARATION, PROFESSIONAL_REVIEW]
+    StatutoryProfileEntry:
+      type: object
+      additionalProperties: false
+      description: One effective-dated entry of an employee's statutory profile. Restricted HR data.
+      required: [profileId, sequence, effectiveFrom, country, classification, cnssSubject, irppSubject, evidenceCode, createdAt]
+      properties:
+        profileId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 100
+        effectiveFrom:
+          type: string
+          format: date
+        country:
+          type: string
+          enum: [CD]
+        classification:
+          $ref: "#/components/schemas/StatutoryClassification"
+        cnssSubject:
+          type: boolean
+        irppSubject:
+          type: boolean
+        evidenceCode:
+          $ref: "#/components/schemas/StatutoryEvidenceCode"
+        createdAt:
+          type: string
+          format: date-time
+    StatutoryProfileView:
+      type: object
+      additionalProperties: false
+      required: [employeeId, version, businessDate, current, timeline]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: The number of entries (0 when none); repeat it as expectedVersion.
+        businessDate:
+          type: string
+          format: date
+        current:
+          oneOf:
+            - $ref: "#/components/schemas/StatutoryProfileEntry"
+            - type: "null"
+        timeline:
+          type: array
+          maxItems: 100
+          description: Newest first.
+          items:
+            $ref: "#/components/schemas/StatutoryProfileEntry"
+    StatutoryProfileCommand:
+      type: object
+      additionalProperties: false
+      description: An UNSUPPORTED classification requires both subject flags to be false.
+      required: [effectiveFrom, classification, cnssSubject, irppSubject, evidenceCode]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        classification:
+          $ref: "#/components/schemas/StatutoryClassification"
+        cnssSubject:
+          type: boolean
+        irppSubject:
+          type: boolean
+        evidenceCode:
+          $ref: "#/components/schemas/StatutoryEvidenceCode"
+    StatutoryProfileBlocker:
+      type: string
+      description: >-
+        EFFECTIVE_DATE_OUT_OF_RANGE (outside 2000-01-01 to 366 days after the business date), NO_CHANGE (the profile in
+        force on that date is identical), LIMIT_REACHED (100 entries).
+      enum: [EFFECTIVE_DATE_OUT_OF_RANGE, NO_CHANGE, LIMIT_REACHED]
+    StatutoryProfilePreview:
+      type: object
+      additionalProperties: false
+      required:
+        [employeeId, version, effectiveFrom, classification, cnssSubject, irppSubject, evidenceCode, before, after, blockers,
+         previewDigest, expiresAt]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          maximum: 100
+        effectiveFrom:
+          type: string
+          format: date
+        classification:
+          $ref: "#/components/schemas/StatutoryClassification"
+        cnssSubject:
+          type: boolean
+        irppSubject:
+          type: boolean
+        evidenceCode:
+          $ref: "#/components/schemas/StatutoryEvidenceCode"
+        before:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StatutoryProfileEntry"
+        after:
+          type: array
+          maxItems: 101
+          items:
+            $ref: "#/components/schemas/StatutoryProfileEntry"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatutoryProfileBlocker"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+          description: Null while a blocker exists.
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+          description: Null while a blocker exists.
+    CommitStatutoryProfile:
+      type: object
+      additionalProperties: false
+      required:
+        [effectiveFrom, classification, cnssSubject, irppSubject, evidenceCode, expectedVersion, previewDigest, expiresAt, confirmed]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        classification:
+          $ref: "#/components/schemas/StatutoryClassification"
+        cnssSubject:
+          type: boolean
+        irppSubject:
+          type: boolean
+        evidenceCode:
+          $ref: "#/components/schemas/StatutoryEvidenceCode"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 100
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        confirmed:
+          type: boolean
+          description: Must be true.
+    StatutoryProfileReceipt:
+      type: object
+      additionalProperties: false
+      description: Receipt of identifiers, sequence and date only; no classification or flag.
+      required: [profileId, employeeId, sequence, effectiveFrom, version]
+      properties:
+        profileId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 100
+        effectiveFrom:
+          type: string
+          format: date
+        version:
+          type: integer
+          minimum: 1
+          maximum: 100
+    StatutoryCalculationCommand:
+      type: object
+      additionalProperties: false
+      description: "Empty: the payroll run comes from the path."
+      properties: {}
+    StatutoryTotals:
+      type: object
+      additionalProperties: false
+      description: >-
+        Sums over the supported lines, in CDF. previewNet is contractualGross minus employeeDeductions; employerCost is
+        contractualGross plus employerContributions. Employer contributions are never deducted from the employee.
+      required: [contractualGross, employeeDeductions, employerContributions, previewNet, employerCost]
+      properties:
+        contractualGross:
+          $ref: "#/components/schemas/CompensationMoney"
+        employeeDeductions:
+          $ref: "#/components/schemas/CompensationMoney"
+        employerContributions:
+          $ref: "#/components/schemas/CompensationMoney"
+        previewNet:
+          $ref: "#/components/schemas/CompensationMoney"
+        employerCost:
+          $ref: "#/components/schemas/CompensationMoney"
+    StatutoryRunBlocker:
+      type: string
+      description: >-
+        Run-level blockers; any one forbids every amount. SOURCE_RUN_NOT_CURRENT (the run is not the current draft of its
+        chain), CURRENCY_NOT_SUPPORTED (the run currency is not CDF), RULE_PACK_MISSING (no activation in effect for the
+        month), RULE_PACK_NOT_VERIFIED (the pack in effect is not VERIFIED, or does not apply to the month).
+      enum: [SOURCE_RUN_NOT_CURRENT, CURRENCY_NOT_SUPPORTED, RULE_PACK_MISSING, RULE_PACK_NOT_VERIFIED]
+    StatutoryLineBlocker:
+      type: string
+      description: >-
+        Employee-level blockers. PROFILE_MISSING (no profile in force on the first eligible day), PROFILE_UNSUPPORTED
+        (classification UNSUPPORTED), PROFILE_CHANGES_IN_MONTH (a profile entry starts inside the eligible period),
+        UNMODELED_EARNINGS (an earning other than contractual base exists for the month), DEDUCTIONS_EXCEED_GROSS (employee
+        deductions would exceed gross).
+      enum: [PROFILE_MISSING, PROFILE_UNSUPPORTED, PROFILE_CHANGES_IN_MONTH, UNMODELED_EARNINGS, DEDUCTIONS_EXCEED_GROSS]
+    StatutoryExplanationCode:
+      type: string
+      enum:
+        - RATE_APPLIED
+        - PROGRESSIVE_APPLIED
+        - CAP_APPLIED
+        - NOT_SUBJECT
+        - BASE_GROSS
+        - BASE_GROSS_LESS_EMPLOYEE_SOCIAL
+    StatutoryTraceSlice:
+      type: object
+      additionalProperties: false
+      required: [from, to, rateBp, amount]
+      properties:
+        from:
+          type: string
+          pattern: "^(0|[1-9][0-9]{0,15})$"
+          description: Annual lower bound of the slice, whole francs.
+        to:
+          type: string
+          pattern: "^(0|[1-9][0-9]{0,15})$"
+          description: Annual upper bound of the slice (the lower of the bracket bound and the annual base), whole francs.
+        rateBp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        amount:
+          type: string
+          pattern: "^(0|[1-9][0-9]{0,15})$"
+          description: The part of the annual base inside the slice (to minus from), whole francs.
+    StatutoryTrace:
+      type: object
+      additionalProperties: true
+      description: >-
+        The intermediate values of one component, restricted to the keys below (a RATE component has an empty trace).
+        Integers are decimal strings. Clients ignore keys they do not know.
+      properties:
+        annualBase:
+          type: string
+          pattern: "^(0|[1-9][0-9]{0,15})$"
+          description: Monthly base multiplied by the periods per year, whole francs.
+        slices:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/StatutoryTraceSlice"
+        numerator:
+          type: string
+          pattern: "^(0|[1-9][0-9]{0,24})$"
+          description: The sum over the slices of the slice amount times its basis-point rate.
+        capApplied:
+          type: boolean
+    StatutoryComponent:
+      type: object
+      additionalProperties: false
+      required: [componentId, party, category, base, amount, explanationCodes, trace]
+      properties:
+        componentId:
+          type: string
+          pattern: "^[A-Z_]{3,48}$"
+        party:
+          $ref: "#/components/schemas/StatutoryParty"
+        category:
+          $ref: "#/components/schemas/StatutoryCategory"
+        base:
+          $ref: "#/components/schemas/CompensationMoney"
+        amount:
+          $ref: "#/components/schemas/CompensationMoney"
+        explanationCodes:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/StatutoryExplanationCode"
+        trace:
+          $ref: "#/components/schemas/StatutoryTrace"
+    StatutoryPreviewLine:
+      type: object
+      additionalProperties: false
+      description: >-
+        One employee of the run. The amounts after contractualGross are null, and components empty, while a run-level or
+        employee blocker exists. An excluded line (subject to neither CNSS nor IRPP) has zero components and net equal to gross.
+      required:
+        [employeeId, employeeNumber, blockers, excluded, contractualGross, employeeDeductions, employerContributions,
+         previewNet, employerCost, components]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+          maxLength: 64
+        blockers:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/StatutoryLineBlocker"
+        excluded:
+          type: boolean
+        contractualGross:
+          $ref: "#/components/schemas/CompensationMoney"
+        employeeDeductions:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        employerContributions:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        previewNet:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        employerCost:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        components:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/StatutoryComponent"
+    StatutoryCalculationSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [calculationId, runId, runVersion, packId, packCode, packVersion, period, currency, version, status, supportedCount,
+         excludedCount, totals, createdAt, supersededAt, supersededById]
+      properties:
+        calculationId:
+          type: string
+          format: uuid
+        runId:
+          type: string
+          format: uuid
+        runVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        packId:
+          type: string
+          format: uuid
+        packCode:
+          type: string
+        packVersion:
+          type: integer
+          minimum: 1
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        status:
+          type: string
+          description: DRAFT is current; SUPERSEDED was replaced by a later version. A draft is not a payslip, approval or payment.
+          enum: [DRAFT, SUPERSEDED]
+        supportedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        excludedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        totals:
+          $ref: "#/components/schemas/StatutoryTotals"
+        createdAt:
+          type: string
+          format: date-time
+        supersededAt:
+          type: [string, "null"]
+          format: date-time
+        supersededById:
+          type: [string, "null"]
+          format: uuid
+    StatutoryCalculationPreview:
+      type: object
+      additionalProperties: false
+      description: >-
+        A statutory preview, not a payslip or payment. While status is BLOCKED or NO_CHANGE, calculationDigest and
+        expiresAt are null; totals are null when a run-level blocker exists.
+      required:
+        [legalEntityId, runId, runVersion, period, currency, status, pack, runBlockers, expectedVersion, existingCalculation,
+         supportedCount, excludedCount, blockedCount, totals, lines, sourceRunDigest, profileDigest, rulePackDigest,
+         calculationDigest, expiresAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        runId:
+          type: string
+          format: uuid
+        runVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        status:
+          type: string
+          description: >-
+            READY (a calculation can be created), BLOCKED (a run-level or employee blocker exists) or NO_CHANGE (the
+            recalculation equals the current draft; nothing can be created).
+          enum: [READY, BLOCKED, NO_CHANGE]
+        pack:
+          oneOf:
+            - $ref: "#/components/schemas/StatutoryRulePackSummary"
+            - type: "null"
+          description: The rule pack in effect for the month; null when none.
+        runBlockers:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/StatutoryRunBlocker"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 25
+          description: The current chain version (0 when no calculation exists); repeat it on creation.
+        existingCalculation:
+          oneOf:
+            - $ref: "#/components/schemas/StatutoryCalculationSummary"
+            - type: "null"
+        supportedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        excludedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        blockedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        totals:
+          oneOf:
+            - $ref: "#/components/schemas/StatutoryTotals"
+            - type: "null"
+        lines:
+          type: array
+          maxItems: 5000
+          items:
+            $ref: "#/components/schemas/StatutoryPreviewLine"
+        sourceRunDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        profileDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        rulePackDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        calculationDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitStatutoryCalculation:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, sourceRunDigest, profileDigest, rulePackDigest, calculationDigest, expiresAt, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 25
+        sourceRunDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        profileDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        rulePackDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        calculationDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        confirmed:
+          type: boolean
+          description: Must be true.
+    StatutoryCalculationReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        Amount-free receipt (identifiers, period, currency, version and counts only) so that the idempotency store never
+        holds an amount.
+      required:
+        [calculationId, runId, legalEntityId, packId, packVersion, period, currency, version, status, supersededCalculationId,
+         supportedCount, excludedCount]
+      properties:
+        calculationId:
+          type: string
+          format: uuid
+        runId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        packId:
+          type: string
+          format: uuid
+        packVersion:
+          type: integer
+          minimum: 1
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          $ref: "#/components/schemas/CompensationCurrency"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        status:
+          type: string
+          enum: [DRAFT]
+        supersededCalculationId:
+          type: [string, "null"]
+          format: uuid
+        supportedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        excludedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+    StatutoryCalculationPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StatutoryCalculationSummary"
+        nextCursor:
+          type: [string, "null"]
+    StatutoryRunLine:
+      type: object
+      additionalProperties: false
+      description: One frozen employee line of a statutory calculation, with its components and trace.
+      required:
+        [employeeId, employeeNumber, excluded, contractualGross, employeeDeductions, employerContributions, previewNet,
+         employerCost, components]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+          maxLength: 64
+        excluded:
+          type: boolean
+        contractualGross:
+          $ref: "#/components/schemas/CompensationMoney"
+        employeeDeductions:
+          $ref: "#/components/schemas/CompensationMoney"
+        employerContributions:
+          $ref: "#/components/schemas/CompensationMoney"
+        previewNet:
+          $ref: "#/components/schemas/CompensationMoney"
+        employerCost:
+          $ref: "#/components/schemas/CompensationMoney"
+        components:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/StatutoryComponent"
+    StatutoryCalculationDetail:
+      type: object
+      additionalProperties: false
+      required: [calculation, pack, sources, lines, nextCursor]
+      properties:
+        calculation:
+          $ref: "#/components/schemas/StatutoryCalculationSummary"
+        pack:
+          $ref: "#/components/schemas/StatutoryRulePackSummary"
+        sources:
+          type: array
+          maxItems: 12
+          description: The pack's official-source citations.
+          items:
+            $ref: "#/components/schemas/StatutorySource"
+        lines:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/StatutoryRunLine"
+        nextCursor:
+          type: [string, "null"]
     ExpenseCurrency:
       type: string
       description: >-
@@ -16453,6 +18016,17 @@ components:
         - PAYROLL_RUN_NO_CHANGE
         - PAYROLL_RUN_VERSION_CONFLICT
         - PAYROLL_RUN_LIMIT_REACHED
+        - STATUTORY_RULE_PACK_NOT_FOUND
+        - STATUTORY_RULE_PACK_NOT_VERIFIED
+        - STATUTORY_RULE_PACK_NOT_APPLICABLE
+        - STATUTORY_PROFILE_MISSING
+        - STATUTORY_PROFILE_UNSUPPORTED
+        - STATUTORY_CALCULATION_BLOCKED
+        - STATUTORY_PREVIEW_STALE
+        - STATUTORY_CALCULATION_NO_CHANGE
+        - STATUTORY_VERSION_CONFLICT
+        - STATUTORY_LIMIT_REACHED
+        - STATUTORY_CALCULATION_NOT_FOUND
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.

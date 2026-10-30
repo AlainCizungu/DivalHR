@@ -273,7 +273,17 @@ class AuthorizationDenialAuditIntegrationTest {
           "payroll-policy.commit",
           "payroll-run.preview",
           "payroll-run.read",
-          "payroll-run.create");
+          "payroll-run.create",
+          // MVP-094B: statutory preview (administrator).
+          "statutory-rule-pack.read",
+          "statutory-activation.read",
+          "statutory-activation.create",
+          "statutory-profile.read",
+          "statutory-profile.preview",
+          "statutory-profile.change",
+          "statutory-calculation.preview",
+          "statutory-calculation.read",
+          "statutory-calculation.create");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -782,7 +792,9 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-081 three more (the administrator's expense list, read and receipt download).
     // MVP-093A five more (read, preview, commit, cancellation preview and cancellation).
     // MVP-094A seven more (policy read, preview and commit; run preview, list, creation and read).
-    assertThat(handlers).hasSize(170);
+    // MVP-094B eleven more handlers over nine operations (the pack list and detail share
+    // statutory-rule-pack.read; the calculation list and detail share statutory-calculation.read).
+    assertThat(handlers).hasSize(181);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

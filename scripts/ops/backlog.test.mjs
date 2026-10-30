@@ -89,6 +89,9 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #176/u);
   assert.match(header, /deployed 2026-10-29/u);
   assert.match(header, /MVP-094A is \*\*not\*\* deployed/u);
+  // MVP-094B (Issue #179): the merged-but-not-deployed fact of MVP-094A, from Git.
+  assert.match(header, /PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`/u);
+  assert.match(header, /hr-dev still runs `3223454…`/u);
 });
 
 test('every listed story has a status', () => {
@@ -115,7 +118,7 @@ test('the required stories carry a merged or deployed status, and none is still 
   assert.match(sections.get('SEC-003').body, /deployed to hr-dev on 2026-10-29/u);
 });
 
-test('MVP-093A is merged and deployed; MVP-094A is listed as in progress for Issue #177', () => {
+test('MVP-093A is merged and deployed; MVP-094A is merged but not deployed; MVP-094B is in progress for Issue #179', () => {
   const epic10 = backlog.split('## Epic 10')[1].split('\n## ')[0];
   assert.match(epic10, /### MVP-093A /u);
   assert.match(epic10, /### MVP-094A /u);
@@ -124,8 +127,20 @@ test('MVP-093A is merged and deployed; MVP-094A is listed as in progress for Iss
   assert.match(done.body, /Issue #175\. Merged \(PR #176/u);
   assert.match(done.body, /deployed to hr-dev on 2026-10-29/u);
   const next = sections.find((entry) => entry.id === 'MVP-094A');
-  assert.match(next.body, /Issue #177\. In progress \(not merged, not deployed\)/u);
+  assert.match(
+    next.body,
+    /Issue #177\. Merged \(PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`\), not deployed; hr-dev still runs `3223454…`/u,
+  );
+  assert.doesNotMatch(next.body.split('\n').slice(0, 4).join('\n'), /In progress/u);
   assert.match(next.body, /not taxable gross, net pay or money owed/u);
+  const statutory = sections.find((entry) => entry.id === 'MVP-094B');
+  assert.match(epic10, /### MVP-094B /u);
+  assert.match(statutory.body, /Issue #179\. In progress \(not merged, not deployed\)/u);
+  // D94B-13: only a DRAFT pack ships, so the backlog never calls the statutory preview available.
+  assert.match(statutory.body, /`CD-SALARY-PREVIEW` version 1, \*\*DRAFT\*\*/u);
+  assert.match(statutory.body, /stays under "coming next"/u);
+  assert.match(statutory.body, /Professional verification required/u);
+  assert.doesNotMatch(statutory.body, /compliant payroll|payroll compliance/iu);
 });
 
 test('open maintenance is separate and names Issues #151 and #173 as duplicates, without closing them', () => {

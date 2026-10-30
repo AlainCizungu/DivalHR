@@ -86,7 +86,9 @@
       "employeeRecord": "Dossier de l’employé",
       "contractTemplate": "Modèle de contrat",
       "contract": "Contrat",
-      "payrollRun": "Exécution de paie"
+      "payrollRun": "Exécution de paie",
+      "statutoryPreview": "Aperçu statutaire",
+      "statutoryProfile": "Profil statutaire"
     }
   },
   "locale": {
@@ -652,7 +654,18 @@
     "PAYROLL_RUN_PREVIEW_STALE": "L’aperçu n’est plus à jour : la politique, les employés, les affectations ou les rémunérations ont changé, ou l’aperçu a expiré. Relancez l’aperçu.",
     "PAYROLL_RUN_NO_CHANGE": "Le brouillon actuel correspond déjà à ce calcul : rien n’a été créé. Ouvrez plutôt le brouillon actuel.",
     "PAYROLL_RUN_VERSION_CONFLICT": "Une autre version de cette exécution a été créée entre-temps. Rechargez la liste et relancez l’aperçu avant de créer une nouvelle version.",
-    "PAYROLL_RUN_LIMIT_REACHED": "Une limite est atteinte : au plus 5 000 employés par exécution, 25 versions par mois et par devise, et 60 politiques par entité juridique."
+    "PAYROLL_RUN_LIMIT_REACHED": "Une limite est atteinte : au plus 5 000 employés par exécution, 25 versions par mois et par devise, et 60 politiques par entité juridique.",
+    "STATUTORY_RULE_PACK_NOT_FOUND": "Ce jeu de règles statutaires n’existe pas ou ne vous est pas accessible.",
+    "STATUTORY_RULE_PACK_NOT_VERIFIED": "Ce jeu de règles n’a pas été vérifié par un professionnel : il ne peut donc pas être activé ni servir à un calcul. Une vérification professionnelle est d’abord requise.",
+    "STATUTORY_RULE_PACK_NOT_APPLICABLE": "Ce jeu de règles ne s’applique pas à ce mois, à ce pays ou à cette devise. Choisissez un mois situé dans sa période d’effet, ou un autre jeu de règles.",
+    "STATUTORY_PROFILE_MISSING": "Au moins un employé n’a aucun profil statutaire en vigueur pour ce mois. Complétez les profils manquants, puis relancez l’aperçu.",
+    "STATUTORY_PROFILE_UNSUPPORTED": "Au moins un employé a un profil statutaire que cet aperçu ne prend pas en charge. Vérifiez ces employés, puis relancez l’aperçu.",
+    "STATUTORY_CALCULATION_BLOCKED": "Au moins un blocage empêche ce calcul statutaire. Résolvez les blocages affichés dans l’aperçu, puis relancez l’aperçu.",
+    "STATUTORY_PREVIEW_STALE": "L’aperçu n’est plus à jour : l’exécution de paie, les profils statutaires ou le jeu de règles ont changé, ou l’aperçu a expiré. Relancez l’aperçu.",
+    "STATUTORY_CALCULATION_NO_CHANGE": "Le calcul statutaire actuel correspond déjà à ce résultat : rien n’a été créé. Ouvrez plutôt le calcul actuel.",
+    "STATUTORY_VERSION_CONFLICT": "Quelqu’un a modifié ces informations entre-temps. Rechargez le dernier état, puis relancez l’aperçu avant de confirmer.",
+    "STATUTORY_LIMIT_REACHED": "Une limite est atteinte : au plus 60 activations de jeux de règles par entité juridique, 100 entrées de profil par employé, 25 versions par calcul et 5 000 lignes de paie.",
+    "STATUTORY_CALCULATION_NOT_FOUND": "Ce calcul statutaire n’existe pas ou ne vous est pas accessible."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -5374,6 +5387,274 @@
       "lines": "Employés",
       "noLines": "Cette exécution ne contient aucune ligne d’employé.",
       "linesCaption": "Brut contractuel et enregistrements sources par employé"
+    }
+  },
+  "statutory": {
+    "label": "Aperçu statutaire — ni bulletin de paie ni paiement",
+    "verificationRequired": "Vérification professionnelle requise",
+    "verificationRequiredHelp": "Aucun jeu de règles vérifié par un professionnel n’est en vigueur pour ce mois. Un jeu de règles provisoire peut être consulté, mais il ne produit jamais de calcul que vous puissiez créer. Tant qu’un jeu vérifié n’est pas activé pour cette entité juridique, aucun montant statutaire n’est affiché.",
+    "unauthorized": "Seul un administrateur du locataire avec authentification multifacteur peut utiliser l’aperçu statutaire.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur du locataire pour utiliser l’aperçu statutaire.",
+    "validation": "Vérifiez les champs signalés et réessayez.",
+    "forbidden": "Vous n’êtes pas autorisé à effectuer cette action.",
+    "yes": "Oui",
+    "no": "Non",
+    "link": {
+      "title": "Aperçu statutaire",
+      "help": "Appliquez le jeu de règles RDC en vigueur à cette exécution figée pour voir, pas à pas, les retenues salariales, les cotisations patronales, le net d’aperçu et le coût employeur. C’est un aperçu, pas un bulletin de paie, une approbation ni un paiement.",
+      "open": "Ouvrir l’aperçu statutaire de cette exécution"
+    },
+    "run": {
+      "title": "Aperçu statutaire {{period}}, {{currency}}",
+      "fallbackTitle": "Aperçu statutaire",
+      "description": "Le jeu de règles en vigueur, le calcul statutaire de cette exécution de paie avec chaque étape et chaque source officielle, et ses versions immuables. L’employeur reste responsable de la revue juridique.",
+      "back": "Retour à l’exécution de paie"
+    },
+    "packStatus": {
+      "DRAFT": "Jeu provisoire",
+      "VERIFIED": "Jeu vérifié",
+      "RETIRED": "Jeu retiré"
+    },
+    "calculationStatus": {
+      "DRAFT": "Version courante",
+      "SUPERSEDED": "Remplacée"
+    },
+    "previewStatus": {
+      "READY": "Prêt à créer",
+      "BLOCKED": "Bloqué",
+      "NO_CHANGE": "Aucun changement"
+    },
+    "sourceKey": {
+      "DGI_IRPP": "DGI, impôt sur le revenu",
+      "DGI_NOTICE_2026": "DGI, communiqué 2026",
+      "DGI_PORTAL": "DGI, portail des déclarations",
+      "CNSS_RATES": "CNSS, taux de cotisation",
+      "CNSS_DECLARATION": "CNSS, déclarations",
+      "BUDGET_2026": "Ministère du Budget, 2026"
+    },
+    "source": {
+      "newTab": "(s’ouvre dans un nouvel onglet)",
+      "key": "{{key}}",
+      "retrieved": "Consulté le {{date}}",
+      "hash": "SHA-256",
+      "unhashed": "Non haché"
+    },
+    "rulePack": {
+      "title": "Jeu de règles",
+      "help": "Les jeux de règles appartiennent à la plateforme et sont immuables. Les taux, tranches et formules sont affichés par transparence ; personne ne peut les modifier. Un jeu doit être vérifié par un professionnel avant de pouvoir être activé.",
+      "inEffect": "En vigueur pour {{month}}",
+      "inEffectText": "Jeu {{code}}, version {{version}}, actif depuis {{from}}.",
+      "history": "Historique des activations",
+      "available": "Jeux de règles disponibles",
+      "none": "Aucun jeu de règles n’est disponible.",
+      "loadMore": "Charger plus de jeux de règles",
+      "columns": {
+        "sequence": "Activation",
+        "fromMonth": "À partir du mois",
+        "pack": "Jeu de règles",
+        "activatedAt": "Activé"
+      }
+    },
+    "pack": {
+      "title": "{{code}}, version {{version}}",
+      "interval": "Période d’effet",
+      "intervalClosed": "Du {{from}} au {{to}}",
+      "intervalOpen": "À partir du {{from}}, sans date de fin",
+      "method": "Version de la méthode de calcul",
+      "sourceCount": "Sources officielles",
+      "sources": "Sources officielles",
+      "reviewer": "Revue professionnelle",
+      "reviewerText": "{{name}}, {{organization}}, revu le {{date}}"
+    },
+    "activation": {
+      "title": "Activer ce jeu de règles",
+      "help": "Seul un jeu vérifié peut être activé. Il s’applique ensuite à cette entité juridique à partir du mois choisi. Les activations sont ajoutées, jamais modifiées.",
+      "month": "Premier mois d’application",
+      "acknowledge": "Je comprends que mon organisation reste responsable de la revue juridique de ce jeu de règles et de ses résultats.",
+      "submit": "Activer le jeu de règles",
+      "whyNotVerified": "Ce jeu ne peut pas être activé, car il n’a pas été vérifié par un professionnel.",
+      "whyAcknowledge": "Confirmez la reconnaissance pour activer.",
+      "whyMonth": "Choisissez un mois valide.",
+      "announce": "Jeu de règles activé."
+    },
+    "calculation": {
+      "title": "Calcul statutaire",
+      "help": "L’aperçu applique le jeu de règles aux lignes figées de cette exécution. Rien n’est créé tant que vous ne confirmez pas un aperçu prêt.",
+      "preview": "Simuler le calcul statutaire"
+    },
+    "preview": {
+      "heading": "Aperçu statutaire pour {{period}} en {{currency}}",
+      "pack": "Jeu de règles",
+      "noPack": "Aucun jeu de règles en vigueur",
+      "supported": "Employés calculés",
+      "excluded": "Employés non assujettis",
+      "blocked": "Employés bloqués",
+      "runBlockersTitle": "Ces blocages concernent toute l’exécution, donc aucun montant n’est affiché :",
+      "employeeBlockersTitle": "Ces employés sont bloqués. Résolvez chaque blocage, puis simulez à nouveau :",
+      "noTotals": "Aucun total n’est affiché tant qu’un blocage concerne toute l’exécution.",
+      "identical": "Le calcul statutaire courant est déjà identique à ce résultat. Rien ne change.",
+      "existing": "Un calcul courant (version {{version}}) existe. En créer un nouveau ajoute une version et remplace le précédent.",
+      "noLines": "Cette exécution ne contient aucune ligne d’employé.",
+      "linesCaption": "Aperçu statutaire par employé",
+      "whyBlocked": "Résolvez d’abord chaque blocage. Un calcul exige un jeu de règles vérifié et aucun employé bloqué.",
+      "whyNoChange": "Le calcul courant est identique, il n’y a donc rien à créer."
+    },
+    "runBlockers": {
+      "SOURCE_RUN_NOT_CURRENT": "Cette exécution de paie n’est pas le brouillon courant. Ouvrez le brouillon courant du mois et simulez à partir de celui-ci.",
+      "CURRENCY_NOT_SUPPORTED": "Seules les exécutions en francs congolais (CDF) sont prises en charge. Il n’y a aucune conversion de devise.",
+      "RULE_PACK_MISSING": "Aucun jeu de règles n’est activé pour cette entité juridique et ce mois. Activez un jeu de règles vérifié.",
+      "RULE_PACK_NOT_VERIFIED": "Le jeu de règles en vigueur n’a pas été vérifié par un professionnel, ou il ne s’applique pas à ce mois."
+    },
+    "lineBlockers": {
+      "PROFILE_MISSING": "Aucun profil statutaire n’est en vigueur le premier jour d’éligibilité.",
+      "PROFILE_UNSUPPORTED": "Le profil statutaire n’est pas pris en charge (par exemple un employé expatrié ou non résident).",
+      "PROFILE_CHANGES_IN_MONTH": "Le profil statutaire change pendant la période d’éligibilité. Alignez sa date d’effet.",
+      "UNMODELED_EARNINGS": "L’employé a des gains que cet aperçu ne modélise pas.",
+      "DEDUCTIONS_EXCEED_GROSS": "Les retenues salariales dépasseraient le brut contractuel."
+    },
+    "lines": {
+      "employee": "Matricule",
+      "state": "État",
+      "calculated": "Calculé",
+      "excluded": "Non assujetti à la CNSS ni à l’IRPP : aucun composant ne s’applique.",
+      "openProfile": "Ouvrir le profil statutaire",
+      "openProfileContext": "de l’employé {{number}}"
+    },
+    "totals": {
+      "employeeDeductions": "Retenues salariales",
+      "employerContributions": "Cotisations patronales",
+      "previewNet": "Net d’aperçu",
+      "employerCost": "Coût employeur"
+    },
+    "explain": {
+      "title": "Comment chaque montant a été calculé",
+      "help": "Ouvrez un employé pour voir chaque composant, sa base, le taux ou les tranches du jeu de règles, l’arrondi et la source officielle.",
+      "summary": "Calcul de l’employé {{number}}",
+      "none": "Aucun composant ne s’applique.",
+      "party": "À la charge de",
+      "category": "Nature",
+      "base": "Base",
+      "method": "Règle",
+      "rate": "Taux fixe de {{rate}}",
+      "progressive": "Tranches annuelles progressives, sur {{periods}} périodes par an :",
+      "bracketOpen": "Au-delà, à {{rate}}",
+      "cap": "Le résultat est plafonné à {{rate}} de la base.",
+      "rounding": "Arrondi",
+      "annualBase": "Base annuelle",
+      "slices": "Parts de la base annuelle",
+      "slice": "Part à {{rate}}",
+      "numerator": "Somme part × taux (points de base)",
+      "capApplied": "Plafond appliqué",
+      "result": "Résultat",
+      "codes": "Explication",
+      "source": "Source officielle",
+      "sourceUnavailable": "La source de cette règle n’est pas disponible.",
+      "ruleUnavailable": "Le détail de la règle n’est pas disponible."
+    },
+    "party": {
+      "EMPLOYEE": "Retenue salariale",
+      "EMPLOYER": "Cotisation patronale"
+    },
+    "category": {
+      "SOCIAL_CONTRIBUTION": "Cotisation sociale",
+      "INCOME_TAX": "Retenue d’impôt sur le revenu"
+    },
+    "baseKind": {
+      "GROSS": "brut contractuel",
+      "GROSS_LESS_EMPLOYEE_SOCIAL": "brut moins les cotisations sociales salariales"
+    },
+    "rounding": {
+      "HALF_UP": "Arrondi à la moitié supérieure, une seule fois, au franc entier",
+      "DOWN": "Arrondi par défaut, une seule fois, au franc entier",
+      "UP": "Arrondi par excès, une seule fois, au franc entier"
+    },
+    "explanation": {
+      "RATE_APPLIED": "Un taux fixe a été appliqué à la base.",
+      "PROGRESSIVE_APPLIED": "Les tranches progressives ont été appliquées à la base annuelle.",
+      "CAP_APPLIED": "Le plafond du jeu de règles a limité le résultat.",
+      "NOT_SUBJECT": "L’employé n’est pas assujetti à ce composant, il est donc nul.",
+      "BASE_GROSS": "La base est le brut contractuel.",
+      "BASE_GROSS_LESS_EMPLOYEE_SOCIAL": "La base est le brut contractuel moins les cotisations sociales salariales."
+    },
+    "component": {
+      "CNSS_EMPLOYEE_PENSION": "Pension CNSS, part salariale",
+      "CNSS_EMPLOYER_PENSION": "Pension CNSS, part patronale",
+      "CNSS_EMPLOYER_OCCUPATIONAL_RISK": "Risques professionnels CNSS, part patronale",
+      "CNSS_EMPLOYER_FAMILY_BENEFITS": "Prestations familiales CNSS, part patronale",
+      "IRPP_SALARY_WITHHOLDING": "Retenue IRPP sur salaire"
+    },
+    "create": {
+      "confirm": "Confirmer et créer le calcul statutaire",
+      "announce": "Calcul statutaire créé."
+    },
+    "versions": {
+      "title": "Versions du calcul statutaire",
+      "empty": "Aucun calcul statutaire n’a encore été créé pour cette exécution.",
+      "version": "Version",
+      "status": "Statut",
+      "createdAt": "Créé",
+      "actions": "Actions",
+      "open": "Voir la version {{version}}",
+      "loadMore": "Charger plus de versions",
+      "tableLabel": "Tableau des versions du calcul statutaire"
+    },
+    "frozen": {
+      "title": "Calcul statutaire, version {{version}}",
+      "createdAt": "Créé le {{at}}. Il ne change jamais après sa création.",
+      "linesCaption": "Calcul statutaire figé par employé",
+      "pack": "Jeu de règles : {{pack}}."
+    },
+    "classification": {
+      "STANDARD_RESIDENT": "Employé résident standard",
+      "UNSUPPORTED": "Non pris en charge (expatrié, non-résident ou autre régime)"
+    },
+    "evidence": {
+      "EMPLOYMENT_CONTRACT": "Contrat de travail",
+      "PAYROLL_FILE_REVIEW": "Revue du dossier de paie",
+      "EMPLOYER_DECLARATION": "Déclaration de l’employeur",
+      "PROFESSIONAL_REVIEW": "Revue professionnelle"
+    },
+    "profile": {
+      "title": "Profil statutaire",
+      "description": "Le profil statutaire daté de cet employé : classification, assujettissement à la CNSS et à l’IRPP, et origine de l’information. Rien d’autre n’est enregistré.",
+      "openEmployee": "Ouvrir le dossier de l’employé",
+      "current": "Profil en vigueur aujourd’hui",
+      "restricted": "Ce sont des données RH restreintes. Elles ne contiennent aucun identifiant, aucune nationalité, aucune personne à charge, aucune donnée de santé ni aucun texte libre.",
+      "none": "Aucun profil statutaire n’est encore enregistré.",
+      "timeline": "Chronologie du profil",
+      "columns": {
+        "sequence": "Entrée",
+        "effectiveFrom": "En vigueur depuis",
+        "classification": "Classification",
+        "cnss": "Assujetti à la CNSS",
+        "irpp": "Assujetti à l’IRPP",
+        "evidence": "Justificatif",
+        "recorded": "Enregistré"
+      },
+      "formTitle": "Ajouter une entrée de profil",
+      "formHelp": "Les entrées sont ajoutées, jamais modifiées : une correction est une nouvelle entrée. Vous verrez un aperçu avant tout enregistrement.",
+      "effectiveFrom": "Date d’effet",
+      "effectiveFromHelp": "Le premier jour d’application de ce profil ; il doit être au plus tard le premier jour d’éligibilité de l’employé dans le mois.",
+      "classification": "Classification",
+      "classificationHelp": "Seuls les employés résidents standard sont pris en charge. Un employé non pris en charge bloque tout calcul.",
+      "subjects": "Assujetti à",
+      "subjectsHelp": "Choisissez chaque cotisation ou retenue qui s’applique.",
+      "subjectsUnsupported": "Un employé non pris en charge n’est assujetti à aucune des deux.",
+      "cnss": "Assujetti aux cotisations CNSS",
+      "irpp": "Assujetti à la retenue IRPP sur salaire",
+      "evidence": "Justificatif",
+      "preview": "Simuler l’entrée de profil",
+      "blockersTitle": "Cette entrée de profil ne peut pas être enregistrée",
+      "blockers": {
+        "EFFECTIVE_DATE_OUT_OF_RANGE": "La date d’effet doit se situer entre le 1er janvier 2000 et 366 jours après aujourd’hui.",
+        "NO_CHANGE": "Le profil en vigueur à cette date est identique. Rien ne changerait.",
+        "LIMIT_REACHED": "La limite de 100 entrées pour cet employé est atteinte."
+      },
+      "confirm": "Confirmer et enregistrer l’entrée de profil",
+      "announce": "Profil statutaire enregistré.",
+      "problems": {
+        "effectiveFrom": "Saisissez une date d’effet valide."
+      }
     }
   }
 }

@@ -292,3 +292,56 @@ number or token is ever used in hr-dev.
   `NO_CHANGE` (`PayrollRunApiIntegrationTest`). A surviving mutation exits
   non-zero. Dev data contains no real salary; never paste amounts into issues, logs or tickets.
 
+## MVP-094B statutory preview
+
+- Eleven operations (`listStatutoryRulePacks`, `getStatutoryRulePack`, `getStatutoryActivation`,
+  `activateStatutoryRulePack`, `getStatutoryProfile`, `previewStatutoryProfile`,
+  `commitStatutoryProfile`, `previewStatutoryCalculation`, `commitStatutoryCalculation`,
+  `listStatutoryCalculations`, `getStatutoryCalculation`). Subject buckets per minute
+  (`application.yaml`, environment `DIVALHR_STATUTORY_*_REQUESTS_PER_MINUTE`): `statutory-read` 60,
+  `statutory-calculation-preview` 5, `-create` 2, `statutory-profile-preview` 10, `-write` 5,
+  `statutory-activation-write` 2. Tenant buckets per hour: `statutory-calculation-preview` 60,
+  `-create` 20. There is no scheduled job. Timeouts surface as `503 EMPLOYMENT_CHANGE_TIMEOUT`.
+- Limits: 5,000 source lines, 25 versions per run and pack, 60 activations per legal entity, 100
+  profile entries per employee (`409 STATUTORY_LIMIT_REACHED`).
+- **The seeded pack is a DRAFT and stays one.** hr-dev and every dev data script contain only
+  `CD-SALARY-PREVIEW` v1 (DRAFT). Without a VERIFIED pack every preview is `BLOCKED` with
+  `RULE_PACK_MISSING` or `RULE_PACK_NOT_VERIFIED` ("Professional verification required"). Never add
+  a VERIFIED pack to a seed, migration or dev script.
+- **Migration V45 is additive.** Rollback `db/rollback/V45__rollback.sql` is manual, never run by
+  Flyway, and refuses while any activation, profile or calculation exists, while any pack other than
+  the unverified seed exists, while any source carries a hash, or while any source of another pack
+  exists (`V45 rollback refused: ...`; there is no override). Restoring V44 exactly is therefore
+  possible only on an empty data set. It does not edit `flyway_schema_history`. Prefer rolling back
+  only the application: V45 tables are not read by the previous release.
+- **Verifying a pack with evidence (manual, outside the application).** The application has no
+  verify endpoint, by design. A pack is made VERIFIED only after a professional review:
+  1. Obtain the written review of the rules against the official sources (an accountant or labour
+     lawyer qualified in the DRC): reviewer name, organization, review date and an attestation that
+     the rules, the base, the periodization of the annual bands and the cap match the sources.
+  2. Retrieve every source the rules cite from its official address (`dgi.gouv.cd`,
+     `desec.dgi.gouv.cd`, `cnss.cd`, `budget.gouv.cd`), keep the document with the evidence and
+     compute its SHA-256 (`sha256sum`).
+  3. As the database owner, in one transaction: insert the new pack (a new `code`/`version`, never an
+     update of a verified one) as DRAFT with its rules, interval and `method_version`; insert its
+     sources with their hashes and retrieval dates; then `UPDATE ... SET status = 'VERIFIED'` with
+     `reviewer_name`, `reviewer_organization`, `reviewed_on`, `attested = true` and `verified_at`.
+     The deferred checks refuse the commit if a source is missing or unhashed, or a cited key is
+     absent.
+  4. Read it back with `getStatutoryRulePack` (rules digest, sources, verification) and file the
+     evidence with the change record. A later correction is a new pack version; the old one is
+     retired (`status = 'RETIRED'`), never edited. Calculations already created keep the pack they
+     used.
+  5. A tenant administrator then activates it for a legal entity from a month
+     (`activateStatutoryRulePack`).
+  Synthetic packs (`SYNTHETIC-TEST-*`, reviewer "Synthetic Test Reviewer") exist only in tests and
+  browser journeys (`apps/web/e2e/synthetic-verified-rule-pack.sql`) and must never be created in
+  hr-dev or production.
+- Mutation checks: `scripts/dev/statutory-mutations.sh [n ...]` (needs Gradle; 7, 8 and 9 need Docker):
+  1 employee CNSS removed, 2 employer contribution deducted from the employee, 3 wrong IRPP bracket,
+  4 cap removed, 5 early rounding (`StatutoryEngineTest`, `StatutoryApiIntegrationTest`), 6 DRAFT pack
+  accepted (`StatutoryApiIntegrationTest`), 7 source drift ignored (digest comparison removed), 8
+  tenant predicate removed (`JdbcStatutoryRepositoryTenantTest`), 9 `NO_CHANGE` reported as stale
+  (`StatutoryApiIntegrationTest`), 10 profile-uniformity check removed. A surviving mutation exits
+  non-zero. Dev data contains no real salary; never paste amounts into issues, logs or tickets.
+

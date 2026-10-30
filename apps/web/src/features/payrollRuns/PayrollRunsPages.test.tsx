@@ -486,6 +486,14 @@ describe.each(['en', 'fr'] as const)('MVP-094A payroll run detail (%s)', (locale
     expect(screen.getByTestId('payroll-lines-draft-label')).toHaveTextContent(k.draftLabel);
     expect(screen.getByRole('heading', { level: 2, name: k.detail.summary })).toHaveFocus();
     expect(screen.getByTestId('payroll-detail-policy')).toHaveTextContent(k.policy.advisory);
+    // MVP-094B: the link to the statutory preview of this run (identifiers only in the URL).
+    expect(screen.getByTestId('payroll-detail-statutory-link')).toHaveAttribute(
+      'href',
+      `/admin/payroll-runs/${ENTITY_ID}/${RUN_ID}/statutory`,
+    );
+    expect(screen.getByTestId('payroll-detail-statutory')).toHaveTextContent(
+      resources[locale].common.statutory.link.help,
+    );
     expect(screen.getAllByTestId('payroll-source').map((s) => s.getAttribute('data-kind'))).toEqual(
       ['EMPLOYMENT', 'PLACEMENT', 'COMPENSATION'],
     );

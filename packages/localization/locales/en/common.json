@@ -86,7 +86,9 @@
       "employeeRecord": "Employee record",
       "contractTemplate": "Contract template",
       "contract": "Contract",
-      "payrollRun": "Payroll run"
+      "payrollRun": "Payroll run",
+      "statutoryPreview": "Statutory preview",
+      "statutoryProfile": "Statutory profile"
     }
   },
   "locale": {
@@ -652,7 +654,18 @@
     "PAYROLL_RUN_PREVIEW_STALE": "The preview is out of date because the policy, employees, placements or compensation changed, or the preview expired. Preview again.",
     "PAYROLL_RUN_NO_CHANGE": "The current draft already matches this calculation, so nothing was created. Open the current draft instead.",
     "PAYROLL_RUN_VERSION_CONFLICT": "Another version of this run was created in the meantime. Reload the list and preview again before creating a new version.",
-    "PAYROLL_RUN_LIMIT_REACHED": "A limit was reached: at most 5,000 employees per run, 25 versions per month and currency, and 60 policies per legal entity."
+    "PAYROLL_RUN_LIMIT_REACHED": "A limit was reached: at most 5,000 employees per run, 25 versions per month and currency, and 60 policies per legal entity.",
+    "STATUTORY_RULE_PACK_NOT_FOUND": "This statutory rule pack does not exist or is not available to you.",
+    "STATUTORY_RULE_PACK_NOT_VERIFIED": "This rule pack has not been professionally verified, so it cannot be activated or used for a calculation. Professional verification is required first.",
+    "STATUTORY_RULE_PACK_NOT_APPLICABLE": "This rule pack does not apply to that month, country or currency. Choose a month inside its effective period, or another rule pack.",
+    "STATUTORY_PROFILE_MISSING": "At least one employee has no statutory profile in force for this month. Complete the missing profiles, then preview again.",
+    "STATUTORY_PROFILE_UNSUPPORTED": "At least one employee has a statutory profile that is not supported by this preview. Review those employees, then preview again.",
+    "STATUTORY_CALCULATION_BLOCKED": "At least one blocker prevents this statutory calculation. Resolve the blockers shown in the preview, then preview again.",
+    "STATUTORY_PREVIEW_STALE": "The preview is out of date because the payroll run, the statutory profiles or the rule pack changed, or the preview expired. Preview again.",
+    "STATUTORY_CALCULATION_NO_CHANGE": "The current statutory calculation already matches this result, so nothing was created. Open the current calculation instead.",
+    "STATUTORY_VERSION_CONFLICT": "Someone else changed this information in the meantime. Reload the latest state and preview again before confirming.",
+    "STATUTORY_LIMIT_REACHED": "A limit was reached: at most 60 rule-pack activations per legal entity, 100 profile entries per employee, 25 versions per calculation and 5,000 payroll lines.",
+    "STATUTORY_CALCULATION_NOT_FOUND": "This statutory calculation does not exist or is not available to you."
   },
   "notFound": {
     "title": "Page not found",
@@ -5374,6 +5387,274 @@
       "lines": "Employees",
       "noLines": "This run has no employee line.",
       "linesCaption": "Contractual gross and source records per employee"
+    }
+  },
+  "statutory": {
+    "label": "Statutory preview—not a payslip or payment",
+    "verificationRequired": "Professional verification required",
+    "verificationRequiredHelp": "No professionally verified rule pack is in effect for this month. A draft rule pack can be inspected, but it never produces a calculation you can create. Until a verified pack is activated for this legal entity, no statutory amount is shown.",
+    "unauthorized": "Only a tenant administrator with multi-factor authentication can use the statutory preview.",
+    "signInRequired": "Sign in as a tenant administrator to use the statutory preview.",
+    "validation": "Check the highlighted fields and try again.",
+    "forbidden": "You are not allowed to do this.",
+    "yes": "Yes",
+    "no": "No",
+    "link": {
+      "title": "Statutory preview",
+      "help": "Apply the DRC rule pack in effect to this frozen run to see employee deductions, employer contributions, preview net and employer cost, step by step. It is a preview, not a payslip, an approval or a payment.",
+      "open": "Open the statutory preview of this run"
+    },
+    "run": {
+      "title": "Statutory preview {{period}}, {{currency}}",
+      "fallbackTitle": "Statutory preview",
+      "description": "The rule pack in effect, the statutory calculation of this payroll run with every step and official source, and its immutable versions. Employers remain responsible for legal review.",
+      "back": "Back to the payroll run"
+    },
+    "packStatus": {
+      "DRAFT": "Draft pack",
+      "VERIFIED": "Verified pack",
+      "RETIRED": "Retired pack"
+    },
+    "calculationStatus": {
+      "DRAFT": "Current version",
+      "SUPERSEDED": "Superseded"
+    },
+    "previewStatus": {
+      "READY": "Ready to create",
+      "BLOCKED": "Blocked",
+      "NO_CHANGE": "No change"
+    },
+    "sourceKey": {
+      "DGI_IRPP": "DGI, income tax",
+      "DGI_NOTICE_2026": "DGI, 2026 notice",
+      "DGI_PORTAL": "DGI, declarations portal",
+      "CNSS_RATES": "CNSS, contribution rates",
+      "CNSS_DECLARATION": "CNSS, declarations",
+      "BUDGET_2026": "Ministry of Budget, 2026"
+    },
+    "source": {
+      "newTab": "(opens in a new tab)",
+      "key": "{{key}}",
+      "retrieved": "Retrieved {{date}}",
+      "hash": "SHA-256",
+      "unhashed": "Not hashed"
+    },
+    "rulePack": {
+      "title": "Rule pack",
+      "help": "Rule packs are platform-owned and immutable. Rates, brackets and formulas are shown for transparency; nobody can edit them. A pack must be professionally verified before it can be activated.",
+      "inEffect": "In effect for {{month}}",
+      "inEffectText": "Pack {{code}}, version {{version}}, active from {{from}}.",
+      "history": "Activation history",
+      "available": "Available rule packs",
+      "none": "No rule pack is available.",
+      "loadMore": "Load more rule packs",
+      "columns": {
+        "sequence": "Activation",
+        "fromMonth": "From month",
+        "pack": "Rule pack",
+        "activatedAt": "Activated"
+      }
+    },
+    "pack": {
+      "title": "{{code}}, version {{version}}",
+      "interval": "Effective period",
+      "intervalClosed": "{{from}} to {{to}}",
+      "intervalOpen": "From {{from}}, open-ended",
+      "method": "Calculation method version",
+      "sourceCount": "Official sources",
+      "sources": "Official sources",
+      "reviewer": "Professional review",
+      "reviewerText": "{{name}}, {{organization}}, reviewed {{date}}"
+    },
+    "activation": {
+      "title": "Activate this rule pack",
+      "help": "Only a verified pack can be activated. It then applies to this legal entity from the month you choose. Activations are added, never edited.",
+      "month": "First month it applies",
+      "acknowledge": "I understand that my organization remains responsible for the legal review of this rule pack and its results.",
+      "submit": "Activate the rule pack",
+      "whyNotVerified": "This pack cannot be activated because it has not been professionally verified.",
+      "whyAcknowledge": "Confirm the acknowledgement to activate.",
+      "whyMonth": "Choose a valid month.",
+      "announce": "Rule pack activated."
+    },
+    "calculation": {
+      "title": "Statutory calculation",
+      "help": "Preview applies the rule pack to the frozen lines of this run. Nothing is created until you confirm a preview that is ready.",
+      "preview": "Preview the statutory calculation"
+    },
+    "preview": {
+      "heading": "Statutory preview for {{period}} in {{currency}}",
+      "pack": "Rule pack",
+      "noPack": "No rule pack in effect",
+      "supported": "Employees calculated",
+      "excluded": "Employees not subject",
+      "blocked": "Blocked employees",
+      "runBlockersTitle": "These blockers apply to the whole run, so no amount is shown:",
+      "employeeBlockersTitle": "These employees are blocked. Resolve each blocker, then preview again:",
+      "noTotals": "No total is shown while a blocker applies to the whole run.",
+      "identical": "The current statutory calculation is already identical to this result. Nothing changes.",
+      "existing": "A current calculation (version {{version}}) exists. Creating a new one adds a version and supersedes it.",
+      "noLines": "This run has no employee line.",
+      "linesCaption": "Statutory preview per employee",
+      "whyBlocked": "Resolve every blocker first. A calculation needs a verified rule pack and no blocked employee.",
+      "whyNoChange": "The current calculation is identical, so there is nothing to create."
+    },
+    "runBlockers": {
+      "SOURCE_RUN_NOT_CURRENT": "This payroll run is not the current draft. Open the current draft of the month and preview from it.",
+      "CURRENCY_NOT_SUPPORTED": "Only runs in Congolese francs (CDF) are supported. There is no currency conversion.",
+      "RULE_PACK_MISSING": "No rule pack is activated for this legal entity and month. Activate a verified rule pack.",
+      "RULE_PACK_NOT_VERIFIED": "The rule pack in effect has not been professionally verified, or it does not apply to this month."
+    },
+    "lineBlockers": {
+      "PROFILE_MISSING": "No statutory profile is in force on the first eligible day.",
+      "PROFILE_UNSUPPORTED": "The statutory profile is unsupported (for example an expatriate or non-resident employee).",
+      "PROFILE_CHANGES_IN_MONTH": "The statutory profile changes inside the eligible period. Align its effective date.",
+      "UNMODELED_EARNINGS": "The employee has earnings this preview does not model.",
+      "DEDUCTIONS_EXCEED_GROSS": "Employee deductions would exceed the contractual gross."
+    },
+    "lines": {
+      "employee": "Employee number",
+      "state": "State",
+      "calculated": "Calculated",
+      "excluded": "Not subject to CNSS or IRPP: no component applies.",
+      "openProfile": "Open the statutory profile",
+      "openProfileContext": "of employee {{number}}"
+    },
+    "totals": {
+      "employeeDeductions": "Employee deductions",
+      "employerContributions": "Employer contributions",
+      "previewNet": "Preview net",
+      "employerCost": "Employer cost"
+    },
+    "explain": {
+      "title": "How each amount was calculated",
+      "help": "Open an employee to see each component, its base, the rate or brackets of the rule pack, the rounding and the official source.",
+      "summary": "Calculation of employee {{number}}",
+      "none": "No component applies.",
+      "party": "Paid by",
+      "category": "Kind",
+      "base": "Base",
+      "method": "Rule",
+      "rate": "Flat rate of {{rate}}",
+      "progressive": "Progressive annual brackets, over {{periods}} periods a year:",
+      "bracketOpen": "Above, at {{rate}}",
+      "cap": "The result is capped at {{rate}} of the base.",
+      "rounding": "Rounding",
+      "annualBase": "Annual base",
+      "slices": "Slices of the annual base",
+      "slice": "Slice at {{rate}}",
+      "numerator": "Sum of slice × rate (basis points)",
+      "capApplied": "Cap applied",
+      "result": "Result",
+      "codes": "Explanation",
+      "source": "Official source",
+      "sourceUnavailable": "The source of this rule is not available.",
+      "ruleUnavailable": "The rule details are not available."
+    },
+    "party": {
+      "EMPLOYEE": "Employee deduction",
+      "EMPLOYER": "Employer contribution"
+    },
+    "category": {
+      "SOCIAL_CONTRIBUTION": "Social contribution",
+      "INCOME_TAX": "Income tax withholding"
+    },
+    "baseKind": {
+      "GROSS": "contractual gross",
+      "GROSS_LESS_EMPLOYEE_SOCIAL": "gross less employee social contributions"
+    },
+    "rounding": {
+      "HALF_UP": "Half up, once, to the whole franc",
+      "DOWN": "Down, once, to the whole franc",
+      "UP": "Up, once, to the whole franc"
+    },
+    "explanation": {
+      "RATE_APPLIED": "A flat rate was applied to the base.",
+      "PROGRESSIVE_APPLIED": "The progressive brackets were applied to the annual base.",
+      "CAP_APPLIED": "The cap of the rule pack limited the result.",
+      "NOT_SUBJECT": "The employee is not subject to this component, so it is zero.",
+      "BASE_GROSS": "The base is the contractual gross.",
+      "BASE_GROSS_LESS_EMPLOYEE_SOCIAL": "The base is the contractual gross less the employee social contributions."
+    },
+    "component": {
+      "CNSS_EMPLOYEE_PENSION": "CNSS pension, employee",
+      "CNSS_EMPLOYER_PENSION": "CNSS pension, employer",
+      "CNSS_EMPLOYER_OCCUPATIONAL_RISK": "CNSS occupational risk, employer",
+      "CNSS_EMPLOYER_FAMILY_BENEFITS": "CNSS family benefits, employer",
+      "IRPP_SALARY_WITHHOLDING": "IRPP salary withholding"
+    },
+    "create": {
+      "confirm": "Confirm and create the statutory calculation",
+      "announce": "Statutory calculation created."
+    },
+    "versions": {
+      "title": "Statutory calculation versions",
+      "empty": "No statutory calculation has been created for this run yet.",
+      "version": "Version",
+      "status": "Status",
+      "createdAt": "Created",
+      "actions": "Actions",
+      "open": "View version {{version}}",
+      "loadMore": "Load more versions",
+      "tableLabel": "Table of statutory calculation versions"
+    },
+    "frozen": {
+      "title": "Statutory calculation, version {{version}}",
+      "createdAt": "Created {{at}}. It never changes after creation.",
+      "linesCaption": "Frozen statutory calculation per employee",
+      "pack": "Rule pack: {{pack}}."
+    },
+    "classification": {
+      "STANDARD_RESIDENT": "Standard resident employee",
+      "UNSUPPORTED": "Unsupported (expatriate, non-resident or other regime)"
+    },
+    "evidence": {
+      "EMPLOYMENT_CONTRACT": "Employment contract",
+      "PAYROLL_FILE_REVIEW": "Payroll file review",
+      "EMPLOYER_DECLARATION": "Employer declaration",
+      "PROFESSIONAL_REVIEW": "Professional review"
+    },
+    "profile": {
+      "title": "Statutory profile",
+      "description": "The effective-dated statutory profile of this employee: classification, CNSS and IRPP subject flags, and where the information comes from. Nothing else is recorded.",
+      "openEmployee": "Open the employee record",
+      "current": "Profile in force today",
+      "restricted": "This is restricted HR data. It holds no identifier, citizenship, dependant, health data or free text.",
+      "none": "No statutory profile is recorded yet.",
+      "timeline": "Profile timeline",
+      "columns": {
+        "sequence": "Entry",
+        "effectiveFrom": "Effective from",
+        "classification": "Classification",
+        "cnss": "Subject to CNSS",
+        "irpp": "Subject to IRPP",
+        "evidence": "Evidence",
+        "recorded": "Recorded"
+      },
+      "formTitle": "Add a profile entry",
+      "formHelp": "Entries are added, never edited: a correction is a new entry. You will see a preview before anything is recorded.",
+      "effectiveFrom": "Effective date",
+      "effectiveFromHelp": "The first day this profile applies; it must be on or before the first day the employee is eligible in the month.",
+      "classification": "Classification",
+      "classificationHelp": "Only standard resident employees are supported. An unsupported employee blocks every calculation.",
+      "subjects": "Subject to",
+      "subjectsHelp": "Choose each contribution or withholding that applies.",
+      "subjectsUnsupported": "An unsupported employee is subject to neither.",
+      "cnss": "Subject to CNSS contributions",
+      "irpp": "Subject to IRPP salary withholding",
+      "evidence": "Evidence",
+      "preview": "Preview the profile entry",
+      "blockersTitle": "This profile entry cannot be recorded",
+      "blockers": {
+        "EFFECTIVE_DATE_OUT_OF_RANGE": "The effective date must be between 1 January 2000 and 366 days after today.",
+        "NO_CHANGE": "The profile in force on that date is identical. Nothing would change.",
+        "LIMIT_REACHED": "The limit of 100 entries for this employee has been reached."
+      },
+      "confirm": "Confirm and record the profile entry",
+      "announce": "Statutory profile recorded.",
+      "problems": {
+        "effectiveFrom": "Enter a valid effective date."
+      }
     }
   }
 }

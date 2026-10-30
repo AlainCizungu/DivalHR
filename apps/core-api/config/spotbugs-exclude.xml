@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Keep exclusions narrow and justified. -->
 <FindBugsFilter>
+  <!-- MVP-094B: the request parser returns null for an absent or malformed flag (a third state next to true and false); the null is always rejected with a field error before use. -->
+  <Match>
+    <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+    <Class name="com.divalhr.core.payroll.application.StatutoryCommands"/>
+    <Method name="flag"/>
+  </Match>
   <!-- Spring beans intentionally hold injected collaborators (constructor injection). -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP2"/>
@@ -143,6 +149,11 @@
       <Class name="com.divalhr.core.payroll.internal.JdbcPayrollRunRepository"/>
       <Class name="com.divalhr.core.payroll.api.PayrollPolicyController"/>
       <Class name="com.divalhr.core.payroll.api.PayrollRunController"/>
+      <!-- MVP-094B: statutory preview services, evaluator, recorder, repositories, guard default
+           and controllers hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.application\.(Statutory|NoUnmodeled)[A-Za-z]*"/>
+      <Class name="~com\.divalhr\.core\.payroll\.internal\.JdbcStatutory[A-Za-z]*"/>
+      <Class name="~com\.divalhr\.core\.payroll\.api\.Statutory[A-Za-z]*Controller"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
       <Class name="com.divalhr.core.integrations.application.WebhookService"/>

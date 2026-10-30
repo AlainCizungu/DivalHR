@@ -10,6 +10,7 @@ import com.divalhr.core.platform.access.EmploymentIntervals;
 import com.divalhr.core.platform.access.LockedApprovedTime;
 import com.divalhr.core.platform.access.PayrollPopulation;
 import com.divalhr.core.platform.access.ReportingLines;
+import com.divalhr.core.platform.access.StatutoryEarningsGuard;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -130,6 +131,15 @@ class AccessPortArchitectureTest {
                 .map(java.lang.reflect.Method::getName)
                 .toList())
         .containsExactlyInAnyOrder("read", "lockShared");
+  }
+
+  @Test
+  void theStatutoryEarningsGuardHasExactlyItsDeclaredMethod() {
+    assertThat(
+            Stream.of(StatutoryEarningsGuard.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactly("employeesWithUnmodeledEarnings");
   }
 
   @Test
