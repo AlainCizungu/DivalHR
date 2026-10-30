@@ -136,7 +136,7 @@ async function noOverflow(page: Page) {
             .slice(0, 6)
             .map(
               (element) =>
-                `${element.tagName.toLowerCase()}[${element.getAttribute('data-testid') ?? String(element.className)}]=${String(Math.round(element.getBoundingClientRect().right))}`,
+                `${element.tagName.toLowerCase()}[${element.getAttribute('data-testid') ?? element.className}]=${String(Math.round(element.getBoundingClientRect().right))}`,
             ),
     );
     expect(wide, `no horizontal overflow at ${viewport.width} px`).toEqual([]);
@@ -494,6 +494,7 @@ test.describe.serial('MVP-094B: source-versioned DRC statutory preview', () => {
 
     // 4. Complete Anna's profile through the blocker link, then Béatrice's.
     await blocked
+      .getByTestId('statutory-employee-blockers')
       .getByRole('link', {
         name: new RegExp(`Open the statutory profile of employee ${ANA.number}`, 'u'),
       })
