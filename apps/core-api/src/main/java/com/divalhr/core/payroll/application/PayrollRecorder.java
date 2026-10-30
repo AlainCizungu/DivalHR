@@ -190,8 +190,7 @@ public class PayrollRecorder {
                     + "\nsequence="
                     + recorded.sequence()
                     + "\n")));
-    outbox.append(
-        envelope(caller, POLICY_EVENT, recorded.policyId(), recorded.at(), metadata));
+    outbox.append(envelope(caller, POLICY_EVENT, recorded.policyId(), recorded.at(), metadata));
   }
 
   /**
@@ -238,11 +237,7 @@ public class PayrollRecorder {
   }
 
   private static EventEnvelope envelope(
-      PayrollCaller caller,
-      String type,
-      UUID subject,
-      Instant at,
-      Map<String, Object> data) {
+      PayrollCaller caller, String type, UUID subject, Instant at, Map<String, Object> data) {
     return new EventEnvelope(
         UUID.randomUUID().toString(),
         type,

@@ -226,8 +226,8 @@ public final class PayrollResponses {
   }
 
   /**
-   * A previewed run; while a blocker exists or when it is identical to the current draft there is no
-   * preview digest and no expiry.
+   * A previewed run; while a blocker exists or when it is identical to the current draft there is
+   * no preview digest and no expiry.
    *
    * @param legalEntityId legal entity
    * @param period {@code YYYY-MM}

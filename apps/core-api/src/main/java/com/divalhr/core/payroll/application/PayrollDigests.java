@@ -59,8 +59,7 @@ final class PayrollDigests {
       text.append("employee=").append(employee.id()).append(';').append(employee.number());
       text.append('\n');
       List<Employment> employments = new ArrayList<>(employee.employments());
-      employments.sort(
-          Comparator.comparing(Employment::start).thenComparing(Employment::id));
+      employments.sort(Comparator.comparing(Employment::start).thenComparing(Employment::id));
       for (Employment employment : employments) {
         text.append("employment=")
             .append(employment.id())

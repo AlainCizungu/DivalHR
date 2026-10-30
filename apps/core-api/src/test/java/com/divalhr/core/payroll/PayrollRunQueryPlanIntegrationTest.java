@@ -26,8 +26,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>The statements mirror the ones of {@code JdbcPayrollRunRepository} and {@code
  * JdbcEmploymentHistoryRepository} (the same text and parameters). The rows are written set-based
- * with {@code session_replication_role = replica} (no triggers or foreign keys; the plan depends
- * on the indexes and statistics only).
+ * with {@code session_replication_role = replica} (no triggers or foreign keys; the plan depends on
+ * the indexes and statistics only).
  */
 @IntegrationTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -182,8 +182,7 @@ class PayrollRunQueryPlanIntegrationTest {
   }
 
   private String plan(String sql, Map<String, Object> params) {
-    return String.join(
-        "\n", named.query("EXPLAIN " + sql, params, (rs, row) -> rs.getString(1)));
+    return String.join("\n", named.query("EXPLAIN " + sql, params, (rs, row) -> rs.getString(1)));
   }
 
   private void driven(String label, String sql, Map<String, Object> params, String... indexes) {
@@ -221,8 +220,20 @@ class PayrollRunQueryPlanIntegrationTest {
         "keyset",
         keyset,
         Map.of(
-            "tenant", tenant, "entity", entity, "period", month.minusMonths(6), "currency", "CDF",
-            "version", 3, "id", UUID.randomUUID(), "limit", 26),
+            "tenant",
+            tenant,
+            "entity",
+            entity,
+            "period",
+            month.minusMonths(6),
+            "currency",
+            "CDF",
+            "version",
+            3,
+            "id",
+            UUID.randomUUID(),
+            "limit",
+            26),
         "payroll_pay_run_history");
   }
 
@@ -270,7 +281,8 @@ class PayrollRunQueryPlanIntegrationTest {
     assertThat(plan(keyset, next)).doesNotContain("Sort");
     driven(
         "line by id",
-        "SELECT " + LINE_COLUMNS
+        "SELECT "
+            + LINE_COLUMNS
             + " FROM payroll.pay_run_line WHERE tenant_id = :tenant AND run_id = :run"
             + " AND id = :id",
         Map.of("tenant", tenant, "run", run, "id", line),
@@ -320,8 +332,16 @@ class PayrollRunQueryPlanIntegrationTest {
                 + " AND (a.effective_to IS NULL OR a.effective_to >= m.effective_from))"
                 + " ORDER BY e.employee_number COLLATE \"C\", e.id LIMIT :limit",
             Map.of(
-                "tenant", tenant, "entity", entity, "from", month,
-                "to", month.plusMonths(1).minusDays(1), "limit", 5001));
+                "tenant",
+                tenant,
+                "entity",
+                entity,
+                "from",
+                month,
+                "to",
+                month.plusMonths(1).minusDays(1),
+                "limit",
+                5001));
     // The statement reads one tenant's employees (at most 5,000 are returned, the run is refused
     // beyond) and joins them to their placements; it never reads a payroll table.
     assertThat(plan).contains("Limit").doesNotContain("payroll.");

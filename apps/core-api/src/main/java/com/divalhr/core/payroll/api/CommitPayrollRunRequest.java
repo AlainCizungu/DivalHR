@@ -3,8 +3,8 @@ package com.divalhr.core.payroll.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * MVP-094A: the previewed run plus what the preview returned. Every value is read as {@code Object} so that a wrong type is a field error, never a
- * deserialization failure.
+ * MVP-094A: the previewed run plus what the preview returned. Every value is read as {@code Object}
+ * so that a wrong type is a field error, never a deserialization failure.
  */
 @Schema(name = "CommitPayrollRun")
 public class CommitPayrollRunRequest extends StrictRequest {

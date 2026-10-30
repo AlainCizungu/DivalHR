@@ -74,8 +74,7 @@ class PayrollDigestsTest {
         .isNotEqualTo(digest);
     // The scope: tenant, entity, month, currency and policy.
     assertThat(
-            PayrollDigests.input(
-                TENANT, ENTITY, MAY, CompensationCurrency.CDF, POLICY, employees))
+            PayrollDigests.input(TENANT, ENTITY, MAY, CompensationCurrency.CDF, POLICY, employees))
         .isNotEqualTo(digest);
     assertThat(
             PayrollDigests.input(
@@ -103,8 +102,7 @@ class PayrollDigestsTest {
             PayrollPayDay.lastDay(),
             PayrollProration.NONE);
     assertThat(
-            PayrollDigests.input(
-                TENANT, ENTITY, MAY, CompensationCurrency.USD, later, employees))
+            PayrollDigests.input(TENANT, ENTITY, MAY, CompensationCurrency.USD, later, employees))
         .isNotEqualTo(digest);
   }
 
@@ -117,7 +115,8 @@ class PayrollDigestsTest {
 
   @Test
   void theInputDigestNeverContainsAnAmountOrANumber() {
-    assertThat(input(List.of(employee(EMPLOYEE, 1, 987_654, "E-SENTINEL")))).doesNotContain("987654");
+    assertThat(input(List.of(employee(EMPLOYEE, 1, 987_654, "E-SENTINEL"))))
+        .doesNotContain("987654");
   }
 
   @Test

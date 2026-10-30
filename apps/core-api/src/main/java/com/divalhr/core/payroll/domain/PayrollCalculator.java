@@ -497,8 +497,7 @@ public final class PayrollCalculator {
       if (in && start < 0) {
         start = day;
       } else if (!in && start >= 0) {
-        ranges.add(
-            new Range(period.first().plusDays(start), period.first().plusDays(day - 1L)));
+        ranges.add(new Range(period.first().plusDays(start), period.first().plusDays(day - 1L)));
         start = -1;
       }
     }
@@ -535,9 +534,7 @@ public final class PayrollCalculator {
       }
     }
     sources.sort(
-        Comparator.comparing(Source::kind)
-            .thenComparing(Source::from)
-            .thenComparing(Source::id));
+        Comparator.comparing(Source::kind).thenComparing(Source::from).thenComparing(Source::id));
     return sources;
   }
 }

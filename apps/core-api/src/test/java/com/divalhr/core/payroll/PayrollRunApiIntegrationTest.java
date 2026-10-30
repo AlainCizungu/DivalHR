@@ -30,10 +30,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * MVP-094A (Issue #177) against real PostgreSQL through the public API only: a policy is recorded,
- * a month is previewed and created as a DRAFT with the contractual gross of every employee, blockers
- * refuse the creation, every kind of input drift makes a preview stale, replays are idempotent and a
- * new version supersedes the draft. Synthetic data only; the clock is frozen on the 15th of the
- * current month so the previous month is always a closed, runnable month.
+ * a month is previewed and created as a DRAFT with the contractual gross of every employee,
+ * blockers refuse the creation, every kind of input drift makes a preview stale, replays are
+ * idempotent and a new version supersedes the draft. Synthetic data only; the clock is frozen on
+ * the 15th of the current month so the previous month is always a closed, runnable month.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)
@@ -242,8 +242,7 @@ class PayrollRunApiIntegrationTest {
   @Test
   void aRunWithoutAPolicyInForceIsAStableConflict() throws Exception {
     w.paid("Mukendi", beforeMonth(), "USD", "1250.00");
-    w.c.problem(
-        w.runPreviewRequest(runCommand(w.month, "USD")), 409, "PAYROLL_POLICY_NOT_FOUND");
+    w.c.problem(w.runPreviewRequest(runCommand(w.month, "USD")), 409, "PAYROLL_POLICY_NOT_FOUND");
   }
 
   @Test
@@ -252,7 +251,8 @@ class PayrollRunApiIntegrationTest {
     JsonNode preview = w.runPreview("USD");
     assertThat(preview.get("employeeCount").asInt()).isZero();
     w.c.problem(
-        w.runCommitRequest(Organizations.newKey(), runCommitting(runCommand(w.month, "USD"), preview)),
+        w.runCommitRequest(
+            Organizations.newKey(), runCommitting(runCommand(w.month, "USD"), preview)),
         409,
         "PAYROLL_RUN_BLOCKED");
   }
@@ -267,11 +267,11 @@ class PayrollRunApiIntegrationTest {
     YearMonth current = YearMonth.from(w.today);
     for (YearMonth invalid :
         List.of(current, current.plusMonths(1), current.minusMonths(25), current.plusMonths(30))) {
-      w.c.problem(
-          w.runPreviewRequest(runCommand(invalid, "USD")), 422, "PAYROLL_PERIOD_INVALID");
+      w.c.problem(w.runPreviewRequest(runCommand(invalid, "USD")), 422, "PAYROLL_PERIOD_INVALID");
     }
     // The 24th month back is the earliest runnable month, the 25th is not.
-    JsonNode preview = w.c.expect(w.runPreviewRequest(runCommand(current.minusMonths(24), "USD")), 200);
+    JsonNode preview =
+        w.c.expect(w.runPreviewRequest(runCommand(current.minusMonths(24), "USD")), 200);
     assertThat(preview.get("period").asText()).isEqualTo(current.minusMonths(24).toString());
     w.c.problem(
         w.runCommitRequest(
@@ -319,8 +319,7 @@ class PayrollRunApiIntegrationTest {
   void aPolicyChangeMakesThePreviewStale() throws Exception {
     w.policy("CALENDAR_DAYS");
     w.paid("Mukendi", beforeMonth(), "USD", "1250.00");
-    assertStaleAfter(
-        () -> w.policy(w.month.atDay(1), "LAST_DAY", null, "FIXED_30_DAYS"));
+    assertStaleAfter(() -> w.policy(w.month.atDay(1), "LAST_DAY", null, "FIXED_30_DAYS"));
   }
 
   @Test
@@ -351,7 +350,8 @@ class PayrollRunApiIntegrationTest {
     UUID ana = w.hire("Mukendi", beforeMonth());
     JsonNode established = w.compensate(ana, beforeMonth(), "USD", "1250.00");
     assertStaleAfter(
-        () -> w.correct(ana, established.get("changeId").asText(), beforeMonth(), "USD", "1300.00"));
+        () ->
+            w.correct(ana, established.get("changeId").asText(), beforeMonth(), "USD", "1300.00"));
   }
 
   @Test
@@ -378,8 +378,11 @@ class PayrollRunApiIntegrationTest {
     w.c.problem(
         w.runCommitRequest(Organizations.newKey(), forged), 409, "PAYROLL_RUN_PREVIEW_STALE");
     Map<String, Object> later = new LinkedHashMap<>(runCommitting(command, preview));
-    later.put("expiresAt", Instant.parse(preview.get("expiresAt").asText()).plusSeconds(86_400).toString());
-    w.c.problem(w.runCommitRequest(Organizations.newKey(), later), 409, "PAYROLL_RUN_PREVIEW_STALE");
+    later.put(
+        "expiresAt",
+        Instant.parse(preview.get("expiresAt").asText()).plusSeconds(86_400).toString());
+    w.c.problem(
+        w.runCommitRequest(Organizations.newKey(), later), 409, "PAYROLL_RUN_PREVIEW_STALE");
     assertThat(w.evidence().get(0)).isZero();
   }
 
@@ -426,8 +429,7 @@ class PayrollRunApiIntegrationTest {
     assertThat(same.get("expectedVersion").asInt()).isEqualTo(1);
     List<Integer> before = w.evidence();
     w.c.problem(
-        w.runCommitRequest(
-            Organizations.newKey(), runCommitting(runCommand(w.month, "USD"), same)),
+        w.runCommitRequest(Organizations.newKey(), runCommitting(runCommand(w.month, "USD"), same)),
         409,
         "PAYROLL_RUN_PREVIEW_STALE");
     assertThat(w.evidence()).isEqualTo(before);
@@ -507,7 +509,8 @@ class PayrollRunApiIntegrationTest {
         "CURSOR_INVALID");
     w.c.problem(
         PayrollRunWorld.get(
-            w.admin, w.runsPath() + "/" + first.get("runId").asText() + "?limit=3&cursor=" + cursor),
+            w.admin,
+            w.runsPath() + "/" + first.get("runId").asText() + "?limit=3&cursor=" + cursor),
         400,
         "CURSOR_INVALID");
     w.c.problem(
@@ -516,10 +519,12 @@ class PayrollRunApiIntegrationTest {
     JsonNode runs = w.c.expect(PayrollRunWorld.get(w.admin, w.runsPath() + "?limit=1"), 200);
     assertThat(runs.get("items")).hasSize(1);
     String next = runs.get("nextCursor").asText();
-    JsonNode more = w.c.expect(PayrollRunWorld.get(w.admin, w.runsPath() + "?limit=1&cursor=" + next), 200);
+    JsonNode more =
+        w.c.expect(PayrollRunWorld.get(w.admin, w.runsPath() + "?limit=1&cursor=" + next), 200);
     assertThat(more.get("items")).hasSize(1);
     w.c.problem(PayrollRunWorld.get(w.admin, w.runsPath() + "?limit=0"), 400, "VALIDATION_FAILED");
-    w.c.problem(PayrollRunWorld.get(w.admin, w.runsPath() + "?limit=101"), 400, "VALIDATION_FAILED");
+    w.c.problem(
+        PayrollRunWorld.get(w.admin, w.runsPath() + "?limit=101"), 400, "VALIDATION_FAILED");
   }
 
   @Test

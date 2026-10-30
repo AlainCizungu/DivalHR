@@ -86,8 +86,7 @@ class PayrollPolicyApiIntegrationTest {
 
     JsonNode receipt =
         w.c.expect(
-            w.policyCommitRequest(Organizations.newKey(), policyCommitting(command, preview)),
-            201);
+            w.policyCommitRequest(Organizations.newKey(), policyCommitting(command, preview)), 201);
     assertThat(receipt.get("sequence").asInt()).isEqualTo(1);
     assertThat(receipt.get("version").asInt()).isEqualTo(1);
     assertThat(receipt.get("effectiveFrom").asText()).isEqualTo(first.toString());

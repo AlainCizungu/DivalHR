@@ -35,9 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Storage of monthly payroll policies and runs (MVP-094A; V44). Every method takes the verified
- * {@link TenantId} and every statement filters on it. Rows are only ever inserted, or a DRAFT run is
- * superseded once; nothing is deleted or updated in place (the V44 triggers enforce it). Restricted
- * financial data: no record here prints an amount, an employee number or a digest.
+ * {@link TenantId} and every statement filters on it. Rows are only ever inserted, or a DRAFT run
+ * is superseded once; nothing is deleted or updated in place (the V44 triggers enforce it).
+ * Restricted financial data: no record here prints an amount, an employee number or a digest.
  */
 @Repository
 public class JdbcPayrollRunRepository {
@@ -409,7 +409,9 @@ public class JdbcPayrollRunRepository {
         .list()
         .forEach(
             entry ->
-                found.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(entry.getValue()));
+                found
+                    .computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
+                    .add(entry.getValue()));
     return found;
   }
 
@@ -471,8 +473,7 @@ public class JdbcPayrollRunRepository {
    * @param limit rows to read
    * @return the runs
    */
-  public List<RunRow> runPage(
-      TenantId tenant, UUID legalEntityId, RunPosition after, int limit) {
+  public List<RunRow> runPage(TenantId tenant, UUID legalEntityId, RunPosition after, int limit) {
     if (after == null) {
       return jdbc.sql(
               "SELECT "
@@ -767,8 +768,7 @@ public class JdbcPayrollRunRepository {
    * @param lineIds lines
    * @return the sources by line, in order
    */
-  public Map<UUID, List<SourceRow>> sources(
-      TenantId tenant, UUID runId, Collection<UUID> lineIds) {
+  public Map<UUID, List<SourceRow>> sources(TenantId tenant, UUID runId, Collection<UUID> lineIds) {
     Map<UUID, List<SourceRow>> found = new HashMap<>();
     if (lineIds.isEmpty()) {
       return found;
@@ -791,7 +791,8 @@ public class JdbcPayrollRunRepository {
                     rs.getObject("valid_from", LocalDate.class),
                     rs.getObject("valid_to", LocalDate.class)))
         .list()
-        .forEach(source -> found.computeIfAbsent(source.lineId(), k -> new ArrayList<>()).add(source));
+        .forEach(
+            source -> found.computeIfAbsent(source.lineId(), k -> new ArrayList<>()).add(source));
     return found;
   }
 

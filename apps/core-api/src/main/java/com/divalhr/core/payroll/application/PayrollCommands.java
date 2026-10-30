@@ -190,7 +190,8 @@ final class PayrollCommands {
       errors.add("body", Constraint.UNKNOWN_PROPERTY);
     }
     PolicyDraft draft =
-        policy(request.getEffectiveFrom(), request.getPayDay(), request.getProrationMethod(), errors);
+        policy(
+            request.getEffectiveFrom(), request.getPayDay(), request.getProrationMethod(), errors);
     errors.throwIfAny();
     return draft;
   }
@@ -207,7 +208,8 @@ final class PayrollCommands {
       errors.add("body", Constraint.UNKNOWN_PROPERTY);
     }
     PolicyDraft draft =
-        policy(request.getEffectiveFrom(), request.getPayDay(), request.getProrationMethod(), errors);
+        policy(
+            request.getEffectiveFrom(), request.getPayDay(), request.getProrationMethod(), errors);
     Integer version = version(request.getExpectedVersion(), 60, errors);
     String digest = digest(request.getPreviewDigest(), "previewDigest", errors);
     Instant expiresAt = instant(request.getExpiresAt(), "expiresAt", errors);

@@ -78,8 +78,8 @@ import org.springframework.stereotype.Service;
  *
  * <p>A creation runs in one idempotent transaction in the lock order of ADR 0033: the idempotency
  * reservation (0), every employment overlapping the month {@code FOR SHARE} through the people port
- * (2), the tenant payroll-population lock exclusive (5c), the legal entity's run lock (5e), then the
- * deferred checks, the audit record and the outbox event (6). Under the locks it re-reads the
+ * (2), the tenant payroll-population lock exclusive (5c), the legal entity's run lock (5e), then
+ * the deferred checks, the audit record and the outbox event (6). Under the locks it re-reads the
  * policy, the population and the compensation, recomputes, and compares the version, the blockers,
  * the expiry and the digests before it writes anything. Restricted financial and HR data: amounts,
  * employee numbers, day counts, digests and explanations never enter logs, metrics, audit metadata,
@@ -230,10 +230,15 @@ public class PayrollRunService {
               member.employeeId(),
               member.employeeNumber(),
               member.employments().stream()
-                  .map(e -> new PayrollCalculator.Employment(e.id(), e.version(), e.start(), e.end()))
+                  .map(
+                      e ->
+                          new PayrollCalculator.Employment(e.id(), e.version(), e.start(), e.end()))
                   .toList(),
               member.placements().stream()
-                  .map(p -> new PayrollCalculator.Placement(p.id(), p.legalEntityId(), p.start(), p.end()))
+                  .map(
+                      p ->
+                          new PayrollCalculator.Placement(
+                              p.id(), p.legalEntityId(), p.start(), p.end()))
                   .toList(),
               facts.getOrDefault(member.employeeId(), List.of()));
       employees.add(employee);
@@ -282,16 +287,14 @@ public class PayrollRunService {
                     () -> {
                       TenantId tenant = caller.tenant();
                       UUID entity =
-                          entities.require(
-                              tenant, legalEntityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
+                          entities.require(tenant, legalEntityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
                       Instant now = calendar.now();
                       requirePeriod(draft.period(), calendar.today(tenant));
                       Computation computation = compute(tenant, entity, draft);
                       counts[0] = computation.withGross();
                       counts[1] = computation.blocked();
                       Optional<RunRow> current =
-                          runs.draft(
-                              tenant, entity, draft.period().first(), draft.currency());
+                          runs.draft(tenant, entity, draft.period().first(), draft.currency());
                       int version = current.map(RunRow::version).orElse(0);
                       boolean identical =
                           current
@@ -545,7 +548,13 @@ public class PayrollRunService {
       Source source = line.sources().get(i);
       sources.add(
           new SourceRow(
-              lineId, i + 1, source.kind(), source.id(), source.version(), source.from(), source.to()));
+              lineId,
+              i + 1,
+              source.kind(),
+              source.id(),
+              source.version(),
+              source.from(),
+              source.to()));
     }
     LineRow row =
         new LineRow(
@@ -786,7 +795,8 @@ public class PayrollRunService {
   // ------------------------------------------------------------------------------------------
 
   /** Safe metrics: operation, outcome, employee-count bucket and blocker-count bucket only. */
-  private void measure(String operation, String outcome, long startedNanos, int employees, int blocked) {
+  private void measure(
+      String operation, String outcome, long startedNanos, int employees, int blocked) {
     String tagOutcome = outcome.toLowerCase(Locale.ROOT);
     meters
         .counter(

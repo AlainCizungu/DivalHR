@@ -15,11 +15,7 @@ import java.util.UUID;
  * @param method proration method
  */
 public record PayrollPolicy(
-    UUID id,
-    int sequence,
-    LocalDate effectiveFrom,
-    PayrollPayDay payDay,
-    PayrollProration method) {
+    UUID id, int sequence, LocalDate effectiveFrom, PayrollPayDay payDay, PayrollProration method) {
 
   /** Requires every component. */
   public PayrollPolicy {

@@ -118,8 +118,7 @@ final class PayrollRunWorld {
         .header("Authorization", bearer);
   }
 
-  MockHttpServletRequestBuilder policyPreviewRequest(Map<String, Object> command)
-      throws Exception {
+  MockHttpServletRequestBuilder policyPreviewRequest(Map<String, Object> command) throws Exception {
     return CompensationWorld.json(policyPath() + "/preview", admin, null, command);
   }
 
@@ -205,8 +204,7 @@ final class PayrollRunWorld {
   JsonNode createRun(String currency) throws Exception {
     Map<String, Object> command = runCommand(month, currency);
     JsonNode preview = c.expect(runPreviewRequest(command), 200);
-    return c.expect(
-        runCommitRequest(Organizations.newKey(), runCommitting(command, preview)), 201);
+    return c.expect(runCommitRequest(Organizations.newKey(), runCommitting(command, preview)), 201);
   }
 
   JsonNode line(JsonNode preview, UUID employee) {
@@ -265,7 +263,8 @@ final class PayrollRunWorld {
     String path = CompensationWorld.EMPLOYEES + "/" + employee + "/separations";
     JsonNode preview =
         c.expect(
-            Employees.postJson(admin, path + "/preview", CompensationWorld.JSON.writeValueAsString(command)),
+            Employees.postJson(
+                admin, path + "/preview", CompensationWorld.JSON.writeValueAsString(command)),
             200);
     List<String> acknowledgements = new java.util.ArrayList<>();
     preview.get("requiredAcknowledgements").forEach(a -> acknowledgements.add(a.asText()));
@@ -315,14 +314,12 @@ final class PayrollRunWorld {
             "SELECT metadata::text || coalesce(after_state_sha256, '')"
                 + " FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND (action LIKE 'payroll-policy.%' OR action LIKE 'payroll-run.%')",
-            String.class,
-            tenant);
+            String.class, tenant);
     rows.addAll(
         jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.payroll-%'",
-            String.class,
-            tenant));
+            String.class, tenant));
     rows.addAll(
         jdbc.queryForList(
             "SELECT response_body::text FROM platform.idempotency_record"

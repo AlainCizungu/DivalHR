@@ -121,7 +121,8 @@ class PayrollRunAuthorityIntegrationTest {
   @Test
   void everyOperationNeedsTheExactMfaAssurance() throws Exception {
     List<Integer> before = w.evidence();
-    int audits = w.c.count("SELECT count(*) FROM platform.audit_event WHERE tenant_id = ?", w.tenant);
+    int audits =
+        w.c.count("SELECT count(*) FROM platform.audit_event WHERE tenant_id = ?", w.tenant);
     for (Object acr : INSUFFICIENT) {
       String admin = bearer(w.tenant, "sub-pay94-mfa", acr, "tenant-admin");
       for (MockHttpServletRequestBuilder call : operations(admin, w.entity)) {
@@ -129,12 +130,12 @@ class PayrollRunAuthorityIntegrationTest {
         assertThat(response.getStatus()).as(String.valueOf(acr)).isEqualTo(403);
         JsonNode problem = CompensationWorld.JSON.readTree(response.getContentAsString());
         assertThat(problem.get("code").asText()).isEqualTo("MFA_REQUIRED");
-        assertThat(response.getHeader("WWW-Authenticate")).contains("insufficient_user_authentication");
+        assertThat(response.getHeader("WWW-Authenticate"))
+            .contains("insufficient_user_authentication");
       }
     }
     assertThat(w.evidence()).isEqualTo(before);
-    assertThat(
-            w.c.count("SELECT count(*) FROM platform.audit_event WHERE tenant_id = ?", w.tenant))
+    assertThat(w.c.count("SELECT count(*) FROM platform.audit_event WHERE tenant_id = ?", w.tenant))
         .isEqualTo(audits);
   }
 
@@ -147,7 +148,11 @@ class PayrollRunAuthorityIntegrationTest {
         for (MockHttpServletRequestBuilder call : operations(caller, w.entity)) {
           MockHttpServletResponse response = w.c.call(call);
           assertThat(response.getStatus()).as(role).isEqualTo(403);
-          assertThat(CompensationWorld.JSON.readTree(response.getContentAsString()).get("code").asText())
+          assertThat(
+                  CompensationWorld.JSON
+                      .readTree(response.getContentAsString())
+                      .get("code")
+                      .asText())
               .isEqualTo("ACCESS_DENIED");
           assertThat(response.getHeader("WWW-Authenticate")).isNull();
         }
@@ -163,7 +168,8 @@ class PayrollRunAuthorityIntegrationTest {
     for (MockHttpServletRequestBuilder call : operations(other.admin, w.entity)) {
       MockHttpServletResponse response = w.c.call(call);
       assertThat(response.getStatus()).isEqualTo(404);
-      assertThat(CompensationWorld.JSON.readTree(response.getContentAsString()).get("code").asText())
+      assertThat(
+              CompensationWorld.JSON.readTree(response.getContentAsString()).get("code").asText())
           .isIn("LEGAL_ENTITY_NOT_FOUND", "PAYROLL_RUN_NOT_FOUND");
     }
     assertThat(w.evidence()).isEqualTo(before);
@@ -181,7 +187,8 @@ class PayrollRunAuthorityIntegrationTest {
 
   @Test
   void aSecondLegalEntityOfTheTenantDoesNotShareRunsOrPolicies() throws Exception {
-    UUID second = w.moveElsewhere(w.hire("Elsewhere", w.month.atDay(1).minusDays(3)), w.today.minusDays(1));
+    UUID second =
+        w.moveElsewhere(w.hire("Elsewhere", w.month.atDay(1).minusDays(3)), w.today.minusDays(1));
     w.c.problem(
         PayrollRunWorld.get(w.admin, PayrollRunWorld.runsPath(second) + "/" + runId),
         404,
@@ -210,9 +217,11 @@ class PayrollRunAuthorityIntegrationTest {
         PayrollRunWorld.get(colleague, w.runsPath() + "?limit=1&cursor=" + cursor),
         400,
         "CURSOR_INVALID");
-    UUID second = w.moveElsewhere(w.hire("Elsewhere", w.month.atDay(1).minusDays(3)), w.today.minusDays(1));
+    UUID second =
+        w.moveElsewhere(w.hire("Elsewhere", w.month.atDay(1).minusDays(3)), w.today.minusDays(1));
     w.c.problem(
-        PayrollRunWorld.get(w.admin, PayrollRunWorld.runsPath(second) + "?limit=1&cursor=" + cursor),
+        PayrollRunWorld.get(
+            w.admin, PayrollRunWorld.runsPath(second) + "?limit=1&cursor=" + cursor),
         400,
         "CURSOR_INVALID");
   }

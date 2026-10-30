@@ -58,7 +58,8 @@ class JdbcPayrollRunRepositoryTenantTest {
     assertThat(PayrollRunConstraintViolations.answer("payroll_pay_run_version_range"))
         .contains(ErrorCode.PAYROLL_RUN_LIMIT_REACHED);
     for (String name : PayrollRunConstraintViolations.POLICY_CONFLICT) {
-      assertThat(PayrollRunConstraintViolations.answer(name)).contains(ErrorCode.PAYROLL_POLICY_CONFLICT);
+      assertThat(PayrollRunConstraintViolations.answer(name))
+          .contains(ErrorCode.PAYROLL_POLICY_CONFLICT);
     }
     for (String name : PayrollRunConstraintViolations.RUN_CONFLICT) {
       assertThat(PayrollRunConstraintViolations.answer(name))

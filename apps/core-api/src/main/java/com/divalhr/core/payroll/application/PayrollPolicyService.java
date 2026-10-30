@@ -35,10 +35,10 @@ import org.springframework.stereotype.Service;
 
 /**
  * Effective-dated monthly payroll policies of a legal entity for tenant administrators with
- * privileged MFA (MVP-094A, Issue #177, ADR 0033): the timeline, previews and commits. Authorization
- * (role {@code tenant-admin}, exact MFA, active membership) has run before this; tenant, actor and
- * scope never come from the request. The policies are employer policies, not legal-compliance
- * claims, and are appended, never edited or deleted.
+ * privileged MFA (MVP-094A, Issue #177, ADR 0033): the timeline, previews and commits.
+ * Authorization (role {@code tenant-admin}, exact MFA, active membership) has run before this;
+ * tenant, actor and scope never come from the request. The policies are employer policies, not
+ * legal-compliance claims, and are appended, never edited or deleted.
  *
  * <p>A commit runs in one idempotent transaction in the lock order of ADR 0033: the idempotency
  * reservation, the legal entity's run lock (5e), then the checks, the audit record and the outbox
@@ -313,7 +313,12 @@ public class PayrollPolicyService {
 
   /** The expiry and the digest, under the lock. */
   private static void requireFresh(
-      TenantId tenant, UUID entity, PolicyDraft draft, int version, PolicyCommit command, Instant now) {
+      TenantId tenant,
+      UUID entity,
+      PolicyDraft draft,
+      int version,
+      PolicyCommit command,
+      Instant now) {
     Instant expiresAt = command.expiresAt();
     if (!expiresAt.isAfter(now)
         || expiresAt.isAfter(CompensationCalendar.expiry(now))

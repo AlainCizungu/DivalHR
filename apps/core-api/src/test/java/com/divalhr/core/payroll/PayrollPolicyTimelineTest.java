@@ -49,7 +49,8 @@ class PayrollPolicyTimelineTest {
   void theEndOfAPolicyIsDerivedAndTheNewestIsFirst() {
     PayrollPolicy first = calendar(1, "2026-01-01");
     PayrollPolicy second = calendar(2, "2026-04-01");
-    PayrollPolicy backdated = policy(3, "2025-07-01", PayrollPayDay.ofDay(5), PayrollProration.NONE);
+    PayrollPolicy backdated =
+        policy(3, "2025-07-01", PayrollPayDay.ofDay(5), PayrollProration.NONE);
     List<Entry> entries = PayrollPolicyTimeline.entries(List.of(first, second, backdated));
     assertThat(entries.stream().map(entry -> entry.policy().sequence()).toList())
         .containsExactly(2, 1, 3);
@@ -61,7 +62,9 @@ class PayrollPolicyTimelineTest {
   @Test
   void theVersionIsTheLastSequence() {
     assertThat(PayrollPolicyTimeline.version(List.of())).isZero();
-    assertThat(PayrollPolicyTimeline.version(List.of(calendar(1, "2026-01-01"), calendar(2, "2026-02-01"))))
+    assertThat(
+            PayrollPolicyTimeline.version(
+                List.of(calendar(1, "2026-01-01"), calendar(2, "2026-02-01"))))
         .isEqualTo(2);
   }
 

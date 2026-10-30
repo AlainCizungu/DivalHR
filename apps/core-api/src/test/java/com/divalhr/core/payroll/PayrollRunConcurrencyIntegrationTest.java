@@ -105,7 +105,8 @@ class PayrollRunConcurrencyIntegrationTest {
       throws Exception {
     w.paid("Mukendi", w.month.atDay(1).minusDays(5), "USD", "1250.00");
     Map<String, Object> command = runCommand(w.month, "USD");
-    Map<String, Object> body = runCommitting(command, w.c.expect(w.runPreviewRequest(command), 200));
+    Map<String, Object> body =
+        runCommitting(command, w.c.expect(w.runPreviewRequest(command), 200));
     List<Integer> before = w.evidence();
 
     List<String> outcomes =
@@ -129,7 +130,8 @@ class PayrollRunConcurrencyIntegrationTest {
   void theSameKeyAndPayloadRacingRecordsExactlyOneRun() throws Exception {
     w.paid("Mukendi", w.month.atDay(1).minusDays(5), "USD", "1250.00");
     Map<String, Object> command = runCommand(w.month, "USD");
-    Map<String, Object> body = runCommitting(command, w.c.expect(w.runPreviewRequest(command), 200));
+    Map<String, Object> body =
+        runCommitting(command, w.c.expect(w.runPreviewRequest(command), 200));
     String key = Organizations.newKey();
     int runs = w.evidence().get(0);
 
@@ -146,7 +148,8 @@ class PayrollRunConcurrencyIntegrationTest {
     w.createRun("USD");
     w.paid("Kalala", w.month.atDay(1).minusDays(5), "USD", "900.00");
     Map<String, Object> command = runCommand(w.month, "USD");
-    Map<String, Object> body = runCommitting(command, w.c.expect(w.runPreviewRequest(command), 200));
+    Map<String, Object> body =
+        runCommitting(command, w.c.expect(w.runPreviewRequest(command), 200));
 
     List<String> outcomes =
         parallel(
@@ -154,8 +157,7 @@ class PayrollRunConcurrencyIntegrationTest {
                 w.runCommitRequest(Organizations.newKey(), body),
                 w.runCommitRequest(Organizations.newKey(), body)));
 
-    assertThat(outcomes)
-        .containsExactlyInAnyOrder("201", "409 PAYROLL_RUN_VERSION_CONFLICT");
+    assertThat(outcomes).containsExactlyInAnyOrder("201", "409 PAYROLL_RUN_VERSION_CONFLICT");
     assertThat(
             w.c.count(
                 "SELECT count(*) FROM payroll.pay_run WHERE tenant_id = ? AND status = 'DRAFT'",
@@ -180,7 +182,8 @@ class PayrollRunConcurrencyIntegrationTest {
     List<String> outcomes = parallel(calls);
 
     assertThat(outcomes)
-        .containsExactlyInAnyOrder("201", "409 PAYROLL_POLICY_CONFLICT", "409 PAYROLL_POLICY_CONFLICT");
+        .containsExactlyInAnyOrder(
+            "201", "409 PAYROLL_POLICY_CONFLICT", "409 PAYROLL_POLICY_CONFLICT");
     assertThat(w.evidence().get(2)).isEqualTo(policies + 1);
   }
 

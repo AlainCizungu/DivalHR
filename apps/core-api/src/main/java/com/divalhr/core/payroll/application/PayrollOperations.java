@@ -19,8 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * The shared plumbing of the payroll policy and run services (MVP-094A): bounded read transactions,
  * the outcome metrics and the safe logs of reads and commands. A log line carries the operation,
- * the outcome and a stable error code only, never an identifier of a person, an amount or a
- * digest.
+ * the outcome and a stable error code only, never an identifier of a person, an amount or a digest.
  */
 @Component
 public class PayrollOperations {
@@ -63,10 +62,7 @@ public class PayrollOperations {
     try {
       T result = work.get();
       metrics.record(operation, Outcome.LISTED);
-      log.atInfo()
-          .addKeyValue("operation", operation)
-          .addKeyValue("outcome", "listed")
-          .log(event);
+      log.atInfo().addKeyValue("operation", operation).addKeyValue("outcome", "listed").log(event);
       return result;
     } catch (ApiException rejected) {
       Outcome outcome = outcomeOf(rejected.code());

@@ -64,12 +64,11 @@ import org.springframework.transaction.support.TransactionTemplate;
  * never scale the amount, and nothing here prorates, prices, deducts, pays or produces a payslip.
  *
  * <p>Every command runs in one idempotent transaction in the global lock order: the idempotency
- * reservation, the employee's employment rows {@code FOR SHARE} through the people port, the
- * tenant payroll-population advisory lock in SHARED mode (5c, MVP-094A, ADR 0033 section 8: a
- * payroll run creation takes it exclusive, so no compensation command interleaves with a run's
- * recalculation), the employee's compensation advisory lock (5d), then the deferred checks, audit
- * and outbox. Under the
- * locks it re-reads the state, compares the version, the expiry and the digests, evaluates the
+ * reservation, the employee's employment rows {@code FOR SHARE} through the people port, the tenant
+ * payroll-population advisory lock in SHARED mode (5c, MVP-094A, ADR 0033 section 8: a payroll run
+ * creation takes it exclusive, so no compensation command interleaves with a run's recalculation),
+ * the employee's compensation advisory lock (5d), then the deferred checks, audit and outbox. Under
+ * the locks it re-reads the state, compares the version, the expiry and the digests, evaluates the
  * rules again and only then writes. Restricted financial and HR data: the amount, the explanation
  * and the before and after values never enter logs, metrics, audit metadata, outbox events,
  * idempotency receipts, cursors or error bodies.
@@ -597,8 +596,8 @@ public class CompensationService {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * The employee's employment and compensation state; a command holds its locks (steps 2, 5c and
-   * 5d of ADR 0033 section 8).
+   * The employee's employment and compensation state; a command holds its locks (steps 2, 5c and 5d
+   * of ADR 0033 section 8).
    */
   private record State(Context context, List<ActiveFact> active, String employmentDigest) {}
 

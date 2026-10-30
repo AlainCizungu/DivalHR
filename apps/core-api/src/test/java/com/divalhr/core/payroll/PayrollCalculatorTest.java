@@ -27,9 +27,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * MVP-094A (D94A-4, ADR 0033 section 4): the pure contractual-gross calculation. Reference
- * vectors, exact boundaries, hire, separation and rehire without double counting, every blocker,
- * and the proof that no hours input exists.
+ * MVP-094A (D94A-4, ADR 0033 section 4): the pure contractual-gross calculation. Reference vectors,
+ * exact boundaries, hire, separation and rehire without double counting, every blocker, and the
+ * proof that no hours input exists.
  */
 class PayrollCalculatorTest {
 
@@ -93,7 +93,8 @@ class PayrollCalculatorTest {
       assertThat(usd.monthlyMinor()).isEqualTo(125_000L);
       assertThat(usd.explanations()).containsExactly(PayrollExplanation.FULL_MONTH);
       assertThat(usd.ranges()).hasSize(1);
-      assertThat(PayrollMoney.text(CompensationCurrency.USD, usd.grossMinor())).isEqualTo("1250.00");
+      assertThat(PayrollMoney.text(CompensationCurrency.USD, usd.grossMinor()))
+          .isEqualTo("1250.00");
     }
     Line cdf =
         calculate(
@@ -343,8 +344,7 @@ class PayrollCalculatorTest {
             List.of(paid(CompensationCurrency.USD, 125_000, LONG_AGO, null)));
     Line line =
         calculate(
-            context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS),
-            rehired);
+            context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS), rehired);
     // 1 to 5 March (5 days) and 20 to 31 March (12 days).
     assertThat(line.eligibleDays()).isEqualTo(17);
     assertThat(line.ranges())
@@ -532,14 +532,12 @@ class PayrollCalculatorTest {
                 paid(CompensationCurrency.USD, 150_000, "2026-04-01", null)));
     Line march =
         calculate(
-            context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS),
-            aligned);
+            context("2026-03", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS), aligned);
     assertThat(march.blockers()).isEmpty();
     assertThat(march.grossMinor()).isEqualTo(125_000L);
     Line april =
         calculate(
-            context("2026-04", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS),
-            aligned);
+            context("2026-04", CompensationCurrency.USD, PayrollProration.CALENDAR_DAYS), aligned);
     assertThat(april.grossMinor()).isEqualTo(150_000L);
   }
 
@@ -569,8 +567,7 @@ class PayrollCalculatorTest {
             List.of(placed(ENTITY, LONG_AGO, "2026-03-20"), placed(OTHER, "2026-03-15", null)),
             List.of(paid(CompensationCurrency.CDF, 450_000, "2026-03-05", "2026-03-10")));
     Line line =
-        calculate(
-            context("2026-03", CompensationCurrency.USD, PayrollProration.NONE), tangled);
+        calculate(context("2026-03", CompensationCurrency.USD, PayrollProration.NONE), tangled);
     assertThat(line.blockers())
         .containsExactly(
             PayrollBlocker.COMPENSATION_MISSING,

@@ -399,8 +399,8 @@ public class JdbcEmploymentHistoryRepository {
   }
 
   /**
-   * The employees that have an active {@code PLACEMENT} assignment in a legal entity overlapping one
-   * of their employments within a period, by employee number in byte order then ID.
+   * The employees that have an active {@code PLACEMENT} assignment in a legal entity overlapping
+   * one of their employments within a period, by employee number in byte order then ID.
    *
    * @param tenant verified tenant
    * @param legalEntityId legal entity

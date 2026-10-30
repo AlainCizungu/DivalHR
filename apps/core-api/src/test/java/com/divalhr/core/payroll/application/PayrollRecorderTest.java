@@ -78,7 +78,9 @@ class PayrollRecorderTest {
         .containsEntry("employeeCount", 12)
         .containsEntry("supersededRunId", superseded.toString());
     // The digest of the inputs is hashed into the integrity reference, never copied.
-    assertThat(auditEvent.getValue().afterStateSha256()).matches("[0-9a-f]{64}").isNotEqualTo(digest);
+    assertThat(auditEvent.getValue().afterStateSha256())
+        .matches("[0-9a-f]{64}")
+        .isNotEqualTo(digest);
     assertThat(auditEvent.getValue().metadata().toString()).doesNotContain(digest);
     assertThat(envelope.getValue().eventType()).isEqualTo("payroll.payroll-run.created.v1");
     assertThat(envelope.getValue().source()).isEqualTo("core-api/payroll");

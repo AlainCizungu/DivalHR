@@ -124,8 +124,7 @@ class PayrollCommandsTest {
             "{\"kind\":\"DAY\",\"day\":5,\"extra\":1}",
             "\"DAY\"",
             "5")) {
-      assertThat(
-              problems(() -> PayrollCommands.policyDraft(policy(with(POLICY, "payDay", bad)))))
+      assertThat(problems(() -> PayrollCommands.policyDraft(policy(with(POLICY, "payDay", bad)))))
           .as(bad)
           .hasSize(1)
           .allMatch(problem -> problem.startsWith("payDay:"));
@@ -192,7 +191,10 @@ class PayrollCommandsTest {
                     PayrollCommands.policyCommit(
                         KEY,
                         commitPolicy(
-                            with(committingPolicy(), "previewDigest", "\"" + "A".repeat(64) + "\"")))))
+                            with(
+                                committingPolicy(),
+                                "previewDigest",
+                                "\"" + "A".repeat(64) + "\"")))))
         .containsExactly("previewDigest:FORMAT");
   }
 
@@ -231,8 +233,7 @@ class PayrollCommandsTest {
 
   @Test
   void aRunCommitRepeatsThePreviewAndIsCanonical() {
-    PayrollCommands.RunCommit commit =
-        PayrollCommands.runCommit(KEY, commitRun(committingRun()));
+    PayrollCommands.RunCommit commit = PayrollCommands.runCommit(KEY, commitRun(committingRun()));
     assertThat(commit.expectedVersion()).isEqualTo(1);
     assertThat(commit.inputDigest()).isEqualTo(DIGEST);
     Map<String, Object> canonical = commit.canonical(TENANT, ENTITY);
@@ -242,15 +243,31 @@ class PayrollCommandsTest {
         .containsEntry("period", "2026-05")
         .containsEntry("currency", "USD")
         .containsEntry("confirmed", true);
-    assertThat(problems(() -> PayrollCommands.runCommit(KEY, commitRun(with(committingRun(), "expectedVersion", "26")))))
+    assertThat(
+            problems(
+                () ->
+                    PayrollCommands.runCommit(
+                        KEY, commitRun(with(committingRun(), "expectedVersion", "26")))))
         .containsExactly("expectedVersion:RANGE");
-    assertThat(problems(() -> PayrollCommands.runCommit(KEY, commitRun(with(committingRun(), "expectedVersion", "\"1\"")))))
+    assertThat(
+            problems(
+                () ->
+                    PayrollCommands.runCommit(
+                        KEY, commitRun(with(committingRun(), "expectedVersion", "\"1\"")))))
         .containsExactly("expectedVersion:FORMAT");
     assertThat(problems(() -> PayrollCommands.runCommit("short", commitRun(committingRun()))))
         .containsExactly("Idempotency-Key:FORMAT");
-    assertThat(problems(() -> PayrollCommands.runCommit(KEY, commitRun(with(committingRun(), "confirmed", "\"true\"")))))
+    assertThat(
+            problems(
+                () ->
+                    PayrollCommands.runCommit(
+                        KEY, commitRun(with(committingRun(), "confirmed", "\"true\"")))))
         .containsExactly("confirmed:FORMAT");
-    assertThat(problems(() -> PayrollCommands.runCommit(KEY, commitRun(with(committingRun(), "inputDigest", "null")))))
+    assertThat(
+            problems(
+                () ->
+                    PayrollCommands.runCommit(
+                        KEY, commitRun(with(committingRun(), "inputDigest", "null")))))
         .containsExactly("inputDigest:REQUIRED");
   }
 
@@ -270,7 +287,9 @@ class PayrollCommandsTest {
         .isInstanceOfSatisfying(
             ApiException.class,
             e -> assertThat(e.code()).isEqualTo(ErrorCode.LEGAL_ENTITY_NOT_FOUND));
-    assertThat(PayrollCommands.id(ENTITY.toString().toUpperCase(java.util.Locale.ROOT), ErrorCode.NOT_FOUND))
+    assertThat(
+            PayrollCommands.id(
+                ENTITY.toString().toUpperCase(java.util.Locale.ROOT), ErrorCode.NOT_FOUND))
         .isEqualTo(ENTITY);
   }
 

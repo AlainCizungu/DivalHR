@@ -25,12 +25,12 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * MVP-094A V44 directly against PostgreSQL in a database of its own (D94A-6, D94A-8): the refusing
- * rollback that restores V43 exactly, and every rule the database enforces whatever the
- * application checks: the append-only policy sequence, the legal pay day and method, the next
- * DRAFT version, the frozen policy in force, exactly one DRAFT per chain, the supersession by the
- * successor only, the gross recomputed by the database (HALF_UP once, calendar or fixed 30-day
- * denominator), the exact ranges and sources, the exact totals and the immutability of every row.
- * Each refusal is proved by the constraint it names. Synthetic data only.
+ * rollback that restores V43 exactly, and every rule the database enforces whatever the application
+ * checks: the append-only policy sequence, the legal pay day and method, the next DRAFT version,
+ * the frozen policy in force, exactly one DRAFT per chain, the supersession by the successor only,
+ * the gross recomputed by the database (HALF_UP once, calendar or fixed 30-day denominator), the
+ * exact ranges and sources, the exact totals and the immutability of every row. Each refusal is
+ * proved by the constraint it names. Synthetic data only.
  */
 @IntegrationTest
 class PayrollRunMigrationIntegrationTest {
@@ -182,7 +182,14 @@ class PayrollRunMigrationIntegrationTest {
   }
 
   private static UUID policy(
-      Connection c, UUID tenant, UUID entity, int sequence, LocalDate from, String kind, Integer day, String method)
+      Connection c,
+      UUID tenant,
+      UUID entity,
+      int sequence,
+      LocalDate from,
+      String kind,
+      Integer day,
+      String method)
       throws SQLException {
     UUID id = UUID.randomUUID();
     exec(c, POLICY, tenant, entity, id, sequence, from, kind, day, method);
@@ -190,22 +197,64 @@ class PayrollRunMigrationIntegrationTest {
   }
 
   private static void run(
-      Connection c, Shape s, UUID id, LocalDate period, String currency, int version, UUID policy,
-      int policySequence, String method, int count, long total)
+      Connection c,
+      Shape s,
+      UUID id,
+      LocalDate period,
+      String currency,
+      int version,
+      UUID policy,
+      int policySequence,
+      String method,
+      int count,
+      long total)
       throws SQLException {
-    exec(c, RUN, s.tenant(), s.entity(), id, period, currency, version, policy, policySequence,
-        method, count, total);
+    exec(
+        c,
+        RUN,
+        s.tenant(),
+        s.entity(),
+        id,
+        period,
+        currency,
+        version,
+        policy,
+        policySequence,
+        method,
+        count,
+        total);
   }
 
   private static void line(
-      Connection c, Shape s, UUID run, UUID id, String number, int days, Integer denominator,
-      boolean full, long monthly, long gross)
+      Connection c,
+      Shape s,
+      UUID run,
+      UUID id,
+      String number,
+      int days,
+      Integer denominator,
+      boolean full,
+      long monthly,
+      long gross)
       throws SQLException {
-    exec(c, LINE, s.tenant(), run, id, UUID.randomUUID(), number, days, denominator, full, monthly,
-        gross, full ? "FULL_MONTH" : "PRORATED_CALENDAR_DAYS,STARTED_IN_MONTH");
+    exec(
+        c,
+        LINE,
+        s.tenant(),
+        run,
+        id,
+        UUID.randomUUID(),
+        number,
+        days,
+        denominator,
+        full,
+        monthly,
+        gross,
+        full ? "FULL_MONTH" : "PRORATED_CALENDAR_DAYS,STARTED_IN_MONTH");
   }
 
-  private static void evidence(Connection c, Shape s, UUID run, UUID line, LocalDate from, LocalDate to)
+  private static void evidence(
+      Connection c, Shape s, UUID run, UUID line, LocalDate from, LocalDate to)
       throws SQLException {
     exec(c, RANGE, s.tenant(), run, line, 1, from, to);
     int seq = 1;
@@ -216,11 +265,28 @@ class PayrollRunMigrationIntegrationTest {
 
   /** A line with its range (the last {@code days} days of the month) and sources. */
   private static UUID complete(
-      Connection c, Shape s, UUID run, LocalDate period, int days, Integer denominator,
-      boolean full, long monthly, long gross)
+      Connection c,
+      Shape s,
+      UUID run,
+      LocalDate period,
+      int days,
+      Integer denominator,
+      boolean full,
+      long monthly,
+      long gross)
       throws SQLException {
     UUID id = UUID.randomUUID();
-    line(c, s, run, id, "E-" + id.toString().substring(0, 6), days, denominator, full, monthly, gross);
+    line(
+        c,
+        s,
+        run,
+        id,
+        "E-" + id.toString().substring(0, 6),
+        days,
+        denominator,
+        full,
+        monthly,
+        gross);
     LocalDate last = period.plusMonths(1).minusDays(1);
     evidence(c, s, run, id, last.minusDays(days - 1), last);
     return id;
@@ -331,26 +397,41 @@ class PayrollRunMigrationIntegrationTest {
           migrate(db.url(), "44");
           try {
             Shape s = seeded(db);
-            refuses(db, "payroll_run_policy_sequence",
+            refuses(
+                db,
+                "payroll_run_policy_sequence",
                 c -> policy(c, s.tenant(), s.entity(), 3, APR, "LAST_DAY", null, "NONE"));
-            refuses(db, "payroll_run_policy_sequence",
+            refuses(
+                db,
+                "payroll_run_policy_sequence",
                 c -> policy(c, s.tenant(), s.entity(), 1, APR, "LAST_DAY", null, "NONE"));
-            refuses(db, "payroll_run_policy_effective_unique",
+            refuses(
+                db,
+                "payroll_run_policy_effective_unique",
                 c -> policy(c, s.tenant(), s.entity(), 2, JAN, "LAST_DAY", null, "NONE"));
-            refuses(db, "payroll_run_policy_pay_day",
+            refuses(
+                db,
+                "payroll_run_policy_pay_day",
                 c -> policy(c, s.tenant(), s.entity(), 2, APR, "DAY", 29, "NONE"));
-            refuses(db, "payroll_run_policy_pay_day",
+            refuses(
+                db,
+                "payroll_run_policy_pay_day",
                 c -> policy(c, s.tenant(), s.entity(), 2, APR, "LAST_DAY", 5, "NONE"));
-            refuses(db, "payroll_run_policy_method",
+            refuses(
+                db,
+                "payroll_run_policy_method",
                 c -> policy(c, s.tenant(), s.entity(), 2, APR, "DAY", 5, "HOURLY"));
-            refuses(db, "payroll_run_policy_legal_entity",
+            refuses(
+                db,
+                "payroll_run_policy_legal_entity",
                 c -> policy(c, s.tenant(), UUID.randomUUID(), 1, APR, "DAY", 5, "NONE"));
-            refuses(db, "payroll_run_immutable",
+            refuses(
+                db,
+                "payroll_run_immutable",
                 c -> exec(c, "UPDATE payroll.run_policy SET pay_day = 3"));
-            refuses(db, "payroll_run_immutable",
-                c -> exec(c, "DELETE FROM payroll.run_policy"));
-            refuses(db, "payroll_run_immutable",
-                c -> exec(c, "TRUNCATE payroll.run_policy CASCADE"));
+            refuses(db, "payroll_run_immutable", c -> exec(c, "DELETE FROM payroll.run_policy"));
+            refuses(
+                db, "payroll_run_immutable", c -> exec(c, "TRUNCATE payroll.run_policy CASCADE"));
             try (Connection c = connect(db)) {
               policy(c, s.tenant(), s.entity(), 2, APR, "DAY", 5, "FIXED_30_DAYS");
               c.commit();
@@ -358,11 +439,21 @@ class PayrollRunMigrationIntegrationTest {
             // The sixtieth policy is the last one.
             try (Connection c = connect(db)) {
               for (int i = 3; i <= 60; i++) {
-                policy(c, s.tenant(), s.entity(), i, APR.plusDays(i), "DAY", 5, i % 2 == 0 ? "NONE" : "CALENDAR_DAYS");
+                policy(
+                    c,
+                    s.tenant(),
+                    s.entity(),
+                    i,
+                    APR.plusDays(i),
+                    "DAY",
+                    5,
+                    i % 2 == 0 ? "NONE" : "CALENDAR_DAYS");
               }
               c.commit();
             }
-            refuses(db, "payroll_run_policy_sequence_range",
+            refuses(
+                db,
+                "payroll_run_policy_sequence_range",
                 c -> policy(c, s.tenant(), s.entity(), 61, APR.plusDays(61), "DAY", 5, "NONE"));
           } catch (SQLException e) {
             throw new IllegalStateException(e);
@@ -381,34 +472,178 @@ class PayrollRunMigrationIntegrationTest {
           migrate(db.url(), "44");
           try {
             Shape s = seeded(db);
-            refuses(db, "payroll_pay_run_version",
-                c -> run(c, s, UUID.randomUUID(), SEP, "USD", 2, s.policy(), 1, "CALENDAR_DAYS", 1, 1));
-            refuses(db, "payroll_pay_run_policy_in_force",
-                c -> run(c, s, UUID.randomUUID(), SEP, "USD", 1, s.policy(), 1, "FIXED_30_DAYS", 1, 1));
-            refuses(db, "payroll_pay_run_policy_in_force",
-                c -> run(c, s, UUID.randomUUID(), SEP, "USD", 1, s.policy(), 2, "CALENDAR_DAYS", 1, 1));
-            refuses(db, "payroll_pay_run_policy_in_force",
-                c -> run(c, s, UUID.randomUUID(), LocalDate.of(2025, 12, 1), "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 1));
-            refuses(db, "payroll_pay_run_month",
-                c -> run(c, s, UUID.randomUUID(), SEP.plusDays(1), "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 1));
-            refuses(db, "payroll_pay_run_currency",
-                c -> run(c, s, UUID.randomUUID(), SEP, "EUR", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 1));
-            refuses(db, "payroll_pay_run_employee_count",
-                c -> run(c, s, UUID.randomUUID(), SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 0, 0));
-            refuses(db, "payroll_pay_run_total",
-                c -> run(c, s, UUID.randomUUID(), SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 50_000_000_001L));
+            refuses(
+                db,
+                "payroll_pay_run_version",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP,
+                        "USD",
+                        2,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        1,
+                        1));
+            refuses(
+                db,
+                "payroll_pay_run_policy_in_force",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP,
+                        "USD",
+                        1,
+                        s.policy(),
+                        1,
+                        "FIXED_30_DAYS",
+                        1,
+                        1));
+            refuses(
+                db,
+                "payroll_pay_run_policy_in_force",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP,
+                        "USD",
+                        1,
+                        s.policy(),
+                        2,
+                        "CALENDAR_DAYS",
+                        1,
+                        1));
+            refuses(
+                db,
+                "payroll_pay_run_policy_in_force",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        LocalDate.of(2025, 12, 1),
+                        "USD",
+                        1,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        1,
+                        1));
+            refuses(
+                db,
+                "payroll_pay_run_month",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP.plusDays(1),
+                        "USD",
+                        1,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        1,
+                        1));
+            refuses(
+                db,
+                "payroll_pay_run_currency",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP,
+                        "EUR",
+                        1,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        1,
+                        1));
+            refuses(
+                db,
+                "payroll_pay_run_employee_count",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP,
+                        "USD",
+                        1,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        0,
+                        0));
+            refuses(
+                db,
+                "payroll_pay_run_total",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP,
+                        "USD",
+                        1,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        1,
+                        50_000_000_001L));
             // A run with no lines, or a total that is not the lines' total, is refused at commit.
-            refuses(db, "payroll_pay_run_exact",
-                c -> run(c, s, UUID.randomUUID(), SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 83333));
-            refuses(db, "payroll_pay_run_exact",
+            refuses(
+                db,
+                "payroll_pay_run_exact",
+                c ->
+                    run(
+                        c,
+                        s,
+                        UUID.randomUUID(),
+                        SEP,
+                        "USD",
+                        1,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        1,
+                        83333));
+            refuses(
+                db,
+                "payroll_pay_run_exact",
                 c -> {
                   UUID id = UUID.randomUUID();
                   run(c, s, id, SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 83334);
                   complete(c, s, id, SEP, 20, 30, false, 125_000, 83333);
                 });
             // Another tenant's entity or policy cannot be named.
-            refuses(db, "payroll_pay_run_policy_in_force",
-                c -> exec(c, RUN, s.tenant(), UUID.randomUUID(), UUID.randomUUID(), SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 1));
+            refuses(
+                db,
+                "payroll_pay_run_policy_in_force",
+                c ->
+                    exec(
+                        c,
+                        RUN,
+                        s.tenant(),
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        SEP,
+                        "USD",
+                        1,
+                        s.policy(),
+                        1,
+                        "CALENDAR_DAYS",
+                        1,
+                        1));
             seededRun(db, s);
           } catch (SQLException e) {
             throw new IllegalStateException(e);
@@ -425,50 +660,85 @@ class PayrollRunMigrationIntegrationTest {
             Shape s = seeded(db);
             UUID first = seededRun(db, s);
             // A second DRAFT of the chain cannot exist next to the first.
-            refuses(db, "payroll_pay_run_one_draft",
+            refuses(
+                db,
+                "payroll_pay_run_one_draft",
                 c -> {
                   UUID id = UUID.randomUUID();
                   run(c, s, id, SEP, "USD", 2, s.policy(), 1, "CALENDAR_DAYS", 1, 83333);
                   complete(c, s, id, SEP, 20, 30, false, 125_000, 83333);
                 });
             // Supersession names a successor that must exist at commit.
-            refusesOneOf(db, List.of("payroll_pay_run_successor", "payroll_pay_run_chain"),
-                c -> exec(c, "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
-                    + " superseded_by_run_id = gen_random_uuid() WHERE id = ?", first));
+            refusesOneOf(
+                db,
+                List.of("payroll_pay_run_successor", "payroll_pay_run_chain"),
+                c ->
+                    exec(
+                        c,
+                        "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
+                            + " superseded_by_run_id = gen_random_uuid() WHERE id = ?",
+                        first));
             // Nothing but the supersession is a legal update.
-            refuses(db, "payroll_pay_run_supersession_only",
-                c -> exec(c, "UPDATE payroll.pay_run SET total_gross_minor = 1 WHERE id = ?", first));
-            refuses(db, "payroll_pay_run_supersession_only",
+            refuses(
+                db,
+                "payroll_pay_run_supersession_only",
+                c ->
+                    exec(
+                        c, "UPDATE payroll.pay_run SET total_gross_minor = 1 WHERE id = ?", first));
+            refuses(
+                db,
+                "payroll_pay_run_supersession_only",
                 c -> exec(c, "UPDATE payroll.pay_run SET employee_count = 2 WHERE id = ?", first));
-            refuses(db, "payroll_run_immutable",
+            refuses(
+                db,
+                "payroll_run_immutable",
                 c -> exec(c, "DELETE FROM payroll.pay_run WHERE id = ?", first));
-            refuses(db, "payroll_run_immutable",
-                c -> exec(c, "TRUNCATE payroll.pay_run CASCADE"));
+            refuses(db, "payroll_run_immutable", c -> exec(c, "TRUNCATE payroll.pay_run CASCADE"));
             // The legal order: supersede first, naming the successor, then insert it.
             UUID second = UUID.randomUUID();
             try (Connection c = connect(db)) {
-              exec(c, "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
-                  + " superseded_by_run_id = ? WHERE id = ?", second, first);
+              exec(
+                  c,
+                  "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
+                      + " superseded_by_run_id = ? WHERE id = ?",
+                  second,
+                  first);
               run(c, s, second, SEP, "USD", 2, s.policy(), 1, "CALENDAR_DAYS", 1, 83333);
               complete(c, s, second, SEP, 20, 30, false, 125_000, 83333);
               c.commit();
             }
             assertThat(
-                    db.jdbc().queryForObject(
-                        "SELECT status FROM payroll.pay_run WHERE id = ?", String.class, first))
+                    db.jdbc()
+                        .queryForObject(
+                            "SELECT status FROM payroll.pay_run WHERE id = ?", String.class, first))
                 .isEqualTo("SUPERSEDED");
             // A superseded run is never superseded again, and takes no new line.
-            refuses(db, "payroll_pay_run_supersession_only",
-                c -> exec(c, "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
-                    + " superseded_by_run_id = ? WHERE id = ?", second, first));
-            refuses(db, "payroll_pay_run_line_run_state",
+            refuses(
+                db,
+                "payroll_pay_run_supersession_only",
+                c ->
+                    exec(
+                        c,
+                        "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
+                            + " superseded_by_run_id = ? WHERE id = ?",
+                        second,
+                        first));
+            refuses(
+                db,
+                "payroll_pay_run_line_run_state",
                 c -> line(c, s, first, UUID.randomUUID(), "E-LATE", 20, 30, false, 125_000, 83333));
             // A superseded version that does not name its real successor breaks the chain.
-            refuses(db, "payroll_pay_run_chain",
+            refuses(
+                db,
+                "payroll_pay_run_chain",
                 c -> {
                   UUID third = UUID.randomUUID();
-                  exec(c, "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
-                      + " superseded_by_run_id = ? WHERE id = ?", first, second);
+                  exec(
+                      c,
+                      "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
+                          + " superseded_by_run_id = ? WHERE id = ?",
+                      first,
+                      second);
                   run(c, s, third, SEP, "USD", 3, s.policy(), 1, "CALENDAR_DAYS", 1, 83333);
                   complete(c, s, third, SEP, 20, 30, false, 125_000, 83333);
                 });
@@ -511,7 +781,9 @@ class PayrollRunMigrationIntegrationTest {
             // A wrong gross, an early rounding or a hand-made denominator never reach the table:
             // February (28 days), 10 days of 1,250.00 is 446.43.
             for (long wrong : new long[] {44642, 44644, 40000, 125_000}) {
-              refuses(db, "payroll_pay_run_line_gross",
+              refuses(
+                  db,
+                  "payroll_pay_run_line_gross",
                   c -> {
                     UUID run = UUID.randomUUID();
                     run(c, s, run, FEB, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, wrong);
@@ -524,7 +796,9 @@ class PayrollRunMigrationIntegrationTest {
               complete(c, s, run, FEB, 10, 28, false, 125_000, 44643);
               c.commit();
             }
-            refuses(db, "payroll_pay_run_line_denominator_rule",
+            refuses(
+                db,
+                "payroll_pay_run_line_denominator_rule",
                 c -> {
                   UUID run = UUID.randomUUID();
                   run(c, s, run, SEP, "CDF", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 1);
@@ -552,19 +826,25 @@ class PayrollRunMigrationIntegrationTest {
           migrate(db.url(), "44");
           try {
             Shape s = seeded(db);
-            refuses(db, "payroll_pay_run_line_full_month",
+            refuses(
+                db,
+                "payroll_pay_run_line_full_month",
                 c -> {
                   UUID run = UUID.randomUUID();
                   run(c, s, run, SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 125_000);
                   line(c, s, run, UUID.randomUUID(), "E-1", 29, null, true, 125_000, 125_000);
                 });
-            refuses(db, "payroll_pay_run_line_month",
+            refuses(
+                db,
+                "payroll_pay_run_line_month",
                 c -> {
                   UUID run = UUID.randomUUID();
                   run(c, s, run, SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 125_000);
                   line(c, s, run, UUID.randomUUID(), "E-1", 31, null, true, 125_000, 125_000);
                 });
-            refuses(db, "payroll_pay_run_line_scale",
+            refuses(
+                db,
+                "payroll_pay_run_line_scale",
                 c -> {
                   UUID run = UUID.randomUUID();
                   run(c, s, run, SEP, "USD", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 10_000_001);
@@ -582,10 +862,23 @@ class PayrollRunMigrationIntegrationTest {
               c.commit();
             }
             Shape none = new Shape(s.tenant(), s.entity(), policyId(db, s, 2));
-            refuses(db, "payroll_pay_run_line_partial_none",
+            refuses(
+                db,
+                "payroll_pay_run_line_partial_none",
                 c -> {
                   UUID run = UUID.randomUUID();
-                  run(c, none, run, LocalDate.of(2026, 5, 1), "USD", 1, none.policy(), 2, "NONE", 1, 83333);
+                  run(
+                      c,
+                      none,
+                      run,
+                      LocalDate.of(2026, 5, 1),
+                      "USD",
+                      1,
+                      none.policy(),
+                      2,
+                      "NONE",
+                      1,
+                      83333);
                   line(c, none, run, UUID.randomUUID(), "E-1", 20, 31, false, 125_000, 83333);
                 });
           } catch (SQLException e) {
@@ -603,56 +896,97 @@ class PayrollRunMigrationIntegrationTest {
             Shape s = seeded(db);
             UUID run = seededRun(db, s);
             // Ranges that do not add up to the eligible days.
-            refuses(db, "payroll_pay_run_line_ranges_exact",
+            refuses(
+                db,
+                "payroll_pay_run_line_ranges_exact",
                 c -> {
                   UUID id = UUID.randomUUID();
                   UUID next = UUID.randomUUID();
-                  exec(c, "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
-                      + " superseded_by_run_id = ? WHERE id = ?", next, run);
+                  exec(
+                      c,
+                      "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
+                          + " superseded_by_run_id = ? WHERE id = ?",
+                      next,
+                      run);
                   run(c, s, next, SEP, "USD", 2, s.policy(), 1, "CALENDAR_DAYS", 1, 83333);
                   line(c, s, next, id, "E-1", 20, 30, false, 125_000, 83333);
                   exec(c, RANGE, s.tenant(), next, id, 1, SEP, SEP.plusDays(18));
                   for (int i = 0; i < 3; i++) {
-                    exec(c, SOURCE, s.tenant(), next, id, i + 1,
-                        new String[] {"EMPLOYMENT", "PLACEMENT", "COMPENSATION"}[i], UUID.randomUUID(), JAN);
+                    exec(
+                        c,
+                        SOURCE,
+                        s.tenant(),
+                        next,
+                        id,
+                        i + 1,
+                        new String[] {"EMPLOYMENT", "PLACEMENT", "COMPENSATION"}[i],
+                        UUID.randomUUID(),
+                        JAN);
                   }
                 });
             // A missing kind of source.
-            refuses(db, "payroll_pay_run_line_sources_exact",
+            refuses(
+                db,
+                "payroll_pay_run_line_sources_exact",
                 c -> {
                   UUID id = UUID.randomUUID();
                   UUID next = UUID.randomUUID();
-                  exec(c, "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
-                      + " superseded_by_run_id = ? WHERE id = ?", next, run);
+                  exec(
+                      c,
+                      "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
+                          + " superseded_by_run_id = ? WHERE id = ?",
+                      next,
+                      run);
                   run(c, s, next, SEP, "USD", 2, s.policy(), 1, "CALENDAR_DAYS", 1, 83333);
                   line(c, s, next, id, "E-1", 20, 30, false, 125_000, 83333);
                   exec(c, RANGE, s.tenant(), next, id, 1, SEP.plusDays(10), SEP.plusDays(29));
                   exec(c, SOURCE, s.tenant(), next, id, 1, "EMPLOYMENT", UUID.randomUUID(), JAN);
                 });
             // Overlapping or out-of-month ranges.
-            refuses(db, "payroll_pay_run_line_ranges_order",
+            refuses(
+                db,
+                "payroll_pay_run_line_ranges_order",
                 c -> {
                   UUID id = UUID.randomUUID();
                   UUID next = UUID.randomUUID();
-                  exec(c, "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
-                      + " superseded_by_run_id = ? WHERE id = ?", next, run);
+                  exec(
+                      c,
+                      "UPDATE payroll.pay_run SET status = 'SUPERSEDED', superseded_at = now(),"
+                          + " superseded_by_run_id = ? WHERE id = ?",
+                      next,
+                      run);
                   run(c, s, next, SEP, "USD", 2, s.policy(), 1, "CALENDAR_DAYS", 1, 83333);
                   line(c, s, next, id, "E-1", 20, 30, false, 125_000, 83333);
                   exec(c, RANGE, s.tenant(), next, id, 1, SEP.plusDays(15), SEP.plusDays(34));
                   for (int i = 0; i < 3; i++) {
-                    exec(c, SOURCE, s.tenant(), next, id, i + 1,
-                        new String[] {"EMPLOYMENT", "PLACEMENT", "COMPENSATION"}[i], UUID.randomUUID(), JAN);
+                    exec(
+                        c,
+                        SOURCE,
+                        s.tenant(),
+                        next,
+                        id,
+                        i + 1,
+                        new String[] {"EMPLOYMENT", "PLACEMENT", "COMPENSATION"}[i],
+                        UUID.randomUUID(),
+                        JAN);
                   }
                 });
-            refuses(db, "payroll_run_immutable",
+            refuses(
+                db,
+                "payroll_run_immutable",
                 c -> exec(c, "UPDATE payroll.pay_run_line SET gross_minor = 1"));
-            refuses(db, "payroll_run_immutable",
-                c -> exec(c, "DELETE FROM payroll.pay_run_line"));
-            refuses(db, "payroll_run_immutable",
+            refuses(db, "payroll_run_immutable", c -> exec(c, "DELETE FROM payroll.pay_run_line"));
+            refuses(
+                db,
+                "payroll_run_immutable",
                 c -> exec(c, "UPDATE payroll.pay_run_line_range SET range_to = range_to"));
-            refuses(db, "payroll_run_immutable",
+            refuses(
+                db,
+                "payroll_run_immutable",
                 c -> exec(c, "DELETE FROM payroll.pay_run_line_source"));
-            refuses(db, "payroll_run_immutable",
+            refuses(
+                db,
+                "payroll_run_immutable",
                 c -> exec(c, "TRUNCATE payroll.pay_run_line_range CASCADE"));
           } catch (SQLException e) {
             throw new IllegalStateException(e);

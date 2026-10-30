@@ -50,8 +50,17 @@ class PayrollRunPrivacyIntegrationTest {
 
   private static final Set<String> RUN_KEYS =
       Set.of(
-          "schemaVersion", "legalEntityId", "runId", "version", "period", "currency", "status",
-          "policySequence", "employeeCount", "blockedCount", "supersededRunId");
+          "schemaVersion",
+          "legalEntityId",
+          "runId",
+          "version",
+          "period",
+          "currency",
+          "status",
+          "policySequence",
+          "employeeCount",
+          "blockedCount",
+          "supersededRunId");
   private static final Set<String> POLICY_KEYS =
       Set.of("schemaVersion", "legalEntityId", "version", "policySequence");
   private static final Set<String> DISCLOSURE_KEYS =
@@ -100,8 +109,7 @@ class PayrollRunPrivacyIntegrationTest {
             "SELECT DISTINCT action FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND (action LIKE 'payroll-policy.%' OR action LIKE 'payroll-run.%')"
                 + " ORDER BY action",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(actions)
         .containsExactly(
             "payroll-policy.change",
@@ -112,8 +120,7 @@ class PayrollRunPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT action || '|' || metadata::text FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND (action LIKE 'payroll-policy.%' OR action LIKE 'payroll-run.%')",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     for (String row : metadata) {
       String action = row.substring(0, row.indexOf('|'));
       Set<String> names = keys(json(row.substring(row.indexOf('|') + 1)));
@@ -127,8 +134,7 @@ class PayrollRunPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT event_type || '|' || envelope::text FROM platform.outbox_event"
                 + " WHERE tenant_id = ? AND event_type LIKE 'payroll.payroll-%'",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(events).hasSize(2);
     for (String row : events) {
       String type = row.substring(0, row.indexOf('|'));
@@ -174,8 +180,16 @@ class PayrollRunPrivacyIntegrationTest {
     List<String> secrets =
         new ArrayList<>(
             List.of(
-                "7391.64", "739164", "6203.17", "620317", partial.replace(".", ""), partial, total,
-                number, "Kapinga", "Mbuyi"));
+                "7391.64",
+                "739164",
+                "6203.17",
+                "620317",
+                partial.replace(".", ""),
+                partial,
+                total,
+                number,
+                "Kapinga",
+                "Mbuyi"));
     String evidence = w.persistedEvidence();
     assertThat(evidence).isNotBlank();
     for (String secret : secrets) {

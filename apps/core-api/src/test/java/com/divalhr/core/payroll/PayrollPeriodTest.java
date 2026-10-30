@@ -27,7 +27,16 @@ class PayrollPeriodTest {
     assertThat(PayrollPeriod.parse("2999-12")).isPresent();
     for (String bad :
         new String[] {
-          null, "", "2026-5", "2026-13", "2026-00", "2026-05-01", "26-05", "1999-12", "\u0662\u0660\u0662\u0666-\u0660\u0665", " 2026-05"
+          null,
+          "",
+          "2026-5",
+          "2026-13",
+          "2026-00",
+          "2026-05-01",
+          "26-05",
+          "1999-12",
+          "\u0662\u0660\u0662\u0666-\u0660\u0665",
+          " 2026-05"
         }) {
       assertThat(PayrollPeriod.parse(bad)).as("%s", bad).isEmpty();
     }
