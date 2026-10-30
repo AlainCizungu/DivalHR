@@ -88,10 +88,21 @@ final class PayrollRunWorld {
   static Map<String, Object> policyCommitting(Map<String, Object> command, JsonNode preview) {
     Map<String, Object> body = new LinkedHashMap<>(command);
     body.put("expectedVersion", preview.get("version").asInt());
-    body.put("previewDigest", preview.get("previewDigest").asText());
-    body.put("expiresAt", preview.get("expiresAt").asText());
+    body.put("previewDigest", textOrForged(preview, "previewDigest"));
+    body.put("expiresAt", textOrForged(preview, "expiresAt"));
     body.put("confirmed", true);
     return body;
+  }
+
+  /** The preview's value, or a well-formed forged one when a blocked preview carries none. */
+  static String textOrForged(JsonNode preview, String field) {
+    JsonNode value = preview.get(field);
+    if (value != null && !value.isNull()) {
+      return value.asText();
+    }
+    return "expiresAt".equals(field)
+        ? java.time.Instant.now().plusSeconds(600).toString()
+        : "0".repeat(64);
   }
 
   static Map<String, Object> runCommand(YearMonth period, String currency) {
@@ -105,8 +116,8 @@ final class PayrollRunWorld {
     Map<String, Object> body = new LinkedHashMap<>(command);
     body.put("expectedVersion", preview.get("expectedVersion").asInt());
     body.put("inputDigest", preview.get("inputDigest").asText());
-    body.put("previewDigest", preview.get("previewDigest").asText());
-    body.put("expiresAt", preview.get("expiresAt").asText());
+    body.put("previewDigest", textOrForged(preview, "previewDigest"));
+    body.put("expiresAt", textOrForged(preview, "expiresAt"));
     body.put("confirmed", true);
     return body;
   }

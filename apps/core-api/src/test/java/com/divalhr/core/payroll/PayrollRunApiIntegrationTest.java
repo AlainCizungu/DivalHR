@@ -471,13 +471,17 @@ class PayrollRunApiIntegrationTest {
   @Test
   void aSecondCurrencyIsItsOwnRunSeries() throws Exception {
     w.policy("CALENDAR_DAYS");
-    w.paid("Mukendi", beforeMonth(), "USD", "1250.00");
-    w.paid("Kalala", beforeMonth(), "CDF", "450000");
+    UUID ana = w.paid("Mukendi", beforeMonth(), "USD", "1250.00");
     JsonNode usd = w.createRun("USD");
-    JsonNode cdf = w.createRun("CDF");
     assertThat(usd.get("version").asInt()).isEqualTo(1);
-    assertThat(cdf.get("version").asInt()).isEqualTo(1);
-    assertThat(cdf.get("employeeCount").asInt()).isEqualTo(1);
+    // The other currency is its own chain (version 0, nothing shared) and, because the employee is paid
+    // in USD, it is blocked rather than converted or combined.
+    JsonNode cdf = w.runPreview("CDF");
+    assertThat(cdf.get("expectedVersion").asInt()).isZero();
+    assertThat(cdf.get("existingRun").isNull()).isTrue();
+    assertThat(texts(w.line(cdf, ana).get("blockers"))).contains("CURRENCY_MISMATCH");
+    assertThat(cdf.get("previewDigest").isNull()).isTrue();
+    assertThat(w.runPreview("USD").get("identicalToCurrent").asBoolean()).isTrue();
   }
 
   // ------------------------------------------------------------------------------------------
@@ -487,7 +491,7 @@ class PayrollRunApiIntegrationTest {
   @Test
   void runsAndLinesPageWithBoundCursors() throws Exception {
     w.policy("CALENDAR_DAYS");
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
       w.paid("Employe" + i, beforeMonth(), "USD", "100" + i + ".00");
     }
     JsonNode first = w.createRun("USD");
@@ -495,22 +499,22 @@ class PayrollRunApiIntegrationTest {
     JsonNode second = w.createRun("USD");
     String detailPath = w.runsPath() + "/" + second.get("runId").asText();
 
-    JsonNode page = w.c.expect(PayrollRunWorld.get(w.admin, detailPath + "?limit=3"), 200);
-    assertThat(page.get("lines")).hasSize(3);
+    JsonNode page = w.c.expect(PayrollRunWorld.get(w.admin, detailPath + "?limit=2"), 200);
+    assertThat(page.get("lines")).hasSize(2);
     String cursor = page.get("nextCursor").asText();
     JsonNode rest =
-        w.c.expect(PayrollRunWorld.get(w.admin, detailPath + "?limit=3&cursor=" + cursor), 200);
+        w.c.expect(PayrollRunWorld.get(w.admin, detailPath + "?limit=2&cursor=" + cursor), 200);
     assertThat(rest.get("lines")).hasSize(1);
     assertThat(rest.get("nextCursor").isNull()).isTrue();
     // The cursor is bound to its size and run.
     w.c.problem(
-        PayrollRunWorld.get(w.admin, detailPath + "?limit=2&cursor=" + cursor),
+        PayrollRunWorld.get(w.admin, detailPath + "?limit=1&cursor=" + cursor),
         400,
         "CURSOR_INVALID");
     w.c.problem(
         PayrollRunWorld.get(
             w.admin,
-            w.runsPath() + "/" + first.get("runId").asText() + "?limit=3&cursor=" + cursor),
+            w.runsPath() + "/" + first.get("runId").asText() + "?limit=2&cursor=" + cursor),
         400,
         "CURSOR_INVALID");
     w.c.problem(

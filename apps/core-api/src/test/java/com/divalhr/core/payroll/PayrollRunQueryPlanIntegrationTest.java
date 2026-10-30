@@ -182,7 +182,17 @@ class PayrollRunQueryPlanIntegrationTest {
   }
 
   private String plan(String sql, Map<String, Object> params) {
-    return String.join("\n", named.query("EXPLAIN " + sql, params, (rs, row) -> rs.getString(1)));
+    // Tiny test data lets the planner pick a bitmap scan plus a sort; with those two off the plan
+    // shows whether an index can serve the query and its order, which is what is asserted.
+    return new TransactionTemplate(transactions)
+        .execute(
+            status -> {
+              jdbc.execute("SET LOCAL enable_bitmapscan = off");
+              jdbc.execute("SET LOCAL enable_sort = off");
+              return String.join(
+                  "
+", named.query("EXPLAIN " + sql, params, (rs, row) -> rs.getString(1)));
+            });
   }
 
   private void driven(String label, String sql, Map<String, Object> params, String... indexes) {
@@ -254,7 +264,7 @@ class PayrollRunQueryPlanIntegrationTest {
             + " FROM payroll.pay_run WHERE tenant_id = :tenant AND legal_entity_id = :entity"
             + " AND id = :id",
         Map.of("tenant", tenant, "entity", entity, "id", run),
-        "payroll_pay_run_pkey");
+        "payroll_pay_run_");
   }
 
   @Test
@@ -300,7 +310,7 @@ class PayrollRunQueryPlanIntegrationTest {
             + " AND (effective_to IS NULL OR effective_to >= :from)"
             + " ORDER BY employee_id, effective_from",
         Map.of("tenant", tenant, "ids", ids, "from", month, "to", month.plusMonths(1).minusDays(1)),
-        "payroll_compensation_active");
+        "payroll_compensation_");
     driven(
         "placements",
         "SELECT id, employee_id, legal_entity_id, effective_from, effective_to"

@@ -107,13 +107,25 @@ class PayrollRunAuthorityIntegrationTest {
     String runs = PayrollRunWorld.runsPath(entity);
     Map<String, Object> policyBody = policyCommand(w.today.minusMonths(1), "DAY", 5, "NONE");
     Map<String, Object> runBody = runCommand(w.month, "USD");
+    // Commit bodies are well formed (forged digests): a foreign entity must be a 404, not a 400.
+    Map<String, Object> policyCommit = new java.util.LinkedHashMap<>(policyBody);
+    policyCommit.put("expectedVersion", 0);
+    policyCommit.put("previewDigest", "0".repeat(64));
+    policyCommit.put("expiresAt", java.time.Instant.now().plusSeconds(600).toString());
+    policyCommit.put("confirmed", true);
+    Map<String, Object> runCommit = new java.util.LinkedHashMap<>(runBody);
+    runCommit.put("expectedVersion", 0);
+    runCommit.put("inputDigest", "0".repeat(64));
+    runCommit.put("previewDigest", "0".repeat(64));
+    runCommit.put("expiresAt", java.time.Instant.now().plusSeconds(600).toString());
+    runCommit.put("confirmed", true);
     List<MockHttpServletRequestBuilder> calls = new ArrayList<>();
     calls.add(PayrollRunWorld.get(bearer, policy));
     calls.add(CompensationWorld.json(policy + "/preview", bearer, null, policyBody));
-    calls.add(CompensationWorld.json(policy, bearer, "key-" + UUID.randomUUID(), policyBody));
+    calls.add(CompensationWorld.json(policy, bearer, "key-" + UUID.randomUUID(), policyCommit));
     calls.add(CompensationWorld.json(runs + "/preview", bearer, null, runBody));
     calls.add(PayrollRunWorld.get(bearer, runs));
-    calls.add(CompensationWorld.json(runs, bearer, "key-" + UUID.randomUUID(), runBody));
+    calls.add(CompensationWorld.json(runs, bearer, "key-" + UUID.randomUUID(), runCommit));
     calls.add(PayrollRunWorld.get(bearer, runs + "/" + runId));
     return calls;
   }
