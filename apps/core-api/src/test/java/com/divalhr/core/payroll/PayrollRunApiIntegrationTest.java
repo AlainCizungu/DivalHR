@@ -491,8 +491,10 @@ class PayrollRunApiIntegrationTest {
   @Test
   void runsAndLinesPageWithBoundCursors() throws Exception {
     w.policy("CALENDAR_DAYS");
-    for (int i = 0; i < 2; i++) {
-      w.paid("Employe" + i, beforeMonth(), "USD", "100" + i + ".00");
+    // Family names are letters only (the import refuses digits).
+    String[] families = {"Mbala", "Kasongo"};
+    for (int i = 0; i < families.length; i++) {
+      w.paid(families[i], beforeMonth(), "USD", "100" + i + ".00");
     }
     JsonNode first = w.createRun("USD");
     w.paid("Extra", beforeMonth(), "USD", "700.00");
