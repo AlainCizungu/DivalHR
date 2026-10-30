@@ -131,6 +131,8 @@ describe('navigation and route registry consistency', () => {
         '/admin/payroll-preparation',
         '/admin/payroll-runs',
         '/admin/payroll-runs/:legalEntityId/:runId',
+        '/admin/payroll-runs/:legalEntityId/:runId/statutory',
+        '/admin/people/:employeeId/statutory-profile',
         '/me/contracts',
         '/me/schedule',
         '/me/attendance',

@@ -185,6 +185,41 @@ export function sql(query: string): string {
   ).trim();
 }
 
+/**
+ * MVP-094B: runs a whole SQL script (for example a test-only fixture) through the same
+ * `docker compose exec postgres psql` path as `sql()`, as the database owner. The script reaches
+ * psql on stdin and its values only as psql variables (`-v name=value`, used as `:'name'`), never
+ * by string concatenation. The first failing statement stops it (`ON_ERROR_STOP`).
+ */
+export function sqlScript(script: string, variables: Record<string, string> = {}): string {
+  return execFileSync(
+    'docker',
+    [
+      'compose',
+      '-f',
+      'infrastructure/docker/compose.yaml',
+      '--env-file',
+      '.env.example',
+      'exec',
+      '-T',
+      'postgres',
+      'psql',
+      '-U',
+      'postgres',
+      '-d',
+      'divalhr',
+      '-X',
+      '-q',
+      '-v',
+      'ON_ERROR_STOP=1',
+      ...Object.entries(variables).flatMap(([name, value]) => ['-v', `${name}=${value}`]),
+      '-f',
+      '-',
+    ],
+    { cwd: REPO_ROOT, encoding: 'utf8', input: script },
+  ).trim();
+}
+
 // Codes are single use (otpPolicyCodeReusable=false). Keycloak accepts the previous, current and
 // next period (look-ahead 1), so each user can sign in up to three times per period. Playwright
 // restarts its worker after a failure, so the periods already used are kept in a file: user names

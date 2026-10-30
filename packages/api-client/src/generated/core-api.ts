@@ -3770,6 +3770,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/statutory-rule-packs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the platform's statutory rule packs
+         * @description MVP-094B (ADR 0034). The immutable, platform-owned DRC statutory rule packs, newest effective date first then code and version, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, status filter, role and page size and carries no rule, source or reviewer data), optionally filtered by status (DRAFT, VERIFIED or RETIRED). Rule packs are shared platform reference data: there is no operation that creates, edits or verifies a pack or changes a rate, bracket or formula. A DRAFT pack can be inspected but never produces a committable calculation. A fail-closed disclosure (audit statutory-rule-pack.read; counts only). At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["listStatutoryRulePacks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/statutory-rule-packs/{packId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one statutory rule pack with its sources and rules
+         * @description MVP-094B. One rule pack: its identity, status, effective interval, calculation-method version and rules digest, the official-source citations (key, title, https URL on an allow-listed official host, SHA-256 of the retrieved document when a reviewer hashed it, retrieval date), the structured rule components exactly as the calculation engine reads them (for transparency; no script or expression language exists) and, for a VERIFIED or RETIRED pack, the professional- review verification evidence (reviewer name and organization, review date, attestation, verification time), which is restricted operational evidence. A DRAFT pack has verification null. Unknown and malformed pack ids are the same 404 STATUTORY_RULE_PACK_NOT_FOUND. A fail- closed disclosure (audit statutory-rule-pack.read; counts only, never a rule or reviewer identity). Cache-Control private, no-store.
+         */
+        get: operations["getStatutoryRulePack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/statutory-rule-pack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a legal entity's statutory rule-pack activations
+         * @description MVP-094B. The activation history of one legal entity (newest first, at most 60) and, for the requested month (YYYY-MM), the activation and rule pack in effect: the activation with the greatest fromMonth not after the month (then the greatest sequence) whose pack interval covers the month and whose pack is VERIFIED. inEffect is null and verificationRequired is true when no VERIFIED applicable pack is in effect for the month ("Professional verification required"). The version is the number of activations (0 when none); repeat it as expectedVersion on activation. A malformed month is 400 VALIDATION_FAILED. Unknown, malformed, foreign and unauthorized legal entities are the same 404 LEGAL_ENTITY_NOT_FOUND. A fail-closed disclosure (audit statutory- activation.read; counts only). At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["getStatutoryActivation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/statutory-rule-pack/activation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a verified statutory rule pack for a legal entity
+         * @description MVP-094B. Activates a VERIFIED rule pack for a legal entity from a month (YYYY-MM) with the expectedVersion the read returned, acknowledged=true (the employer remains responsible for legal review) and an Idempotency-Key. In one transaction (lock order ADR 0034: idempotency, the tenant statutory lock shared, the legal entity's activation lock exclusive, deferred checks, audit and outbox) the activations are re-read: an unknown pack is 404 STATUTORY_RULE_PACK_NOT_FOUND; a DRAFT or RETIRED pack is 409 STATUTORY_RULE_PACK_NOT_VERIFIED; a month outside the pack interval, or a pack of another country or currency, is 409 STATUTORY_RULE_PACK_NOT_APPLICABLE; a different version, or a month already activated, is 409 STATUTORY_VERSION_CONFLICT; 60 activations per legal entity is 409 STATUTORY_LIMIT_REACHED; acknowledged other than true is 400 VALIDATION_FAILED. Activations are appended, never edited or deleted, and never change a frozen calculation. Business row, audit record (statutory-activation.create) and internal outbox event commit together and carry no rule, amount or reviewer identity. At most 2 activations per subject per minute. The same Idempotency-Key and payload replays the original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED. Cache-Control private, no-store.
+         */
+        post: operations["activateStatutoryRulePack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/statutory-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an employee's statutory profile timeline
+         * @description MVP-094B (ADR 0034). The effective-dated statutory profile of one employee (country, classification, CNSS and IRPP subject flags and an evidence code from a closed list; no identifier, citizenship, dependant, health data or free text), newest first, at most 100 entries, and the entry in force on the organization's business date (null when none). The version is the number of entries (0 when none); repeat it as expectedVersion. Unknown, malformed, foreign and unauthorized employees are the same 404 COMPENSATION_NOT_FOUND, as for the compensation operations. A fail-closed disclosure (audit statutory-profile.read; counts only, never a classification or flag). At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["getStatutoryProfile"];
+        put?: never;
+        /**
+         * Commit a previewed statutory profile
+         * @description MVP-094B. Repeats the previewed profile with the expectedVersion, previewDigest and expiresAt the preview returned, confirmed=true and an Idempotency-Key. In one transaction (lock order ADR 0034: idempotency, the employee row FOR SHARE, the tenant statutory lock shared, the employee's profile chain, deferred checks, audit and outbox) the timeline is re-read: a different version is 409 STATUTORY_VERSION_CONFLICT; an expired preview, a different or tampered preview, or a command that is blocked when re-evaluated (effective date out of range, or identical to the profile in force) is 409 STATUTORY_PREVIEW_STALE and nothing is written; 100 entries per employee is 409 STATUTORY_LIMIT_REACHED. A profile is appended, never edited or deleted; a correction is a new entry. Business row, audit record (statutory-profile.change; employee id, sequence and codes only) and internal outbox event commit together. At most 5 commits per subject per minute. The same Idempotency-Key and payload replays the original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED. Cache-Control private, no-store.
+         */
+        post: operations["commitStatutoryProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/statutory-profile/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview adding a statutory profile entry
+         * @description MVP-094B. Validates the profile without writing and returns the timeline before and after, the stable blockers (EFFECTIVE_DATE_OUT_OF_RANGE outside 2000-01-01 to 366 days after the business date, NO_CHANGE when the profile in force on that date is identical, LIMIT_REACHED at 100 entries), the profile version, a previewDigest and its expiry (15 minutes). A blocked preview has a null previewDigest and expiresAt. An UNSUPPORTED classification with a true subject flag is 400 VALIDATION_FAILED. At most 10 previews per subject per minute. Recorded as a disclosure (audit statutory-profile.read). Cache-Control private, no-store.
+         */
+        post: operations["previewStatutoryProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the statutory calculation of a frozen payroll run
+         * @description MVP-094B (ADR 0034). Applies the rule pack in effect for the run's month to the frozen lines of one MVP-094A payroll run and returns, per employee, contractual gross, employee deductions, employer contributions, preview net and employer cost with every component, stable explanation codes and a restricted trace, plus the totals, the pack and its digests. A statutory preview is not a payslip, a payment, an approval or a filing, and makes no legal-compliance claim. Nothing is written. A preview never fails for a blocker: status is READY, BLOCKED or NO_CHANGE. runBlockers (SOURCE_RUN_NOT_CURRENT, CURRENCY_NOT_SUPPORTED, RULE_PACK_MISSING, RULE_PACK_NOT_VERIFIED) forbid every amount: the totals are null and the lines carry only gross and their employee blockers. Employee blockers (PROFILE_MISSING, PROFILE_UNSUPPORTED, PROFILE_CHANGES_IN_MONTH, UNMODELED_EARNINGS, DEDUCTIONS_EXCEED_GROSS) are reported even then so that profiles can be completed. An employee subject to neither CNSS nor IRPP is kept as excluded with zero components. The digests sourceRunDigest and profileDigest are always present; rulePackDigest is null when no pack is in effect; the calculationDigest and expiresAt (15 minutes) are null while the status is BLOCKED or NO_CHANGE, so nothing can be committed from them. More than 5,000 source lines is 409 STATUTORY_LIMIT_REACHED. At most 5 previews per subject per minute and 60 per tenant per hour. A disclosure (audit statutory-calculation.read; counts only, never an amount). Cache-Control private, no-store.
+         */
+        post: operations["previewStatutoryCalculation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the statutory calculations of a payroll run
+         * @description MVP-094B. The statutory calculation versions of one payroll run, newest first then pack version descending, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, run, role and page size and carries no amount or digest). Each item is a summary with its status (DRAFT or SUPERSEDED), counts and totals. Unknown, malformed, foreign- tenant and foreign-entity runs are the same 404 PAYROLL_RUN_NOT_FOUND; an unknown legal entity is LEGAL_ENTITY_NOT_FOUND. A fail-closed disclosure (audit statutory-calculation.read; counts only). At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["listStatutoryCalculations"];
+        put?: never;
+        /**
+         * Create a previewed statutory calculation
+         * @description MVP-094B. Repeats the evidence the preview returned (expectedVersion, sourceRunDigest, profileDigest, rulePackDigest, calculationDigest, expiresAt), confirmed=true and an Idempotency- Key. In one transaction (lock order ADR 0034: idempotency, the tenant statutory lock exclusive, the legal entity's calculation lock, then the run, activation, pack and profiles are re-read, deferred checks, audit and outbox) the checks run in this order: a different chain version is 409 STATUTORY_VERSION_CONFLICT; no activation in effect or a pack that is not VERIFIED is 409 STATUTORY_RULE_PACK_NOT_VERIFIED; a pack that does not cover the month or currency is 409 STATUTORY_RULE_PACK_NOT_APPLICABLE; an employee with an unsupported profile is 409 STATUTORY_PROFILE_UNSUPPORTED, else one without a profile is 409 STATUTORY_PROFILE_MISSING; any other blocker is 409 STATUTORY_CALCULATION_BLOCKED; a recalculation identical to the current draft is 409 STATUTORY_CALCULATION_NO_CHANGE and nothing is written; an expired preview, or a source run, profile or rule-pack change since the preview, is 409 STATUTORY_PREVIEW_STALE; 25 versions of a chain or more than 5,000 lines is 409 STATUTORY_LIMIT_REACHED. A DRAFT or RETIRED pack never produces a calculation. The calculation, its lines and components, the audit record (statutory-calculation.create) and the internal outbox event commit together; a changed recalculation creates version N+1 and supersedes version N in the same transaction. Nothing is edited or deleted. Neither audit nor outbox carries an amount, number, flag, digest or trace. At most 2 creations per subject per minute and 20 per tenant per hour. The same Idempotency-Key and payload replays the original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED. The response is an amount-free receipt; read the calculation with getStatutoryCalculation. Not a payslip, approval, filing or payment. Cache-Control private, no-store.
+         */
+        post: operations["commitStatutoryCalculation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payroll-runs/{runId}/statutory-calculations/{calculationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a frozen statutory calculation and its evidence
+         * @description MVP-094B. One statutory calculation version with its rule pack, the pack's official-source citations and, as a keyset page ordered by employee number (byte order) then id (default 50, maximum 200; the cursor is bound to the operation, tenant, subject, calculation, role and page size and carries no amount or number), each employee's contractual gross, employee deductions, employer contributions, preview net, employer cost, components with explanation codes and trace. The calculation never changes after creation; later source, profile or rule-pack corrections do not alter it. Unknown, malformed, foreign-tenant and foreign-entity calculations are the same 404 STATUTORY_CALCULATION_NOT_FOUND. A fail-closed disclosure (audit statutory-calculation.read for the first page; counts only). Statutory preview, not a payslip or a payment. Cache-Control private, no-store.
+         */
+        get: operations["getStatutoryCalculation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/expenses": {
         parameters: {
             query?: never;
@@ -6081,6 +6269,450 @@ export interface components {
             nextCursor: string | null;
         };
         /**
+         * @description Rule-pack lifecycle, forward only. Only a VERIFIED pack (professional-review evidence recorded) can be activated or produce a calculation; DRAFT is inspectable only and RETIRED ends use for new calculations.
+         * @enum {string}
+         */
+        StatutoryRulePackStatus: "DRAFT" | "VERIFIED" | "RETIRED";
+        /**
+         * @description The closed list of official source documents a pack can cite.
+         * @enum {string}
+         */
+        StatutorySourceKey: "DGI_IRPP" | "DGI_NOTICE_2026" | "DGI_PORTAL" | "CNSS_RATES" | "CNSS_DECLARATION" | "BUDGET_2026";
+        /** @enum {string} */
+        StatutoryParty: "EMPLOYEE" | "EMPLOYER";
+        /** @enum {string} */
+        StatutoryCategory: "SOCIAL_CONTRIBUTION" | "INCOME_TAX";
+        StatutoryRulePackSummary: {
+            /** Format: uuid */
+            packId: string;
+            code: string;
+            version: number;
+            /** @enum {string} */
+            country: "CD";
+            /** @enum {string} */
+            currency: "CDF";
+            status: components["schemas"]["StatutoryRulePackStatus"];
+            /** Format: date */
+            effectiveFrom: string;
+            /**
+             * Format: date
+             * @description Inclusive last day; null when open.
+             */
+            effectiveTo: string | null;
+            /** @description The calculation-method version the pack requires. */
+            methodVersion: number;
+            /** @description SHA-256 of the structured rules. */
+            rulesDigest: string;
+            sourceCount: number;
+        };
+        StatutoryRulePackPage: {
+            items: components["schemas"]["StatutoryRulePackSummary"][];
+            nextCursor: string | null;
+        };
+        /** @description One official source of a rule pack. Sources are public documents. */
+        StatutorySource: {
+            key: components["schemas"]["StatutorySourceKey"];
+            title: string;
+            /**
+             * Format: uri
+             * @description https only, on an allow-listed official host.
+             */
+            url: string;
+            /** @description SHA-256 of the retrieved document; null only while the pack is DRAFT and nothing was hashed. */
+            sha256: string | null;
+            /** Format: date */
+            retrievedOn: string;
+        };
+        StatutoryRuleBracket: {
+            /** @description Inclusive annual upper bound in whole francs; null for the last, open bracket. */
+            upToAnnual: string | null;
+            /** @description Rate in basis points (1 bp = 0.01%). */
+            rateBp: number;
+        };
+        /** @description RATE uses rateBp. PROGRESSIVE uses periodsPerYear, brackets and an optional capBp. Fields of the other type are absent. */
+        StatutoryRuleMethod: {
+            /** @enum {string} */
+            type: "RATE" | "PROGRESSIVE";
+            rateBp?: number;
+            /** @enum {integer} */
+            periodsPerYear?: 1 | 12;
+            /** @description Cap on the result as basis points of the component base. */
+            capBp?: number;
+            brackets?: components["schemas"]["StatutoryRuleBracket"][];
+        };
+        /** @description One structured rule of a pack, shown for transparency. No script, formula text or expression exists. */
+        StatutoryRuleComponent: {
+            id: string;
+            party: components["schemas"]["StatutoryParty"];
+            category: components["schemas"]["StatutoryCategory"];
+            order: number;
+            /**
+             * @description The employee profile flag that makes the component apply.
+             * @enum {string}
+             */
+            requires: "CNSS_SUBJECT" | "IRPP_SUBJECT";
+            /**
+             * @description GROSS, or GROSS_LESS_EMPLOYEE_SOCIAL (gross minus the amounts of the employee social contributions of a lower order).
+             * @enum {string}
+             */
+            base: "GROSS" | "GROSS_LESS_EMPLOYEE_SOCIAL";
+            sourceKey: components["schemas"]["StatutorySourceKey"];
+            /** @enum {string} */
+            rounding: "HALF_UP" | "DOWN" | "UP";
+            method: components["schemas"]["StatutoryRuleMethod"];
+        };
+        /** @description Professional-review evidence of a VERIFIED or RETIRED pack; restricted operational evidence. */
+        StatutoryVerification: {
+            reviewerName: string;
+            reviewerOrganization: string;
+            /** Format: date */
+            reviewedOn: string;
+            /** @description Always true on a stored verification. */
+            attested: boolean;
+            /** Format: date-time */
+            verifiedAt: string;
+        };
+        /** @description A rule pack summary with its sources, structured rules and verification evidence. */
+        StatutoryRulePackDetail: {
+            pack: components["schemas"]["StatutoryRulePackSummary"];
+            sources: components["schemas"]["StatutorySource"][];
+            /** @description Ascending by order. */
+            components: components["schemas"]["StatutoryRuleComponent"][];
+            /** @description Null while the pack is DRAFT. */
+            verification: components["schemas"]["StatutoryVerification"] | null;
+        };
+        StatutoryActivationEntry: {
+            /** Format: uuid */
+            activationId: string;
+            sequence: number;
+            fromMonth: components["schemas"]["PayrollPeriod"];
+            /** Format: uuid */
+            packId: string;
+            packCode: string;
+            packVersion: number;
+            /** Format: date-time */
+            activatedAt: string;
+        };
+        StatutoryInEffect: {
+            /** Format: uuid */
+            activationId: string;
+            sequence: number;
+            fromMonth: components["schemas"]["PayrollPeriod"];
+            pack: components["schemas"]["StatutoryRulePackSummary"];
+        };
+        StatutoryActivationView: {
+            /** Format: uuid */
+            legalEntityId: string;
+            month: components["schemas"]["PayrollPeriod"];
+            /** @description The number of activations of the legal entity; repeat it as expectedVersion. */
+            version: number;
+            /** @description True when no VERIFIED applicable pack is in effect for the month. */
+            verificationRequired: boolean;
+            inEffect: components["schemas"]["StatutoryInEffect"] | null;
+            /** @description Newest first. */
+            activations: components["schemas"]["StatutoryActivationEntry"][];
+        };
+        ActivateStatutoryRulePack: {
+            /** Format: uuid */
+            packId: string;
+            fromMonth: components["schemas"]["PayrollPeriod"];
+            expectedVersion: number;
+            /** @description Must be true. The employer remains responsible for legal review of the rule pack. */
+            acknowledged: boolean;
+        };
+        /** @description Receipt of identifiers and codes only. */
+        StatutoryActivationReceipt: {
+            /** Format: uuid */
+            activationId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packId: string;
+            packCode: string;
+            packVersion: number;
+            fromMonth: components["schemas"]["PayrollPeriod"];
+            sequence: number;
+        };
+        /**
+         * @description UNSUPPORTED (expatriate, nonresident, unknown or other regime) blocks every calculation of the employee.
+         * @enum {string}
+         */
+        StatutoryClassification: "STANDARD_RESIDENT" | "UNSUPPORTED";
+        /**
+         * @description Where the profile comes from, from a closed list.
+         * @enum {string}
+         */
+        StatutoryEvidenceCode: "EMPLOYMENT_CONTRACT" | "PAYROLL_FILE_REVIEW" | "EMPLOYER_DECLARATION" | "PROFESSIONAL_REVIEW";
+        /** @description One effective-dated entry of an employee's statutory profile. Restricted HR data. */
+        StatutoryProfileEntry: {
+            /** Format: uuid */
+            profileId: string;
+            sequence: number;
+            /** Format: date */
+            effectiveFrom: string;
+            /** @enum {string} */
+            country: "CD";
+            classification: components["schemas"]["StatutoryClassification"];
+            cnssSubject: boolean;
+            irppSubject: boolean;
+            evidenceCode: components["schemas"]["StatutoryEvidenceCode"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        StatutoryProfileView: {
+            /** Format: uuid */
+            employeeId: string;
+            /** @description The number of entries (0 when none); repeat it as expectedVersion. */
+            version: number;
+            /** Format: date */
+            businessDate: string;
+            current: components["schemas"]["StatutoryProfileEntry"] | null;
+            /** @description Newest first. */
+            timeline: components["schemas"]["StatutoryProfileEntry"][];
+        };
+        /** @description An UNSUPPORTED classification requires both subject flags to be false. */
+        StatutoryProfileCommand: {
+            /** Format: date */
+            effectiveFrom: string;
+            classification: components["schemas"]["StatutoryClassification"];
+            cnssSubject: boolean;
+            irppSubject: boolean;
+            evidenceCode: components["schemas"]["StatutoryEvidenceCode"];
+        };
+        /**
+         * @description EFFECTIVE_DATE_OUT_OF_RANGE (outside 2000-01-01 to 366 days after the business date), NO_CHANGE (the profile in force on that date is identical), LIMIT_REACHED (100 entries).
+         * @enum {string}
+         */
+        StatutoryProfileBlocker: "EFFECTIVE_DATE_OUT_OF_RANGE" | "NO_CHANGE" | "LIMIT_REACHED";
+        StatutoryProfilePreview: {
+            /** Format: uuid */
+            employeeId: string;
+            version: number;
+            /** Format: date */
+            effectiveFrom: string;
+            classification: components["schemas"]["StatutoryClassification"];
+            cnssSubject: boolean;
+            irppSubject: boolean;
+            evidenceCode: components["schemas"]["StatutoryEvidenceCode"];
+            before: components["schemas"]["StatutoryProfileEntry"][];
+            after: components["schemas"]["StatutoryProfileEntry"][];
+            blockers: components["schemas"]["StatutoryProfileBlocker"][];
+            /** @description Null while a blocker exists. */
+            previewDigest: string | null;
+            /**
+             * Format: date-time
+             * @description Null while a blocker exists.
+             */
+            expiresAt: string | null;
+        };
+        CommitStatutoryProfile: {
+            /** Format: date */
+            effectiveFrom: string;
+            classification: components["schemas"]["StatutoryClassification"];
+            cnssSubject: boolean;
+            irppSubject: boolean;
+            evidenceCode: components["schemas"]["StatutoryEvidenceCode"];
+            expectedVersion: number;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        /** @description Receipt of identifiers, sequence and date only; no classification or flag. */
+        StatutoryProfileReceipt: {
+            /** Format: uuid */
+            profileId: string;
+            /** Format: uuid */
+            employeeId: string;
+            sequence: number;
+            /** Format: date */
+            effectiveFrom: string;
+            version: number;
+        };
+        /** @description Empty: the payroll run comes from the path. */
+        StatutoryCalculationCommand: Record<string, never>;
+        /** @description Sums over the supported lines, in CDF. previewNet is contractualGross minus employeeDeductions; employerCost is contractualGross plus employerContributions. Employer contributions are never deducted from the employee. */
+        StatutoryTotals: {
+            contractualGross: components["schemas"]["CompensationMoney"];
+            employeeDeductions: components["schemas"]["CompensationMoney"];
+            employerContributions: components["schemas"]["CompensationMoney"];
+            previewNet: components["schemas"]["CompensationMoney"];
+            employerCost: components["schemas"]["CompensationMoney"];
+        };
+        /**
+         * @description Run-level blockers; any one forbids every amount. SOURCE_RUN_NOT_CURRENT (the run is not the current draft of its chain), CURRENCY_NOT_SUPPORTED (the run currency is not CDF), RULE_PACK_MISSING (no activation in effect for the month), RULE_PACK_NOT_VERIFIED (the pack in effect is not VERIFIED, or does not apply to the month).
+         * @enum {string}
+         */
+        StatutoryRunBlocker: "SOURCE_RUN_NOT_CURRENT" | "CURRENCY_NOT_SUPPORTED" | "RULE_PACK_MISSING" | "RULE_PACK_NOT_VERIFIED";
+        /**
+         * @description Employee-level blockers. PROFILE_MISSING (no profile in force on the first eligible day), PROFILE_UNSUPPORTED (classification UNSUPPORTED), PROFILE_CHANGES_IN_MONTH (a profile entry starts inside the eligible period), UNMODELED_EARNINGS (an earning other than contractual base exists for the month), DEDUCTIONS_EXCEED_GROSS (employee deductions would exceed gross).
+         * @enum {string}
+         */
+        StatutoryLineBlocker: "PROFILE_MISSING" | "PROFILE_UNSUPPORTED" | "PROFILE_CHANGES_IN_MONTH" | "UNMODELED_EARNINGS" | "DEDUCTIONS_EXCEED_GROSS";
+        /** @enum {string} */
+        StatutoryExplanationCode: "RATE_APPLIED" | "PROGRESSIVE_APPLIED" | "CAP_APPLIED" | "NOT_SUBJECT" | "BASE_GROSS" | "BASE_GROSS_LESS_EMPLOYEE_SOCIAL";
+        StatutoryTraceSlice: {
+            /** @description Annual lower bound of the slice, whole francs. */
+            from: string;
+            /** @description Annual upper bound of the slice (the lower of the bracket bound and the annual base), whole francs. */
+            to: string;
+            rateBp: number;
+            /** @description The part of the annual base inside the slice (to minus from), whole francs. */
+            amount: string;
+        };
+        /** @description The intermediate values of one component, restricted to the keys below (a RATE component has an empty trace). Integers are decimal strings. Clients ignore keys they do not know. */
+        StatutoryTrace: {
+            /** @description Monthly base multiplied by the periods per year, whole francs. */
+            annualBase?: string;
+            slices?: components["schemas"]["StatutoryTraceSlice"][];
+            /** @description The sum over the slices of the slice amount times its basis-point rate. */
+            numerator?: string;
+            capApplied?: boolean;
+        } & {
+            [key: string]: unknown;
+        };
+        StatutoryComponent: {
+            componentId: string;
+            party: components["schemas"]["StatutoryParty"];
+            category: components["schemas"]["StatutoryCategory"];
+            base: components["schemas"]["CompensationMoney"];
+            amount: components["schemas"]["CompensationMoney"];
+            explanationCodes: components["schemas"]["StatutoryExplanationCode"][];
+            trace: components["schemas"]["StatutoryTrace"];
+        };
+        /** @description One employee of the run. The amounts after contractualGross are null, and components empty, while a run-level or employee blocker exists. An excluded line (subject to neither CNSS nor IRPP) has zero components and net equal to gross. */
+        StatutoryPreviewLine: {
+            /** Format: uuid */
+            employeeId: string;
+            employeeNumber: string;
+            blockers: components["schemas"]["StatutoryLineBlocker"][];
+            excluded: boolean;
+            contractualGross: components["schemas"]["CompensationMoney"];
+            employeeDeductions: components["schemas"]["CompensationMoney"] | null;
+            employerContributions: components["schemas"]["CompensationMoney"] | null;
+            previewNet: components["schemas"]["CompensationMoney"] | null;
+            employerCost: components["schemas"]["CompensationMoney"] | null;
+            components: components["schemas"]["StatutoryComponent"][];
+        };
+        StatutoryCalculationSummary: {
+            /** Format: uuid */
+            calculationId: string;
+            /** Format: uuid */
+            runId: string;
+            runVersion: number;
+            /** Format: uuid */
+            packId: string;
+            packCode: string;
+            packVersion: number;
+            period: components["schemas"]["PayrollPeriod"];
+            currency: components["schemas"]["CompensationCurrency"];
+            version: number;
+            /**
+             * @description DRAFT is current; SUPERSEDED was replaced by a later version. A draft is not a payslip, approval or payment.
+             * @enum {string}
+             */
+            status: "DRAFT" | "SUPERSEDED";
+            supportedCount: number;
+            excludedCount: number;
+            totals: components["schemas"]["StatutoryTotals"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            supersededAt: string | null;
+            /** Format: uuid */
+            supersededById: string | null;
+        };
+        /** @description A statutory preview, not a payslip or payment. While status is BLOCKED or NO_CHANGE, calculationDigest and expiresAt are null; totals are null when a run-level blocker exists. */
+        StatutoryCalculationPreview: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            runId: string;
+            runVersion: number;
+            period: components["schemas"]["PayrollPeriod"];
+            currency: components["schemas"]["CompensationCurrency"];
+            /**
+             * @description READY (a calculation can be created), BLOCKED (a run-level or employee blocker exists) or NO_CHANGE (the recalculation equals the current draft; nothing can be created).
+             * @enum {string}
+             */
+            status: "READY" | "BLOCKED" | "NO_CHANGE";
+            /** @description The rule pack in effect for the month; null when none. */
+            pack: components["schemas"]["StatutoryRulePackSummary"] | null;
+            runBlockers: components["schemas"]["StatutoryRunBlocker"][];
+            /** @description The current chain version (0 when no calculation exists); repeat it on creation. */
+            expectedVersion: number;
+            existingCalculation: components["schemas"]["StatutoryCalculationSummary"] | null;
+            supportedCount: number;
+            excludedCount: number;
+            blockedCount: number;
+            totals: components["schemas"]["StatutoryTotals"] | null;
+            lines: components["schemas"]["StatutoryPreviewLine"][];
+            sourceRunDigest: string;
+            profileDigest: string;
+            rulePackDigest: string | null;
+            calculationDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+        };
+        CommitStatutoryCalculation: {
+            expectedVersion: number;
+            sourceRunDigest: string;
+            profileDigest: string;
+            rulePackDigest: string;
+            calculationDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        /** @description Amount-free receipt (identifiers, period, currency, version and counts only) so that the idempotency store never holds an amount. */
+        StatutoryCalculationReceipt: {
+            /** Format: uuid */
+            calculationId: string;
+            /** Format: uuid */
+            runId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packId: string;
+            packVersion: number;
+            period: components["schemas"]["PayrollPeriod"];
+            currency: components["schemas"]["CompensationCurrency"];
+            version: number;
+            /** @enum {string} */
+            status: "DRAFT";
+            /** Format: uuid */
+            supersededCalculationId: string | null;
+            supportedCount: number;
+            excludedCount: number;
+        };
+        StatutoryCalculationPage: {
+            items: components["schemas"]["StatutoryCalculationSummary"][];
+            nextCursor: string | null;
+        };
+        /** @description One frozen employee line of a statutory calculation, with its components and trace. */
+        StatutoryRunLine: {
+            /** Format: uuid */
+            employeeId: string;
+            employeeNumber: string;
+            excluded: boolean;
+            contractualGross: components["schemas"]["CompensationMoney"];
+            employeeDeductions: components["schemas"]["CompensationMoney"];
+            employerContributions: components["schemas"]["CompensationMoney"];
+            previewNet: components["schemas"]["CompensationMoney"];
+            employerCost: components["schemas"]["CompensationMoney"];
+            components: components["schemas"]["StatutoryComponent"][];
+        };
+        StatutoryCalculationDetail: {
+            calculation: components["schemas"]["StatutoryCalculationSummary"];
+            pack: components["schemas"]["StatutoryRulePackSummary"];
+            /** @description The pack's official-source citations. */
+            sources: components["schemas"]["StatutorySource"][];
+            lines: components["schemas"]["StatutoryRunLine"][];
+            nextCursor: string | null;
+        };
+        /**
          * @description CDF (whole francs) or USD (two decimals). The currencies are never converted or combined.
          * @enum {string}
          */
@@ -6276,7 +6908,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -9331,7 +9963,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS), SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT, SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params. LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant) carries no params. LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params; LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE. LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a decision on a cancelled or amended request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) and LEAVE_REQUEST_ALREADY_AMENDED (MVP-041D: the employee already replaced the request) carry no params. MVP-093A: COMPENSATION_VERSION_CONFLICT (another command changed the employee's compensation first), COMPENSATION_PREVIEW_STALE (the preview expired, or the employment or compensation differs from the preview), COMPENSATION_EMPLOYMENT_CONFLICT (the date is outside every qualifying employment, or a separation would end the employment before an active compensation interval starts) or COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per employee). No params. MVP-094A: PAYROLL_POLICY_NOT_FOUND (no payroll policy is in force on the month's last day), PAYROLL_POLICY_CONFLICT (the policy version moved, the policy equals the one in force or the effective date is used), PAYROLL_RUN_BLOCKED (an employee blocker exists), PAYROLL_RUN_PREVIEW_STALE (the preview expired or the inputs changed), PAYROLL_RUN_NO_CHANGE (the recalculation equals the current draft), PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or PAYROLL_RUN_LIMIT_REACHED (60 policies, 25 versions of a chain or 5,000 employees). No params. */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS), SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT, SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params. LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant) carries no params. LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params; LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE. LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a decision on a cancelled or amended request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) and LEAVE_REQUEST_ALREADY_AMENDED (MVP-041D: the employee already replaced the request) carry no params. MVP-093A: COMPENSATION_VERSION_CONFLICT (another command changed the employee's compensation first), COMPENSATION_PREVIEW_STALE (the preview expired, or the employment or compensation differs from the preview), COMPENSATION_EMPLOYMENT_CONFLICT (the date is outside every qualifying employment, or a separation would end the employment before an active compensation interval starts) or COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per employee). No params. MVP-094A: PAYROLL_POLICY_NOT_FOUND (no payroll policy is in force on the month's last day), PAYROLL_POLICY_CONFLICT (the policy version moved, the policy equals the one in force or the effective date is used), PAYROLL_RUN_BLOCKED (an employee blocker exists), PAYROLL_RUN_PREVIEW_STALE (the preview expired or the inputs changed), PAYROLL_RUN_NO_CHANGE (the recalculation equals the current draft), PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or PAYROLL_RUN_LIMIT_REACHED (60 policies, 25 versions of a chain or 5,000 employees). No params. MVP-094B: STATUTORY_RULE_PACK_NOT_VERIFIED (the rule pack is DRAFT or RETIRED, or none is in effect), STATUTORY_RULE_PACK_NOT_APPLICABLE (the month is outside the pack interval, or the country or currency differs), STATUTORY_PROFILE_MISSING and STATUTORY_PROFILE_UNSUPPORTED (an employee of the run has no profile, or an unsupported one), STATUTORY_CALCULATION_BLOCKED (another blocker exists), STATUTORY_PREVIEW_STALE (the preview expired, or the run, profiles or rule pack changed), STATUTORY_CALCULATION_NO_CHANGE (the recalculation equals the current draft), STATUTORY_VERSION_CONFLICT (another command changed the activations, the profile timeline or the calculation chain first, or the month is already activated) or STATUTORY_LIMIT_REACHED (60 activations, 100 profile entries, 25 versions of a chain or 5,000 lines). No params. */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -9340,7 +9972,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND, EMPLOYMENT_CHANGE_NOT_FOUND, SEPARATION_NOT_FOUND, SEPARATION_TASK_NOT_FOUND or MEMBERSHIP_NOT_FOUND (MVP-022; also for an address with no membership) - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. LEAVE_REQUEST_NOT_FOUND (MVP-041B) - no leave request the caller may see or decide: unknown, foreign-tenant, other-route and non-report requests are indistinguishable; no params. MVP-093A: COMPENSATION_NOT_FOUND - the employee or compensation change is malformed, unknown, foreign, belongs to another employee or is not visible to the caller; the cases are indistinguishable. No params. MVP-094A: PAYROLL_RUN_NOT_FOUND - the run is malformed, unknown, foreign-tenant, foreign-entity or not visible to the caller; the cases are indistinguishable. A legal entity that is malformed, unknown or foreign is LEGAL_ENTITY_NOT_FOUND. No params. */
+        /** @description LEGAL_ENTITY_NOT_FOUND, SITE_NOT_FOUND, REGION_NOT_FOUND, DEPARTMENT_NOT_FOUND, COST_CENTER_NOT_FOUND, INVITATION_NOT_FOUND, EMPLOYEE_IMPORT_NOT_FOUND, EMPLOYEE_NOT_FOUND, EMPLOYMENT_CHANGE_NOT_FOUND, SEPARATION_NOT_FOUND, SEPARATION_TASK_NOT_FOUND or MEMBERSHIP_NOT_FOUND (MVP-022; also for an address with no membership) - the referenced resource does not exist in the caller's tenant. Missing and foreign-tenant resources are indistinguishable. ORGANIZATION_NOT_FOUND (platform operations) - the organization ID is malformed, unknown or not active; the cases are indistinguishable and the ID is never echoed. LEAVE_REQUEST_NOT_FOUND (MVP-041B) - no leave request the caller may see or decide: unknown, foreign-tenant, other-route and non-report requests are indistinguishable; no params. MVP-093A: COMPENSATION_NOT_FOUND - the employee or compensation change is malformed, unknown, foreign, belongs to another employee or is not visible to the caller; the cases are indistinguishable. No params. MVP-094A: PAYROLL_RUN_NOT_FOUND - the run is malformed, unknown, foreign-tenant, foreign-entity or not visible to the caller; the cases are indistinguishable. A legal entity that is malformed, unknown or foreign is LEGAL_ENTITY_NOT_FOUND. No params. MVP-094B: STATUTORY_RULE_PACK_NOT_FOUND - the rule pack is malformed or unknown; STATUTORY_CALCULATION_NOT_FOUND - the statutory calculation is malformed, unknown, foreign-tenant or belongs to another run or legal entity; the cases are indistinguishable. The statutory profile operations answer an unknown, malformed, foreign or unauthorized employee with COMPENSATION_NOT_FOUND, and the run and legal entity as above. No params. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -9466,6 +10098,14 @@ export interface components {
         PayrollRunId: string;
         /** @description Lines per page (1-200, default 50). */
         PayrollLineLimit: number;
+        /** @description Malformed and unknown IDs give the same 404 STATUTORY_RULE_PACK_NOT_FOUND. */
+        StatutoryPackId: string;
+        /** @description Malformed, unknown, foreign-tenant and foreign-run IDs give the same 404 STATUTORY_CALCULATION_NOT_FOUND. */
+        StatutoryCalculationId: string;
+        /** @description Optional rule-pack status filter. */
+        StatutoryRulePackStatusFilter: components["schemas"]["StatutoryRulePackStatus"];
+        /** @description The payroll month (YYYY-MM) whose rule pack in effect is requested. */
+        StatutoryMonth: components["schemas"]["PayrollPeriod"];
         /** @description The change that introduced a fact (an interval's originChangeId). Malformed, unknown, foreign and other-employee IDs give the same 404 COMPENSATION_NOT_FOUND. */
         CompensationChangeId: string;
         /** @description Malformed, unknown, foreign and other-employee IDs give the same 404 EMPLOYMENT_CHANGE_NOT_FOUND. */
@@ -17365,6 +18005,428 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayrollRunDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listStatutoryRulePacks: {
+        parameters: {
+            query?: {
+                /** @description Optional rule-pack status filter. */
+                status?: components["parameters"]["StatutoryRulePackStatusFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of rule packs */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryRulePackPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getStatutoryRulePack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed and unknown IDs give the same 404 STATUTORY_RULE_PACK_NOT_FOUND. */
+                packId: components["parameters"]["StatutoryPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The rule pack */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryRulePackDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getStatutoryActivation: {
+        parameters: {
+            query: {
+                /** @description The payroll month (YYYY-MM) whose rule pack in effect is requested. */
+                month: components["parameters"]["StatutoryMonth"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The activation view */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryActivationView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    activateStatutoryRulePack: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateStatutoryRulePack"];
+            };
+        };
+        responses: {
+            /** @description Activated, or the original activation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryActivationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getStatutoryProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 COMPENSATION_NOT_FOUND. */
+                employeeId: components["parameters"]["CompensationEmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The profile timeline */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryProfileView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    commitStatutoryProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 COMPENSATION_NOT_FOUND. */
+                employeeId: components["parameters"]["CompensationEmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitStatutoryProfile"];
+            };
+        };
+        responses: {
+            /** @description Recorded, or the original recording replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryProfileReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewStatutoryProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 COMPENSATION_NOT_FOUND. */
+                employeeId: components["parameters"]["CompensationEmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatutoryProfileCommand"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryProfilePreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewStatutoryCalculation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant, foreign-entity and unauthorized IDs give the same 404 PAYROLL_RUN_NOT_FOUND. */
+                runId: components["parameters"]["PayrollRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatutoryCalculationCommand"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryCalculationPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listStatutoryCalculations: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant, foreign-entity and unauthorized IDs give the same 404 PAYROLL_RUN_NOT_FOUND. */
+                runId: components["parameters"]["PayrollRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of calculations */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryCalculationPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    commitStatutoryCalculation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant, foreign-entity and unauthorized IDs give the same 404 PAYROLL_RUN_NOT_FOUND. */
+                runId: components["parameters"]["PayrollRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitStatutoryCalculation"];
+            };
+        };
+        responses: {
+            /** @description Created, or the original creation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryCalculationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getStatutoryCalculation: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Lines per page (1-200, default 50). */
+                limit?: components["parameters"]["PayrollLineLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant, foreign-entity and unauthorized IDs give the same 404 PAYROLL_RUN_NOT_FOUND. */
+                runId: components["parameters"]["PayrollRunId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-run IDs give the same 404 STATUTORY_CALCULATION_NOT_FOUND. */
+                calculationId: components["parameters"]["StatutoryCalculationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The calculation and a page of its lines */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatutoryCalculationDetail"];
                 };
             };
             400: components["responses"]["BadRequest"];

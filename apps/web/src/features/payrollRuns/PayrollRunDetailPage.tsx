@@ -202,6 +202,23 @@ function RunDetail({ legalEntityId, runId }: { legalEntityId: string; runId: str
           </section>
           <section
             className="card"
+            aria-labelledby={`${ids}-statutory`}
+            data-testid="payroll-detail-statutory"
+          >
+            <h2 id={`${ids}-statutory`}>{t('statutory.link.title')}</h2>
+            <p className="muted">{t('statutory.link.help')}</p>
+            <p>
+              <Link
+                className="table-link"
+                to={`/admin/payroll-runs/${run.legalEntityId}/${run.runId}/statutory`}
+                data-testid="payroll-detail-statutory-link"
+              >
+                {t('statutory.link.open')}
+              </Link>
+            </p>
+          </section>
+          <section
+            className="card"
             aria-labelledby={`${ids}-policy`}
             data-testid="payroll-detail-policy"
           >

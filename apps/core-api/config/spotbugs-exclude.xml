@@ -143,6 +143,11 @@
       <Class name="com.divalhr.core.payroll.internal.JdbcPayrollRunRepository"/>
       <Class name="com.divalhr.core.payroll.api.PayrollPolicyController"/>
       <Class name="com.divalhr.core.payroll.api.PayrollRunController"/>
+      <!-- MVP-094B: statutory preview services, evaluator, recorder, repositories, guard default
+           and controllers hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.application\.(Statutory|NoUnmodeled)[A-Za-z]*"/>
+      <Class name="~com\.divalhr\.core\.payroll\.internal\.JdbcStatutory[A-Za-z]*"/>
+      <Class name="~com\.divalhr\.core\.payroll\.api\.Statutory[A-Za-z]*Controller"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
       <Class name="com.divalhr.core.integrations.application.WebhookService"/>

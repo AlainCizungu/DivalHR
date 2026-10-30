@@ -29,7 +29,9 @@ export const MODULES: readonly ModuleEntry[] = [
   { id: 'leave', icon: 'calendar', status: 'available', vision: true },
   // Period locking, payroll-input generation, variance review, locked export (MVP-071 to MVP-092)
   // monthly compensation records (MVP-093A) and monthly draft runs with contractual gross
-  // (MVP-094A). Statutory deductions, payslips, net-pay approval and payment are not built.
+  // (MVP-094A). The statutory preview of MVP-094B (Issue #179, D94B-13) ships with a DRAFT rule pack
+  // only and is usable only once a professionally verified pack is activated, so DRC statutory
+  // calculation stays under "coming next"; payslips, net-pay approval and payment are not built.
   { id: 'payroll', icon: 'payroll', status: 'capabilities', vision: true },
   { id: 'loans', icon: 'bank', status: 'later', vision: true },
   { id: 'benefits', icon: 'benefits', status: 'later', vision: true },

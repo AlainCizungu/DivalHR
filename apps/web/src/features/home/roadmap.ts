@@ -8,6 +8,9 @@ import type { IconName } from '../../ui/Icon';
  * removed period locking and payroll inputs (shipped through MVP-092) and names what comes next
  * for an administrator: statutory calculation, payslips and net-pay approval, disbursement and
  * reconciliation, and salary advances. Monthly compensation records are shipped, not roadmap.
+ * MVP-094B (Issue #179, D94B-13) keeps statutory calculation here: the repository ships only a
+ * DRAFT rule pack, so the readiness state ("Professional verification required") is shown only
+ * inside the administrator's payroll-run workflow, never as an available capability.
  */
 export interface RoadmapItem {
   id: string;

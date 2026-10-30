@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
@@ -59,10 +60,27 @@ public class PayrollOperations {
 
   /** Records a read or preview outcome; rejections log only their code. */
   <T> T observed(Logger log, String event, String operation, Supplier<T> work) {
+    return observed(log, event, operation, work, result -> Outcome.LISTED);
+  }
+
+  /**
+   * Records a read or preview outcome that the result itself decides (a statutory preview that is
+   * blocked or unchanged is not a plain success); rejections log only their code.
+   */
+  <T> T observed(
+      Logger log,
+      String event,
+      String operation,
+      Supplier<T> work,
+      Function<T, Outcome> outcomeOfResult) {
     try {
       T result = work.get();
-      metrics.record(operation, Outcome.LISTED);
-      log.atInfo().addKeyValue("operation", operation).addKeyValue("outcome", "listed").log(event);
+      Outcome success = outcomeOfResult.apply(result);
+      metrics.record(operation, success);
+      log.atInfo()
+          .addKeyValue("operation", operation)
+          .addKeyValue("outcome", success.name().toLowerCase(Locale.ROOT))
+          .log(event);
       return result;
     } catch (ApiException rejected) {
       Outcome outcome = outcomeOf(rejected.code());
@@ -103,7 +121,11 @@ public class PayrollOperations {
 
   static Outcome outcomeOf(ErrorCode code) {
     return switch (code) {
-      case LEGAL_ENTITY_NOT_FOUND, PAYROLL_RUN_NOT_FOUND -> Outcome.NOT_FOUND;
+      case LEGAL_ENTITY_NOT_FOUND,
+          PAYROLL_RUN_NOT_FOUND,
+          STATUTORY_RULE_PACK_NOT_FOUND,
+          STATUTORY_CALCULATION_NOT_FOUND,
+          COMPENSATION_NOT_FOUND -> Outcome.NOT_FOUND;
       case VALIDATION_FAILED, CURSOR_INVALID, PAYROLL_PERIOD_INVALID -> Outcome.VALIDATION_FAILED;
       case RATE_LIMITED -> Outcome.RATE_LIMITED;
       default -> Outcome.STATE_CONFLICT;
