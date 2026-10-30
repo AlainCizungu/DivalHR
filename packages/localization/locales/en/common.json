@@ -665,7 +665,19 @@
     "STATUTORY_CALCULATION_NO_CHANGE": "The current statutory calculation already matches this result, so nothing was created. Open the current calculation instead.",
     "STATUTORY_VERSION_CONFLICT": "Someone else changed this information in the meantime. Reload the latest state and preview again before confirming.",
     "STATUTORY_LIMIT_REACHED": "A limit was reached: at most 60 rule-pack activations per legal entity, 100 profile entries per employee, 25 versions per calculation and 5,000 payroll lines.",
-    "STATUTORY_CALCULATION_NOT_FOUND": "This statutory calculation does not exist or is not available to you."
+    "STATUTORY_CALCULATION_NOT_FOUND": "This statutory calculation does not exist or is not available to you.",
+    "PAYROLL_PACKAGE_NOT_FOUND": "This payroll package does not exist or is not available to you.",
+    "PAYROLL_PACKAGE_BLOCKED": "At least one blocker prevents this payroll approval. Resolve the blockers shown in the review, then review again.",
+    "PAYROLL_APPROVAL_PREVIEW_STALE": "The approval review is out of date because the payroll run, the statutory calculation, the payroll policy, the statutory profiles or the rule pack changed, or the review expired. Review again.",
+    "PAYROLL_APPROVAL_NO_CHANGE": "This payroll is already approved from the same payroll run and statutory calculation, so nothing was created. Open the approved payroll instead.",
+    "PAYROLL_PACKAGE_VERSION_CONFLICT": "Someone else changed the approved payroll of this month in the meantime. Reload the latest state and review again before confirming.",
+    "PAYROLL_PACKAGE_ALREADY_APPROVED": "Payroll for this legal entity and month is already approved. Void the approved payroll first if it must be corrected.",
+    "PAYROLL_PACKAGE_VOIDED": "This payroll package is voided. It stays available as a record, but no further action is possible on it.",
+    "PAYROLL_VOID_PREVIEW_STALE": "The void review is out of date because it expired or the payroll package changed. Review again.",
+    "PAYROLL_VOID_NOT_ALLOWED": "This payroll package cannot be voided because a payment record exists for it.",
+    "PAYSLIP_NOT_FOUND": "This payslip does not exist or is not available to you.",
+    "PAYSLIP_RENDER_FAILED": "The payslip document could not be produced. Nothing was changed. Try again later.",
+    "PAYROLL_PACKAGE_LIMIT_REACHED": "A limit was reached: at most 5,000 payslips per payroll package and 25 package versions per legal entity and month."
   },
   "notFound": {
     "title": "Page not found",

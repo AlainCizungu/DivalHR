@@ -665,7 +665,19 @@
     "STATUTORY_CALCULATION_NO_CHANGE": "Le calcul statutaire actuel correspond déjà à ce résultat : rien n’a été créé. Ouvrez plutôt le calcul actuel.",
     "STATUTORY_VERSION_CONFLICT": "Quelqu’un a modifié ces informations entre-temps. Rechargez le dernier état, puis relancez l’aperçu avant de confirmer.",
     "STATUTORY_LIMIT_REACHED": "Une limite est atteinte : au plus 60 activations de jeux de règles par entité juridique, 100 entrées de profil par employé, 25 versions par calcul et 5 000 lignes de paie.",
-    "STATUTORY_CALCULATION_NOT_FOUND": "Ce calcul statutaire n’existe pas ou ne vous est pas accessible."
+    "STATUTORY_CALCULATION_NOT_FOUND": "Ce calcul statutaire n’existe pas ou ne vous est pas accessible.",
+    "PAYROLL_PACKAGE_NOT_FOUND": "Ce dossier de paie n’existe pas ou ne vous est pas accessible.",
+    "PAYROLL_PACKAGE_BLOCKED": "Au moins un point bloquant empêche l’approbation de cette paie. Corrigez les points bloquants affichés dans la revue, puis relancez la revue.",
+    "PAYROLL_APPROVAL_PREVIEW_STALE": "La revue d’approbation n’est plus à jour : la simulation de paie, le calcul statutaire, la politique de paie, les profils statutaires ou le jeu de règles ont changé, ou la revue a expiré. Relancez la revue.",
+    "PAYROLL_APPROVAL_NO_CHANGE": "Cette paie est déjà approuvée à partir de la même simulation de paie et du même calcul statutaire : rien n’a été créé. Ouvrez plutôt la paie approuvée.",
+    "PAYROLL_PACKAGE_VERSION_CONFLICT": "Quelqu’un d’autre a modifié la paie approuvée de ce mois entre-temps. Rechargez l’état le plus récent et relancez la revue avant de confirmer.",
+    "PAYROLL_PACKAGE_ALREADY_APPROVED": "La paie de cette entité juridique pour ce mois est déjà approuvée. Annulez d’abord la paie approuvée si elle doit être corrigée.",
+    "PAYROLL_PACKAGE_VOIDED": "Ce dossier de paie est annulé. Il reste consultable comme archive, mais aucune autre action n’est possible.",
+    "PAYROLL_VOID_PREVIEW_STALE": "La revue d’annulation n’est plus à jour : elle a expiré ou le dossier de paie a changé. Relancez la revue.",
+    "PAYROLL_VOID_NOT_ALLOWED": "Ce dossier de paie ne peut pas être annulé, car un enregistrement de paiement existe pour lui.",
+    "PAYSLIP_NOT_FOUND": "Ce bulletin de paie n’existe pas ou ne vous est pas accessible.",
+    "PAYSLIP_RENDER_FAILED": "Le document du bulletin de paie n’a pas pu être produit. Rien n’a été modifié. Réessayez plus tard.",
+    "PAYROLL_PACKAGE_LIMIT_REACHED": "Une limite est atteinte : au plus 5 000 bulletins de paie par dossier de paie et 25 versions de dossier par entité juridique et par mois."
   },
   "notFound": {
     "title": "Page introuvable",

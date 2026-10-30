@@ -692,7 +692,31 @@ public enum ErrorCode {
    */
   STATUTORY_LIMIT_REACHED(HttpStatus.CONFLICT),
   /** MVP-094B: the statutory calculation is unknown or not visible to the caller. */
-  STATUTORY_CALCULATION_NOT_FOUND(HttpStatus.NOT_FOUND);
+  STATUTORY_CALCULATION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-094C: the payroll package is unknown or not visible to the caller. */
+  PAYROLL_PACKAGE_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-094C: a blocker forbids the approval (the blocker codes are in the preview). */
+  PAYROLL_PACKAGE_BLOCKED(HttpStatus.CONFLICT),
+  /** MVP-094C: the approval preview expired or its run, calculation, policy or profiles changed. */
+  PAYROLL_APPROVAL_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-094C: the approval would equal the current approved package, so nothing would change. */
+  PAYROLL_APPROVAL_NO_CHANGE(HttpStatus.CONFLICT),
+  /** MVP-094C: another command changed the package chain of the entity and month first. */
+  PAYROLL_PACKAGE_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-094C: another approved package already exists for the legal entity, month and currency. */
+  PAYROLL_PACKAGE_ALREADY_APPROVED(HttpStatus.CONFLICT),
+  /** MVP-094C: the package is VOIDED, so the action is not available. */
+  PAYROLL_PACKAGE_VOIDED(HttpStatus.CONFLICT),
+  /** MVP-094C: the void preview expired or the package changed since it was shown. */
+  PAYROLL_VOID_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-094C: a payment or disbursement record exists, so the package cannot be voided. */
+  PAYROLL_VOID_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-094C: the payslip is unknown, not published to the caller or foreign. */
+  PAYSLIP_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-094C: the payslip PDF could not be rendered; nothing partial is returned. */
+  PAYSLIP_RENDER_FAILED(HttpStatus.INTERNAL_SERVER_ERROR),
+  /** MVP-094C: 5,000 payslips, or the package chain limit, would be exceeded. */
+  PAYROLL_PACKAGE_LIMIT_REACHED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

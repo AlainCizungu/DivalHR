@@ -944,3 +944,58 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
   makes no legal-compliance claim. An employee's earnings that the preview does not model block the
   calculation through the `StatutoryEarningsGuard` port (no other earning type exists today, so the
   default implementation reports none).
+
+## Payroll approval and payslips (MVP-094C, ADR 0035)
+
+- **Classification.** Payroll packages and payslips are **restricted financial and HR data**: amounts,
+  employee numbers, canonical snapshots, digests, void explanations and the approver subject. They
+  appear only in authorized API responses (the approver subject and the void explanation of
+  `OTHER_CONTROLLED` are never returned to employees; the subject is never returned at all) and
+  never in URLs, queries, cursors, logs, metrics, audit metadata, outbox payloads, idempotency
+  receipts or error bodies. Audit metadata and outbox are an allow-list: tenant, legal entity,
+  package and payslip ids, version, period, currency, status, payslip count and, for the approval
+  only, the `samePreparer` boolean (D94C-2). Disclosures (`payroll-package.read`, `payslip.read`,
+  `payslip.download`) are fail-closed; the download audit commits before the first byte.
+- **Database authority (V46).** Four `payroll.payroll_package*` / `payroll.payroll_payslip` tables
+  enforce tenant/entity/source ownership, CDF, period equality, exact line count, arithmetic, the
+  APPROVED -> VOIDED lifecycle, one approved package per entity, month and currency, append-only
+  snapshots (the SHA-256 digest is generated from the canonical text) and the source lock, whatever
+  the application checks. Violations are SQLSTATE 23514, constraints `payroll_package_*` /
+  `payroll_payslip_*`. The approval digest is recomputed by the database. A bound payroll run or
+  statutory calculation cannot be superseded while its package is APPROVED
+  (`payroll_package_source_locked`); a voided package releases the lock but its run and calculation
+  can never be approved again (`payroll_package_source_voided`). The rollback
+  `V46__rollback.sql` refuses while any package, source, void or payslip row exists.
+- **Authority.** Administrator operations: role `tenant-admin`, exact MFA, active membership. Employee
+  operations (`/me/payslips`): the caller's own active employee-access link, `tenant_id` and
+  `employee_id` predicates on every statement; foreign, unknown, unlinked and unauthorized ids are
+  the same 404 `PAYSLIP_NOT_FOUND` / 403 `EMPLOYEE_LINK_REQUIRED`. Managers and platform
+  administrators have no access. The approver is the verified subject, never a request field.
+  Separation of preparer and approver is **future work**; the same administrator may prepare and
+  approve and the UI and audit expose that fact.
+- **Response headers.** Every response is `Cache-Control: private, no-store`. A PDF adds
+  `Content-Type: application/pdf`, `X-Content-Type-Options: nosniff` and
+  `Content-Disposition: attachment; filename="payslip-<YYYY-MM>-<8 hex>.pdf"` (a generated name, never
+  an employee name or number). The PDF is rendered on demand from the immutable snapshot
+  (deterministic, at most 256 KiB, 5 s), its metadata holds only a generic title, the constant
+  `DivalHR` creator/producer and the approval instant; no subject, token, email, path, host or
+  local filename.
+- **Access logs (SEC-003).** Caddy deletes `Content-Disposition`, `Etag` and digest headers from the
+  logged response, so the payslip filename never reaches a log; Core has no access log or
+  request-logging layer. The payroll paths contain only opaque UUIDs. A new canary sentinel for the
+  payslip download is required before release (ops worker) and the access-log policy must keep
+  classifying every declared header.
+- **Wording.** Payslips say "Not proof of payment" / « Ne constitue pas une preuve de paiement » and
+  "Approved payroll" / « Paie approuvée »; the product never says paid, payment completed, filed,
+  tax compliant or government approved.
+- **No delivery.** `payroll.package.approved.v1` and `payroll.package.voided.v1` are internal and are
+  not mapped to webhooks or WhatsApp; no email, push or message announces a payslip.
+- **Payment guard.** `PayrollPaymentGuard` (platform access port) reports a payment record for a
+  package; the shipped `NoPaymentRecords` reports none, so a future payment module can make the void
+  fail closed (`PAYROLL_VOID_NOT_ALLOWED`) without changing the approval service.
+- **Synthetic packs.** A rule pack whose code starts with `SYNTHETIC-TEST` is test data: packages
+  carry `synthetic: true`, payslips a visible test notice and the UI a badge. Such a pack is never
+  created by a migration, seed or default; the real pack stays DRAFT.
+- **Limits.** Subject per minute: previews 5, approval or void 2, PDF downloads 30, reads 60; tenant
+  per hour: previews 60, approval or void 20, downloads 300; at most 5,000 payslips and 25 package
+  versions per entity and month.
