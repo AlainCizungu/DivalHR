@@ -101,7 +101,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         // D93-14: no page text claims calculation, payslips, payment, loans or a partnership today.
         // D94A-12: the only calculation named is draft contractual gross, labelled as a draft.
         const today = page.getByTestId('landing-today');
-        await expect(today.locator('li[data-module="payrollRuns"]')).toContainText(/draft/iu);
+        await expect(today.locator('li[data-module="payrollRuns"]')).toContainText(/draft|brouillon/iu);
         const others = (
           await today.locator('li:not([data-module="payrollRuns"])').allInnerTexts()
         ).join(' ');
