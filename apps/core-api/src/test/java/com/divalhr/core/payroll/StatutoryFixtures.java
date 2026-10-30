@@ -12,7 +12,8 @@ final class StatutoryFixtures {
 
   /** The rules of the seeded DRAFT pack CD-SALARY-PREVIEW version 1. */
   static final String SEED_JSON =
-      """
+      String.valueOf(
+          """
       {
         "schemaVersion": 1,
         "components": [
@@ -40,7 +41,7 @@ final class StatutoryFixtures {
            "rounding": "HALF_UP"}
         ]
       }
-      """;
+      """);
 
   private StatutoryFixtures() {}
 

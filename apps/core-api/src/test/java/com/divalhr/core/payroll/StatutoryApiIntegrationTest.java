@@ -319,7 +319,7 @@ class StatutoryApiIntegrationTest {
   @Test
   void anIdenticalRecalculationIsNoChangeAndNothingIsRecorded() throws Exception {
     Ready ready = ready();
-    JsonNode first = w.preview(ready.run());
+    w.preview(ready.run());
     w.create(ready.run());
     List<Integer> before = w.evidence();
 
