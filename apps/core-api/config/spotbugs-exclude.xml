@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Keep exclusions narrow and justified. -->
 <FindBugsFilter>
+  <!-- MVP-094B: the request parser returns null for an absent or malformed flag (a third state next to true and false); the null is always rejected with a field error before use. -->
+  <Match>
+    <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+    <Class name="com.divalhr.core.payroll.application.StatutoryCommands"/>
+    <Method name="flag"/>
+  </Match>
   <!-- Spring beans intentionally hold injected collaborators (constructor injection). -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP2"/>

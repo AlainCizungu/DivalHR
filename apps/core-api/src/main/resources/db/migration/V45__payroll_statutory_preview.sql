@@ -839,7 +839,8 @@ INSERT INTO payroll.statutory_rule_pack
     (id, code, version, country, currency, status, effective_from, effective_to, method_version, rules, created_at)
 VALUES ('4f6c2d1a-0945-4a94-8d3b-5d0a3b0c0d94', 'CD-SALARY-PREVIEW', 1, 'CD', 'CDF', 'DRAFT',
         DATE '2026-01-01', DATE '2026-12-31', '1',
-        $rules${
+        $rules$
+{
   "schemaVersion": 1,
   "components": [
     {"id": "CNSS_EMPLOYEE_PENSION", "party": "EMPLOYEE", "category": "SOCIAL_CONTRIBUTION",

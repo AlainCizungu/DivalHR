@@ -276,7 +276,7 @@ class StatutoryProfileTimelineTest {
   void anEmployeeHasAtMostOneHundredRows() {
     List<StatutoryProfile> rows = new ArrayList<>();
     for (int i = 1; i <= 99; i++) {
-      rows.add(resident(i, "2026-01-01", i % 2 == 0, i % 2 == 1));
+      rows.add(resident(i, "2026-01-01", i % 2 == 0, i % 2 != 0));
     }
     StatutoryProfile hundredth = resident(100, "2026-02-01", true, true);
     assertThat(StatutoryProfileTimeline.plan(rows, hundredth, TODAY).committable()).isTrue();
