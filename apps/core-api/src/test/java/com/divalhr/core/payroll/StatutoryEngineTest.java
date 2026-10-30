@@ -566,6 +566,18 @@ class StatutoryEngineTest {
   }
 
   @Test
+  void theMonthlyTaxIsRoundedOnceFromTheExactAnnualNumerator() {
+    // Gross 160,016 a month: N = 576,057,600 and N / (10,000 x 12) = 4,800.48 -> 4,800.
+    // Rounding the annual tax first (57,605.76 -> 57,606) and dividing again (4,800.5) would
+    // give 4,801: that double rounding is a defect.
+    String monthly = document(progressive("TAX_M", 1, "GROSS", 12, null, SEED_BRACKETS, "HALF_UP"));
+    StatutoryLine line = calculate(monthly, false, true, 160_016);
+    assertThat(line.components().get(0).amountMinor()).isEqualTo(4_800L);
+    assertThat(line.components().get(0).trace().numerator())
+        .isEqualTo(java.math.BigInteger.valueOf(576_057_600L));
+  }
+
+  @Test
   void theLargestGrossIsExactAndATotalThatOverflowsIsRefusedDeliberately() {
     long max = Long.MAX_VALUE;
     // Employee-only pack: CNSS 5% HALF_UP and the capped schedule.
