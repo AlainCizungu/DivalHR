@@ -190,8 +190,7 @@ class PayrollRunQueryPlanIntegrationTest {
               jdbc.execute("SET LOCAL enable_bitmapscan = off");
               jdbc.execute("SET LOCAL enable_sort = off");
               return String.join(
-                  "
-", named.query("EXPLAIN " + sql, params, (rs, row) -> rs.getString(1)));
+                  "\n", named.query("EXPLAIN " + sql, params, (rs, row) -> rs.getString(1)));
             });
   }
 
