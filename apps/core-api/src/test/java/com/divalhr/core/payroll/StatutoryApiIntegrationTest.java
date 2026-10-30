@@ -160,9 +160,11 @@ class StatutoryApiIntegrationTest {
   void theApiMatchesTheEngineForSeveralGrossesIncludingTheCap() throws Exception {
     UUID pack = StatutoryWorld.verifiedPack(w.jdbc);
     w.activate(pack, w.month);
+    Map<String, String> words =
+        Map.of("12345", "Alpha", "162000", "Bravo", "5000000", "Charlie", "100000000", "Delta");
     Map<UUID, Long> employees = new LinkedHashMap<>();
     for (String gross : List.of("12345", "162000", "5000000", "100000000")) {
-      UUID employee = w.paidInCdf("Gross" + gross, gross);
+      UUID employee = w.paidInCdf("Gross" + words.get(gross), gross);
       w.standard(employee);
       employees.put(employee, Long.parseLong(gross));
     }
@@ -329,7 +331,7 @@ class StatutoryApiIntegrationTest {
     assertThat(again.get("expiresAt").isNull()).isTrue();
     w.c.problem(
         w.createRequest(
-            ready.run(), Organizations.newKey(), StatutoryWorld.calculationCommitting(first)),
+            ready.run(), Organizations.newKey(), StatutoryWorld.calculationCommitting(again)),
         409,
         "STATUTORY_CALCULATION_NO_CHANGE");
     assertThat(w.evidence()).isEqualTo(before);
@@ -781,7 +783,7 @@ class StatutoryApiIntegrationTest {
     UUID pack = StatutoryWorld.verifiedPack(w.jdbc);
     w.activate(pack, w.month);
     for (int i = 0; i < 3; i++) {
-      UUID employee = w.paidInCdf("Paged" + i, "100000");
+      UUID employee = w.paidInCdf("Paged" + "ABC".charAt(i), "100000");
       w.standard(employee);
     }
     String run = w.cdfRun();

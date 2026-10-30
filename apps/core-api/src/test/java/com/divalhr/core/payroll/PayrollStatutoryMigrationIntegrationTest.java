@@ -821,9 +821,10 @@ class PayrollStatutoryMigrationIntegrationTest {
               db,
               NAME + "forward",
               c -> insertPack(c, code, "CD", "CDF", "RETIRED", "2026-01-01", null, "1", ok));
-          refuses(
+          // The creation guard (a BEFORE trigger) answers before the CHECK constraint does.
+          refusesOneOf(
               db,
-              NAME + "status",
+              List.of(NAME + "status", NAME + "forward"),
               c -> insertPack(c, code, "CD", "CDF", "ACTIVE", "2026-01-01", null, "1", ok));
           refuses(db, NAME + "code_version_unique", c -> draft(c, "SYNTHETIC-TEST-OK", ok));
           refuses(db, NAME + "code", c -> draft(c, "lower-case", ok));
@@ -996,9 +997,9 @@ class PayrollStatutoryMigrationIntegrationTest {
                       "UPDATE payroll.statutory_rule_pack SET reviewer_name = 'Other'"
                           + " WHERE id = ?",
                       id));
-          refuses(
+          refusesOneOf(
               db,
-              NAME + "forward",
+              List.of(NAME + "forward", NAME + "evidence_immutable"),
               c ->
                   exec(
                       c,
@@ -1144,9 +1145,9 @@ class PayrollStatutoryMigrationIntegrationTest {
           commit(
               db,
               c -> {
-                exec(c, VERIFY, complete);
                 exec(c, SOURCE, complete, 1, "CNSS_RATES", "CNSS rates", CNSS_URL, HASH_A);
                 exec(c, SOURCE, complete, 2, "DGI_IRPP", "DGI IRPP", DGI_URL, HASH_B);
+                exec(c, VERIFY, complete);
               });
           assertThat(
                   db.jdbc()
@@ -1513,8 +1514,14 @@ class PayrollStatutoryMigrationIntegrationTest {
           World w = world(db);
           UUID v = w.verified();
           UUID a = w.activation();
-          refusesCalculation(db, w, CALC + "pack_state", w.draft(), a, 1, "");
-          refusesCalculation(db, w, CALC + "pack_state", w.retired(), a, 1, "");
+          refusesOneOf(
+              db,
+              List.of(CALC + "pack_state", CALC + "activation_rule"),
+              c -> calculation(c, w, UUID.randomUUID(), w.draft(), a, 1, ""));
+          refusesOneOf(
+              db,
+              List.of(CALC + "pack_state", CALC + "activation_rule"),
+              c -> calculation(c, w, UUID.randomUUID(), w.retired(), a, 1, ""));
           UUID h = w.halfActivation();
           refusesCalculation(db, w, CALC + "pack_interval", w.firstHalf(), h, 1, "");
           refusesCalculation(db, w, CALC + "activation_rule", v, h, 1, "");
