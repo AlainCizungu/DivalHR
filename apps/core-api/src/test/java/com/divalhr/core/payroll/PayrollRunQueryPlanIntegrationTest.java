@@ -114,7 +114,7 @@ class PayrollRunQueryPlanIntegrationTest {
                       + ", 100000, repeat('a', 64), now(), 'sub-test',"
                       + " CASE WHEN v = 5 THEN NULL ELSE now() END,"
                       + " CASE WHEN v = 5 THEN NULL ELSE gen_random_uuid() END"
-                      + " FROM generate_series(1, 24) m CROSS JOIN (VALUES ('CDF'), ('USD')) AS cur(c)"
+                      + " FROM generate_series(0, 23) m CROSS JOIN (VALUES ('CDF'), ('USD')) AS cur(c)"
                       + " CROSS JOIN generate_series(1, 5) v",
                   tenantId,
                   entityId,

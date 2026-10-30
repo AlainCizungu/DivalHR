@@ -77,9 +77,7 @@ final class PayrollRunWorld {
       LocalDate from, String payDayKind, Integer payDay, String method) {
     Map<String, Object> day = new LinkedHashMap<>();
     day.put("kind", payDayKind);
-    if (payDay != null) {
-      day.put("day", payDay);
-    }
+    day.put("day", payDay);
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("effectiveFrom", from.toString());
     body.put("payDay", day);

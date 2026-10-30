@@ -801,8 +801,8 @@ class PayrollRunMigrationIntegrationTest {
                 "payroll_pay_run_line_denominator_rule",
                 c -> {
                   UUID run = UUID.randomUUID();
-                  run(c, s, run, SEP, "CDF", 1, s.policy(), 1, "CALENDAR_DAYS", 1, 1);
-                  line(c, s, run, UUID.randomUUID(), "E-1", 20, 31, false, 450_000, 300_000);
+                  run(c, fixed, run, SEP, "CDF", 1, fixed.policy(), 2, "FIXED_30_DAYS", 1, 1);
+                  line(c, fixed, run, UUID.randomUUID(), "E-1", 20, 31, false, 450_000, 300_000);
                 });
           } catch (SQLException e) {
             throw new IllegalStateException(e);
