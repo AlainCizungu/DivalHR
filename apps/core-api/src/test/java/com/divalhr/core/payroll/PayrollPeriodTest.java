@@ -75,7 +75,8 @@ class PayrollPeriodTest {
     // On the first of a month the window has already moved.
     assertThat(month("2024-07").isRunnable(d("2026-07-01"))).isTrue();
     assertThat(month("2024-06").isRunnable(d("2026-07-01"))).isFalse();
-    assertThat(month("2024-02").isRunnable(d("2026-02-28"))).isFalse();
+    assertThat(month("2024-02").isRunnable(d("2026-02-28"))).isTrue();
+    assertThat(month("2024-01").isRunnable(d("2026-02-28"))).isFalse();
     assertThat(month("2024-02").isRunnable(d("2026-02-01"))).isTrue();
   }
 
