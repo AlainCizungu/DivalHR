@@ -92,8 +92,28 @@ class PackageDigestsTest {
   /** The same basis with the field at the given position changed. */
   private static ApprovalBasis changed(int position) {
     Object[] f = {
-      TENANT, ENTITY, "2026-03", RUN, 2, hex('1'), CALCULATION, 3, hex('2'), hex('3'), hex('4'),
-      hex('5'), PACK, hex('6'), POLICY, 4, 383000L, 29960L, 48590L, 353040L, 431590L, 3
+      TENANT,
+      ENTITY,
+      "2026-03",
+      RUN,
+      2,
+      hex('1'),
+      CALCULATION,
+      3,
+      hex('2'),
+      hex('3'),
+      hex('4'),
+      hex('5'),
+      PACK,
+      hex('6'),
+      POLICY,
+      4,
+      383000L,
+      29960L,
+      48590L,
+      353040L,
+      431590L,
+      3
     };
     if (f[position] instanceof UUID) {
       f[position] = uuid('9');
@@ -201,8 +221,21 @@ class PackageDigestsTest {
 
   private static String preview(Object... changes) {
     Object[] a = {
-      TENANT, ENTITY, RUN, 2, CALCULATION, 3, hex('1'), hex('2'), hex('4'), hex('5'), POLICY, 4,
-      true, 2, EXPIRES
+      TENANT,
+      ENTITY,
+      RUN,
+      2,
+      CALCULATION,
+      3,
+      hex('1'),
+      hex('2'),
+      hex('4'),
+      hex('5'),
+      POLICY,
+      4,
+      true,
+      2,
+      EXPIRES
     };
     for (int i = 0; i < changes.length; i += 2) {
       a[(Integer) changes[i]] = changes[i + 1];
@@ -301,7 +334,13 @@ class PackageDigestsTest {
 
   private static String voidPreview(Object... changes) {
     Object[] a = {
-      TENANT, ENTITY, PACK, 2, hex('6'), PayrollVoidReason.OTHER_CONTROLLED, "Wrong month selected",
+      TENANT,
+      ENTITY,
+      PACK,
+      2,
+      hex('6'),
+      PayrollVoidReason.OTHER_CONTROLLED,
+      "Wrong month selected",
       EXPIRES
     };
     for (int i = 0; i < changes.length; i += 2) {

@@ -36,11 +36,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * MVP-094C: a legal entity's approved payroll packages and their voiding, for tenant
- * administrators with privileged MFA (ADR 0035). The tenant comes from the verified JWT and the
- * voider is the verified subject (never the body or the path); every response is {@code
- * Cache-Control: private, no-store}. The approver subject and the void explanation of a summary or
- * a receipt are never returned.
+ * MVP-094C: a legal entity's approved payroll packages and their voiding, for tenant administrators
+ * with privileged MFA (ADR 0035). The tenant comes from the verified JWT and the voider is the
+ * verified subject (never the body or the path); every response is {@code Cache-Control: private,
+ * no-store}. The approver subject and the void explanation of a summary or a receipt are never
+ * returned.
  */
 @RestController
 public class PayrollPackageController {
@@ -90,8 +90,7 @@ public class PayrollPackageController {
       @RequestParam(name = "limit", required = false) String limit,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
-    return ok(
-        packages.list(caller(authentication, request), legalEntityId, status, cursor, limit));
+    return ok(packages.list(caller(authentication, request), legalEntityId, status, cursor, limit));
   }
 
   /**

@@ -102,8 +102,7 @@ class PayrollPackagePrivacyIntegrationTest {
             "SELECT DISTINCT action FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND (action LIKE 'payroll-package.%' OR action LIKE 'payslip.%')"
                 + " ORDER BY action",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(actions)
         .containsExactly(
             "payroll-package.approve",
@@ -115,8 +114,7 @@ class PayrollPackagePrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT metadata::text FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND (action LIKE 'payroll-package.%' OR action LIKE 'payslip.%')",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(metadata).hasSizeGreaterThanOrEqualTo(7);
     for (String row : metadata) {
       assertThat(PayrollPackageRecorder.ALLOWED).containsAll(keys(json(row)));
@@ -125,8 +123,7 @@ class PayrollPackagePrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT event_type || '|' || envelope::text FROM platform.outbox_event"
                 + " WHERE tenant_id = ? AND event_type LIKE 'payroll.package.%'",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(events).hasSize(2);
     List<String> types = new ArrayList<>();
     for (String row : events) {
@@ -150,14 +147,15 @@ class PayrollPackagePrivacyIntegrationTest {
   void noSentinelNumberNameDigestApproverOrExplanationReachesAnyStoreCursorLogOrError(
       CapturedOutput output) throws Exception {
     JsonNode preview = w.preview(chain);
-    JsonNode receipt = w.c.expect(w.approveRequest(chain, Organizations.newKey(),
-        PayrollPackageWorld.approving(preview)), 201);
+    JsonNode receipt =
+        w.c.expect(
+            w.approveRequest(chain, Organizations.newKey(), PayrollPackageWorld.approving(preview)),
+            201);
     String pkg = receipt.get("packageId").asText();
     // Refusals do not echo what they protect.
     JsonNode refused =
         w.c.problem(
-            w.approveRequest(
-                chain, Organizations.newKey(), PayrollPackageWorld.approving(preview)),
+            w.approveRequest(chain, Organizations.newKey(), PayrollPackageWorld.approving(preview)),
             409,
             "PAYROLL_PACKAGE_VERSION_CONFLICT");
     JsonNode invalid =
@@ -165,8 +163,8 @@ class PayrollPackagePrivacyIntegrationTest {
             w.approveRequest(
                 chain,
                 Organizations.newKey(),
-                PayrollPackageWorld.with(PayrollPackageWorld.approving(preview), "reviewedTotals",
-                    false)),
+                PayrollPackageWorld.with(
+                    PayrollPackageWorld.approving(preview), "reviewedTotals", false)),
             400,
             "VALIDATION_FAILED");
 

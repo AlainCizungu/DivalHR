@@ -30,33 +30,33 @@ class PayslipSnapshotTest {
   // and cross-checked against the production writer.
   private static final String TEXT_162000 =
       "{\"schemaVersion\":1,\"packageId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaa"
-            + "aaaaaaaa\",\"legalEntityId\":\"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb"
-            + "bbb\",\"period\":\"2026-03\",\"currency\":\"CDF\",\"employeeId\":\"ccccc"
-            + "ccc-cccc-4ccc-8ccc-cccccccccccc\",\"employeeNumber\":\"E-0042\",\""
-            + "status\":\"APPROVED\",\"approvedAt\":\"2026-04-01T10:11:12.123456Z"
-            + "\",\"rulePack\":{\"code\":\"SYNTHETIC-TEST-DRC\",\"version\":1},\"excl"
-            + "uded\":false,\"contractualGrossMinor\":\"162000\",\"employeeCnssMi"
-            + "nor\":\"8100\",\"irppWithholdingMinor\":\"4860\",\"employeeDeduction"
-            + "sMinor\":\"12960\",\"netMinor\":\"149040\",\"employerContributionsMi"
-            + "nor\":\"21060\",\"explanationCodes\":[\"BASE_GROSS\",\"BASE_GROSS_LE"
-            + "SS_EMPLOYEE_SOCIAL\",\"PROGRESSIVE_APPLIED\",\"RATE_APPLIED\"],\"c"
-            + "omponents\":[{\"seq\":1,\"id\":\"CNSS_EMPLOYEE_PENSION\",\"party\":\"E"
-            + "MPLOYEE\",\"category\":\"SOCIAL_CONTRIBUTION\",\"baseMinor\":\"16200"
-            + "0\",\"amountMinor\":\"8100\",\"explanationCodes\":[\"RATE_APPLIED\",\""
-            + "BASE_GROSS\"]},{\"seq\":2,\"id\":\"CNSS_EMPLOYER_PENSION\",\"party\":"
-            + "\"EMPLOYER\",\"category\":\"SOCIAL_CONTRIBUTION\",\"baseMinor\":\"162"
-            + "000\",\"amountMinor\":\"8100\",\"explanationCodes\":[\"RATE_APPLIED\""
-            + ",\"BASE_GROSS\"]},{\"seq\":3,\"id\":\"CNSS_EMPLOYER_OCCUPATIONAL_RI"
-            + "SK\",\"party\":\"EMPLOYER\",\"category\":\"SOCIAL_CONTRIBUTION\",\"bas"
-            + "eMinor\":\"162000\",\"amountMinor\":\"2430\",\"explanationCodes\":[\"R"
-            + "ATE_APPLIED\",\"BASE_GROSS\"]},{\"seq\":4,\"id\":\"CNSS_EMPLOYER_FAM"
-            + "ILY_BENEFITS\",\"party\":\"EMPLOYER\",\"category\":\"SOCIAL_CONTRIBU"
-            + "TION\",\"baseMinor\":\"162000\",\"amountMinor\":\"10530\",\"explanatio"
-            + "nCodes\":[\"RATE_APPLIED\",\"BASE_GROSS\"]},{\"seq\":5,\"id\":\"IRPP_S"
-            + "ALARY_WITHHOLDING\",\"party\":\"EMPLOYEE\",\"category\":\"INCOME_TAX"
-            + "\",\"baseMinor\":\"153900\",\"amountMinor\":\"4860\",\"explanationCode"
-            + "s\":[\"PROGRESSIVE_APPLIED\",\"BASE_GROSS_LESS_EMPLOYEE_SOCIAL\"]"
-            + "}]}";
+          + "aaaaaaaa\",\"legalEntityId\":\"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb"
+          + "bbb\",\"period\":\"2026-03\",\"currency\":\"CDF\",\"employeeId\":\"ccccc"
+          + "ccc-cccc-4ccc-8ccc-cccccccccccc\",\"employeeNumber\":\"E-0042\",\""
+          + "status\":\"APPROVED\",\"approvedAt\":\"2026-04-01T10:11:12.123456Z"
+          + "\",\"rulePack\":{\"code\":\"SYNTHETIC-TEST-DRC\",\"version\":1},\"excl"
+          + "uded\":false,\"contractualGrossMinor\":\"162000\",\"employeeCnssMi"
+          + "nor\":\"8100\",\"irppWithholdingMinor\":\"4860\",\"employeeDeduction"
+          + "sMinor\":\"12960\",\"netMinor\":\"149040\",\"employerContributionsMi"
+          + "nor\":\"21060\",\"explanationCodes\":[\"BASE_GROSS\",\"BASE_GROSS_LE"
+          + "SS_EMPLOYEE_SOCIAL\",\"PROGRESSIVE_APPLIED\",\"RATE_APPLIED\"],\"c"
+          + "omponents\":[{\"seq\":1,\"id\":\"CNSS_EMPLOYEE_PENSION\",\"party\":\"E"
+          + "MPLOYEE\",\"category\":\"SOCIAL_CONTRIBUTION\",\"baseMinor\":\"16200"
+          + "0\",\"amountMinor\":\"8100\",\"explanationCodes\":[\"RATE_APPLIED\",\""
+          + "BASE_GROSS\"]},{\"seq\":2,\"id\":\"CNSS_EMPLOYER_PENSION\",\"party\":"
+          + "\"EMPLOYER\",\"category\":\"SOCIAL_CONTRIBUTION\",\"baseMinor\":\"162"
+          + "000\",\"amountMinor\":\"8100\",\"explanationCodes\":[\"RATE_APPLIED\""
+          + ",\"BASE_GROSS\"]},{\"seq\":3,\"id\":\"CNSS_EMPLOYER_OCCUPATIONAL_RI"
+          + "SK\",\"party\":\"EMPLOYER\",\"category\":\"SOCIAL_CONTRIBUTION\",\"bas"
+          + "eMinor\":\"162000\",\"amountMinor\":\"2430\",\"explanationCodes\":[\"R"
+          + "ATE_APPLIED\",\"BASE_GROSS\"]},{\"seq\":4,\"id\":\"CNSS_EMPLOYER_FAM"
+          + "ILY_BENEFITS\",\"party\":\"EMPLOYER\",\"category\":\"SOCIAL_CONTRIBU"
+          + "TION\",\"baseMinor\":\"162000\",\"amountMinor\":\"10530\",\"explanatio"
+          + "nCodes\":[\"RATE_APPLIED\",\"BASE_GROSS\"]},{\"seq\":5,\"id\":\"IRPP_S"
+          + "ALARY_WITHHOLDING\",\"party\":\"EMPLOYEE\",\"category\":\"INCOME_TAX"
+          + "\",\"baseMinor\":\"153900\",\"amountMinor\":\"4860\",\"explanationCode"
+          + "s\":[\"PROGRESSIVE_APPLIED\",\"BASE_GROSS_LESS_EMPLOYEE_SOCIAL\"]"
+          + "}]}";
 
   private static final String DIGEST_162000 =
       "1355528a189f143cb394e412274e3c394fd7ddc062f7ebfd798cce8ca9ccd713";
@@ -84,27 +84,66 @@ class PayslipSnapshotTest {
   private static List<Component> components162000() {
     return List.of(
         component(
-            1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 162000, 8100,
-            "RATE_APPLIED", "BASE_GROSS"),
+            1,
+            "CNSS_EMPLOYEE_PENSION",
+            "EMPLOYEE",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            8100,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            2, "CNSS_EMPLOYER_PENSION", "EMPLOYER", "SOCIAL_CONTRIBUTION", 162000, 8100,
-            "RATE_APPLIED", "BASE_GROSS"),
+            2,
+            "CNSS_EMPLOYER_PENSION",
+            "EMPLOYER",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            8100,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            3, "CNSS_EMPLOYER_OCCUPATIONAL_RISK", "EMPLOYER", "SOCIAL_CONTRIBUTION", 162000, 2430,
-            "RATE_APPLIED", "BASE_GROSS"),
+            3,
+            "CNSS_EMPLOYER_OCCUPATIONAL_RISK",
+            "EMPLOYER",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            2430,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            4, "CNSS_EMPLOYER_FAMILY_BENEFITS", "EMPLOYER", "SOCIAL_CONTRIBUTION", 162000, 10530,
-            "RATE_APPLIED", "BASE_GROSS"),
+            4,
+            "CNSS_EMPLOYER_FAMILY_BENEFITS",
+            "EMPLOYER",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            10530,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            5, "IRPP_SALARY_WITHHOLDING", "EMPLOYEE", "INCOME_TAX", 153900, 4860,
-            "PROGRESSIVE_APPLIED", "BASE_GROSS_LESS_EMPLOYEE_SOCIAL"));
+            5,
+            "IRPP_SALARY_WITHHOLDING",
+            "EMPLOYEE",
+            "INCOME_TAX",
+            153900,
+            4860,
+            "PROGRESSIVE_APPLIED",
+            "BASE_GROSS_LESS_EMPLOYEE_SOCIAL"));
   }
 
   private static PayslipSnapshot snapshot(
       Instant approvedAt, String number, boolean excluded, long gross, List<Component> parts) {
     return PayslipSnapshot.of(
-        PACKAGE, ENTITY, "2026-03", approvedAt, "SYNTHETIC-TEST-DRC", 1, EMPLOYEE, number,
-        excluded, gross, parts);
+        PACKAGE,
+        ENTITY,
+        "2026-03",
+        approvedAt,
+        "SYNTHETIC-TEST-DRC",
+        1,
+        EMPLOYEE,
+        number,
+        excluded,
+        gross,
+        parts);
   }
 
   private static PayslipSnapshot vector162000() {
@@ -141,10 +180,25 @@ class PayslipSnapshotTest {
   void theKeysAreInTheDocumentedOrderWithNoWhitespaceOutsideStrings() {
     String text = vector162000().canonicalText();
     String[] order = {
-      "schemaVersion", "packageId", "legalEntityId", "period", "currency", "employeeId",
-      "employeeNumber", "status", "approvedAt", "rulePack", "excluded", "contractualGrossMinor",
-      "employeeCnssMinor", "irppWithholdingMinor", "employeeDeductionsMinor", "netMinor",
-      "employerContributionsMinor", "explanationCodes", "components"
+      "schemaVersion",
+      "packageId",
+      "legalEntityId",
+      "period",
+      "currency",
+      "employeeId",
+      "employeeNumber",
+      "status",
+      "approvedAt",
+      "rulePack",
+      "excluded",
+      "contractualGrossMinor",
+      "employeeCnssMinor",
+      "irppWithholdingMinor",
+      "employeeDeductionsMinor",
+      "netMinor",
+      "employerContributionsMinor",
+      "explanationCodes",
+      "components"
     };
     int at = -1;
     for (String key : order) {
@@ -167,11 +221,32 @@ class PayslipSnapshotTest {
     Set<String> allowed =
         new TreeSet<>(
             List.of(
-                "schemaVersion", "packageId", "legalEntityId", "period", "currency", "employeeId",
-                "employeeNumber", "status", "approvedAt", "rulePack", "code", "version", "excluded",
-                "contractualGrossMinor", "employeeCnssMinor", "irppWithholdingMinor",
-                "employeeDeductionsMinor", "netMinor", "employerContributionsMinor",
-                "explanationCodes", "components", "seq", "id", "party", "category", "baseMinor",
+                "schemaVersion",
+                "packageId",
+                "legalEntityId",
+                "period",
+                "currency",
+                "employeeId",
+                "employeeNumber",
+                "status",
+                "approvedAt",
+                "rulePack",
+                "code",
+                "version",
+                "excluded",
+                "contractualGrossMinor",
+                "employeeCnssMinor",
+                "irppWithholdingMinor",
+                "employeeDeductionsMinor",
+                "netMinor",
+                "employerContributionsMinor",
+                "explanationCodes",
+                "components",
+                "seq",
+                "id",
+                "party",
+                "category",
+                "baseMinor",
                 "amountMinor"));
     assertThat(found).isEqualTo(allowed);
   }
@@ -181,9 +256,25 @@ class PayslipSnapshotTest {
     String text = vector162000().canonicalText().toLowerCase(java.util.Locale.ROOT);
     for (String forbidden :
         List.of(
-            "approver", "subject", "nationalid", "national_id", "taxnumber", "cnssnumber",
-            "bank", "mobile", "address", "note", "firstname", "lastname", "fullname", "email",
-            "tenant", "employercost", "costminor", "reason", "explanation\":\"")) {
+            "approver",
+            "subject",
+            "nationalid",
+            "national_id",
+            "taxnumber",
+            "cnssnumber",
+            "bank",
+            "mobile",
+            "address",
+            "note",
+            "firstname",
+            "lastname",
+            "fullname",
+            "email",
+            "tenant",
+            "employercost",
+            "costminor",
+            "reason",
+            "explanation\":\"")) {
       assertThat(text).as(forbidden).doesNotContain(forbidden);
     }
     List<String> fields = new ArrayList<>();
@@ -224,8 +315,7 @@ class PayslipSnapshotTest {
     assertThat(text).doesNotContainPattern("Minor\":[0-9]");
     assertThat(text).doesNotContainPattern("Minor\":\"[0-9]*[.,]");
     PayslipSnapshot large = snapshot(APPROVED, "E-1", false, Long.MAX_VALUE, List.of());
-    assertThat(large.canonicalText())
-        .contains("\"contractualGrossMinor\":\"9223372036854775807\"");
+    assertThat(large.canonicalText()).contains("\"contractualGrossMinor\":\"9223372036854775807\"");
   }
 
   @Test
@@ -244,20 +334,43 @@ class PayslipSnapshotTest {
   void the12345VectorRoundsTheStatutoryAmountsAsTheEngineDoes() {
     PayslipSnapshot cnss =
         snapshot(
-            APPROVED, "E-1", false, 12345,
+            APPROVED,
+            "E-1",
+            false,
+            12345,
             List.of(
                 component(
-                    1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 12345, 617,
+                    1,
+                    "CNSS_EMPLOYEE_PENSION",
+                    "EMPLOYEE",
+                    "SOCIAL_CONTRIBUTION",
+                    12345,
+                    617,
                     "RATE_APPLIED"),
                 component(
-                    2, "CNSS_EMPLOYER_PENSION", "EMPLOYER", "SOCIAL_CONTRIBUTION", 12345, 617,
+                    2,
+                    "CNSS_EMPLOYER_PENSION",
+                    "EMPLOYER",
+                    "SOCIAL_CONTRIBUTION",
+                    12345,
+                    617,
                     "RATE_APPLIED"),
                 component(
-                    3, "CNSS_EMPLOYER_OCCUPATIONAL_RISK", "EMPLOYER", "SOCIAL_CONTRIBUTION",
-                    12345, 185, "RATE_APPLIED"),
+                    3,
+                    "CNSS_EMPLOYER_OCCUPATIONAL_RISK",
+                    "EMPLOYER",
+                    "SOCIAL_CONTRIBUTION",
+                    12345,
+                    185,
+                    "RATE_APPLIED"),
                 component(
-                    4, "CNSS_EMPLOYER_FAMILY_BENEFITS", "EMPLOYER", "SOCIAL_CONTRIBUTION", 12345,
-                    802, "RATE_APPLIED")));
+                    4,
+                    "CNSS_EMPLOYER_FAMILY_BENEFITS",
+                    "EMPLOYER",
+                    "SOCIAL_CONTRIBUTION",
+                    12345,
+                    802,
+                    "RATE_APPLIED")));
     assertThat(cnss.employeeCnssMinor()).isEqualTo(617L);
     assertThat(cnss.employeeDeductionsMinor()).isEqualTo(617L);
     assertThat(cnss.employerContributionsMinor()).isEqualTo(1604L);
@@ -265,10 +378,18 @@ class PayslipSnapshotTest {
 
     PayslipSnapshot irpp =
         snapshot(
-            APPROVED, "E-1", false, 12345,
+            APPROVED,
+            "E-1",
+            false,
+            12345,
             List.of(
                 component(
-                    1, "IRPP_SALARY_WITHHOLDING", "EMPLOYEE", "INCOME_TAX", 12345, 370,
+                    1,
+                    "IRPP_SALARY_WITHHOLDING",
+                    "EMPLOYEE",
+                    "INCOME_TAX",
+                    12345,
+                    370,
                     "PROGRESSIVE_APPLIED")));
     assertThat(irpp.irppWithholdingMinor()).isEqualTo(370L);
     assertThat(irpp.employeeDeductionsMinor()).isEqualTo(370L);
@@ -277,13 +398,26 @@ class PayslipSnapshotTest {
 
     PayslipSnapshot both =
         snapshot(
-            APPROVED, "E-1", false, 12345,
+            APPROVED,
+            "E-1",
+            false,
+            12345,
             List.of(
                 component(
-                    1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 12345, 617,
+                    1,
+                    "CNSS_EMPLOYEE_PENSION",
+                    "EMPLOYEE",
+                    "SOCIAL_CONTRIBUTION",
+                    12345,
+                    617,
                     "RATE_APPLIED"),
                 component(
-                    2, "IRPP_SALARY_WITHHOLDING", "EMPLOYEE", "INCOME_TAX", 12345, 370,
+                    2,
+                    "IRPP_SALARY_WITHHOLDING",
+                    "EMPLOYEE",
+                    "INCOME_TAX",
+                    12345,
+                    370,
                     "PROGRESSIVE_APPLIED")));
     assertThat(both.employeeDeductionsMinor()).isEqualTo(987L);
     assertThat(both.netMinor()).isEqualTo(11358L);
@@ -296,10 +430,20 @@ class PayslipSnapshotTest {
       List<Component> parts =
           List.of(
               component(
-                  1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 1000, 50,
+                  1,
+                  "CNSS_EMPLOYEE_PENSION",
+                  "EMPLOYEE",
+                  "SOCIAL_CONTRIBUTION",
+                  1000,
+                  50,
                   "RATE_APPLIED"),
               component(
-                  2, "CNSS_EMPLOYER_PENSION", "EMPLOYER", "SOCIAL_CONTRIBUTION", 1000, amount,
+                  2,
+                  "CNSS_EMPLOYER_PENSION",
+                  "EMPLOYER",
+                  "SOCIAL_CONTRIBUTION",
+                  1000,
+                  amount,
                   "RATE_APPLIED"));
       PayslipSnapshot snapshot = snapshot(APPROVED, "E-1", false, 1000, parts);
       assertThat(snapshot.netMinor()).as("employer " + amount).isEqualTo(950L);
@@ -335,11 +479,23 @@ class PayslipSnapshotTest {
     List<Component> parts =
         List.of(
             component(
-                1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 1000, 50,
-                "Z_CODE", "A_CODE"),
+                1,
+                "CNSS_EMPLOYEE_PENSION",
+                "EMPLOYEE",
+                "SOCIAL_CONTRIBUTION",
+                1000,
+                50,
+                "Z_CODE",
+                "A_CODE"),
             component(
-                2, "CNSS_EMPLOYER_PENSION", "EMPLOYER", "SOCIAL_CONTRIBUTION", 1000, 50,
-                "A_CODE", "M_CODE"));
+                2,
+                "CNSS_EMPLOYER_PENSION",
+                "EMPLOYER",
+                "SOCIAL_CONTRIBUTION",
+                1000,
+                50,
+                "A_CODE",
+                "M_CODE"));
     PayslipSnapshot snapshot = snapshot(APPROVED, "E-1", false, 1000, parts);
     assertThat(snapshot.explanationCodes()).containsExactly("A_CODE", "M_CODE", "Z_CODE");
     assertThat(snapshot.canonicalText())
@@ -347,14 +503,12 @@ class PayslipSnapshotTest {
         .contains("\"explanationCodes\":[\"Z_CODE\",\"A_CODE\"]}");
     assertThat(vector162000().explanationCodes())
         .containsExactly(
-            "BASE_GROSS", "BASE_GROSS_LESS_EMPLOYEE_SOCIAL", "PROGRESSIVE_APPLIED",
-            "RATE_APPLIED");
+            "BASE_GROSS", "BASE_GROSS_LESS_EMPLOYEE_SOCIAL", "PROGRESSIVE_APPLIED", "RATE_APPLIED");
   }
 
   @Test
   void stringsAreEscapedMinimallyAndControlCharactersAsLowerCaseUnicodeEscapes() {
-    PayslipSnapshot snapshot =
-        snapshot(APPROVED, "E\"\\\u0001\u001f-1", false, 1000, List.of());
+    PayslipSnapshot snapshot = snapshot(APPROVED, "E\"\\\u0001\u001f-1", false, 1000, List.of());
     assertThat(snapshot.canonicalText())
         .contains("\"employeeNumber\":\"E\\\"\\\\\\u0001\\u001f-1\"");
     PayslipSnapshot accents = snapshot(APPROVED, "É-é-1", false, 1000, List.of());
@@ -386,8 +540,7 @@ class PayslipSnapshotTest {
     // Deductions above the gross would make the net negative.
     List<Component> tooMuch =
         List.of(
-            component(
-                1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 100, 60, "A"),
+            component(1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 100, 60, "A"),
             component(2, "IRPP_SALARY_WITHHOLDING", "EMPLOYEE", "INCOME_TAX", 100, 50, "A"));
     assertThatThrownBy(() -> snapshot(APPROVED, "E-1", false, 100, tooMuch))
         .isInstanceOf(IllegalArgumentException.class);
@@ -407,8 +560,8 @@ class PayslipSnapshotTest {
     assertThatThrownBy(
             () ->
                 new PayslipSnapshot(
-                    PACKAGE, ENTITY, "2026-03", EMPLOYEE, "E-1", APPROVED, "P", 1, false, -1L,
-                    0L, 0L, 0L, -1L, 0L, List.of(), List.of()))
+                    PACKAGE, ENTITY, "2026-03", EMPLOYEE, "E-1", APPROVED, "P", 1, false, -1L, 0L,
+                    0L, 0L, -1L, 0L, List.of(), List.of()))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -417,7 +570,12 @@ class PayslipSnapshotTest {
     List<Component> huge =
         List.of(
             component(
-                1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 1, Long.MAX_VALUE,
+                1,
+                "CNSS_EMPLOYEE_PENSION",
+                "EMPLOYEE",
+                "SOCIAL_CONTRIBUTION",
+                1,
+                Long.MAX_VALUE,
                 "A"),
             component(
                 2, "IRPP_SALARY_WITHHOLDING", "EMPLOYEE", "INCOME_TAX", 1, Long.MAX_VALUE, "A"));

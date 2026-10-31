@@ -104,8 +104,7 @@ public class MyPayslipController {
       @Parameter(hidden = true) HttpServletRequest request) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
-        .body(
-            payslips.getMine(caller(authentication, request), payslipId, locale, acceptLanguage));
+        .body(payslips.getMine(caller(authentication, request), payslipId, locale, acceptLanguage));
   }
 
   /**

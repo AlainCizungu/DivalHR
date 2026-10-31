@@ -302,8 +302,7 @@ class PayrollPackageMigrationIntegrationTest {
       String url = connection.getJdbcUrl().replaceAll("/[^/?]+(\\?.*)?$", "/" + database + "$1");
       body.run(
           new JdbcTemplate(
-              new DriverManagerDataSource(
-                  url, connection.getUsername(), connection.getPassword())),
+              new DriverManagerDataSource(url, connection.getUsername(), connection.getPassword())),
           url);
     } finally {
       jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
@@ -417,8 +416,7 @@ class PayrollPackageMigrationIntegrationTest {
     StringBuilder lines = new StringBuilder();
     for (Map<String, Object> slip : slips) {
       String text = (String) slip.get("snapshot_text");
-      String expected =
-          HexFormat.of().formatHex(sha.digest(text.getBytes(StandardCharsets.UTF_8)));
+      String expected = HexFormat.of().formatHex(sha.digest(text.getBytes(StandardCharsets.UTF_8)));
       assertThat(slip.get("snapshot_digest")).isEqualTo(expected);
       assertThat(text).startsWith("{").endsWith("}");
       lines
@@ -445,21 +443,63 @@ class PayrollPackageMigrationIntegrationTest {
             pkg);
     String text =
         "payroll-package-approval:v1\n"
-            + "tenant=" + p.get("tenant") + "\n"
-            + "entity=" + p.get("entity") + "\n"
-            + "period=" + p.get("period") + "\n"
-            + "currency=" + p.get("currency") + "\n"
-            + "run=" + p.get("run") + "|" + p.get("run_version") + "|" + p.get("run_digest") + "\n"
-            + "calculation=" + p.get("calc") + "|" + p.get("calc_version") + "|"
-            + p.get("calculation_digest") + "|" + p.get("src") + "|" + p.get("prof") + "|"
-            + p.get("rp") + "\n"
-            + "pack=" + p.get("pack") + "|" + p.get("rules_digest") + "\n"
-            + "policy=" + p.get("policy") + "|" + p.get("policy_seq") + "\n"
-            + "totals=" + p.get("gross") + "|" + p.get("ded") + "|" + p.get("emp") + "|"
-            + p.get("net") + "|" + p.get("cost") + "|" + p.get("cnt") + "\n"
+            + "tenant="
+            + p.get("tenant")
+            + "\n"
+            + "entity="
+            + p.get("entity")
+            + "\n"
+            + "period="
+            + p.get("period")
+            + "\n"
+            + "currency="
+            + p.get("currency")
+            + "\n"
+            + "run="
+            + p.get("run")
+            + "|"
+            + p.get("run_version")
+            + "|"
+            + p.get("run_digest")
+            + "\n"
+            + "calculation="
+            + p.get("calc")
+            + "|"
+            + p.get("calc_version")
+            + "|"
+            + p.get("calculation_digest")
+            + "|"
+            + p.get("src")
+            + "|"
+            + p.get("prof")
+            + "|"
+            + p.get("rp")
+            + "\n"
+            + "pack="
+            + p.get("pack")
+            + "|"
+            + p.get("rules_digest")
+            + "\n"
+            + "policy="
+            + p.get("policy")
+            + "|"
+            + p.get("policy_seq")
+            + "\n"
+            + "totals="
+            + p.get("gross")
+            + "|"
+            + p.get("ded")
+            + "|"
+            + p.get("emp")
+            + "|"
+            + p.get("net")
+            + "|"
+            + p.get("cost")
+            + "|"
+            + p.get("cnt")
+            + "\n"
             + lines;
-    String recomputed =
-        HexFormat.of().formatHex(sha.digest(text.getBytes(StandardCharsets.UTF_8)));
+    String recomputed = HexFormat.of().formatHex(sha.digest(text.getBytes(StandardCharsets.UTF_8)));
     assertThat(p.get("approval_digest")).isEqualTo(recomputed);
     assertThat(
             jdbc.queryForObject(
@@ -468,9 +508,7 @@ class PayrollPackageMigrationIntegrationTest {
                 String.class,
                 pkg))
         .isEqualTo(recomputed);
-    assertThat(
-            jdbc.queryForObject(
-                "SELECT payroll.payroll_snapshot_digest('{}')", String.class))
+    assertThat(jdbc.queryForObject("SELECT payroll.payroll_snapshot_digest('{}')", String.class))
         .isEqualTo(HexFormat.of().formatHex(sha.digest("{}".getBytes(StandardCharsets.UTF_8))));
   }
 
@@ -515,8 +553,8 @@ class PayrollPackageMigrationIntegrationTest {
                 packageCopy("status", "'VOIDED'", "voided_at", "approved_at + interval '1 hour'"),
                 pkg));
     refuses(
-        "payroll_package_run_state", c -> exec(c, packageCopy("run_digest", "repeat('0', 64)"),
-            pkg));
+        "payroll_package_run_state",
+        c -> exec(c, packageCopy("run_digest", "repeat('0', 64)"), pkg));
     refuses("payroll_package_run_state", c -> exec(c, packageCopy("run_version", "2"), pkg));
     refuses(
         "payroll_package_calculation_state",
@@ -525,8 +563,8 @@ class PayrollPackageMigrationIntegrationTest {
         "payroll_package_calculation_state",
         c -> exec(c, packageCopy("calculation_rule_pack_digest", "repeat('0', 64)"), pkg));
     refuses(
-        "payroll_package_pack_state", c -> exec(c, packageCopy("rules_digest", "repeat('0', 64)"),
-            pkg));
+        "payroll_package_pack_state",
+        c -> exec(c, packageCopy("rules_digest", "repeat('0', 64)"), pkg));
     refuses("payroll_package_pack_state", c -> exec(c, packageCopy("pack_version", "2"), pkg));
     refuses(
         "payroll_package_totals_source",
@@ -538,8 +576,7 @@ class PayrollPackageMigrationIntegrationTest {
                     "net_total_minor", "net_total_minor + 1",
                     "employer_cost_total_minor", "employer_cost_total_minor + 1"),
                 pkg));
-    refuses(
-        "payroll_package_totals_source", c -> exec(c, packageCopy("payslip_count", "2"), pkg));
+    refuses("payroll_package_totals_source", c -> exec(c, packageCopy("payslip_count", "2"), pkg));
     refuses(
         "payroll_package_approved_at",
         c -> exec(c, packageCopy("approved_at", "timestamptz '2000-01-01 00:00:00+00'"), pkg));
@@ -622,8 +659,7 @@ class PayrollPackageMigrationIntegrationTest {
           exec(c, VOID_PACKAGE.formatted("1 hour"), pkg);
         });
     // The status alone, without evidence, is refused.
-    refuses(
-        "payroll_package_void_evidence", c -> exec(c, VOID_PACKAGE.formatted("1 hour"), pkg));
+    refuses("payroll_package_void_evidence", c -> exec(c, VOID_PACKAGE.formatted("1 hour"), pkg));
     // Evidence whose instant differs from the package's is refused.
     refuses(
         "payroll_package_void_evidence",
@@ -716,8 +752,12 @@ class PayrollPackageMigrationIntegrationTest {
                 pkg));
     refuses(
         "payroll_package_immutable",
-        c -> exec(c, "UPDATE payroll.payroll_package_void SET reason_code = reason_code"
-            + " WHERE package_id = ?", pkg));
+        c ->
+            exec(
+                c,
+                "UPDATE payroll.payroll_package_void SET reason_code = reason_code"
+                    + " WHERE package_id = ?",
+                pkg));
     refuses(
         "payroll_package_immutable",
         c -> exec(c, "DELETE FROM payroll.payroll_package_void WHERE package_id = ?", pkg));
@@ -733,11 +773,7 @@ class PayrollPackageMigrationIntegrationTest {
     // The voided pair can never be approved again, whatever the application says.
     refuses(
         "payroll_package_source_voided",
-        c ->
-            exec(
-                c,
-                packageCopy("status", "'APPROVED'", "voided_at", "NULL"),
-                pkg));
+        c -> exec(c, packageCopy("status", "'APPROVED'", "voided_at", "NULL"), pkg));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -754,15 +790,12 @@ class PayrollPackageMigrationIntegrationTest {
                 String.class,
                 pkg))
         .containsExactly("CALCULATION", "RUN");
-    refuses(
-        "payroll_package_source_binding",
-        c -> exec(c, SOURCE_COPY.formatted("RUN", 1), pkg));
+    refuses("payroll_package_source_binding", c -> exec(c, SOURCE_COPY.formatted("RUN", 1), pkg));
     refuses(
         "payroll_package_source_binding",
         c -> exec(c, SOURCE_COPY.formatted("CALCULATION", 0), pkg));
     // The same binding again is the primary key.
-    refuses(
-        "payroll_package_source_pkey", c -> exec(c, SOURCE_COPY.formatted("RUN", 0), pkg));
+    refuses("payroll_package_source_pkey", c -> exec(c, SOURCE_COPY.formatted("RUN", 0), pkg));
     refuses(
         "payroll_package_immutable",
         c ->
@@ -795,21 +828,19 @@ class PayrollPackageMigrationIntegrationTest {
           c ->
               exec(
                   c,
-                  slipCopy(
-                      "(snapshot || jsonb_build_object('" + field + "', 'tampered'))::text"),
+                  slipCopy("(snapshot || jsonb_build_object('" + field + "', 'tampered'))::text"),
                   pkg));
     }
     refuses(
         "payroll_payslip_snapshot_values",
+        c -> exec(c, slipCopy("(snapshot || jsonb_build_object('schemaVersion', 2))::text"), pkg));
+    refusesOneOf(
+        List.of("payroll_payslip_snapshot_sums", "payroll_payslip_snapshot_components"),
         c ->
             exec(
                 c,
-                slipCopy("(snapshot || jsonb_build_object('schemaVersion', 2))::text"),
+                slipCopy("(snapshot || jsonb_build_object('components', '[]'::jsonb))::text"),
                 pkg));
-    refusesOneOf(
-        List.of("payroll_payslip_snapshot_sums", "payroll_payslip_snapshot_components"),
-        c -> exec(c, slipCopy("(snapshot || jsonb_build_object('components', '[]'::jsonb))::text"),
-            pkg));
     refuses(
         "payroll_payslip_snapshot_sums",
         c ->
@@ -817,13 +848,7 @@ class PayrollPackageMigrationIntegrationTest {
                 c,
                 slipCopy("(snapshot || jsonb_build_object('employeeCnssMinor', '1'))::text"),
                 pkg));
-    refuses(
-        "payroll_payslip_snapshot_explanations",
-        c ->
-            exec(
-                c,
-                slipCopy(ZZ_CODES),
-                pkg));
+    refuses("payroll_payslip_snapshot_explanations", c -> exec(c, slipCopy(ZZ_CODES), pkg));
     refuses(
         "payroll_payslip_source_line",
         c ->
@@ -831,14 +856,20 @@ class PayrollPackageMigrationIntegrationTest {
                 c,
                 slipCopy(
                     "snapshot_text",
-                    "gross_minor", "gross_minor + 1",
-                    "net_minor", "net_minor + 1",
-                    "employer_cost_minor", "employer_cost_minor + 1"),
+                    "gross_minor",
+                    "gross_minor + 1",
+                    "net_minor",
+                    "net_minor + 1",
+                    "employer_cost_minor",
+                    "employer_cost_minor + 1"),
                 pkg));
     refuses(
         "payroll_payslip_package_state",
-        c -> exec(c, slipCopy("snapshot_text", "approved_at", "approved_at + interval '1 second'"),
-            pkg));
+        c ->
+            exec(
+                c,
+                slipCopy("snapshot_text", "approved_at", "approved_at + interval '1 second'"),
+                pkg));
     refuses(
         "payroll_payslip_snapshot_version",
         c -> exec(c, slipCopy("snapshot_text", "snapshot_version", "2"), pkg));
@@ -861,8 +892,7 @@ class PayrollPackageMigrationIntegrationTest {
     refuses(
         "payroll_payslip_immutable",
         c -> exec(c, "DELETE FROM payroll.payroll_payslip WHERE package_id = ?", pkg));
-    refuses(
-        "payroll_payslip_immutable", c -> exec(c, "TRUNCATE payroll.payroll_payslip"));
+    refuses("payroll_payslip_immutable", c -> exec(c, "TRUNCATE payroll.payroll_payslip"));
     assertThat(w.evidence().get(3)).isEqualTo(3);
   }
 
@@ -970,7 +1000,9 @@ class PayrollPackageMigrationIntegrationTest {
                       + " 105, 1, '{}')");
           List<String> tables =
               List.of(
-                  "payroll_package", "payroll_package_source", "payroll_package_void",
+                  "payroll_package",
+                  "payroll_package_source",
+                  "payroll_package_void",
                   "payroll_payslip");
           for (int i = 0; i < rows.size(); i++) {
             String insert = rows.get(i);

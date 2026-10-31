@@ -134,8 +134,7 @@ class PayrollPackageConcurrencyIntegrationTest {
     int packages = w.evidence().get(0);
 
     List<String> outcomes =
-        parallel(
-            List.of(w.approveRequest(chain, key, body), w.approveRequest(chain, key, body)));
+        parallel(List.of(w.approveRequest(chain, key, body), w.approveRequest(chain, key, body)));
 
     assertThat(outcomes).contains("201").noneMatch(outcome -> outcome.startsWith("5"));
     assertThat(w.evidence().get(0)).isEqualTo(packages + 1);
@@ -176,8 +175,11 @@ class PayrollPackageConcurrencyIntegrationTest {
     Map<String, Object> approval = PayrollPackageWorld.approving(w.preview(chain));
     Map<String, Object> command =
         StatutoryWorld.profileCommand(
-            w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false,
-                "EMPLOYMENT_CONTRACT");
+            w.month.atDay(1).minusDays(10),
+            "STANDARD_RESIDENT",
+            true,
+            false,
+            "EMPLOYMENT_CONTRACT");
     JsonNode profilePreview = w.c.expect(w.s.profilePreviewRequest(chain.employee(), command), 200);
     Map<String, Object> profile = StatutoryWorld.profileCommitting(command, profilePreview);
     int packages = w.evidence().get(0);

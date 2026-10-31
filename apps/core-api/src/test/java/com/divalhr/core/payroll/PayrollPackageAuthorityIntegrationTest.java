@@ -174,8 +174,8 @@ class PayrollPackageAuthorityIntegrationTest {
         new Operation("getPackagePayslip", PayrollRunWorld.get(bearer, slips + "/" + anaSlip)));
     calls.add(
         new Operation(
-            "downloadPackagePayslipPdf", PayrollRunWorld.get(bearer,
-                slips + "/" + anaSlip + ".pdf")));
+            "downloadPackagePayslipPdf",
+            PayrollRunWorld.get(bearer, slips + "/" + anaSlip + ".pdf")));
     return calls;
   }
 
@@ -261,8 +261,8 @@ class PayrollPackageAuthorityIntegrationTest {
     assertThat(theirs.get("items")).isEmpty();
     // This tenant's administrator cannot reach the other tenant's entity either.
     JsonNode problem =
-        w.c.expect(PayrollRunWorld.get(w.admin, PayrollPackageWorld.packagesPath(other.entity)),
-            404);
+        w.c.expect(
+            PayrollRunWorld.get(w.admin, PayrollPackageWorld.packagesPath(other.entity)), 404);
     assertThat(problem.get("code").asText()).isIn(NOT_FOUND);
     assertThat(w.evidence()).isEqualTo(before);
   }
@@ -274,14 +274,12 @@ class PayrollPackageAuthorityIntegrationTest {
             w.r.hire("Elsewhere", w.month.atDay(1).minusDays(3)), w.r.today.minusDays(1));
     JsonNode problem =
         w.c.expect(
-            PayrollRunWorld.get(
-                w.admin, PayrollPackageWorld.packagesPath(second) + "/" + pkg),
+            PayrollRunWorld.get(w.admin, PayrollPackageWorld.packagesPath(second) + "/" + pkg),
             404);
     assertThat(problem.get("code").asText()).isEqualTo("PAYROLL_PACKAGE_NOT_FOUND");
     w.c.problem(
         PayrollRunWorld.get(
-            w.admin,
-            PayrollPackageWorld.packagesPath(second) + "/" + pkg + "/payslips/" + anaSlip),
+            w.admin, PayrollPackageWorld.packagesPath(second) + "/" + pkg + "/payslips/" + anaSlip),
         404,
         "PAYSLIP_NOT_FOUND");
     JsonNode listed =
@@ -301,10 +299,9 @@ class PayrollPackageAuthorityIntegrationTest {
 
     JsonNode own =
         w.c.expect(PayrollRunWorld.get(ana.bearer(), PayrollPackageWorld.minePath(anaSlip)), 200);
-    assertThat(own.get("snapshot").get("employeeId").asText())
-        .isEqualTo(ana.employee().toString());
-    assertThat(w.pdf(ana.bearer(), PayrollPackageWorld.minePdfPath(anaSlip))
-            .getContentAsByteArray())
+    assertThat(own.get("snapshot").get("employeeId").asText()).isEqualTo(ana.employee().toString());
+    assertThat(
+            w.pdf(ana.bearer(), PayrollPackageWorld.minePdfPath(anaSlip)).getContentAsByteArray())
         .isNotEmpty();
 
     int downloads = w.audits("payslip.download");
@@ -364,8 +361,7 @@ class PayrollPackageAuthorityIntegrationTest {
 
   @Test
   void aCursorIsBoundToItsCaller() throws Exception {
-    JsonNode page =
-        w.c.expect(PayrollRunWorld.get(w.admin, w.slipsPath(pkg) + "?limit=1"), 200);
+    JsonNode page = w.c.expect(PayrollRunWorld.get(w.admin, w.slipsPath(pkg) + "?limit=1"), 200);
     String cursor = page.get("nextCursor").asText();
     String colleague = bearer(w.tenant, "sub-pkg94-colleague", TestTokens.MFA_ACR, "tenant-admin");
     w.c.problem(

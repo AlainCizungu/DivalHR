@@ -30,9 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * previews and commits freeze the exact payroll run, statutory calculation, rule pack and totals;
  * every kind of drift makes a preview stale or blocked with its own stable code; replays are
  * idempotent; a bound source cannot be superseded and can after a void; the void lifecycle, its
- * reason rules and the payment guard; a corrected chain approved after a void while the old
- * package and payslips stay immutable and VOIDED; the arithmetic of every payslip snapshot; EN and
- * FR views with identical amounts; the synthetic flag. Synthetic data only: the packs are {@code
+ * reason rules and the payment guard; a corrected chain approved after a void while the old package
+ * and payslips stay immutable and VOIDED; the arithmetic of every payslip snapshot; EN and FR views
+ * with identical amounts; the synthetic flag. Synthetic data only: the packs are {@code
  * SYNTHETIC-TEST-*} (or one {@code REVIEWED-TEST-*} for the non-synthetic assertion) and the clock
  * is frozen on the 15th of the current month.
  */
@@ -115,8 +115,9 @@ class PayrollPackageApiIntegrationTest {
     assertThat(w.evidence()).containsExactly(0, 0, 0, 0, 0, 0);
 
     MockHttpServletResponse response =
-        w.c.call(w.approveRequest(chain, Organizations.newKey(),
-            PayrollPackageWorld.approving(preview)));
+        w.c.call(
+            w.approveRequest(
+                chain, Organizations.newKey(), PayrollPackageWorld.approving(preview)));
     assertThat(response.getStatus()).isEqualTo(201);
     assertThat(response.getHeader("Cache-Control")).isEqualTo("private, no-store");
     assertThat(response.getHeader("Idempotent-Replayed")).isNull();
@@ -150,8 +151,7 @@ class PayrollPackageApiIntegrationTest {
     assertThat(evidence.get("sourceRunDigest")).isEqualTo(preview.get("sourceRunDigest"));
     assertThat(evidence.get("calculationDigest")).isEqualTo(preview.get("calculationDigest"));
     assertThat(evidence.get("calculationProfileDigest")).isEqualTo(preview.get("profileDigest"));
-    assertThat(evidence.get("calculationRulePackDigest"))
-        .isEqualTo(preview.get("rulePackDigest"));
+    assertThat(evidence.get("calculationRulePackDigest")).isEqualTo(preview.get("rulePackDigest"));
     assertThat(evidence.get("approvalDigest").asText()).matches("[0-9a-f]{64}");
     assertThat(evidence.get("reviewedTotals").asBoolean()).isTrue();
     assertThat(evidence.get("reviewedExceptions").asBoolean()).isTrue();
@@ -192,8 +192,8 @@ class PayrollPackageApiIntegrationTest {
     Map<String, Object> body = PayrollPackageWorld.approving(preview);
     for (String field : List.of("approvedBy", "approverSubject", "approvedBySubject", "subject")) {
       w.c.problem(
-          w.approveRequest(chain, Organizations.newKey(), PayrollPackageWorld.with(body, field,
-              "someone-else")),
+          w.approveRequest(
+              chain, Organizations.newKey(), PayrollPackageWorld.with(body, field, "someone-else")),
           400,
           "VALIDATION_FAILED");
     }
@@ -241,13 +241,13 @@ class PayrollPackageApiIntegrationTest {
     Map<String, Object> body = PayrollPackageWorld.approving(w.preview(chain));
     for (String field : List.of("reviewedTotals", "reviewedExceptions", "understandsNoPayment")) {
       w.c.problem(
-          w.approveRequest(chain, Organizations.newKey(), PayrollPackageWorld.with(body, field,
-              false)),
+          w.approveRequest(
+              chain, Organizations.newKey(), PayrollPackageWorld.with(body, field, false)),
           400,
           "VALIDATION_FAILED");
       w.c.problem(
-          w.approveRequest(chain, Organizations.newKey(), PayrollPackageWorld.with(body, field,
-              "true")),
+          w.approveRequest(
+              chain, Organizations.newKey(), PayrollPackageWorld.with(body, field, "true")),
           400,
           "VALIDATION_FAILED");
       Map<String, Object> missing = new java.util.LinkedHashMap<>(body);
@@ -464,8 +464,8 @@ class PayrollPackageApiIntegrationTest {
     assertThat(w.evidence()).isEqualTo(after);
     // The same key with another payload is refused.
     w.c.problem(
-        w.approveRequest(chain, key, PayrollPackageWorld.with(body, "previewDigest",
-            "c".repeat(64))),
+        w.approveRequest(
+            chain, key, PayrollPackageWorld.with(body, "previewDigest", "c".repeat(64))),
         409,
         "IDEMPOTENCY_KEY_REUSED");
 
@@ -482,8 +482,8 @@ class PayrollPackageApiIntegrationTest {
     assertThat(again.get("previewDigest").isNull()).isTrue();
     assertThat(again.get("expiresAt").isNull()).isTrue();
     assertThat(again.get("existingPackage").get("packageId").asText())
-        .isEqualTo(CompensationWorld.JSON.readTree(first.getContentAsString()).get("packageId")
-            .asText());
+        .isEqualTo(
+            CompensationWorld.JSON.readTree(first.getContentAsString()).get("packageId").asText());
     w.c.problem(
         w.approveRequest(chain, Organizations.newKey(), PayrollPackageWorld.approving(again)),
         409,
@@ -503,7 +503,12 @@ class PayrollPackageApiIntegrationTest {
     for (String id : List.of(UUID.randomUUID().toString(), "not-a-uuid")) {
       w.c.problem(
           CompensationWorld.json(
-              base + id + runs + chain.run() + calculations + chain.calculation()
+              base
+                  + id
+                  + runs
+                  + chain.run()
+                  + calculations
+                  + chain.calculation()
                   + "/approval/preview",
               w.admin,
               null,
@@ -543,7 +548,12 @@ class PayrollPackageApiIntegrationTest {
     String secondRun = w.s.cdfRun();
     w.c.problem(
         CompensationWorld.json(
-            base + entity + runs + secondRun + calculations + chain.calculation()
+            base
+                + entity
+                + runs
+                + secondRun
+                + calculations
+                + chain.calculation()
                 + "/approval/preview",
             w.admin,
             null,
@@ -564,8 +574,8 @@ class PayrollPackageApiIntegrationTest {
     String pkg = receipt.get("packageId").asText();
     int runs = w.c.count("SELECT count(*) FROM payroll.pay_run WHERE tenant_id = ?", w.tenant);
     int calculations =
-        w.c.count("SELECT count(*) FROM payroll.statutory_calculation WHERE tenant_id = ?",
-            w.tenant);
+        w.c.count(
+            "SELECT count(*) FROM payroll.statutory_calculation WHERE tenant_id = ?", w.tenant);
 
     // The calculation: a changed profile, then a recalculation.
     w.s.profile(chain.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
@@ -610,8 +620,8 @@ class PayrollPackageApiIntegrationTest {
         201);
     JsonNode freshRun = w.c.expect(w.r.runPreviewRequest(command), 200);
     w.c.expect(
-        w.r.runCommitRequest(Organizations.newKey(), PayrollRunWorld.runCommitting(command,
-            freshRun)),
+        w.r.runCommitRequest(
+            Organizations.newKey(), PayrollRunWorld.runCommitting(command, freshRun)),
         201);
     assertThat(
             w.c.count(
@@ -649,8 +659,10 @@ class PayrollPackageApiIntegrationTest {
     }
     for (String reason :
         List.of(
-            "SOURCE_CORRECTION", "PROFILE_CORRECTION", "RULE_PACK_CORRECTION",
-                "ADMINISTRATIVE_ERROR")) {
+            "SOURCE_CORRECTION",
+            "PROFILE_CORRECTION",
+            "RULE_PACK_CORRECTION",
+            "ADMINISTRATIVE_ERROR")) {
       JsonNode preview = w.voidPreview(pkg, reason, null);
       assertThat(preview.get("status").asText()).isEqualTo("READY");
       assertThat(preview.get("reasonCode").asText()).isEqualTo(reason);
@@ -664,13 +676,15 @@ class PayrollPackageApiIntegrationTest {
     JsonNode preview = w.voidPreview(pkg, "SOURCE_CORRECTION", null);
     Map<String, Object> body = PayrollPackageWorld.voiding(preview, "SOURCE_CORRECTION", null);
     w.c.problem(
-        w.voidRequest(pkg, Organizations.newKey(), PayrollPackageWorld.with(body,
-            "noPaymentAcknowledged", false)),
+        w.voidRequest(
+            pkg,
+            Organizations.newKey(),
+            PayrollPackageWorld.with(body, "noPaymentAcknowledged", false)),
         400,
         "VALIDATION_FAILED");
     w.c.problem(
-        w.voidRequest(pkg, Organizations.newKey(), PayrollPackageWorld.with(body, "voidedBy",
-            "me")),
+        w.voidRequest(
+            pkg, Organizations.newKey(), PayrollPackageWorld.with(body, "voidedBy", "me")),
         400,
         "VALIDATION_FAILED");
     w.c.problem(w.voidRequest(pkg, null, body), 400, "VALIDATION_FAILED");
@@ -690,8 +704,8 @@ class PayrollPackageApiIntegrationTest {
         .isEqualTo(before.get("evidence").get("approvalDigest"));
     assertThat(Instant.parse(preview.get("expiresAt").asText()))
         .isEqualTo(clock.instant().plusSeconds(15 * 60));
-    Map<String, Object> body = PayrollPackageWorld.voiding(preview, "OTHER_CONTROLLED",
-        EXPLANATION);
+    Map<String, Object> body =
+        PayrollPackageWorld.voiding(preview, "OTHER_CONTROLLED", EXPLANATION);
 
     // Precedence: a different version or approval digest first, then the preview itself.
     w.c.problem(
@@ -699,14 +713,16 @@ class PayrollPackageApiIntegrationTest {
             pkg,
             Organizations.newKey(),
             PayrollPackageWorld.with(
-                PayrollPackageWorld.with(body, "packageVersion", 2), "previewDigest",
-                    "a".repeat(64))),
+                PayrollPackageWorld.with(body, "packageVersion", 2),
+                "previewDigest",
+                "a".repeat(64))),
         409,
         "PAYROLL_PACKAGE_VERSION_CONFLICT");
     w.c.problem(
         w.voidRequest(
-            pkg, Organizations.newKey(), PayrollPackageWorld.with(body, "approvalDigest",
-                "b".repeat(64))),
+            pkg,
+            Organizations.newKey(),
+            PayrollPackageWorld.with(body, "approvalDigest", "b".repeat(64))),
         409,
         "PAYROLL_PACKAGE_VERSION_CONFLICT");
     for (Map<String, Object> stale :
@@ -744,8 +760,7 @@ class PayrollPackageApiIntegrationTest {
     assertThat(w.evidence()).isEqualTo(after);
 
     // A new key is refused: the package is voided, and a preview says so.
-    w.c.problem(
-        w.voidRequest(pkg, Organizations.newKey(), body), 409, "PAYROLL_PACKAGE_VOIDED");
+    w.c.problem(w.voidRequest(pkg, Organizations.newKey(), body), 409, "PAYROLL_PACKAGE_VOIDED");
     JsonNode again = w.voidPreview(pkg, "OTHER_CONTROLLED", EXPLANATION);
     assertThat(again.get("status").asText()).isEqualTo("BLOCKED");
     assertThat(texts(again.get("blockers"))).containsExactly("ALREADY_VOIDED");
@@ -766,7 +781,8 @@ class PayrollPackageApiIntegrationTest {
     assertThat(list.get("items")).hasSize(1);
     assertThat(list.toString()).doesNotContain(EXPLANATION);
     assertThat(
-            w.c.expect(PayrollRunWorld.get(w.admin, w.packagesPath() + "?status=APPROVED"), 200)
+            w.c
+                .expect(PayrollRunWorld.get(w.admin, w.packagesPath() + "?status=APPROVED"), 200)
                 .get("items"))
         .isEmpty();
   }
@@ -802,8 +818,8 @@ class PayrollPackageApiIntegrationTest {
       assertThat(voided.get("snapshotDigest")).isEqualTo(approved.get("snapshotDigest"));
       // The snapshot keeps its status at publication; the amounts are untouched.
       assertThat(voided.get("snapshot").get("status").asText()).isEqualTo("APPROVED");
-      assertThat(voided.get("snapshot").get("approvedAt")).isEqualTo(approved.get("snapshot")
-          .get("approvedAt"));
+      assertThat(voided.get("snapshot").get("approvedAt"))
+          .isEqualTo(approved.get("snapshot").get("approvedAt"));
       assertThat(amount(voided.get("snapshot").get("approvedNet"))).isEqualTo("149040");
       assertThat(voided.get("wording").get("voidedNotice").asText()).isNotBlank();
       assertThat(voided.toString()).doesNotContain(EXPLANATION);
@@ -870,8 +886,7 @@ class PayrollPackageApiIntegrationTest {
     // The corrected chain: the profile is corrected and the run is calculated again.
     w.advance(3600);
     w.s.profile(chain.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
-    Chain corrected =
-        new Chain(chain.pack(), chain.employee(), chain.run(), w.recalculate(chain));
+    Chain corrected = new Chain(chain.pack(), chain.employee(), chain.run(), w.recalculate(chain));
     JsonNode preview = w.preview(corrected);
     assertThat(preview.get("status").asText()).isEqualTo("READY");
     assertThat(preview.get("expectedVersion").asInt()).isEqualTo(1);
@@ -888,8 +903,8 @@ class PayrollPackageApiIntegrationTest {
     // The old package and its payslip are exactly as they were, and now visibly VOIDED.
     JsonNode oldAfter = w.packageDetail(oldPackage);
     assertThat(oldAfter.get("package").get("status").asText()).isEqualTo("VOIDED");
-    assertThat(oldAfter.get("package").get("totals")).isEqualTo(oldDetail.get("package")
-        .get("totals"));
+    assertThat(oldAfter.get("package").get("totals"))
+        .isEqualTo(oldDetail.get("package").get("totals"));
     assertThat(oldAfter.get("evidence")).isEqualTo(oldDetail.get("evidence"));
     assertThat(
             jdbc.queryForObject(
@@ -998,8 +1013,7 @@ class PayrollPackageApiIntegrationTest {
     assertThat(amount(totals.get("approvedNet"))).isEqualTo(Long.toString(net));
     assertThat(amount(totals.get("employerCost"))).isEqualTo(Long.toString(gross + employer));
     // The exact vector of the reference employee.
-    JsonNode reference =
-        w.slipView(pkg, w.slipOf(pkg, chain.employee()), "en").get("snapshot");
+    JsonNode reference = w.slipView(pkg, w.slipOf(pkg, chain.employee()), "en").get("snapshot");
     assertThat(amount(reference.get("employeeCnss"))).isEqualTo("8100");
     assertThat(amount(reference.get("irppWithholding"))).isEqualTo("4860");
     assertThat(amount(reference.get("employeeDeductions"))).isEqualTo("12960");
@@ -1049,34 +1063,42 @@ class PayrollPackageApiIntegrationTest {
     // The locale is chosen by the query, else by Accept-Language, else English; others are refused.
     String path = w.slipPath(pkg, slip);
     assertThat(
-            w.c.expect(PayrollRunWorld.get(w.admin, path).header("Accept-Language",
-                "fr-CA,fr;q=0.9"), 200)
+            w.c
+                .expect(
+                    PayrollRunWorld.get(w.admin, path).header("Accept-Language", "fr-CA,fr;q=0.9"),
+                    200)
                 .get("wording")
                 .get("locale")
                 .asText())
         .isEqualTo("fr");
     assertThat(
-            w.c.expect(PayrollRunWorld.get(w.admin, path).header("Accept-Language",
-                "de, en;q=0.5"), 200)
+            w.c
+                .expect(
+                    PayrollRunWorld.get(w.admin, path).header("Accept-Language", "de, en;q=0.5"),
+                    200)
                 .get("wording")
                 .get("locale")
                 .asText())
         .isEqualTo("en");
     assertThat(
-            w.c.expect(PayrollRunWorld.get(w.admin, path), 200).get("wording").get("locale")
+            w.c
+                .expect(PayrollRunWorld.get(w.admin, path), 200)
+                .get("wording")
+                .get("locale")
                 .asText())
         .isEqualTo("en");
     assertThat(
-            w.c.expect(PayrollRunWorld.get(w.admin, path + "?locale=fr").header("Accept-Language",
-                "en"), 200)
+            w.c
+                .expect(
+                    PayrollRunWorld.get(w.admin, path + "?locale=fr")
+                        .header("Accept-Language", "en"),
+                    200)
                 .get("wording")
                 .get("locale")
                 .asText())
         .isEqualTo("fr");
-    w.c.problem(
-        PayrollRunWorld.get(w.admin, path + "?locale=de"), 400, "LOCALE_NOT_SUPPORTED");
-    w.c.problem(
-        PayrollRunWorld.get(w.admin, path + "?locale=EN"), 400, "LOCALE_NOT_SUPPORTED");
+    w.c.problem(PayrollRunWorld.get(w.admin, path + "?locale=de"), 400, "LOCALE_NOT_SUPPORTED");
+    w.c.problem(PayrollRunWorld.get(w.admin, path + "?locale=EN"), 400, "LOCALE_NOT_SUPPORTED");
   }
 
   // ------------------------------------------------------------------------------------------
@@ -1117,9 +1139,7 @@ class PayrollPackageApiIntegrationTest {
     w.c.problem(
         PayrollRunWorld.get(w.admin, w.slipsPath(pkg) + "?limit=201"), 400, "VALIDATION_FAILED");
     w.c.problem(
-        PayrollRunWorld.get(w.admin, w.slipPath(pkg, UUID.randomUUID())),
-        404,
-        "PAYSLIP_NOT_FOUND");
+        PayrollRunWorld.get(w.admin, w.slipPath(pkg, UUID.randomUUID())), 404, "PAYSLIP_NOT_FOUND");
     w.c.problem(
         PayrollRunWorld.get(w.admin, w.slipPath(pkg, "not-a-uuid")), 404, "PAYSLIP_NOT_FOUND");
     w.c.problem(
@@ -1133,14 +1153,11 @@ class PayrollPackageApiIntegrationTest {
     w.c.problem(
         PayrollRunWorld.get(w.admin, w.packagesPath() + "?limit=101"), 400, "VALIDATION_FAILED");
     w.c.problem(
-        PayrollRunWorld.get(w.admin, w.packagesPath() + "?cursor=garbage"),
-        400,
-        "CURSOR_INVALID");
+        PayrollRunWorld.get(w.admin, w.packagesPath() + "?cursor=garbage"), 400, "CURSOR_INVALID");
     w.voidPackage(pkg, "ADMINISTRATIVE_ERROR", null);
     w.advance(3600);
     w.s.profile(chain.employee(), w.month.atDay(1).minusDays(10), "STANDARD_RESIDENT", true, false);
-    Chain corrected =
-        new Chain(chain.pack(), chain.employee(), chain.run(), w.recalculate(chain));
+    Chain corrected = new Chain(chain.pack(), chain.employee(), chain.run(), w.recalculate(chain));
     w.approve(corrected);
     JsonNode firstPage =
         w.c.expect(PayrollRunWorld.get(w.admin, w.packagesPath() + "?limit=1"), 200);

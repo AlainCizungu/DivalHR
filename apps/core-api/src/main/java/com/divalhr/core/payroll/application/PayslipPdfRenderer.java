@@ -325,8 +325,7 @@ public class PayslipPdfRenderer {
           PayslipText.partyLabel(locale, component.party()));
       right(
           sheet, sheet.node("TD", row), false, 8, baseRight, sheet.y, money(component.baseMinor()));
-      right(
-          sheet, sheet.node("TD", row), false, 8, RIGHT, sheet.y, money(component.amountMinor()));
+      right(sheet, sheet.node("TD", row), false, 8, RIGHT, sheet.y, money(component.amountMinor()));
       sheet.y -= 12;
     }
     sheet.y -= 4;
@@ -486,8 +485,7 @@ public class PayslipPdfRenderer {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R"
                 + " /F2 5 0 R >> >> /Contents 6 0 R /StructParents 0 /Tabs /S >>"));
     bodies.add(
-        ascii(
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"));
+        ascii("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"));
     bodies.add(
         ascii(
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold"

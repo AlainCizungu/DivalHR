@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Responses of payroll approval and bilingual payslips (MVP-094C, ADR 0035). Money is the
- * canonical decimal string next to its currency code (CDF whole francs). Approved payroll is not a
- * payment, a filing or a claim of legal compliance, and a payslip is not proof of payment.
- * Restricted financial and HR data: no record here prints an amount, an employee number, a
- * snapshot or a digest, and the receipts carry none (they are what the idempotency store keeps).
- * The approver subject and the void explanation are never part of a package summary or a receipt.
+ * Responses of payroll approval and bilingual payslips (MVP-094C, ADR 0035). Money is the canonical
+ * decimal string next to its currency code (CDF whole francs). Approved payroll is not a payment, a
+ * filing or a claim of legal compliance, and a payslip is not proof of payment. Restricted
+ * financial and HR data: no record here prints an amount, an employee number, a snapshot or a
+ * digest, and the receipts carry none (they are what the idempotency store keeps). The approver
+ * subject and the void explanation are never part of a package summary or a receipt.
  */
 public final class PayrollPackageResponses {
 

@@ -168,8 +168,7 @@ class JdbcPayrollPackageRepositoryTenantTest {
   private static List<String> statements() throws IOException {
     String source = Files.readString(SOURCE, StandardCharsets.UTF_8);
     List<String> found = new ArrayList<>();
-    Matcher start =
-        Pattern.compile("(jdbc|batch)\\s*\\.\\s*(sql|batchUpdate)\\(").matcher(source);
+    Matcher start = Pattern.compile("(jdbc|batch)\\s*\\.\\s*(sql|batchUpdate)\\(").matcher(source);
     while (start.find()) {
       int depth = 1;
       boolean quoted = false;

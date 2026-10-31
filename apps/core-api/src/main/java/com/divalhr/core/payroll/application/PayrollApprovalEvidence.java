@@ -204,8 +204,7 @@ public class PayrollApprovalEvidence {
     boolean voidedPair = false;
     PackageRow existing = null;
     for (PackageRow row : chain) {
-      boolean samePair =
-          row.runId().equals(runId) && row.calculationId().equals(calculationId);
+      boolean samePair = row.runId().equals(runId) && row.calculationId().equals(calculationId);
       if ("APPROVED".equals(row.status())) {
         existing = row;
         exactApproved |= samePair;

@@ -360,8 +360,7 @@ public final class PayrollApprovalEvaluator {
   }
 
   /**
-   * The blockers that, at commit, are answered as a stale preview rather than as a blocked
-   * package.
+   * The blockers that, at commit, are answered as a stale preview rather than as a blocked package.
    *
    * @param blockers a result's blockers
    * @return the drift blockers among them, in contract order

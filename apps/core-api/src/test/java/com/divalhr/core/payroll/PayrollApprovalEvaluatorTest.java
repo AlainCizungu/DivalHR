@@ -201,35 +201,128 @@ class PayrollApprovalEvaluatorTest {
 
   @Test
   void eachSingleFactRaisesExactlyItsBlocker() {
-    assertThat(ready().with(s -> { s.runCurrent = false; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.runCurrent = false;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.SOURCE_RUN_NOT_CURRENT));
-    assertThat(ready().with(s -> { s.calculationCurrent = false; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.calculationCurrent = false;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.CALCULATION_NOT_CURRENT));
-    assertThat(ready().with(s -> { s.packVerified = false; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.packVerified = false;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.RULE_PACK_NOT_VERIFIED));
-    assertThat(ready().with(s -> { s.policyMatches = false; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.policyMatches = false;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.POLICY_CHANGED));
-    assertThat(ready().with(s -> { s.profilesMatch = false; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.profilesMatch = false;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.PROFILE_CHANGED));
-    assertThat(ready().with(s -> { s.rulePackMatches = false; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.rulePackMatches = false;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.RULE_PACK_CHANGED));
-    assertThat(ready().with(s -> { s.sourceMatches = false; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.sourceMatches = false;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.SOURCE_CHANGED));
-    assertThat(ready().with(s -> { s.voidedPair = true; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.voidedPair = true;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.SOURCE_ALREADY_VOIDED));
-    assertThat(ready().with(s -> { s.otherApproved = true; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.otherApproved = true;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.ALREADY_APPROVED));
-    assertThat(ready().with(s -> { s.chainCount = 25; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.chainCount = 25;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .isEqualTo(blockers(PayrollApprovalBlocker.LIMIT_REACHED));
   }
 
   @Test
   void aCurrencyOtherThanCdfBlocksOnTheRunOrOnTheCalculation() {
     for (String currency : List.of("USD", "EUR", "cdf", "")) {
-      Result run = ready().with(s -> { s.runCurrency = currency; return s; }).evaluate();
+      Result run =
+          ready()
+              .with(
+                  s -> {
+                    s.runCurrency = currency;
+                    return s;
+                  })
+              .evaluate();
       assertThat(run.blockers()).isEqualTo(blockers(PayrollApprovalBlocker.CURRENCY_NOT_SUPPORTED));
       Result calculation =
-          ready().with(s -> { s.calculationCurrency = currency; return s; }).evaluate();
+          ready()
+              .with(
+                  s -> {
+                    s.calculationCurrency = currency;
+                    return s;
+                  })
+              .evaluate();
       assertThat(calculation.blockers())
           .isEqualTo(blockers(PayrollApprovalBlocker.CURRENCY_NOT_SUPPORTED));
     }
@@ -239,17 +332,38 @@ class PayrollApprovalEvaluatorTest {
   @Test
   void aMissingRulePackIsAMissingSourceNotAnUnverifiedPack() {
     Result missing =
-        ready().with(s -> { s.packFound = false; s.packVerified = false; return s; }).evaluate();
+        ready()
+            .with(
+                s -> {
+                  s.packFound = false;
+                  s.packVerified = false;
+                  return s;
+                })
+            .evaluate();
     assertThat(missing.blockers()).isEqualTo(blockers(PayrollApprovalBlocker.SOURCE_MISSING));
     Result found =
-        ready().with(s -> { s.packFound = true; s.packVerified = false; return s; }).evaluate();
+        ready()
+            .with(
+                s -> {
+                  s.packFound = true;
+                  s.packVerified = false;
+                  return s;
+                })
+            .evaluate();
     assertThat(found.blockers()).isEqualTo(blockers(PayrollApprovalBlocker.RULE_PACK_NOT_VERIFIED));
   }
 
   @Test
   void aNonVerifiedPackBlocksEvenWhenEverythingElseIsSound() {
     Result result =
-        ready().with(s -> { s.packVerified = false; s.synthetic = true; return s; }).evaluate();
+        ready()
+            .with(
+                s -> {
+                  s.packVerified = false;
+                  s.synthetic = true;
+                  return s;
+                })
+            .evaluate();
     assertThat(result.status()).isEqualTo(Status.BLOCKED);
     assertThat(result.blockers()).contains(PayrollApprovalBlocker.RULE_PACK_NOT_VERIFIED);
   }
@@ -354,8 +468,7 @@ class PayrollApprovalEvaluatorTest {
 
   @Test
   void aDuplicateEmployeeIsAnArithmeticMismatch() {
-    Result result =
-        new Scenario(List.of(line(1, 1000, 0, 0), line(1, 2000, 0, 0))).evaluate();
+    Result result = new Scenario(List.of(line(1, 1000, 0, 0), line(1, 2000, 0, 0))).evaluate();
     assertThat(result.blockers()).containsExactly(PayrollApprovalBlocker.ARITHMETIC_MISMATCH);
   }
 
@@ -452,7 +565,15 @@ class PayrollApprovalEvaluatorTest {
   void aTotalThatOverflowsALongIsAnArithmeticMismatchWithNoTrustedTotals() {
     List<LineFact> lines =
         List.of(
-            new LineFact(id(1), "E-1", true, Long.MAX_VALUE, 0, 0, Long.MAX_VALUE, Long.MAX_VALUE,
+            new LineFact(
+                id(1),
+                "E-1",
+                true,
+                Long.MAX_VALUE,
+                0,
+                0,
+                Long.MAX_VALUE,
+                Long.MAX_VALUE,
                 List.of()),
             new LineFact(id(2), "E-2", true, 1, 0, 0, 1, 1, List.of()));
     Scenario scenario = new Scenario(lines);
@@ -500,24 +621,61 @@ class PayrollApprovalEvaluatorTest {
 
   @Test
   void theTwentySixthPackageOfAChainIsTheLimitUnlessItIsTheExactApprovedOne() {
-    assertThat(ready().with(s -> { s.chainCount = 24; return s; }).evaluate().status())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.chainCount = 24;
+                      return s;
+                    })
+                .evaluate()
+                .status())
         .isEqualTo(Status.READY);
-    assertThat(ready().with(s -> { s.chainCount = 25; return s; }).evaluate().blockers())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.chainCount = 25;
+                      return s;
+                    })
+                .evaluate()
+                .blockers())
         .containsExactly(PayrollApprovalBlocker.LIMIT_REACHED);
     Result exact =
-        ready().with(s -> { s.chainCount = 25; s.exactApproved = true; return s; }).evaluate();
+        ready()
+            .with(
+                s -> {
+                  s.chainCount = 25;
+                  s.exactApproved = true;
+                  return s;
+                })
+            .evaluate();
     assertThat(exact.status()).isEqualTo(Status.NO_CHANGE);
     assertThat(PayrollApprovalEvaluator.MAX_VERSIONS).isEqualTo(25);
   }
 
   @Test
   void anIdenticalApprovedPackageIsNoChangeNotAnotherApproval() {
-    Result same = ready().with(s -> { s.exactApproved = true; return s; }).evaluate();
+    Result same =
+        ready()
+            .with(
+                s -> {
+                  s.exactApproved = true;
+                  return s;
+                })
+            .evaluate();
     assertThat(same.status()).isEqualTo(Status.NO_CHANGE);
     assertThat(same.blockers()).isEmpty();
     // Another package from other sources does not hide the exact one.
     Result both =
-        ready().with(s -> { s.exactApproved = true; s.otherApproved = true; return s; }).evaluate();
+        ready()
+            .with(
+                s -> {
+                  s.exactApproved = true;
+                  s.otherApproved = true;
+                  return s;
+                })
+            .evaluate();
     assertThat(both.status()).isEqualTo(Status.NO_CHANGE);
     assertThat(both.blockers()).isEmpty();
   }
@@ -525,7 +683,14 @@ class PayrollApprovalEvaluatorTest {
   @Test
   void anyBlockerOutranksNoChange() {
     Result result =
-        ready().with(s -> { s.exactApproved = true; s.runCurrent = false; return s; }).evaluate();
+        ready()
+            .with(
+                s -> {
+                  s.exactApproved = true;
+                  s.runCurrent = false;
+                  return s;
+                })
+            .evaluate();
     assertThat(result.status()).isEqualTo(Status.BLOCKED);
     assertThat(result.blockers()).containsExactly(PayrollApprovalBlocker.SOURCE_RUN_NOT_CURRENT);
   }
@@ -540,24 +705,32 @@ class PayrollApprovalEvaluatorTest {
     contract.addAll(List.of(PayrollApprovalBlocker.values()));
     contract.retainAll(sorted);
     assertThat(sorted).isEqualTo(contract);
-    assertThat(sorted).contains(
-        PayrollApprovalBlocker.SOURCE_RUN_NOT_CURRENT,
-        PayrollApprovalBlocker.CALCULATION_NOT_CURRENT,
-        PayrollApprovalBlocker.POLICY_CHANGED,
-        PayrollApprovalBlocker.PROFILE_CHANGED,
-        PayrollApprovalBlocker.RULE_PACK_CHANGED,
-        PayrollApprovalBlocker.SOURCE_CHANGED,
-        PayrollApprovalBlocker.CURRENCY_NOT_SUPPORTED,
-        PayrollApprovalBlocker.RULE_PACK_NOT_VERIFIED,
-        PayrollApprovalBlocker.ALREADY_APPROVED,
-        PayrollApprovalBlocker.SOURCE_ALREADY_VOIDED,
-        PayrollApprovalBlocker.LIMIT_REACHED);
+    assertThat(sorted)
+        .contains(
+            PayrollApprovalBlocker.SOURCE_RUN_NOT_CURRENT,
+            PayrollApprovalBlocker.CALCULATION_NOT_CURRENT,
+            PayrollApprovalBlocker.POLICY_CHANGED,
+            PayrollApprovalBlocker.PROFILE_CHANGED,
+            PayrollApprovalBlocker.RULE_PACK_CHANGED,
+            PayrollApprovalBlocker.SOURCE_CHANGED,
+            PayrollApprovalBlocker.CURRENCY_NOT_SUPPORTED,
+            PayrollApprovalBlocker.RULE_PACK_NOT_VERIFIED,
+            PayrollApprovalBlocker.ALREADY_APPROVED,
+            PayrollApprovalBlocker.SOURCE_ALREADY_VOIDED,
+            PayrollApprovalBlocker.LIMIT_REACHED);
   }
 
   @Test
   void warningsNeverBlock() {
     Result result =
-        ready().with(s -> { s.samePreparer = true; s.synthetic = true; return s; }).evaluate();
+        ready()
+            .with(
+                s -> {
+                  s.samePreparer = true;
+                  s.synthetic = true;
+                  return s;
+                })
+            .evaluate();
     assertThat(result.status()).isEqualTo(Status.READY);
     assertThat(result.blockers()).isEmpty();
     assertThat(result.warnings())
@@ -571,7 +744,15 @@ class PayrollApprovalEvaluatorTest {
   void theSamePreparerWarningIsRaisedOnlyWhenTheApproverAlsoPreparedASource() {
     assertThat(ready().evaluate().warnings())
         .doesNotContain(PayrollApprovalWarning.SAME_PREPARER_AND_APPROVER);
-    assertThat(ready().with(s -> { s.samePreparer = true; return s; }).evaluate().warnings())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.samePreparer = true;
+                      return s;
+                    })
+                .evaluate()
+                .warnings())
         .contains(PayrollApprovalWarning.SAME_PREPARER_AND_APPROVER);
   }
 
@@ -579,7 +760,15 @@ class PayrollApprovalEvaluatorTest {
   void theSyntheticWarningFollowsThePackNotTheAmounts() {
     assertThat(ready().evaluate().warnings())
         .doesNotContain(PayrollApprovalWarning.SYNTHETIC_RULE_PACK);
-    assertThat(ready().with(s -> { s.synthetic = true; return s; }).evaluate().warnings())
+    assertThat(
+            ready()
+                .with(
+                    s -> {
+                      s.synthetic = true;
+                      return s;
+                    })
+                .evaluate()
+                .warnings())
         .contains(PayrollApprovalWarning.SYNTHETIC_RULE_PACK);
   }
 

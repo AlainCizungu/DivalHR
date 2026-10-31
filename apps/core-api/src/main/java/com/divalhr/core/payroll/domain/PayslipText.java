@@ -6,14 +6,13 @@ import java.util.Map;
  * The repository-owned wording of a payslip in English and French (MVP-094C, ADR 0035 section 12).
  * The payslip document renders from the server in the locale requested; the locale selects wording
  * only. The words "paid", "payment completed", "filed", "tax compliant" and "government approved"
- * (and their French equivalents) never appear: a payslip is not proof of payment, and the
- * statutory figures are a calculation based on a rule pack, not a legal-compliance claim.
+ * (and their French equivalents) never appear: a payslip is not proof of payment, and the statutory
+ * figures are a calculation based on a rule pack, not a legal-compliance claim.
  */
 public final class PayslipText {
 
   private static final String RULE_PACK_EN = "Statutory calculation based on rule pack %s v%d";
-  private static final String RULE_PACK_FR =
-      "Calcul statutaire fondé sur le jeu de règles %s v%d";
+  private static final String RULE_PACK_FR = "Calcul statutaire fondé sur le jeu de règles %s v%d";
 
   private static final Map<String, String[]> COMPONENTS =
       Map.of(
@@ -39,8 +38,7 @@ public final class PayslipText {
               new String[] {"Progressive schedule applied", "Barème progressif appliqué"},
           "CAP_APPLIED", new String[] {"Cap applied", "Plafond appliqué"},
           "NOT_SUBJECT", new String[] {"Not subject", "Non assujetti"},
-          "BASE_GROSS",
-              new String[] {"Base: contractual gross", "Base : salaire brut contractuel"},
+          "BASE_GROSS", new String[] {"Base: contractual gross", "Base : salaire brut contractuel"},
           "BASE_GROSS_LESS_EMPLOYEE_SOCIAL",
               new String[] {
                 "Base: gross less employee social contributions",
@@ -258,14 +256,10 @@ public final class PayslipText {
       case SOURCE_CORRECTION ->
           pick(locale, "Correction of the payroll run", "Correction du calcul de paie");
       case PROFILE_CORRECTION ->
-          pick(
-              locale,
-              "Correction of statutory profiles",
-              "Correction des profils statutaires");
+          pick(locale, "Correction of statutory profiles", "Correction des profils statutaires");
       case RULE_PACK_CORRECTION ->
           pick(locale, "Correction of the rule pack", "Correction du jeu de règles");
-      case ADMINISTRATIVE_ERROR ->
-          pick(locale, "Administrative error", "Erreur administrative");
+      case ADMINISTRATIVE_ERROR -> pick(locale, "Administrative error", "Erreur administrative");
       case OTHER_CONTROLLED ->
           pick(
               locale,

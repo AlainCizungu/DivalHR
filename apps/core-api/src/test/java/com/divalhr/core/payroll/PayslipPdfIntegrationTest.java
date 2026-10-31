@@ -35,8 +35,8 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * MVP-094C (Issue #181, ADR 0035) payslip PDFs through the public API: the download headers, the
  * generated filename, deterministic bytes, identical amounts and digest in English and French, a
- * document that PDFBox parses, a bounded size, metadata free of every identifier, the safe 500 of
- * a render failure with nothing recorded, the visible VOIDED status and the download audit of the
+ * document that PDFBox parses, a bounded size, metadata free of every identifier, the safe 500 of a
+ * render failure with nothing recorded, the visible VOIDED status and the download audit of the
  * administrator and of the employee. Synthetic data only.
  */
 @IntegrationTest
@@ -93,8 +93,7 @@ class PayslipPdfIntegrationTest {
     assertThat(response.getHeader("X-Content-Type-Options")).isEqualTo("nosniff");
     String disposition = response.getHeader("Content-Disposition");
     assertThat(disposition).startsWith("attachment");
-    assertThat(disposition)
-        .containsPattern("filename=\"payslip-\\d{4}-\\d{2}-[0-9a-f]{8}\\.pdf\"");
+    assertThat(disposition).containsPattern("filename=\"payslip-\\d{4}-\\d{2}-[0-9a-f]{8}\\.pdf\"");
     assertThat(disposition)
         .contains(ids[1].replace("-", "").substring(0, 8))
         .doesNotContain("Mukendi")
@@ -148,13 +147,13 @@ class PayslipPdfIntegrationTest {
     }
     // Accept-Language selects the language when no locale is requested.
     byte[] negotiated =
-        w.c.call(
+        w.c
+            .call(
                 PayrollPackageWorld.get(w.admin, path)
                     .header("Accept-Language", "fr-CA,fr;q=0.9,en;q=0.5"))
             .getContentAsByteArray();
     assertThat(text(negotiated)).isEqualTo(french);
-    w.c.problem(
-        PayrollPackageWorld.get(w.admin, path + "?locale=de"), 400, "LOCALE_NOT_SUPPORTED");
+    w.c.problem(PayrollPackageWorld.get(w.admin, path + "?locale=de"), 400, "LOCALE_NOT_SUPPORTED");
   }
 
   @Test
@@ -235,8 +234,7 @@ class PayslipPdfIntegrationTest {
   }
 
   @Test
-  void aVoidedPayslipIsVisiblyVoidedInBothLanguagesAndNeverEchoesTheExplanation()
-      throws Exception {
+  void aVoidedPayslipIsVisiblyVoidedInBothLanguagesAndNeverEchoesTheExplanation() throws Exception {
     String[] ids = approved(w.ready());
     String path = w.slipPdfPath(ids[0], ids[1]);
     String approvedEnglish = text(w.pdf(w.admin, path).getContentAsByteArray());
@@ -266,8 +264,8 @@ class PayslipPdfIntegrationTest {
   void aSyntheticPackIsMarkedAndAReviewedPackIsNot() throws Exception {
     String[] synthetic = approved(w.ready());
     String notice = PayslipText.syntheticNotice(PayslipLocale.EN);
-    assertThat(text(w.pdf(w.admin, w.slipPdfPath(synthetic[0], synthetic[1]))
-        .getContentAsByteArray()))
+    assertThat(
+            text(w.pdf(w.admin, w.slipPdfPath(synthetic[0], synthetic[1])).getContentAsByteArray()))
         .contains(notice);
 
     PayrollPackageWorld other = new PayrollPackageWorld(mvc, jdbc, lookups, clock);
@@ -295,8 +293,9 @@ class PayslipPdfIntegrationTest {
             .getContentAsByteArray();
     assertThat(w.audits("payslip.download")).isEqualTo(before + 2);
     MockHttpServletResponse response =
-        w.c.call(PayrollPackageWorld.get(linked.person().bearer(),
-            PayrollPackageWorld.minePdfPath(slip)));
+        w.c.call(
+            PayrollPackageWorld.get(
+                linked.person().bearer(), PayrollPackageWorld.minePdfPath(slip)));
     assertThat(response.getHeader("Cache-Control")).isEqualTo("private, no-store");
     assertThat(response.getHeader("X-Content-Type-Options")).isEqualTo("nosniff");
     assertThat(response.getHeader("Content-Disposition")).startsWith("attachment");
@@ -308,8 +307,7 @@ class PayslipPdfIntegrationTest {
                 + " AND action = 'payslip.download' ORDER BY occurred_at, id",
             String.class,
             w.tenant);
-    assertThat(actors)
-        .contains(PayrollPackageWorld.subjectOf(w.admin), linked.person().subject());
+    assertThat(actors).contains(PayrollPackageWorld.subjectOf(w.admin), linked.person().subject());
     List<String> metadata =
         jdbc.queryForList(
             "SELECT metadata::text FROM platform.audit_event WHERE tenant_id = ?"

@@ -416,8 +416,8 @@ public class JdbcPayrollPackageRepository {
    * @param legalEntityId legal entity
    * @param runId payroll run
    * @param calculationId statutory calculation of that run
-   * @return the month and currency of the run, or empty when the run or the calculation of that
-   *     run does not exist in that legal entity of the tenant
+   * @return the month and currency of the run, or empty when the run or the calculation of that run
+   *     does not exist in that legal entity of the tenant
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public Optional<SourceKey> lockSources(
@@ -514,8 +514,7 @@ public class JdbcPayrollPackageRepository {
         .param("entity", legalEntityId)
         .param("run", runId)
         .param("calculation", calculationId)
-        .query(
-            (rs, row) -> new Preparers(rs.getString("run_by"), rs.getString("calculation_by")))
+        .query((rs, row) -> new Preparers(rs.getString("run_by"), rs.getString("calculation_by")))
         .optional();
   }
 
@@ -954,8 +953,8 @@ public class JdbcPayrollPackageRepository {
   }
 
   /**
-   * One payslip of the employee of the verified link (self-service). The employee predicate is
-   * part of the statement: another employee's payslip is simply not found.
+   * One payslip of the employee of the verified link (self-service). The employee predicate is part
+   * of the statement: another employee's payslip is simply not found.
    *
    * @param tenant verified tenant
    * @param employeeId the employee of the caller's active link

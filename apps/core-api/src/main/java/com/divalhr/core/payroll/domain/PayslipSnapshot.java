@@ -17,11 +17,11 @@ import java.util.UUID;
  * statutory calculation line, immutable once stored. The canonical text is the authority; the
  * digest is the SHA-256 of its UTF-8 bytes ({@link PackageDigests#snapshotDigest}).
  *
- * <p>Amounts are whole CDF francs. Employer contributions are shown separately and never reduce
- * the net: {@code net = gross - employee deductions} and the employee deductions are the employee
- * CNSS contribution plus the IRPP withholding. The snapshot holds no name, national ID, tax
- * number, CNSS number, bank detail, address, health or family data, approver or note. Restricted
- * financial and HR data: nothing here is logged and {@code toString} prints no value.
+ * <p>Amounts are whole CDF francs. Employer contributions are shown separately and never reduce the
+ * net: {@code net = gross - employee deductions} and the employee deductions are the employee CNSS
+ * contribution plus the IRPP withholding. The snapshot holds no name, national ID, tax number, CNSS
+ * number, bank detail, address, health or family data, approver or note. Restricted financial and
+ * HR data: nothing here is logged and {@code toString} prints no value.
  *
  * @param packageId the payroll package
  * @param legalEntityId the legal entity

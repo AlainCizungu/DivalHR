@@ -23,9 +23,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * lock look-up, the voided-pair check, the payslip pages of a package by employee number in byte
  * order, the payslip by identifier and the employee's own payslip list, over a realistic tenant on
  * the migrated database (180 packages of 60 months with one or two voids each, 20 payslips each
- * except the latest approval with 2,000, analyzed) among four other tenants of the same shape.
- * Each path is driven by an existing index and never scans a tenant table sequentially. No index
- * is added.
+ * except the latest approval with 2,000, analyzed) among four other tenants of the same shape. Each
+ * path is driven by an existing index and never scans a tenant table sequentially. No index is
+ * added.
  *
  * <p>The statements mirror the ones of {@code JdbcPayrollPackageRepository} (the same predicates,
  * orders and parameters; the column lists are shortened). The rows are written set-based with
@@ -274,8 +274,18 @@ class PayrollPackageQueryPlanIntegrationTest {
             + " ORDER BY p.period_start DESC, p.version DESC, p.id LIMIT :limit";
     Map<String, Object> next =
         Map.of(
-            "tenant", tenant, "entity", entity, "period", keysetPeriod, "version", 2, "after",
-            keysetPackage, "limit", 26);
+            "tenant",
+            tenant,
+            "entity",
+            entity,
+            "period",
+            keysetPeriod,
+            "version",
+            2,
+            "after",
+            keysetPackage,
+            "limit",
+            26);
     driven("keyset", keyset, next, "payroll_package_history");
     assertThat(plan(keyset, next)).doesNotContain("Sort");
 
@@ -391,8 +401,18 @@ class PayrollPackageQueryPlanIntegrationTest {
             + " ORDER BY (s.employee_number COLLATE \"C\"), s.id LIMIT :limit";
     Map<String, Object> next =
         Map.of(
-            "tenant", tenant, "entity", entity, "package", big, "number", "PLAN000500", "after",
-            keysetSlip, "limit", 51);
+            "tenant",
+            tenant,
+            "entity",
+            entity,
+            "package",
+            big,
+            "number",
+            "PLAN000500",
+            "after",
+            keysetSlip,
+            "limit",
+            51);
     driven("keyset", keyset, next, "payroll_payslip_package_page");
     assertThat(plan(keyset, next)).doesNotContain("Sort");
   }
@@ -436,7 +456,15 @@ class PayrollPackageQueryPlanIntegrationTest {
             + " ORDER BY s.approved_at DESC, s.id DESC LIMIT :limit";
     Map<String, Object> next =
         Map.of(
-            "tenant", tenant, "employee", employee, "at", keysetAt, "after", keysetSlip, "limit",
+            "tenant",
+            tenant,
+            "employee",
+            employee,
+            "at",
+            keysetAt,
+            "after",
+            keysetSlip,
+            "limit",
             26);
     driven("keyset", keyset, next, "payroll_payslip_employee_page");
     assertThat(plan(keyset, next)).doesNotContain("Sort");

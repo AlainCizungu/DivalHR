@@ -166,8 +166,7 @@ public class PayslipService {
               READ_TIMEOUT,
               () -> {
                 TenantId tenant = caller.tenant();
-                UUID entity =
-                    entities.require(tenant, entityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
+                UUID entity = entities.require(tenant, entityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
                 if (packages.pack(tenant, entity, id).isEmpty()) {
                   throw new ApiException(notFound, Map.of());
                 }
@@ -244,8 +243,7 @@ public class PayslipService {
               READ_TIMEOUT,
               () -> {
                 TenantId tenant = caller.tenant();
-                UUID entity =
-                    entities.require(tenant, entityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
+                UUID entity = entities.require(tenant, entityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
                 SlipRow row =
                     packages
                         .slip(tenant, entity, pkg, id)
@@ -290,8 +288,7 @@ public class PayslipService {
               READ_TIMEOUT,
               () -> {
                 TenantId tenant = caller.tenant();
-                UUID entity =
-                    entities.require(tenant, entityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
+                UUID entity = entities.require(tenant, entityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
                 SlipRow row =
                     packages
                         .slip(tenant, entity, pkg, id)

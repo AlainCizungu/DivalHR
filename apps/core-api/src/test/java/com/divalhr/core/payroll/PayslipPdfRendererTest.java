@@ -44,26 +44,65 @@ class PayslipPdfRendererTest {
   private static List<Component> components() {
     return List.of(
         component(
-            1, "CNSS_EMPLOYEE_PENSION", "EMPLOYEE", "SOCIAL_CONTRIBUTION", 162000, 8100,
-            "RATE_APPLIED", "BASE_GROSS"),
+            1,
+            "CNSS_EMPLOYEE_PENSION",
+            "EMPLOYEE",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            8100,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            2, "CNSS_EMPLOYER_PENSION", "EMPLOYER", "SOCIAL_CONTRIBUTION", 162000, 8100,
-            "RATE_APPLIED", "BASE_GROSS"),
+            2,
+            "CNSS_EMPLOYER_PENSION",
+            "EMPLOYER",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            8100,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            3, "CNSS_EMPLOYER_OCCUPATIONAL_RISK", "EMPLOYER", "SOCIAL_CONTRIBUTION", 162000, 2430,
-            "RATE_APPLIED", "BASE_GROSS"),
+            3,
+            "CNSS_EMPLOYER_OCCUPATIONAL_RISK",
+            "EMPLOYER",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            2430,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            4, "CNSS_EMPLOYER_FAMILY_BENEFITS", "EMPLOYER", "SOCIAL_CONTRIBUTION", 162000, 10530,
-            "RATE_APPLIED", "BASE_GROSS"),
+            4,
+            "CNSS_EMPLOYER_FAMILY_BENEFITS",
+            "EMPLOYER",
+            "SOCIAL_CONTRIBUTION",
+            162000,
+            10530,
+            "RATE_APPLIED",
+            "BASE_GROSS"),
         component(
-            5, "IRPP_SALARY_WITHHOLDING", "EMPLOYEE", "INCOME_TAX", 153900, 4860,
-            "PROGRESSIVE_APPLIED", "BASE_GROSS_LESS_EMPLOYEE_SOCIAL"));
+            5,
+            "IRPP_SALARY_WITHHOLDING",
+            "EMPLOYEE",
+            "INCOME_TAX",
+            153900,
+            4860,
+            "PROGRESSIVE_APPLIED",
+            "BASE_GROSS_LESS_EMPLOYEE_SOCIAL"));
   }
 
   private static PayslipSnapshot snapshot(String number) {
     return PayslipSnapshot.of(
-        PACKAGE, ENTITY, "2026-03", APPROVED, "SYNTHETIC-TEST-DRC", 1, EMPLOYEE, number, false,
-        162000, components());
+        PACKAGE,
+        ENTITY,
+        "2026-03",
+        APPROVED,
+        "SYNTHETIC-TEST-DRC",
+        1,
+        EMPLOYEE,
+        number,
+        false,
+        162000,
+        components());
   }
 
   private static Request request(PayslipSnapshot snapshot, PayslipLocale locale, boolean voided) {
@@ -126,8 +165,18 @@ class PayslipPdfRendererTest {
     assertThat(render(PayslipLocale.EN, false, true)).isNotEqualTo(en);
     for (String amount :
         List.of(
-            "162000 CDF", "8100 CDF", "4860 CDF", "12960 CDF", "149040 CDF", "21060 CDF", "162000",
-            "10530", "2430", "153900", "2026-03", "E-0042")) {
+            "162000 CDF",
+            "8100 CDF",
+            "4860 CDF",
+            "12960 CDF",
+            "149040 CDF",
+            "21060 CDF",
+            "162000",
+            "10530",
+            "2430",
+            "153900",
+            "2026-03",
+            "E-0042")) {
       assertThat(text(en)).as("EN " + amount).contains(amount);
       assertThat(text(fr)).as("FR " + amount).contains(amount);
     }
@@ -197,8 +246,7 @@ class PayslipPdfRendererTest {
   @Test
   void aVoidedDocumentWithoutAReasonStatesNoReason() throws IOException {
     PayslipSnapshot snapshot = snapshot("E-0042");
-    Request request =
-        new Request(snapshot, snapshot.digest(), PayslipLocale.EN, true, null, false);
+    Request request = new Request(snapshot, snapshot.digest(), PayslipLocale.EN, true, null, false);
     String text = text(RENDERER.render(request).bytes());
     assertThat(text).contains("was voided").doesNotContain("Reason:");
   }
@@ -227,8 +275,17 @@ class PayslipPdfRendererTest {
   void anExcludedEmployeeIsSaidToBeSubjectToNeitherCnssNorIrpp() throws IOException {
     PayslipSnapshot excluded =
         PayslipSnapshot.of(
-            PACKAGE, ENTITY, "2026-03", APPROVED, "SYNTHETIC-TEST-DRC", 1, EMPLOYEE, "E-0099",
-            true, 50000, List.of());
+            PACKAGE,
+            ENTITY,
+            "2026-03",
+            APPROVED,
+            "SYNTHETIC-TEST-DRC",
+            1,
+            EMPLOYEE,
+            "E-0099",
+            true,
+            50000,
+            List.of());
     String en = text(RENDERER.render(request(excluded, PayslipLocale.EN, false)).bytes());
     assertThat(en).contains("This employee is subject to neither CNSS nor IRPP.");
     assertThat(en).contains("Approved net 50000 CDF").contains("Total employee deductions 0 CDF");
@@ -381,8 +438,17 @@ class PayslipPdfRendererTest {
     }
     PayslipSnapshot snapshot =
         PayslipSnapshot.of(
-            PACKAGE, ENTITY, "2026-03", APPROVED, "SYNTHETIC-TEST-DRC", 1, EMPLOYEE, "E-1", false,
-            1000, many);
+            PACKAGE,
+            ENTITY,
+            "2026-03",
+            APPROVED,
+            "SYNTHETIC-TEST-DRC",
+            1,
+            EMPLOYEE,
+            "E-1",
+            false,
+            1000,
+            many);
     assertThatThrownBy(() -> RENDERER.render(request(snapshot, PayslipLocale.EN, false)))
         .isInstanceOf(PayslipRenderException.class);
   }

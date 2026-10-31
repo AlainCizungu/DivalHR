@@ -34,9 +34,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
  * MVP-094C test fixtures over the public API, on top of {@link StatutoryWorld} (and so of {@link
  * PayrollRunWorld} and {@link CompensationWorld}): a synthetic VERIFIED rule pack and its
  * activation, hired and compensated employees with statutory profiles (one of them linked to its
- * own employee membership when asked), a frozen CDF run, its statutory calculation, and the
- * preview and commit calls of payroll approval, void, package reads and payslip views and PDFs. All
- * data is synthetic; family names are letters only (a digit makes an import row invalid).
+ * own employee membership when asked), a frozen CDF run, its statutory calculation, and the preview
+ * and commit calls of payroll approval, void, package reads and payslip views and PDFs. All data is
+ * synthetic; family names are letters only (a digit makes an import row invalid).
  */
 final class PayrollPackageWorld {
 
@@ -389,8 +389,8 @@ final class PayrollPackageWorld {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * A hired employee paid in CDF with a standard statutory profile and an active access link to
-   * its own employee membership (a verified link).
+   * A hired employee paid in CDF with a standard statutory profile and an active access link to its
+   * own employee membership (a verified link).
    */
   CompensationWorld.Person linkedEmployee(String family, String gross) throws Exception {
     LocalDate start = month.atDay(1).minusDays(5);
@@ -477,14 +477,12 @@ final class PayrollPackageWorld {
                 "SELECT metadata::text || coalesce(after_state_sha256, '') || actor_subject"
                     + " FROM platform.audit_event WHERE tenant_id = ?"
                     + " AND (action LIKE 'payroll-package.%' OR action LIKE 'payslip.%')",
-                String.class,
-                tenant));
+                String.class, tenant));
     rows.addAll(
         jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.package.%'",
-            String.class,
-            tenant));
+            String.class, tenant));
     rows.addAll(
         jdbc.queryForList(
             "SELECT response_body::text FROM platform.idempotency_record"

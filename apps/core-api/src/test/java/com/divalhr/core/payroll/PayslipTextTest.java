@@ -203,15 +203,26 @@ class PayslipTextTest {
   void theForbiddenPhraseScanFlagsTheForbiddenWordsAndSparesTheRequiredWording() {
     for (String bad :
         List.of(
-            "Payroll paid", "PAID", "The payment completed", "Payment  completed", "filed",
-            "Tax compliant", "tax-compliant", "Government approved")) {
+            "Payroll paid",
+            "PAID",
+            "The payment completed",
+            "Payment  completed",
+            "filed",
+            "Tax compliant",
+            "tax-compliant",
+            "Government approved")) {
       assertThat(FORBIDDEN_EN.stream().anyMatch(p -> p.matcher(bad).find())).as(bad).isTrue();
     }
     for (String bad :
         List.of(
-            "Salaire payé", "Paie payée", "paiement effectué", "Déclaré",
-            "conforme fiscalement", "approuvé par le gouvernement",
-            "approuvé par l'État", "approuvé par l’État")) {
+            "Salaire payé",
+            "Paie payée",
+            "paiement effectué",
+            "Déclaré",
+            "conforme fiscalement",
+            "approuvé par le gouvernement",
+            "approuvé par l'État",
+            "approuvé par l’État")) {
       assertThat(FORBIDDEN_FR.stream().anyMatch(p -> p.matcher(bad).find())).as(bad).isTrue();
     }
     for (String allowed :
@@ -222,8 +233,11 @@ class PayslipTextTest {
     }
     for (String allowed :
         List.of(
-            "Paie approuvée", "Ne constitue pas une preuve de paiement",
-            "Net approuvé", "Bulletin de paie", "Calcul statutaire fondé")) {
+            "Paie approuvée",
+            "Ne constitue pas une preuve de paiement",
+            "Net approuvé",
+            "Bulletin de paie",
+            "Calcul statutaire fondé")) {
       assertThat(FORBIDDEN_FR.stream().anyMatch(p -> p.matcher(allowed).find()))
           .as(allowed)
           .isFalse();

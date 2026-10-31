@@ -129,10 +129,7 @@ public class PayrollOperations {
           PAYSLIP_NOT_FOUND,
           COMPENSATION_NOT_FOUND ->
           Outcome.NOT_FOUND;
-      case VALIDATION_FAILED,
-          CURSOR_INVALID,
-          PAYROLL_PERIOD_INVALID,
-          LOCALE_NOT_SUPPORTED ->
+      case VALIDATION_FAILED, CURSOR_INVALID, PAYROLL_PERIOD_INVALID, LOCALE_NOT_SUPPORTED ->
           Outcome.VALIDATION_FAILED;
       case RATE_LIMITED -> Outcome.RATE_LIMITED;
       case EMPLOYEE_LINK_REQUIRED -> Outcome.DENIED;

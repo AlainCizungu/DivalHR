@@ -83,21 +83,20 @@ class PayrollPackageRateLimitIntegrationTest {
     JsonNode preview = w.preview(chain);
     // The approval (first write) and a refused void (second) spend the shared write bucket.
     String pkg =
-        w.c.expect(
+        w.c
+            .expect(
                 w.approveRequest(
                     chain, Organizations.newKey(), PayrollPackageWorld.approving(preview)),
                 201)
             .get("packageId")
             .asText();
-    Map<String, Object> forged = PayrollPackageWorld.voidCommand("OTHER_CONTROLLED",
-        EXPLANATION);
+    Map<String, Object> forged = PayrollPackageWorld.voidCommand("OTHER_CONTROLLED", EXPLANATION);
     forged.put("packageVersion", 99);
     forged.put("approvalDigest", "a".repeat(64));
     forged.put("previewDigest", "b".repeat(64));
     forged.put("expiresAt", "2999-01-01T00:00:00Z");
     forged.put("noPaymentAcknowledged", true);
-    MockHttpServletResponse refused =
-        w.c.call(w.voidRequest(pkg, Organizations.newKey(), forged));
+    MockHttpServletResponse refused = w.c.call(w.voidRequest(pkg, Organizations.newKey(), forged));
     assertThat(refused.getStatus()).isEqualTo(409);
     List<Integer> before = w.evidence();
 
