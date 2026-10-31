@@ -107,7 +107,8 @@ const FIRST_OF_THIS_MONTH = `${TODAY.slice(0, 8)}01`;
 const LAST_DAY = plusDays(FIRST_OF_THIS_MONTH, -1);
 const FIRST_DAY = `${LAST_DAY.slice(0, 8)}01`;
 const PERIOD = LAST_DAY.slice(0, 7);
-const earliestCompensation = plusDays(TODAY, -59);
+/** The Core accepts a compensation start up to exactly 60 days in the past (boundary included). */
+const earliestCompensation = plusDays(TODAY, -60);
 const later = (a: string, b: string) => (a > b ? a : b);
 const HIRE = plusDays(FIRST_DAY, -5);
 
