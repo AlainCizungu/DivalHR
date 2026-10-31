@@ -434,6 +434,7 @@ class PayrollPackageQueryPlanIntegrationTest {
         Map.of("tenant", tenant, "package", big),
         "payroll_payslip_package_page",
         "payroll_payslip_package_fk",
+        "payroll_payslip_line_unique",
         "payroll_payslip_tenant_id_unique");
   }
 

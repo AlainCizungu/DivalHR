@@ -384,7 +384,7 @@ class PayrollPackageApiIntegrationTest {
     w.c.problem(
         w.approveRequest(chain, Organizations.newKey(), PayrollPackageWorld.approving(stale)),
         409,
-        "PAYROLL_PACKAGE_BLOCKED");
+        "PAYROLL_APPROVAL_PREVIEW_STALE");
     // A new employee supersedes the run.
     UUID extra = w.s.paidInCdf("Kalala", "90000");
     w.s.standard(extra);
@@ -736,7 +736,10 @@ class PayrollPackageApiIntegrationTest {
         List.of(
             PayrollPackageWorld.with(body, "previewDigest", "a".repeat(64)),
             PayrollPackageWorld.with(body, "explanation", EXPLANATION + " changed"),
-            PayrollPackageWorld.with(body, "reasonCode", "SOURCE_CORRECTION"),
+            PayrollPackageWorld.with(
+                PayrollPackageWorld.with(body, "reasonCode", "SOURCE_CORRECTION"),
+                "explanation",
+                null),
             PayrollPackageWorld.with(body, "expiresAt", PayrollPackageWorld.later(preview)))) {
       w.c.problem(
           w.voidRequest(pkg, Organizations.newKey(), stale), 409, "PAYROLL_VOID_PREVIEW_STALE");
