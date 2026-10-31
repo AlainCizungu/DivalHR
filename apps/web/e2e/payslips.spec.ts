@@ -174,13 +174,26 @@ async function postJson<T>(
   key?: string,
   expected = 200,
 ): Promise<T> {
-  const response = await page.request.post(`${CORE_API}${path}`, {
+  // The tenant shares one rate-limit window with every other journey; a 429 carries the seconds to
+  // wait and the identical request is safe to repeat (same idempotency key, nothing recorded yet).
+  let response = await page.request.post(`${CORE_API}${path}`, {
     headers: {
       Authorization: bearer(),
       ...(key ? { 'Idempotency-Key': `e2e-ps-${key}-${stamp}-0001` } : {}),
     },
     data,
   });
+  for (let attempt = 0; attempt < 3 && response.status() === 429; attempt += 1) {
+    const wait = Number(response.headers()['retry-after'] ?? '5');
+    await page.waitForTimeout((Number.isFinite(wait) ? Math.min(wait, 65) : 5) * 1000 + 250);
+    response = await page.request.post(`${CORE_API}${path}`, {
+      headers: {
+        Authorization: bearer(),
+        ...(key ? { 'Idempotency-Key': `e2e-ps-${key}-${stamp}-0001` } : {}),
+      },
+      data,
+    });
+  }
   expect(response.status(), path).toBe(expected);
   return (await response.json()) as T;
 }

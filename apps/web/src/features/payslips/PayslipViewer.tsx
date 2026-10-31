@@ -43,8 +43,9 @@ export function PayslipDocument({ view, locale }: { view: PayslipView; locale: '
       {voided && (
         <div className="payslip-voided" role="status" data-testid="payslip-voided-banner">
           <p>
-            <strong>{wording.voidedNotice ?? tDoc('payslips.doc.voided')}</strong>
+            <strong data-testid="payslip-voided-label">{wording.statusLabel}</strong>
           </p>
+          <p>{wording.voidedNotice ?? tDoc('payslips.doc.voided')}</p>
           {view.voidReasonCode && (
             <p data-testid="payslip-void-reason" data-code={view.voidReasonCode}>
               {tDoc('payslips.doc.voidReason', {

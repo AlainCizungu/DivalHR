@@ -277,6 +277,7 @@ export const payslipView = (
   snapshotDigest: SNAPSHOT_DIGEST,
   wording: {
     ...WORDING[locale],
+    ...(voided ? { statusLabel: locale === 'en' ? 'VOIDED' : 'ANNULÉ' } : {}),
     voidedNotice: voided
       ? locale === 'en'
         ? 'VOIDED: this payroll was voided.'
