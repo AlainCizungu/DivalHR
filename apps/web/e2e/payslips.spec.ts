@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import {
   CORE_API,
   TENANT_A,
@@ -461,7 +462,10 @@ async function downloadAndCheck(page: Page, button: Locator, payslipId: string) 
   expect(response.headers()['content-type']).toMatch(/^application\/pdf/u);
   expect(response.headers()['cache-control']).toMatch(/no-store/u);
   expect(response.headers()['x-content-type-options']).toBe('nosniff');
-  const body = await response.body();
+  // The bytes are read from the file the browser saved: a fetched response body is not always
+  // retained by the test driver, the saved download is what the person receives.
+  const saved = await download.path();
+  const body = readFileSync(saved);
   expect(body.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   expect(body.length).toBeGreaterThan(500);
   expect(body.length).toBeLessThanOrEqual(256 * 1024);
