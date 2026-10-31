@@ -283,7 +283,15 @@ class AuthorizationDenialAuditIntegrationTest {
           "statutory-profile.change",
           "statutory-calculation.preview",
           "statutory-calculation.read",
-          "statutory-calculation.create");
+          "statutory-calculation.create",
+          // MVP-094C: payroll approval, packages, void and payslips (administrator).
+          "payroll-approval.preview",
+          "payroll-package.approve",
+          "payroll-package.read",
+          "payroll-void.preview",
+          "payroll-package.void",
+          "payslip.read",
+          "payslip.download");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -359,7 +367,10 @@ class AuthorizationDenialAuditIntegrationTest {
           "expense.approval-approve",
           "expense.approval-return",
           // MVP-093A: the employee's own monthly compensation.
-          "compensation.self-read");
+          "compensation.self-read",
+          // MVP-094C: the employee's own published payslips.
+          "payslip.self-read",
+          "payslip.self-download");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -794,7 +805,10 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-094A seven more (policy read, preview and commit; run preview, list, creation and read).
     // MVP-094B eleven more handlers over nine operations (the pack list and detail share
     // statutory-rule-pack.read; the calculation list and detail share statutory-calculation.read).
-    assertThat(handlers).hasSize(181);
+    // MVP-094C nine more handlers over seven operations (the package list and detail share
+    // payroll-package.read; the payslip list and detail share payslip.read; the employee's three
+    // payslip handlers are self-service).
+    assertThat(handlers).hasSize(190);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

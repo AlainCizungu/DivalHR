@@ -57,6 +57,9 @@ public final class PayrollRunConstraintViolations {
    * @return the error code, or empty when the violation is a defect
    */
   public static Optional<ErrorCode> answer(String constraint) {
+    if ("payroll_package_source_locked".equals(constraint)) {
+      return Optional.of(ErrorCode.PAYROLL_PACKAGE_ALREADY_APPROVED);
+    }
     if (POLICY_LIMIT.equals(constraint) || RUN_LIMIT.equals(constraint)) {
       return Optional.of(ErrorCode.PAYROLL_RUN_LIMIT_REACHED);
     }

@@ -238,4 +238,21 @@ class TenantPredicateArchitectureTest {
                           method.getFullName() + " must not take a TenantId: platform data"));
                 }
               });
+
+  /**
+   * MVP-094C: the tenant-owned payroll package repository follows the same rule, with no exception
+   * (every statement filters on the tenant, and the employee payslip reads also on the employee).
+   */
+  @ArchTest
+  static final ArchRule payrollPackageRepositoryRequiresTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.payroll.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleName("JdbcPayrollPackageRepository")
+          .and()
+          .arePublic()
+          .should(TAKE_TENANT_ID);
 }

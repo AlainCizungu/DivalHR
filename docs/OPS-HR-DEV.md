@@ -345,3 +345,43 @@ number or token is ever used in hr-dev.
   (`StatutoryApiIntegrationTest`), 10 profile-uniformity check removed. A surviving mutation exits
   non-zero. Dev data contains no real salary; never paste amounts into issues, logs or tickets.
 
+
+## MVP-094C payroll approval and payslips
+
+- Twelve operations (`previewPayrollApproval`, `commitPayrollApproval`, `listPayrollPackages`,
+  `getPayrollPackage`, `previewPayrollVoid`, `commitPayrollVoid`, `listPackagePayslips`,
+  `getPackagePayslip`, `downloadPackagePayslipPdf`, `listMyPayslips`, `getMyPayslip`,
+  `downloadMyPayslipPdf`). Subject buckets per minute (`application.yaml`, environment
+  `DIVALHR_PAYROLL_*` / `DIVALHR_PAYSLIP_*`): `payroll-package-read` 60, `payroll-approval-preview` 5
+  (approval and void previews), `payroll-approval-write` 2 (approval and void), `payslip-download` 30.
+  Tenant buckets per hour: 60, 20 and 300. No scheduled job. Timeouts surface as
+  `503 EMPLOYMENT_CHANGE_TIMEOUT`; a PDF that cannot be rendered within 5 s or 256 KiB is
+  `500 PAYSLIP_RENDER_FAILED`.
+- **Migration V46 is additive** (tables `payroll_package`, `payroll_package_source`,
+  `payroll_package_void`, `payroll_payslip`; two triggers on `payroll.pay_run` and
+  `payroll.statutory_calculation`). Rollback `db/rollback/V46__rollback.sql` is manual, never run by
+  Flyway, and refuses while any package, source, void or payslip row exists
+  (`V46 rollback refused: ...`; no override). It does not edit `flyway_schema_history`. Prefer rolling
+  back only the application: V46 tables are not read by the previous release.
+- **Source lock.** While a package is APPROVED the database refuses to supersede its payroll run or
+  statutory calculation (`payroll_package_source_locked`), so 094A/094B recalculation fails with a
+  conflict until the package is voided. A voided run/calculation pair is never approved again; a
+  correction needs a changed run (a new 094A version) and a new calculation.
+- **Synthetic hr-dev acceptance (no real pack, no real people).** The real pack `CD-SALARY-PREVIEW`
+  stays DRAFT. For acceptance only, as the database owner and exactly as for MVP-094B, run
+  `apps/web/e2e/synthetic-verified-rule-pack.sql` with `psql -v pack_id=<new uuid> -v
+  pack_code=SYNTHETIC-TEST-<DATE>` (it inserts a DRAFT pack with fake hashes and moves it to VERIFIED in
+  one transaction; reviewer "Synthetic Test Reviewer", organization "Test Only"), then activate it for a
+  synthetic legal entity with `activateStatutoryRulePack` and use synthetic employees with
+  `statutory profiles`. Packages built on it show `synthetic: true` and the test badge. Record in the
+  acceptance evidence the pack id and code, the activation, and either the cleanup or that the
+  synthetic rows are preserved in synthetic hr-dev data; a voided package, its payslips and the pack
+  cannot be deleted (append-only), so acceptance data is retired by marking the tenant synthetic, not by
+  deleting. Never create a `SYNTHETIC-TEST-*` pack in production, a seed, a migration or a dev script,
+  and never present it as DRC-approved.
+- **Access-log redaction.** Payslip downloads send `Content-Disposition: attachment;
+  filename="payslip-YYYY-MM-xxxxxxxx.pdf"`. Caddy already deletes `Content-Disposition` from logged
+  response headers (SEC-003) and nginx logs only the safe format; the canary must gain a payslip
+  download sentinel. Payroll paths contain opaque UUIDs only; no amount is ever in a path or query.
+- Dev data contains no real salary or payslip; never paste amounts, employee numbers, digests or
+  payslip files into issues, logs or tickets.

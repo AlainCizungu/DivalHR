@@ -8,6 +8,7 @@ import com.divalhr.core.platform.access.EmployeeAccessLinks;
 import com.divalhr.core.platform.access.EmploymentContractFacts;
 import com.divalhr.core.platform.access.EmploymentIntervals;
 import com.divalhr.core.platform.access.LockedApprovedTime;
+import com.divalhr.core.platform.access.PayrollPaymentGuard;
 import com.divalhr.core.platform.access.PayrollPopulation;
 import com.divalhr.core.platform.access.ReportingLines;
 import com.divalhr.core.platform.access.StatutoryEarningsGuard;
@@ -143,6 +144,15 @@ class AccessPortArchitectureTest {
   }
 
   @Test
+  void thePayrollPaymentGuardHasExactlyItsDeclaredMethod() {
+    assertThat(
+            Stream.of(PayrollPaymentGuard.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .toList())
+        .containsExactly("paymentExists");
+  }
+
+  @Test
   void theCompensationPortsReadAndLockOnlyThroughTheirDeclaredMethods() {
     assertThat(
             Stream.of(EmploymentIntervals.class.getDeclaredMethods())
@@ -229,6 +239,10 @@ class AccessPortArchitectureTest {
     // MVP-090A: payroll reads people's locked approved time through its port only, and nobody
     // reads payroll's tables.
     scan(root.resolve("payroll"), ANY_PEOPLE_TABLE, offenders);
+    // MVP-094C: payslip self-service resolves the employee through the access-link port, and the
+    // payroll package code reads no identity membership or document table.
+    scan(root.resolve("payroll"), IDENTITY_TABLE, offenders);
+    scan(root.resolve("payroll"), DOCUMENTS_TABLE, offenders);
     scan(root.resolve("people"), PAYROLL_TABLE, offenders);
     scan(root.resolve("identity"), PAYROLL_TABLE, offenders);
     scan(root.resolve("documents"), PAYROLL_TABLE, offenders);

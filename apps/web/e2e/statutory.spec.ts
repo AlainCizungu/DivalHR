@@ -88,7 +88,7 @@ const FIRST_DAY = `${LAST_DAY.slice(0, 8)}01`;
 const PERIOD = LAST_DAY.slice(0, 7);
 
 /** The first day a compensation can start: the Core accepts at most 60 days in the past. */
-const earliestCompensation = plusDays(TODAY, -59);
+const earliestCompensation = plusDays(TODAY, -60);
 const later = (a: string, b: string) => (a > b ? a : b);
 /** Employees are hired before the month; a statutory profile starts on the hire date. */
 const HIRE = plusDays(FIRST_DAY, -5);

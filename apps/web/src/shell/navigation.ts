@@ -151,6 +151,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'payroll',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/payroll-packages',
+        labelKey: 'nav.payrollPackages',
+        icon: 'contract',
+        role: 'tenant-admin',
+      },
     ],
   },
   {
@@ -251,6 +257,7 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'contract',
         role: 'employee',
       },
+      { to: '/me/payslips', labelKey: 'nav.myPayslips', icon: 'contract', role: 'employee' },
       {
         to: '/me/expense-approvals',
         labelKey: 'nav.expenseApprovals',

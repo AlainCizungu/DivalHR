@@ -340,6 +340,9 @@ fieldset.field {
 
 /* MVP-012B access review: a readable table that scrolls horizontally inside its card on phones. */
 .table-wrapper {
+  /* Positioned, so that visually hidden (absolutely positioned) text in the last column of a wide
+     table is clipped and scrolled with the table instead of widening the page (MVP-094C). */
+  position: relative;
   overflow-x: auto;
   max-width: 100%;
 }
@@ -771,4 +774,30 @@ fieldset.field {
 
 .statutory-page .dialog-actions > * {
   max-inline-size: 100%;
+}
+
+/* MVP-094C: the VOIDED banner and the synthetic / test notice of approved payroll and payslips.
+   The text carries the meaning (VOIDED, Synthetic / test); the border only reinforces it. Both
+   wrap inside their card at 320 px, 390 px, 640 px and 200 % zoom (see .statutory-page). */
+.payslip-voided,
+.payslip-synthetic {
+  margin-block: var(--dv-space-3);
+  padding: var(--dv-space-3);
+  border: 2px solid var(--dv-color-text);
+  border-radius: var(--dv-radius-lg);
+  overflow-wrap: anywhere;
+}
+
+.payslip-voided {
+  border-style: double;
+  border-width: 4px;
+}
+
+.payslip-voided p,
+.payslip-synthetic {
+  margin-block: 0;
+}
+
+.payslip-document dl {
+  margin-block-end: var(--dv-space-3);
 }

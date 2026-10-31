@@ -57,7 +57,9 @@
     "myExpenses": "My expenses",
     "myCompensation": "My compensation",
     "expenseApprovals": "Expense approvals",
-    "payrollRuns": "Payroll runs"
+    "payrollRuns": "Payroll runs",
+    "payrollPackages": "Approved payroll",
+    "myPayslips": "My payslips"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -88,7 +90,10 @@
       "contract": "Contract",
       "payrollRun": "Payroll run",
       "statutoryPreview": "Statutory preview",
-      "statutoryProfile": "Statutory profile"
+      "statutoryProfile": "Statutory profile",
+      "payrollApproval": "Approval review",
+      "payrollPackage": "Approved payroll",
+      "payslip": "Payslip"
     }
   },
   "locale": {
@@ -247,6 +252,10 @@
         "payrollRuns": {
           "title": "Payroll runs",
           "description": "Set the monthly payroll policy and create draft runs with contractual gross for closed months."
+        },
+        "payrollPackages": {
+          "title": "Approved payroll",
+          "description": "Read approved payroll packages and their payslips, and void a package before any payment exists. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
         }
       },
       "attention": {
@@ -306,7 +315,8 @@
         "tasks": "Follow the tasks assigned to you, start them and mark them complete.",
         "expenses": "Record expenses in CDF or USD with a receipt, submit them to your manager and follow each decision. Approval is not payment.",
         "compensationTitle": "My compensation",
-        "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment."
+        "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment.",
+        "payslips": "Read your payslips and download them as PDF in English or French. A payslip is not proof of payment."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -348,20 +358,24 @@
         "description": "See the benefits you are enrolled in."
       },
       "payslips": {
-        "title": "Payroll and payslips",
-        "description": "Access your payslips once payroll is calculated."
+        "title": "Payslips on a verified pack",
+        "description": "Your payslips appear under My payslips once your organization approves a payroll on a professionally verified statutory pack. Not available for the DRC until that pack is verified."
       },
       "statutoryCalculation": {
         "title": "Statutory deductions and net pay",
         "description": "Statutory deductions and net pay with DRC rules, building on the draft contractual gross."
       },
       "payslipApproval": {
-        "title": "Payslips and net-pay approval",
-        "description": "Review, approve and publish payslips once net pay is approved."
+        "title": "Operational DRC payslips",
+        "description": "Payroll review, approval and bilingual payslips are built and work only on a professionally verified statutory pack. The DRC pack is not verified yet, so they are pilot and readiness only."
       },
       "salaryAdvances": {
         "title": "Salary advances",
         "description": "Advances through approved partners, with employee consent, repaid through payroll."
+      },
+      "filingAccounting": {
+        "title": "Filing and accounting posting",
+        "description": "Payroll declarations and accounting entries prepared from approved payroll."
       }
     }
   },
@@ -665,7 +679,19 @@
     "STATUTORY_CALCULATION_NO_CHANGE": "The current statutory calculation already matches this result, so nothing was created. Open the current calculation instead.",
     "STATUTORY_VERSION_CONFLICT": "Someone else changed this information in the meantime. Reload the latest state and preview again before confirming.",
     "STATUTORY_LIMIT_REACHED": "A limit was reached: at most 60 rule-pack activations per legal entity, 100 profile entries per employee, 25 versions per calculation and 5,000 payroll lines.",
-    "STATUTORY_CALCULATION_NOT_FOUND": "This statutory calculation does not exist or is not available to you."
+    "STATUTORY_CALCULATION_NOT_FOUND": "This statutory calculation does not exist or is not available to you.",
+    "PAYROLL_PACKAGE_NOT_FOUND": "This payroll package does not exist or is not available to you.",
+    "PAYROLL_PACKAGE_BLOCKED": "At least one blocker prevents this payroll approval. Resolve the blockers shown in the review, then review again.",
+    "PAYROLL_APPROVAL_PREVIEW_STALE": "The approval review is out of date because the payroll run, the statutory calculation, the payroll policy, the statutory profiles or the rule pack changed, or the review expired. Review again.",
+    "PAYROLL_APPROVAL_NO_CHANGE": "This payroll is already approved from the same payroll run and statutory calculation, so nothing was created. Open the approved payroll instead.",
+    "PAYROLL_PACKAGE_VERSION_CONFLICT": "Someone else changed the approved payroll of this month in the meantime. Reload the latest state and review again before confirming.",
+    "PAYROLL_PACKAGE_ALREADY_APPROVED": "Payroll for this legal entity and month is already approved. Void the approved payroll first if it must be corrected.",
+    "PAYROLL_PACKAGE_VOIDED": "This payroll package is voided. It stays available as a record, but no further action is possible on it.",
+    "PAYROLL_VOID_PREVIEW_STALE": "The void review is out of date because it expired or the payroll package changed. Review again.",
+    "PAYROLL_VOID_NOT_ALLOWED": "This payroll package cannot be voided because a payment record exists for it.",
+    "PAYSLIP_NOT_FOUND": "This payslip does not exist or is not available to you.",
+    "PAYSLIP_RENDER_FAILED": "The payslip document could not be produced. Nothing was changed. Try again later.",
+    "PAYROLL_PACKAGE_LIMIT_REACHED": "A limit was reached: at most 5,000 payslips per payroll package and 25 package versions per legal entity and month."
   },
   "notFound": {
     "title": "Page not found",
@@ -2957,8 +2983,8 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross.",
-          "remaining": "Statutory deductions, payslips, net-pay approval and payment."
+          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness).",
+          "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and bank and mobile-money disbursement."
         },
         "loans": {
           "title": "Loans & Salary Advances",
@@ -3050,8 +3076,8 @@
         "payrollRuns": "Monthly draft payroll runs with contractual gross"
       },
       "next": {
-        "statutory": "DRC statutory country pack",
-        "payslips": "Payslips and net-pay approval",
+        "statutory": "DRC statutory country pack (awaiting professional verification)",
+        "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and accounting posting",
         "disbursement": "Bank and mobile-money disbursement and reconciliation",
         "advances": "Salary advances and partner loans",
         "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
@@ -3062,7 +3088,7 @@
     "payroll": {
       "kicker": "From approved time to payroll preparation",
       "title": "Prepare payroll inputs. Record compensation. Draft contractual gross.",
-      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. From it, administrators create monthly draft runs that show contractual gross with the evidence behind every amount. Statutory deductions, payslips, net-pay approval and payment come next.",
+      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. From it, administrators create monthly draft runs that show contractual gross with the evidence behind every amount. Payroll review and approval and bilingual payslips are built as a foundation: they work only when a professionally verified statutory rule pack is active, and the DRC pack is not verified yet, so this is pilot and readiness only. A payslip is not proof of payment. Filing, accounting posting, bank and mobile-money disbursement and salary advances come next.",
       "steps": {
         "preparation": {
           "title": "Payroll preparation",
@@ -3074,7 +3100,7 @@
         },
         "calculation": {
           "title": "Deductions and payslips",
-          "description": "Statutory deductions, net-pay approval and payslips."
+          "description": "Statutory deductions, payroll approval and bilingual payslips need a professionally verified rule pack. The DRC pack is not verified yet: pilot and readiness only. A payslip is not proof of payment."
         },
         "payment": {
           "title": "Payment and reconciliation",
@@ -5655,6 +5681,237 @@
       "problems": {
         "effectiveFrom": "Enter a valid effective date."
       }
+    }
+  },
+  "payrollPackages": {
+    "label": "Approved payroll—Not proof of payment",
+    "notProofOfPayment": "Not proof of payment",
+    "rulePackStatement": "Statutory calculation based on rule pack {{code}} v{{version}}",
+    "packTitle": "{{code}} v{{version}}",
+    "loading": "Loading…",
+    "unauthorized": "Only a tenant administrator with multi-factor authentication can use approved payroll. Sign in as a tenant administrator to continue.",
+    "signInRequired": "Sign in as a tenant administrator to use approved payroll.",
+    "validation": "Some information is missing or invalid.",
+    "forbidden": "You do not have access to approved payroll.",
+    "title": "Approved payroll",
+    "description": "Approved payroll packages of a legal entity: approved and voided, with their payslips.",
+    "notice": "An approved payroll is a review record. It is not a payment, a bank instruction, a declaration or an accounting entry. A package is created from a statutory calculation under Payroll runs and needs a professionally verified rule pack.",
+    "status": {
+      "APPROVED": "Approved payroll",
+      "VOIDED": "Voided"
+    },
+    "previewStatus": {
+      "READY": "Ready to approve",
+      "BLOCKED": "Blocked",
+      "NO_CHANGE": "Already approved"
+    },
+    "synthetic": {
+      "badge": "Synthetic / test",
+      "notice": "This package uses a synthetic test rule pack. It is for testing only and is not a statutory result."
+    },
+    "totals": {
+      "employerContributions": "Employer contributions (separate)",
+      "approvedNet": "Approved net"
+    },
+    "lines": {
+      "employerSeparate": "Employer contributions (separate)",
+      "employerNote": "Employer contributions are shown separately and do not reduce the employee’s net.",
+      "showMore": "Show more employees ({{count}} remaining)"
+    },
+    "samePreparer": {
+      "warning": "You prepared this payroll run or its statutory calculation, and you are also approving it. This release allows it and records it. Separation of preparer and approver is planned for a later release.",
+      "recorded": "The approver also prepared the payroll run or its statutory calculation. This is recorded."
+    },
+    "link": {
+      "title": "Approve payroll",
+      "description": "Review this calculation as a payroll package, confirm it and publish payslips. Only a calculation based on a verified rule pack can be approved.",
+      "action": "Review the approval of version {{version}}"
+    },
+    "review": {
+      "title": "Review payroll approval",
+      "description": "Check the sources, the rule pack, the totals and every employee before you approve a payroll package.",
+      "back": "Back to the statutory preview",
+      "prepareTitle": "Prepare the approval",
+      "prepareHelp": "The review reads the current payroll run and statutory calculation and shows what would be approved. Nothing is recorded until you confirm.",
+      "preview": "Review the approval",
+      "previewAgain": "Review again",
+      "staleRefresh": "The review is out of date. Nothing was approved. Review the approval again and confirm the new figures.",
+      "heading": "Approval review for {{period}} in {{currency}}",
+      "run": "Payroll run",
+      "calculation": "Statutory calculation",
+      "versionOf": "version {{version}}",
+      "entity": "Legal entity",
+      "period": "Period",
+      "currency": "Currency",
+      "policy": "Payroll policy version",
+      "payslipCount": "Payslips",
+      "excludedCount": "Employees without statutory components",
+      "blockersTitle": "Resolve these blockers before you can approve:",
+      "warningsTitle": "Warnings to read before you approve",
+      "noTotals": "No totals are available for this review.",
+      "identical": "This payroll run and statutory calculation are already approved. Nothing changes.",
+      "openExisting": "Open the approved payroll (version {{version}})",
+      "noLines": "There is no employee line to review.",
+      "linesHeading": "Employees",
+      "linesCaption": "Amounts per employee in the proposed payroll package",
+      "whyBlocked": "Approval is unavailable while a blocker remains or the review is not ready.",
+      "whyNoChange": "Approval is unavailable: this payroll is already approved.",
+      "whyConfirm": "Check the three confirmations to approve.",
+      "commit": "Approve payroll and publish payslips",
+      "announce": "Payroll approved. Payslips are published to the linked employees."
+    },
+    "confirm": {
+      "legend": "Confirm before you approve",
+      "help": "All three confirmations are required.",
+      "totals": "I reviewed the totals and the employee lines.",
+      "exceptions": "I reviewed the warnings and the employees without statutory components.",
+      "noPayment": "I understand that approving payroll does not pay anyone and that a payslip is not proof of payment."
+    },
+    "receipt": {
+      "title": "Payroll approved",
+      "open": "Open the approved payroll and its payslips"
+    },
+    "blockers": {
+      "SOURCE_RUN_NOT_CURRENT": "The payroll run is no longer the current draft.",
+      "CALCULATION_NOT_CURRENT": "The statutory calculation is no longer the current one.",
+      "CALCULATION_INCOMPLETE": "The statutory calculation is incomplete.",
+      "RULE_PACK_NOT_VERIFIED": "The rule pack is not professionally verified, so payroll cannot be approved.",
+      "POLICY_CHANGED": "The payroll policy changed after the calculation.",
+      "PROFILE_CHANGED": "A statutory profile changed after the calculation.",
+      "RULE_PACK_CHANGED": "The active rule pack changed after the calculation.",
+      "SOURCE_CHANGED": "The payroll sources changed after the run was created.",
+      "CURRENCY_NOT_SUPPORTED": "Only payroll in CDF can be approved.",
+      "NO_PAYABLE_LINES": "No employee has a net amount above zero.",
+      "ARITHMETIC_MISMATCH": "An amount does not match its source. Review the payroll run again.",
+      "ALREADY_APPROVED": "Another payroll is already approved for this legal entity and month.",
+      "SOURCE_ALREADY_VOIDED": "These sources belonged to a voided payroll. A corrected payroll run and calculation are required.",
+      "SOURCE_MISSING": "A required source is missing.",
+      "LIMIT_REACHED": "A limit of approved payrolls or payslips was reached."
+    },
+    "warnings": {
+      "SAME_PREPARER_AND_APPROVER": "You also prepared this payroll.",
+      "SYNTHETIC_RULE_PACK": "The rule pack is a synthetic test pack. Use it for testing only.",
+      "EXCLUDED_LINES_PRESENT": "Some employees have no statutory component and receive a payslip without deductions.",
+      "ZERO_NET_LINES_PRESENT": "Some employees have a net amount of zero."
+    },
+    "list": {
+      "title": "Payroll packages",
+      "filter": "Status",
+      "allStatuses": "All statuses",
+      "empty": "There is no approved payroll for this legal entity yet.",
+      "tableLabel": "Approved payroll packages",
+      "version": "Version",
+      "status": "Status",
+      "pack": "Rule pack",
+      "actions": "Actions",
+      "open": "Open",
+      "openContext": "package for {{period}}, version {{version}}",
+      "loadMore": "Load more packages"
+    },
+    "detail": {
+      "title": "Approved payroll for {{period}}, version {{version}}",
+      "fallbackTitle": "Approved payroll",
+      "description": "The sources, the totals and the payslips of this package.",
+      "back": "Back to payroll packages",
+      "summary": "Package summary",
+      "approvedAt": "Approved on",
+      "confirmations": "Confirmations",
+      "confirmationsDone": "Totals reviewed, exceptions reviewed, no payment understood.",
+      "voidedBanner": "VOIDED: this payroll package was voided. Its payslips remain readable as voided copies.",
+      "voidedAt": "Voided on {{at}}.",
+      "explanation": "Administrator explanation: {{text}}"
+    },
+    "payslips": {
+      "title": "Payslips of this package",
+      "help": "Open the payslip or download its PDF in your language.",
+      "tableLabel": "Payslips of the package",
+      "loadMore": "Load more payslips"
+    },
+    "voidReason": {
+      "SOURCE_CORRECTION": "Correction of the payroll sources",
+      "PROFILE_CORRECTION": "Correction of a statutory profile",
+      "RULE_PACK_CORRECTION": "Correction of the rule pack",
+      "ADMINISTRATIVE_ERROR": "Administrative error",
+      "OTHER_CONTROLLED": "Other controlled reason"
+    },
+    "voidBlockers": {
+      "ALREADY_VOIDED": "This payroll package is already voided.",
+      "PAYMENT_EXISTS": "A payment record exists for this package, so it cannot be voided."
+    },
+    "void": {
+      "title": "Void this payroll",
+      "help": "Voiding keeps every payslip as a visibly voided copy and allows a corrected payroll run and calculation to be approved. Nothing is deleted or edited.",
+      "reason": "Reason",
+      "choose": "Choose a reason",
+      "explanation": "Explanation (required for this reason)",
+      "explanationHelp": "{{min}} to {{max}} characters. Only administrators read it; employees see the reason only.",
+      "preview": "Review the void",
+      "previewHeading": "Void review",
+      "reasonIs": "Reason: {{reason}}",
+      "affects_one": "{{count}} payslip will be shown as voided.",
+      "affects_other": "{{count}} payslips will be shown as voided.",
+      "acknowledge": "I confirm that no payment or disbursement has been made from this payroll.",
+      "commit": "Void this payroll",
+      "whyBlocked": "Voiding is unavailable while a blocker remains.",
+      "whyAcknowledge": "Check the confirmation to void.",
+      "staleRefresh": "The void review is out of date. Nothing was changed. Review the void again.",
+      "announce": "The payroll package is voided."
+    }
+  },
+  "payslips": {
+    "downloadPdf": "Download PDF",
+    "downloading": "Downloading…",
+    "downloadLanguage": "in {{language}}",
+    "downloaded": "The payslip PDF was downloaded.",
+    "my": {
+      "title": "My payslips",
+      "description": "Your own payslips, newest first. Each is a record of an approved payroll.",
+      "unauthorized": "Only an employee linked to an employee record can read payslips.",
+      "signInRequired": "Sign in as an employee to read your payslips.",
+      "empty": "No payslip has been published for you yet.",
+      "listTitle": "Published payslips",
+      "tableLabel": "Your payslips, newest first",
+      "voided": "VOIDED",
+      "context": "for {{period}}",
+      "loadMore": "Load more payslips"
+    },
+    "view": {
+      "title": "Payslip",
+      "open": "Open",
+      "openContext": "payslip of employee {{number}}",
+      "backMine": "Back to my payslips",
+      "backPackage": "Back to the payroll package",
+      "language": "Language of the document",
+      "languages": {
+        "en": "English",
+        "fr": "Français"
+      }
+    },
+    "doc": {
+      "period": "Period",
+      "employeeNumber": "Employee number",
+      "approvedAt": "Approved on",
+      "voided": "VOIDED: this payroll was voided. This copy is kept for the record.",
+      "voidReason": "Reason: {{reason}}",
+      "excluded": "No statutory component applies to this employee.",
+      "amountsCaption": "Payslip amounts in CDF",
+      "item": "Item",
+      "amount": "Amount",
+      "rows": {
+        "gross": "Contractual gross",
+        "cnss": "Employee CNSS contribution",
+        "irpp": "IRPP withholding",
+        "deductions": "Total employee deductions",
+        "net": "Approved net"
+      },
+      "employerHeading": "Employer contributions",
+      "employerContributions": "Employer contributions (separate)",
+      "componentsHeading": "Components",
+      "componentsCaption": "Statutory components of this payslip",
+      "component": "Component",
+      "party": "Borne by",
+      "base": "Base",
+      "digest": "Document fingerprint (SHA-256):"
     }
   }
 }
