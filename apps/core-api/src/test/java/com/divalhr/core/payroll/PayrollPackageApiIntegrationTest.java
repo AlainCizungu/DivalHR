@@ -74,6 +74,13 @@ class PayrollPackageApiIntegrationTest {
   // Preview and commit freeze the sources and the totals
   // ------------------------------------------------------------------------------------------
 
+  /** A preview expires on the 15-minute grid: the start of the current window plus two windows. */
+  private static Instant gridExpiry(Instant at) {
+    long window = 15 * 60 * 1000L;
+    long start = Math.floorDiv(at.toEpochMilli(), window) * window;
+    return Instant.ofEpochMilli(start + 2 * window);
+  }
+
   @Test
   void approvalFreezesTheExactVersionsDigestsAndTotals() throws Exception {
     Chain chain = w.ready();
@@ -110,7 +117,7 @@ class PayrollPackageApiIntegrationTest {
       assertThat(preview.get(digest).asText()).as(digest).matches("[0-9a-f]{64}");
     }
     Instant expiresAt = Instant.parse(preview.get("expiresAt").asText());
-    assertThat(expiresAt).isEqualTo(clock.instant().plusSeconds(15 * 60));
+    assertThat(expiresAt).isEqualTo(gridExpiry(clock.instant()));
     // A preview writes no package, source, payslip or event.
     assertThat(w.evidence()).containsExactly(0, 0, 0, 0, 0, 0);
 
@@ -391,7 +398,7 @@ class PayrollPackageApiIntegrationTest {
             Organizations.newKey(),
             PayrollPackageWorld.approving(oldRun)),
         409,
-        "PAYROLL_PACKAGE_BLOCKED");
+        "PAYROLL_APPROVAL_PREVIEW_STALE");
     assertThat(w.evidence()).containsExactly(0, 0, 0, 0, 0, 0);
   }
 
@@ -703,7 +710,7 @@ class PayrollPackageApiIntegrationTest {
     assertThat(preview.get("approvalDigest"))
         .isEqualTo(before.get("evidence").get("approvalDigest"));
     assertThat(Instant.parse(preview.get("expiresAt").asText()))
-        .isEqualTo(clock.instant().plusSeconds(15 * 60));
+        .isEqualTo(gridExpiry(clock.instant()));
     Map<String, Object> body =
         PayrollPackageWorld.voiding(preview, "OTHER_CONTROLLED", EXPLANATION);
 

@@ -91,7 +91,7 @@ class PayrollPackageRateLimitIntegrationTest {
             .get("packageId")
             .asText();
     Map<String, Object> forged = PayrollPackageWorld.voidCommand("OTHER_CONTROLLED", EXPLANATION);
-    forged.put("packageVersion", 99);
+    forged.put("packageVersion", 2);
     forged.put("approvalDigest", "a".repeat(64));
     forged.put("previewDigest", "b".repeat(64));
     forged.put("expiresAt", "2999-01-01T00:00:00Z");

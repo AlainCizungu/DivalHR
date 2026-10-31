@@ -26,21 +26,21 @@ Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a stor
 
 `scripts/ops/backlog.test.mjs` checks every row against Git (merge subject and PR number, date, ancestry) and checks that this section names the deployed release and that every story below has a status.
 
-| Story    | PR   | Merge commit                               | Merged     | On hr-dev |
-| -------- | ---- | ------------------------------------------ | ---------- | --------- |
-| MVP-001  | #11  | `a3aa9bf37148e49268ed2df2f8f5f8005d99507a` | 2026-09-28 | contained |
+| Story     | PR   | Merge commit                               | Merged     | On hr-dev |
+| --------- | ---- | ------------------------------------------ | ---------- | --------- |
+| MVP-001   | #11  | `a3aa9bf37148e49268ed2df2f8f5f8005d99507a` | 2026-09-28 | contained |
 | DEVX-001B | #79  | `0634d8791b2960860d0a1a82fd5c7d41b1dc4b85` | 2026-10-08 | contained |
-| MVP-090A | #142 | `2c9a1ee0db3215e79a10ffe622fb9899dc04cb54` | 2026-10-18 | contained |
-| MVP-091  | #144 | `11e7b5066e5bdf27d8fdc6862d33fa6413e6829a` | 2026-10-18 | contained |
-| MVP-092  | #150 | `0489dab31234bf8d7cb997ff1a52b94eaa54aa02` | 2026-10-20 | contained |
-| MVP-100  | #155 | `538c1b33f9e2932830f0f126d402c9349f33931b` | 2026-10-21 | contained |
-| MVP-101  | #157 | `8608fd192e344909b8f27e162b2a9792643653d1` | 2026-10-21 | contained |
-| MVP-110  | #162 | `2dee8a1d29b6cb9c2229a7ebb4cabfd92c4cab6d` | 2026-10-23 | contained |
-| MVP-111  | #164 | `1d3b441aead24387529018bbec6411816827f95e` | 2026-10-26 | contained |
-| MVP-080  | #168 | `77e1f89d5de63d33203986e1d592728a0c026015` | 2026-10-27 | contained |
-| MVP-081  | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
-| SEC-003  | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
-| MVP-093A | #176 | `3223454379a9b6342fe3c6b2728d8f17680466e7` | 2026-10-29 | deployed  |
+| MVP-090A  | #142 | `2c9a1ee0db3215e79a10ffe622fb9899dc04cb54` | 2026-10-18 | contained |
+| MVP-091   | #144 | `11e7b5066e5bdf27d8fdc6862d33fa6413e6829a` | 2026-10-18 | contained |
+| MVP-092   | #150 | `0489dab31234bf8d7cb997ff1a52b94eaa54aa02` | 2026-10-20 | contained |
+| MVP-100   | #155 | `538c1b33f9e2932830f0f126d402c9349f33931b` | 2026-10-21 | contained |
+| MVP-101   | #157 | `8608fd192e344909b8f27e162b2a9792643653d1` | 2026-10-21 | contained |
+| MVP-110   | #162 | `2dee8a1d29b6cb9c2229a7ebb4cabfd92c4cab6d` | 2026-10-23 | contained |
+| MVP-111   | #164 | `1d3b441aead24387529018bbec6411816827f95e` | 2026-10-26 | contained |
+| MVP-080   | #168 | `77e1f89d5de63d33203986e1d592728a0c026015` | 2026-10-27 | contained |
+| MVP-081   | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
+| SEC-003   | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
+| MVP-093A  | #176 | `3223454379a9b6342fe3c6b2728d8f17680466e7` | 2026-10-29 | deployed  |
 
 Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.
 
@@ -100,7 +100,7 @@ Authorized security administrators can review active access by user, role, site,
 
 **Issue #37. Complete.** Delivered as two pull requests, 12A then 12B.
 
-**12A membership authority: complete (PR #41).** Every tenant-scoped operation requires a matching active membership (token ∩ membership, exact role, after MFA and before binding); `/session` reports effective roles and supports tenantless platform administrators; the membership keeps its source invitation's address (V10, with a database invariant); development seed memberships; a read-only rollout preflight. Architecture decisions D1-D9, A1-A7, M1-M11, A12A-1 and A12A-2 on Issue #37 apply. 
+**12A membership authority: complete (PR #41).** Every tenant-scoped operation requires a matching active membership (token ∩ membership, exact role, after MFA and before binding); `/session` reports effective roles and supports tenantless platform administrators; the membership keeps its source invitation's address (V10, with a database invariant); development seed memberships; a read-only rollout preflight. Architecture decisions D1-D9, A1-A7, M1-M11, A12A-1 and A12A-2 on Issue #37 apply.
 
 **12B access review: complete (PR #42).** Read-only review for tenant administrators with exact MFA: paginated listing, exact-address lookup and role summary on the 12A active-membership predicate; legal-entity and site views show organization-wide access as inherited; HMAC-bound keyset cursors; 30 review requests per minute per subject; fail-closed `access-review.read` audit with canonical digest v1; French and English page at `/admin/access`. Architecture decisions R1-R8 and guardrails B1-B5 on Issue #37 apply. Follow-ups: S1 scoped roles, S2 grant and revoke, S3 membership lifecycle, a shared rate limiter for production scaling.
 

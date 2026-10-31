@@ -591,7 +591,7 @@ class PayrollPackageMigrationIntegrationTest {
         "payroll_package_acknowledgement",
         c -> exec(c, packageCopy("understands_no_payment", "false"), pkg));
     refusesOneOf(
-        List.of("payroll_package_currency", "payroll_package_run_state"),
+        List.of("payroll_package_currency", "payroll_package_run_state", "payroll_package_version"),
         c -> exec(c, packageCopy("currency", "'USD'"), pkg));
     refusesOneOf(
         List.of("payroll_package_totals_source", "payroll_package_arithmetic"),

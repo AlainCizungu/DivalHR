@@ -310,7 +310,7 @@ class PayrollPackageQueryPlanIntegrationTest {
             + PACKAGE_FROM
             + " WHERE p.tenant_id = :tenant AND p.legal_entity_id = :entity AND p.id = :id",
         Map.of("tenant", tenant, "entity", entity, "id", big),
-        "payroll_package_pkey");
+        "payroll_package_tenant_id_unique");
     driven(
         "void evidence",
         "SELECT reason_code, explanation, voided_at FROM payroll.payroll_package_void"
@@ -328,7 +328,7 @@ class PayrollPackageQueryPlanIntegrationTest {
             + " WHERE p.tenant_id = :tenant AND p.legal_entity_id = :entity"
             + " AND p.period_start = :period AND p.currency = :currency ORDER BY p.version",
         Map.of("tenant", tenant, "entity", entity, "period", bigPeriod, "currency", "CDF"),
-        "payroll_package_version_unique");
+        "payroll_package_history");
     drivenByOneOf(
         "approved package of the chain",
         "SELECT p.id FROM payroll.payroll_package p WHERE p.tenant_id = :tenant"
@@ -336,7 +336,7 @@ class PayrollPackageQueryPlanIntegrationTest {
             + " AND p.currency = :currency AND p.status = 'APPROVED'",
         Map.of("tenant", tenant, "entity", entity, "period", bigPeriod, "currency", "CDF"),
         "payroll_package_one_approved",
-        "payroll_package_version_unique");
+        "payroll_package_history");
     driven(
         "packages of the pair",
         "SELECT p.id, p.version, p.status"
@@ -426,7 +426,7 @@ class PayrollPackageQueryPlanIntegrationTest {
             + " WHERE s.tenant_id = :tenant AND s.legal_entity_id = :entity"
             + " AND s.package_id = :package AND s.id = :id",
         Map.of("tenant", tenant, "entity", entity, "package", big, "id", keysetSlip),
-        "payroll_payslip_pkey");
+        "payroll_payslip_tenant_id_unique");
     drivenByOneOf(
         "package sums",
         "SELECT count(*), coalesce(sum(gross_minor), 0), coalesce(sum(net_minor), 0)"
@@ -434,7 +434,7 @@ class PayrollPackageQueryPlanIntegrationTest {
         Map.of("tenant", tenant, "package", big),
         "payroll_payslip_package_page",
         "payroll_payslip_package_fk",
-        "payroll_payslip_pkey");
+        "payroll_payslip_tenant_id_unique");
   }
 
   @Test

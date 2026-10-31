@@ -353,7 +353,6 @@ public record PayslipSnapshot(
       return snapshot;
     } catch (StatutoryRulesException
         | ClassCastException
-        | NullPointerException
         | ArithmeticException
         | java.time.DateTimeException invalid) {
       throw new IllegalArgumentException("snapshot does not parse", invalid);
@@ -382,22 +381,29 @@ public record PayslipSnapshot(
           "explanationCodes",
           "components");
 
+  private static Object present(Object value) {
+    if (value == null) {
+      throw new IllegalArgumentException("snapshot field is missing");
+    }
+    return value;
+  }
+
   @SuppressWarnings("unchecked")
   private static Map<String, Object> object(Object value) {
-    return (Map<String, Object>) Objects.requireNonNull(value);
+    return (Map<String, Object>) present(value);
   }
 
   @SuppressWarnings("unchecked")
   private static List<Object> list(Object value) {
-    return (List<Object>) Objects.requireNonNull(value);
+    return (List<Object>) present(value);
   }
 
   private static String string(Object value) {
-    return (String) Objects.requireNonNull(value);
+    return (String) present(value);
   }
 
   private static int integer(Object value) {
-    return Math.toIntExact((Long) Objects.requireNonNull(value));
+    return Math.toIntExact((Long) present(value));
   }
 
   private static long amount(Object value) {

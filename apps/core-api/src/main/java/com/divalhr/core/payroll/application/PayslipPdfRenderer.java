@@ -565,7 +565,7 @@ public class PayslipPdfRenderer {
     StringBuilder table = new StringBuilder("xref\n0 ").append(objects + 1).append('\n');
     table.append("0000000000 65535 f \n");
     for (int i = 1; i <= objects; i++) {
-      table.append(String.format(Locale.ROOT, "%010d 00000 n \n", offsets[i]));
+      table.append(String.format(Locale.ROOT, "%010d", offsets[i])).append(" 00000 n \n");
     }
     String id = request.snapshotDigest().substring(0, 32);
     table

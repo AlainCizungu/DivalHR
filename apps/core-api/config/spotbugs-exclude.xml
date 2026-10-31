@@ -154,6 +154,11 @@
       <Class name="~com\.divalhr\.core\.payroll\.application\.(Statutory|NoUnmodeled)[A-Za-z]*"/>
       <Class name="~com\.divalhr\.core\.payroll\.internal\.JdbcStatutory[A-Za-z]*"/>
       <Class name="~com\.divalhr\.core\.payroll\.api\.Statutory[A-Za-z]*Controller"/>
+      <!-- MVP-094C: payroll approval, void and payslip services, repository, recorder and controllers
+           hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.application\.(PayrollApproval|PayrollVoid|PayrollPackage|Payslip)[A-Za-z]*"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPayrollPackageRepository"/>
+      <Class name="~com\.divalhr\.core\.payroll\.api\.(PayrollApproval|PayrollPackage|PackagePayslip|MyPayslip)Controller"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
       <Class name="com.divalhr.core.integrations.application.WebhookService"/>
@@ -208,5 +213,16 @@
   <Match>
     <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
     <Class name="com.divalhr.core.payroll.PayrollLifecycleMigrationIntegrationTest"/>
+  </Match>
+  <!-- MVP-094C: the migration test builds its statements from its own constants and a fixed list of
+       column names; no external value reaches them. The duplicated schema-signature query text is a
+       deliberate test fixture shared by the migration tests. -->
+  <Match>
+    <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
+    <Class name="~com\.divalhr\.core\.payroll\.PayrollPackageMigrationIntegrationTest.*"/>
+  </Match>
+  <Match>
+    <Bug pattern="HSC_HUGE_SHARED_STRING_CONSTANT"/>
+    <Class name="com.divalhr.core.payroll.PayrollRunMigrationIntegrationTest"/>
   </Match>
 </FindBugsFilter>
