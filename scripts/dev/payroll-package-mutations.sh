@@ -112,7 +112,7 @@ baseline() {
     fi
   fi
   for c in "${classes[@]}"; do
-    if ! grep -qE "\.$c > .* PASSED" "$log" && { [ -z "$retry_log" ] || ! grep -qE "\.$c > .* PASSED" "$retry_log"; }; then
+    if ! grep -qE "^$c > .* PASSED" "$log" && { [ -z "$retry_log" ] || ! grep -qE "^$c > .* PASSED" "$retry_log"; }; then
       echo "   BASELINE RAN NO PASSING TEST OF $c (missing, skipped or not compiled). See $log"
       exit 2
     fi
