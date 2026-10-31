@@ -90,7 +90,7 @@ baseline() {
   local log; log="$(mktemp)"
   if ! gradle_test "$log" "${classes[@]}"; then
     echo "   BASELINE IS RED: no mutation can be judged. See $log"
-    grep -E "$FAILED_RE" "$log" | head -10
+    grep -E -A25 "$FAILED_RE" "$log" | head -120
     exit 2
   fi
   for c in "${classes[@]}"; do
