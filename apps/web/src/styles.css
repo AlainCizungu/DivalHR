@@ -340,6 +340,9 @@ fieldset.field {
 
 /* MVP-012B access review: a readable table that scrolls horizontally inside its card on phones. */
 .table-wrapper {
+  /* Positioned, so that visually hidden (absolutely positioned) text in the last column of a wide
+     table is clipped and scrolled with the table instead of widening the page (MVP-094C). */
+  position: relative;
   overflow-x: auto;
   max-width: 100%;
 }
