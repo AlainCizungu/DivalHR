@@ -675,7 +675,8 @@ export type PayrollPackageTotals = CoreComponents['schemas']['PayrollPackageTota
 export type PayrollApprovalLine = CoreComponents['schemas']['PayrollApprovalLine'];
 export type PayrollPackageSummary = CoreComponents['schemas']['PayrollPackageSummary'];
 export type PayrollPackagePage = CoreComponents['schemas']['PayrollPackagePage'];
-export type PayrollApprovalPreviewCommand = CoreComponents['schemas']['PayrollApprovalPreviewCommand'];
+export type PayrollApprovalPreviewCommand =
+  CoreComponents['schemas']['PayrollApprovalPreviewCommand'];
 export type PayrollApprovalPreview = CoreComponents['schemas']['PayrollApprovalPreview'];
 export type CommitPayrollApproval = CoreComponents['schemas']['CommitPayrollApproval'];
 export type PayrollApprovalReceipt = CoreComponents['schemas']['PayrollApprovalReceipt'];
