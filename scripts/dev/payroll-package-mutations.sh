@@ -77,7 +77,7 @@ gradle_test() {
   shift
   local args=()
   for t in "$@"; do args+=(--tests "*$t"); done
-  (cd "$CORE" && ./gradlew --no-daemon test "${args[@]}" >"$log" 2>&1)
+  (cd "$CORE" && ./gradlew --no-daemon cleanTest test "${args[@]}" >"$log" 2>&1)
 }
 
 survivors=0
