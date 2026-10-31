@@ -786,7 +786,9 @@ class PayrollInputIntegrationTest {
         .doesNotContain(preview.get("previewDigest").asText());
   }
 
-  /** A digest that is certainly different (a plain replace is a no-op when the letter is absent). */
+  /**
+   * A digest that is certainly different (a plain replace is a no-op when the letter is absent).
+   */
   private static String differentDigest(String digest) {
     return (digest.charAt(0) == 'a' ? "b" : "a") + digest.substring(1);
   }
