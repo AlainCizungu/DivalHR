@@ -88,13 +88,31 @@ baseline() {
   [ "${UNIT_ONLY:-}" ] || classes+=($INTEGRATION)
   echo "== baseline: ${#classes[@]} focused test classes on the unmodified sources"
   local log; log="$(mktemp)"
+  local retry_log=""
   if ! gradle_test "$log" "${classes[@]}"; then
-    echo "   BASELINE IS RED: no mutation can be judged. See $log"
-    grep -E -A25 "$FAILED_RE" "$log" | head -120
-    exit 2
+    # Under the load of one long run the database can answer a 503 *_TIMEOUT (observed in
+    # MVP-094C: IMPORT_TIMEOUT, EMPLOYMENT_CHANGE_TIMEOUT). Failed classes get ONE rerun alone; a
+    # real defect fails again and aborts. Only timeouts may be retried; any other failure aborts.
+    local failed
+    failed=$(grep -E "$FAILED_RE" "$log" | sed -E 's/ >.*//' | sort -u)
+    local nfailed ntimeouts
+    nfailed=$(grep -cE "$FAILED_RE" "$log")
+    ntimeouts=$(grep -E -A2 "$FAILED_RE" "$log" | grep -c "_TIMEOUT")
+    if [ "$ntimeouts" -lt "$nfailed" ]; then
+      echo "   BASELINE IS RED (not a timeout): no mutation can be judged. See $log"
+      grep -E -A25 "$FAILED_RE" "$log" | head -120
+      exit 2
+    fi
+    echo "   timeouts under load in: $(echo $failed); rerunning those classes alone once"
+    retry_log="$(mktemp)"
+    if ! gradle_test "$retry_log" $failed; then
+      echo "   BASELINE IS RED after the rerun: no mutation can be judged. See $retry_log"
+      grep -E -A25 "$FAILED_RE" "$retry_log" | head -120
+      exit 2
+    fi
   fi
   for c in "${classes[@]}"; do
-    if ! grep -qE "\.$c > .* PASSED" "$log"; then
+    if ! grep -qE "\.$c > .* PASSED" "$log" && { [ -z "$retry_log" ] || ! grep -qE "\.$c > .* PASSED" "$retry_log"; }; then
       echo "   BASELINE RAN NO PASSING TEST OF $c (missing, skipped or not compiled). See $log"
       exit 2
     fi
