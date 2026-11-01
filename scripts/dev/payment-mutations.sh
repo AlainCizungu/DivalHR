@@ -59,7 +59,7 @@ PY
 }
 
 UNIT="PaymentCipherTest PaymentRegisterTest PaymentBatchEvaluatorTest PaymentErrorCodesTest \
-PaymentRecorderTest PayrollPackageArchitectureTest"
+PaymentRecorderTest JdbcPaymentRepositoryTenantTest PayrollPackageArchitectureTest"
 INTEGRATION="PaymentApiIntegrationTest"
 
 # Gradle prints one "<class> > <method> FAILED|PASSED" line per test (build.gradle.kts testLogging).
@@ -182,7 +182,7 @@ run 1 "the destination is stored in plaintext" \
   mutate_plaintext
 
 run 2 "the tenant predicate is removed from the destination read" \
-  "" \
+  "JdbcPaymentRepositoryTenantTest" \
   "PaymentApiIntegrationTest" \
   mutate "$SRC/internal/JdbcPaymentRepository.java" \
   '                + " FROM payroll.payment_destination d WHERE d.tenant_id = :tenant"
