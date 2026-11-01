@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
@@ -43,6 +44,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(SettableClock.Config.class)
 @PayrollPackageWorld.HighLimits
 class PayslipPdfIntegrationTest {
+
+  private static final Pattern EMAIL =
+      Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}");
 
   private static final String EXPLANATION = "The statutory profile was entered for the wrong month";
 
@@ -200,13 +204,14 @@ class PayslipPdfIntegrationTest {
           .doesNotContain(chain.run())
           .doesNotContain(chain.calculation())
           .doesNotContain(chain.pack().toString())
-          .doesNotContain("@")
           .doesNotContain("/api/")
           .doesNotContain("/home/")
           .doesNotContain("Mukendi")
           .doesNotContain("/Author")
           .doesNotContain("/Subject")
           .doesNotContain("/Keywords");
+      // The embedded font subsets are binary: a lone "@" byte is not an e-mail address.
+      assertThat(EMAIL.matcher(document).find()).isFalse();
     }
   }
 
