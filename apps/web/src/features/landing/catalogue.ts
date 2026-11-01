@@ -31,7 +31,8 @@ export const MODULES: readonly ModuleEntry[] = [
   // monthly compensation records (MVP-093A) and monthly draft runs with contractual gross
   // (MVP-094A). The statutory preview of MVP-094B (Issue #179, D94B-13) ships with a DRAFT rule pack
   // only and is usable only once a professionally verified pack is activated, so DRC statutory
-  // calculation stays under "coming next"; payslips, net-pay approval and payment are not built.
+  // calculation stays under "coming next"; payslips and net-pay approval exist on a verified pack only. MVP-095A (Issue #183) adds payment
+  // destinations and payment instruction registers; submission to banks or providers is not built.
   { id: 'payroll', icon: 'payroll', status: 'capabilities', vision: true },
   { id: 'loans', icon: 'bank', status: 'later', vision: true },
   { id: 'benefits', icon: 'benefits', status: 'later', vision: true },

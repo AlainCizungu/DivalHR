@@ -374,8 +374,9 @@ version (094A) and a new calculation (094B).
 
 Port `com.divalhr.core.platform.access.PayrollPaymentGuard#paymentExists(TenantId, UUID legalEntityId, UUID
 packageId)` (read only; identifiers and a boolean). Shipped implementation `payroll.application.NoPaymentRecords`
-reports `false` (no payment or disbursement integration exists), mirroring `StatutoryEarningsGuard` /
-`NoUnmodeledEarnings`. A future payment module implements the port; the void preview reports `PAYMENT_EXISTS` and
+reported `false` while no payment record existed, mirroring `StatutoryEarningsGuard` /
+`NoUnmodeledEarnings`. MVP-095A (ADR 0036) replaces it with `PreparedPaymentBatchGuard`, which reports a
+PREPARED payment batch; the void preview reports `PAYMENT_EXISTS` and
 the commit fails closed with `PAYROLL_VOID_NOT_ALLOWED` without a change to the approval service.
 
 ## 11. Source lock proof obligations

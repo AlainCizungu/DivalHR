@@ -257,7 +257,7 @@
         },
         "payrollPackages": {
           "title": "Approved payroll",
-          "description": "Read approved payroll packages and their payslips, and void a package before any payment exists. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
+          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
         }
       },
       "attention": {
@@ -2998,8 +2998,8 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness).",
-          "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and bank and mobile-money disbursement."
+          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves.",
+          "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and sending payments to banks and mobile-money providers."
         },
         "loans": {
           "title": "Loans & Salary Advances",
@@ -3093,7 +3093,7 @@
       "next": {
         "statutory": "DRC statutory country pack (awaiting professional verification)",
         "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and accounting posting",
-        "disbursement": "Bank and mobile-money disbursement and reconciliation",
+        "disbursement": "Sending payments to banks and mobile-money providers, and reconciliation",
         "advances": "Salary advances and partner loans",
         "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
       },

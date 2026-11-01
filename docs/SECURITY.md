@@ -991,8 +991,8 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - **No delivery.** `payroll.package.approved.v1` and `payroll.package.voided.v1` are internal and are
   not mapped to webhooks or WhatsApp; no email, push or message announces a payslip.
 - **Payment guard.** `PayrollPaymentGuard` (platform access port) reports a payment record for a
-  package; the shipped `NoPaymentRecords` reports none, so a future payment module can make the void
-  fail closed (`PAYROLL_VOID_NOT_ALLOWED`) without changing the approval service.
+  package. Since MVP-095A (ADR 0036) `PreparedPaymentBatchGuard` reports a PREPARED payment batch, so
+  the void fails closed (`PAYROLL_VOID_NOT_ALLOWED`) until the batch is cancelled.
 - **Synthetic packs.** A rule pack whose code starts with `SYNTHETIC-TEST` is test data: packages
   carry `synthetic: true`, payslips a visible test notice and the UI a badge. Such a pack is never
   created by a migration, seed or default; the real pack stays DRAFT.

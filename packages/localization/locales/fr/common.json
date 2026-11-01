@@ -257,7 +257,7 @@
         },
         "payrollPackages": {
           "title": "Paie approuvée",
-          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun paiement n’existe. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
+          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
         }
       },
       "attention": {
@@ -2998,8 +2998,8 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation).",
-          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et versement par banque et mobile money."
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré.",
+          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et envoi des paiements aux banques et aux opérateurs de mobile money."
         },
         "loans": {
           "title": "Prêts et avances sur salaire",
@@ -3093,7 +3093,7 @@
       "next": {
         "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
         "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et écritures comptables",
-        "disbursement": "Versement par banque et mobile money, et rapprochement",
+        "disbursement": "Envoi des paiements aux banques et aux opérateurs de mobile money, et rapprochement",
         "advances": "Avances sur salaire et prêts via des partenaires",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
       },
