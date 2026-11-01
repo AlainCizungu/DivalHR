@@ -207,10 +207,37 @@ class PayrollPackageMigrationIntegrationTest {
       try {
         work.run(c);
         exec(c, "SET CONSTRAINTS ALL IMMEDIATE");
-      } finally {
-        c.rollback();
+      } catch (SQLException | RuntimeException e) {
+        // The refusal under test must survive a failing rollback of an already broken connection.
+        try {
+          c.rollback();
+        } catch (SQLException rollback) {
+          e.addSuppressed(rollback);
+        }
+        throw e;
       }
+      c.rollback();
     }
+  }
+
+  /**
+   * A TRUNCATE of a table that a later migration references by foreign key (MVP-095A: payment batch
+   * lines reference payslips) is refused by PostgreSQL itself before any trigger runs; a TRUNCATE of
+   * an unreferenced table is refused by the immutability trigger. Either way nothing is truncated.
+   */
+  private void refusesTruncate(List<String> constraints, SqlWork work) {
+    assertThatThrownBy(() -> attempt(work))
+        .as(constraints.toString())
+        .isInstanceOfSatisfying(
+            PSQLException.class,
+            e -> {
+              if ("0A000".equals(e.getSQLState())) {
+                assertThat(e.getMessage())
+                    .contains("cannot truncate a table referenced in a foreign key constraint");
+              } else {
+                assertThat(e.getServerErrorMessage().getConstraint()).isIn(constraints);
+              }
+            });
   }
 
   private void refuses(String constraint, SqlWork work) {
@@ -623,7 +650,7 @@ class PayrollPackageMigrationIntegrationTest {
     refuses(
         "payroll_package_immutable",
         c -> exec(c, "DELETE FROM payroll.payroll_package WHERE id = ?", pkg));
-    refusesOneOf(
+    refusesTruncate(
         List.of("payroll_package_immutable", "payroll_payslip_immutable"),
         c ->
             exec(
@@ -892,7 +919,9 @@ class PayrollPackageMigrationIntegrationTest {
     refuses(
         "payroll_payslip_immutable",
         c -> exec(c, "DELETE FROM payroll.payroll_payslip WHERE package_id = ?", pkg));
-    refuses("payroll_payslip_immutable", c -> exec(c, "TRUNCATE payroll.payroll_payslip"));
+    refusesTruncate(
+        List.of("payroll_payslip_immutable"),
+        c -> exec(c, "TRUNCATE payroll.payroll_payslip"));
     assertThat(w.evidence().get(3)).isEqualTo(3);
   }
 

@@ -820,7 +820,11 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-094C nine more handlers over seven operations (the package list and detail share
     // payroll-package.read; the payslip list and detail share payslip.read; the employee's three
     // payslip handlers are self-service).
-    assertThat(handlers).hasSize(190);
+    // MVP-095A thirteen more handlers over nine operations (the destination read and history share
+    // payment-destination.read; the batch list, detail and lines share payment-batch.read; the CSV
+    // and the manifest share payment-register.download; the employee's own destination is
+    // self-service).
+    assertThat(handlers).hasSize(203);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).
