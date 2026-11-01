@@ -52,7 +52,7 @@ class PayrollPackageArchitectureTest {
 
   /**
    * The PDF writer is repository-owned: it depends on the pure domain and the JDK only, so it can
-   * load no remote asset, no font file and no third-party library.
+   * load no remote asset and no library other than PDFBox and its FontBox (R182-1).
    */
   @ArchTest
   static final ArchRule payslipRendererIsSelfContained =
@@ -65,6 +65,8 @@ class PayrollPackageArchitectureTest {
               "com.divalhr.core.payroll.domain..",
               "com.divalhr.core.payroll.application..",
               "org.springframework.stereotype..",
+              "org.apache.pdfbox..",
+              "org.apache.fontbox..",
               "java..");
 
   /** MVP-094C: the shipped guard reports no payment; only a future payment module replaces it. */
