@@ -94,7 +94,7 @@ baseline() {
     # MVP-094C: IMPORT_TIMEOUT, EMPLOYMENT_CHANGE_TIMEOUT). Failed classes get ONE rerun alone; a
     # real defect fails again and aborts. Only timeouts may be retried; any other failure aborts.
     local failed
-    failed=$(grep -E "$FAILED_RE" "$log" | sed -E 's/ >.*//' | sort -u)
+    failed=$(grep -aE "$FAILED_RE" "$log" | sed -E 's/ >.*//' | sort -u)
     local nfailed ntimeouts
     nfailed=$(grep -cE "$FAILED_RE" "$log")
     ntimeouts=$(grep -E -A2 "$FAILED_RE" "$log" | grep -c "_TIMEOUT")
@@ -152,10 +152,10 @@ run() {
   if gradle_test "$log" $tests; then
     echo "   SURVIVED (tests still pass): $tests"
     survivors=$((survivors + 1))
-  elif grep -qE "$FAILED_RE" "$log"; then
+  elif grep -aqE "$FAILED_RE" "$log"; then
     echo "   KILLED by:"
-    grep -E "$FAILED_RE" "$log" | sed 's/^/     /' | head -12
-    echo "   killer classes: $(grep -E "$FAILED_RE" "$log" | sed -E 's/ > .*//; s/.*\.//' | sort -u | tr '\n' ' ')"
+    grep -aE "$FAILED_RE" "$log" | sed 's/^/     /' | head -12
+    echo "   killer classes: $(grep -aE "$FAILED_RE" "$log" | sed -E 's/ > .*//; s/.*\.//' | sort -u | tr '\n' ' ')"
   else
     echo "   NOT A VALID KILL (no test failed; probably a compile error). See $log"
     survivors=$((survivors + 1))
