@@ -102,7 +102,7 @@ class PaymentApiIntegrationTest {
             ana.employee());
     assertThat(row.get("masked_value")).isEqualTo("****7766");
     assertThat((String) row.get("fingerprint")).matches("[0-9a-f]{64}");
-    assertThat(row.get("key_version")).isEqualTo((short) 1);
+    assertThat(((Number) row.get("key_version")).intValue()).isEqualTo(1);
     assertThat((String) row.get("raw"))
         .doesNotContain("SYNTHACCT")
         .doesNotContain("Sentinel")
@@ -307,7 +307,7 @@ class PaymentApiIntegrationTest {
     assertThat(csv.getHeader("Content-Disposition")).startsWith("attachment");
     String body = csv.getContentAsString(StandardCharsets.UTF_8);
     assertThat(body)
-        .startsWith("batchId")
+        .startsWith("packageId,packageVersion,batchId")
         .contains("****7766")
         .contains("\r\n")
         .doesNotContain(PaymentWorld.ACCOUNT)
@@ -379,8 +379,9 @@ class PaymentApiIntegrationTest {
   void aWrongDateIsRefusedWithoutStoringAnything() throws Exception {
     Map<String, Object> command =
         p.bank(PaymentWorld.ACCOUNT, LocalDate.of(1999, 12, 31), "INITIAL_SETUP");
-    JsonNode preview = p.previewDestination(ana.employee(), command);
-    assertThat(preview.get("status").asText()).isEqualTo("BLOCKED");
+    JsonNode problem = w.c.expect(p.destinationPreview(w.admin, ana.employee(), command), 400);
+    assertThat(problem.get("code").asText()).isEqualTo("VALIDATION_FAILED");
+    assertThat(problem.toString()).contains("effectiveFrom").doesNotContain(PaymentWorld.ACCOUNT);
     assertThat(p.evidence().get(0)).isZero();
   }
 }
