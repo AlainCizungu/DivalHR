@@ -691,7 +691,20 @@
     "PAYROLL_VOID_NOT_ALLOWED": "This payroll package cannot be voided because a payment record exists for it.",
     "PAYSLIP_NOT_FOUND": "This payslip does not exist or is not available to you.",
     "PAYSLIP_RENDER_FAILED": "The payslip document could not be produced. Nothing was changed. Try again later.",
-    "PAYROLL_PACKAGE_LIMIT_REACHED": "A limit was reached: at most 5,000 payslips per payroll package and 25 package versions per legal entity and month."
+    "PAYROLL_PACKAGE_LIMIT_REACHED": "A limit was reached: at most 5,000 payslips per payroll package and 25 package versions per legal entity and month.",
+    "PAYMENT_DESTINATION_NOT_FOUND": "This payment destination does not exist or is not available to you.",
+    "PAYMENT_DESTINATION_INVALID": "This payment destination is not acceptable. Check the provider, the country, the effective date and the values entered.",
+    "PAYMENT_DESTINATION_VERSION_CONFLICT": "This employee’s payment destination changed in the meantime. Refresh and review again.",
+    "PAYMENT_DESTINATION_PREVIEW_STALE": "The payment destination review is out of date because it expired or the destination changed. Review again.",
+    "PAYMENT_DESTINATION_KEY_UNAVAILABLE": "Payment destinations are temporarily unavailable. Nothing was changed. Contact your platform administrator.",
+    "PAYMENT_BATCH_NOT_FOUND": "This payment batch does not exist or is not available to you.",
+    "PAYMENT_BATCH_BLOCKED": "The payment batch cannot be prepared. The review lists what blocks it.",
+    "PAYMENT_BATCH_PREVIEW_STALE": "The payment batch review is out of date because it expired or the payroll package or a destination changed. Review again.",
+    "PAYMENT_BATCH_VERSION_CONFLICT": "Another payment batch was prepared or cancelled for this payroll package in the meantime. Refresh the page.",
+    "PAYMENT_BATCH_ALREADY_PREPARED": "A prepared payment batch already exists for this payroll package. Cancel it before preparing a new one.",
+    "PAYMENT_BATCH_CANCELLED": "This payment batch is cancelled. It stays available as a record, but no further action is possible on it.",
+    "PAYMENT_BATCH_CANCEL_NOT_ALLOWED": "This payment batch cannot be cancelled.",
+    "PAYMENT_BATCH_LIMIT_REACHED": "The payment batch line or version limit would be exceeded for this payroll package."
   },
   "notFound": {
     "title": "Page not found",

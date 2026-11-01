@@ -4506,6 +4506,286 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/employees/{employeeId}/payment-destination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an employee's salary payment destination
+         * @description MVP-095A (ADR 0036). The employee's current MASKED salary payment destination on the organization's business date, the latest recorded version and a scheduled future destination, if any. Account numbers, phone numbers, holder names, branch values and explanations are never returned after entry. A destination is RECORDED; it is not verified with any bank or provider. Unknown, foreign and malformed employee IDs are the same 404 PAYMENT_DESTINATION_NOT_FOUND. A fail-closed disclosure (audit payment-destination.read). At most 60 reads per subject per minute. Cache-Control private, no-store. Payment preparation only: no money has been sent.
+         */
+        get: operations["getEmployeePaymentDestination"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/payment-destination/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an employee's payment destination history
+         * @description MVP-095A. The append-only history of recorded destinations, newest version first, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, employee, role and page size and carries no destination value). Every entry keeps the exact masked value it had when it was recorded. Unknown or foreign employees are the same 404 PAYMENT_DESTINATION_NOT_FOUND. A fail-closed disclosure (audit payment-destination.read). Cache-Control private, no-store.
+         */
+        get: operations["listEmployeePaymentDestinationHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/payment-destination/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview recording a salary payment destination
+         * @description MVP-095A. Validates a BANK_ACCOUNT, MOBILE_MONEY or MANUAL destination without storing it: a controlled provider for the country, a plausible account number or E.164 phone number, a holder name, an optional branch value, a strictly later effective date than the current version, and a closed reason (INITIAL_SETUP, EMPLOYEE_REQUEST, PROVIDER_CHANGE, ACCOUNT_CORRECTION, OTHER_CONTROLLED with a bounded explanation). Returns READY, or BLOCKED (NO_CHANGE), warnings (DUPLICATE_DESTINATION: the same account is recorded for another employee; counts only), the masked value, the expected version, a previewDigest and a 15-minute expiry. Sensitive values are never echoed back. A fail-closed disclosure audit is written (payment-destination.read). 503 PAYMENT_DESTINATION_KEY_UNAVAILABLE when the payment encryption key is not configured. At most 10 previews per subject per minute and 60 per tenant per hour.
+         */
+        post: operations["previewPaymentDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employeeId}/payment-destination/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a salary payment destination
+         * @description MVP-095A. Repeats the previewed destination, the expectedVersion, the previewDigest and expiresAt, reviewedDetails=true and an Idempotency-Key. In one transaction (idempotency, tenant payment-destination lock shared, the employee's destination lock) the stored version is compared (409 PAYMENT_DESTINATION_VERSION_CONFLICT), the preview is re-derived (409 PAYMENT_DESTINATION_PREVIEW_STALE) and the next version is appended, encrypted at rest (AES-256-GCM envelope) with a keyed fingerprint for duplicate detection only. The audit record (payment-destination.record) and the internal outbox event (payroll.payment-destination.recorded.v1) carry identifiers, the version and the method only. The response is the masked receipt; sensitive values and fingerprints never leave the encrypted envelope. At most 5 writes per subject per minute and 20 per tenant per hour. The same Idempotency-Key and payload replays the original 201. Payment preparation only: no money has been sent.
+         */
+        post: operations["commitPaymentDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/payment-destination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read my masked salary payment destination
+         * @description MVP-095A. The caller's own CURRENT destination, masked and read-only: the method, the provider, the country, the masked value and the effective date, or NOT_RECORDED. Resolved from the caller's active employee-access link on every request (403 EMPLOYEE_LINK_REQUIRED otherwise). No history, holder name, full account or phone number, employer total or other employee can be reached. Employees cannot change it in this release: updates are requested from the organization. A fail-closed disclosure (audit payment-destination.read). At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["getMyPaymentDestination"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payroll-packages/{packageId}/payment-batches/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview preparing a payment batch from an approved payroll package
+         * @description MVP-095A. For an APPROVED, latest package of its legal entity, month and currency, returns the exact payable lines copied from the immutable payslips (positive net only; zero-net payslips are counted and excluded), the counts by BANK_ACCOUNT, MOBILE_MONEY and MANUAL, the positive-net total, blockers (PACKAGE_VOIDED, PACKAGE_NOT_LATEST, BATCH_ALREADY_PREPARED, NO_PAYABLE_LINES, MISSING_DESTINATION, DESTINATION_INVALID, INTEGRITY_FAILURE, LIMIT_REACHED), warnings (DESTINATION_CHANGED_AFTER_APPROVAL, DUPLICATE_DESTINATION, MANUAL_LINES_PRESENT, ZERO_NET_EXCLUDED), the destinations digest, the expected batch-chain version, a previewDigest and a 15-minute expiry (both null unless READY). Every positive-net line needs exactly one destination effective on the package approval date; one blocker blocks the whole batch (no partial preparation). Nothing is recalculated and no currency is converted. A fail-closed disclosure audit is written (payment-batch.read). At most 5 previews per subject per minute and 60 per tenant per hour. Cache-Control private, no-store. Payment preparation only: no money has been sent.
+         */
+        post: operations["previewPaymentBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payroll-packages/{packageId}/payment-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare an immutable payment batch
+         * @description MVP-095A. Repeats the expectedVersion, the packageVersion, the previewDigest and expiresAt, reviewedTotalsAndDestinations=true, noMoneySentAcknowledged=true and an Idempotency-Key. In one transaction (idempotency, tenant statutory lock shared, the legal entity's package lock, the package row, the tenant payment-destination lock, the batch chain) the package, the destination versions and the chain are re-read; any drift is 409 PAYMENT_BATCH_PREVIEW_STALE, another batch is 409 PAYMENT_BATCH_VERSION_CONFLICT or PAYMENT_BATCH_ALREADY_PREPARED, a blocker is 409 PAYMENT_BATCH_BLOCKED and a limit is 409 PAYMENT_BATCH_LIMIT_REACHED. The PREPARED batch and its lines are immutable; the payroll payment guard then refuses voiding the package (409 PAYROLL_VOID_NOT_ALLOWED) until the batch is cancelled. The audit record (payment-batch.prepare) and the internal outbox event (payroll.payment-batch.prepared.v1) carry identifiers, version, status and bounded counts only. The response is an amount-free receipt. At most 2 commits per subject per minute and 20 per tenant per hour. The same Idempotency-Key and payload replays the original 201. Payment preparation only: no money has been sent.
+         */
+        post: operations["preparePaymentBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the payment batches of a legal entity
+         * @description MVP-095A. Batches of the legal entity, newest first (prepared instant, then id), as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, entity, filters, role and page size and carries no amount) with an optional packageId and status filter. Counts, totals and masked-free summaries only. A fail-closed disclosure (audit payment-batch.read). At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["listPaymentBatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a payment batch
+         * @description MVP-095A. One batch with its evidence (package version and approval digest, batch digest, destinations digest, counts by method, total, status and cancellation reason). Unknown, malformed, foreign-tenant and foreign-entity IDs are the same 404 PAYMENT_BATCH_NOT_FOUND. A fail-closed disclosure (audit payment-batch.read). Cache-Control private, no-store. The batch is an instruction-preparation record, not proof of transmission or payment.
+         */
+        get: operations["getPaymentBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the lines of a payment batch
+         * @description MVP-095A. The immutable payable lines by employee ID as a keyset page (default 25, maximum 200): employee number, method, provider, MASKED destination, destination version and the approved net amount in minor units. Full account and phone numbers are never returned. A fail-closed disclosure (audit payment-batch.read; first page). Cache-Control private, no-store.
+         */
+        get: operations["listPaymentBatchLines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/cancel/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview cancelling a payment batch
+         * @description MVP-095A. For a PREPARED batch, validates the closed reason (DESTINATION_CORRECTION, PACKAGE_CORRECTION, PREPARED_IN_ERROR, OTHER_CONTROLLED) and returns READY (previewDigest and 15-minute expiry) or BLOCKED (ALREADY_CANCELLED). Cancelling releases the payroll payment guard; the batch is kept as history and never reactivated. A fail-closed disclosure audit is written (payment-batch.read). At most 5 previews per subject per minute. Cache-Control private, no-store.
+         */
+        post: operations["previewPaymentBatchCancellation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a payment batch
+         * @description MVP-095A. Repeats the previewed reason, batchVersion and batchDigest, the previewDigest and expiresAt, noMoneySentAcknowledged=true (nothing was sent through DivalHR) and an Idempotency-Key. Appends the cancellation evidence and moves the batch PREPARED to CANCELLED once; a CANCELLED batch is 409 PAYMENT_BATCH_CANCELLED, a different batch is 409 PAYMENT_BATCH_VERSION_CONFLICT, an expired or drifted preview is 409 PAYMENT_BATCH_PREVIEW_STALE and any other refusal is 409 PAYMENT_BATCH_CANCEL_NOT_ALLOWED. The audit record (payment-batch.cancel) and the internal outbox event (payroll.payment-batch.cancelled.v1) carry identifiers, version and status only. A corrected destination or source requires a new batch version. The same Idempotency-Key and payload replays the original 201.
+         */
+        post: operations["cancelPaymentBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/register.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the payment register as CSV
+         * @description MVP-095A. A deterministic UTF-8 CSV (comma separated, CRLF, fixed column order, no byte order mark, formula-safe cells, lines ordered by employee ID): packageId, packageVersion, batchId, batchVersion, batchStatus, legalEntityId, period, currency, employeeNumber, paymentMethod, providerCode, maskedDestination, netAmountMinor. It never holds a full account or phone number. The filename is generated (payment-register-<YYYY-MM>-<8 hex of the batch id>.csv, never employee data). Disclosure-audited before any byte is returned (payment-register.download), Cache-Control private, no-store, X-Content-Type-Options nosniff. At most 30 downloads per subject per minute and 300 per tenant per hour. The register is an instruction-preparation artifact, not proof of transmission or payment.
+         */
+        get: operations["downloadPaymentRegisterCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/manifest.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the payment register manifest
+         * @description MVP-095A. The canonical JSON manifest of the register: package and batch identity, status, period, currency, counts by method, the positive-net total in minor units, the source (package approval) digest and the SHA-256 of the CSV bytes. Same authority, audit, limits and headers as the CSV; the filename is generated (payment-register-<YYYY-MM>-<8 hex of the batch id>.manifest.json). Not proof of transmission or payment.
+         */
+        get: operations["downloadPaymentRegisterManifest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7515,7 +7795,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -10531,6 +10811,333 @@ export interface components {
             };
             correlationId: string;
         };
+        /**
+         * @description BANK_ACCOUNT (account at a controlled bank), MOBILE_MONEY (E.164 number at a controlled provider) or MANUAL (payroll handled outside DivalHR; no account or phone details).
+         * @enum {string}
+         */
+        PaymentMethod: "BANK_ACCOUNT" | "MOBILE_MONEY" | "MANUAL";
+        /**
+         * @description Closed reason of a destination change. OTHER_CONTROLLED requires a bounded explanation, restricted to the encrypted envelope.
+         * @enum {string}
+         */
+        PaymentDestinationReasonCode: "INITIAL_SETUP" | "EMPLOYEE_REQUEST" | "PROVIDER_CHANGE" | "ACCOUNT_CORRECTION" | "OTHER_CONTROLLED";
+        /**
+         * @description PREPARED (immutable payment instruction register; nothing was sent) or CANCELLED (kept as history; never reactivated). No SENT, ACCEPTED, PAID or FAILED state exists.
+         * @enum {string}
+         */
+        PaymentBatchStatus: "PREPARED" | "CANCELLED";
+        /** @enum {string} */
+        PaymentBatchCancelReasonCode: "DESTINATION_CORRECTION" | "PACKAGE_CORRECTION" | "PREPARED_IN_ERROR" | "OTHER_CONTROLLED";
+        /**
+         * @description NO_CHANGE (identical to the latest recorded version).
+         * @enum {string}
+         */
+        PaymentDestinationBlocker: "NO_CHANGE";
+        /**
+         * @description DUPLICATE_DESTINATION (the same account or number is recorded for another employee; no identity is given), BACKDATED (the effective date is in the past).
+         * @enum {string}
+         */
+        PaymentDestinationWarning: "DUPLICATE_DESTINATION" | "BACKDATED";
+        /** @enum {string} */
+        PaymentBatchBlocker: "PACKAGE_VOIDED" | "PACKAGE_NOT_LATEST" | "BATCH_ALREADY_PREPARED" | "NO_PAYABLE_LINES" | "MISSING_DESTINATION" | "DESTINATION_INVALID" | "INTEGRITY_FAILURE" | "LIMIT_REACHED";
+        /** @enum {string} */
+        PaymentBatchWarning: "DESTINATION_CHANGED_AFTER_APPROVAL" | "DUPLICATE_DESTINATION" | "MANUAL_LINES_PRESENT" | "ZERO_NET_EXCLUDED";
+        /** @enum {string} */
+        PaymentBatchLineIssue: "MISSING_DESTINATION" | "DESTINATION_INVALID" | "INTEGRITY_FAILURE";
+        /** @enum {string} */
+        PaymentBatchCancelBlocker: "ALREADY_CANCELLED";
+        /** @description A controlled bank or mobile-money provider (code and display name). No logo, partner or integration claim. */
+        PaymentProvider: {
+            code: string;
+            name: string;
+        };
+        /** @description One recorded destination version, masked. The status is always RECORDED: it is never verified with a bank or provider. */
+        PaymentDestinationView: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            method: components["schemas"]["PaymentMethod"];
+            countryCode: string | null;
+            provider: components["schemas"]["PaymentProvider"] | null;
+            maskedValue: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /** @enum {string} */
+            status: "RECORDED";
+            reasonCode: components["schemas"]["PaymentDestinationReasonCode"];
+            /** Format: date-time */
+            recordedAt: string;
+        };
+        /** @description The employee's masked destination: current on the business date, latest recorded version, and a scheduled future one. */
+        PaymentDestinationRecord: {
+            /** Format: uuid */
+            employeeId: string;
+            latestVersion: number;
+            current: components["schemas"]["PaymentDestinationView"] | null;
+            scheduled: components["schemas"]["PaymentDestinationView"] | null;
+        };
+        PaymentDestinationPage: {
+            items: components["schemas"]["PaymentDestinationView"][];
+            nextCursor: string | null;
+        };
+        /** @description The caller's own current destination, masked and read-only. Updates are requested from the organization. */
+        MyPaymentDestination: {
+            /** @enum {string} */
+            status: "RECORDED" | "NOT_RECORDED";
+            method: components["schemas"]["PaymentMethod"] | null;
+            countryCode: string | null;
+            provider: components["schemas"]["PaymentProvider"] | null;
+            maskedValue: string | null;
+            /** Format: date */
+            effectiveFrom: string | null;
+        };
+        /** @description Restricted financial data. Account, phone, holder, branch and explanation are encrypted at rest and never logged, audited or returned. */
+        PaymentDestinationCommand: {
+            method: components["schemas"]["PaymentMethod"];
+            countryCode: string | null;
+            providerCode: string | null;
+            /** @description Restricted. Bank account number or IBAN-like value (letters and digits). Required for BANK_ACCOUNT, otherwise null. Never returned. */
+            accountNumber: string | null;
+            /** @description Restricted. Required for BANK_ACCOUNT and MOBILE_MONEY, otherwise null. Never returned. */
+            holderName: string | null;
+            /** @description Restricted optional branch or routing value for BANK_ACCOUNT. Never returned. */
+            branchCode: string | null;
+            /** @description Restricted. E.164 number, required for MOBILE_MONEY, otherwise null. Never returned. */
+            phoneNumber: string | null;
+            /**
+             * Format: date
+             * @description The first day the destination applies. Strictly later than the latest recorded version's date.
+             */
+            effectiveFrom: string;
+            reasonCode: components["schemas"]["PaymentDestinationReasonCode"];
+            /** @description Restricted. Required for OTHER_CONTROLLED, otherwise null. */
+            explanation: string | null;
+        };
+        PaymentDestinationPreview: {
+            /** Format: uuid */
+            employeeId: string;
+            expectedVersion: number;
+            /** @enum {string} */
+            status: "READY" | "BLOCKED";
+            blockers: components["schemas"]["PaymentDestinationBlocker"][];
+            warnings: components["schemas"]["PaymentDestinationWarning"][];
+            method: components["schemas"]["PaymentMethod"];
+            countryCode: string | null;
+            provider: components["schemas"]["PaymentProvider"] | null;
+            maskedValue: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            reasonCode: components["schemas"]["PaymentDestinationReasonCode"];
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+        };
+        CommitPaymentDestination: {
+            method: components["schemas"]["PaymentMethod"];
+            countryCode: string | null;
+            providerCode: string | null;
+            /** @description Restricted. Bank account number or IBAN-like value (letters and digits). Required for BANK_ACCOUNT, otherwise null. Never returned. */
+            accountNumber: string | null;
+            /** @description Restricted. Required for BANK_ACCOUNT and MOBILE_MONEY, otherwise null. Never returned. */
+            holderName: string | null;
+            /** @description Restricted optional branch or routing value for BANK_ACCOUNT. Never returned. */
+            branchCode: string | null;
+            /** @description Restricted. E.164 number, required for MOBILE_MONEY, otherwise null. Never returned. */
+            phoneNumber: string | null;
+            /**
+             * Format: date
+             * @description The first day the destination applies. Strictly later than the latest recorded version's date.
+             */
+            effectiveFrom: string;
+            reasonCode: components["schemas"]["PaymentDestinationReasonCode"];
+            /** @description Restricted. Required for OTHER_CONTROLLED, otherwise null. */
+            explanation: string | null;
+            expectedVersion: number;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description I reviewed the destination details. Must be true. */
+            reviewedDetails: boolean;
+        };
+        /** @description Masked receipt. Sensitive values and fingerprints are never returned. */
+        PaymentDestinationReceipt: {
+            /** Format: uuid */
+            employeeId: string;
+            version: number;
+            method: components["schemas"]["PaymentMethod"];
+            countryCode: string | null;
+            provider: components["schemas"]["PaymentProvider"] | null;
+            maskedValue: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            /** @enum {string} */
+            status: "RECORDED";
+            reasonCode: components["schemas"]["PaymentDestinationReasonCode"];
+            /** Format: date-time */
+            recordedAt: string;
+        };
+        PaymentBatchMethodCounts: {
+            bankAccount: number;
+            mobileMoney: number;
+            manual: number;
+        };
+        /** @description One payable line. In a preview a line may carry an issue and no destination. Full account and phone numbers are never returned. */
+        PaymentBatchLine: {
+            /** Format: uuid */
+            payslipId: string;
+            /** Format: uuid */
+            employeeId: string;
+            employeeNumber: string;
+            method: components["schemas"]["PaymentMethod"] | null;
+            provider: components["schemas"]["PaymentProvider"] | null;
+            maskedValue: string | null;
+            destinationVersion: number | null;
+            /** Format: int64 */
+            netMinor: number;
+            issue: components["schemas"]["PaymentBatchLineIssue"] | null;
+        };
+        /** @description While status is BLOCKED, previewDigest and expiresAt are null. */
+        PaymentBatchPreview: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packageId: string;
+            packageVersion: number;
+            period: components["schemas"]["PayrollPeriod"];
+            /** @enum {string} */
+            currency: "CDF";
+            packageStatus: components["schemas"]["PayrollPackageStatus"];
+            /** @enum {string} */
+            status: "READY" | "BLOCKED";
+            blockers: components["schemas"]["PaymentBatchBlocker"][];
+            warnings: components["schemas"]["PaymentBatchWarning"][];
+            lineCount: number;
+            zeroNetExcludedCount: number;
+            methodCounts: components["schemas"]["PaymentBatchMethodCounts"];
+            /** Format: int64 */
+            totalNetMinor: number;
+            expectedVersion: number;
+            destinationsDigest: string | null;
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+            lines: components["schemas"]["PaymentBatchLine"][];
+        };
+        CommitPaymentBatch: {
+            expectedVersion: number;
+            packageVersion: number;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description I reviewed the totals and the destinations. Must be true. */
+            reviewedTotalsAndDestinations: boolean;
+            /** @description I understand that preparing a batch sends no money. Must be true. */
+            noMoneySentAcknowledged: boolean;
+        };
+        /** @description Amount-free receipt. */
+        PaymentBatchReceipt: {
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            packageId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            version: number;
+            /** @enum {string} */
+            status: "PREPARED";
+            period: components["schemas"]["PayrollPeriod"];
+            /** @enum {string} */
+            currency: "CDF";
+            lineCount: number;
+            /** Format: date-time */
+            preparedAt: string;
+        };
+        PaymentBatchSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packageId: string;
+            packageVersion: number;
+            version: number;
+            status: components["schemas"]["PaymentBatchStatus"];
+            period: components["schemas"]["PayrollPeriod"];
+            /** @enum {string} */
+            currency: "CDF";
+            lineCount: number;
+            zeroNetExcludedCount: number;
+            methodCounts: components["schemas"]["PaymentBatchMethodCounts"];
+            /** Format: int64 */
+            totalNetMinor: number;
+            /** Format: date-time */
+            preparedAt: string;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancelReasonCode: components["schemas"]["PaymentBatchCancelReasonCode"] | null;
+        };
+        PaymentBatchPage: {
+            items: components["schemas"]["PaymentBatchSummary"][];
+            nextCursor: string | null;
+        };
+        /** @description The batch with its evidence. The batch is an instruction-preparation record, not proof of transmission or payment. */
+        PaymentBatchDetail: {
+            batch: components["schemas"]["PaymentBatchSummary"];
+            batchDigest: string;
+            packageApprovalDigest: string;
+            destinationsDigest: string;
+        };
+        PaymentBatchLinePage: {
+            items: components["schemas"]["PaymentBatchLine"][];
+            nextCursor: string | null;
+        };
+        PaymentBatchCancelCommand: {
+            reasonCode: components["schemas"]["PaymentBatchCancelReasonCode"];
+        };
+        /** @description While status is BLOCKED, previewDigest and expiresAt are null. */
+        PaymentBatchCancelPreview: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packageId: string;
+            /** Format: uuid */
+            batchId: string;
+            batchVersion: number;
+            batchStatus: components["schemas"]["PaymentBatchStatus"];
+            /** @enum {string} */
+            status: "READY" | "BLOCKED";
+            blockers: components["schemas"]["PaymentBatchCancelBlocker"][];
+            reasonCode: components["schemas"]["PaymentBatchCancelReasonCode"];
+            lineCount: number;
+            batchDigest: string;
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+        };
+        CommitPaymentBatchCancel: {
+            reasonCode: components["schemas"]["PaymentBatchCancelReasonCode"];
+            batchVersion: number;
+            batchDigest: string;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description I confirm that nothing was sent through DivalHR for this batch. Must be true. */
+            noMoneySentAcknowledged: boolean;
+        };
+        PaymentBatchCancelReceipt: {
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            packageId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            version: number;
+            /** @enum {string} */
+            status: "CANCELLED";
+            reasonCode: components["schemas"]["PaymentBatchCancelReasonCode"];
+            /** Format: date-time */
+            cancelledAt: string;
+        };
     };
     responses: {
         /** @description Missing, invalid or expired access token */
@@ -10813,6 +11420,16 @@ export interface components {
         /** @description Items per page (1-50, default 25). */
         ContractLimit: number;
         ExpectedVersion: number;
+        /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND. */
+        PaymentEmployeeId: string;
+        /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+        PaymentBatchId: string;
+        /** @description Optional payroll package filter. */
+        PaymentBatchPackageFilter: string;
+        /** @description Optional batch status filter. */
+        PaymentBatchStatusFilter: components["schemas"]["PaymentBatchStatus"];
+        /** @description Page size, 1 to 200 (default 25). */
+        PaymentBatchLineLimit: number;
     };
     requestBodies: never;
     headers: {
@@ -20190,6 +20807,544 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getEmployeePaymentDestination: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND. */
+                employeeId: components["parameters"]["PaymentEmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The employee's payment destination */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentDestinationRecord"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listEmployeePaymentDestinationHistory: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND. */
+                employeeId: components["parameters"]["PaymentEmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of destination history */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentDestinationPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewPaymentDestination: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND. */
+                employeeId: components["parameters"]["PaymentEmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentDestinationCommand"];
+            };
+        };
+        responses: {
+            /** @description The destination preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentDestinationPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    commitPaymentDestination: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND. */
+                employeeId: components["parameters"]["PaymentEmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitPaymentDestination"];
+            };
+        };
+        responses: {
+            /** @description Recorded, or the original record replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentDestinationReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMyPaymentDestination: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's own masked destination */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyPaymentDestination"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewPaymentBatch: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYROLL_PACKAGE_NOT_FOUND. */
+                packageId: components["parameters"]["PayrollPackageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The payment batch preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    preparePaymentBatch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYROLL_PACKAGE_NOT_FOUND. */
+                packageId: components["parameters"]["PayrollPackageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitPaymentBatch"];
+            };
+        };
+        responses: {
+            /** @description Prepared, or the original batch replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPaymentBatches: {
+        parameters: {
+            query?: {
+                /** @description Optional payroll package filter. */
+                packageId?: components["parameters"]["PaymentBatchPackageFilter"];
+                /** @description Optional batch status filter. */
+                status?: components["parameters"]["PaymentBatchStatusFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of payment batches */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPaymentBatch: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The payment batch */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPaymentBatchLines: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size, 1 to 200 (default 25). */
+                limit?: components["parameters"]["PaymentBatchLineLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of batch lines */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchLinePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewPaymentBatchCancellation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentBatchCancelCommand"];
+            };
+        };
+        responses: {
+            /** @description The cancellation preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchCancelPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    cancelPaymentBatch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitPaymentBatchCancel"];
+            };
+        };
+        responses: {
+            /** @description Cancelled, or the original cancellation replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchCancelReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    downloadPaymentRegisterCsv: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV register */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    /** @description nosniff */
+                    "X-Content-Type-Options"?: "nosniff";
+                    /** @description attachment with a generated filename (never an employee name or number) */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    downloadPaymentRegisterManifest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The JSON manifest */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    /** @description nosniff */
+                    "X-Content-Type-Options"?: "nosniff";
+                    /** @description attachment with a generated filename (never an employee name or number) */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
 }

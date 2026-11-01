@@ -691,7 +691,20 @@
     "PAYROLL_VOID_NOT_ALLOWED": "Ce dossier de paie ne peut pas être annulé, car un enregistrement de paiement existe pour lui.",
     "PAYSLIP_NOT_FOUND": "Ce bulletin de paie n’existe pas ou ne vous est pas accessible.",
     "PAYSLIP_RENDER_FAILED": "Le document du bulletin de paie n’a pas pu être produit. Rien n’a été modifié. Réessayez plus tard.",
-    "PAYROLL_PACKAGE_LIMIT_REACHED": "Une limite est atteinte : au plus 5 000 bulletins de paie par dossier de paie et 25 versions de dossier par entité juridique et par mois."
+    "PAYROLL_PACKAGE_LIMIT_REACHED": "Une limite est atteinte : au plus 5 000 bulletins de paie par dossier de paie et 25 versions de dossier par entité juridique et par mois.",
+    "PAYMENT_DESTINATION_NOT_FOUND": "Cette destination de paiement n’existe pas ou ne vous est pas accessible.",
+    "PAYMENT_DESTINATION_INVALID": "Cette destination de paiement n’est pas acceptable. Vérifiez le fournisseur, le pays, la date d’effet et les valeurs saisies.",
+    "PAYMENT_DESTINATION_VERSION_CONFLICT": "La destination de paiement de cet employé a changé entre-temps. Actualisez la page et relancez la revue.",
+    "PAYMENT_DESTINATION_PREVIEW_STALE": "La revue de la destination de paiement n’est plus à jour : elle a expiré ou la destination a changé. Relancez la revue.",
+    "PAYMENT_DESTINATION_KEY_UNAVAILABLE": "Les destinations de paiement sont momentanément indisponibles. Rien n’a été modifié. Contactez l’administrateur de la plateforme.",
+    "PAYMENT_BATCH_NOT_FOUND": "Ce lot de paiement n’existe pas ou ne vous est pas accessible.",
+    "PAYMENT_BATCH_BLOCKED": "Le lot de paiement ne peut pas être préparé. La revue indique les points bloquants.",
+    "PAYMENT_BATCH_PREVIEW_STALE": "La revue du lot de paiement n’est plus à jour : elle a expiré ou le dossier de paie ou une destination a changé. Relancez la revue.",
+    "PAYMENT_BATCH_VERSION_CONFLICT": "Un autre lot de paiement a été préparé ou annulé pour ce dossier de paie entre-temps. Actualisez la page.",
+    "PAYMENT_BATCH_ALREADY_PREPARED": "Un lot de paiement préparé existe déjà pour ce dossier de paie. Annulez-le avant d’en préparer un nouveau.",
+    "PAYMENT_BATCH_CANCELLED": "Ce lot de paiement est annulé. Il reste consultable comme archive, mais aucune autre action n’est possible.",
+    "PAYMENT_BATCH_CANCEL_NOT_ALLOWED": "Ce lot de paiement ne peut pas être annulé.",
+    "PAYMENT_BATCH_LIMIT_REACHED": "La limite de lignes ou de versions des lots de paiement serait dépassée pour ce dossier de paie."
   },
   "notFound": {
     "title": "Page introuvable",
