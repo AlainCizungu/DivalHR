@@ -3,8 +3,9 @@ package com.divalhr.core.payroll.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * MVP-095A: the reason, the evidence the cancel preview returned and the acknowledgement. Every value is read as {@code Object} so that a wrong type is a field error, never a
- * deserialization failure. Restricted financial and HR data: nothing here is ever logged.
+ * MVP-095A: the reason, the evidence the cancel preview returned and the acknowledgement. Every
+ * value is read as {@code Object} so that a wrong type is a field error, never a deserialization
+ * failure. Restricted financial and HR data: nothing here is ever logged.
  */
 @Schema(name = "CommitPaymentBatchCancel")
 public class CommitPaymentBatchCancelRequest extends StrictRequest {
@@ -99,5 +100,4 @@ public class CommitPaymentBatchCancelRequest extends StrictRequest {
   public void setNoMoneySentAcknowledged(Object noMoneySentAcknowledged) {
     this.noMoneySentAcknowledged = noMoneySentAcknowledged;
   }
-
 }

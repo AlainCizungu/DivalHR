@@ -5,8 +5,8 @@ import com.divalhr.core.payroll.domain.PaymentSealException;
 import java.util.UUID;
 
 /**
- * The payment destination cipher, or nothing when the key is not configured (MVP-095A). Without
- * the key every operation that needs it fails closed with a stable 503 and nothing is stored.
+ * The payment destination cipher, or nothing when the key is not configured (MVP-095A). Without the
+ * key every operation that needs it fails closed with a stable 503 and nothing is stored.
  */
 public final class PaymentSecrets {
 

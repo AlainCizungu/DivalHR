@@ -1,6 +1,8 @@
 package com.divalhr.core.payroll.domain;
 
-/** A sealed payment value could not be produced or authenticated. The message never carries a value. */
+/**
+ * A sealed payment value could not be produced or authenticated. The message never carries a value.
+ */
 public final class PaymentSealException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;

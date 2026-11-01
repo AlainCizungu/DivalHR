@@ -37,8 +37,16 @@ class PaymentBatchEvaluatorTest {
 
   private static Destination bank(boolean authentic, boolean changed) {
     return new Destination(
-        UUID.randomUUID(), 1, PaymentMethod.BANK_ACCOUNT, "CD", "RAWBANK", "Rawbank",
-        "****8901", "f".repeat(64), authentic, changed);
+        UUID.randomUUID(),
+        1,
+        PaymentMethod.BANK_ACCOUNT,
+        "CD",
+        "RAWBANK",
+        "Rawbank",
+        "****8901",
+        "f".repeat(64),
+        authentic,
+        changed);
   }
 
   private static Destination manual() {
@@ -121,18 +129,28 @@ class PaymentBatchEvaluatorTest {
     Map<UUID, Destination> destinations = new HashMap<>();
     destinations.put(e1, bank(true, false));
     List<Slip> slips = List.of(slip(e1, "E1", 100));
-    assertThat(PaymentBatchEvaluator.evaluate(new Source(false, true, false, 0), slips, destinations).blockers())
+    assertThat(
+            PaymentBatchEvaluator.evaluate(new Source(false, true, false, 0), slips, destinations)
+                .blockers())
         .contains(PaymentBatchBlocker.PACKAGE_VOIDED);
-    assertThat(PaymentBatchEvaluator.evaluate(new Source(true, false, false, 0), slips, destinations).blockers())
+    assertThat(
+            PaymentBatchEvaluator.evaluate(new Source(true, false, false, 0), slips, destinations)
+                .blockers())
         .contains(PaymentBatchBlocker.PACKAGE_NOT_LATEST);
-    assertThat(PaymentBatchEvaluator.evaluate(new Source(true, true, true, 1), slips, destinations).blockers())
+    assertThat(
+            PaymentBatchEvaluator.evaluate(new Source(true, true, true, 1), slips, destinations)
+                .blockers())
         .contains(PaymentBatchBlocker.BATCH_ALREADY_PREPARED);
     assertThat(
             PaymentBatchEvaluator.evaluate(
-                    new Source(true, true, false, PaymentBatchEvaluator.MAX_VERSIONS), slips, destinations)
+                    new Source(true, true, false, PaymentBatchEvaluator.MAX_VERSIONS),
+                    slips,
+                    destinations)
                 .blockers())
         .contains(PaymentBatchBlocker.LIMIT_REACHED);
-    assertThat(PaymentBatchEvaluator.evaluate(OPEN, List.of(slip(e1, "E1", 0)), destinations).blockers())
+    assertThat(
+            PaymentBatchEvaluator.evaluate(OPEN, List.of(slip(e1, "E1", 0)), destinations)
+                .blockers())
         .contains(PaymentBatchBlocker.NO_PAYABLE_LINES);
   }
 
@@ -159,7 +177,8 @@ class PaymentBatchEvaluatorTest {
     Evaluation other =
         PaymentBatchEvaluator.evaluate(
             OPEN, List.of(new Slip(slips.get(0).id(), e1, "E1", 101, 0, 101, false)), destinations);
-    assertThat(PaymentDigests.lines(other.lines())).isNotEqualTo(PaymentDigests.lines(first.lines()));
+    assertThat(PaymentDigests.lines(other.lines()))
+        .isNotEqualTo(PaymentDigests.lines(first.lines()));
     assertThat(PaymentDigests.destinations(other.lines()))
         .isEqualTo(PaymentDigests.destinations(first.lines()));
   }

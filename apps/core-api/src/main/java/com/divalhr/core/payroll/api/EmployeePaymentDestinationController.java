@@ -30,11 +30,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * MVP-095A: an employee's salary payment destination for tenant administrators with privileged MFA
- * (ADR 0036): the masked read, the history, the preview and the idempotent commit. The tenant
- * comes from the verified JWT and the recorder is the verified subject (never the body or the
- * path); every response is {@code Cache-Control: private, no-store}. The account, phone, holder
- * and branch are never returned: only the masked value, and only after the commit. A recorded
- * destination is not verified with a bank or provider.
+ * (ADR 0036): the masked read, the history, the preview and the idempotent commit. The tenant comes
+ * from the verified JWT and the recorder is the verified subject (never the body or the path);
+ * every response is {@code Cache-Control: private, no-store}. The account, phone, holder and branch
+ * are never returned: only the masked value, and only after the commit. A recorded destination is
+ * not verified with a bank or provider.
  */
 @RestController
 public class EmployeePaymentDestinationController {
@@ -128,8 +128,7 @@ public class EmployeePaymentDestinationController {
       @Parameter(hidden = true) HttpServletRequest request) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
-        .body(
-            destinations.preview(Caller.of(tenants, authentication, request), employeeId, body));
+        .body(destinations.preview(Caller.of(tenants, authentication, request), employeeId, body));
   }
 
   /**

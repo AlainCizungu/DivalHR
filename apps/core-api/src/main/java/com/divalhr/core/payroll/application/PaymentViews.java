@@ -91,7 +91,9 @@ final class PaymentViews {
         line.employeeId(),
         line.employeeNumber(),
         destination == null ? null : destination.method().name(),
-        destination == null ? null : provider(destination.providerCode(), destination.providerName()),
+        destination == null
+            ? null
+            : provider(destination.providerCode(), destination.providerName()),
         destination == null ? null : destination.masked(),
         destination == null ? null : destination.sequence(),
         line.net(),

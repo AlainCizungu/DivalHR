@@ -50,8 +50,10 @@ class PaymentCipherTest {
     assertThatThrownBy(() -> cipher.open(tampered, tenant, employee, destination, 1))
         .isInstanceOf(PaymentSealException.class)
         .hasMessageNotContaining("0012345678901");
-    assertThatThrownBy(() -> new PaymentCipher("a-different-payment-key-of-32-bytes-0001")
-            .open(sealed, tenant, employee, destination, 1))
+    assertThatThrownBy(
+            () ->
+                new PaymentCipher("a-different-payment-key-of-32-bytes-0001")
+                    .open(sealed, tenant, employee, destination, 1))
         .isInstanceOf(PaymentSealException.class);
     assertThatThrownBy(() -> cipher.open(new byte[] {1, 2, 3}, tenant, employee, destination, 1))
         .isInstanceOf(PaymentSealException.class);
@@ -77,7 +79,9 @@ class PaymentCipherTest {
   @Test
   void fingerprintsAreKeyedPerTenantAndPurposeAndNeverAPlainHash() throws Exception {
     String first = cipher.fingerprint(tenant, "identifier", ACCOUNT);
-    assertThat(first).matches("^[0-9a-f]{64}$").isEqualTo(cipher.fingerprint(tenant, "identifier", ACCOUNT));
+    assertThat(first)
+        .matches("^[0-9a-f]{64}$")
+        .isEqualTo(cipher.fingerprint(tenant, "identifier", ACCOUNT));
     assertThat(cipher.fingerprint(UUID.randomUUID(), "identifier", ACCOUNT)).isNotEqualTo(first);
     assertThat(cipher.fingerprint(tenant, "content", ACCOUNT)).isNotEqualTo(first);
     assertThat(cipher.fingerprint(tenant, "identifier", ACCOUNT + "1")).isNotEqualTo(first);
@@ -85,7 +89,9 @@ class PaymentCipherTest {
         java.security.MessageDigest.getInstance("SHA-256")
             .digest(ACCOUNT.getBytes(StandardCharsets.UTF_8));
     assertThat(first).isNotEqualTo(java.util.HexFormat.of().formatHex(plain));
-    assertThat(new PaymentCipher("a-different-payment-key-of-32-bytes-0001").fingerprint(tenant, "identifier", ACCOUNT))
+    assertThat(
+            new PaymentCipher("a-different-payment-key-of-32-bytes-0001")
+                .fingerprint(tenant, "identifier", ACCOUNT))
         .isNotEqualTo(first);
   }
 

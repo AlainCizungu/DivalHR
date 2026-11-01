@@ -8,7 +8,6 @@ import com.divalhr.core.payroll.api.PaymentResponses.BatchLine;
 import com.divalhr.core.payroll.api.PaymentResponses.BatchPage;
 import com.divalhr.core.payroll.api.PaymentResponses.BatchPreview;
 import com.divalhr.core.payroll.api.PaymentResponses.BatchReceipt;
-import com.divalhr.core.payroll.api.PaymentResponses.BatchSummary;
 import com.divalhr.core.payroll.api.PaymentResponses.CancelPreview;
 import com.divalhr.core.payroll.api.PaymentResponses.CancelReceipt;
 import com.divalhr.core.payroll.api.PaymentResponses.LinePage;
@@ -33,8 +32,8 @@ import com.divalhr.core.payroll.internal.JdbcPayrollPackageRepository;
 import com.divalhr.core.payroll.internal.JdbcPayrollPackageRepository.PackageRow;
 import com.divalhr.core.payroll.internal.JdbcPayrollRunRepository;
 import com.divalhr.core.payroll.internal.JdbcStatutoryRepository;
-import com.divalhr.core.payroll.internal.PayrollPackageConstraintViolations;
 import com.divalhr.core.payroll.internal.PaymentConstraintViolations;
+import com.divalhr.core.payroll.internal.PayrollPackageConstraintViolations;
 import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.error.FieldErrors;
@@ -176,8 +175,8 @@ public class PaymentBatchService {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * Reviews what preparing a batch would record, without writing anything but the disclosure
-   * audit. A preview never fails for a blocker: its status is {@code READY} or {@code BLOCKED}.
+   * Reviews what preparing a batch would record, without writing anything but the disclosure audit.
+   * A preview never fails for a blocker: its status is {@code READY} or {@code BLOCKED}.
    *
    * @param caller verified tenant administrator
    * @param legalEntityId raw path value
@@ -489,7 +488,10 @@ public class PaymentBatchService {
           FieldErrors errors = new FieldErrors();
           int size =
               PayrollCommands.limit(
-                  limit, PaymentCommands.DEFAULT_BATCH_LIMIT, PaymentCommands.MAX_BATCH_LIMIT, errors);
+                  limit,
+                  PaymentCommands.DEFAULT_BATCH_LIMIT,
+                  PaymentCommands.MAX_BATCH_LIMIT,
+                  errors);
           UUID pack = PaymentCommands.packageFilter(packageFilter, errors);
           String filter = PaymentCommands.statusFilter(status, errors);
           errors.throwIfAny();
@@ -511,7 +513,8 @@ public class PaymentBatchService {
                           .orElseThrow(() -> new ApiException(ErrorCode.CURSOR_INVALID, Map.of()));
                   after = new BatchPosition(at.preparedAt(), at.id());
                 }
-                List<BatchRow> rows = payments.batchPage(tenant, entity, pack, filter, after, size + 1);
+                List<BatchRow> rows =
+                    payments.batchPage(tenant, entity, pack, filter, after, size + 1);
                 List<BatchRow> shown = rows.subList(0, Math.min(rows.size(), size));
                 String next = null;
                 if (rows.size() > size) {
@@ -598,7 +601,10 @@ public class PaymentBatchService {
           FieldErrors errors = new FieldErrors();
           int size =
               PayrollCommands.limit(
-                  limit, PaymentCommands.DEFAULT_LINE_LIMIT, PaymentCommands.MAX_LINE_LIMIT, errors);
+                  limit,
+                  PaymentCommands.DEFAULT_LINE_LIMIT,
+                  PaymentCommands.MAX_LINE_LIMIT,
+                  errors);
           errors.throwIfAny();
           return plumbing.inReadTransaction(
               caller.tenant(),

@@ -218,8 +218,7 @@ public class PaymentRecorder {
                     + recorded.version()
                     + "\n")));
     outbox.append(
-        envelope(
-            caller, DESTINATION_EVENT, recorded.employeeId(), recorded.at(), metadata));
+        envelope(caller, DESTINATION_EVENT, recorded.employeeId(), recorded.at(), metadata));
   }
 
   /**

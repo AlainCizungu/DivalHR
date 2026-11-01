@@ -157,8 +157,9 @@ public final class PaymentCipher {
     try {
       Mac mac = Mac.getInstance("HmacSHA256");
       mac.init(fingerprintKey);
-      mac.update(("DIVALHR-PAYMENT-FP\ntenant=" + tenant + "\npurpose=" + purpose + "\nvalue=")
-          .getBytes(StandardCharsets.UTF_8));
+      mac.update(
+          ("DIVALHR-PAYMENT-FP\ntenant=" + tenant + "\npurpose=" + purpose + "\nvalue=")
+              .getBytes(StandardCharsets.UTF_8));
       mac.update(value.getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(mac.doFinal());
     } catch (GeneralSecurityException impossible) {

@@ -54,7 +54,8 @@ public final class PaymentProviders {
    * @param code provider code
    * @param kind the method
    * @param country ISO country code
-   * @return the provider, or empty when the code is unknown, of the other kind or of another country
+   * @return the provider, or empty when the code is unknown, of the other kind or of another
+   *     country
    */
   public static Optional<Provider> find(String code, PaymentMethod kind, String country) {
     for (Provider provider : ALL) {

@@ -68,7 +68,10 @@ public final class PaymentDigests {
           .append('|')
           .append(destination == null ? 0 : destination.sequence())
           .append('|')
-          .append(destination == null || destination.fingerprint() == null ? "-" : destination.fingerprint())
+          .append(
+              destination == null || destination.fingerprint() == null
+                  ? "-"
+                  : destination.fingerprint())
           .append('\n');
     }
     return PackageDigests.sha256(text.toString());
@@ -92,7 +95,10 @@ public final class PaymentDigests {
           .append('|')
           .append(destination == null ? "-" : destination.method().name())
           .append('|')
-          .append(destination == null || destination.providerCode() == null ? "-" : destination.providerCode())
+          .append(
+              destination == null || destination.providerCode() == null
+                  ? "-"
+                  : destination.providerCode())
           .append('|')
           .append(destination == null || destination.masked() == null ? "-" : destination.masked())
           .append('\n');

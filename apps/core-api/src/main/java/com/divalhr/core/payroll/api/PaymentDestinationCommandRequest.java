@@ -3,8 +3,9 @@ package com.divalhr.core.payroll.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * MVP-095A: the destination to preview. Every value is read as {@code Object} so that a wrong type is a field error, never a
- * deserialization failure. Restricted financial and HR data: nothing here is ever logged.
+ * MVP-095A: the destination to preview. Every value is read as {@code Object} so that a wrong type
+ * is a field error, never a deserialization failure. Restricted financial and HR data: nothing here
+ * is ever logged.
  */
 @Schema(name = "PaymentDestinationCommand")
 public class PaymentDestinationCommandRequest extends StrictRequest {
@@ -159,5 +160,4 @@ public class PaymentDestinationCommandRequest extends StrictRequest {
   public void setExplanation(Object explanation) {
     this.explanation = explanation;
   }
-
 }

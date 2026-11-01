@@ -173,8 +173,7 @@ public final class PaymentBatchEvaluator {
       blockers.add(PaymentBatchBlocker.LIMIT_REACHED);
     }
     if (!source.approved() || !source.latest()) {
-      return new Evaluation(
-          sorted(blockers), sorted(warnings), List.of(), 0, 0, 0, 0, 0);
+      return new Evaluation(sorted(blockers), sorted(warnings), List.of(), 0, 0, 0, 0, 0);
     }
 
     List<Slip> ordered = new ArrayList<>(slips);

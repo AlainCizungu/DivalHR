@@ -21,11 +21,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * The deterministic payment register of a batch: a UTF-8 CSV and a canonical JSON manifest (MVP-095A,
- * D95A-7), for tenant administrators with privileged MFA. Every download is a fail-closed
- * disclosure audit (counts only) and is rate limited per subject and per tenant. The register
- * states masked destinations and approved nets; it is an instruction-preparation artifact, not
- * proof of transmission or payment. The filename is generated from the period and the batch ID
+ * The deterministic payment register of a batch: a UTF-8 CSV and a canonical JSON manifest
+ * (MVP-095A, D95A-7), for tenant administrators with privileged MFA. Every download is a
+ * fail-closed disclosure audit (counts only) and is rate limited per subject and per tenant. The
+ * register states masked destinations and approved nets; it is an instruction-preparation artifact,
+ * not proof of transmission or payment. The filename is generated from the period and the batch ID
  * prefix, never from a name, a number or an amount. Restricted financial and HR data: nothing of
  * the content is logged.
  */
@@ -152,7 +152,8 @@ public class PaymentRegisterService {
                         .orElseThrow(
                             () -> new ApiException(ErrorCode.PAYMENT_BATCH_NOT_FOUND, Map.of()));
                 List<PaymentRegister.Row> rows = new ArrayList<>();
-                for (LineRow line : payments.linePage(tenant, entity, id, null, batch.lineCount() + 1)) {
+                for (LineRow line :
+                    payments.linePage(tenant, entity, id, null, batch.lineCount() + 1)) {
                   rows.add(
                       new PaymentRegister.Row(
                           line.employeeNumber(),

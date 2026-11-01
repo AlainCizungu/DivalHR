@@ -717,7 +717,10 @@ public enum ErrorCode {
   PAYSLIP_RENDER_FAILED(HttpStatus.INTERNAL_SERVER_ERROR),
   /** MVP-094C: 5,000 payslips, or the package chain limit, would be exceeded. */
   PAYROLL_PACKAGE_LIMIT_REACHED(HttpStatus.CONFLICT),
-  /** MVP-095A: the employee or payment destination is unknown, foreign or not available to the caller. */
+  /**
+   * MVP-095A: the employee or payment destination is unknown, foreign or not available to the
+   * caller.
+   */
   PAYMENT_DESTINATION_NOT_FOUND(HttpStatus.NOT_FOUND),
   /** MVP-095A: the destination is not acceptable (provider, country, effective date or shape). */
   PAYMENT_DESTINATION_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
@@ -725,13 +728,19 @@ public enum ErrorCode {
   PAYMENT_DESTINATION_VERSION_CONFLICT(HttpStatus.CONFLICT),
   /** MVP-095A: the destination preview expired or the destination changed since it was shown. */
   PAYMENT_DESTINATION_PREVIEW_STALE(HttpStatus.CONFLICT),
-  /** MVP-095A: the payment encryption key is not configured or the sealed value cannot be authenticated; nothing was stored or shown. */
+  /**
+   * MVP-095A: the payment encryption key is not configured or the sealed value cannot be
+   * authenticated; nothing was stored or shown.
+   */
   PAYMENT_DESTINATION_KEY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
   /** MVP-095A: the payment batch is unknown, foreign or not available to the caller. */
   PAYMENT_BATCH_NOT_FOUND(HttpStatus.NOT_FOUND),
   /** MVP-095A: the batch cannot be prepared; the preview lists the blockers. */
   PAYMENT_BATCH_BLOCKED(HttpStatus.CONFLICT),
-  /** MVP-095A: the batch preview expired or the package, a destination or the chain changed since it was shown. */
+  /**
+   * MVP-095A: the batch preview expired or the package, a destination or the chain changed since it
+   * was shown.
+   */
   PAYMENT_BATCH_PREVIEW_STALE(HttpStatus.CONFLICT),
   /** MVP-095A: another command changed the batch chain of the package first. */
   PAYMENT_BATCH_VERSION_CONFLICT(HttpStatus.CONFLICT),

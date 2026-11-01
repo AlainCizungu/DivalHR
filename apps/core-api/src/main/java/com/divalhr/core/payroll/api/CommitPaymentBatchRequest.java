@@ -3,8 +3,9 @@ package com.divalhr.core.payroll.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * MVP-095A: the evidence a batch preview returned and the two confirmations. Every value is read as {@code Object} so that a wrong type is a field error, never a
- * deserialization failure. Restricted financial and HR data: nothing here is ever logged.
+ * MVP-095A: the evidence a batch preview returned and the two confirmations. Every value is read as
+ * {@code Object} so that a wrong type is a field error, never a deserialization failure. Restricted
+ * financial and HR data: nothing here is ever logged.
  */
 @Schema(name = "CommitPaymentBatch")
 public class CommitPaymentBatchRequest extends StrictRequest {
@@ -99,5 +100,4 @@ public class CommitPaymentBatchRequest extends StrictRequest {
   public void setNoMoneySentAcknowledged(Object noMoneySentAcknowledged) {
     this.noMoneySentAcknowledged = noMoneySentAcknowledged;
   }
-
 }

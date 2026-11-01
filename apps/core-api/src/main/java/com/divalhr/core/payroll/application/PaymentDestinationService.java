@@ -9,16 +9,16 @@ import com.divalhr.core.payroll.api.PaymentResponses.DestinationRecord;
 import com.divalhr.core.payroll.api.PaymentResponses.DestinationView;
 import com.divalhr.core.payroll.api.PaymentResponses.MyDestination;
 import com.divalhr.core.payroll.application.PaymentCommands.DestinationCommit;
+import com.divalhr.core.payroll.domain.PaymentCipher;
 import com.divalhr.core.payroll.domain.PaymentDestinationBlocker;
 import com.divalhr.core.payroll.domain.PaymentDestinationDraft;
 import com.divalhr.core.payroll.domain.PaymentDestinationWarning;
 import com.divalhr.core.payroll.domain.PaymentDigests;
-import com.divalhr.core.payroll.domain.PaymentCipher;
 import com.divalhr.core.payroll.domain.PaymentSealException;
-import com.divalhr.core.payroll.internal.JdbcPayrollRunRepository;
 import com.divalhr.core.payroll.internal.JdbcPaymentRepository;
 import com.divalhr.core.payroll.internal.JdbcPaymentRepository.DestinationRow;
 import com.divalhr.core.payroll.internal.JdbcPaymentRepository.NewDestination;
+import com.divalhr.core.payroll.internal.JdbcPayrollRunRepository;
 import com.divalhr.core.payroll.internal.PaymentConstraintViolations;
 import com.divalhr.core.payroll.internal.PayrollPackageConstraintViolations;
 import com.divalhr.core.platform.access.EmployeeAccessLinks;
@@ -52,9 +52,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * Salary payment destinations of employees (MVP-095A, ADR 0036): the masked current read, the
- * history, the preview and the idempotent commit for tenant administrators with privileged MFA,
- * and the employee's own masked read. Authorization has run before this; the tenant, the actor and
- * the employee scope never come from the request. A destination is appended, never changed: it is
+ * history, the preview and the idempotent commit for tenant administrators with privileged MFA, and
+ * the employee's own masked read. Authorization has run before this; the tenant, the actor and the
+ * employee scope never come from the request. A destination is appended, never changed: it is
  * RECORDED, never verified with a bank or provider.
  *
  * <p>Restricted financial and HR data: the account, phone, holder and branch are sealed with
@@ -185,7 +185,8 @@ public class PaymentDestinationService {
                 LocalDate today = calendar.today(tenant);
                 Optional<DestinationRow> current = payments.effective(tenant, employee, today);
                 Optional<DestinationRow> scheduled = payments.scheduled(tenant, employee, today);
-                int latest = payments.latest(tenant, employee).map(DestinationRow::sequence).orElse(0);
+                int latest =
+                    payments.latest(tenant, employee).map(DestinationRow::sequence).orElse(0);
                 recorder.disclosed(
                     caller,
                     PaymentRecorder.DESTINATION_READ,
@@ -253,8 +254,7 @@ public class PaymentDestinationService {
                 if (rows.size() > size) {
                   next =
                       cursors.encode(
-                          scope,
-                          new KeysetPosition(CURSOR_CODE, shown.get(shown.size() - 1).id()));
+                          scope, new KeysetPosition(CURSOR_CODE, shown.get(shown.size() - 1).id()));
                 }
                 recorder.disclosed(
                     caller,
@@ -649,8 +649,7 @@ public class PaymentDestinationService {
     }
     String text;
     try {
-      text =
-          secrets.open(row.sealed(), tenant.value(), row.employeeId(), row.id(), row.sequence());
+      text = secrets.open(row.sealed(), tenant.value(), row.employeeId(), row.id(), row.sequence());
     } catch (PaymentSealException unavailable) {
       throw new ApiException(ErrorCode.PAYMENT_DESTINATION_KEY_UNAVAILABLE, Map.of());
     }

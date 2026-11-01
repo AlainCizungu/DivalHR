@@ -9,9 +9,9 @@ import java.util.UUID;
 /**
  * Responses of payment destinations and prepared payment batches (MVP-095A, ADR 0036). Restricted
  * financial and HR data: a destination is only ever masked here (never the account, phone, holder
- * or branch), amounts are integer minor units next to the CDF currency code, and no record prints
- * a value, an employee number or a digest. A prepared batch records instructions to pay; it is not
- * a payment, a transmission, a bank file or a claim of legal compliance.
+ * or branch), amounts are integer minor units next to the CDF currency code, and no record prints a
+ * value, an employee number or a digest. A prepared batch records instructions to pay; it is not a
+ * payment, a transmission, a bank file or a claim of legal compliance.
  */
 public final class PaymentResponses {
 

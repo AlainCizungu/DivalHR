@@ -87,8 +87,7 @@ public class PaymentBatchController {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
         .body(
-            batches.preview(
-                Caller.of(tenants, authentication, request), legalEntityId, packageId));
+            batches.preview(Caller.of(tenants, authentication, request), legalEntityId, packageId));
   }
 
   /**
@@ -228,7 +227,9 @@ public class PaymentBatchController {
    * @return the preview
    */
   @Operation(operationId = "previewPaymentBatchCancellation")
-  @PostMapping(path = PATH + "/{batchId}/cancel/preview", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @PostMapping(
+      path = PATH + "/{batchId}/cancel/preview",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
   @TenantAdminOperation(operation = PaymentBatchService.CANCEL_PREVIEW)
   @SubjectRateLimited(bucket = PaymentBatchService.SUBJECT_PREVIEW_BUCKET)
   @TenantRateLimited(bucket = PaymentBatchService.TENANT_PREVIEW_BUCKET)

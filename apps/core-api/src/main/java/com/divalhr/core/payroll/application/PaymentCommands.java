@@ -273,7 +273,8 @@ final class PaymentCommands {
             today,
             errors);
     Integer version = chainVersion(request.getExpectedVersion(), errors);
-    String preview = PayrollPackageCommands.digest(request.getPreviewDigest(), "previewDigest", errors);
+    String preview =
+        PayrollPackageCommands.digest(request.getPreviewDigest(), "previewDigest", errors);
     Instant expiresAt = PayrollPackageCommands.instant(request.getExpiresAt(), "expiresAt", errors);
     PayrollPackageCommands.confirmed(request.getReviewedDetails(), "reviewedDetails", errors);
     errors.throwIfAny();
@@ -289,10 +290,12 @@ final class PaymentCommands {
       throw new IllegalStateException("unreachable");
     }
     unknown(request, errors);
-    Integer version = PayrollPackageCommands.version(request.getExpectedVersion(), "expectedVersion", 0, errors);
+    Integer version =
+        PayrollPackageCommands.version(request.getExpectedVersion(), "expectedVersion", 0, errors);
     Integer packageVersion =
         PayrollPackageCommands.version(request.getPackageVersion(), "packageVersion", 1, errors);
-    String preview = PayrollPackageCommands.digest(request.getPreviewDigest(), "previewDigest", errors);
+    String preview =
+        PayrollPackageCommands.digest(request.getPreviewDigest(), "previewDigest", errors);
     Instant expiresAt = PayrollPackageCommands.instant(request.getExpiresAt(), "expiresAt", errors);
     PayrollPackageCommands.confirmed(
         request.getReviewedTotalsAndDestinations(), "reviewedTotalsAndDestinations", errors);
@@ -325,9 +328,11 @@ final class PaymentCommands {
     }
     unknown(request, errors);
     PaymentBatchCancelReason reason = reason(request.getReasonCode(), errors);
-    Integer version = PayrollPackageCommands.version(request.getBatchVersion(), "batchVersion", 1, errors);
+    Integer version =
+        PayrollPackageCommands.version(request.getBatchVersion(), "batchVersion", 1, errors);
     String batch = PayrollPackageCommands.digest(request.getBatchDigest(), "batchDigest", errors);
-    String preview = PayrollPackageCommands.digest(request.getPreviewDigest(), "previewDigest", errors);
+    String preview =
+        PayrollPackageCommands.digest(request.getPreviewDigest(), "previewDigest", errors);
     Instant expiresAt = PayrollPackageCommands.instant(request.getExpiresAt(), "expiresAt", errors);
     PayrollPackageCommands.confirmed(
         request.getNoMoneySentAcknowledged(), "noMoneySentAcknowledged", errors);

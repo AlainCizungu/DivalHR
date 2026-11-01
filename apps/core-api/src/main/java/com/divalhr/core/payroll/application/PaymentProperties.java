@@ -37,7 +37,8 @@ public record PaymentProperties(String encryptionKey) {
       throw new IllegalStateException(
           "divalhr.payroll.payment.encryption-key must be at least 32 bytes");
     }
-    if (!"development".equals(env) && encryptionKey.toLowerCase(Locale.ROOT).startsWith("dev-only-")) {
+    if (!"development".equals(env)
+        && encryptionKey.toLowerCase(Locale.ROOT).startsWith("dev-only-")) {
       throw new IllegalStateException(
           "the development payment encryption key must not be used in environment " + env);
     }

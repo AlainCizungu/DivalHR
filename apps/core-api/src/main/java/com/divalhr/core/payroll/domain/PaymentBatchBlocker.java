@@ -1,6 +1,9 @@
 package com.divalhr.core.payroll.domain;
 
-/** Why a payment batch cannot be prepared (preview status BLOCKED); one blocker blocks the whole batch. */
+/**
+ * Why a payment batch cannot be prepared (preview status BLOCKED); one blocker blocks the whole
+ * batch.
+ */
 public enum PaymentBatchBlocker {
   /** The package is VOIDED. */
   PACKAGE_VOIDED,

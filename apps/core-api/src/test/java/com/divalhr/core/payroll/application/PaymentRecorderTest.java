@@ -44,7 +44,8 @@ class PaymentRecorderTest {
         .containsEntry("version", 2)
         .containsEntry("method", "BANK_ACCOUNT")
         .containsEntry("status", "RECORDED");
-    assertThat(envelope.getValue().eventType()).isEqualTo("payroll.payment-destination.recorded.v1");
+    assertThat(envelope.getValue().eventType())
+        .isEqualTo("payroll.payment-destination.recorded.v1");
     assertThat(envelope.getValue().data()).isEqualTo(auditEvent.getValue().metadata());
   }
 

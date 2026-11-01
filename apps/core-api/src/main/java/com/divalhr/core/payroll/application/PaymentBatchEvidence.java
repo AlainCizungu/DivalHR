@@ -28,12 +28,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * Loads and evaluates the evidence of a payment batch (MVP-095A, D95A-4/5): the approved package,
- * its payslips, the destination effective on the package's approval date for each payable
- * employee, and the state of the batch chain. Nothing is recalculated and no currency is
- * converted: the amounts are the approved nets, copied. Every destination is authenticated and
- * checked against its plain columns, so a tampered row is a blocker, never a payable line. The
- * caller holds the locks it needs; this class takes none. Restricted financial and HR data:
- * nothing it returns prints a value.
+ * its payslips, the destination effective on the package's approval date for each payable employee,
+ * and the state of the batch chain. Nothing is recalculated and no currency is converted: the
+ * amounts are the approved nets, copied. Every destination is authenticated and checked against its
+ * plain columns, so a tampered row is a blocker, never a payable line. The caller holds the locks
+ * it needs; this class takes none. Restricted financial and HR data: nothing it returns prints a
+ * value.
  */
 @Component
 class PaymentBatchEvidence {
@@ -165,8 +165,7 @@ class PaymentBatchEvidence {
     }
     String text;
     try {
-      text =
-          secrets.open(row.sealed(), tenant.value(), row.employeeId(), row.id(), row.sequence());
+      text = secrets.open(row.sealed(), tenant.value(), row.employeeId(), row.id(), row.sequence());
     } catch (PaymentSealException tampered) {
       return false;
     }
@@ -174,7 +173,8 @@ class PaymentBatchEvidence {
     if (fields == null) {
       return false;
     }
-    String identifier = method == PaymentMethod.BANK_ACCOUNT ? fields.get("account") : fields.get("phone");
+    String identifier =
+        method == PaymentMethod.BANK_ACCOUNT ? fields.get("account") : fields.get("phone");
     if (identifier == null || identifier.length() < 3 || row.providerCode() == null) {
       return false;
     }
@@ -184,7 +184,9 @@ class PaymentBatchEvidence {
             : PaymentMasking.phone(identifier);
     String fingerprint =
         secrets.fingerprint(
-            tenant.value(), "identifier", method.name() + ":" + row.providerCode() + ":" + identifier);
+            tenant.value(),
+            "identifier",
+            method.name() + ":" + row.providerCode() + ":" + identifier);
     return masked.equals(row.masked()) && fingerprint.equals(row.fingerprint());
   }
 }

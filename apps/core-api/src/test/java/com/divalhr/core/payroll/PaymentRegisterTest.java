@@ -19,7 +19,21 @@ class PaymentRegisterTest {
 
   private static PaymentRegister.Header header(int lines, long total) {
     return new PaymentRegister.Header(
-        ENTITY, PACKAGE, 2, APPROVAL, BATCH, 1, "PREPARED", "2026-10", "CDF", lines, 1, 1, 1, 1, total);
+        ENTITY,
+        PACKAGE,
+        2,
+        APPROVAL,
+        BATCH,
+        1,
+        "PREPARED",
+        "2026-10",
+        "CDF",
+        lines,
+        1,
+        1,
+        1,
+        1,
+        total);
   }
 
   private static List<PaymentRegister.Row> rows() {

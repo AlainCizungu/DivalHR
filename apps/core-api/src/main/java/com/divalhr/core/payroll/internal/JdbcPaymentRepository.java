@@ -902,7 +902,8 @@ public class JdbcPaymentRepository {
       spec = spec.param("status", status);
     }
     if (after != null) {
-      spec = spec.param("preparedAt", Timestamp.from(after.preparedAt())).param("after", after.id());
+      spec =
+          spec.param("preparedAt", Timestamp.from(after.preparedAt())).param("after", after.id());
     }
     return spec.query(JdbcPaymentRepository::batchRow).list();
   }

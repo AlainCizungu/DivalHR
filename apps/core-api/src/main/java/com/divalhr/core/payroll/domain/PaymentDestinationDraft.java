@@ -7,8 +7,8 @@ import java.util.Optional;
 
 /**
  * A validated, normalized payment destination to record (MVP-095A, D95A-2). Restricted financial
- * and HR data: the account, phone, holder, branch and explanation exist only here, in the
- * encrypted envelope and in the request that carried them; {@code toString} is redacted.
+ * and HR data: the account, phone, holder, branch and explanation exist only here, in the encrypted
+ * envelope and in the request that carried them; {@code toString} is redacted.
  *
  * @param method the method
  * @param country ISO country, or {@code null} for MANUAL
