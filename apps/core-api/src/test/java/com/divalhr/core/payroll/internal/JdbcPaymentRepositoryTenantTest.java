@@ -91,13 +91,15 @@ class JdbcPaymentRepositoryTenantTest {
   @Test
   void everyTableReadFiltersOnTheTenantOfItsOwnAlias() throws IOException {
     String source = Files.readString(SOURCE, StandardCharsets.UTF_8);
-    for (String alias : List.of("payment_destination d", "payment_batch b", "payment_batch_line l")) {
+    for (String alias :
+        List.of("payment_destination d", "payment_batch b", "payment_batch_line l")) {
       String prefix = alias.substring(alias.length() - 1);
       Pattern unguarded =
           Pattern.compile(
               "FROM payroll\\." + alias + " WHERE (?!" + prefix + "\\.tenant_id = :tenant)");
       assertThat(unguarded.matcher(source).find()).as(alias).isFalse();
-      assertThat(source).contains("FROM payroll." + alias + " WHERE " + prefix + ".tenant_id = :tenant");
+      assertThat(source)
+          .contains("FROM payroll." + alias + " WHERE " + prefix + ".tenant_id = :tenant");
     }
   }
 
@@ -106,7 +108,8 @@ class JdbcPaymentRepositoryTenantTest {
     String source = Files.readString(SOURCE, StandardCharsets.UTF_8);
     assertThat(source).doesNotContainPattern("(?i)\"\\s*(DELETE FROM|TRUNCATE)");
     assertThat(source)
-        .doesNotContainPattern("(?i)UPDATE payroll\\.payment_(destination|batch_line|batch_cancel)");
+        .doesNotContainPattern(
+            "(?i)UPDATE payroll\\.payment_(destination|batch_line|batch_cancel)");
     assertThat(source).contains("UPDATE payroll.payment_batch SET status = 'CANCELLED'");
     assertThat(source).contains("AND status = 'PREPARED'");
   }
