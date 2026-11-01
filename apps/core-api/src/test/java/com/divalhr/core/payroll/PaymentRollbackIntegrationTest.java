@@ -74,10 +74,14 @@ class PaymentRollbackIntegrationTest {
   }
 
   @AfterEach
-  void resetSpies() {
+  void resetAll() {
+    resetSpies();
+    clock.reset();
+  }
+
+  private void resetSpies() {
     reset((OutboxWriter) AopTestUtils.getUltimateTargetObject(outbox));
     reset((AuditRecorder) AopTestUtils.getUltimateTargetObject(audit));
-    clock.reset();
   }
 
   private void failOutbox() {
@@ -164,16 +168,18 @@ class PaymentRollbackIntegrationTest {
             new ClassPathResource("db/rollback/V47__rollback.sql").getInputStream().readAllBytes(),
             StandardCharsets.UTF_8);
     List<Integer> before = p.evidence();
-    try (Connection connection = dataSource.getConnection()) {
-      boolean auto = connection.getAutoCommit();
+    Connection connection = dataSource.getConnection();
+    try {
+      connection.setAutoCommit(false);
       try (Statement statement = connection.createStatement()) {
         assertThatThrownBy(() -> statement.execute(script))
             .isInstanceOf(SQLException.class)
             .hasMessageContaining("V47 rollback refused");
-      } finally {
-        connection.rollback();
-        connection.setAutoCommit(auto);
       }
+    } finally {
+      connection.rollback();
+      connection.setAutoCommit(true);
+      connection.close();
     }
     assertThat(p.evidence()).isEqualTo(before);
     assertThat(

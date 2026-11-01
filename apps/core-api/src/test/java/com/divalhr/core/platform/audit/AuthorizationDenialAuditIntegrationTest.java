@@ -291,7 +291,17 @@ class AuthorizationDenialAuditIntegrationTest {
           "payroll-void.preview",
           "payroll-package.void",
           "payslip.read",
-          "payslip.download");
+          "payslip.download",
+          // MVP-095A: payment destinations, payment batches and register downloads.
+          "payment-destination.preview",
+          "payment-destination.read",
+          "payment-destination.record",
+          "payment-batch.preview",
+          "payment-batch.prepare",
+          "payment-batch.read",
+          "payment-batch.cancel-preview",
+          "payment-batch.cancel",
+          "payment-register.download");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -370,7 +380,9 @@ class AuthorizationDenialAuditIntegrationTest {
           "compensation.self-read",
           // MVP-094C: the employee's own published payslips.
           "payslip.self-read",
-          "payslip.self-download");
+          "payslip.self-download",
+          // MVP-095A: the employee's own masked payment destination.
+          "payment-destination.self-read");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
