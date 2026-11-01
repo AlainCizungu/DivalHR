@@ -602,7 +602,9 @@ class PayslipPdfRendererTest {
         String where = locale + " " + number;
         assertThat(block).as(where).isNotEmpty().hasSizeLessThanOrEqualTo(2);
         assertThat(block.get(0).text()).as(where).startsWith(label);
-        assertThat(String.join("", texts(block)).substring(label.length())).as(where).isEqualTo(number);
+        assertThat(String.join("", texts(block)).substring(label.length()))
+            .as(where)
+            .isEqualTo(number);
         for (Line line : block) {
           assertThat(line.left()).as(where).isEqualTo(50f, within(0.01f));
           assertThat(line.right()).as(where).isLessThanOrEqualTo(545.01f);

@@ -15,7 +15,11 @@ class PayrollReadTimeoutTest {
   @Test
   void everyApprovalAndPayslipReadTransactionIsLimitedToTenSeconds() throws Exception {
     for (String name :
-        List.of("PayrollApprovalService", "PayrollVoidService", "PayslipService", "PayrollPackageService")) {
+        List.of(
+            "PayrollApprovalService",
+            "PayrollVoidService",
+            "PayslipService",
+            "PayrollPackageService")) {
       Field field = Class.forName(PACKAGE + name).getDeclaredField("READ_TIMEOUT");
       field.setAccessible(true);
       assertThat((Duration) field.get(null)).as(name).isEqualTo(Duration.ofSeconds(10));
