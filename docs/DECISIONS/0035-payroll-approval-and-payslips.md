@@ -395,16 +395,27 @@ a supersession ends with exactly one winner. All four were exercised on PostgreS
   package status and reason code for a VOIDED copy), so no duplicate mutable business data exists and no content
   addressing is needed. Determinism is therefore a property of the renderer and is tested (same input, same
   bytes).
-* **PDF** (PDFBox 3.0.8, repository-owned code and strings, no remote asset, no embedded font file):
-  Standard-14 Helvetica / Helvetica-Bold with `WinAnsiEncoding` (covers French accents and « ’ »); a character of
-  the employee number outside WinAnsi is replaced by `?` in the PDF only (limitation 6). A4 portrait, one page.
-  Deterministic: no compression (`CompressParameters.NO_COMPRESSION`), the trailer `/ID` is the first 16 bytes of
-  the snapshot digest twice, `CreationDate` = `ModDate` = the approval instant (UTC), the Info dictionary holds
+* **PDF** (PDFBox 3.0.8, repository-owned code, strings and fonts, no remote asset; **R182-1**): the text is set
+  in **DejaVu Sans regular and bold**, committed unmodified under `apps/core-api/src/main/resources/fonts/` with
+  its licence (`DejaVu-LICENSE.txt`, the Bitstream Vera licence plus public-domain DejaVu changes) and embedded as a
+  **subset** (`PDType0Font.load(..., true)`). Both files are pinned by SHA-256 in the renderer and in a test; a file
+  that does not match fails the render. Employee text is printed **as typed** for every character both faces cover
+  (Latin including the Lingala/Swahili/Tshiluba letters, Greek, Cyrillic and more). **It is never replaced:** a
+  control character, an invisible format character (for example a bidirectional override) or a character without a
+  glyph (for example CJK ideographs) fails the render closed with 500 `PAYSLIP_RENDER_FAILED`, nothing is stored and
+  the HTML payslip stays available. No shaping or bidirectional layout is done, so right-to-left and joining
+  scripts are covered by glyphs only and are not typographically correct. A4 portrait, one page.
+  Deterministic: PDFBox writes the file with `CompressParameters.NO_COMPRESSION`; the document is saved once so
+  that PDFBox builds the font subsets, every filtered stream (font programs and character maps) is then rewritten
+  unfiltered and the document is saved again, so no byte depends on the zlib build of the runtime; the header is
+  `%PDF-1.7`; the trailer `/ID` is the first 16 bytes of the snapshot digest twice; `CreationDate` = `ModDate` =
+  the approval instant (UTC); the subset tags are derived by PDFBox from the glyph set. The Info dictionary holds
   only `Title` (generic localized title, e.g. "Payslip" / « Bulletin de paie », with " - VOIDED" / « - ANNULÉ »
   on a voided copy; no name, number or period), `Creator` and `Producer` = the constant `DivalHR`; no `Author`,
   `Subject`, `Keywords`, XMP, file path, host, subject, token, email or local filename. `/Lang` is `en` or `fr`,
   `/MarkInfo << /Marked true >>`, `ViewerPreferences/DisplayDocTitle true`, a minimal tagged structure
-  (`Document > H1`, `P`, `Table > TR > TH/TD` with marked content). Full PDF/UA conformance is not claimed.
+  (`Document > H1`, `P`, `Table > TR > TH/TD` with marked content and a parent tree). Full PDF/UA conformance is
+  not claimed.
   Content: title, "Approved payroll"/« Paie approuvée » (or VOIDED banner with the reason label), period, legal
   entity id is not printed, employee number, rule pack statement, the amount table (contractual gross, employee
   CNSS, IRPP, total employee deductions, net), employer contributions in a separate block with the sentence that
@@ -561,11 +572,13 @@ Flyway placeholder parsing (the file contains no `${`), PostgreSQL 17, the real 
    needed.
 4. The preparer fact covers only the creators of the run and the calculation; no separation of duties is enforced.
 5. The approver subject is stored (restricted) and never returned; a database owner can read it.
-6. Characters of an employee number outside WinAnsi print as `?` in the PDF (the HTML is exact).
+6. A character that the embedded DejaVu faces do not cover (for example CJK) fails the PDF render closed instead
+   of being altered (R182-1); the HTML is exact. No complex-script shaping or bidirectional layout.
 7. Canonical key order and number/escape format are produced and verified by the application and its tests; the
    database guarantees the field set, every value, the sums, the components and the digest, not the byte layout.
 8. `snapshot` (jsonb) normalisation depends on the PostgreSQL major version; the digest does not (it hashes the text).
-9. The PDF is deterministic for one pinned PDFBox version; a library upgrade may change bytes (not content).
+9. The PDF is deterministic for one pinned PDFBox version and the two pinned font files; a library upgrade may
+   change bytes (not content). The application adds about 1.4 MB of font files to the repository and the image.
 10. Voids share the approval rate bucket; `approvedAt` is not checked against the database clock, only against the
     calculation's creation time.
 11. Real DRC statutory payslips remain out of reach until a professionally verified pack exists.

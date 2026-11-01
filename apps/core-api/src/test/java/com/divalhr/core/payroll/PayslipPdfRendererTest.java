@@ -13,17 +13,29 @@ import com.divalhr.core.payroll.domain.PayslipSnapshot;
 import com.divalhr.core.payroll.domain.PayslipSnapshot.Component;
 import com.divalhr.core.payroll.domain.PayslipText;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.cos.COSArray;
+import org.apache.pdfbox.cos.COSBase;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.cos.COSString;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 
@@ -131,14 +143,83 @@ class PayslipPdfRendererTest {
   void theDocumentIsAPdfWithOneTaggedPage() throws IOException {
     byte[] pdf = render(PayslipLocale.EN, false, false);
     assertThat(raw(pdf)).startsWith("%PDF-1.7");
-    assertThat(raw(pdf)).endsWith("%%EOF\n");
+    assertThat(raw(pdf).stripTrailing()).endsWith("%%EOF");
     try (PDDocument document = Loader.loadPDF(pdf)) {
       assertThat(document.getNumberOfPages()).isEqualTo(1);
       assertThat(document.isEncrypted()).isFalse();
       assertThat(document.getDocumentCatalog().getMetadata()).isNull();
+      assertThat(document.getDocumentCatalog().getMarkInfo().isMarked()).isTrue();
+      assertThat(document.getDocumentCatalog().getViewerPreferences().displayDocTitle()).isTrue();
+      assertThat(document.getDocumentCatalog().getStructureTreeRoot()).isNotNull();
+      assertThat(document.getPage(0).getMediaBox().getWidth()).isEqualTo(595f);
+      assertThat(document.getPage(0).getMediaBox().getHeight()).isEqualTo(842f);
     }
-    assertThat(raw(pdf)).contains("/MarkInfo << /Marked true >>").contains("/StructTreeRoot");
-    assertThat(raw(pdf)).contains("/DisplayDocTitle true");
+  }
+
+  @Test
+  void theStructureTreeTagsTheHeadingsParagraphsAndTables() throws IOException {
+    try (PDDocument document = Loader.loadPDF(render(PayslipLocale.EN, true, true))) {
+      COSDictionary root = document.getDocumentCatalog().getStructureTreeRoot().getCOSObject();
+      Set<String> types = new TreeSet<>();
+      collect(root.getDictionaryObject(COSName.K), types);
+      assertThat(types).contains("Document", "H1", "H2", "P", "Table", "TR", "TH", "TD");
+      assertThat(root.getDictionaryObject(COSName.getPDFName("ParentTree"))).isNotNull();
+    }
+  }
+
+  private static void collect(COSBase node, Set<String> types) {
+    if (node instanceof COSArray array) {
+      for (int i = 0; i < array.size(); i++) {
+        collect(array.getObject(i), types);
+      }
+    } else if (node instanceof COSDictionary dictionary) {
+      String type = dictionary.getNameAsString(COSName.S);
+      if (type != null) {
+        types.add(type);
+      }
+      collect(dictionary.getDictionaryObject(COSName.K), types);
+    }
+  }
+
+  @Test
+  void theTextIsSetInTheTwoEmbeddedSubsetFacesAndNothingIsCompressed() throws IOException {
+    for (PayslipLocale locale : PayslipLocale.values()) {
+      byte[] pdf = render(locale, true, true);
+      assertThat(raw(pdf)).doesNotContain("/Helvetica").doesNotContain("/Type1");
+      assertThat(raw(pdf)).doesNotContain("/Filter").doesNotContain("/FlateDecode");
+      try (PDDocument document = Loader.loadPDF(pdf)) {
+        Set<String> names = new TreeSet<>();
+        for (COSName key : document.getPage(0).getResources().getFontNames()) {
+          PDFont font = document.getPage(0).getResources().getFont(key);
+          assertThat(font.isEmbedded()).isTrue();
+          assertThat(font.getName()).matches("[A-Z]{6}\\+DejaVuSans(-Bold)?");
+          names.add(font.getName().substring(7));
+        }
+        assertThat(names).containsExactly("DejaVuSans", "DejaVuSans-Bold");
+      }
+    }
+  }
+
+  @Test
+  void theEmbeddedFacesAreTheRepositoryOwnedFilesWithThePinnedDigests() throws Exception {
+    assertThat(sha256("/fonts/DejaVuSans.ttf"))
+        .isEqualTo("ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280");
+    assertThat(sha256("/fonts/DejaVuSans-Bold.ttf"))
+        .isEqualTo("5c1247acef7f2b8522a31742c76d6adcb5569bacc0be7ceaa4dc39dd252ce895");
+    try (InputStream licence =
+        PayslipPdfRenderer.class.getResourceAsStream("/fonts/DejaVu-LICENSE.txt")) {
+      assertThat(licence).isNotNull();
+      assertThat(new String(licence.readAllBytes(), StandardCharsets.UTF_8))
+          .contains("Bitstream Vera");
+    }
+  }
+
+  private static String sha256(String resource) throws Exception {
+    try (InputStream in = PayslipPdfRenderer.class.getResourceAsStream(resource)) {
+      assertThat(in).as(resource).isNotNull();
+      return HexFormat.of()
+          .formatHex(MessageDigest.getInstance("SHA-256").digest(in.readAllBytes()));
+    }
   }
 
   @Test
@@ -312,7 +393,7 @@ class PayslipPdfRendererTest {
           assertThat(info.getAuthor()).isNull();
           assertThat(info.getSubject()).isNull();
           assertThat(info.getKeywords()).isNull();
-          for (String key : info.getMetadataKeys()) {
+          for (String key : List.of("Title", "Creator", "Producer")) {
             String value = info.getCustomMetadataValue(key);
             assertThat(value).as(where + " " + key).matches("[\\p{L}0-9 :\\-]+");
           }
@@ -328,10 +409,20 @@ class PayslipPdfRendererTest {
       try (PDDocument document = Loader.loadPDF(pdf)) {
         assertThat(document.getDocumentCatalog().getLanguage()).isEqualTo(locale.code());
       }
-      assertThat(raw(pdf)).contains("/CreationDate (D:20260401101112Z)");
-      assertThat(raw(pdf)).contains("/ModDate (D:20260401101112Z)");
       String id = snapshot("E-0042").digest().substring(0, 32);
-      assertThat(raw(pdf)).contains("/ID [<" + id + "> <" + id + ">]");
+      try (PDDocument document = Loader.loadPDF(pdf)) {
+        Instant approved = APPROVED.truncatedTo(ChronoUnit.SECONDS);
+        assertThat(document.getDocumentInformation().getCreationDate().toInstant())
+            .isEqualTo(approved);
+        assertThat(document.getDocumentInformation().getModificationDate().toInstant())
+            .isEqualTo(approved);
+        COSArray ids = document.getDocument().getTrailer().getCOSArray(COSName.ID);
+        assertThat(ids.size()).isEqualTo(2);
+        for (int i = 0; i < 2; i++) {
+          assertThat(((COSString) ids.getObject(i)).toHexString().toLowerCase(Locale.ROOT))
+              .isEqualTo(id);
+        }
+      }
     }
   }
 
@@ -340,7 +431,7 @@ class PayslipPdfRendererTest {
     List<String> identifiers = new ArrayList<>();
     for (UUID id : List.of(EMPLOYEE, PACKAGE, ENTITY)) {
       identifiers.add(id.toString());
-      identifiers.add(id.toString().toUpperCase(java.util.Locale.ROOT));
+      identifiers.add(id.toString().toUpperCase(Locale.ROOT));
       identifiers.add(id.toString().replace("-", ""));
       byte[] ascii = id.toString().getBytes(StandardCharsets.US_ASCII);
       identifiers.add(HexFormat.of().withUpperCase().formatHex(ascii));
@@ -368,7 +459,7 @@ class PayslipPdfRendererTest {
         assertThat(raw).doesNotContain("/Keywords").doesNotContain("/Metadata");
         assertThat(raw).doesNotContain("/URI").doesNotContain("/JavaScript");
         assertThat(raw).doesNotContain("/Launch").doesNotContain("/EmbeddedFile");
-        assertThat(raw).doesNotContain("/OpenAction").doesNotContain("/FontFile");
+        assertThat(raw).doesNotContain("/OpenAction").doesNotContain("/Names");
       }
     }
   }
@@ -418,16 +509,32 @@ class PayslipPdfRendererTest {
   }
 
   @Test
-  void aCharacterOutsideWinAnsiPrintsAsAQuestionMarkAndNothingElseChanges() throws IOException {
-    PayslipSnapshot odd = snapshot("E中-Ж-\u0001-1");
-    String text = text(RENDERER.render(request(odd, PayslipLocale.EN, false)).bytes());
-    assertThat(text).contains("Employee number: E?-?-?-1");
-    assertThat(text).contains("149040 CDF");
-    // The canonical snapshot keeps the original character; only the PDF prints a question mark.
-    assertThat(odd.canonicalText()).contains("E中-Ж-");
+  void unicodeEmployeeTextIsPrintedAsTypedAndNeverAsAQuestionMark() throws IOException {
+    String typed = "Ж-é-€-Ɛɔ-Ŋ-1";
+    PayslipSnapshot unicode = snapshot(typed);
+    for (PayslipLocale locale : PayslipLocale.values()) {
+      String shown = text(RENDERER.render(request(unicode, locale, false)).bytes());
+      assertThat(shown).contains(typed).doesNotContain("?");
+      assertThat(shown).contains("149040 CDF");
+    }
     PayslipSnapshot euro = snapshot("E-€1 (a) \\b");
     String shown = text(RENDERER.render(request(euro, PayslipLocale.FR, false)).bytes());
     assertThat(shown).contains("E-€1 (a) \\b");
+    // The canonical snapshot is untouched by the rendering.
+    assertThat(unicode.canonicalText()).contains(typed);
+  }
+
+  @Test
+  void aCharacterTheFontDoesNotCoverFailsTheRenderInsteadOfPrintingSomethingElse() {
+    for (String number : List.of("E中-1", "E-あ", "E-한", "E-\u0001-1", "E-\u202e1")) {
+      PayslipSnapshot odd = snapshot(number);
+      for (PayslipLocale locale : PayslipLocale.values()) {
+        assertThatThrownBy(() -> RENDERER.render(request(odd, locale, false)))
+            .as(number)
+            .isInstanceOf(PayslipRenderException.class)
+            .hasMessage("payslip render failed");
+      }
+    }
   }
 
   @Test

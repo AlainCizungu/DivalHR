@@ -1,2 +1,4 @@
 # Receipt fixtures are byte-exact (PDF cross-reference offsets, JPEG scan data): never normalize them.
 apps/core-api/src/test/resources/receipts/* binary
+# Embedded payslip fonts are byte-exact (pinned SHA-256 in PayslipPdfRenderer and its test): never normalize them.
+apps/core-api/src/main/resources/fonts/*.ttf binary

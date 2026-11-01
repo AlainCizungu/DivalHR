@@ -256,8 +256,8 @@ run 7 "the PDF metadata leaks the employee identifier" \
   "PayslipPdfRendererTest" \
   "PayslipPdfIntegrationTest PayrollPackagePrivacyIntegrationTest" \
   mutate "$SRC/application/PayslipPdfRenderer.java" \
-  '+ textString(PayslipText.documentTitle(request.locale(), request.voided()))' \
-  '+ textString(PayslipText.documentTitle(request.locale(), request.voided()) + " " + request.snapshot().employeeId())'
+  'info.setTitle(PayslipText.documentTitle(request.locale(), request.voided()));' \
+  'info.setTitle(PayslipText.documentTitle(request.locale(), request.voided()) + " " + request.snapshot().employeeId());'
 
 run 8 "the tenant predicate is removed from the chain (version) read" \
   "JdbcPayrollPackageRepositoryTenantTest" \
