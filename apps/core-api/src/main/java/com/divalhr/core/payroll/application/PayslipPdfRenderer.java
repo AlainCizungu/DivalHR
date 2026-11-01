@@ -56,13 +56,13 @@ import org.springframework.stereotype.Component;
 
 /**
  * Renders one payslip as a deterministic, tagged, single-page A4 PDF from its immutable snapshot
- * (MVP-094C, ADR 0035 section 12, R182-1). The same snapshot, status and locale always give the same
- * bytes: the document is written by Apache PDFBox with no compression, a fixed trailer identifier
- * (the first 16 bytes of the snapshot digest twice), both dates set to the approval instant and no
- * XMP packet. Text is set in the repository-owned DejaVu Sans (regular and bold), embedded as a
- * subset from the application resources and verified against pinned SHA-256 digests, so any
- * employee text the font covers is printed as typed. A character the font does not cover, or a
- * control character, is never replaced: the render fails closed with {@link
+ * (MVP-094C, ADR 0035 section 12, R182-1). The same snapshot, status and locale always give the
+ * same bytes: the document is written by Apache PDFBox with no compression, a fixed trailer
+ * identifier (the first 16 bytes of the snapshot digest twice), both dates set to the approval
+ * instant and no XMP packet. Text is set in the repository-owned DejaVu Sans (regular and bold),
+ * embedded as a subset from the application resources and verified against pinned SHA-256 digests,
+ * so any employee text the font covers is printed as typed. A character the font does not cover, or
+ * a control character, is never replaced: the render fails closed with {@link
  * PayslipRenderException} and nothing is stored. The embedded font and character-map streams are
  * written without a filter, so the bytes do not depend on the zlib build of the runtime. The Info
  * dictionary holds only a generic localized title and the constant creator and producer {@code
@@ -452,9 +452,9 @@ public class PayslipPdfRenderer {
 
   /**
    * The text itself when the embedded face covers every character; otherwise a failure. A control
-   * character, an invisible format character (such as a bidirectional override) or a character
-   * with no glyph is never replaced or dropped, because an immutable payslip must not print
-   * something the employee record does not say.
+   * character, an invisible format character (such as a bidirectional override) or a character with
+   * no glyph is never replaced or dropped, because an immutable payslip must not print something
+   * the employee record does not say.
    */
   private static String checked(Sheet sheet, String words) {
     if (words == null) {
@@ -474,7 +474,9 @@ public class PayslipPdfRenderer {
     return words;
   }
 
-  /** Whether both embedded faces have a real glyph (not the missing-glyph box) for the character. */
+  /**
+   * Whether both embedded faces have a real glyph (not the missing-glyph box) for the character.
+   */
   private static boolean covered(Sheet sheet, int codePoint) {
     return sheet.regularMap.getGlyphId(codePoint) != 0 && sheet.boldMap.getGlyphId(codePoint) != 0;
   }
@@ -496,7 +498,8 @@ public class PayslipPdfRenderer {
     return shown;
   }
 
-  private static List<String> wrap(Sheet sheet, String words, boolean bold, double size, double max) {
+  private static List<String> wrap(
+      Sheet sheet, String words, boolean bold, double size, double max) {
     List<String> lines = new ArrayList<>();
     StringBuilder line = new StringBuilder();
     for (String word : checked(sheet, words).split(" ")) {
