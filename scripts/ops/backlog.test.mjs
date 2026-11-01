@@ -92,6 +92,10 @@ test('the header names the deployed hr-dev release and the one deployed before i
   // MVP-094B (Issue #179): the merged-but-not-deployed fact of MVP-094A, from Git.
   assert.match(header, /PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`/u);
   assert.match(header, /hr-dev still runs `3223454…`/u);
+  // MVP-094C (Issue #181): 094B is merged, 094C is in progress, nothing of the train is deployed.
+  assert.match(header, /PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`/u);
+  assert.match(header, /nothing of 094A, 094B or 094C is deployed/u);
+  assert.match(header, /MVP-094C is in progress \(Issue #181, not merged, not deployed\)/u);
 });
 
 test('every listed story has a status', () => {
@@ -118,7 +122,7 @@ test('the required stories carry a merged or deployed status, and none is still 
   assert.match(sections.get('SEC-003').body, /deployed to hr-dev on 2026-10-29/u);
 });
 
-test('MVP-093A is merged and deployed; MVP-094A is merged but not deployed; MVP-094B is in progress for Issue #179', () => {
+test('MVP-093A is merged and deployed; MVP-094A is merged but not deployed; MVP-094B is merged; MVP-094C is in progress for Issue #181', () => {
   const epic10 = backlog.split('## Epic 10')[1].split('\n## ')[0];
   assert.match(epic10, /### MVP-093A /u);
   assert.match(epic10, /### MVP-094A /u);
@@ -135,7 +139,14 @@ test('MVP-093A is merged and deployed; MVP-094A is merged but not deployed; MVP-
   assert.match(next.body, /not taxable gross, net pay or money owed/u);
   const statutory = sections.find((entry) => entry.id === 'MVP-094B');
   assert.match(epic10, /### MVP-094B /u);
-  assert.match(statutory.body, /Issue #179\. In progress \(not merged, not deployed\)/u);
+  assert.match(
+    statutory.body,
+    /Issue #179\. Merged \(PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`\), not deployed/u,
+  );
+  const approval = sections.find((entry) => entry.id === 'MVP-094C');
+  assert.match(epic10, /### MVP-094C /u);
+  assert.match(approval.body, /Issue #181\. In progress \(not merged, not deployed\)/u);
+  assert.match(approval.body, /Not proof of payment/u);
   // D94B-13: only a DRAFT pack ships, so the backlog never calls the statutory preview available.
   assert.match(statutory.body, /`CD-SALARY-PREVIEW` version 1, \*\*DRAFT\*\*/u);
   assert.match(statutory.body, /stays under "coming next"/u);

@@ -253,6 +253,52 @@ public class PayrollRunService {
     return new Computation(policy, lines, digest, members.size());
   }
 
+  /**
+   * What a fresh calculation of a month would freeze (MVP-094C read-only source check): the input
+   * digest and the policy in force. Nothing is written.
+   *
+   * @param inputDigest the input digest of the fresh calculation
+   * @param policyId the policy in force on the last day of the month
+   * @param policySequence its sequence
+   */
+  record Recomputed(String inputDigest, UUID policyId, int policySequence) {
+
+    @Override
+    public String toString() {
+      return "PayrollRecomputed[" + policyId + "]";
+    }
+  }
+
+  /**
+   * Recalculates a month read-only, for the approval's source proof. A month that can no longer be
+   * calculated (no policy in force, more than 5,000 employees) is reported as empty: the frozen run
+   * can then not be proven current.
+   *
+   * @param tenant verified tenant
+   * @param entity legal entity
+   * @param periodStart first day of the month
+   * @param currency run currency
+   * @return the fresh digest and policy, or empty when the month cannot be calculated
+   */
+  Optional<Recomputed> recompute(
+      TenantId tenant, UUID entity, LocalDate periodStart, CompensationCurrency currency) {
+    PayrollPeriod period = PayrollPeriod.parse(periodStart.toString().substring(0, 7)).get();
+    try {
+      Computation computation = compute(tenant, entity, new RunDraft(period, currency));
+      return Optional.of(
+          new Recomputed(
+              computation.inputDigest(),
+              computation.policy().id(),
+              computation.policy().sequence()));
+    } catch (ApiException unavailable) {
+      if (unavailable.code() == ErrorCode.PAYROLL_POLICY_NOT_FOUND
+          || unavailable.code() == ErrorCode.PAYROLL_RUN_LIMIT_REACHED) {
+        return Optional.empty();
+      }
+      throw unavailable;
+    }
+  }
+
   private static void requirePeriod(PayrollPeriod period, LocalDate today) {
     if (!period.isRunnable(today)) {
       throw new ApiException(ErrorCode.PAYROLL_PERIOD_INVALID, Map.of());

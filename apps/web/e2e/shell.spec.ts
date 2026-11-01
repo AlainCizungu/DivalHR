@@ -62,6 +62,7 @@ test.describe('desktop', () => {
       'Time exports',
       'Payroll preparation',
       'Payroll runs',
+      'Approved payroll',
       'Organizational structure',
       'Contract templates',
       'Contract expirations',
@@ -152,6 +153,7 @@ test.describe('desktop', () => {
       'Mes tâches',
       'Mes notes de frais',
       'Ma rémunération',
+      'Mes bulletins de paie',
       'Notes de frais à approuver',
     ]);
     await expect(page.getByTestId('roadmap')).toContainText('Prochainement');
@@ -208,7 +210,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(23);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(24);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

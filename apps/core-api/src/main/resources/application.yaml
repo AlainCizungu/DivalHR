@@ -185,6 +185,12 @@ divalhr:
       statutory-profile-preview: ${DIVALHR_STATUTORY_PROFILE_PREVIEW_REQUESTS_PER_MINUTE:10}
       statutory-profile-write: ${DIVALHR_STATUTORY_PROFILE_WRITE_REQUESTS_PER_MINUTE:5}
       statutory-activation-write: ${DIVALHR_STATUTORY_ACTIVATION_WRITE_REQUESTS_PER_MINUTE:2}
+      # MVP-094C: payroll approval and payslips (ADR 0035, D94C-16). Per subject per minute: reads
+      # 60, previews (approval and void) 5, commits (approval and void) 2, PDF downloads 30.
+      payroll-package-read: ${DIVALHR_PAYROLL_PACKAGE_READ_REQUESTS_PER_MINUTE:60}
+      payroll-approval-preview: ${DIVALHR_PAYROLL_APPROVAL_PREVIEW_REQUESTS_PER_MINUTE:5}
+      payroll-approval-write: ${DIVALHR_PAYROLL_APPROVAL_WRITE_REQUESTS_PER_MINUTE:2}
+      payslip-download: ${DIVALHR_PAYSLIP_DOWNLOAD_REQUESTS_PER_MINUTE:30}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -276,6 +282,17 @@ divalhr:
         window: 1h
       statutory-calculation-create:
         requests: ${DIVALHR_STATUTORY_CALCULATION_TENANT_CREATES:20}
+        window: 1h
+      # MVP-094C: payroll approval and payslips (ADR 0035): 60 previews, 20 approvals or voids and
+      # 300 PDF downloads per tenant per hour.
+      payroll-approval-preview:
+        requests: ${DIVALHR_PAYROLL_APPROVAL_TENANT_PREVIEWS:60}
+        window: 1h
+      payroll-approval-write:
+        requests: ${DIVALHR_PAYROLL_APPROVAL_TENANT_WRITES:20}
+        window: 1h
+      payslip-download:
+        requests: ${DIVALHR_PAYSLIP_TENANT_DOWNLOADS:300}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.

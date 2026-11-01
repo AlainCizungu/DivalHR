@@ -41,6 +41,14 @@ import { TimeApprovalsPage } from '../features/schedules/TimeApprovalsPage';
 import { PayrollPreparationPage } from '../features/payroll/PayrollPreparationPage';
 import { PayrollRunDetailPage } from '../features/payrollRuns/PayrollRunDetailPage';
 import { PayrollRunsPage } from '../features/payrollRuns/PayrollRunsPage';
+import { ApprovalReviewPage } from '../features/payslips/ApprovalReviewPage';
+import {
+  MyPayslipPage,
+  MyPayslipsPage,
+  PackagePayslipPage,
+} from '../features/payslips/MyPayslipsPage';
+import { PackageDetailPage } from '../features/payslips/PackageDetailPage';
+import { PackageListPage } from '../features/payslips/PackageListPage';
 import { StatutoryProfilePage } from '../features/statutory/StatutoryProfilePage';
 import { StatutoryRunPage } from '../features/statutory/StatutoryRunPage';
 import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
@@ -268,6 +276,45 @@ export const ROUTES: AppRoute[] = [
     ],
   },
   {
+    path: '/admin/payroll-runs/:legalEntityId/:runId/statutory/:calculationId/approval',
+    element: <ApprovalReviewPage />,
+    access: tenantAdmin('payrollPackages.unauthorized', 'payrollPackages.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollRuns', to: '/admin/payroll-runs' },
+      { key: 'shell.crumb.payrollApproval' },
+    ],
+  },
+  {
+    path: '/admin/payroll-packages',
+    element: <PackageListPage />,
+    access: tenantAdmin('payrollPackages.unauthorized', 'payrollPackages.signInRequired'),
+    crumbs: [HOME, PAYROLL, { key: 'nav.payrollPackages' }],
+  },
+  {
+    path: '/admin/payroll-packages/:legalEntityId/:packageId',
+    element: <PackageDetailPage />,
+    access: tenantAdmin('payrollPackages.unauthorized', 'payrollPackages.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollPackages', to: '/admin/payroll-packages' },
+      { key: 'shell.crumb.payrollPackage' },
+    ],
+  },
+  {
+    path: '/admin/payroll-packages/:legalEntityId/:packageId/payslips/:payslipId',
+    element: <PackagePayslipPage />,
+    access: tenantAdmin('payrollPackages.unauthorized', 'payrollPackages.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollPackages', to: '/admin/payroll-packages' },
+      { key: 'shell.crumb.payslip' },
+    ],
+  },
+  {
     path: '/admin/people/:employeeId/statutory-profile',
     element: <StatutoryProfilePage />,
     access: tenantAdmin('statutory.unauthorized', 'statutory.signInRequired'),
@@ -445,6 +492,31 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'compensation.me.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myCompensation' }],
+  },
+  {
+    path: '/me/payslips',
+    element: <MyPayslipsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'payslips.my.unauthorized',
+      signInKey: 'payslips.my.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myPayslips' }],
+  },
+  {
+    path: '/me/payslips/:payslipId',
+    element: <MyPayslipPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'payslips.my.unauthorized',
+      signInKey: 'payslips.my.signInRequired',
+    },
+    crumbs: [
+      HOME,
+      MY_SPACE,
+      { key: 'nav.myPayslips', to: '/me/payslips' },
+      { key: 'shell.crumb.payslip' },
+    ],
   },
   {
     path: '/me/expense-approvals',

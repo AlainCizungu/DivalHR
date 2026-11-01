@@ -281,7 +281,7 @@ class PayrollInputIntegrationTest {
     Map<String, Object> changed =
         generating(
             whole,
-            preview.get("previewDigest").asText().replace('a', 'b'),
+            differentDigest(preview.get("previewDigest").asText()),
             preview.get("sourceVersionsDigest").asText());
     f.problem(generate(admin, key, changed), 409, "IDEMPOTENCY_KEY_REUSED");
     JsonNode again = f.expect(preview(f.administrator(), whole), 200);
@@ -784,5 +784,12 @@ class PayrollInputIntegrationTest {
         .doesNotContain("Kalala")
         .doesNotContain("\"workedMinutes\"")
         .doesNotContain(preview.get("previewDigest").asText());
+  }
+
+  /**
+   * A digest that is certainly different (a plain replace is a no-op when the letter is absent).
+   */
+  private static String differentDigest(String digest) {
+    return (digest.charAt(0) == 'a' ? "b" : "a") + digest.substring(1);
   }
 }

@@ -298,7 +298,6 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     expect(JSON.stringify(strings.landing)).not.toMatch(/pretending|sans prétendre/iu);
     // Claims never made anywhere on the page: calculation, payslips or payment performed today.
     const active = [
-      strings.landing.modules.items.payroll.description,
       strings.landing.payroll.activeMessage,
       strings.landing.payroll.steps.preparation.description,
       strings.landing.payroll.steps.compensation.description,
@@ -353,12 +352,58 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     expect(strings.landing.modules.now.payrollRuns).toMatch(
       locale === 'en' ? /draft/iu : /brouillon/iu,
     );
+    // MVP-094C (D94C-14): "remaining", the body and the note name filing and accounting only as
+    // planned; the claims the page makes today never do.
     const claims = JSON.stringify([
-      strings.landing.modules.items.payroll,
-      strings.landing.payroll,
+      strings.landing.modules.items.payroll.description,
+      strings.landing.payroll.activeMessage,
+      strings.landing.payroll.steps,
       strings.landing.modules.now,
     ]);
     expect(claims).not.toMatch(/complian|conform|filing|déclar/iu);
+  });
+
+  it('describes payroll approval and payslips as verified-pack pilot readiness only (D94C-14)', () => {
+    const text = [
+      strings.landing.modules.items.payroll.description,
+      strings.landing.payroll.body,
+      strings.landing.payroll.steps.calculation.description,
+    ].join(' ');
+    expect(text).toMatch(
+      locale === 'en' ? /professionally verified/iu : /vérifié par un professionnel/iu,
+    );
+    expect(text).toMatch(locale === 'en' ? /pilot and readiness/iu : /pilote et préparation/iu);
+    expect(text).toMatch(
+      locale === 'en' ? /not (yet )?verified/iu : /n’est pas encore vérifié|ne l’est pas encore/iu,
+    );
+    expect(strings.landing.payroll.body).toMatch(
+      locale === 'en' ? /not proof of payment/iu : /ne constitue pas une preuve de paiement/iu,
+    );
+    // Filing, accounting posting, disbursement and advances stay "coming next".
+    expect(strings.landing.payroll.body).toMatch(
+      locale === 'en'
+        ? /Filing, accounting posting, bank and mobile-money disbursement and salary advances come next/u
+        : /arrivent prochainement/u,
+    );
+    // No operational DRC payslip claim, and none of the forbidden phrases, anywhere on the landing.
+    const everything = JSON.stringify([
+      strings.landing.modules.items.payroll,
+      strings.landing.payroll,
+      strings.landing.modules.next,
+      strings.landing.modules.now,
+    ]);
+    expect(everything).not.toMatch(
+      locale === 'en'
+        ? /\bpaid\b|payment completed|\bfiled\b|tax[- ]compliant|government[- ]approved/iu
+        : /paiement effectué|conforme fiscalement|approuvé par l’État/iu,
+    );
+    expect(strings.landing.modules.next.payslips).toMatch(
+      locale === 'en' ? /verified/iu : /vérifié/iu,
+    );
+    expect(strings.landing.modules.next.statutory).toMatch(
+      locale === 'en' ? /verification/iu : /vérification/iu,
+    );
+    expect(strings.landing.modules.now.payrollRuns).not.toMatch(/payslip|bulletin/iu);
   });
 
   it('describes Dival AI as the governed, grounded daily briefing only (D93-14)', async () => {

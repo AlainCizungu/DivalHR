@@ -86,6 +86,7 @@ const TENANT_DESTINATIONS = {
     ['timeExports', '/admin/time-exports'],
     ['payrollPreparation', '/admin/payroll-preparation'],
     ['payrollRuns', '/admin/payroll-runs'],
+    ['payrollPackages', '/admin/payroll-packages'],
     ['tasks', '/admin/tasks'],
     ['expenses', '/admin/expenses'],
   ],
@@ -109,6 +110,7 @@ const EMPLOYEE_DESTINATIONS = [
   ['myTasks', '/me/tasks'],
   ['myExpenses', '/me/expenses'],
   ['compensation', '/me/compensation'],
+  ['myPayslips', '/me/payslips'],
   ['teamOperations', '/me/team-operations'],
   ['myContracts', '/me/contracts'],
 ] as const;
@@ -191,12 +193,13 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     // The live card stays; shipped capabilities left the roadmap (UI3-4, U4-1).
     expect(screen.getByTestId('home-contract-attention')).toBeInTheDocument();
     const roadmap = screen.getByTestId('roadmap');
-    expect(within(roadmap).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(roadmap).getAllByRole('listitem')).toHaveLength(5);
     expect(within(roadmap).getByRole('heading', { level: 2 })).toHaveTextContent(c.roadmap.title);
     // D93-15: what remains after this story; period locking and payroll inputs have shipped.
     for (const title of [
       c.roadmap.items.statutoryCalculation.title,
       c.roadmap.items.payslipApproval.title,
+      c.roadmap.items.filingAccounting.title,
       c.roadmap.items.disbursement.title,
       c.roadmap.items.salaryAdvances.title,
     ]) {
@@ -350,7 +353,13 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
       '/admin/webhooks',
       '/admin/integrations/whatsapp',
     ];
-    const newEmployee = ['/me/tasks', '/me/expenses', '/me/compensation', '/me/expense-approvals'];
+    const newEmployee = [
+      '/me/tasks',
+      '/me/expenses',
+      '/me/compensation',
+      '/me/payslips',
+      '/me/expense-approvals',
+    ];
     const admin = await renderHome(sessionWithRoles(['tenant-admin']), locale);
     for (const href of newEmployee)
       expect(admin.container.querySelector(`a[href="${href}"]`)).toBeNull();

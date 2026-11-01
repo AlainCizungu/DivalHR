@@ -73,6 +73,9 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // Many integration classes cache distinct Spring contexts in one JVM; the 512 MB default ran out
+    // of heap in MVP-094C CI (OutOfMemoryError in Gradle Test Executor).
+    maxHeapSize = "2g"
     // The drift test reads the authoritative design-first contract.
     systemProperty("divalhr.apiSpecPath", rootProject.file("../../docs/API-SPEC.yaml").absolutePath)
     systemProperty("divalhr.repoRoot", rootProject.file("../..").absolutePath)

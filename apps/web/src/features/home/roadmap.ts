@@ -11,6 +11,10 @@ import type { IconName } from '../../ui/Icon';
  * MVP-094B (Issue #179, D94B-13) keeps statutory calculation here: the repository ships only a
  * DRAFT rule pack, so the readiness state ("Professional verification required") is shown only
  * inside the administrator's payroll-run workflow, never as an available capability.
+ * MVP-094C (Issue #181, D94C-14): payroll approval and bilingual payslips exist but work only on a
+ * professionally verified statutory pack; the real DRC pack is DRAFT, so "operational DRC payslips"
+ * stays here as pilot and readiness, with filing, accounting posting, disbursement and salary
+ * advances still next.
  */
 export interface RoadmapItem {
   id: string;
@@ -20,6 +24,7 @@ export interface RoadmapItem {
 export const TENANT_ADMIN_ROADMAP: RoadmapItem[] = [
   { id: 'statutoryCalculation', icon: 'payroll' },
   { id: 'payslipApproval', icon: 'contract' },
+  { id: 'filingAccounting', icon: 'folder' },
   { id: 'disbursement', icon: 'bank' },
   { id: 'salaryAdvances', icon: 'benefits' },
 ];

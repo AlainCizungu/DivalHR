@@ -20,27 +20,27 @@ A story is ready when it has a business owner, French and English copy, acceptan
 
 Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a story is **Merged** when its pull request's merge commit is on the first-parent history of `main` (`git log --merges --first-parent origin/main`), and its merge commit, pull-request number and date are the ones Git records (`git show -s --format=%cI`). "Complete" on older stories keeps its earlier meaning (issue closed as completed and pull request merged); this refresh checked Git only, not the issue tracker, so it does not re-assert whether an issue is closed.
 
-**Deployed hr-dev release (as of 2026-10-29).** `https://hr-dev.dival.ai` runs `main` at `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, merged 2026-10-29T16:02:19-05:00; deployed 2026-10-29, V43 applied; one full AWS verification run `20261029T200838Z-18c840389771`). It was preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (merge of PR #174, SEC-003, merged 2026-10-29T07:42:43-05:00; deployed 2026-10-29) and, before that, `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (merge of PR #170, MVP-081, merged 2026-10-28). The test environment runs one released commit of `main` at a time and holds synthetic data only. Deployment dates of earlier releases are recorded in the story sections where this backlog already stated them; for every other story the deployed fact derived from Git is that its merge commit is an ancestor of the deployed release `1d910234…` (and so of `5d4cd106…` and `3223454…`), shown as "contained" below. Where Git cannot show a deployment, this backlog says "merged", not "deployed". MVP-094A is **not** deployed (it is merged: PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`, 2026-10-29; hr-dev still runs `3223454…`): the payroll release train (094A, 094B, 094C) is verified and deployed once, after the third story. MVP-094B is in progress (Issue #179, not merged, not deployed).
+**Deployed hr-dev release (as of 2026-10-29).** `https://hr-dev.dival.ai` runs `main` at `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, merged 2026-10-29T16:02:19-05:00; deployed 2026-10-29, V43 applied; one full AWS verification run `20261029T200838Z-18c840389771`). It was preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (merge of PR #174, SEC-003, merged 2026-10-29T07:42:43-05:00; deployed 2026-10-29) and, before that, `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (merge of PR #170, MVP-081, merged 2026-10-28). The test environment runs one released commit of `main` at a time and holds synthetic data only. Deployment dates of earlier releases are recorded in the story sections where this backlog already stated them; for every other story the deployed fact derived from Git is that its merge commit is an ancestor of the deployed release `1d910234…` (and so of `5d4cd106…` and `3223454…`), shown as "contained" below. Where Git cannot show a deployment, this backlog says "merged", not "deployed". MVP-094A is **not** deployed (it is merged: PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`, 2026-10-29; hr-dev still runs `3223454…`): the payroll release train (094A, 094B, 094C) is verified and deployed once, after the third story. MVP-094B is **not** deployed either (it is merged: PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; hr-dev still runs `3223454…`), and nothing of 094A, 094B or 094C is deployed. MVP-094C is in progress (Issue #181, not merged, not deployed).
 
 ### Git evidence for the stories reconciled by MVP-093A
 
 `scripts/ops/backlog.test.mjs` checks every row against Git (merge subject and PR number, date, ancestry) and checks that this section names the deployed release and that every story below has a status.
 
-| Story    | PR   | Merge commit                               | Merged     | On hr-dev |
-| -------- | ---- | ------------------------------------------ | ---------- | --------- |
-| MVP-001  | #11  | `a3aa9bf37148e49268ed2df2f8f5f8005d99507a` | 2026-09-28 | contained |
+| Story     | PR   | Merge commit                               | Merged     | On hr-dev |
+| --------- | ---- | ------------------------------------------ | ---------- | --------- |
+| MVP-001   | #11  | `a3aa9bf37148e49268ed2df2f8f5f8005d99507a` | 2026-09-28 | contained |
 | DEVX-001B | #79  | `0634d8791b2960860d0a1a82fd5c7d41b1dc4b85` | 2026-10-08 | contained |
-| MVP-090A | #142 | `2c9a1ee0db3215e79a10ffe622fb9899dc04cb54` | 2026-10-18 | contained |
-| MVP-091  | #144 | `11e7b5066e5bdf27d8fdc6862d33fa6413e6829a` | 2026-10-18 | contained |
-| MVP-092  | #150 | `0489dab31234bf8d7cb997ff1a52b94eaa54aa02` | 2026-10-20 | contained |
-| MVP-100  | #155 | `538c1b33f9e2932830f0f126d402c9349f33931b` | 2026-10-21 | contained |
-| MVP-101  | #157 | `8608fd192e344909b8f27e162b2a9792643653d1` | 2026-10-21 | contained |
-| MVP-110  | #162 | `2dee8a1d29b6cb9c2229a7ebb4cabfd92c4cab6d` | 2026-10-23 | contained |
-| MVP-111  | #164 | `1d3b441aead24387529018bbec6411816827f95e` | 2026-10-26 | contained |
-| MVP-080  | #168 | `77e1f89d5de63d33203986e1d592728a0c026015` | 2026-10-27 | contained |
-| MVP-081  | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
-| SEC-003  | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
-| MVP-093A | #176 | `3223454379a9b6342fe3c6b2728d8f17680466e7` | 2026-10-29 | deployed  |
+| MVP-090A  | #142 | `2c9a1ee0db3215e79a10ffe622fb9899dc04cb54` | 2026-10-18 | contained |
+| MVP-091   | #144 | `11e7b5066e5bdf27d8fdc6862d33fa6413e6829a` | 2026-10-18 | contained |
+| MVP-092   | #150 | `0489dab31234bf8d7cb997ff1a52b94eaa54aa02` | 2026-10-20 | contained |
+| MVP-100   | #155 | `538c1b33f9e2932830f0f126d402c9349f33931b` | 2026-10-21 | contained |
+| MVP-101   | #157 | `8608fd192e344909b8f27e162b2a9792643653d1` | 2026-10-21 | contained |
+| MVP-110   | #162 | `2dee8a1d29b6cb9c2229a7ebb4cabfd92c4cab6d` | 2026-10-23 | contained |
+| MVP-111   | #164 | `1d3b441aead24387529018bbec6411816827f95e` | 2026-10-26 | contained |
+| MVP-080   | #168 | `77e1f89d5de63d33203986e1d592728a0c026015` | 2026-10-27 | contained |
+| MVP-081   | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
+| SEC-003   | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
+| MVP-093A  | #176 | `3223454379a9b6342fe3c6b2728d8f17680466e7` | 2026-10-29 | deployed  |
 
 Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.
 
@@ -100,7 +100,7 @@ Authorized security administrators can review active access by user, role, site,
 
 **Issue #37. Complete.** Delivered as two pull requests, 12A then 12B.
 
-**12A membership authority: complete (PR #41).** Every tenant-scoped operation requires a matching active membership (token ∩ membership, exact role, after MFA and before binding); `/session` reports effective roles and supports tenantless platform administrators; the membership keeps its source invitation's address (V10, with a database invariant); development seed memberships; a read-only rollout preflight. Architecture decisions D1-D9, A1-A7, M1-M11, A12A-1 and A12A-2 on Issue #37 apply. 
+**12A membership authority: complete (PR #41).** Every tenant-scoped operation requires a matching active membership (token ∩ membership, exact role, after MFA and before binding); `/session` reports effective roles and supports tenantless platform administrators; the membership keeps its source invitation's address (V10, with a database invariant); development seed memberships; a read-only rollout preflight. Architecture decisions D1-D9, A1-A7, M1-M11, A12A-1 and A12A-2 on Issue #37 apply.
 
 **12B access review: complete (PR #42).** Read-only review for tenant administrators with exact MFA: paginated listing, exact-address lookup and role summary on the 12A active-membership predicate; legal-entity and site views show organization-wide access as inherited; HMAC-bound keyset cursors; 30 review requests per minute per subject; fail-closed `access-review.read` audit with canonical digest v1; French and English page at `/admin/access`. Architecture decisions R1-R8 and guardrails B1-B5 on Issue #37 apply. Follow-ups: S1 scoped roles, S2 grant and revoke, S3 membership lifecycle, a shared rate limiter for production scaling.
 
@@ -406,7 +406,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-094B Add a source-versioned DRC statutory payroll preview
 
-**Issue #179. In progress (not merged, not deployed).** Branch `feature/179-mvp-094b-drc-statutory-preview`, created from `main` at `dcd4d7e` (the merge of MVP-094A, PR #178). ADR 0034, decisions D94B-1 to D94B-14. Second story of the payroll release train; hr-dev still runs `3223454…` and is deployed once, after MVP-094C.
+**Issue #179. Merged (PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`), not deployed; hr-dev still runs `3223454…`.** Branch `feature/179-mvp-094b-drc-statutory-preview`, created from `main` at `dcd4d7e` (the merge of MVP-094A, PR #178). ADR 0034, decisions D94B-1 to D94B-14. Second story of the payroll release train; hr-dev still runs `3223454…` and is deployed once, after MVP-094C.
 
 - **Outcome.** A tenant administrator with exact MFA applies an immutable, effective-dated, source-versioned **rule pack** to the frozen lines of one MVP-094A payroll run and reads, per employee, contractual gross, employee deductions, employer contributions, preview net and employer cost, with every step, formula identifier, rate or bracket, rounding and official source. Unsupported or unverified cases block visibly.
 - **Boundary.** A "Statutory preview—not a payslip or payment" / « Aperçu statutaire — ni bulletin de paie ni paiement ». It is not a payslip, approval, filing, payment or claim of legal compliance; the employer remains responsible for legal review. No approve, payslip, pay or disburse control exists. USD, expatriate or non-resident employees, allowances, bonuses, overtime and retro pay block the calculation.
@@ -415,6 +415,15 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **Data and API.** Migration V45 (rule pack and sources, activation, effective-dated profile, calculation, lines and components; rollback refuses while evidence exists); eleven operations under `/api/v1` (rule packs, activation, statutory profile, calculation preview, creation, list and read) and eleven stable `STATUTORY_*` codes.
 - **Web.** Administrator pages under Payroll runs: `/admin/payroll-runs/:legalEntityId/:runId/statutory` (rule-pack status and activation, calculation preview, versions and frozen calculation) and `/admin/people/:employeeId/statutory-profile`; a link from the payroll run detail; no new navigation item. English and French, accessibility, reflow at 320, 390 and 640 px.
 - **Not included:** USD conversion, expatriate/IERE and special regimes, allowances and benefits in kind, declarations and government integration, payslips, approval, journals and disbursement, tenant-authored formulas, national, tax or CNSS identifiers.
+
+### MVP-094C Approve payroll and publish bilingual payslips
+
+**Issue #181. In progress (not merged, not deployed).** Branch `feature/181-mvp-094c-payroll-approval-payslips`, created from `main` at `995a6937` (the merge of MVP-094B, PR #180). ADR 0035, decisions D94C-1 onward. Third and last story of the payroll release train; hr-dev still runs `3223454…` and nothing of 094A, 094B or 094C is deployed.
+
+- **Outcome.** A tenant administrator with exact MFA reviews one frozen statutory calculation, confirms three statements, and approves it as "Approved payroll" / « Paie approuvée », which publishes one bilingual "Payslip" / « Bulletin de paie » per employee. An approved package can be voided with a controlled reason. Employees read and download only their own payslips.
+- **Boundary.** Every page says "Not proof of payment" / « Ne constitue pas une preuve de paiement » and "Statutory calculation based on rule pack {code} v{version}". No filing, accounting posting, disbursement or advances.
+- **Truth refresh (D94C-14).** Only a DRAFT real pack ships. The landing page and roadmap present payroll review and payslips as verified-pack pilot and readiness only, with no operational DRC payslip claim; filing, accounting posting, disbursement and advances stay under "coming next".
+- **Web.** Review page reached from the statutory run page, package list and detail, administrator payslip list with HTML view and PDF download, void preview and confirm, and "My payslips" / « Mes bulletins de paie » for employees; two Playwright journeys.
 
 ## Epic 11 Dashboards and AI
 
