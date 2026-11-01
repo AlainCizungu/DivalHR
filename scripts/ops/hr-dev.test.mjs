@@ -1119,6 +1119,26 @@ test('R157-1: keycloak_ai_client.py refuses a missing, short or development secr
   }
 });
 
+test('MVP-095A: the payment destination key is a protected file and existing environments gain it', () => {
+  const live = compose
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+  assert.doesNotMatch(live, /DIVALHR_PAYMENT_ENCRYPTION_KEY/);
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/core\/DIVALHR_PAYMENT_ENCRYPTION_KEY" 10001 random/,
+  );
+  assert.match(
+    source('remote-deploy.sh'),
+    /secrets\/core\/DIVALHR_PAYMENT_ENCRYPTION_KEY" \]; then/,
+  );
+  assert.match(
+    read('apps/core-api/src/main/resources/application.yaml'),
+    /\$\{DIVALHR_PAYMENT_ENCRYPTION_KEY:\}/,
+  );
+});
+
 test('MVP-110: webhook key is a protected file, the receiver is isolated, and nothing else changes', () => {
   const live = compose
     .split('\n')

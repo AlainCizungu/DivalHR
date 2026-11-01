@@ -55,6 +55,12 @@ put "$S/core/DIVALHR_WEBHOOK_ENCRYPTION_KEY" 10001 random
 # would rotate the token and re-register every recipient). Backed up with the secrets directory,
 # never printed, logged or returned.
 put "$S/core/DIVALHR_MESSAGING_ENCRYPTION_KEY" 10001 random
+# MVP-095A (ADR 0036): key material for the AES-256-GCM encryption of salary payment destinations
+# (account numbers, mobile-money numbers, holder names) and for their keyed duplicate-detection
+# fingerprints (HKDF-SHA256 expands it; >= 32 bytes). Never rotate it in place: stored destinations
+# are sealed with it, and losing it makes every recorded destination unreadable (each would have to
+# be recorded again). Backed up with the secrets directory, never printed, logged or returned.
+put "$S/core/DIVALHR_PAYMENT_ENCRYPTION_KEY" 10001 random
 # MVP-111: the Meta app secret (signs callbacks) and the callback verify token. In this test
 # environment they belong to the synthetic provider only, never to a real Meta app; production
 # values come from the real Meta app and are provisioned the same way, by the operator.
