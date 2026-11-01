@@ -124,30 +124,37 @@ class PaymentAuthorityIntegrationTest {
   /** The administrator operations, well formed so that a 404 is never a 400. */
   private List<Operation> operations(String bearer, PaymentWorld world, Object employee)
       throws Exception {
-    Map<String, Object> command = world.bank(PaymentWorld.ACCOUNT_2, world.early(), "OTHER_CONTROLLED");
+    Map<String, Object> command =
+        world.bank(PaymentWorld.ACCOUNT_2, world.early(), "OTHER_CONTROLLED");
     String path = PaymentWorld.destinationPath(employee);
     List<Operation> calls = new ArrayList<>();
     calls.add(new Operation("getDestination", PayrollRunWorld.get(bearer, path)));
-    calls.add(new Operation("getDestinationHistory", PayrollRunWorld.get(bearer, path + "/history")));
+    calls.add(
+        new Operation("getDestinationHistory", PayrollRunWorld.get(bearer, path + "/history")));
     calls.add(
         new Operation(
-            "previewDestination", CompensationWorld.json(path + "/preview", bearer, null, command)));
+            "previewDestination",
+            CompensationWorld.json(path + "/preview", bearer, null, command)));
     calls.add(
         new Operation(
             "commitDestination",
-            CompensationWorld.json(path + "/commit", bearer, key(), forgedDestinationCommit(command))));
+            CompensationWorld.json(
+                path + "/commit", bearer, key(), forgedDestinationCommit(command))));
     calls.add(new Operation("listBatches", PayrollRunWorld.get(bearer, world.batchesPath())));
     calls.add(new Operation("getBatch", PayrollRunWorld.get(bearer, world.batchPath(batch))));
     calls.add(
-        new Operation("getBatchLines", PayrollRunWorld.get(bearer, world.batchPath(batch) + "/lines")));
+        new Operation(
+            "getBatchLines", PayrollRunWorld.get(bearer, world.batchPath(batch) + "/lines")));
     calls.add(
         new Operation(
             "previewBatch",
-            CompensationWorld.json(world.packageBatchesPath(pkg) + "/preview", bearer, null, Map.of())));
+            CompensationWorld.json(
+                world.packageBatchesPath(pkg) + "/preview", bearer, null, Map.of())));
     calls.add(
         new Operation(
             "prepareBatch",
-            CompensationWorld.json(world.packageBatchesPath(pkg), bearer, key(), forgedBatchCommit())));
+            CompensationWorld.json(
+                world.packageBatchesPath(pkg), bearer, key(), forgedBatchCommit())));
     calls.add(
         new Operation(
             "previewCancel",
@@ -264,7 +271,8 @@ class PaymentAuthorityIntegrationTest {
     // The foreign administrator sees an empty list of their own, and this tenant's administrator
     // cannot reach the other tenant's entity either.
     assertThat(
-            w.c.expect(PayrollRunWorld.get(otherWorld.admin, other.batchesPath()), 200)
+            w.c
+                .expect(PayrollRunWorld.get(otherWorld.admin, other.batchesPath()), 200)
                 .get("items"))
         .isEmpty();
     w.c.expect(PayrollRunWorld.get(w.admin, other.batchesPath()), 404);
@@ -290,7 +298,8 @@ class PaymentAuthorityIntegrationTest {
         "EMPLOYEE_LINK_REQUIRED");
 
     CompensationWorld.Person bob = w.linkedEmployee("Kalala", "90000");
-    MockHttpServletResponse bobRead = w.c.call(PayrollRunWorld.get(bob.bearer(), PaymentWorld.MINE));
+    MockHttpServletResponse bobRead =
+        w.c.call(PayrollRunWorld.get(bob.bearer(), PaymentWorld.MINE));
     // Bob has no destination: never Ana's.
     assertThat(bobRead.getContentAsString()).doesNotContain("7766");
 

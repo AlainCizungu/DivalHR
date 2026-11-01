@@ -19,8 +19,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 /**
  * MVP-095A (Issue #183, ADR 0036, D95A-13): the payment buckets (60 reads, 10 destination previews
- * and 30 downloads per minute and subject by default) end in a stable 429 that discloses nothing and
- * writes nothing. Synthetic data only.
+ * and 30 downloads per minute and subject by default) end in a stable 429 that discloses nothing
+ * and writes nothing. Synthetic data only.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)

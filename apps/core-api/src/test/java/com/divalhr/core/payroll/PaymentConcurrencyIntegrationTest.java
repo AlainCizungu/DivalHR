@@ -31,9 +31,9 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 /**
  * MVP-095A (Issue #183, ADR 0036) against real PostgreSQL: batches that race for one package each
  * with its own Idempotency-Key and the same preview record exactly one batch with its lines, audit
- * row and event and a stable conflict for every other caller; the same key racing records one batch;
- * destination commits racing one expected version record one version; cancellations race to one.
- * Synthetic data only.
+ * row and event and a stable conflict for every other caller; the same key racing records one
+ * batch; destination commits racing one expected version record one version; cancellations race to
+ * one. Synthetic data only.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)

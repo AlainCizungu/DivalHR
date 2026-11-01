@@ -68,7 +68,8 @@ class PaymentPrivacyIntegrationTest {
 
     // A bank destination, then a mobile-money one, so the history holds both kinds.
     p.record(ana.employee(), p.bank(PaymentWorld.ACCOUNT, p.early(), "INITIAL_SETUP"));
-    p.record(ana.employee(), p.mobile(PaymentWorld.PHONE, p.early().plusDays(1), "PROVIDER_CHANGE"));
+    p.record(
+        ana.employee(), p.mobile(PaymentWorld.PHONE, p.early().plusDays(1), "PROVIDER_CHANGE"));
     String batch = p.prepare(pkg).get("batchId").asText();
 
     // Refusals do not echo what they protect.
@@ -79,16 +80,19 @@ class PaymentPrivacyIntegrationTest {
         String.join(
             "\n",
             refused.getContentAsString(),
-            w.c.call(PayrollRunWorld.get(w.admin, PaymentWorld.destinationPath(ana.employee())))
+            w.c
+                .call(PayrollRunWorld.get(w.admin, PaymentWorld.destinationPath(ana.employee())))
                 .getContentAsString(),
-            w.c.call(
+            w.c
+                .call(
                     PayrollRunWorld.get(
                         w.admin, PaymentWorld.destinationPath(ana.employee()) + "/history"))
                 .getContentAsString(),
             w.c.call(PayrollRunWorld.get(ana.bearer(), PaymentWorld.MINE)).getContentAsString(),
             w.c.call(PayrollRunWorld.get(w.admin, p.batchesPath())).getContentAsString(),
             w.c.call(PayrollRunWorld.get(w.admin, p.batchPath(batch))).getContentAsString(),
-            w.c.call(PayrollRunWorld.get(w.admin, p.batchPath(batch) + "/lines"))
+            w.c
+                .call(PayrollRunWorld.get(w.admin, p.batchPath(batch) + "/lines"))
                 .getContentAsString(),
             p.download(w.admin, batch, "register.csv").getContentAsString(),
             p.download(w.admin, batch, "manifest.json").getContentAsString(),
@@ -120,7 +124,8 @@ class PaymentPrivacyIntegrationTest {
     String key = Organizations.newKey();
     JsonNode receipt =
         w.c.expect(
-            p.destinationCommit(w.admin, ana.employee(), key, PaymentWorld.committing(command, preview)),
+            p.destinationCommit(
+                w.admin, ana.employee(), key, PaymentWorld.committing(command, preview)),
             201);
     assertThat(receipt.toString()).doesNotContain(PaymentWorld.ACCOUNT);
     Integer audits =
