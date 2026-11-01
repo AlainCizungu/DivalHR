@@ -41,7 +41,7 @@ public class PayrollPackageService {
   public static final String SUBJECT_READ_BUCKET = "payroll-package-read";
 
   private static final Logger LOG = LoggerFactory.getLogger("divalhr.payroll-package");
-  private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
   private static final String ROLE = "tenant-admin";
   private static final String PACKAGE_CODE = "PKG";
 

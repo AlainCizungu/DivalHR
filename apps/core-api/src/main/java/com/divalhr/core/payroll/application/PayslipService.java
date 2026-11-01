@@ -66,7 +66,7 @@ public class PayslipService {
   public static final String TENANT_DOWNLOAD_BUCKET = "payslip-download";
 
   private static final Logger LOG = LoggerFactory.getLogger("divalhr.payslip");
-  private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
   private static final String ADMIN_ROLE = "tenant-admin";
   private static final String EMPLOYEE_ROLE = "employee";
   private static final String SLIP_CODE = "SLIP";

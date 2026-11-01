@@ -2,6 +2,7 @@ package com.divalhr.core.payroll;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
 import com.divalhr.core.payroll.application.PayslipPdf;
 import com.divalhr.core.payroll.application.PayslipPdfRenderer;
@@ -37,6 +38,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.TextPosition;
 import org.junit.jupiter.api.Test;
 
 /** MVP-094C: the payslip PDF is deterministic, bilingual, bounded and free of identifiers. */
@@ -522,6 +524,101 @@ class PayslipPdfRendererTest {
     assertThat(shown).contains("E-€1 (a) \\b");
     // The canonical snapshot is untouched by the rendering.
     assertThat(unicode.canonicalText()).contains(typed);
+  }
+
+  /** One printed line with its horizontal extent in points. */
+  private record Line(String text, float left, float right) {}
+
+  private static List<Line> lines(byte[] pdf) throws IOException {
+    List<Line> out = new ArrayList<>();
+    try (PDDocument document = Loader.loadPDF(pdf)) {
+      new PDFTextStripper() {
+        @Override
+        protected void writeString(String text, List<TextPosition> positions) {
+          TextPosition first = positions.get(0);
+          TextPosition last = positions.get(positions.size() - 1);
+          out.add(new Line(text, first.getX(), last.getX() + last.getWidth()));
+        }
+      }.getText(document);
+    }
+    return out;
+  }
+
+  /** The lines of the employee number block: from its label up to the rule pack statement. */
+  private static List<Line> numberBlock(PayslipLocale locale, String number) throws IOException {
+    PayslipSnapshot snapshot = snapshot(number);
+    List<Line> all = lines(RENDERER.render(request(snapshot, locale, false)).bytes());
+    String label = PayslipText.Label.EMPLOYEE_NUMBER.in(locale) + ": ";
+    String stop = PayslipText.rulePackStatement(locale, "SYNTHETIC-TEST-DRC", 1).substring(0, 12);
+    List<Line> block = new ArrayList<>();
+    boolean inside = false;
+    for (Line line : all) {
+      if (line.text().startsWith(label)) {
+        inside = true;
+      } else if (line.text().startsWith(stop)) {
+        inside = false;
+      }
+      if (inside) {
+        block.add(line);
+      }
+    }
+    return block;
+  }
+
+  private static List<String> texts(List<Line> block) {
+    return block.stream().map(Line::text).toList();
+  }
+
+  @Test
+  void theLongestEmployeeNumberIsWrappedExactlyInBothLanguages() throws IOException {
+    String wide = "W".repeat(64);
+    assertThat(texts(numberBlock(PayslipLocale.EN, wide)))
+        .containsExactly("Employee number: " + "W".repeat(40), "W".repeat(24));
+    assertThat(texts(numberBlock(PayslipLocale.FR, wide)))
+        .containsExactly("Numéro d'employé: " + "W".repeat(39), "W".repeat(25));
+    String capitals = "M".repeat(64);
+    assertThat(texts(numberBlock(PayslipLocale.EN, capitals)))
+        .containsExactly("Employee number: " + "M".repeat(45), "M".repeat(19));
+    assertThat(texts(numberBlock(PayslipLocale.FR, capitals)))
+        .containsExactly("Numéro d'employé: " + "M".repeat(45), "M".repeat(19));
+  }
+
+  @Test
+  void everyLongEmployeeNumberIsPrintedWholeInsideTheMarginsAndNeverChanged() throws IOException {
+    List<String> numbers =
+        List.of(
+            "W".repeat(64),
+            "M".repeat(64),
+            "Ж".repeat(64),
+            "i".repeat(64),
+            "A.B/C-".repeat(10) + "A.B/",
+            "0123456789".repeat(6) + "0123",
+            "E-0042",
+            "E");
+    for (PayslipLocale locale : PayslipLocale.values()) {
+      String label = PayslipText.Label.EMPLOYEE_NUMBER.in(locale) + ": ";
+      for (String number : numbers) {
+        List<Line> block = numberBlock(locale, number);
+        String where = locale + " " + number;
+        assertThat(block).as(where).isNotEmpty().hasSizeLessThanOrEqualTo(2);
+        assertThat(block.get(0).text()).as(where).startsWith(label);
+        assertThat(String.join("", texts(block)).substring(label.length())).as(where).isEqualTo(number);
+        for (Line line : block) {
+          assertThat(line.left()).as(where).isEqualTo(50f, within(0.01f));
+          assertThat(line.right()).as(where).isLessThanOrEqualTo(545.01f);
+        }
+        String all = text(RENDERER.render(request(snapshot(number), locale, false)).bytes());
+        assertThat(all).as(where).contains("149040 CDF").contains("Total");
+      }
+    }
+  }
+
+  @Test
+  void anOrdinaryEmployeeNumberStaysOnTheLabelLine() throws IOException {
+    assertThat(texts(numberBlock(PayslipLocale.EN, "E-0042")))
+        .containsExactly("Employee number: E-0042");
+    assertThat(texts(numberBlock(PayslipLocale.FR, "E-0042")))
+        .containsExactly("Numéro d'employé: E-0042");
   }
 
   @Test

@@ -404,7 +404,9 @@ a supersession ends with exactly one winner. All four were exercised on PostgreS
   control character, an invisible format character (for example a bidirectional override) or a character without a
   glyph (for example CJK ideographs) fails the render closed with 500 `PAYSLIP_RENDER_FAILED`, nothing is stored and
   the HTML payslip stays available. No shaping or bidirectional layout is done, so right-to-left and joining
-  scripts are covered by glyphs only and are not typographically correct. A4 portrait, one page.
+  scripts are covered by glyphs only and are not typographically correct. The employee number (up to 64
+  characters, no guaranteed space) is wrapped between characters inside the margins, never truncated, collapsed or
+  altered (R182-2); an ordinary number stays on the label line. A4 portrait, one page.
   Deterministic: PDFBox writes the file with `CompressParameters.NO_COMPRESSION`; the document is saved once so
   that PDFBox builds the font subsets, every filtered stream (font programs and character maps) is then rewritten
   unfiltered and the document is saved again, so no byte depends on the zlib build of the runtime; the header is
@@ -533,7 +535,8 @@ minute / tenant per hour; `application.yaml`, environment `DIVALHR_PAYROLL_APPRO
 | `payroll-package-read` | `listPayrollPackages`, `getPayrollPackage`, `listPackagePayslips`, `getPackagePayslip`, `listMyPayslips`, `getMyPayslip` | 60 | none |
 
 Timeouts (explicit, all roll back on expiry and surface as 503 `EMPLOYMENT_CHANGE_TIMEOUT`, as 094A/094B):
-`SET LOCAL lock_timeout = 5s`; `statement_timeout` 10 s for previews and reads, 20 s for approval/void commits;
+`SET LOCAL lock_timeout = 5s`; `statement_timeout` 10 s for previews and reads (the read transactions of the
+approval, void, package and payslip services use 10 s, pinned by `PayrollReadTimeoutTest`; R182-2), 20 s for approval/void commits;
 request timeout 30 s; PDF render timeout 5 s and size cap 256 KiB (500 `PAYSLIP_RENDER_FAILED`). No background
 job. Safe metrics: `operation`, `outcome`, package `status`, line-count bucket (1, 2-10, 11-100, 101-1000,
 1001-5000), `locale`, render duration bucket and size bucket; never an employee, amount or identifier.

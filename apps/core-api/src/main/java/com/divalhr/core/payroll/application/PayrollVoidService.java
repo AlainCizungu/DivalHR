@@ -55,7 +55,7 @@ public class PayrollVoidService {
   public static final String COMMIT = PayrollPackageRecorder.VOID;
 
   private static final Logger LOG = LoggerFactory.getLogger("divalhr.payroll-void");
-  private static final Duration READ_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
   private static final Duration WRITE_TIMEOUT = Duration.ofSeconds(60);
   private static final Duration COMMIT_LIMIT = Duration.ofSeconds(20);
   private static final IdempotentOperation.Spec COMMIT_SPEC =

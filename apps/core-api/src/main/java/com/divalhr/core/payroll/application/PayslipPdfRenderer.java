@@ -257,15 +257,17 @@ public class PayslipPdfRenderer {
         Label.PERIOD.in(locale) + ": " + snapshot.period());
     sheet.y -= 14;
     int number = sheet.node("P", doc);
-    text(
-        sheet,
-        number,
-        false,
-        10,
-        LEFT,
-        sheet.y,
-        Label.EMPLOYEE_NUMBER.in(locale) + ": " + snapshot.employeeNumber());
-    sheet.y -= 18;
+    for (String line :
+        hardWrap(
+            sheet,
+            Label.EMPLOYEE_NUMBER.in(locale) + ": " + snapshot.employeeNumber(),
+            10,
+            RIGHT - LEFT)) {
+      guard(sheet, 14);
+      text(sheet, number, false, 10, LEFT, sheet.y, line);
+      sheet.y -= 14;
+    }
+    sheet.y -= 4;
 
     paragraph(
         sheet,
@@ -516,6 +518,31 @@ public class PayslipPdfRenderer {
     }
     if (line.length() > 0 || lines.isEmpty()) {
       lines.add(line.toString());
+    }
+    return lines;
+  }
+
+  /**
+   * The text broken into lines no wider than the limit, cut between characters only: nothing is
+   * shortened, changed, collapsed or dropped, so the lines read back as exactly the typed text.
+   * Used for the employee number, which is free text of up to 64 characters without a guaranteed
+   * space.
+   */
+  private static List<String> hardWrap(Sheet sheet, String words, double size, double max) {
+    String text = checked(sheet, words);
+    List<String> lines = new ArrayList<>();
+    int start = 0;
+    while (start < text.length()) {
+      int end = text.offsetByCodePoints(start, 1);
+      while (end < text.length()) {
+        int next = text.offsetByCodePoints(end, 1);
+        if (width(sheet, text.substring(start, next), false, size) > max) {
+          break;
+        }
+        end = next;
+      }
+      lines.add(text.substring(start, end));
+      start = end;
     }
     return lines;
   }
