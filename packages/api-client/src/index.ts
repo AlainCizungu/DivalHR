@@ -693,3 +693,39 @@ export type PayslipSnapshotComponent = CoreComponents['schemas']['PayslipSnapsho
 export type PayslipSnapshot = CoreComponents['schemas']['PayslipSnapshot'];
 export type PayslipWording = CoreComponents['schemas']['PayslipWording'];
 export type PayslipView = CoreComponents['schemas']['PayslipView'];
+
+// MVP-095A (ADR 0036): payment destinations and payment batches.
+export type PaymentMethod = CoreComponents['schemas']['PaymentMethod'];
+export type PaymentDestinationReasonCode =
+  CoreComponents['schemas']['PaymentDestinationReasonCode'];
+export type PaymentBatchStatus = CoreComponents['schemas']['PaymentBatchStatus'];
+export type PaymentBatchCancelReasonCode =
+  CoreComponents['schemas']['PaymentBatchCancelReasonCode'];
+export type PaymentDestinationBlocker = CoreComponents['schemas']['PaymentDestinationBlocker'];
+export type PaymentDestinationWarning = CoreComponents['schemas']['PaymentDestinationWarning'];
+export type PaymentBatchBlocker = CoreComponents['schemas']['PaymentBatchBlocker'];
+export type PaymentBatchWarning = CoreComponents['schemas']['PaymentBatchWarning'];
+export type PaymentBatchLineIssue = CoreComponents['schemas']['PaymentBatchLineIssue'];
+export type PaymentBatchCancelBlocker = CoreComponents['schemas']['PaymentBatchCancelBlocker'];
+export type PaymentProvider = CoreComponents['schemas']['PaymentProvider'];
+export type PaymentDestinationView = CoreComponents['schemas']['PaymentDestinationView'];
+export type PaymentDestinationRecord = CoreComponents['schemas']['PaymentDestinationRecord'];
+export type PaymentDestinationPage = CoreComponents['schemas']['PaymentDestinationPage'];
+export type MyPaymentDestination = CoreComponents['schemas']['MyPaymentDestination'];
+export type PaymentDestinationCommand = CoreComponents['schemas']['PaymentDestinationCommand'];
+export type PaymentDestinationPreview = CoreComponents['schemas']['PaymentDestinationPreview'];
+export type PaymentDestinationReceipt = CoreComponents['schemas']['PaymentDestinationReceipt'];
+export type PaymentBatchMethodCounts = CoreComponents['schemas']['PaymentBatchMethodCounts'];
+export type PaymentBatchLine = CoreComponents['schemas']['PaymentBatchLine'];
+export type PaymentBatchPreview = CoreComponents['schemas']['PaymentBatchPreview'];
+export type PaymentBatchReceipt = CoreComponents['schemas']['PaymentBatchReceipt'];
+export type PaymentBatchSummary = CoreComponents['schemas']['PaymentBatchSummary'];
+export type PaymentBatchPage = CoreComponents['schemas']['PaymentBatchPage'];
+export type PaymentBatchDetail = CoreComponents['schemas']['PaymentBatchDetail'];
+export type PaymentBatchLinePage = CoreComponents['schemas']['PaymentBatchLinePage'];
+export type PaymentBatchCancelCommand = CoreComponents['schemas']['PaymentBatchCancelCommand'];
+export type PaymentBatchCancelPreview = CoreComponents['schemas']['PaymentBatchCancelPreview'];
+export type PaymentBatchCancelReceipt = CoreComponents['schemas']['PaymentBatchCancelReceipt'];
+export type CommitPaymentDestination = CoreComponents['schemas']['CommitPaymentDestination'];
+export type CommitPaymentBatch = CoreComponents['schemas']['CommitPaymentBatch'];
+export type CommitPaymentBatchCancel = CoreComponents['schemas']['CommitPaymentBatchCancel'];

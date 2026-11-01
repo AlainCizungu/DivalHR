@@ -59,7 +59,8 @@
     "expenseApprovals": "Expense approvals",
     "payrollRuns": "Payroll runs",
     "payrollPackages": "Approved payroll",
-    "myPayslips": "My payslips"
+    "myPayslips": "My payslips",
+    "myPaymentDestination": "My payment destination"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -93,7 +94,8 @@
       "statutoryProfile": "Statutory profile",
       "payrollApproval": "Approval review",
       "payrollPackage": "Approved payroll",
-      "payslip": "Payslip"
+      "payslip": "Payslip",
+      "paymentBatch": "Payment batch"
     }
   },
   "locale": {
@@ -5925,6 +5927,171 @@
       "party": "Borne by",
       "base": "Base",
       "digest": "Document fingerprint (SHA-256):"
+    }
+  },
+  "payments": {
+    "validation": "Some payment information is missing or invalid. Check the highlighted fields.",
+    "forbidden": "You do not have permission to see or change payment information.",
+    "unauthorized": "Only organization administrators can manage payment destinations and batches.",
+    "signInRequired": "Sign in to manage payment destinations and batches.",
+    "loading": "Loading…",
+    "loadMore": "Load more",
+    "noMoney": "A payment batch is a register prepared for review. Nothing is sent to a bank or provider and no money moves.",
+    "method": {
+      "BANK_ACCOUNT": "Bank account",
+      "MOBILE_MONEY": "Mobile money",
+      "MANUAL": "Manual (handled outside the system)"
+    },
+    "provider": {
+      "OTHER_BANK": "Other bank",
+      "OTHER_MOBILE_MONEY": "Other mobile money provider"
+    },
+    "reason": {
+      "INITIAL_SETUP": "Initial setup",
+      "EMPLOYEE_REQUEST": "Employee request",
+      "PROVIDER_CHANGE": "Provider change",
+      "ACCOUNT_CORRECTION": "Account correction",
+      "OTHER_CONTROLLED": "Other (explanation required)"
+    },
+    "cancelReason": {
+      "DESTINATION_CORRECTION": "A destination needs correcting",
+      "PACKAGE_CORRECTION": "The payroll package needs correcting",
+      "PREPARED_IN_ERROR": "Prepared in error",
+      "OTHER_CONTROLLED": "Other"
+    },
+    "previewStatus": {
+      "READY": "Ready to record",
+      "BLOCKED": "Blocked"
+    },
+    "batchStatus": {
+      "PREPARED": "Prepared",
+      "CANCELLED": "Cancelled"
+    },
+    "destinationBlockers": {
+      "NO_CHANGE": "This destination is identical to the latest recorded version."
+    },
+    "destinationWarnings": {
+      "DUPLICATE_DESTINATION": "The same destination is recorded for another employee.",
+      "BACKDATED": "The effective date is before today."
+    },
+    "batchBlockers": {
+      "PACKAGE_VOIDED": "This payroll package was voided.",
+      "PACKAGE_NOT_LATEST": "A newer version of this payroll package exists.",
+      "BATCH_ALREADY_PREPARED": "A batch is already prepared for this package. Cancel it first.",
+      "NO_PAYABLE_LINES": "This package has no payable lines.",
+      "MISSING_DESTINATION": "At least one employee has no payment destination on the approval date. No partial batch is prepared.",
+      "DESTINATION_INVALID": "At least one destination could not be read safely.",
+      "INTEGRITY_FAILURE": "An approved amount failed an integrity check.",
+      "LIMIT_REACHED": "The batch limit was reached for this package."
+    },
+    "batchWarnings": {
+      "DESTINATION_CHANGED_AFTER_APPROVAL": "A destination changed after the package was approved. The one in force on the approval date is used.",
+      "DUPLICATE_DESTINATION": "Two employees share the same destination.",
+      "MANUAL_LINES_PRESENT": "Some lines are handled manually outside the system.",
+      "ZERO_NET_EXCLUDED": "Lines with a zero net amount are left out."
+    },
+    "lineIssue": {
+      "MISSING_DESTINATION": "No destination",
+      "DESTINATION_INVALID": "Destination unreadable",
+      "INTEGRITY_FAILURE": "Integrity check failed"
+    },
+    "cancelBlockers": {
+      "ALREADY_CANCELLED": "This batch is already cancelled. A cancelled batch is never reactivated."
+    },
+    "lines": {
+      "caption": "Payment lines",
+      "employee": "Employee number",
+      "method": "Method",
+      "destination": "Destination (masked)",
+      "net": "Net amount"
+    },
+    "destination": {
+      "title": "Payment destination",
+      "help": "Where this employee's net pay is to be directed. A destination is recorded, not verified with any bank or provider. Only masked values are shown after entry.",
+      "none": "No payment destination is recorded.",
+      "scheduled": "Scheduled destination",
+      "history": "History of recorded destinations",
+      "effective": "effective {{date}}",
+      "add": "Add a destination",
+      "change": "Record a new destination",
+      "choose": "Choose…",
+      "methodLabel": "Method",
+      "providerLabel": "Bank or provider",
+      "holderLabel": "Account holder name",
+      "accountLabel": "Account number",
+      "accountHelp": "Letters and digits only, 6 to 34 characters. Spaces and hyphens are removed.",
+      "branchLabel": "Branch (optional)",
+      "phoneLabel": "Mobile money number",
+      "phoneHelp": "International format, for example +243…",
+      "manualHelp": "Payment is handled outside the system. No account or number is stored.",
+      "effectiveLabel": "Effective from",
+      "reasonLabel": "Reason",
+      "explanation": "Explanation",
+      "explanationHelp": "{{min}} to {{max}} characters. Do not include account numbers.",
+      "maskedLabel": "Masked value",
+      "version": "Version",
+      "recordedLabel": "Recorded",
+      "preview": "Review destination",
+      "cancel": "Cancel",
+      "previewHeading": "Review before recording",
+      "reviewed": "I reviewed the details. I understand the destination is recorded but not verified.",
+      "commit": "Record destination",
+      "recorded": "Payment destination recorded."
+    },
+    "batch": {
+      "title": "Prepare payment batch",
+      "help": "Prepare a register of net amounts and masked destinations from this approved package. Amounts are copied exactly; nothing is recalculated.",
+      "preview": "Preview payment batch",
+      "previewHeading": "Review before preparing",
+      "lineCount": "Lines",
+      "total": "Total net amount",
+      "zeroNet": "Zero-net lines left out",
+      "reviewed": "I reviewed the totals and the destinations.",
+      "acknowledge": "I understand that no money is sent and that this only prepares a register.",
+      "commit": "Prepare payment batch",
+      "whyBlocked": "The batch cannot be prepared until the blockers are resolved.",
+      "whyConfirm": "Tick both confirmations to prepare the batch.",
+      "staleRefresh": "Something changed since the preview. Preview again before preparing.",
+      "itemTitle": "Batch version {{version}}",
+      "itemMeta": "{{count}} lines, prepared {{at}}",
+      "announcePrepared": "Payment batch prepared."
+    },
+    "detail": {
+      "title": "Payment batch",
+      "description": "An immutable register of net amounts and masked destinations. Nothing is sent.",
+      "summary": "Summary",
+      "period": "Period",
+      "currency": "Currency",
+      "version": "Batch version",
+      "preparedAt": "Prepared",
+      "cancelledAt": "Cancelled",
+      "package": "Open the payroll package",
+      "lines": "Lines",
+      "downloads": "Downloads",
+      "downloadsHelp": "Each download is recorded for audit. Files contain masked destinations only.",
+      "downloadCsv": "Download CSV register",
+      "downloadManifest": "Download manifest",
+      "downloaded": "File downloaded."
+    },
+    "cancel": {
+      "title": "Cancel this batch",
+      "help": "Cancelling keeps the batch as history and releases the payroll void guard. A cancelled batch is never reactivated.",
+      "reason": "Reason",
+      "preview": "Review cancellation",
+      "previewHeading": "Review before cancelling",
+      "affects": "{{count}} lines will be marked cancelled.",
+      "acknowledge": "I understand that no money was sent and that cancellation is final.",
+      "commit": "Cancel batch",
+      "announce": "Payment batch cancelled."
+    },
+    "my": {
+      "title": "My payment destination",
+      "description": "The destination recorded for your pay. It is shown masked and cannot be changed here.",
+      "current": "Current destination",
+      "none": "No payment destination is recorded for you yet.",
+      "requestUpdate": "To change your destination, ask your organization.",
+      "unauthorized": "Only linked employees can see their payment destination.",
+      "signInRequired": "Sign in to see your payment destination."
     }
   }
 }

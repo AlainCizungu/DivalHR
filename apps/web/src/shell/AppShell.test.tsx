@@ -108,6 +108,7 @@ describe('signed-in frame', () => {
         en.nav.myTasks,
         en.nav.myExpenses,
         en.nav.myCompensation,
+        en.nav.myPaymentDestination,
         en.nav.myPayslips,
         en.nav.expenseApprovals,
       ],

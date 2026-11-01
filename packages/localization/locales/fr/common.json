@@ -59,7 +59,8 @@
     "expenseApprovals": "Notes de frais à approuver",
     "payrollRuns": "Exécutions de paie",
     "payrollPackages": "Paie approuvée",
-    "myPayslips": "Mes bulletins de paie"
+    "myPayslips": "Mes bulletins de paie",
+    "myPaymentDestination": "Ma destination de paiement"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -93,7 +94,8 @@
       "statutoryProfile": "Profil statutaire",
       "payrollApproval": "Revue de l’approbation",
       "payrollPackage": "Paie approuvée",
-      "payslip": "Bulletin de paie"
+      "payslip": "Bulletin de paie",
+      "paymentBatch": "Lot de paiement"
     }
   },
   "locale": {
@@ -5925,6 +5927,171 @@
       "party": "À la charge de",
       "base": "Base",
       "digest": "Empreinte du document (SHA-256) :"
+    }
+  },
+  "payments": {
+    "validation": "Des informations de paiement sont manquantes ou invalides. Vérifiez les champs signalés.",
+    "forbidden": "Vous n’avez pas la permission de voir ou de modifier les informations de paiement.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les destinations et les lots de paiement.",
+    "signInRequired": "Connectez-vous pour gérer les destinations et les lots de paiement.",
+    "loading": "Chargement…",
+    "loadMore": "Afficher plus",
+    "noMoney": "Un lot de paiement est un registre préparé pour vérification. Rien n’est transmis à une banque ou à un prestataire et aucun argent n’est déplacé.",
+    "method": {
+      "BANK_ACCOUNT": "Compte bancaire",
+      "MOBILE_MONEY": "Mobile money",
+      "MANUAL": "Manuel (traité hors du système)"
+    },
+    "provider": {
+      "OTHER_BANK": "Autre banque",
+      "OTHER_MOBILE_MONEY": "Autre prestataire mobile money"
+    },
+    "reason": {
+      "INITIAL_SETUP": "Première configuration",
+      "EMPLOYEE_REQUEST": "Demande de l’employé",
+      "PROVIDER_CHANGE": "Changement de prestataire",
+      "ACCOUNT_CORRECTION": "Correction du compte",
+      "OTHER_CONTROLLED": "Autre (explication requise)"
+    },
+    "cancelReason": {
+      "DESTINATION_CORRECTION": "Une destination doit être corrigée",
+      "PACKAGE_CORRECTION": "Le dossier de paie doit être corrigé",
+      "PREPARED_IN_ERROR": "Préparé par erreur",
+      "OTHER_CONTROLLED": "Autre"
+    },
+    "previewStatus": {
+      "READY": "Prêt à enregistrer",
+      "BLOCKED": "Bloqué"
+    },
+    "batchStatus": {
+      "PREPARED": "Préparé",
+      "CANCELLED": "Annulé"
+    },
+    "destinationBlockers": {
+      "NO_CHANGE": "Cette destination est identique à la dernière version enregistrée."
+    },
+    "destinationWarnings": {
+      "DUPLICATE_DESTINATION": "La même destination est enregistrée pour un autre employé.",
+      "BACKDATED": "La date d’effet est antérieure à aujourd’hui."
+    },
+    "batchBlockers": {
+      "PACKAGE_VOIDED": "Ce dossier de paie a été annulé.",
+      "PACKAGE_NOT_LATEST": "Une version plus récente de ce dossier de paie existe.",
+      "BATCH_ALREADY_PREPARED": "Un lot est déjà préparé pour ce dossier. Annulez-le d’abord.",
+      "NO_PAYABLE_LINES": "Ce dossier ne contient aucune ligne à régler.",
+      "MISSING_DESTINATION": "Au moins un employé n’a aucune destination de paiement à la date d’approbation. Aucun lot partiel n’est préparé.",
+      "DESTINATION_INVALID": "Au moins une destination n’a pas pu être lue en toute sécurité.",
+      "INTEGRITY_FAILURE": "Un montant approuvé a échoué à un contrôle d’intégrité.",
+      "LIMIT_REACHED": "La limite de lots a été atteinte pour ce dossier."
+    },
+    "batchWarnings": {
+      "DESTINATION_CHANGED_AFTER_APPROVAL": "Une destination a changé après l’approbation du dossier. Celle en vigueur à la date d’approbation est utilisée.",
+      "DUPLICATE_DESTINATION": "Deux employés partagent la même destination.",
+      "MANUAL_LINES_PRESENT": "Certaines lignes sont traitées manuellement hors du système.",
+      "ZERO_NET_EXCLUDED": "Les lignes dont le net est nul sont exclues."
+    },
+    "lineIssue": {
+      "MISSING_DESTINATION": "Aucune destination",
+      "DESTINATION_INVALID": "Destination illisible",
+      "INTEGRITY_FAILURE": "Contrôle d’intégrité échoué"
+    },
+    "cancelBlockers": {
+      "ALREADY_CANCELLED": "Ce lot est déjà annulé. Un lot annulé n’est jamais réactivé."
+    },
+    "lines": {
+      "caption": "Lignes de paiement",
+      "employee": "Numéro d’employé",
+      "method": "Méthode",
+      "destination": "Destination (masquée)",
+      "net": "Montant net"
+    },
+    "destination": {
+      "title": "Destination de paiement",
+      "help": "Où le salaire net de cet employé doit être dirigé. Une destination est enregistrée, non vérifiée auprès d’une banque ou d’un prestataire. Seules des valeurs masquées sont affichées après la saisie.",
+      "none": "Aucune destination de paiement n’est enregistrée.",
+      "scheduled": "Destination programmée",
+      "history": "Historique des destinations enregistrées",
+      "effective": "en vigueur le {{date}}",
+      "add": "Ajouter une destination",
+      "change": "Enregistrer une nouvelle destination",
+      "choose": "Choisir…",
+      "methodLabel": "Méthode",
+      "providerLabel": "Banque ou prestataire",
+      "holderLabel": "Nom du titulaire du compte",
+      "accountLabel": "Numéro de compte",
+      "accountHelp": "Lettres et chiffres uniquement, de 6 à 34 caractères. Les espaces et les tirets sont retirés.",
+      "branchLabel": "Agence (facultatif)",
+      "phoneLabel": "Numéro mobile money",
+      "phoneHelp": "Format international, par exemple +243…",
+      "manualHelp": "Le paiement est traité hors du système. Aucun compte ni numéro n’est conservé.",
+      "effectiveLabel": "En vigueur à partir du",
+      "reasonLabel": "Motif",
+      "explanation": "Explication",
+      "explanationHelp": "De {{min}} à {{max}} caractères. N’indiquez pas de numéro de compte.",
+      "maskedLabel": "Valeur masquée",
+      "version": "Version",
+      "recordedLabel": "Enregistré",
+      "preview": "Vérifier la destination",
+      "cancel": "Annuler",
+      "previewHeading": "Vérifier avant d’enregistrer",
+      "reviewed": "J’ai vérifié les détails. Je comprends que la destination est enregistrée mais non vérifiée.",
+      "commit": "Enregistrer la destination",
+      "recorded": "Destination de paiement enregistrée."
+    },
+    "batch": {
+      "title": "Préparer le lot de paiement",
+      "help": "Préparez un registre des montants nets et des destinations masquées à partir de ce dossier approuvé. Les montants sont copiés exactement ; rien n’est recalculé.",
+      "preview": "Aperçu du lot de paiement",
+      "previewHeading": "Vérifier avant de préparer",
+      "lineCount": "Lignes",
+      "total": "Montant net total",
+      "zeroNet": "Lignes à net nul exclues",
+      "reviewed": "J’ai vérifié les totaux et les destinations.",
+      "acknowledge": "Je comprends qu’aucun argent n’est envoyé et que cela ne fait que préparer un registre.",
+      "commit": "Préparer le lot de paiement",
+      "whyBlocked": "Le lot ne peut pas être préparé tant que les blocages ne sont pas résolus.",
+      "whyConfirm": "Cochez les deux confirmations pour préparer le lot.",
+      "staleRefresh": "Quelque chose a changé depuis l’aperçu. Relancez l’aperçu avant de préparer.",
+      "itemTitle": "Lot, version {{version}}",
+      "itemMeta": "{{count}} lignes, préparé le {{at}}",
+      "announcePrepared": "Lot de paiement préparé."
+    },
+    "detail": {
+      "title": "Lot de paiement",
+      "description": "Un registre immuable des montants nets et des destinations masquées. Rien n’est transmis.",
+      "summary": "Résumé",
+      "period": "Période",
+      "currency": "Devise",
+      "version": "Version du lot",
+      "preparedAt": "Préparé",
+      "cancelledAt": "Annulé",
+      "package": "Ouvrir le dossier de paie",
+      "lines": "Lignes",
+      "downloads": "Téléchargements",
+      "downloadsHelp": "Chaque téléchargement est consigné pour l’audit. Les fichiers ne contiennent que des destinations masquées.",
+      "downloadCsv": "Télécharger le registre CSV",
+      "downloadManifest": "Télécharger le manifeste",
+      "downloaded": "Fichier téléchargé."
+    },
+    "cancel": {
+      "title": "Annuler ce lot",
+      "help": "L’annulation conserve le lot dans l’historique et libère le verrou d’annulation de la paie. Un lot annulé n’est jamais réactivé.",
+      "reason": "Motif",
+      "preview": "Vérifier l’annulation",
+      "previewHeading": "Vérifier avant d’annuler",
+      "affects": "{{count}} lignes seront marquées comme annulées.",
+      "acknowledge": "Je comprends qu’aucun argent n’a été envoyé et que l’annulation est définitive.",
+      "commit": "Annuler le lot",
+      "announce": "Lot de paiement annulé."
+    },
+    "my": {
+      "title": "Ma destination de paiement",
+      "description": "La destination enregistrée pour votre rémunération. Elle est affichée masquée et ne peut pas être modifiée ici.",
+      "current": "Destination actuelle",
+      "none": "Aucune destination de paiement n’est encore enregistrée pour vous.",
+      "requestUpdate": "Pour modifier votre destination, adressez-vous à votre organisation.",
+      "unauthorized": "Seuls les employés rattachés peuvent voir leur destination de paiement.",
+      "signInRequired": "Connectez-vous pour voir votre destination de paiement."
     }
   }
 }

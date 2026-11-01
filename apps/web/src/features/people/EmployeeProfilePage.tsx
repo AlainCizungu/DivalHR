@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/ApiProvider';
 import { EmployeeCompensationSection } from '../compensation/EmployeeCompensationSection';
 import { EmployeeContractsSection } from '../contracts/EmployeeContractsSection';
+import { EmployeePaymentSection } from '../payments/EmployeePaymentSection';
 import { AccessLinkSection } from './AccessLinkSection';
 import { ChangeForm } from './ChangeForm';
 import { ChangesSection } from './ChangesSection';
@@ -201,6 +202,7 @@ export function EmployeeProfilePage() {
         revision={revision}
         onChanged={setAnnouncement}
       />
+      <EmployeePaymentSection employeeId={profile.id} onChanged={setAnnouncement} />
       <AccessLinkSection
         employeeId={profile.id}
         revision={revision}
