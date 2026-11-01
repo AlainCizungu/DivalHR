@@ -222,8 +222,9 @@ class PayrollPackageMigrationIntegrationTest {
 
   /**
    * A TRUNCATE of a table that a later migration references by foreign key (MVP-095A: payment batch
-   * lines reference payslips) is refused by PostgreSQL itself before any trigger runs; a TRUNCATE of
-   * an unreferenced table is refused by the immutability trigger. Either way nothing is truncated.
+   * lines reference payslips) is refused by PostgreSQL itself before any trigger runs; a TRUNCATE
+   * of an unreferenced table is refused by the immutability trigger. Either way nothing is
+   * truncated.
    */
   private void refusesTruncate(List<String> constraints, SqlWork work) {
     assertThatThrownBy(() -> attempt(work))
@@ -920,8 +921,7 @@ class PayrollPackageMigrationIntegrationTest {
         "payroll_payslip_immutable",
         c -> exec(c, "DELETE FROM payroll.payroll_payslip WHERE package_id = ?", pkg));
     refusesTruncate(
-        List.of("payroll_payslip_immutable"),
-        c -> exec(c, "TRUNCATE payroll.payroll_payslip"));
+        List.of("payroll_payslip_immutable"), c -> exec(c, "TRUNCATE payroll.payroll_payslip"));
     assertThat(w.evidence().get(3)).isEqualTo(3);
   }
 
