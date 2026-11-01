@@ -119,8 +119,7 @@ class PaymentApiIntegrationTest {
         p.record(ana.employee(), p.mobile(PaymentWorld.PHONE, p.early(), "INITIAL_SETUP"));
     assertThat(mobile.get("maskedValue").asText()).isEqualTo("******122");
     assertThat(mobile.toString()).doesNotContain(PaymentWorld.PHONE);
-    JsonNode manual =
-        p.record(ana.employee(), p.manual(p.early().plusDays(1), "EMPLOYEE_REQUEST"));
+    JsonNode manual = p.record(ana.employee(), p.manual(p.early().plusDays(1), "EMPLOYEE_REQUEST"));
     assertThat(manual).isNotNull();
   }
 
@@ -128,12 +127,10 @@ class PaymentApiIntegrationTest {
   void historyIsAppendOnlyAndRowsCannotBeChangedOrDeleted() throws Exception {
     recordBank();
     p.record(
-        ana.employee(),
-        p.mobile(PaymentWorld.PHONE, p.early().plusDays(2), "PROVIDER_CHANGE"));
+        ana.employee(), p.mobile(PaymentWorld.PHONE, p.early().plusDays(2), "PROVIDER_CHANGE"));
     JsonNode history =
         w.c.expect(
-            PayrollRunWorld.get(
-                w.admin, PaymentWorld.destinationPath(ana.employee()) + "/history"),
+            PayrollRunWorld.get(w.admin, PaymentWorld.destinationPath(ana.employee()) + "/history"),
             200);
     assertThat(history.get("items")).hasSize(2);
     assertThat(history.toString()).doesNotContain(PaymentWorld.ACCOUNT);
@@ -343,14 +340,18 @@ class PaymentApiIntegrationTest {
     List<Integer> before = p.evidence();
 
     JsonNode a =
-        w.c.expect(PayrollRunWorld.get(otherWorld.admin, PaymentWorld.destinationPath(ana.employee())), 404);
+        w.c.expect(
+            PayrollRunWorld.get(otherWorld.admin, PaymentWorld.destinationPath(ana.employee())),
+            404);
     assertThat(a.get("code").asText()).isEqualTo("PAYMENT_DESTINATION_NOT_FOUND");
     for (String path : List.of(other.batchPath(batch), p.batchPath(batch))) {
       JsonNode problem = w.c.expect(PayrollRunWorld.get(otherWorld.admin, path), 404);
-      assertThat(problem.get("code").asText()).isIn("PAYMENT_BATCH_NOT_FOUND", "LEGAL_ENTITY_NOT_FOUND");
+      assertThat(problem.get("code").asText())
+          .isIn("PAYMENT_BATCH_NOT_FOUND", "LEGAL_ENTITY_NOT_FOUND");
     }
     assertThat(
-            w.c.call(PayrollRunWorld.get(otherWorld.admin, p.batchPath(batch) + "/register.csv"))
+            w.c
+                .call(PayrollRunWorld.get(otherWorld.admin, p.batchPath(batch) + "/register.csv"))
                 .getStatus())
         .isEqualTo(404);
     for (String path :
@@ -367,7 +368,9 @@ class PaymentApiIntegrationTest {
     Map<String, Object> command = p.bank(PaymentWorld.ACCOUNT, p.early(), "INITIAL_SETUP");
     JsonNode preview = p.previewDestination(ana.employee(), command);
     MockHttpServletResponse missing =
-        w.c.call(p.destinationCommit(w.admin, ana.employee(), null, PaymentWorld.committing(command, preview)));
+        w.c.call(
+            p.destinationCommit(
+                w.admin, ana.employee(), null, PaymentWorld.committing(command, preview)));
     assertThat(missing.getStatus()).isEqualTo(400);
     assertThat(p.evidence().get(0)).isZero();
   }

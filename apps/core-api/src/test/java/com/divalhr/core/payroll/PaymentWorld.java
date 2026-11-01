@@ -120,8 +120,7 @@ final class PaymentWorld {
 
   MockHttpServletRequestBuilder destinationPreview(
       String bearer, Object employee, Map<String, Object> command) throws Exception {
-    return CompensationWorld.json(
-        destinationPath(employee) + "/preview", bearer, null, command);
+    return CompensationWorld.json(destinationPath(employee) + "/preview", bearer, null, command);
   }
 
   /** The committing body of a destination preview: the command plus the evidence. */
@@ -161,8 +160,7 @@ final class PaymentWorld {
   // ------------------------------------------------------------------------------------------
 
   MockHttpServletRequestBuilder batchPreview(String bearer, Object pkg) throws Exception {
-    return CompensationWorld.json(
-        packageBatchesPath(pkg) + "/preview", bearer, null, Map.of());
+    return CompensationWorld.json(packageBatchesPath(pkg) + "/preview", bearer, null, Map.of());
   }
 
   static Map<String, Object> preparing(JsonNode preview) {
@@ -262,14 +260,12 @@ final class PaymentWorld {
                 "SELECT metadata::text || coalesce(after_state_sha256, '') || actor_subject"
                     + " FROM platform.audit_event WHERE tenant_id = ?"
                     + " AND action LIKE 'payment-%'",
-                String.class,
-                w.tenant));
+                String.class, w.tenant));
     rows.addAll(
         w.jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.payment-%'",
-            String.class,
-            w.tenant));
+            String.class, w.tenant));
     rows.addAll(
         w.jdbc.queryForList(
             "SELECT response_body::text FROM platform.idempotency_record"
