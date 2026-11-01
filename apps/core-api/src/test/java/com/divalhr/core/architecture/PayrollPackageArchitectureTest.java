@@ -69,22 +69,22 @@ class PayrollPackageArchitectureTest {
               "org.apache.fontbox..",
               "java..");
 
-  /** MVP-094C: the shipped guard reports no payment; only a future payment module replaces it. */
+  /** MVP-095A: only the prepared-batch guard implements the payment port (it replaced 094C's). */
   @ArchTest
-  static final ArchRule onlyTheNoPaymentGuardImplementsThePaymentPort =
+  static final ArchRule onlyThePreparedBatchGuardImplementsThePaymentPort =
       classes()
           .that()
           .implement(PayrollPaymentGuard.class)
           .should()
-          .haveSimpleName("NoPaymentRecords");
+          .haveSimpleName("PreparedPaymentBatchGuard");
 
   /** The void service depends on the port, never on its shipped implementation. */
   @ArchTest
   static final ArchRule nobodyDependsOnTheShippedPaymentGuardImplementation =
       noClasses()
           .that()
-          .doNotHaveSimpleName("NoPaymentRecords")
+          .doNotHaveSimpleName("PreparedPaymentBatchGuard")
           .should()
           .dependOnClassesThat()
-          .haveSimpleName("NoPaymentRecords");
+          .haveSimpleName("PreparedPaymentBatchGuard");
 }

@@ -191,6 +191,15 @@ divalhr:
       payroll-approval-preview: ${DIVALHR_PAYROLL_APPROVAL_PREVIEW_REQUESTS_PER_MINUTE:5}
       payroll-approval-write: ${DIVALHR_PAYROLL_APPROVAL_WRITE_REQUESTS_PER_MINUTE:2}
       payslip-download: ${DIVALHR_PAYSLIP_DOWNLOAD_REQUESTS_PER_MINUTE:30}
+      # MVP-095A: payment destinations and payment batches (ADR 0036, D95A-13). Per subject per
+      # minute: reads 60, destination previews 10 and commits 5, batch previews 5 and commits
+      # (prepare and cancel) 2, register downloads 30.
+      payment-read: ${DIVALHR_PAYMENT_READ_REQUESTS_PER_MINUTE:60}
+      payment-destination-preview: ${DIVALHR_PAYMENT_DESTINATION_PREVIEW_REQUESTS_PER_MINUTE:10}
+      payment-destination-write: ${DIVALHR_PAYMENT_DESTINATION_WRITE_REQUESTS_PER_MINUTE:5}
+      payment-batch-preview: ${DIVALHR_PAYMENT_BATCH_PREVIEW_REQUESTS_PER_MINUTE:5}
+      payment-batch-write: ${DIVALHR_PAYMENT_BATCH_WRITE_REQUESTS_PER_MINUTE:2}
+      payment-register-download: ${DIVALHR_PAYMENT_REGISTER_DOWNLOAD_REQUESTS_PER_MINUTE:30}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -294,6 +303,24 @@ divalhr:
       payslip-download:
         requests: ${DIVALHR_PAYSLIP_TENANT_DOWNLOADS:300}
         window: 1h
+      # MVP-095A: payment destinations and batches (ADR 0036): 120 destination previews, 60
+      # destination commits, 60 batch previews, 20 batch commits and 300 register downloads per
+      # tenant per hour.
+      payment-destination-preview:
+        requests: ${DIVALHR_PAYMENT_DESTINATION_TENANT_PREVIEWS:120}
+        window: 1h
+      payment-destination-write:
+        requests: ${DIVALHR_PAYMENT_DESTINATION_TENANT_WRITES:60}
+        window: 1h
+      payment-batch-preview:
+        requests: ${DIVALHR_PAYMENT_BATCH_TENANT_PREVIEWS:60}
+        window: 1h
+      payment-batch-write:
+        requests: ${DIVALHR_PAYMENT_BATCH_TENANT_WRITES:20}
+        window: 1h
+      payment-register-download:
+        requests: ${DIVALHR_PAYMENT_REGISTER_TENANT_DOWNLOADS:300}
+        window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.
       messaging-write:
@@ -302,6 +329,11 @@ divalhr:
   # MVP-110: signed outbound webhooks (ADR 0028). The encryption key has no default and is read from
   # the protected secret directory; without it the capability is unavailable (503). The test
   # receiver exception is for the hr-dev/test environments only and names one exact host and port.
+  payroll:
+    payment:
+      # MVP-095A: the dedicated payment destination encryption key (ADR 0036). No default; read from
+      # the protected secret directory; without it destinations cannot be recorded or read (503).
+      encryption-key: ${DIVALHR_PAYMENT_ENCRYPTION_KEY:}
   integrations:
     encryption-key: ${DIVALHR_WEBHOOK_ENCRYPTION_KEY:}
     extra-ports: ${DIVALHR_WEBHOOK_EXTRA_PORTS:}

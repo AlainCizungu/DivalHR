@@ -80,6 +80,9 @@ public final class PayrollPackageConstraintViolations {
     if (VOIDED.contains(constraint)) {
       return Optional.of(ErrorCode.PAYROLL_PACKAGE_VOIDED);
     }
+    if (PaymentConstraintViolations.VOID_BLOCKED.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYROLL_VOID_NOT_ALLOWED);
+    }
     return Optional.empty();
   }
 }
