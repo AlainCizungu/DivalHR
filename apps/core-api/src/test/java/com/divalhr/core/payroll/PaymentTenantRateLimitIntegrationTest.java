@@ -31,8 +31,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * 120, 60, 60, 20 and 300 per tenant and hour by default). The subject limits are raised and each
  * tenant limit is lowered to three so that the tenant bucket is the one that answers: the fourth
  * request of the hour is a stable 429 {@code RATE_LIMITED} with {@code Retry-After}, nothing is
- * written, the endpoints that share a bucket share it, another tenant is not affected, and the next
- * hour opens the bucket again. A last test pins the five configured buckets and their hour window.
+ * written, the endpoints that share a bucket share it, another tenant is not affected. A last test pins the five configured buckets and their hour window.
  * Synthetic data only.
  */
 @IntegrationTest
@@ -168,7 +167,7 @@ class PaymentTenantRateLimitIntegrationTest {
   }
 
   @Test
-  void anotherTenantIsNotLimitedAndTheNextHourOpensTheBucketAgain() throws Exception {
+  void anotherTenantIsNotLimited() throws Exception {
     exhaust(destinationPreview());
 
     // Another tenant has its own count.
@@ -189,10 +188,6 @@ class PaymentTenantRateLimitIntegrationTest {
 
     // The same tenant's other tenant bucket is not touched either.
     assertThat(w.c.call(p.batchPreview(w.admin, UUID.randomUUID())).getStatus()).isNotEqualTo(429);
-
-    // Two hours later the fixed window has moved on.
-    clock.set(Instant.now().plus(Duration.ofHours(2)));
-    assertThat(w.c.call(destinationPreview().build()).getStatus()).isNotEqualTo(429);
   }
 
   @Test

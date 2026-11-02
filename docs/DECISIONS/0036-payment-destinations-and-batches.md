@@ -67,7 +67,8 @@ on the ordered and paged paths, no index added); `PaymentEventsNotDeliveredTest`
 WhatsApp mapping or fan-out allow-list, and after the real operations and both fan-out jobs no fan-out marker and no
 delivery row exists for them); `PaymentRateLimitIntegrationTest` (the six subject buckets and the 14 handlers, with
 a reflection check against the configured buckets) and `PaymentTenantRateLimitIntegrationTest` (the five tenant
-buckets).
+buckets); `PaymentRateLimitWindowTest` (all eleven buckets at the configured defaults on a stepped clock: exact limit,
+Retry-After to the window end, fresh count in the next window).
 
 ## 7. Not included
 

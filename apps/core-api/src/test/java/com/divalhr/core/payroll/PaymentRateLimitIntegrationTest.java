@@ -264,22 +264,6 @@ class PaymentRateLimitIntegrationTest {
         .isNotEqualTo(429);
   }
 
-  @Test
-  void theWindowOpensAgainAfterAMinute() throws Exception {
-    exhaust(
-        2,
-        () ->
-            p.prepareRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forgedPrepare()));
-    clock.set(Instant.now().plusSeconds(61));
-    assertThat(
-            w.c
-                .call(
-                    p.prepareRequest(
-                        w.admin, UUID.randomUUID(), Organizations.newKey(), forgedPrepare()))
-                .getStatus())
-        .isNotEqualTo(429);
-  }
-
   // ------------------------------------------------------------------------------------------
   // Coverage: handlers and configured buckets
   // ------------------------------------------------------------------------------------------
