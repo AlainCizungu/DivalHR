@@ -87,16 +87,16 @@ A bounded worker claims due `QUEUED` rows with `FOR UPDATE SKIP LOCKED` and a le
 `QUEUED -> SENDING` and counts one attempt). The request ID never changes: it is created at commit and reused by
 every attempt.
 
-| Observation | Result |
-| --- | --- |
-| 2xx with the contract's authenticated acceptance and a reference matching `^[A-Z0-9][A-Z0-9._-]{5,63}$` | `ACCEPTED_FOR_PROCESSING` |
-| 400/409/422 with an allow-listed reject code | `REJECTED` (never retried) |
-| refused address, DNS failure, connect failure, TLS failure **before any byte was written** | back to `QUEUED` with the retry schedule (`TRANSIENT_*`) |
-| 429 or 5xx **response** | back to `QUEUED` with the retry schedule |
-| timeout or connection loss **after** bytes were written, unparsable or oversized response, 2xx without a valid acceptance | `DELIVERY_UNKNOWN` (no blind resend) |
-| lease expired in `SENDING` (worker crash) | `DELIVERY_UNKNOWN` / `UNKNOWN_LEASE_EXPIRED` (no resend) |
-| attempts exhausted (6) | `MANUAL_INTERVENTION` / `RETRIES_EXHAUSTED` |
-| a destination cannot be opened, authenticated or mapped at send time (nothing was written to the network) | `MANUAL_INTERVENTION` / `NOT_SENT_UNREADABLE` |
+| Observation                                                                                                               | Result                                                   |
+| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 2xx with the contract's authenticated acceptance and a reference matching `^[A-Z0-9][A-Z0-9._-]{5,63}$`                   | `ACCEPTED_FOR_PROCESSING`                                |
+| 400/409/422 with an allow-listed reject code                                                                              | `REJECTED` (never retried)                               |
+| refused address, DNS failure, connect failure, TLS failure **before any byte was written**                                | back to `QUEUED` with the retry schedule (`TRANSIENT_*`) |
+| 429 or 5xx **response**                                                                                                   | back to `QUEUED` with the retry schedule                 |
+| timeout or connection loss **after** bytes were written, unparsable or oversized response, 2xx without a valid acceptance | `DELIVERY_UNKNOWN` (no blind resend)                     |
+| lease expired in `SENDING` (worker crash)                                                                                 | `DELIVERY_UNKNOWN` / `UNKNOWN_LEASE_EXPIRED` (no resend) |
+| attempts exhausted (6)                                                                                                    | `MANUAL_INTERVENTION` / `RETRIES_EXHAUSTED`              |
+| a destination cannot be opened, authenticated or mapped at send time (nothing was written to the network)                 | `MANUAL_INTERVENTION` / `NOT_SENT_UNREADABLE`            |
 
 Automatic retry is permitted only because the synthetic provider contract proves it honors the stable request ID
 (a replay returns the first outcome and never a second acceptance). The retry schedule is 1 minute, 5 minutes, 30

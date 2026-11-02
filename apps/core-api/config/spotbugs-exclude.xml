@@ -150,6 +150,11 @@
       <Class name="com.divalhr.core.payroll.api.PaymentRegisterController"/>
       <Class name="com.divalhr.core.payroll.api.EmployeePaymentDestinationController"/>
       <Class name="com.divalhr.core.payroll.api.MyPaymentDestinationController"/>
+      <!-- MVP-095B: submission services, worker, recorder, payload builder, repository, gateway and
+           controller hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.(application|api)\.PaymentSubmission[A-Za-z]*"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPaymentSubmissionRepository"/>
+      <Class name="com.divalhr.core.payroll.internal.HttpsPaymentProviderGateway"/>
       <!-- MVP-093A: monthly compensation services, guard, adapter, repository and controllers
            hold injected collaborators. -->
       <Class name="~com\.divalhr\.core\.payroll\.application\.(Compensation|MyCompensation|PayrollCompensation)[A-Za-z]*"/>
@@ -243,5 +248,10 @@
   <Match>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     <Class name="com.divalhr.core.payroll.domain.PaymentBatchEvaluator$Evaluation"/>
+  </Match>
+  <!-- MVP-095B: the scripted test provider records the request bytes it was sent, for assertions. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.support\.FakePaymentProviderGateway\$.*"/>
   </Match>
 </FindBugsFilter>

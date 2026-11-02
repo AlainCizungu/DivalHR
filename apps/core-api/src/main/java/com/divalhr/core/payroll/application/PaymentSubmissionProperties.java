@@ -31,7 +31,7 @@ public record PaymentSubmissionProperties(String signingKey, Synthetic synthetic
     public Synthetic {
       enabled = enabled != null && enabled;
       host = host == null ? "" : host.trim();
-      port = port == null ? 8443 : port;
+      port = port == null ? Integer.valueOf(8443) : port;
     }
 
     /**
