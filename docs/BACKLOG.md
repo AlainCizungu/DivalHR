@@ -20,7 +20,7 @@ A story is ready when it has a business owner, French and English copy, acceptan
 
 Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a story is **Merged** when its pull request's merge commit is on the first-parent history of `main` (`git log --merges --first-parent origin/main`), and its merge commit, pull-request number and date are the ones Git records (`git show -s --format=%cI`). "Complete" on older stories keeps its earlier meaning (issue closed as completed and pull request merged); this refresh checked Git only, not the issue tracker, so it does not re-assert whether an issue is closed.
 
-**Deployed hr-dev release (as of 2026-11-01).** `https://hr-dev.dival.ai` runs `main` at `035072d3d6b0d4afc126490b2414bab43206d18d` (merge of PR #182, MVP-094C, merged 2026-11-01T09:23:15-06:00). The payroll release train (MVP-094A, PR #178; MVP-094B, PR #180; MVP-094C, PR #182) is merged, deployed and accepted on hr-dev; migrations V44, V45 and V46 are applied; Issue #181 is closed. The real DRC rule pack `CD-SALARY-PREVIEW` is still DRAFT and inactive. The release before it was `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, 2026-10-29), preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (PR #174, SEC-003) and `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (PR #170, MVP-081). The test environment runs one released commit of `main` at a time and holds synthetic data only. MVP-095A (Issue #183) is in progress: not merged, not deployed.
+**Deployed hr-dev release (as of 2026-11-01).** `https://hr-dev.dival.ai` runs `main` at `035072d3d6b0d4afc126490b2414bab43206d18d` (merge of PR #182, MVP-094C, merged 2026-11-01T09:23:15-06:00). The payroll release train (MVP-094A, PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`; MVP-094B, PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; MVP-094C, PR #182, merge commit `035072d3d6b0d4afc126490b2414bab43206d18d`) is merged, deployed and accepted on hr-dev; migrations V44, V45 and V46 are applied; Issue #181 is closed. The real DRC rule pack `CD-SALARY-PREVIEW` is still DRAFT and inactive. The release before it was `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, 2026-10-29), preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (PR #174, SEC-003) and `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (PR #170, MVP-081). The test environment runs one released commit of `main` at a time and holds synthetic data only. MVP-095A (Issue #183) is in progress: not merged, not deployed.
 
 ### Git evidence for the stories reconciled by MVP-093A
 
@@ -41,8 +41,8 @@ Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a stor
 | MVP-081   | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
 | SEC-003   | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
 | MVP-093A  | #176 | `3223454379a9b6342fe3c6b2728d8f17680466e7` | 2026-10-29 | deployed  |
-| MVP-094A  | #178 | `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430` | 2026-10-29 | deployed  |
-| MVP-094B  | #180 | `995a6937c1d22aeef3ab0023856195a1adcae4e2` | 2026-10-30 | deployed  |
+| MVP-094A  | #178 | `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430` | 2026-10-29 | contained |
+| MVP-094B  | #180 | `995a6937c1d22aeef3ab0023856195a1adcae4e2` | 2026-10-30 | contained |
 | MVP-094C  | #182 | `035072d3d6b0d4afc126490b2414bab43206d18d` | 2026-11-01 | deployed  |
 
 Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.

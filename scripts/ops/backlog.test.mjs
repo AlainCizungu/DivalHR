@@ -13,13 +13,16 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const backlog = readFileSync(`${root}docs/BACKLOG.md`, 'utf8');
 
-/** The two releases that hr-dev ran, in deployment order (known deployment facts). */
+/** The releases that hr-dev ran, in deployment order (known deployment facts). */
 const DEPLOYED = [
   '1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf', // MVP-081, PR #170: deployed first
   '5d4cd1068b63b84e33671123405d6bef1178b6aa', // SEC-003, PR #174: deployed second
-  '3223454379a9b6342fe3c6b2728d8f17680466e7', // MVP-093A, PR #176: the running release
+  '3223454379a9b6342fe3c6b2728d8f17680466e7', // MVP-093A, PR #176: deployed third
+  '035072d3d6b0d4afc126490b2414bab43206d18d', // MVP-094C, PR #182: the payroll release train, running
 ];
-const RUNNING = DEPLOYED[2];
+const RUNNING = DEPLOYED[3];
+/** The stories of the payroll release train: contained in the single release that deployed them. */
+const TRAIN = ['MVP-094A', 'MVP-094B'];
 /** Stories that D93-13 requires to carry a real merged or deployed status. */
 const REQUIRED = [
   'MVP-080',
@@ -86,16 +89,15 @@ test('the header names the deployed hr-dev release and the one deployed before i
   const header = backlog.split('## Epic 1')[0];
   for (const sha of DEPLOYED) assert.ok(header.includes(sha), `the header names ${sha}`);
   assert.match(header, new RegExp(`runs \`main\` at \`${RUNNING}\``, 'u'));
-  assert.match(header, /PR #176/u);
-  assert.match(header, /deployed 2026-10-29/u);
-  assert.match(header, /MVP-094A is \*\*not\*\* deployed/u);
-  // MVP-094B (Issue #179): the merged-but-not-deployed fact of MVP-094A, from Git.
+  assert.match(header, /PR #182/u);
+  assert.match(header, /as of 2026-11-01/u);
+  // The payroll release train (094A, 094B, 094C) is merged, deployed and accepted, from Git.
   assert.match(header, /PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`/u);
-  assert.match(header, /hr-dev still runs `3223454…`/u);
-  // MVP-094C (Issue #181): 094B is merged, 094C is in progress, nothing of the train is deployed.
   assert.match(header, /PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`/u);
-  assert.match(header, /nothing of 094A, 094B or 094C is deployed/u);
-  assert.match(header, /MVP-094C is in progress \(Issue #181, not merged, not deployed\)/u);
+  assert.match(header, /migrations V44, V45 and V46 are applied; Issue #181 is closed/u);
+  assert.match(header, /`CD-SALARY-PREVIEW` is still DRAFT and inactive/u);
+  // MVP-095A (Issue #183): in progress, not merged, not deployed.
+  assert.match(header, /MVP-095A \(Issue #183\) is in progress: not merged, not deployed/u);
 });
 
 test('every listed story has a status', () => {
@@ -122,7 +124,7 @@ test('the required stories carry a merged or deployed status, and none is still 
   assert.match(sections.get('SEC-003').body, /deployed to hr-dev on 2026-10-29/u);
 });
 
-test('MVP-093A is merged and deployed; MVP-094A is merged but not deployed; MVP-094B is merged; MVP-094C is in progress for Issue #181', () => {
+test('MVP-093A and the payroll train (094A, 094B, 094C) are merged and deployed; MVP-095A is in progress for Issue #183', () => {
   const epic10 = backlog.split('## Epic 10')[1].split('\n## ')[0];
   assert.match(epic10, /### MVP-093A /u);
   assert.match(epic10, /### MVP-094A /u);
@@ -133,7 +135,7 @@ test('MVP-093A is merged and deployed; MVP-094A is merged but not deployed; MVP-
   const next = sections.find((entry) => entry.id === 'MVP-094A');
   assert.match(
     next.body,
-    /Issue #177\. Merged \(PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`\), not deployed; hr-dev still runs `3223454…`/u,
+    /Issue #177\. Merged \(PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`\), deployed to hr-dev with the payroll release train/u,
   );
   assert.doesNotMatch(next.body.split('\n').slice(0, 4).join('\n'), /In progress/u);
   assert.match(next.body, /not taxable gross, net pay or money owed/u);
@@ -141,12 +143,23 @@ test('MVP-093A is merged and deployed; MVP-094A is merged but not deployed; MVP-
   assert.match(epic10, /### MVP-094B /u);
   assert.match(
     statutory.body,
-    /Issue #179\. Merged \(PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`\), not deployed/u,
+    /Issue #179\. Merged \(PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`\), deployed to hr-dev with the payroll release train/u,
   );
   const approval = sections.find((entry) => entry.id === 'MVP-094C');
   assert.match(epic10, /### MVP-094C /u);
-  assert.match(approval.body, /Issue #181\. In progress \(not merged, not deployed\)/u);
+  assert.match(
+    approval.body,
+    /Issue #181\. Merged \(PR #182, merge commit `035072d3d6b0d4afc126490b2414bab43206d18d`\), deployed to hr-dev and accepted/u,
+  );
   assert.match(approval.body, /Not proof of payment/u);
+  const payment = sections.find((entry) => entry.id === 'MVP-095A');
+  assert.match(epic10, /### MVP-095A /u);
+  assert.match(
+    payment.body,
+    /Issue #183\. In progress \(not merged, not deployed; hr-dev runs `035072d3…`\)/u,
+  );
+  assert.match(payment.body, /Nothing is sent to a bank or provider, no money moves/u);
+  assert.doesNotMatch(payment.body, /compliant|disbursed|payment sent/iu);
   // D94B-13: only a DRAFT pack ships, so the backlog never calls the statutory preview available.
   assert.match(statutory.body, /`CD-SALARY-PREVIEW` version 1, \*\*DRAFT\*\*/u);
   assert.match(statutory.body, /stays under "coming next"/u);
@@ -201,7 +214,7 @@ test('the evidence table matches Git: merge subject, PR number, date and ancestr
       `${row.story} subject`,
     );
     assert.equal(committed.slice(0, 10), row.date, `${row.story}: merge date`);
-    if (row.state === 'contained') {
+    if (row.state === 'contained' && !TRAIN.includes(row.story)) {
       git('merge-base', '--is-ancestor', row.sha, DEPLOYED[0]); // throws if not an ancestor
     }
     git('merge-base', '--is-ancestor', row.sha, RUNNING);
