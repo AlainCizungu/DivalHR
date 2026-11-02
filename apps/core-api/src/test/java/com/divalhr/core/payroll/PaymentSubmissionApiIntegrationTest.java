@@ -95,7 +95,7 @@ class PaymentSubmissionApiIntegrationTest {
   }
 
   private void advance(Duration by) {
-    clock.set(Instant.now().plus(by));
+    clock.set(clock.instant().plus(by));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -302,7 +302,7 @@ class PaymentSubmissionApiIntegrationTest {
       Duration.ofHours(13)
     };
     worker.runOnce();
-    Instant at = Instant.now();
+    Instant at = clock.instant();
     for (Duration wait : waits) {
       at = at.plus(wait);
       clock.set(at);
@@ -321,7 +321,7 @@ class PaymentSubmissionApiIntegrationTest {
   void aWorkerThatDiesMidSendLeavesAnUnknownDeliveryNotAResend() throws Exception {
     provider.thenDo(
         () -> {
-          clock.set(Instant.now().plus(Duration.ofMinutes(10)));
+          clock.set(clock.instant().plus(Duration.ofMinutes(10)));
           throw new IllegalStateException("worker died");
         });
     s.submit(batch);

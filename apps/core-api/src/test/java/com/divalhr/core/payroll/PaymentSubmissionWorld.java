@@ -112,7 +112,7 @@ final class PaymentSubmissionWorld {
             w.tenant),
         c.count(
             "SELECT count(*) FROM platform.audit_event WHERE tenant_id = ?"
-                + " AND action LIKE 'payment-submission.%'",
+                + " AND action IN ('payment-submission.create', 'payment-submission.attempt')",
             w.tenant),
         c.count(
             "SELECT count(*) FROM platform.outbox_event WHERE tenant_id = ?"
