@@ -48,7 +48,25 @@ public final class PaymentConstraintViolations {
       Set.of("payment_destination_effective_order");
 
   /** The package has a PREPARED batch, so it cannot be voided. */
-  public static final Set<String> VOID_BLOCKED = Set.of("payroll_payment_batch_blocks_void");
+  public static final Set<String> VOID_BLOCKED =
+      Set.of("payroll_payment_batch_blocks_void", "payroll_payment_submission_blocks_void");
+
+  /** A submission exists: the batch can no longer be cancelled (MVP-095B). */
+  public static final Set<String> BATCH_SUBMITTED = Set.of("payment_submission_blocks_batch_cancel");
+
+  /** A second submission of a batch, or a reused request ID (MVP-095B). */
+  public static final Set<String> SUBMISSION_EXISTS =
+      Set.of("payment_submission_one_per_batch", "payment_submission_request_id");
+
+  /** The batch or package moved under the submission (MVP-095B). */
+  public static final Set<String> SUBMISSION_BLOCKED =
+      Set.of(
+          "payment_submission_batch_state",
+          "payment_submission_package_state",
+          "payment_submission_package_latest");
+
+  /** The submission no longer copies the batch exactly (MVP-095B). */
+  public static final Set<String> SUBMISSION_STALE = Set.of("payment_submission_batch_exact");
 
   private PaymentConstraintViolations() {}
 
@@ -71,8 +89,30 @@ public final class PaymentConstraintViolations {
     if (BATCH_STALE.contains(constraint)) {
       return Optional.of(ErrorCode.PAYMENT_BATCH_PREVIEW_STALE);
     }
+    if (BATCH_SUBMITTED.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYMENT_BATCH_ALREADY_SUBMITTED);
+    }
     if (BATCH_CANCELLED.contains(constraint)) {
       return Optional.of(ErrorCode.PAYMENT_BATCH_CANCELLED);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * The stable business answer of a submission constraint, if it has one.
+   *
+   * @param constraint a constraint name
+   * @return the error code, or empty when the violation is a defect
+   */
+  public static Optional<ErrorCode> submissionAnswer(String constraint) {
+    if (SUBMISSION_EXISTS.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYMENT_SUBMISSION_EXISTS);
+    }
+    if (SUBMISSION_BLOCKED.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYMENT_SUBMISSION_BLOCKED);
+    }
+    if (SUBMISSION_STALE.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYMENT_SUBMISSION_PREVIEW_STALE);
     }
     return Optional.empty();
   }

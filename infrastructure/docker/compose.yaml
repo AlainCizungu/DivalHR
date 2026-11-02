@@ -106,6 +106,30 @@ services:
     ports:
       - '127.0.0.1:${WEBHOOK_RECEIVER_PORT:-8099}:8099'
 
+  # MVP-095B: a controlled SYNTHETIC payment provider (profile SYNTHETIC-TEST). Development stack
+  # only (the hr-dev counterpart lives in infrastructure/hr-dev). NOT a bank; no money exists here.
+  # Core reaches it as payments.hooks.test; the control port is published on 127.0.0.1 only, for
+  # the browser suite.
+  payment-provider:
+    build:
+      context: ./payment-provider
+    image: divalhr/payment-provider:dev
+    environment:
+      PROVIDER_HOST: payments.hooks.test
+      PROVIDER_SIGNING_KEY: ${DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY:?set in .env / .env.example}
+    volumes:
+      - payment-provider-ca:/shared
+    networks:
+      default:
+        aliases: [payments.hooks.test]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - '127.0.0.1:${PAYMENT_PROVIDER_PORT:-8097}:8099'
+
   # MVP-111: a controlled SYNTHETIC Meta Graph provider for WhatsApp. Development stack only (the
   # hr-dev counterpart lives in infrastructure/hr-dev). NOT Meta. Core reaches it as
   # graph.meta.test on the internal `meta` network (no route out); the control port is published on
@@ -164,6 +188,16 @@ services:
       # hostname verification against the receiver's throwaway CA.
       DIVALHR_WEBHOOK_ENCRYPTION_KEY: ${DIVALHR_WEBHOOK_ENCRYPTION_KEY:?set in .env / .env.example}
       DIVALHR_PAYMENT_ENCRYPTION_KEY: ${DIVALHR_PAYMENT_ENCRYPTION_KEY:?set in .env / .env.example}
+      # MVP-095B: HMAC key signing provider submissions (>= 32 bytes; a dev-only value is refused
+      # outside development). DEVELOPMENT ONLY synthetic provider; no real bank is ever contacted.
+      DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY: ${DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY:?set in .env / .env.example}
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_ENABLED: 'true'
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_HOST: payments.hooks.test
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_PORT: '8443'
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_CA_FILE: /run/payment-provider-tls/ca.pem
+      # Short dev-only timings so the browser journeys wait seconds, not minutes (never in hr-dev).
+      DIVALHR_PAYMENT_SUBMISSION_WORKER_INTERVAL: PT1S
+      DIVALHR_PAYMENT_SUBMISSION_REQUEST_TIMEOUT: PT4S
       DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: receiver.hooks.test
       DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'
       DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE: /run/webhook-tls/ca.pem
@@ -214,6 +248,7 @@ services:
     volumes:
       - webhook-receiver-ca:/run/webhook-tls:ro
       - meta-provider-ca:/run/meta-provider-tls:ro
+      - payment-provider-ca:/run/payment-provider-tls:ro
     networks: [default, meta]
     depends_on:
       postgres:
@@ -225,6 +260,8 @@ services:
       webhook-receiver:
         condition: service_healthy
       meta-provider:
+        condition: service_healthy
+      payment-provider:
         condition: service_healthy
     ports:
       - '${CORE_API_PORT:-8080}:8080'
@@ -276,3 +313,4 @@ volumes:
   postgres-data:
   webhook-receiver-ca:
   meta-provider-ca:
+  payment-provider-ca:

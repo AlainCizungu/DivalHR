@@ -61,6 +61,12 @@ put "$S/core/DIVALHR_MESSAGING_ENCRYPTION_KEY" 10001 random
 # are sealed with it, and losing it makes every recorded destination unreadable (each would have to
 # be recorded again). Backed up with the secrets directory, never printed, logged or returned.
 put "$S/core/DIVALHR_PAYMENT_ENCRYPTION_KEY" 10001 random
+# MVP-095B (ADR 0037): HMAC-SHA256 key that signs payment submissions to the provider connector
+# (>= 32 bytes). Never rotate it in place: the key version is recorded on each submission. Backed up
+# with the secrets directory, never printed, logged or returned. The synthetic provider (uid 1000)
+# holds a copy to verify signatures; a real provider would hold its own agreed credential instead.
+put "$S/core/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY" 10001 random
+put "$S/provider/payment-signing-key" 1000 same_as "$S/core/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY"
 # MVP-111: the Meta app secret (signs callbacks) and the callback verify token. In this test
 # environment they belong to the synthetic provider only, never to a real Meta app; production
 # values come from the real Meta app and are provisioned the same way, by the operator.

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.divalhr.core.integrations.domain.WebhookEventType;
 import com.divalhr.core.integrations.messaging.domain.NotificationType;
 import com.divalhr.core.payroll.application.PaymentRecorder;
+import com.divalhr.core.payroll.application.PaymentSubmissionRecorder;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -86,5 +87,36 @@ class PaymentEventsNotDeliveredTest {
       }
     }
     assertThat(declared).containsExactlyInAnyOrderElementsOf(TYPES);
+  }
+
+  @Test
+  void providerSubmissionEventsAreInternalToo() {
+    List<String> submission =
+        List.of(
+            PaymentSubmissionRecorder.CREATED_EVENT, PaymentSubmissionRecorder.STATE_CHANGED_EVENT);
+    assertThat(submission)
+        .containsExactly(
+            "payroll.payment-submission.created.v1", "payroll.payment-submission.state-changed.v1");
+    assertThat(WebhookEventType.INTERNAL_TYPES).doesNotContainAnyElementsOf(submission);
+    for (String type : submission) {
+      assertThat(WebhookEventType.fromInternal(type)).as(type).isEmpty();
+      assertThat(NotificationType.fromInternal(type)).as(type).isEmpty();
+    }
+    List<String> declared = new ArrayList<>();
+    for (Field field : PaymentSubmissionRecorder.class.getDeclaredFields()) {
+      if (Modifier.isPublic(field.getModifiers())
+          && Modifier.isStatic(field.getModifiers())
+          && field.getType() == String.class) {
+        try {
+          String value = (String) field.get(null);
+          if (value != null && value.startsWith("payroll.") && value.endsWith(".v1")) {
+            declared.add(value);
+          }
+        } catch (IllegalAccessException inaccessible) {
+          throw new AssertionError(field.getName(), inaccessible);
+        }
+      }
+    }
+    assertThat(declared).containsExactlyInAnyOrderElementsOf(submission);
   }
 }

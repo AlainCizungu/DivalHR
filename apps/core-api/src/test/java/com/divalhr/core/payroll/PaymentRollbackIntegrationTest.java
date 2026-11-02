@@ -186,6 +186,6 @@ class PaymentRollbackIntegrationTest {
             w.c.count(
                 "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'payroll'"
                     + " AND table_name LIKE 'payment_%'"))
-        .isEqualTo(4);
+        .isEqualTo(6);
   }
 }

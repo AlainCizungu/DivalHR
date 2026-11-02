@@ -625,7 +625,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await navigateInApp(admin, `/admin/payroll-packages/${ENTITY.id}/${packageId}`);
     const panel = admin.getByTestId('payment-batch-panel');
     await expect(panel.getByRole('heading', { level: 2 })).toHaveText('Prepare payment batch');
-    await expect(panel.getByTestId('payment-no-money')).toContainText('no money moves');
+    await expect(panel.getByTestId('payment-no-money')).toContainText('does not move money');
     await panel.getByTestId('payment-batch-preview-button').click();
     const batchPreview = panel.getByTestId('payment-batch-preview');
     await expect(batchPreview.getByTestId('payment-batch-preview-status')).toHaveText(

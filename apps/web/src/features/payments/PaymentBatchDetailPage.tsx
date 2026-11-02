@@ -8,6 +8,7 @@ import { formatInstant } from '../compensation/compensation';
 import { PayrollAlert } from '../payrollRuns/PayrollBits';
 import { formatMonth, NETWORK_FAILURE, type PayrollFailure } from '../payrollRuns/payrollRuns';
 import { PaymentBatchCancelPanel } from './PaymentBatchCancelPanel';
+import { PaymentSubmissionPanel } from './PaymentSubmissionPanel';
 import { BatchLinesTable, MethodCounts, MinorAmount, NoMoneySent } from './PaymentBits';
 import { LINES_PAGE, paymentFailureOf } from './payments';
 import { useRegisterDownload } from './useRegisterDownload';
@@ -39,6 +40,7 @@ function Detail({ legalEntityId, batchId }: { legalEntityId: string; batchId: st
   const [linesFailure, setLinesFailure] = useState<PayrollFailure | null>(null);
   const [revision, setRevision] = useState(0);
   const [announcement, setAnnouncement] = useState('');
+  const [submitted, setSubmitted] = useState<boolean | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -246,6 +248,14 @@ function Detail({ legalEntityId, batchId }: { legalEntityId: string; batchId: st
             </p>
           </section>
           {batch.status === 'PREPARED' && (
+            <PaymentSubmissionPanel
+              legalEntityId={legalEntityId}
+              batchId={batchId}
+              prepared
+              onKnown={setSubmitted}
+            />
+          )}
+          {batch.status === 'PREPARED' && submitted === false && (
             <PaymentBatchCancelPanel
               legalEntityId={legalEntityId}
               batchId={batchId}
