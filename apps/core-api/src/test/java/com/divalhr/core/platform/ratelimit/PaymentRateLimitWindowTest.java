@@ -97,8 +97,7 @@ class PaymentRateLimitWindowTest {
     Map<String, Integer> limits = new LinkedHashMap<>();
     for (String bucket : SUBJECT_BUCKETS) {
       limits.put(
-          bucket,
-          Integer.parseInt(defaultOf(yaml, "divalhr.request-limits.subject." + bucket)));
+          bucket, Integer.parseInt(defaultOf(yaml, "divalhr.request-limits.subject." + bucket)));
     }
     assertThat(limits)
         .containsExactly(

@@ -276,7 +276,8 @@ class PaymentQueryPlanIntegrationTest {
             status -> {
               jdbc.execute("SET LOCAL enable_bitmapscan = off");
               jdbc.execute("SET LOCAL enable_sort = off");
-              // The tiny cancellation table is otherwise materialized and scanned once; a real one is probed by key.
+              // The tiny cancellation table is otherwise materialized and scanned once; a real one
+              // is probed by key.
               jdbc.execute("SET LOCAL enable_material = off");
               return String.join(
                   "\n", named.query("EXPLAIN " + sql, params, (rs, row) -> rs.getString(1)));
