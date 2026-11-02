@@ -597,7 +597,7 @@ public class JdbcPaymentRepository {
    * @return the count of other employees
    */
   public int otherHolders(TenantId tenant, String fingerprint, UUID exceptEmployee) {
-    Integer count =
+    int count =
         jdbc.sql(
                 "SELECT count(*) FROM payroll.payment_destination d WHERE d.tenant_id = :tenant"
                     + " AND d.fingerprint = :fingerprint AND d.employee_id <> :employee"
@@ -608,7 +608,7 @@ public class JdbcPaymentRepository {
             .param("employee", exceptEmployee)
             .query(Integer.class)
             .single();
-    return count == null ? 0 : count;
+    return count;
   }
 
   /**
@@ -692,7 +692,7 @@ public class JdbcPaymentRepository {
    */
   public int latestPackageVersion(
       TenantId tenant, UUID legalEntityId, LocalDate periodStart, String currency) {
-    Integer version =
+    int version =
         jdbc.sql(
                 "SELECT coalesce(max(p.version), 0) FROM payroll.payroll_package p"
                     + " WHERE p.tenant_id = :tenant AND p.legal_entity_id = :entity"
@@ -703,7 +703,7 @@ public class JdbcPaymentRepository {
             .param("currency", currency)
             .query(Integer.class)
             .single();
-    return version == null ? 0 : version;
+    return version;
   }
 
   /**
@@ -714,7 +714,7 @@ public class JdbcPaymentRepository {
    * @return the version, 0 when none
    */
   public int chainVersion(TenantId tenant, UUID packageId) {
-    Integer version =
+    int version =
         jdbc.sql(
                 "SELECT coalesce(max(b.version), 0) FROM payroll.payment_batch b"
                     + " WHERE b.tenant_id = :tenant AND b.package_id = :package")
@@ -722,7 +722,7 @@ public class JdbcPaymentRepository {
             .param("package", packageId)
             .query(Integer.class)
             .single();
-    return version == null ? 0 : version;
+    return version;
   }
 
   /**

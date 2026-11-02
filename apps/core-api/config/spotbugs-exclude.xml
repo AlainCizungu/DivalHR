@@ -137,6 +137,19 @@
       <Class name="com.divalhr.core.payroll.internal.JdbcPayrollLifecycleRepository"/>
       <Class name="com.divalhr.core.payroll.api.PayrollLifecycleController"/>
       <Class name="com.divalhr.core.payroll.api.PayrollInputExportController"/>
+      <!-- MVP-095A: payment services, guard, recorder, repository and controllers hold injected
+           collaborators. -->
+      <Class name="com.divalhr.core.payroll.application.PaymentBatchService"/>
+      <Class name="com.divalhr.core.payroll.application.PaymentDestinationService"/>
+      <Class name="com.divalhr.core.payroll.application.PaymentRegisterService"/>
+      <Class name="com.divalhr.core.payroll.application.PaymentRecorder"/>
+      <Class name="com.divalhr.core.payroll.application.PaymentBatchEvidence"/>
+      <Class name="com.divalhr.core.payroll.application.PreparedPaymentBatchGuard"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPaymentRepository"/>
+      <Class name="com.divalhr.core.payroll.api.PaymentBatchController"/>
+      <Class name="com.divalhr.core.payroll.api.PaymentRegisterController"/>
+      <Class name="com.divalhr.core.payroll.api.EmployeePaymentDestinationController"/>
+      <Class name="com.divalhr.core.payroll.api.MyPaymentDestinationController"/>
       <!-- MVP-093A: monthly compensation services, guard, adapter, repository and controllers
            hold injected collaborators. -->
       <Class name="~com\.divalhr\.core\.payroll\.application\.(Compensation|MyCompensation|PayrollCompensation)[A-Za-z]*"/>
@@ -224,5 +237,11 @@
   <Match>
     <Bug pattern="HSC_HUGE_SHARED_STRING_CONSTANT"/>
     <Class name="com.divalhr.core.payroll.PayrollRunMigrationIntegrationTest"/>
+  </Match>
+  <!-- MVP-095A: the batch evaluation is an immutable result; its lists are copied unmodifiable in the
+       record's constructor. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="com.divalhr.core.payroll.domain.PaymentBatchEvaluator$Evaluation"/>
   </Match>
 </FindBugsFilter>

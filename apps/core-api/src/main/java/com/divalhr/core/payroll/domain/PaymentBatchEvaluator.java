@@ -140,6 +140,13 @@ public final class PaymentBatchEvaluator {
       int manual,
       long totalNet) {
 
+    /** Copies the lists unmodifiable: an evaluation never changes after it is built. */
+    public Evaluation {
+      blockers = List.copyOf(blockers);
+      warnings = List.copyOf(warnings);
+      lines = List.copyOf(lines);
+    }
+
     /**
      * @return whether the batch can be prepared
      */
