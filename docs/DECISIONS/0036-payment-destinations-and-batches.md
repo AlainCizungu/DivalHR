@@ -60,6 +60,15 @@ New request-limit buckets (`payment-read`, `payment-destination-preview`, `payme
 the ops script, never committed. Rollback of V47 refuses while destinations or batches exist and records the
 evidence. No webhook or WhatsApp event carries payment data.
 
+Executable proofs (review R184-1): `PaymentQueryPlanIntegrationTest` (every `JdbcPaymentRepository` statement is
+index driven on a five-tenant analyzed dataset, no sequential scan of a payment, payslip or package table, no sort
+on the ordered and paged paths, no index added); `PaymentEventsNotDeliveredTest` and
+`PaymentEventsNotDeliveredIntegrationTest` (the three payment outbox types are in neither the webhook nor the
+WhatsApp mapping or fan-out allow-list, and after the real operations and both fan-out jobs no fan-out marker and no
+delivery row exists for them); `PaymentRateLimitIntegrationTest` (the six subject buckets and the 14 handlers, with
+a reflection check against the configured buckets) and `PaymentTenantRateLimitIntegrationTest` (the five tenant
+buckets).
+
 ## 7. Not included
 
 Payment submission to a bank or provider, disbursement, reconciliation, accounting posting, salary advances,
