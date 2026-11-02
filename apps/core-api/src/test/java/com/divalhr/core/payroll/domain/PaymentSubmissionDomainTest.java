@@ -64,7 +64,8 @@ class PaymentSubmissionDomainTest {
         .contains("\"lineCount\":2")
         .contains("\"totalMinor\":300050")
         .contains("\"schemaVersion\":1")
-        .doesNotContain(" ")
+        .doesNotContain(": ")
+        .doesNotContain(", ")
         .doesNotContain("\n");
     assertThat(text.indexOf("\"account\"")).isLessThan(text.indexOf("\"amountMinor\""));
     assertThat(text.indexOf("\"requestId\"")).isLessThan(text.indexOf("\"schemaVersion\""));

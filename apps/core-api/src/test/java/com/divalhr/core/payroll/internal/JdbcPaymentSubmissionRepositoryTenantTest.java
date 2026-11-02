@@ -102,7 +102,7 @@ class JdbcPaymentSubmissionRepositoryTenantTest {
     }
     assertThat(source).contains("WHERE a.tenant_id = :tenant AND a.submission_id = :submission");
     assertThat(source).contains("WHERE tenant_id = :tenant AND id = :id AND version = :expected");
-    assertThat(source).contains("s.tenant_id = :tenant AND s.id = :id FOR UPDATE");
+    assertThat(source).containsPattern("s\\.tenant_id = :tenant AND s\\.id = :id\"\\s*\\+\\s*\" FOR UPDATE");
   }
 
   @Test
