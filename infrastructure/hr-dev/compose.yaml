@@ -267,6 +267,8 @@ services:
       DIVALHR_AI_SERVICE_URL: http://ai-service:8090
       DIVALHR_AI_SERVICE_TOKEN_URL: http://idp-internal:8081/identity/realms/divalhr-test/protocol/openid-connect/token
       DIVALHR_AI_SERVICE_CLIENT_ID: divalhr-core-ai
+      # MVP-095A (ADR 0036): the payment destination encryption key is the file
+      # secrets/core/DIVALHR_PAYMENT_ENCRYPTION_KEY (configtree), never an environment value.
       # MVP-110 (ADR 0028): the signing-secret encryption key is the file
       # secrets/core/DIVALHR_WEBHOOK_ENCRYPTION_KEY (configtree), never an environment value.
       # TEST ENVIRONMENT ONLY: the synthetic receiver below is the single private destination Core

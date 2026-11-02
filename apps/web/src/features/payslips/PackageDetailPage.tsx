@@ -20,6 +20,7 @@ import {
 } from './PayslipBits';
 import { packageFailureOf, PAYSLIP_PAGE_LIMIT } from './payslips';
 import { usePdfDownload } from './usePdfDownload';
+import { PaymentBatchPanel } from '../payments/PaymentBatchPanel';
 import { VoidPanel } from './VoidPanel';
 
 type DetailLoad =
@@ -392,6 +393,16 @@ function Detail({ legalEntityId, packageId }: { legalEntityId: string; packageId
             legalEntityId={legalEntityId}
             packageId={packageId}
             revision={revision}
+          />
+          <PaymentBatchPanel
+            legalEntityId={legalEntityId}
+            packageId={packageId}
+            packageStatus={pkg.status}
+            revision={revision}
+            onChanged={(message) => {
+              setAnnouncement(message);
+              setRevision((value) => value + 1);
+            }}
           />
           {pkg.status === 'APPROVED' && (
             <VoidPanel

@@ -83,6 +83,11 @@ elif [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_MESSAGING_ENCRYPTION_KEY" ] \
   # MVP-111: an existing environment gains the messaging secrets (never overwritten).
   hr_log "adding the messaging secrets"
   "$REL/ops/hr-dev/init-secrets.sh" || hr_die "init-secrets failed"
+elif [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_PAYMENT_ENCRYPTION_KEY" ]; then
+  # MVP-095A: an existing environment gains the payment destination encryption key (never
+  # overwritten).
+  hr_log "adding the payment destination encryption key"
+  "$REL/ops/hr-dev/init-secrets.sh" || hr_die "init-secrets failed"
 elif [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET" ]; then
   # R157-1: an existing environment gains the AI client secret. init-secrets.sh never overwrites
   # a file, so only the missing values are created.

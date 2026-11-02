@@ -313,7 +313,7 @@ final class PayrollPackageCommands {
     return new VoidDraft(reason, explanation);
   }
 
-  private static Instant instant(Object raw, String field, FieldErrors errors) {
+  static Instant instant(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -330,7 +330,7 @@ final class PayrollPackageCommands {
     return null;
   }
 
-  private static Integer version(Object raw, String field, int min, FieldErrors errors) {
+  static Integer version(Object raw, String field, int min, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -347,7 +347,7 @@ final class PayrollPackageCommands {
     return null;
   }
 
-  private static String digest(Object raw, String field, FieldErrors errors) {
+  static String digest(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -359,7 +359,7 @@ final class PayrollPackageCommands {
     return text;
   }
 
-  private static void confirmed(Object raw, String field, FieldErrors errors) {
+  static void confirmed(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
     } else if (!(raw instanceof Boolean value)) {
@@ -369,7 +369,7 @@ final class PayrollPackageCommands {
     }
   }
 
-  private static void key(String idempotencyKey, FieldErrors errors) {
+  static void key(String idempotencyKey, FieldErrors errors) {
     if (idempotencyKey == null || idempotencyKey.isBlank()) {
       errors.add(IdempotencyKeys.HEADER, Constraint.REQUIRED);
     } else if (!IdempotencyKeys.isWellFormed(idempotencyKey)) {

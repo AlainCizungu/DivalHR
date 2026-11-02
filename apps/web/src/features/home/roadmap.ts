@@ -15,6 +15,8 @@ import type { IconName } from '../../ui/Icon';
  * professionally verified statutory pack; the real DRC pack is DRAFT, so "operational DRC payslips"
  * stays here as pilot and readiness, with filing, accounting posting, disbursement and salary
  * advances still next.
+ * MVP-095A (Issue #183): payment destinations and payment instruction registers are shipped; sending
+ * payments to banks or providers and reconciliation stay here as "Coming next".
  */
 export interface RoadmapItem {
   id: string;

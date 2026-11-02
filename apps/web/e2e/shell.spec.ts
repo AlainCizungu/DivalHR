@@ -153,6 +153,7 @@ test.describe('desktop', () => {
       'Mes tâches',
       'Mes notes de frais',
       'Ma rémunération',
+      'Ma destination de paiement',
       'Mes bulletins de paie',
       'Notes de frais à approuver',
     ]);

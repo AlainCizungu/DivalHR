@@ -20,7 +20,7 @@ A story is ready when it has a business owner, French and English copy, acceptan
 
 Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a story is **Merged** when its pull request's merge commit is on the first-parent history of `main` (`git log --merges --first-parent origin/main`), and its merge commit, pull-request number and date are the ones Git records (`git show -s --format=%cI`). "Complete" on older stories keeps its earlier meaning (issue closed as completed and pull request merged); this refresh checked Git only, not the issue tracker, so it does not re-assert whether an issue is closed.
 
-**Deployed hr-dev release (as of 2026-10-29).** `https://hr-dev.dival.ai` runs `main` at `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, merged 2026-10-29T16:02:19-05:00; deployed 2026-10-29, V43 applied; one full AWS verification run `20261029T200838Z-18c840389771`). It was preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (merge of PR #174, SEC-003, merged 2026-10-29T07:42:43-05:00; deployed 2026-10-29) and, before that, `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (merge of PR #170, MVP-081, merged 2026-10-28). The test environment runs one released commit of `main` at a time and holds synthetic data only. Deployment dates of earlier releases are recorded in the story sections where this backlog already stated them; for every other story the deployed fact derived from Git is that its merge commit is an ancestor of the deployed release `1d910234…` (and so of `5d4cd106…` and `3223454…`), shown as "contained" below. Where Git cannot show a deployment, this backlog says "merged", not "deployed". MVP-094A is **not** deployed (it is merged: PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`, 2026-10-29; hr-dev still runs `3223454…`): the payroll release train (094A, 094B, 094C) is verified and deployed once, after the third story. MVP-094B is **not** deployed either (it is merged: PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; hr-dev still runs `3223454…`), and nothing of 094A, 094B or 094C is deployed. MVP-094C is in progress (Issue #181, not merged, not deployed).
+**Deployed hr-dev release (as of 2026-11-01).** `https://hr-dev.dival.ai` runs `main` at `035072d3d6b0d4afc126490b2414bab43206d18d` (merge of PR #182, MVP-094C, merged 2026-11-01T09:23:15-06:00). The payroll release train (MVP-094A, PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`; MVP-094B, PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; MVP-094C, PR #182, merge commit `035072d3d6b0d4afc126490b2414bab43206d18d`) is merged, deployed and accepted on hr-dev; migrations V44, V45 and V46 are applied; Issue #181 is closed. The real DRC rule pack `CD-SALARY-PREVIEW` is still DRAFT and inactive. The release before it was `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, 2026-10-29), preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (PR #174, SEC-003) and `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (PR #170, MVP-081). The test environment runs one released commit of `main` at a time and holds synthetic data only. MVP-095A (Issue #183) is in progress: not merged, not deployed.
 
 ### Git evidence for the stories reconciled by MVP-093A
 
@@ -41,6 +41,9 @@ Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a stor
 | MVP-081   | #170 | `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` | 2026-10-28 | deployed  |
 | SEC-003   | #174 | `5d4cd1068b63b84e33671123405d6bef1178b6aa` | 2026-10-29 | deployed  |
 | MVP-093A  | #176 | `3223454379a9b6342fe3c6b2728d8f17680466e7` | 2026-10-29 | deployed  |
+| MVP-094A  | #178 | `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430` | 2026-10-29 | contained |
+| MVP-094B  | #180 | `995a6937c1d22aeef3ab0023856195a1adcae4e2` | 2026-10-30 | contained |
+| MVP-094C  | #182 | `035072d3d6b0d4afc126490b2414bab43206d18d` | 2026-11-01 | deployed  |
 
 Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.
 
@@ -396,7 +399,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-094A Create monthly payroll runs and calculate contractual gross
 
-**Issue #177. Merged (PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`), not deployed; hr-dev still runs `3223454…`.** Branch `feature/177-mvp-094a-monthly-payroll-foundation`, created from `main` at `3223454`. ADR 0033, decisions D94A-1 to D94A-13. First story of the payroll release train: MVP-094A (monthly run and contractual gross), MVP-094B (approved country statutory rule pack), MVP-094C (review, approval and employee payslip). One combined full verification and one hr-dev deployment follow the train.
+**Issue #177. Merged (PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`), deployed to hr-dev with the payroll release train (hr-dev runs `035072d3…`) and accepted.** Branch `feature/177-mvp-094a-monthly-payroll-foundation`, created from `main` at `3223454`. ADR 0033, decisions D94A-1 to D94A-13. First story of the payroll release train: MVP-094A (monthly run and contractual gross), MVP-094B (approved country statutory rule pack), MVP-094C (review, approval and employee payslip). One combined full verification and one hr-dev deployment follow the train.
 
 - **Outcome.** A tenant administrator with exact MFA configures a legal entity's effective-dated monthly payroll policy (pay day, proration method) and creates reproducible **draft** payroll runs for a closed month and one currency whose **contractual gross** (monthly base compensation after the proration policy, rounded once HALF_UP in the currency minor unit) is frozen with its evidence.
 - **Boundary.** Contractual gross is not taxable gross, net pay or money owed. Attendance and timesheets never scale a monthly salary. Draft only: no approval, locking, payslip, payment, statutory deduction or employee-facing payroll page. Employer policies, not compliance claims.
@@ -406,7 +409,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-094B Add a source-versioned DRC statutory payroll preview
 
-**Issue #179. Merged (PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`), not deployed; hr-dev still runs `3223454…`.** Branch `feature/179-mvp-094b-drc-statutory-preview`, created from `main` at `dcd4d7e` (the merge of MVP-094A, PR #178). ADR 0034, decisions D94B-1 to D94B-14. Second story of the payroll release train; hr-dev still runs `3223454…` and is deployed once, after MVP-094C.
+**Issue #179. Merged (PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`), deployed to hr-dev with the payroll release train (hr-dev runs `035072d3…`) and accepted.** Branch `feature/179-mvp-094b-drc-statutory-preview`, created from `main` at `dcd4d7e` (the merge of MVP-094A, PR #178). ADR 0034, decisions D94B-1 to D94B-14. Second story of the payroll release train, deployed once with MVP-094C.
 
 - **Outcome.** A tenant administrator with exact MFA applies an immutable, effective-dated, source-versioned **rule pack** to the frozen lines of one MVP-094A payroll run and reads, per employee, contractual gross, employee deductions, employer contributions, preview net and employer cost, with every step, formula identifier, rate or bracket, rounding and official source. Unsupported or unverified cases block visibly.
 - **Boundary.** A "Statutory preview—not a payslip or payment" / « Aperçu statutaire — ni bulletin de paie ni paiement ». It is not a payslip, approval, filing, payment or claim of legal compliance; the employer remains responsible for legal review. No approve, payslip, pay or disburse control exists. USD, expatriate or non-resident employees, allowances, bonuses, overtime and retro pay block the calculation.
@@ -418,12 +421,23 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-094C Approve payroll and publish bilingual payslips
 
-**Issue #181. In progress (not merged, not deployed).** Branch `feature/181-mvp-094c-payroll-approval-payslips`, created from `main` at `995a6937` (the merge of MVP-094B, PR #180). ADR 0035, decisions D94C-1 onward. Third and last story of the payroll release train; hr-dev still runs `3223454…` and nothing of 094A, 094B or 094C is deployed.
+**Issue #181. Merged (PR #182, merge commit `035072d3d6b0d4afc126490b2414bab43206d18d`), deployed to hr-dev and accepted; Issue #181 is closed.** Branch `feature/181-mvp-094c-payroll-approval-payslips`, created from `main` at `995a6937` (the merge of MVP-094B, PR #180). ADR 0035, decisions D94C-1 onward. Third and last story of the payroll release train; the train is deployed on hr-dev (`035072d3…`).
 
 - **Outcome.** A tenant administrator with exact MFA reviews one frozen statutory calculation, confirms three statements, and approves it as "Approved payroll" / « Paie approuvée », which publishes one bilingual "Payslip" / « Bulletin de paie » per employee. An approved package can be voided with a controlled reason. Employees read and download only their own payslips.
 - **Boundary.** Every page says "Not proof of payment" / « Ne constitue pas une preuve de paiement » and "Statutory calculation based on rule pack {code} v{version}". No filing, accounting posting, disbursement or advances.
 - **Truth refresh (D94C-14).** Only a DRAFT real pack ships. The landing page and roadmap present payroll review and payslips as verified-pack pilot and readiness only, with no operational DRC payslip claim; filing, accounting posting, disbursement and advances stay under "coming next".
 - **Web.** Review page reached from the statutory run page, package list and detail, administrator payslip list with HTML view and PDF download, void preview and confirm, and "My payslips" / « Mes bulletins de paie » for employees; two Playwright journeys.
+
+### MVP-095A Record payment destinations and prepare payment batches
+
+**Issue #183. In progress (not merged, not deployed; hr-dev runs `035072d3…`).** Branch `feature/183-mvp-095a-payment-batch`, created from `main` at `035072d3`. ADR 0036, decisions D95A-1 to D95A-13. Migration V47.
+
+- **Outcome.** A tenant administrator with exact MFA records an employee's effective-dated **payment destination** (bank account, mobile money in E.164, or manual) and, from an APPROVED, non-voided, latest payroll package, prepares one **payment batch**: a register of instructions copied exactly from the approved net amounts. A linked employee reads only their own masked destination at `/me/payment-destination`.
+- **Boundary.** A prepared batch is a payment instruction register. Nothing is sent to a bank or provider, no money moves, and no account is verified: destinations stay RECORDED. DivalHR makes no claim of DRC compliance. Payment submission, reconciliation, accounting and salary advances stay under "Coming next" / « Prochainement ».
+- **Protection.** Account numbers and phone numbers are sealed (AES-256-GCM envelope, keyed fingerprint); only masked values are readable after commit; history is append-only. Amounts and currency are copied from the package, never recalculated; no partial batch.
+- **Lifecycle.** PREPARED or CANCELLED only. A PREPARED batch blocks voiding the payroll package (`PayrollPaymentGuard`); cancelling releases it. Deterministic CSV and manifest downloads. Thirteen stable error codes; limits of 5,000 lines and 25 destination versions.
+- **Web.** Destination section on the employee profile, batch panel on the package page, batch detail and cancel pages, and « Ma destination de paiement » / "My payment destination" for employees, in English and French; two Playwright journeys.
+- **Not included:** payment submission to a bank or provider, disbursement, reconciliation, accounting posting, salary advances, destination verification, notifications of any kind.
 
 ## Epic 11 Dashboards and AI
 

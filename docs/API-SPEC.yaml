@@ -12024,6 +12024,620 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /employees/{employeeId}/payment-destination:
+    get:
+      operationId: getEmployeePaymentDestination
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read an employee's salary payment destination
+      description: >-
+        MVP-095A (ADR 0036). The employee's current MASKED salary payment destination on the organization's business date, the latest recorded version and a scheduled future destination, if any.
+        Account numbers, phone numbers, holder names, branch values and explanations are never returned after entry. A destination is RECORDED; it is not verified with any bank or provider.
+        Unknown, foreign and malformed employee IDs are the same 404 PAYMENT_DESTINATION_NOT_FOUND. A fail-closed disclosure (audit payment-destination.read). At most 60 reads per subject per minute.
+        Cache-Control private, no-store. Payment preparation only: no money has been sent.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PaymentEmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The employee's payment destination
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentDestinationRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/payment-destination/history:
+    get:
+      operationId: listEmployeePaymentDestinationHistory
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List an employee's payment destination history
+      description: >-
+        MVP-095A. The append-only history of recorded destinations, newest version first, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, employee, role and page size and carries no destination value).
+        Every entry keeps the exact masked value it had when it was recorded. Unknown or foreign employees are the same 404 PAYMENT_DESTINATION_NOT_FOUND. A fail-closed disclosure (audit payment-destination.read). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PaymentEmployeeId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of destination history
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentDestinationPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/payment-destination/preview:
+    post:
+      operationId: previewPaymentDestination
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview recording a salary payment destination
+      description: >-
+        MVP-095A. Validates a BANK_ACCOUNT, MOBILE_MONEY or MANUAL destination without storing it: a controlled provider for the country, a plausible account number or E.164 phone number, a holder name, an optional branch value, a strictly later effective date than the current version, and a closed reason
+        (INITIAL_SETUP, EMPLOYEE_REQUEST, PROVIDER_CHANGE, ACCOUNT_CORRECTION, OTHER_CONTROLLED with a bounded explanation). Returns READY, or BLOCKED (NO_CHANGE), warnings (DUPLICATE_DESTINATION: the same account is recorded for another employee; counts only), the masked value, the expected version, a previewDigest and a 15-minute expiry.
+        Sensitive values are never echoed back. A fail-closed disclosure audit is written (payment-destination.read). 503 PAYMENT_DESTINATION_KEY_UNAVAILABLE when the payment encryption key is not configured. At most 10 previews per subject per minute and 60 per tenant per hour.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PaymentEmployeeId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentDestinationCommand"
+      responses:
+        "200":
+          description: The destination preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentDestinationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /employees/{employeeId}/payment-destination/commit:
+    post:
+      operationId: commitPaymentDestination
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Record a salary payment destination
+      description: >-
+        MVP-095A. Repeats the previewed destination, the expectedVersion, the previewDigest and expiresAt, reviewedDetails=true and an Idempotency-Key. In one transaction (idempotency, tenant payment-destination lock shared, the employee's destination lock) the stored version is compared (409 PAYMENT_DESTINATION_VERSION_CONFLICT),
+        the preview is re-derived (409 PAYMENT_DESTINATION_PREVIEW_STALE) and the next version is appended, encrypted at rest (AES-256-GCM envelope) with a keyed fingerprint for duplicate detection only. The audit record (payment-destination.record) and the internal outbox event
+        (payroll.payment-destination.recorded.v1) carry identifiers, the version and the method only. The response is the masked receipt; sensitive values and fingerprints never leave the encrypted envelope. At most 5 writes per subject per minute and 20 per tenant per hour.
+        The same Idempotency-Key and payload replays the original 201. Payment preparation only: no money has been sent.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PaymentEmployeeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPaymentDestination"
+      responses:
+        "201":
+          description: Recorded, or the original record replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentDestinationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/payment-destination:
+    get:
+      operationId: getMyPaymentDestination
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read my masked salary payment destination
+      description: >-
+        MVP-095A. The caller's own CURRENT destination, masked and read-only: the method, the provider, the country, the masked value and the effective date, or NOT_RECORDED. Resolved from the caller's active employee-access link on every request (403 EMPLOYEE_LINK_REQUIRED otherwise).
+        No history, holder name, full account or phone number, employer total or other employee can be reached. Employees cannot change it in this release: updates are requested from the organization. A fail-closed disclosure (audit payment-destination.read). At most 60 reads per subject per minute. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The caller's own masked destination
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyPaymentDestination"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-packages/{packageId}/payment-batches/preview:
+    post:
+      operationId: previewPaymentBatch
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview preparing a payment batch from an approved payroll package
+      description: >-
+        MVP-095A. For an APPROVED, latest package of its legal entity, month and currency, returns the exact payable lines copied from the immutable payslips (positive net only; zero-net payslips are counted and excluded), the counts by BANK_ACCOUNT, MOBILE_MONEY and MANUAL, the positive-net total,
+        blockers (PACKAGE_VOIDED, PACKAGE_NOT_LATEST, BATCH_ALREADY_PREPARED, NO_PAYABLE_LINES, MISSING_DESTINATION, DESTINATION_INVALID, INTEGRITY_FAILURE, LIMIT_REACHED), warnings (DESTINATION_CHANGED_AFTER_APPROVAL, DUPLICATE_DESTINATION, MANUAL_LINES_PRESENT, ZERO_NET_EXCLUDED),
+        the destinations digest, the expected batch-chain version, a previewDigest and a 15-minute expiry (both null unless READY). Every positive-net line needs exactly one destination effective on the package approval date; one blocker blocks the whole batch (no partial preparation).
+        Nothing is recalculated and no currency is converted. A fail-closed disclosure audit is written (payment-batch.read). At most 5 previews per subject per minute and 60 per tenant per hour. Cache-Control private, no-store. Payment preparation only: no money has been sent.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollPackageId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The payment batch preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentBatchPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-packages/{packageId}/payment-batches:
+    post:
+      operationId: preparePaymentBatch
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Prepare an immutable payment batch
+      description: >-
+        MVP-095A. Repeats the expectedVersion, the packageVersion, the previewDigest and expiresAt, reviewedTotalsAndDestinations=true, noMoneySentAcknowledged=true and an Idempotency-Key. In one transaction (idempotency, tenant statutory lock shared, the legal entity's package lock, the package row, the tenant payment-destination lock,
+        the batch chain) the package, the destination versions and the chain are re-read; any drift is 409 PAYMENT_BATCH_PREVIEW_STALE, another batch is 409 PAYMENT_BATCH_VERSION_CONFLICT or PAYMENT_BATCH_ALREADY_PREPARED, a blocker is 409 PAYMENT_BATCH_BLOCKED and a limit is 409 PAYMENT_BATCH_LIMIT_REACHED.
+        The PREPARED batch and its lines are immutable; the payroll payment guard then refuses voiding the package (409 PAYROLL_VOID_NOT_ALLOWED) until the batch is cancelled. The audit record (payment-batch.prepare) and the internal outbox event (payroll.payment-batch.prepared.v1) carry identifiers, version, status and bounded counts only.
+        The response is an amount-free receipt. At most 2 commits per subject per minute and 20 per tenant per hour. The same Idempotency-Key and payload replays the original 201. Payment preparation only: no money has been sent.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollPackageId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPaymentBatch"
+      responses:
+        "201":
+          description: Prepared, or the original batch replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentBatchReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches:
+    get:
+      operationId: listPaymentBatches
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the payment batches of a legal entity
+      description: >-
+        MVP-095A. Batches of the legal entity, newest first (prepared instant, then id), as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, entity, filters, role and page size and carries no amount) with an optional packageId and status filter.
+        Counts, totals and masked-free summaries only. A fail-closed disclosure (audit payment-batch.read). At most 60 reads per subject per minute. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchPackageFilter"
+        - $ref: "#/components/parameters/PaymentBatchStatusFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of payment batches
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentBatchPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}:
+    get:
+      operationId: getPaymentBatch
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read a payment batch
+      description: >-
+        MVP-095A. One batch with its evidence (package version and approval digest, batch digest, destinations digest, counts by method, total, status and cancellation reason). Unknown, malformed, foreign-tenant and foreign-entity IDs are the same 404 PAYMENT_BATCH_NOT_FOUND.
+        A fail-closed disclosure (audit payment-batch.read). Cache-Control private, no-store. The batch is an instruction-preparation record, not proof of transmission or payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The payment batch
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentBatchDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/lines:
+    get:
+      operationId: listPaymentBatchLines
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the lines of a payment batch
+      description: >-
+        MVP-095A. The immutable payable lines by employee ID as a keyset page (default 25, maximum 200): employee number, method, provider, MASKED destination, destination version and the approved net amount in minor units. Full account and phone numbers are never returned.
+        A fail-closed disclosure (audit payment-batch.read; first page). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PaymentBatchLineLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of batch lines
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentBatchLinePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/cancel/preview:
+    post:
+      operationId: previewPaymentBatchCancellation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview cancelling a payment batch
+      description: >-
+        MVP-095A. For a PREPARED batch, validates the closed reason (DESTINATION_CORRECTION, PACKAGE_CORRECTION, PREPARED_IN_ERROR, OTHER_CONTROLLED) and returns READY (previewDigest and 15-minute expiry) or BLOCKED (ALREADY_CANCELLED). Cancelling releases the payroll payment guard; the batch is kept as history and never reactivated.
+        A fail-closed disclosure audit is written (payment-batch.read). At most 5 previews per subject per minute. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentBatchCancelCommand"
+      responses:
+        "200":
+          description: The cancellation preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentBatchCancelPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/cancel:
+    post:
+      operationId: cancelPaymentBatch
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Cancel a payment batch
+      description: >-
+        MVP-095A. Repeats the previewed reason, batchVersion and batchDigest, the previewDigest and expiresAt, noMoneySentAcknowledged=true (nothing was sent through DivalHR) and an Idempotency-Key. Appends the cancellation evidence and moves the batch PREPARED to CANCELLED once; a CANCELLED batch is 409 PAYMENT_BATCH_CANCELLED,
+        a different batch is 409 PAYMENT_BATCH_VERSION_CONFLICT, an expired or drifted preview is 409 PAYMENT_BATCH_PREVIEW_STALE and any other refusal is 409 PAYMENT_BATCH_CANCEL_NOT_ALLOWED. The audit record (payment-batch.cancel) and the internal outbox event (payroll.payment-batch.cancelled.v1) carry identifiers, version and status only.
+        A corrected destination or source requires a new batch version. The same Idempotency-Key and payload replays the original 201.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPaymentBatchCancel"
+      responses:
+        "201":
+          description: Cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentBatchCancelReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/register.csv:
+    get:
+      operationId: downloadPaymentRegisterCsv
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download the payment register as CSV
+      description: >-
+        MVP-095A. A deterministic UTF-8 CSV (comma separated, CRLF, fixed column order, no byte order mark, formula-safe cells, lines ordered by employee ID): packageId, packageVersion, batchId, batchVersion, batchStatus, legalEntityId, period, currency, employeeNumber, paymentMethod, providerCode, maskedDestination, netAmountMinor.
+        It never holds a full account or phone number. The filename is generated (payment-register-<YYYY-MM>-<8 hex of the batch id>.csv, never employee data). Disclosure-audited before any byte is returned (payment-register.download), Cache-Control private, no-store, X-Content-Type-Options nosniff. At most 30 downloads per subject per minute and 300 per tenant per hour.
+        The register is an instruction-preparation artifact, not proof of transmission or payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The CSV register
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            X-Content-Type-Options:
+              description: nosniff
+              schema:
+                type: string
+                enum: [nosniff]
+            Content-Disposition:
+              description: 'attachment with a generated filename (never an employee name or number)'
+              schema:
+                type: string
+          content:
+            text/csv:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/manifest.json:
+    get:
+      operationId: downloadPaymentRegisterManifest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download the payment register manifest
+      description: >-
+        MVP-095A. The canonical JSON manifest of the register: package and batch identity, status, period, currency, counts by method, the positive-net total in minor units, the source (package approval) digest and the SHA-256 of the CSV bytes.
+        Same authority, audit, limits and headers as the CSV; the filename is generated (payment-register-<YYYY-MM>-<8 hex of the batch id>.manifest.json). Not proof of transmission or payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The JSON manifest
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            X-Content-Type-Options:
+              description: nosniff
+              schema:
+                type: string
+                enum: [nosniff]
+            Content-Disposition:
+              description: 'attachment with a generated filename (never an employee name or number)'
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -12935,6 +13549,40 @@ components:
       schema:
         type: integer
         minimum: 0
+    PaymentEmployeeId:
+      name: employeeId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND.
+      schema:
+        type: string
+    PaymentBatchId:
+      name: batchId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND.
+      schema:
+        type: string
+    PaymentBatchPackageFilter:
+      name: packageId
+      in: query
+      description: Optional payroll package filter.
+      schema:
+        type: string
+    PaymentBatchStatusFilter:
+      name: status
+      in: query
+      description: Optional batch status filter.
+      schema:
+        $ref: "#/components/schemas/PaymentBatchStatus"
+    PaymentBatchLineLimit:
+      name: limit
+      in: query
+      description: Page size, 1 to 200 (default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
   schemas:
     AccessReviewLookup:
       type: object
@@ -19478,6 +20126,19 @@ components:
         - PAYSLIP_NOT_FOUND
         - PAYSLIP_RENDER_FAILED
         - PAYROLL_PACKAGE_LIMIT_REACHED
+        - PAYMENT_DESTINATION_NOT_FOUND
+        - PAYMENT_DESTINATION_INVALID
+        - PAYMENT_DESTINATION_VERSION_CONFLICT
+        - PAYMENT_DESTINATION_PREVIEW_STALE
+        - PAYMENT_DESTINATION_KEY_UNAVAILABLE
+        - PAYMENT_BATCH_NOT_FOUND
+        - PAYMENT_BATCH_BLOCKED
+        - PAYMENT_BATCH_PREVIEW_STALE
+        - PAYMENT_BATCH_VERSION_CONFLICT
+        - PAYMENT_BATCH_ALREADY_PREPARED
+        - PAYMENT_BATCH_CANCELLED
+        - PAYMENT_BATCH_CANCEL_NOT_ALLOWED
+        - PAYMENT_BATCH_LIMIT_REACHED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -25375,3 +26036,716 @@ components:
           additionalProperties: true
         correlationId:
           type: string
+    PaymentMethod:
+      type: string
+      description: >-
+        BANK_ACCOUNT (account at a controlled bank), MOBILE_MONEY (E.164 number at a controlled provider) or MANUAL (payroll handled outside DivalHR; no account or phone details).
+      enum: [BANK_ACCOUNT, MOBILE_MONEY, MANUAL]
+    PaymentDestinationReasonCode:
+      type: string
+      description: Closed reason of a destination change. OTHER_CONTROLLED requires a bounded explanation, restricted to the encrypted envelope.
+      enum: [INITIAL_SETUP, EMPLOYEE_REQUEST, PROVIDER_CHANGE, ACCOUNT_CORRECTION, OTHER_CONTROLLED]
+    PaymentBatchStatus:
+      type: string
+      description: PREPARED (immutable payment instruction register; nothing was sent) or CANCELLED (kept as history; never reactivated). No SENT, ACCEPTED, PAID or FAILED state exists.
+      enum: [PREPARED, CANCELLED]
+    PaymentBatchCancelReasonCode:
+      type: string
+      enum: [DESTINATION_CORRECTION, PACKAGE_CORRECTION, PREPARED_IN_ERROR, OTHER_CONTROLLED]
+    PaymentDestinationBlocker:
+      type: string
+      description: NO_CHANGE (identical to the latest recorded version).
+      enum: [NO_CHANGE]
+    PaymentDestinationWarning:
+      type: string
+      description: DUPLICATE_DESTINATION (the same account or number is recorded for another employee; no identity is given), BACKDATED (the effective date is in the past).
+      enum: [DUPLICATE_DESTINATION, BACKDATED]
+    PaymentBatchBlocker:
+      type: string
+      enum: [PACKAGE_VOIDED, PACKAGE_NOT_LATEST, BATCH_ALREADY_PREPARED, NO_PAYABLE_LINES, MISSING_DESTINATION, DESTINATION_INVALID, INTEGRITY_FAILURE, LIMIT_REACHED]
+    PaymentBatchWarning:
+      type: string
+      enum: [DESTINATION_CHANGED_AFTER_APPROVAL, DUPLICATE_DESTINATION, MANUAL_LINES_PRESENT, ZERO_NET_EXCLUDED]
+    PaymentBatchLineIssue:
+      type: string
+      enum: [MISSING_DESTINATION, DESTINATION_INVALID, INTEGRITY_FAILURE]
+    PaymentBatchCancelBlocker:
+      type: string
+      enum: [ALREADY_CANCELLED]
+    PaymentProvider:
+      type: object
+      additionalProperties: false
+      description: >-
+        A controlled bank or mobile-money provider (code and display name). No logo, partner or integration claim.
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]{1,39}$"
+        name:
+          type: string
+          maxLength: 80
+    PaymentDestinationView:
+      type: object
+      additionalProperties: false
+      description: >-
+        One recorded destination version, masked. The status is always RECORDED: it is never verified with a bank or provider.
+      required: [id, version, method, countryCode, provider, maskedValue, effectiveFrom, status, reasonCode, recordedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        countryCode:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+        provider:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentProvider"
+            - type: "null"
+        maskedValue:
+          type: [string, "null"]
+          maxLength: 40
+        effectiveFrom:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [RECORDED]
+        reasonCode:
+          $ref: "#/components/schemas/PaymentDestinationReasonCode"
+        recordedAt:
+          type: string
+          format: date-time
+    PaymentDestinationRecord:
+      type: object
+      additionalProperties: false
+      description: >-
+        The employee's masked destination: current on the business date, latest recorded version, and a scheduled future one.
+      required: [employeeId, latestVersion, current, scheduled]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        latestVersion:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        current:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentDestinationView"
+            - type: "null"
+        scheduled:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentDestinationView"
+            - type: "null"
+    PaymentDestinationPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PaymentDestinationView"
+        nextCursor:
+          type: [string, "null"]
+    MyPaymentDestination:
+      type: object
+      additionalProperties: false
+      description: >-
+        The caller's own current destination, masked and read-only. Updates are requested from the organization.
+      required: [status, method, countryCode, provider, maskedValue, effectiveFrom]
+      properties:
+        status:
+          type: string
+          enum: [RECORDED, NOT_RECORDED]
+        method:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentMethod"
+            - type: "null"
+        countryCode:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+        provider:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentProvider"
+            - type: "null"
+        maskedValue:
+          type: [string, "null"]
+          maxLength: 40
+        effectiveFrom:
+          type: [string, "null"]
+          format: date
+    PaymentDestinationCommand:
+      type: object
+      additionalProperties: false
+      description: >-
+        Restricted financial data. Account, phone, holder, branch and explanation are encrypted at rest and never logged, audited or returned.
+      required: [method, countryCode, providerCode, accountNumber, holderName, branchCode, phoneNumber, effectiveFrom, reasonCode, explanation]
+      properties:
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        countryCode:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+        providerCode:
+          type: [string, "null"]
+          pattern: "^[A-Z][A-Z0-9_]{1,39}$"
+        accountNumber:
+          type: [string, "null"]
+          minLength: 4
+          maxLength: 34
+          description: Restricted. Bank account number or IBAN-like value (letters and digits). Required for BANK_ACCOUNT, otherwise null. Never returned.
+        holderName:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 100
+          description: Restricted. Required for BANK_ACCOUNT and MOBILE_MONEY, otherwise null. Never returned.
+        branchCode:
+          type: [string, "null"]
+          maxLength: 20
+          description: Restricted optional branch or routing value for BANK_ACCOUNT. Never returned.
+        phoneNumber:
+          type: [string, "null"]
+          pattern: "^\\+[1-9][0-9]{7,14}$"
+          description: Restricted. E.164 number, required for MOBILE_MONEY, otherwise null. Never returned.
+        effectiveFrom:
+          type: string
+          format: date
+          description: The first day the destination applies. Strictly later than the latest recorded version's date.
+        reasonCode:
+          $ref: "#/components/schemas/PaymentDestinationReasonCode"
+        explanation:
+          type: [string, "null"]
+          minLength: 10
+          maxLength: 500
+          description: Restricted. Required for OTHER_CONTROLLED, otherwise null.
+    PaymentDestinationPreview:
+      type: object
+      additionalProperties: false
+      required: [employeeId, expectedVersion, status, blockers, warnings, method, countryCode, provider, maskedValue, effectiveFrom, reasonCode, previewDigest, expiresAt]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        status:
+          type: string
+          enum: [READY, BLOCKED]
+        blockers:
+          type: array
+          maxItems: 1
+          items:
+            $ref: "#/components/schemas/PaymentDestinationBlocker"
+        warnings:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/PaymentDestinationWarning"
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        countryCode:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+        provider:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentProvider"
+            - type: "null"
+        maskedValue:
+          type: [string, "null"]
+          maxLength: 40
+        effectiveFrom:
+          type: string
+          format: date
+        reasonCode:
+          $ref: "#/components/schemas/PaymentDestinationReasonCode"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitPaymentDestination:
+      type: object
+      additionalProperties: false
+      required: [method, countryCode, providerCode, accountNumber, holderName, branchCode, phoneNumber, effectiveFrom, reasonCode, explanation, expectedVersion, previewDigest, expiresAt, reviewedDetails]
+      properties:
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        countryCode:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+        providerCode:
+          type: [string, "null"]
+          pattern: "^[A-Z][A-Z0-9_]{1,39}$"
+        accountNumber:
+          type: [string, "null"]
+          minLength: 4
+          maxLength: 34
+          description: Restricted. Bank account number or IBAN-like value (letters and digits). Required for BANK_ACCOUNT, otherwise null. Never returned.
+        holderName:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 100
+          description: Restricted. Required for BANK_ACCOUNT and MOBILE_MONEY, otherwise null. Never returned.
+        branchCode:
+          type: [string, "null"]
+          maxLength: 20
+          description: Restricted optional branch or routing value for BANK_ACCOUNT. Never returned.
+        phoneNumber:
+          type: [string, "null"]
+          pattern: "^\\+[1-9][0-9]{7,14}$"
+          description: Restricted. E.164 number, required for MOBILE_MONEY, otherwise null. Never returned.
+        effectiveFrom:
+          type: string
+          format: date
+          description: The first day the destination applies. Strictly later than the latest recorded version's date.
+        reasonCode:
+          $ref: "#/components/schemas/PaymentDestinationReasonCode"
+        explanation:
+          type: [string, "null"]
+          minLength: 10
+          maxLength: 500
+          description: Restricted. Required for OTHER_CONTROLLED, otherwise null.
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        reviewedDetails:
+          type: boolean
+          description: I reviewed the destination details. Must be true.
+    PaymentDestinationReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        Masked receipt. Sensitive values and fingerprints are never returned.
+      required: [employeeId, version, method, countryCode, provider, maskedValue, effectiveFrom, status, reasonCode, recordedAt]
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        countryCode:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+        provider:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentProvider"
+            - type: "null"
+        maskedValue:
+          type: [string, "null"]
+          maxLength: 40
+        effectiveFrom:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [RECORDED]
+        reasonCode:
+          $ref: "#/components/schemas/PaymentDestinationReasonCode"
+        recordedAt:
+          type: string
+          format: date-time
+    PaymentBatchMethodCounts:
+      type: object
+      additionalProperties: false
+      required: [bankAccount, mobileMoney, manual]
+      properties:
+        bankAccount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        mobileMoney:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        manual:
+          type: integer
+          minimum: 0
+          maximum: 5000
+    PaymentBatchLine:
+      type: object
+      additionalProperties: false
+      description: >-
+        One payable line. In a preview a line may carry an issue and no destination. Full account and phone numbers are never returned.
+      required: [payslipId, employeeId, employeeNumber, method, provider, maskedValue, destinationVersion, netMinor, issue]
+      properties:
+        payslipId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+          maxLength: 64
+        method:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentMethod"
+            - type: "null"
+        provider:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentProvider"
+            - type: "null"
+        maskedValue:
+          type: [string, "null"]
+          maxLength: 40
+        destinationVersion:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 1000
+        netMinor:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 1000000000
+        issue:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentBatchLineIssue"
+            - type: "null"
+    PaymentBatchPreview:
+      type: object
+      additionalProperties: false
+      description: >-
+        While status is BLOCKED, previewDigest and expiresAt are null.
+      required: [legalEntityId, packageId, packageVersion, period, currency, packageStatus, status, blockers, warnings, lineCount, zeroNetExcludedCount, methodCounts, totalNetMinor, expectedVersion, destinationsDigest, previewDigest, expiresAt, lines]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        packageVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          type: string
+          enum: [CDF]
+        packageStatus:
+          $ref: "#/components/schemas/PayrollPackageStatus"
+        status:
+          type: string
+          enum: [READY, BLOCKED]
+        blockers:
+          type: array
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/PaymentBatchBlocker"
+        warnings:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/PaymentBatchWarning"
+        lineCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        zeroNetExcludedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        methodCounts:
+          $ref: "#/components/schemas/PaymentBatchMethodCounts"
+        totalNetMinor:
+          type: integer
+          format: int64
+          minimum: 0
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 25
+        destinationsDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+        lines:
+          type: array
+          maxItems: 5000
+          items:
+            $ref: "#/components/schemas/PaymentBatchLine"
+    CommitPaymentBatch:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, packageVersion, previewDigest, expiresAt, reviewedTotalsAndDestinations, noMoneySentAcknowledged]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 25
+        packageVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        reviewedTotalsAndDestinations:
+          type: boolean
+          description: I reviewed the totals and the destinations. Must be true.
+        noMoneySentAcknowledged:
+          type: boolean
+          description: I understand that preparing a batch sends no money. Must be true.
+    PaymentBatchReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        Amount-free receipt.
+      required: [batchId, packageId, legalEntityId, version, status, period, currency, lineCount, preparedAt]
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        status:
+          type: string
+          enum: [PREPARED]
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          type: string
+          enum: [CDF]
+        lineCount:
+          type: integer
+          minimum: 1
+          maximum: 5000
+        preparedAt:
+          type: string
+          format: date-time
+    PaymentBatchSummary:
+      type: object
+      additionalProperties: false
+      required: [id, legalEntityId, packageId, packageVersion, version, status, period, currency, lineCount, zeroNetExcludedCount, methodCounts, totalNetMinor, preparedAt, cancelledAt, cancelReasonCode]
+      properties:
+        id:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        packageVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        status:
+          $ref: "#/components/schemas/PaymentBatchStatus"
+        period:
+          $ref: "#/components/schemas/PayrollPeriod"
+        currency:
+          type: string
+          enum: [CDF]
+        lineCount:
+          type: integer
+          minimum: 1
+          maximum: 5000
+        zeroNetExcludedCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        methodCounts:
+          $ref: "#/components/schemas/PaymentBatchMethodCounts"
+        totalNetMinor:
+          type: integer
+          format: int64
+          minimum: 1
+        preparedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: [string, "null"]
+          format: date-time
+        cancelReasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentBatchCancelReasonCode"
+            - type: "null"
+    PaymentBatchPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PaymentBatchSummary"
+        nextCursor:
+          type: [string, "null"]
+    PaymentBatchDetail:
+      type: object
+      additionalProperties: false
+      description: >-
+        The batch with its evidence. The batch is an instruction-preparation record, not proof of transmission or payment.
+      required: [batch, batchDigest, packageApprovalDigest, destinationsDigest]
+      properties:
+        batch:
+          $ref: "#/components/schemas/PaymentBatchSummary"
+        batchDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        packageApprovalDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        destinationsDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    PaymentBatchLinePage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PaymentBatchLine"
+        nextCursor:
+          type: [string, "null"]
+    PaymentBatchCancelCommand:
+      type: object
+      additionalProperties: false
+      required: [reasonCode]
+      properties:
+        reasonCode:
+          $ref: "#/components/schemas/PaymentBatchCancelReasonCode"
+    PaymentBatchCancelPreview:
+      type: object
+      additionalProperties: false
+      description: >-
+        While status is BLOCKED, previewDigest and expiresAt are null.
+      required: [legalEntityId, packageId, batchId, batchVersion, batchStatus, status, blockers, reasonCode, lineCount, batchDigest, previewDigest, expiresAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        batchVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        batchStatus:
+          $ref: "#/components/schemas/PaymentBatchStatus"
+        status:
+          type: string
+          enum: [READY, BLOCKED]
+        blockers:
+          type: array
+          maxItems: 1
+          items:
+            $ref: "#/components/schemas/PaymentBatchCancelBlocker"
+        reasonCode:
+          $ref: "#/components/schemas/PaymentBatchCancelReasonCode"
+        lineCount:
+          type: integer
+          minimum: 1
+          maximum: 5000
+        batchDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitPaymentBatchCancel:
+      type: object
+      additionalProperties: false
+      required: [reasonCode, batchVersion, batchDigest, previewDigest, expiresAt, noMoneySentAcknowledged]
+      properties:
+        reasonCode:
+          $ref: "#/components/schemas/PaymentBatchCancelReasonCode"
+        batchVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        batchDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        noMoneySentAcknowledged:
+          type: boolean
+          description: I confirm that nothing was sent through DivalHR for this batch. Must be true.
+    PaymentBatchCancelReceipt:
+      type: object
+      additionalProperties: false
+      required: [batchId, packageId, legalEntityId, version, status, reasonCode, cancelledAt]
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        status:
+          type: string
+          enum: [CANCELLED]
+        reasonCode:
+          $ref: "#/components/schemas/PaymentBatchCancelReasonCode"
+        cancelledAt:
+          type: string
+          format: date-time

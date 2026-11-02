@@ -38,6 +38,7 @@ import org.springframework.test.context.TestExecutionListeners;
       "divalhr.contracts.jobs.enabled=false",
       "divalhr.integrations.jobs.enabled=false",
       "divalhr.integrations.encryption-key=test-only-webhook-encryption-key-00000001",
+      "divalhr.payroll.payment.encryption-key=test-only-payment-encryption-key-000001",
       "divalhr.integrations.test-receiver.host=receiver.test",
       "divalhr.integrations.test-receiver.port=8443",
       "divalhr.messaging.jobs.enabled=false",

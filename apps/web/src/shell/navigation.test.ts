@@ -45,6 +45,7 @@ const EMPLOYEE = [
   '/me/tasks',
   '/me/expenses',
   '/me/compensation',
+  '/me/payment-destination',
   '/me/payslips',
   '/me/expense-approvals',
 ];
@@ -137,6 +138,7 @@ describe('navigation and route registry consistency', () => {
         '/admin/payroll-runs/:legalEntityId/:runId/statutory/:calculationId/approval',
         '/admin/payroll-packages',
         '/admin/payroll-packages/:legalEntityId/:packageId',
+        '/admin/payment-batches/:legalEntityId/:batchId',
         '/admin/payroll-packages/:legalEntityId/:packageId/payslips/:payslipId',
         '/admin/people/:employeeId/statutory-profile',
         '/me/contracts',
@@ -152,6 +154,7 @@ describe('navigation and route registry consistency', () => {
         '/me/tasks',
         '/me/expenses',
         '/me/compensation',
+        '/me/payment-destination',
         '/me/payslips',
         '/me/payslips/:payslipId',
         '/me/expense-approvals',

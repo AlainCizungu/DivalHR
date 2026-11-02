@@ -49,6 +49,8 @@ import {
 } from '../features/payslips/MyPayslipsPage';
 import { PackageDetailPage } from '../features/payslips/PackageDetailPage';
 import { PackageListPage } from '../features/payslips/PackageListPage';
+import { MyPaymentDestinationPage } from '../features/payments/MyPaymentDestinationPage';
+import { PaymentBatchDetailPage } from '../features/payments/PaymentBatchDetailPage';
 import { StatutoryProfilePage } from '../features/statutory/StatutoryProfilePage';
 import { StatutoryRunPage } from '../features/statutory/StatutoryRunPage';
 import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
@@ -304,6 +306,17 @@ export const ROUTES: AppRoute[] = [
     ],
   },
   {
+    path: '/admin/payment-batches/:legalEntityId/:batchId',
+    element: <PaymentBatchDetailPage />,
+    access: tenantAdmin('payments.unauthorized', 'payments.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollPackages', to: '/admin/payroll-packages' },
+      { key: 'shell.crumb.paymentBatch' },
+    ],
+  },
+  {
     path: '/admin/payroll-packages/:legalEntityId/:packageId/payslips/:payslipId',
     element: <PackagePayslipPage />,
     access: tenantAdmin('payrollPackages.unauthorized', 'payrollPackages.signInRequired'),
@@ -492,6 +505,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'compensation.me.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myCompensation' }],
+  },
+  {
+    path: '/me/payment-destination',
+    element: <MyPaymentDestinationPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'payments.my.unauthorized',
+      signInKey: 'payments.my.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myPaymentDestination' }],
   },
   {
     path: '/me/payslips',

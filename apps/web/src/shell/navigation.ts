@@ -257,6 +257,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'contract',
         role: 'employee',
       },
+      {
+        to: '/me/payment-destination',
+        labelKey: 'nav.myPaymentDestination',
+        icon: 'contract',
+        role: 'employee',
+      },
       { to: '/me/payslips', labelKey: 'nav.myPayslips', icon: 'contract', role: 'employee' },
       {
         to: '/me/expense-approvals',
