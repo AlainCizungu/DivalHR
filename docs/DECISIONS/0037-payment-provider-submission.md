@@ -69,7 +69,7 @@ line, a decryption failure or a mapping failure blocks the whole request **befor
 
 Preview is read-only (one disclosure audit) and returns provider code and label, the SYNTHETIC-TEST flag, batch
 version and digest, line count, currency, total minor units, method counts, readiness and blocker codes, a
-15-minute `previewDigest` and its expiry. It returns no destination plaintext. Commit repeats batch version and
+`previewDigest` and its expiry (15 to 30 minutes, on the 15-minute grid). It returns no destination plaintext. Commit repeats batch version and
 digest, preview digest and expiry, `reviewedProviderAndTotals=true`, `understandAcceptedIsNotPaid=true`, plus
 `Idempotency-Key`. One transaction takes the locks in the existing payroll/payment order (idempotency reservation,
 tenant statutory lock shared, entity package lock, package row `FOR UPDATE`, tenant payment lock exclusive, then the

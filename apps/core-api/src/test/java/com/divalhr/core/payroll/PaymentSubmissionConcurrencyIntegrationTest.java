@@ -61,9 +61,11 @@ class PaymentSubmissionConcurrencyIntegrationTest {
   void world() throws Exception {
     w = new PayrollPackageWorld(mvc, jdbc, lookups, clock);
     provider.reset();
+    clock.set(java.time.Instant.now().plus(java.time.Duration.ofDays(3650)));
     for (int i = 0; i < 50 && worker.runOnce() > 0; i++) {
       // drain submissions of other classes
     }
+    clock.reset();
     provider.reset();
     p = new PaymentWorld(w);
     s = new PaymentSubmissionWorld(p);

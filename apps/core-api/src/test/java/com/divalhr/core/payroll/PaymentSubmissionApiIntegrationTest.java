@@ -67,9 +67,11 @@ class PaymentSubmissionApiIntegrationTest {
   void world() throws Exception {
     // Settle submissions left by other classes so that scripted results reach this class only.
     provider.reset();
+    clock.set(java.time.Instant.now().plus(java.time.Duration.ofDays(3650)));
     for (int i = 0; i < 50 && worker.runOnce() > 0; i++) {
       // drain
     }
+    clock.reset();
     provider.reset();
     w = new PayrollPackageWorld(mvc, jdbc, lookups, clock);
     p = new PaymentWorld(w);
@@ -174,7 +176,7 @@ class PaymentSubmissionApiIntegrationTest {
         "PAYMENT_SUBMISSION_PREVIEW_STALE");
 
     Map<String, Object> expired = PaymentSubmissionWorld.committing(preview);
-    advance(Duration.ofMinutes(20));
+    advance(Duration.ofMinutes(31));
     w.c.problem(
         s.commitRequest(w.admin, batch, Organizations.newKey(), expired),
         409,
@@ -322,11 +324,11 @@ class PaymentSubmissionApiIntegrationTest {
     provider.thenDo(
         () -> {
           clock.set(clock.instant().plus(Duration.ofMinutes(10)));
-          throw new IllegalStateException("worker died");
+          throw new AssertionError("worker died");
         });
     s.submit(batch);
     UUID request = s.requestId(batch);
-    worker.runOnce();
+    assertThatThrownBy(() -> worker.runOnce()).isInstanceOf(AssertionError.class);
     assertThat(s.state(batch)).isEqualTo("SENDING");
     worker.runOnce();
     JsonNode view = s.view(batch);
