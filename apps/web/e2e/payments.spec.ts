@@ -86,6 +86,14 @@ const person = (suffix: string, given: string, entity: Site, linked: boolean): P
 const ANA = person('A', 'Anna', ENTITY, true);
 const BEA = person('B', 'Béatrice', ENTITY, false);
 
+/** axe at the top of the page (the sticky top bar would otherwise cover the last control). */
+async function accessible(page: Page) {
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+  });
+  await expectAccessible(page);
+}
+
 function plusDays(date: string, days: number): string {
   const value = new Date(`${date}T00:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
@@ -591,7 +599,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await expect(admin.getByRole('main')).not.toContainText(ACCOUNT_NORMALIZED);
     await expect(admin.getByRole('main')).not.toContainText(HOLDER);
     expect(await storage(admin)).not.toContain(ACCOUNT_NORMALIZED);
-    await expectAccessible(admin);
+    await accessible(admin);
     await noOverflow(admin);
 
     // 2. A mobile-money destination on Béatrice's record.
@@ -631,7 +639,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await expect(batchPreview).not.toContainText(ACCOUNT_NORMALIZED);
     await expect(batchPreview).not.toContainText(PHONE);
     await expect(batchPreview.getByTestId('payment-batch-commit')).toBeDisabled();
-    await expectAccessible(admin);
+    await accessible(admin);
     await noOverflow(admin);
 
     // 4. Two confirmations by keyboard, then the batch is prepared.
@@ -656,7 +664,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await expect(detail.getByTestId('payment-detail-line-count')).toHaveText('2');
     await expect(detail.getByTestId('payment-line')).toHaveCount(2);
     await expect(detail).not.toContainText(ACCOUNT_NORMALIZED);
-    await expectAccessible(admin);
+    await accessible(admin);
     await noOverflow(admin);
 
     const [csvResponse, csvDownload] = await Promise.all([
@@ -694,7 +702,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await voidPanel.getByTestId('void-preview-button').click();
     await expect(voidPanel.getByTestId('void-blockers')).toBeVisible();
     await expect(voidPanel.getByTestId('void-commit')).toBeDisabled();
-    await expectAccessible(admin);
+    await accessible(admin);
     await context.close();
   });
 
@@ -719,7 +727,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await expect(mine).not.toContainText(ACCOUNT_NORMALIZED);
     await expect(mine).not.toContainText(HOLDER);
     await expect(mine).not.toContainText(BEA.number);
-    await expectAccessible(anna);
+    await accessible(anna);
     await noOverflow(anna);
     expect(await storage(anna)).not.toContain(ACCOUNT_NORMALIZED);
     // The administrator endpoints are closed to an employee.
@@ -749,7 +757,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await expect(admin.getByTestId('payment-batch-status')).toHaveText('Annulé');
     await expect(admin.getByTestId('payment-detail-cancelled')).toContainText('Préparé par erreur');
     await expect(admin.getByTestId('payment-cancel-panel')).toHaveCount(0);
-    await expectAccessible(admin);
+    await accessible(admin);
     await noOverflow(admin);
     await admin.getByTestId('payment-package-link').click();
     const voidPanel = admin.getByTestId('void-panel');
@@ -758,7 +766,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await expect(voidPanel.getByTestId('void-preview')).toBeVisible();
     await expect(voidPanel.getByTestId('void-blockers')).toHaveCount(0);
     await expect(voidPanel.getByTestId('void-ack')).toBeEnabled();
-    await expectAccessible(admin);
+    await accessible(admin);
     await context.close();
 
     // 3. Another tenant's administrator reaches nothing of this one.
@@ -784,7 +792,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     const alert = other.getByTestId('payment-batch-detail-failure');
     await expect(alert).toHaveAttribute('data-kind', 'notFound');
     await expect(other.getByTestId('payment-summary')).toHaveCount(0);
-    await expectAccessible(other);
+    await accessible(other);
     await otherContext.close();
   });
 });
