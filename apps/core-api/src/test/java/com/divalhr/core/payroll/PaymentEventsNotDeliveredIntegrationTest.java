@@ -27,9 +27,9 @@ import org.springframework.test.web.servlet.MockMvc;
  * delivery. A destination is recorded, a batch prepared and cancelled through the API; the three
  * internal events are in the outbox; the two real fan-out jobs run; the fan-out gate (the
  * allow-list the jobs read the outbox with) does not return them; neither job marks them fanned
- * out; and no webhook or WhatsApp delivery exists for them. A control proves the outbox reader
- * does see the events when asked for them by name, so the empty answers are the gate's doing.
- * Synthetic data only.
+ * out; and no webhook or WhatsApp delivery exists for them. A control proves the outbox reader does
+ * see the events when asked for them by name, so the empty answers are the gate's doing. Synthetic
+ * data only.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)
@@ -87,15 +87,13 @@ class PaymentEventsNotDeliveredIntegrationTest {
         jdbc.queryForList(
             "SELECT event_id FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.payment-%'",
-            UUID.class,
-            w.tenant);
+            UUID.class, w.tenant);
     assertThat(events).hasSize(3);
     assertThat(
             jdbc.queryForList(
                 "SELECT DISTINCT event_type FROM platform.outbox_event WHERE tenant_id = ?"
                     + " AND event_type LIKE 'payroll.payment-%'",
-                String.class,
-                w.tenant))
+                String.class, w.tenant))
         .containsExactlyInAnyOrderElementsOf(TYPES);
 
     // Control: asked for by name, the reader returns all three, so it can see them.
@@ -133,13 +131,13 @@ class PaymentEventsNotDeliveredIntegrationTest {
           .as("webhook delivery")
           .isZero();
       assertThat(
-              count("SELECT count(*) FROM integrations.messaging_delivery WHERE event_id = ?", event))
+              count(
+                  "SELECT count(*) FROM integrations.messaging_delivery WHERE event_id = ?", event))
           .as("WhatsApp delivery")
           .isZero();
     }
     assertThat(
-            count(
-                "SELECT count(*) FROM integrations.delivery WHERE event_type LIKE '%payment%'"))
+            count("SELECT count(*) FROM integrations.delivery WHERE event_type LIKE '%payment%'"))
         .isZero();
     assertThat(
             count(

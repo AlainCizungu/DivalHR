@@ -263,7 +263,8 @@ class PaymentQueryPlanIntegrationTest {
 
   private long count(String table) {
     Long value =
-        jdbc.queryForObject("SELECT count(*) FROM " + table + " WHERE tenant_id = ?", Long.class, tenant);
+        jdbc.queryForObject(
+            "SELECT count(*) FROM " + table + " WHERE tenant_id = ?", Long.class, tenant);
     return value == null ? 0 : value;
   }
 
@@ -530,7 +531,16 @@ class PaymentQueryPlanIntegrationTest {
         "keyset",
         page + " AND l.employee_id > :after ORDER BY l.employee_id LIMIT :limit",
         Map.of(
-            "tenant", tenant, "entity", entity, "batch", preparedBatch, "after", employee, "limit", 51),
+            "tenant",
+            tenant,
+            "entity",
+            entity,
+            "batch",
+            preparedBatch,
+            "after",
+            employee,
+            "limit",
+            51),
         "payment_batch_line_page");
     // One line per employee and batch: any of the three indexes on the employee reaches it.
     driven(

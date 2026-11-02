@@ -26,13 +26,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * MVP-095A (Issue #183, ADR 0036, D95A-13, R184-1): the five per-tenant payment buckets (destination
- * previews, destination commits, batch previews, batch commits and register downloads; 120, 60, 60,
- * 20 and 300 per tenant and hour by default). The subject limits are raised and each tenant limit
- * is lowered to three so that the tenant bucket is the one that answers: the fourth request of the
- * hour is a stable 429 {@code RATE_LIMITED} with {@code Retry-After}, nothing is written, the
- * endpoints that share a bucket share it, another tenant is not affected, and the next hour opens
- * the bucket again. A last test pins the five configured buckets and their hour window. Synthetic data only.
+ * MVP-095A (Issue #183, ADR 0036, D95A-13, R184-1): the five per-tenant payment buckets
+ * (destination previews, destination commits, batch previews, batch commits and register downloads;
+ * 120, 60, 60, 20 and 300 per tenant and hour by default). The subject limits are raised and each
+ * tenant limit is lowered to three so that the tenant bucket is the one that answers: the fourth
+ * request of the hour is a stable 429 {@code RATE_LIMITED} with {@code Retry-After}, nothing is
+ * written, the endpoints that share a bucket share it, another tenant is not affected, and the next
+ * hour opens the bucket again. A last test pins the five configured buckets and their hour window.
+ * Synthetic data only.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)
@@ -145,8 +146,7 @@ class PaymentTenantRateLimitIntegrationTest {
   }
 
   @Test
-  void theFourthBatchPreviewOfAnHourIsRateLimitedAcrossPrepareAndCancelPreviews()
-      throws Exception {
+  void theFourthBatchPreviewOfAnHourIsRateLimitedAcrossPrepareAndCancelPreviews() throws Exception {
     exhaust(
         () -> p.batchPreview(w.admin, UUID.randomUUID()),
         () -> p.cancelPreview(w.admin, UUID.randomUUID(), "PREPARED_IN_ERROR"));
@@ -156,13 +156,11 @@ class PaymentTenantRateLimitIntegrationTest {
   void theFourthBatchCommitOfAnHourIsRateLimitedAcrossPrepareAndCancel() throws Exception {
     exhaust(
         () -> p.prepareRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forgedPrepare()),
-        () ->
-            p.cancelRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forgedCancel()));
+        () -> p.cancelRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forgedCancel()));
   }
 
   @Test
-  void theFourthRegisterDownloadOfAnHourIsRateLimitedAcrossTheCsvAndTheManifest()
-      throws Exception {
+  void theFourthRegisterDownloadOfAnHourIsRateLimitedAcrossTheCsvAndTheManifest() throws Exception {
     UUID batch = UUID.randomUUID();
     exhaust(
         () -> PayrollRunWorld.get(w.admin, p.batchPath(batch) + "/register.csv"),
@@ -190,8 +188,7 @@ class PaymentTenantRateLimitIntegrationTest {
         .isNotEqualTo(429);
 
     // The same tenant's other tenant bucket is not touched either.
-    assertThat(w.c.call(p.batchPreview(w.admin, UUID.randomUUID())).getStatus())
-        .isNotEqualTo(429);
+    assertThat(w.c.call(p.batchPreview(w.admin, UUID.randomUUID())).getStatus()).isNotEqualTo(429);
 
     // Two hours later the fixed window has moved on.
     clock.set(Instant.now().plus(Duration.ofHours(2)));

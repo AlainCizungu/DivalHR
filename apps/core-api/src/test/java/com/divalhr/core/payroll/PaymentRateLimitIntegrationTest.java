@@ -3,13 +3,13 @@ package com.divalhr.core.payroll;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.divalhr.core.identity.application.EmailLookup;
+import com.divalhr.core.platform.ratelimit.RequestLimitProperties;
+import com.divalhr.core.platform.ratelimit.SubjectRateLimited;
+import com.divalhr.core.platform.ratelimit.TenantRateLimited;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.divalhr.core.platform.ratelimit.RequestLimitProperties;
-import com.divalhr.core.platform.ratelimit.SubjectRateLimited;
-import com.divalhr.core.platform.ratelimit.TenantRateLimited;
 import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -37,8 +37,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * and write nothing; the endpoints that share a bucket do share it; one subject's or bucket's
  * refusal does not touch another's. A reflection test ties the executable cases to the 14 annotated
  * handlers and to the configured buckets, so a new or re-bucketed endpoint fails here until it is
- * covered. The five per-tenant buckets are covered by {@link PaymentTenantRateLimitIntegrationTest}.
- * Synthetic data only.
+ * covered. The five per-tenant buckets are covered by {@link
+ * PaymentTenantRateLimitIntegrationTest}. Synthetic data only.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)
@@ -59,8 +59,7 @@ class PaymentRateLimitIntegrationTest {
                   "payment-destination-write/payment-destination-write"),
               Map.entry("MyPaymentDestinationController.get", "payment-read/-"),
               Map.entry(
-                  "PaymentBatchController.preview",
-                  "payment-batch-preview/payment-batch-preview"),
+                  "PaymentBatchController.preview", "payment-batch-preview/payment-batch-preview"),
               Map.entry(
                   "PaymentBatchController.prepare", "payment-batch-write/payment-batch-write"),
               Map.entry("PaymentBatchController.list", "payment-read/-"),
@@ -69,8 +68,7 @@ class PaymentRateLimitIntegrationTest {
               Map.entry(
                   "PaymentBatchController.previewCancel",
                   "payment-batch-preview/payment-batch-preview"),
-              Map.entry(
-                  "PaymentBatchController.cancel", "payment-batch-write/payment-batch-write"),
+              Map.entry("PaymentBatchController.cancel", "payment-batch-write/payment-batch-write"),
               Map.entry(
                   "PaymentRegisterController.csv",
                   "payment-register-download/payment-register-download"),
@@ -148,8 +146,7 @@ class PaymentRateLimitIntegrationTest {
 
   /** A commit whose evidence is forged: refused, never written, but it passes the limiter. */
   private Call destinationCommit(Map<String, Object> forged) {
-    return () ->
-        p.destinationCommit(w.admin, employee, Organizations.newKey(), forged);
+    return () -> p.destinationCommit(w.admin, employee, Organizations.newKey(), forged);
   }
 
   private Map<String, Object> forgedDestinationCommit() throws Exception {
@@ -204,7 +201,8 @@ class PaymentRateLimitIntegrationTest {
     exhaust(60, () -> PayrollRunWorld.get(ana.bearer(), PaymentWorld.MINE));
     // The administrator is another subject: not limited by the employee's refusal.
     assertThat(
-            w.c.call(PayrollRunWorld.get(w.admin, PaymentWorld.destinationPath(employee)))
+            w.c
+                .call(PayrollRunWorld.get(w.admin, PaymentWorld.destinationPath(employee)))
                 .getStatus())
         .isNotEqualTo(429);
   }
@@ -220,8 +218,7 @@ class PaymentRateLimitIntegrationTest {
   }
 
   @Test
-  void theSixthBatchPreviewOfAMinuteIsRateLimitedAcrossPrepareAndCancelPreviews()
-      throws Exception {
+  void theSixthBatchPreviewOfAMinuteIsRateLimitedAcrossPrepareAndCancelPreviews() throws Exception {
     UUID pkg = UUID.randomUUID();
     UUID batch = UUID.randomUUID();
     exhaust(
@@ -254,24 +251,29 @@ class PaymentRateLimitIntegrationTest {
   void aRefusedBucketLeavesTheOtherBucketsOfTheSameSubjectAvailable() throws Exception {
     exhaust(10, destinationPreview());
     assertThat(
-            w.c.call(PayrollRunWorld.get(w.admin, PaymentWorld.destinationPath(employee)))
+            w.c
+                .call(PayrollRunWorld.get(w.admin, PaymentWorld.destinationPath(employee)))
                 .getStatus())
         .isNotEqualTo(429);
-    assertThat(w.c.call(p.batchPreview(w.admin, UUID.randomUUID())).getStatus())
-        .isNotEqualTo(429);
+    assertThat(w.c.call(p.batchPreview(w.admin, UUID.randomUUID())).getStatus()).isNotEqualTo(429);
     assertThat(
-            w.c.call(PayrollRunWorld.get(w.admin, p.batchPath(UUID.randomUUID()) + "/register.csv"))
+            w.c
+                .call(
+                    PayrollRunWorld.get(w.admin, p.batchPath(UUID.randomUUID()) + "/register.csv"))
                 .getStatus())
         .isNotEqualTo(429);
   }
 
   @Test
   void theWindowOpensAgainAfterAMinute() throws Exception {
-    exhaust(2, () -> p.prepareRequest(w.admin, UUID.randomUUID(), Organizations.newKey(),
-        forgedPrepare()));
+    exhaust(
+        2,
+        () ->
+            p.prepareRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forgedPrepare()));
     clock.set(Instant.now().plusSeconds(61));
     assertThat(
-            w.c.call(
+            w.c
+                .call(
                     p.prepareRequest(
                         w.admin, UUID.randomUUID(), Organizations.newKey(), forgedPrepare()))
                 .getStatus())

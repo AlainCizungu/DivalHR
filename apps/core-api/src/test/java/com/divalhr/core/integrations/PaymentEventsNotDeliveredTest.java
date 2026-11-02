@@ -45,8 +45,7 @@ class PaymentEventsNotDeliveredTest {
     for (NotificationType type : NotificationType.values()) {
       assertThat(type.name()).as(type.name()).doesNotContain("PAYMENT");
     }
-    assertThat(WebhookEventType.subscribableCodes())
-        .noneMatch(code -> code.contains("payment"));
+    assertThat(WebhookEventType.subscribableCodes()).noneMatch(code -> code.contains("payment"));
   }
 
   @Test
