@@ -223,7 +223,7 @@ class PaymentApiIntegrationTest {
 
     // The exact approved net (149040 CDF), never recalculated.
     assertThat(Long.toString(preview.get("totalNetMinor").asLong())).startsWith("149040");
-    long stored =
+    Long stored =
         jdbc.queryForObject(
             "SELECT net_minor FROM payroll.payment_batch_line WHERE tenant_id = ?",
             Long.class,
