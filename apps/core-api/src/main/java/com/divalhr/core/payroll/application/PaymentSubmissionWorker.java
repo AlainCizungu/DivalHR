@@ -28,13 +28,13 @@ import org.springframework.transaction.support.TransactionTemplate;
  * expired leases, claims a bounded number of due submissions, and sends each one outside any
  * database transaction.
  *
- * <p>Delivery rules: the stable request ID is reused by every attempt; a failure before any byte was
- * written, or a 429 or 5xx response, is retried on the existing schedule; a rejection is final and
- * never retried; a timeout or lost connection after the request was written, a response that cannot
- * be authenticated, and a crashed worker (expired lease) end in {@code DELIVERY_UNKNOWN} and are
- * never resent blindly. Destination plaintext exists only in the byte buffer built for the attempt,
- * which is wiped afterwards. Logs, metrics and audit records carry the provider code, state, outcome
- * class and counts only.
+ * <p>Delivery rules: the stable request ID is reused by every attempt; a failure before any byte
+ * was written, or a 429 or 5xx response, is retried on the existing schedule; a rejection is final
+ * and never retried; a timeout or lost connection after the request was written, a response that
+ * cannot be authenticated, and a crashed worker (expired lease) end in {@code DELIVERY_UNKNOWN} and
+ * are never resent blindly. Destination plaintext exists only in the byte buffer built for the
+ * attempt, which is wiped afterwards. Logs, metrics and audit records carry the provider code,
+ * state, outcome class and counts only.
  */
 @Component
 public class PaymentSubmissionWorker {
@@ -136,7 +136,8 @@ public class PaymentSubmissionWorker {
             () -> {
               Instant now = Instant.now(clock);
               int count = 0;
-              for (SubmissionRow row : submissions.lockExpired(now, properties.worker().claimSize())) {
+              for (SubmissionRow row :
+                  submissions.lockExpired(now, properties.worker().claimSize())) {
                 Next next =
                     new Next(
                         PaymentSubmissionState.DELIVERY_UNKNOWN.name(),
@@ -220,7 +221,8 @@ public class PaymentSubmissionWorker {
     byte[] body = null;
     try {
       if (profile == null) {
-        result = new PaymentProviderGateway.Result(PaymentSubmissionOutcome.NOT_SENT_UNREADABLE, null);
+        result =
+            new PaymentProviderGateway.Result(PaymentSubmissionOutcome.NOT_SENT_UNREADABLE, null);
       } else {
         try {
           body =
@@ -268,7 +270,8 @@ public class PaymentSubmissionWorker {
               || current.version() != claim.version()
               || !PaymentSubmissionState.SENDING.name().equals(current.state())
               || !owner.equals(current.leaseOwner())) {
-            // The lease was lost (recovered as unknown by another instance): nothing is overwritten.
+            // The lease was lost (recovered as unknown by another instance): nothing is
+            // overwritten.
             LOG.atWarn()
                 .addKeyValue("operation", "payment-submission.deliver")
                 .addKeyValue("outcome", "lease_lost")

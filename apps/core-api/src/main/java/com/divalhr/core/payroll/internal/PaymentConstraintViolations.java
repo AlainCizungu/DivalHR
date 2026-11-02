@@ -52,7 +52,8 @@ public final class PaymentConstraintViolations {
       Set.of("payroll_payment_batch_blocks_void", "payroll_payment_submission_blocks_void");
 
   /** A submission exists: the batch can no longer be cancelled (MVP-095B). */
-  public static final Set<String> BATCH_SUBMITTED = Set.of("payment_submission_blocks_batch_cancel");
+  public static final Set<String> BATCH_SUBMITTED =
+      Set.of("payment_submission_blocks_batch_cancel");
 
   /** A second submission of a batch, or a reused request ID (MVP-095B). */
   public static final Set<String> SUBMISSION_EXISTS =

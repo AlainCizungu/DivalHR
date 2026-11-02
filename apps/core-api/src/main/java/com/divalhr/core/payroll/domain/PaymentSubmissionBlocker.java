@@ -1,8 +1,8 @@
 package com.divalhr.core.payroll.domain;
 
 /**
- * Why a batch cannot be submitted (preview status BLOCKED); one blocker blocks the whole request and
- * no network access happens (MVP-095B, D95B-4).
+ * Why a batch cannot be submitted (preview status BLOCKED); one blocker blocks the whole request
+ * and no network access happens (MVP-095B, D95B-4).
  */
 public enum PaymentSubmissionBlocker {
   /** The batch is not PREPARED (it is cancelled). */

@@ -4,8 +4,8 @@ import java.util.Optional;
 
 /**
  * The allow-listed outcome codes a submission and its evidence may carry (MVP-095B, D95B-6). No
- * arbitrary provider text, body or header is ever stored: a provider answer is mapped to exactly one
- * of these codes or to {@link #UNKNOWN_BAD_RESPONSE}. The names equal the database check.
+ * arbitrary provider text, body or header is ever stored: a provider answer is mapped to exactly
+ * one of these codes or to {@link #UNKNOWN_BAD_RESPONSE}. The names equal the database check.
  */
 public enum PaymentSubmissionOutcome {
   /** The provider accepted the instructions for processing. */

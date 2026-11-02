@@ -8,9 +8,9 @@ import java.util.UUID;
 
 /**
  * Responses of provider submissions (MVP-095B, ADR 0037). Restricted financial and HR data: no
- * destination, holder, employee identifier or signature is ever returned; amounts are integer
- * minor units next to the currency code. {@code ACCEPTED_FOR_PROCESSING} means a provider accepted
- * the instructions for processing; it never means an employee was paid or that funds settled.
+ * destination, holder, employee identifier or signature is ever returned; amounts are integer minor
+ * units next to the currency code. {@code ACCEPTED_FOR_PROCESSING} means a provider accepted the
+ * instructions for processing; it never means an employee was paid or that funds settled.
  */
 public final class PaymentSubmissionResponses {
 

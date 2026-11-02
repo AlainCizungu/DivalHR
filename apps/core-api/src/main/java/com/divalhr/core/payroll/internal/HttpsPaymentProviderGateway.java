@@ -50,11 +50,11 @@ import tools.jackson.databind.json.JsonMapper;
  * certificate verification, never follows a redirect, enforces explicit deadlines, and reads at
  * most {@link #MAX_BODY_BYTES} of response body.
  *
- * <p>Outcome classification is fail-closed for money: a failure <em>before</em> any request byte was
- * written is retryable; a failure after the request was written, a response that cannot be
- * authenticated with the signing key, an oversized or malformed response, or any 2xx without a valid
- * acceptance is {@code UNKNOWN_*} and is never resent. Neither the request body, the signature, a
- * response body nor a reference is logged; the adapter does not log at all.
+ * <p>Outcome classification is fail-closed for money: a failure <em>before</em> any request byte
+ * was written is retryable; a failure after the request was written, a response that cannot be
+ * authenticated with the signing key, an oversized or malformed response, or any 2xx without a
+ * valid acceptance is {@code UNKNOWN_*} and is never resent. Neither the request body, the
+ * signature, a response body nor a reference is logged; the adapter does not log at all.
  */
 @Component
 public final class HttpsPaymentProviderGateway implements PaymentProviderGateway {
@@ -270,7 +270,8 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     }
   }
 
-  private Socket connect(PaymentSubmissionProfile profile, List<InetAddress> targets, long deadline) {
+  private Socket connect(
+      PaymentSubmissionProfile profile, List<InetAddress> targets, long deadline) {
     long connectDeadline = Math.min(deadline, System.nanoTime() + connectTimeout.toNanos());
     for (InetAddress address : targets) {
       Socket socket = new Socket();
@@ -347,7 +348,8 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
           throw new Stop(PaymentSubmissionOutcome.UNKNOWN_BAD_RESPONSE);
         }
         if (headerEnd >= 0) {
-          contentLength = contentLength(new String(bytes, 0, headerEnd, StandardCharsets.ISO_8859_1));
+          contentLength =
+              contentLength(new String(bytes, 0, headerEnd, StandardCharsets.ISO_8859_1));
         }
       }
       if (headerEnd >= 0 && contentLength >= 0 && all.size() - (headerEnd + 4) >= contentLength) {
@@ -383,7 +385,10 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
 
   private static int indexOfBlankLine(byte[] bytes) {
     for (int i = 0; i + 3 < bytes.length; i++) {
-      if (bytes[i] == '\r' && bytes[i + 1] == '\n' && bytes[i + 2] == '\r' && bytes[i + 3] == '\n') {
+      if (bytes[i] == '\r'
+          && bytes[i + 1] == '\n'
+          && bytes[i + 2] == '\r'
+          && bytes[i + 3] == '\n') {
         return i;
       }
     }

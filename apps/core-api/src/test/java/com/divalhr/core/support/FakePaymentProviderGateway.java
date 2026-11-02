@@ -100,7 +100,8 @@ public final class FakePaymentProviderGateway implements PaymentProviderGateway 
     if (next != null) {
       return next.get();
     }
-    String reference = "SYNTH-" + requestId.toString().replace("-", "").substring(0, 12).toUpperCase();
+    String reference =
+        "SYNTH-" + requestId.toString().replace("-", "").substring(0, 12).toUpperCase();
     return new Result(PaymentSubmissionOutcome.ACCEPTED, reference);
   }
 

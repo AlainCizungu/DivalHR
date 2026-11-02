@@ -18,15 +18,16 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * MVP-095B (Issue #187, ADR 0037): the plans of every statement of {@code
  * JdbcPaymentSubmissionRepository}: the submission by batch, the existence check, the locked read
- * by ID, the paged evidence, the worker's due claim, the expired
- * lease recovery and the queue-depth count. Five tenants with 2,000 submissions each (mostly
- * finished, a few queued and sending), analyzed. Each path is driven by an existing index and never
- * scans a submission table sequentially; the paged evidence needs no sort. No index is added.
+ * by ID, the paged evidence, the worker's due claim, the expired lease recovery and the queue-depth
+ * count. Five tenants with 2,000 submissions each (mostly finished, a few queued and sending),
+ * analyzed. Each path is driven by an existing index and never scans a submission table
+ * sequentially; the paged evidence needs no sort. No index is added.
  *
  * <p>The statements mirror the repository's (same predicates, orders and parameters; column lists
- * shortened). The batch-line read of the payload uses the 095A batch-line indexes (covered by {@link
- * PaymentQueryPlanIntegrationTest}; it is bounded by the 5,000-line cap). Rows are written set-based with {@code session_replication_role = replica}; the plan
- * depends on indexes and statistics only. Synthetic data only.
+ * shortened). The batch-line read of the payload uses the 095A batch-line indexes (covered by
+ * {@link PaymentQueryPlanIntegrationTest}; it is bounded by the 5,000-line cap). Rows are written
+ * set-based with {@code session_replication_role = replica}; the plan depends on indexes and
+ * statistics only. Synthetic data only.
  */
 @IntegrationTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -137,7 +138,9 @@ class PaymentSubmissionQueryPlanIntegrationTest {
     Map<String, Object> params = Map.of("tenant", tenant, "entity", entity, "batch", batch);
     driven(
         "by batch",
-        "SELECT s.id" + S + "s.tenant_id = :tenant AND s.legal_entity_id = :entity"
+        "SELECT s.id"
+            + S
+            + "s.tenant_id = :tenant AND s.legal_entity_id = :entity"
             + " AND s.batch_id = :batch",
         params,
         "payment_submission_one_per_batch");
@@ -183,7 +186,9 @@ class PaymentSubmissionQueryPlanIntegrationTest {
     String due =
         driven(
             "due",
-            "SELECT s.id" + S + "s.state = 'QUEUED' AND s.next_attempt_at <= :now"
+            "SELECT s.id"
+                + S
+                + "s.state = 'QUEUED' AND s.next_attempt_at <= :now"
                 + " ORDER BY s.next_attempt_at, s.tenant_id, s.id LIMIT :limit FOR UPDATE SKIP LOCKED",
             Map.of("now", java.sql.Timestamp.valueOf("2030-01-01 00:00:00"), "limit", 8),
             "payment_submission_due");
@@ -191,7 +196,9 @@ class PaymentSubmissionQueryPlanIntegrationTest {
     String lease =
         driven(
             "lease",
-            "SELECT s.id" + S + "s.state = 'SENDING' AND s.lease_expires_at < :now"
+            "SELECT s.id"
+                + S
+                + "s.state = 'SENDING' AND s.lease_expires_at < :now"
                 + " ORDER BY s.lease_expires_at, s.tenant_id, s.id LIMIT :limit FOR UPDATE SKIP LOCKED",
             Map.of("now", java.sql.Timestamp.valueOf("2030-01-01 00:00:00"), "limit", 8),
             "payment_submission_lease");

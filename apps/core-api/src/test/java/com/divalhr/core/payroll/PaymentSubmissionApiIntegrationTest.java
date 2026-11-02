@@ -204,7 +204,8 @@ class PaymentSubmissionApiIntegrationTest {
     List<Call> calls = callsFor(request);
     assertThat(calls).hasSize(1);
     Call call = calls.get(0);
-    assertThat(new PaymentSubmissionSigner(SIGNING_KEY).verify(request, call.body(), call.signature()))
+    assertThat(
+            new PaymentSubmissionSigner(SIGNING_KEY).verify(request, call.body(), call.signature()))
         .isTrue();
     assertThat(call.keyVersion()).isEqualTo(1);
     assertThat(call.text())
@@ -294,8 +295,11 @@ class PaymentSubmissionApiIntegrationTest {
     s.submit(batch);
     UUID request = s.requestId(batch);
     Duration[] waits = {
-      Duration.ofMinutes(2), Duration.ofMinutes(6), Duration.ofMinutes(31),
-      Duration.ofHours(3), Duration.ofHours(13)
+      Duration.ofMinutes(2),
+      Duration.ofMinutes(6),
+      Duration.ofMinutes(31),
+      Duration.ofHours(3),
+      Duration.ofHours(13)
     };
     worker.runOnce();
     Instant at = Instant.now();
@@ -333,7 +337,9 @@ class PaymentSubmissionApiIntegrationTest {
     assertThat(callsFor(request)).hasSize(1);
   }
 
-  /** Damages the sealed bytes of the batch's destination (bypassing the triggers, as a fault would). */
+  /**
+   * Damages the sealed bytes of the batch's destination (bypassing the triggers, as a fault would).
+   */
   private void corruptDestination() {
     new TransactionTemplate(transactions)
         .executeWithoutResult(
@@ -425,8 +431,7 @@ class PaymentSubmissionApiIntegrationTest {
         .isInstanceOf(DataAccessException.class);
     assertThatThrownBy(
             () ->
-                jdbc.update(
-                    "DELETE FROM payroll.payment_submission WHERE tenant_id = ?", w.tenant))
+                jdbc.update("DELETE FROM payroll.payment_submission WHERE tenant_id = ?", w.tenant))
         .isInstanceOf(DataAccessException.class);
     assertThatThrownBy(
             () ->
@@ -454,8 +459,7 @@ class PaymentSubmissionApiIntegrationTest {
     Map<String, Object> body = PaymentSubmissionWorld.committing(preview);
     body.put("previewDigest", "0".repeat(64));
     body.put("expiresAt", Instant.now().plusSeconds(60).toString());
-    assertThat(
-            w.c.call(s.commitRequest(w.admin, batch, Organizations.newKey(), body)).getStatus())
+    assertThat(w.c.call(s.commitRequest(w.admin, batch, Organizations.newKey(), body)).getStatus())
         .isEqualTo(409);
     assertThat(s.evidence().get(0)).isZero();
   }
@@ -472,7 +476,8 @@ class PaymentSubmissionApiIntegrationTest {
     String base = p.batchPath(batch);
     for (String path : List.of(base + "/submission", base + "/submission/attempts")) {
       JsonNode problem = w.c.expect(PayrollRunWorld.get(other.admin, path), 404);
-      assertThat(problem.get("code").asText()).isIn("PAYMENT_BATCH_NOT_FOUND", "LEGAL_ENTITY_NOT_FOUND");
+      assertThat(problem.get("code").asText())
+          .isIn("PAYMENT_BATCH_NOT_FOUND", "LEGAL_ENTITY_NOT_FOUND");
       assertThat(w.c.call(PayrollRunWorld.get(ana.bearer(), path)).getStatus()).isIn(403, 404);
     }
     assertThat(w.c.call(s.previewRequest(other.admin, batch)).getStatus()).isEqualTo(404);
@@ -560,9 +565,9 @@ class PaymentSubmissionApiIntegrationTest {
             jdbc.queryForList(
                 "SELECT DISTINCT action FROM platform.audit_event WHERE tenant_id = ?"
                     + " AND action LIKE 'payment-submission.%'",
-                String.class,
-                w.tenant))
-        .contains("payment-submission.preview", "payment-submission.create", "payment-submission.read");
+                String.class, w.tenant))
+        .contains(
+            "payment-submission.preview", "payment-submission.create", "payment-submission.read");
     String evidence = s.persistedEvidence();
     assertThat(evidence).doesNotContainPattern("amount|total_net|totalNet|SYNTH-[A-F0-9]{12}");
   }

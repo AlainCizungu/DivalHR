@@ -26,9 +26,9 @@ import org.springframework.core.io.ClassPathResource;
  * deterministically. The limiters read the system clock inside the application, so a window cannot
  * be moved from an integration test; here each limiter takes a stepped clock instead. The limits
  * are the defaults written in {@code application.yaml} (so a changed default fails here), each of
- * the nine subject buckets (one minute) and eight tenant buckets (one hour) answers exactly its limit
- * and then a refusal whose Retry-After reaches the end of the window, the next window starts a
- * fresh count, and another subject or tenant is not affected. No sleep, no retry.
+ * the nine subject buckets (one minute) and eight tenant buckets (one hour) answers exactly its
+ * limit and then a refusal whose Retry-After reaches the end of the window, the next window starts
+ * a fresh count, and another subject or tenant is not affected. No sleep, no retry.
  */
 class PaymentRateLimitWindowTest {
 

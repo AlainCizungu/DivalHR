@@ -200,7 +200,8 @@ class HttpsPaymentProviderGatewayTest {
     handler = (exchange, request) -> respond(exchange, 422, rejected("SIGNATURE"), true);
     assertThat(send(true).outcome()).isEqualTo(PaymentSubmissionOutcome.REJECTED_SIGNATURE);
     handler = (exchange, request) -> respond(exchange, 409, rejected("DUPLICATE_MISMATCH"), true);
-    assertThat(send(true).outcome()).isEqualTo(PaymentSubmissionOutcome.REJECTED_DUPLICATE_MISMATCH);
+    assertThat(send(true).outcome())
+        .isEqualTo(PaymentSubmissionOutcome.REJECTED_DUPLICATE_MISMATCH);
     handler = (exchange, request) -> respond(exchange, 400, rejected("SOMETHING_NEW"), true);
     assertThat(send(true).outcome()).isEqualTo(PaymentSubmissionOutcome.REJECTED_OTHER);
   }
@@ -282,8 +283,10 @@ class HttpsPaymentProviderGatewayTest {
   @Test
   void aConnectionClosedWithoutAnAnswerAfterTheWriteIsAnUnknownDelivery() {
     handler = (exchange, request) -> exchange.close();
-    assertThat(send(true).outcome()).isIn(
-        PaymentSubmissionOutcome.UNKNOWN_CONNECTION_LOST, PaymentSubmissionOutcome.UNKNOWN_BAD_RESPONSE);
+    assertThat(send(true).outcome())
+        .isIn(
+            PaymentSubmissionOutcome.UNKNOWN_CONNECTION_LOST,
+            PaymentSubmissionOutcome.UNKNOWN_BAD_RESPONSE);
     assertThat(hits).hasValue(1);
   }
 
@@ -296,8 +299,15 @@ class HttpsPaymentProviderGatewayTest {
     }
     PaymentSubmissionProfile refused =
         new PaymentSubmissionProfile(
-            "SYNTHETIC-TEST", "x", "receiver.test", closed, null, Set.of("CDF"),
-            Set.of(PaymentMethod.BANK_ACCOUNT), true, 1);
+            "SYNTHETIC-TEST",
+            "x",
+            "receiver.test",
+            closed,
+            null,
+            Set.of("CDF"),
+            Set.of(PaymentMethod.BANK_ACCOUNT),
+            true,
+            1);
     assertThat(
             gateway(Duration.ofSeconds(5))
                 .send(refused, REQUEST, 1, SIGNER.sign(REQUEST, BODY), BODY)

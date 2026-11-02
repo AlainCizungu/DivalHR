@@ -32,8 +32,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 /**
  * MVP-095B (Issue #187, ADR 0037) against real PostgreSQL: submissions racing for one batch record
- * exactly one submission with its evidence, audit row and event; the same key racing records one;
- * a submission racing a cancellation leaves exactly one winner; two workers racing for one queued
+ * exactly one submission with its evidence, audit row and event; the same key racing records one; a
+ * submission racing a cancellation leaves exactly one winner; two workers racing for one queued
  * submission send it once. Synthetic data only; the connector is scripted.
  */
 @IntegrationTest

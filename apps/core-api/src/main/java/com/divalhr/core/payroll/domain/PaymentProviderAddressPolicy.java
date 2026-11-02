@@ -6,8 +6,8 @@ import java.net.InetAddress;
 import java.util.List;
 
 /**
- * Decides whether a resolved address may be contacted by provider submission (MVP-095B, ADR 0037). Only global
- * unicast addresses pass: loopback, private, link-local, multicast, carrier-grade NAT,
+ * Decides whether a resolved address may be contacted by provider submission (MVP-095B, ADR 0037).
+ * Only global unicast addresses pass: loopback, private, link-local, multicast, carrier-grade NAT,
  * documentation, benchmark, reserved, cloud-metadata and transition (NAT64, 6to4, Teredo) ranges
  * are refused for IPv4 and IPv6. An IPv4-mapped IPv6 address is judged as the IPv4 address.
  */

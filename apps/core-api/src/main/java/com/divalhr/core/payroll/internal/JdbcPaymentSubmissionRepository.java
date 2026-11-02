@@ -516,8 +516,8 @@ public class JdbcPaymentSubmissionRepository {
 
   /**
    * Runs the deferred V48 exactness checks now, inside the caller's transaction, so a violation
-   * surfaces where it is mapped by constraint name rather than at commit. Call it last: the
-   * checks stay immediate for the rest of the transaction.
+   * surfaces where it is mapped by constraint name rather than at commit. Call it last: the checks
+   * stay immediate for the rest of the transaction.
    *
    * @param tenant verified tenant whose transaction it is
    */

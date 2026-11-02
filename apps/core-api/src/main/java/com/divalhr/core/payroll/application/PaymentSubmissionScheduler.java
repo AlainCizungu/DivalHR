@@ -7,7 +7,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
-/** Runs the provider submission worker on a fixed delay (MVP-095B); disabled in integration tests. */
+/**
+ * Runs the provider submission worker on a fixed delay (MVP-095B); disabled in integration tests.
+ */
 @Configuration
 @EnableScheduling
 @ConditionalOnProperty(

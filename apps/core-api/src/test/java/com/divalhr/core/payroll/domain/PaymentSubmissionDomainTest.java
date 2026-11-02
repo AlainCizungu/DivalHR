@@ -75,7 +75,11 @@ class PaymentSubmissionDomainTest {
     assertThatThrownBy(
             () ->
                 PaymentSubmissionPayload.canonical(
-                    REQUEST, DIGEST, "CDF", 300_051L, List.of(bank(200_000L, L1), mobile(100_050L, L2))))
+                    REQUEST,
+                    DIGEST,
+                    "CDF",
+                    300_051L,
+                    List.of(bank(200_000L, L1), mobile(100_050L, L2))))
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(
             () -> PaymentSubmissionPayload.canonical(REQUEST, DIGEST, "CDF", 0L, List.of()))
@@ -94,9 +98,7 @@ class PaymentSubmissionDomainTest {
 
   @Test
   void lineToStringNeverPrintsADestination() {
-    assertThat(bank(1, L1).toString())
-        .doesNotContain("SYNTHACCT")
-        .doesNotContain("Sentinel");
+    assertThat(bank(1, L1).toString()).doesNotContain("SYNTHACCT").doesNotContain("Sentinel");
   }
 
   @Test
@@ -126,8 +128,7 @@ class PaymentSubmissionDomainTest {
   @Test
   void retryDelaysFollowTheApprovedScheduleAndStopAfterSixAttempts() {
     assertThat(PaymentSubmissionRetry.MAX_ATTEMPTS).isEqualTo(6);
-    assertThat(
-            List.of(1, 2, 3, 4, 5).stream().map(PaymentSubmissionRetry::delayAfter).toList())
+    assertThat(List.of(1, 2, 3, 4, 5).stream().map(PaymentSubmissionRetry::delayAfter).toList())
         .containsExactly(
             Duration.ofMinutes(1),
             Duration.ofMinutes(5),
@@ -166,7 +167,9 @@ class PaymentSubmissionDomainTest {
   @Test
   void outcomesAreAClosedAllowListWithoutAnyPaidOrSettledCode() {
     for (PaymentSubmissionOutcome outcome : PaymentSubmissionOutcome.values()) {
-      assertThat(outcome.name()).doesNotContainIgnoringCase("PAID").doesNotContainIgnoringCase("SETTLE");
+      assertThat(outcome.name())
+          .doesNotContainIgnoringCase("PAID")
+          .doesNotContainIgnoringCase("SETTLE");
       assertThat(PaymentSubmissionOutcome.parse(outcome.name())).contains(outcome);
       String name = outcome.name();
       PaymentSubmissionOutcome.Kind expected =
@@ -237,23 +240,113 @@ class PaymentSubmissionDomainTest {
     assertThat(
             List.of(
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 2, DIGEST, "SYNTHETIC-TEST", 1, 2, "CDF", 300_050L, expires),
+                    tenant,
+                    entity,
+                    batch,
+                    2,
+                    DIGEST,
+                    "SYNTHETIC-TEST",
+                    1,
+                    2,
+                    "CDF",
+                    300_050L,
+                    expires),
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 1, "b".repeat(64), "SYNTHETIC-TEST", 1, 2, "CDF", 300_050L, expires),
+                    tenant,
+                    entity,
+                    batch,
+                    1,
+                    "b".repeat(64),
+                    "SYNTHETIC-TEST",
+                    1,
+                    2,
+                    "CDF",
+                    300_050L,
+                    expires),
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 1, DIGEST, "OTHER-PROVIDER", 1, 2, "CDF", 300_050L, expires),
+                    tenant,
+                    entity,
+                    batch,
+                    1,
+                    DIGEST,
+                    "OTHER-PROVIDER",
+                    1,
+                    2,
+                    "CDF",
+                    300_050L,
+                    expires),
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 1, DIGEST, "SYNTHETIC-TEST", 2, 2, "CDF", 300_050L, expires),
+                    tenant,
+                    entity,
+                    batch,
+                    1,
+                    DIGEST,
+                    "SYNTHETIC-TEST",
+                    2,
+                    2,
+                    "CDF",
+                    300_050L,
+                    expires),
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 1, DIGEST, "SYNTHETIC-TEST", 1, 3, "CDF", 300_050L, expires),
+                    tenant,
+                    entity,
+                    batch,
+                    1,
+                    DIGEST,
+                    "SYNTHETIC-TEST",
+                    1,
+                    3,
+                    "CDF",
+                    300_050L,
+                    expires),
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 1, DIGEST, "SYNTHETIC-TEST", 1, 2, "USD", 300_050L, expires),
+                    tenant,
+                    entity,
+                    batch,
+                    1,
+                    DIGEST,
+                    "SYNTHETIC-TEST",
+                    1,
+                    2,
+                    "USD",
+                    300_050L,
+                    expires),
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 1, DIGEST, "SYNTHETIC-TEST", 1, 2, "CDF", 300_051L, expires),
+                    tenant,
+                    entity,
+                    batch,
+                    1,
+                    DIGEST,
+                    "SYNTHETIC-TEST",
+                    1,
+                    2,
+                    "CDF",
+                    300_051L,
+                    expires),
                 PaymentSubmissionDigests.preview(
-                    tenant, entity, batch, 1, DIGEST, "SYNTHETIC-TEST", 1, 2, "CDF", 300_050L, expires.plusSeconds(1)),
+                    tenant,
+                    entity,
+                    batch,
+                    1,
+                    DIGEST,
+                    "SYNTHETIC-TEST",
+                    1,
+                    2,
+                    "CDF",
+                    300_050L,
+                    expires.plusSeconds(1)),
                 PaymentSubmissionDigests.preview(
-                    UUID.randomUUID(), entity, batch, 1, DIGEST, "SYNTHETIC-TEST", 1, 2, "CDF", 300_050L, expires)))
+                    UUID.randomUUID(),
+                    entity,
+                    batch,
+                    1,
+                    DIGEST,
+                    "SYNTHETIC-TEST",
+                    1,
+                    2,
+                    "CDF",
+                    300_050L,
+                    expires)))
         .doesNotContain(base)
         .doesNotHaveDuplicates();
   }

@@ -268,7 +268,9 @@ public class PaymentSubmissionRecorder {
     return metadata;
   }
 
-  /** Event payloads carry only the submission, the batch, the state, the version and the outcome. */
+  /**
+   * Event payloads carry only the submission, the batch, the state, the version and the outcome.
+   */
   private static Map<String, Object> eventData(Change change) {
     Map<String, Object> data = new LinkedHashMap<>();
     data.put("schemaVersion", SCHEMA_VERSION);
@@ -286,7 +288,8 @@ public class PaymentSubmissionRecorder {
   private static void requireAllowed(Map<String, Object> metadata) {
     for (String key : metadata.keySet()) {
       if (!ALLOWED.contains(key)) {
-        throw new IllegalArgumentException("payment submission metadata key outside the allow-list");
+        throw new IllegalArgumentException(
+            "payment submission metadata key outside the allow-list");
       }
     }
   }

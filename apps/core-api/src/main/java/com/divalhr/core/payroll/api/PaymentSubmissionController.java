@@ -145,8 +145,7 @@ public class PaymentSubmissionController {
       @Parameter(hidden = true) HttpServletRequest request) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
-        .body(
-            submissions.get(Caller.of(tenants, authentication, request), legalEntityId, batchId));
+        .body(submissions.get(Caller.of(tenants, authentication, request), legalEntityId, batchId));
   }
 
   /**

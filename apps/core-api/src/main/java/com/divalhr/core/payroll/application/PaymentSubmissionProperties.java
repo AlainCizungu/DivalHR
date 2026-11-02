@@ -5,11 +5,11 @@ import java.util.Locale;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Provider submission settings ({@code divalhr.payroll.submission}, MVP-095B, ADR 0037). The signing
- * key has no default and is read from the protected secret directory; without it submissions fail
- * closed (503). The synthetic provider is the only profile this story ships; it names one exact
- * host and port and is refused outside development and test environments. {@code toString} is
- * redacted.
+ * Provider submission settings ({@code divalhr.payroll.submission}, MVP-095B, ADR 0037). The
+ * signing key has no default and is read from the protected secret directory; without it
+ * submissions fail closed (503). The synthetic provider is the only profile this story ships; it
+ * names one exact host and port and is refused outside development and test environments. {@code
+ * toString} is redacted.
  *
  * @param signingKey the HMAC signing key text (at least 32 bytes), or blank when not configured
  * @param synthetic the synthetic test provider
@@ -90,7 +90,8 @@ public record PaymentSubmissionProperties(String signingKey, Synthetic synthetic
    */
   public void validate(String environment) {
     String env = environment == null ? "" : environment.trim().toLowerCase(Locale.ROOT);
-    if (keyConfigured() && signingKey.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
+    if (keyConfigured()
+        && signingKey.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
       throw new IllegalStateException(
           "divalhr.payroll.submission.signing-key must be at least 32 bytes");
     }

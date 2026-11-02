@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
-/** MVP-095A: the twenty-one stable payment codes (095A and 095B) exist, are published and are safe text. */
+/**
+ * MVP-095A: the twenty-one stable payment codes (095A and 095B) exist, are published and are safe
+ * text.
+ */
 class PaymentErrorCodesTest {
 
   private static final Map<String, HttpStatus> CODES =

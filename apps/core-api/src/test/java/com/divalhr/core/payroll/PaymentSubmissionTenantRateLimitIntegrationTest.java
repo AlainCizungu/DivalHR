@@ -25,8 +25,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * MVP-095B (Issue #187, ADR 0037): the three per-tenant submission buckets (previews, commits
- * and reads; 60, 20 and 300 per tenant and hour by default). The subject limits are raised and each
+ * MVP-095B (Issue #187, ADR 0037): the three per-tenant submission buckets (previews, commits and
+ * reads; 60, 20 and 300 per tenant and hour by default). The subject limits are raised and each
  * tenant limit is lowered to three so that the tenant bucket is the one that answers: the fourth
  * request of the hour is a stable 429 {@code RATE_LIMITED} with {@code Retry-After}, nothing is
  * written, the endpoints that share a bucket share it, another tenant is not affected. A last test
@@ -117,7 +117,8 @@ class PaymentSubmissionTenantRateLimitIntegrationTest {
 
   @Test
   void theFourthSubmissionCommitOfAnHourIsRateLimitedForTheTenant() throws Exception {
-    exhaust(() -> s.commitRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forgedCommit()));
+    exhaust(
+        () -> s.commitRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forgedCommit()));
   }
 
   @Test
@@ -132,13 +133,17 @@ class PaymentSubmissionTenantRateLimitIntegrationTest {
   void anotherTenantAndTheOtherBucketsAreNotLimited() throws Exception {
     exhaust(() -> s.previewRequest(w.admin, UUID.randomUUID()));
     assertThat(
-            w.c.call(PayrollRunWorld.get(w.admin, p.batchPath(UUID.randomUUID()) + "/submission"))
+            w.c
+                .call(PayrollRunWorld.get(w.admin, p.batchPath(UUID.randomUUID()) + "/submission"))
                 .getStatus())
         .isNotEqualTo(429);
     PayrollPackageWorld other = new PayrollPackageWorld(mvc, jdbc, lookups, clock);
     PaymentSubmissionWorld otherSubmissions = new PaymentSubmissionWorld(new PaymentWorld(other));
     assertThat(
-            other.c.call(otherSubmissions.previewRequest(other.admin, UUID.randomUUID())).getStatus())
+            other
+                .c
+                .call(otherSubmissions.previewRequest(other.admin, UUID.randomUUID()))
+                .getStatus())
         .isNotEqualTo(429);
   }
 

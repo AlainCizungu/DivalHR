@@ -75,7 +75,8 @@ final class PaymentSubmissionWorld {
   JsonNode submit(Object batch) throws Exception {
     JsonNode preview = preview(batch);
     assertThat(preview.get("status").asText()).as(preview.toString()).isEqualTo("READY");
-    return c.expect(commitRequest(w.admin, batch, Organizations.newKey(), committing(preview)), 201);
+    return c.expect(
+        commitRequest(w.admin, batch, Organizations.newKey(), committing(preview)), 201);
   }
 
   JsonNode view(Object batch) throws Exception {
@@ -143,7 +144,8 @@ final class PaymentSubmissionWorld {
             "SELECT coalesce(outcome_code, '') || coalesce(provider_reference, '') || state"
                 + " || lease_owner FROM payroll.payment_submission WHERE tenant_id = ?"
                 + " AND lease_owner IS NOT NULL",
-            String.class, w.tenant));
+            String.class,
+            w.tenant));
     return String.join("\n", rows);
   }
 }

@@ -57,9 +57,9 @@ import org.springframework.stereotype.Service;
  *
  * <p>Boundary: a submission is a durable, queued handoff of instructions to a controlled provider
  * connector. This service performs no network access; the delivery worker does. "Accepted for
- * processing" never means paid. Restricted financial and HR data: amounts, destinations, digests and
- * provider references never enter logs, metrics, audit metadata, outbox events, idempotency receipts,
- * cursors or error bodies.
+ * processing" never means paid. Restricted financial and HR data: amounts, destinations, digests
+ * and provider references never enter logs, metrics, audit metadata, outbox events, idempotency
+ * receipts, cursors or error bodies.
  */
 @Service
 public class PaymentSubmissionService {
@@ -160,9 +160,7 @@ public class PaymentSubmissionService {
   // ------------------------------------------------------------------------------------------
 
   private record Evaluation(
-      BatchRow batch,
-      PaymentSubmissionProfile profile,
-      List<PaymentSubmissionBlocker> blockers) {
+      BatchRow batch, PaymentSubmissionProfile profile, List<PaymentSubmissionBlocker> blockers) {
     boolean ready() {
       return blockers.isEmpty();
     }
@@ -190,10 +188,8 @@ public class PaymentSubmissionService {
     if (profile == null) {
       blockers.add(PaymentSubmissionBlocker.PROVIDER_NOT_AVAILABLE);
     } else if (batch.manual() > 0
-        || (batch.bank() > 0 && !profile.methods().contains(
-            PaymentMethod.BANK_ACCOUNT))
-        || (batch.mobile() > 0 && !profile.methods().contains(
-            PaymentMethod.MOBILE_MONEY))) {
+        || (batch.bank() > 0 && !profile.methods().contains(PaymentMethod.BANK_ACCOUNT))
+        || (batch.mobile() > 0 && !profile.methods().contains(PaymentMethod.MOBILE_MONEY))) {
       blockers.add(PaymentSubmissionBlocker.PROVIDER_UNSUPPORTED);
     }
     if (profile != null && !keys.available()) {
@@ -286,7 +282,9 @@ public class PaymentSubmissionService {
                         batch.lineCount(),
                         new MethodCounts(batch.bank(), batch.mobile(), batch.manual()),
                         batch.totalNet(),
-                        ready ? previewDigest(tenant, entity, batch, evaluation.profile(), expiresAt) : null,
+                        ready
+                            ? previewDigest(tenant, entity, batch, evaluation.profile(), expiresAt)
+                            : null,
                         expiresAt);
                 recorder.disclosed(
                     caller,

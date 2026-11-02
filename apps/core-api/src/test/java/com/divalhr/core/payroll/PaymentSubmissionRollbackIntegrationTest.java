@@ -15,7 +15,6 @@ import com.divalhr.core.platform.outbox.OutboxWriter;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -37,10 +36,10 @@ import org.springframework.test.util.AopTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * MVP-095B (Issue #187, ADR 0037): a failure while the audit record or the event of a
- * submission commit is written leaves submissions, evidence rows, audit, outbox and idempotency
- * exactly as they were and the same key then succeeds; and the manual V48 rollback script refuses
- * while any submission exists and restores nothing partially. Synthetic data only.
+ * MVP-095B (Issue #187, ADR 0037): a failure while the audit record or the event of a submission
+ * commit is written leaves submissions, evidence rows, audit, outbox and idempotency exactly as
+ * they were and the same key then succeeds; and the manual V48 rollback script refuses while any
+ * submission exists and restores nothing partially. Synthetic data only.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)

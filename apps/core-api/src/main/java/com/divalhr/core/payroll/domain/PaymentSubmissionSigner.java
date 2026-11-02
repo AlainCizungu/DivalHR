@@ -10,8 +10,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Signs provider requests (MVP-095B, D95B-3): {@code v1=<hex>} where the value is HMAC-SHA256 over
- * {@code "v1\n" + requestId + "\n" + canonicalBytes} with the versioned signing key. The key is never
- * stored, logged or returned; {@code toString} is redacted.
+ * {@code "v1\n" + requestId + "\n" + canonicalBytes} with the versioned signing key. The key is
+ * never stored, logged or returned; {@code toString} is redacted.
  */
 public final class PaymentSubmissionSigner {
 

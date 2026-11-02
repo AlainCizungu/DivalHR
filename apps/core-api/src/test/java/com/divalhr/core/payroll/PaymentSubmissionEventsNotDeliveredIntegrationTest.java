@@ -41,8 +41,7 @@ class PaymentSubmissionEventsNotDeliveredIntegrationTest {
 
   private static final List<String> TYPES =
       List.of(
-          "payroll.payment-submission.created.v1",
-          "payroll.payment-submission.state-changed.v1");
+          "payroll.payment-submission.created.v1", "payroll.payment-submission.state-changed.v1");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;

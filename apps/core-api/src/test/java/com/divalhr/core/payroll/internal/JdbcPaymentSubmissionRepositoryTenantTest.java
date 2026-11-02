@@ -30,7 +30,8 @@ import org.springframework.jdbc.core.simple.JdbcClient.StatementSpec;
 class JdbcPaymentSubmissionRepositoryTenantTest {
 
   private static final Path SOURCE =
-      Path.of("src/main/java/com/divalhr/core/payroll/internal/JdbcPaymentSubmissionRepository.java");
+      Path.of(
+          "src/main/java/com/divalhr/core/payroll/internal/JdbcPaymentSubmissionRepository.java");
   private static final TenantId TENANT = TenantId.parse("11111111-1111-4111-8111-111111111111");
   private static final UUID ENTITY = UUID.fromString("22222222-2222-4222-8222-222222222222");
   private static final UUID BATCH = UUID.fromString("44444444-4444-4444-8444-444444444444");
@@ -90,9 +91,12 @@ class JdbcPaymentSubmissionRepositoryTenantTest {
     // The three cross-tenant statements are exactly the worker's claim, recovery and the gauge.
     long crossTenant = unguarded.matcher(source).results().count();
     assertThat(crossTenant).isLessThanOrEqualTo(4);
-    assertThat(Pattern.compile("@CrossTenantAccess").matcher(source).results().count()).isEqualTo(3);
+    assertThat(Pattern.compile("@CrossTenantAccess").matcher(source).results().count())
+        .isEqualTo(3);
     for (String name : List.of("lockDue", "lockExpired", "openCount")) {
-      int at = source.indexOf("public " + (name.equals("openCount") ? "int " : "List<SubmissionRow> ") + name);
+      int at =
+          source.indexOf(
+              "public " + (name.equals("openCount") ? "int " : "List<SubmissionRow> ") + name);
       assertThat(at).as(name).isGreaterThan(0);
       assertThat(source.lastIndexOf("@CrossTenantAccess", at)).as(name).isGreaterThan(at - 400);
     }

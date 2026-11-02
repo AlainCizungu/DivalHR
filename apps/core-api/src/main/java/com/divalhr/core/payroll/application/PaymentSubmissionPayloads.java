@@ -18,8 +18,8 @@ import org.springframework.stereotype.Component;
 /**
  * Builds the outbound provider bytes of a batch (MVP-095B, ADR 0037 section 4). Destination
  * plaintext is opened here, only while the bytes are built, and is never stored or returned: the
- * caller wipes the buffer after use. One unreadable or unmappable line fails the whole build
- * before any network access.
+ * caller wipes the buffer after use. One unreadable or unmappable line fails the whole build before
+ * any network access.
  */
 @Component
 public class PaymentSubmissionPayloads {
@@ -82,7 +82,8 @@ public class PaymentSubmissionPayloads {
       lines.add(map(tenant, line));
     }
     try {
-      return PaymentSubmissionPayload.canonical(requestId, batchDigest, currency, totalMinor, lines);
+      return PaymentSubmissionPayload.canonical(
+          requestId, batchDigest, currency, totalMinor, lines);
     } catch (IllegalArgumentException | ArithmeticException unmappable) {
       throw new Unreadable();
     }
@@ -108,9 +109,7 @@ public class PaymentSubmissionPayloads {
     }
     String text;
     try {
-      text =
-          secrets.open(
-              row.sealed(), tenant.value(), row.employeeId(), row.id(), row.sequence());
+      text = secrets.open(row.sealed(), tenant.value(), row.employeeId(), row.id(), row.sequence());
     } catch (PaymentSealException tampered) {
       throw new Unreadable();
     }
