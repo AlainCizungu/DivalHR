@@ -43,7 +43,8 @@ class PaymentSubmissionEventsNotDeliveredIntegrationTest {
       List.of(
           "payroll.payment-batch.prepared.v1",
           "payroll.payment-destination.recorded.v1",
-          "payroll.payment-submission.created.v1", "payroll.payment-submission.state-changed.v1");
+          "payroll.payment-submission.created.v1",
+          "payroll.payment-submission.state-changed.v1");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
