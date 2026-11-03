@@ -32,9 +32,10 @@ import { createSyntheticVerifiedPack } from './synthetic-rule-pack';
 // administrator without MFA cannot sign in through the web client, so both are covered by the unit
 // and Java integration tests instead.
 // Setup uses only public Core API endpoints plus the test-only synthetic pack. The provider's control
-// port (E2E_PAYMENT_PROVIDER_URL) scripts its answers. No retry, no sleep of any kind: every wait is an
-// auto-waiting assertion on the visible state. The shared rate-limit window is handled by raising the
-// payment buckets of the development/CI compose stack (infrastructure/docker/compose.yaml), not by waiting.
+// port (E2E_PAYMENT_PROVIDER_URL) scripts its answers. No retry and no arbitrary sleep: every wait is
+// an auto-waiting assertion on the visible state (the 429 wait of the shared API setup helper is the
+// one documented exception, exactly as in payment-submission.spec.ts: the development stack leaves
+// the payment limits at their defaults, see scripts/dev/dev-rate-limits.test.mjs).
 
 const PROVIDER_CONTROL = process.env.E2E_PAYMENT_PROVIDER_URL ?? 'http://127.0.0.1:8097';
 const stamp = Date.now().toString(36).toUpperCase().slice(-6);
@@ -191,14 +192,22 @@ async function postJson<T>(
   key?: string,
   expected = 200,
 ): Promise<T> {
-  // No waiting and no retry: a rate-limited request fails the journey visibly.
-  const response = await page.request.post(`${CORE_API}${path}`, {
-    headers: {
-      Authorization: bearer(),
-      ...(key ? { 'Idempotency-Key': `e2e-rc-${key}-${stamp}-0001` } : {}),
-    },
-    data,
-  });
+  // The tenant shares one rate-limit window with every other journey; a 429 carries the seconds to
+  // wait and the identical request is safe to repeat (same idempotency key, nothing recorded yet).
+  const send = () =>
+    page.request.post(`${CORE_API}${path}`, {
+      headers: {
+        Authorization: bearer(),
+        ...(key ? { 'Idempotency-Key': `e2e-rc-${key}-${stamp}-0001` } : {}),
+      },
+      data,
+    });
+  let response = await send();
+  for (let attempt = 0; attempt < 3 && response.status() === 429; attempt += 1) {
+    const wait = Number(response.headers()['retry-after'] ?? '5');
+    await page.waitForTimeout((Number.isFinite(wait) ? Math.min(wait, 65) : 5) * 1000 + 250);
+    response = await send();
+  }
   expect(response.status(), path).toBe(expected);
   return (await response.json()) as T;
 }
@@ -630,7 +639,10 @@ function keysOf(value: unknown): string[] {
 async function expectPrivateResponses(seen: Seen[], requestIds: string[]) {
   expect(seen.length).toBeGreaterThan(0);
   for (const response of seen) {
-    expect(response.cache, response.url).toBe('private, no-store');
+    // Success responses carry the controller's header; an error problem (for example the 404 before
+    // an investigation exists) carries the platform default, which is no-store as well.
+    if (response.status < 300) expect(response.cache, response.url).toBe('private, no-store');
+    else expect(response.cache, response.url).toContain('no-store');
     const text = await response.body;
     for (const value of [...SENTINELS, ...requestIds])
       expect(text, response.url).not.toContain(value);
