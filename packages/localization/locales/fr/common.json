@@ -257,7 +257,7 @@
         },
         "payrollPackages": {
           "title": "Paie approuvée",
-          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
+          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money réel. Un lot préparé peut être soumis une seule fois au prestataire de test synthétique contrôlé uniquement (test seulement, aucun argent n’est transféré) ; le rapprochement des soumissions incertaines est en cours et n’est pas encore actif. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
         }
       },
       "attention": {
@@ -349,7 +349,7 @@
     "items": {
       "disbursement": {
         "title": "Versement des salaires et rapprochement",
-        "description": "Instructions de paiement par banque et mobile money préparées à partir de la paie validée, avec rapprochement des résultats."
+        "description": "Connectivité bancaire et mobile money réelle, règlement et confirmation de paiement. Le rapprochement des soumissions synthétiques incertaines est en cours et n’est pas encore actif."
       },
       "myDocuments": {
         "title": "Documents",
@@ -714,7 +714,11 @@
     "PAYMENT_SUBMISSION_VERSION_CONFLICT": "Le lot de paiement a changé depuis votre vérification. Rechargez la page et vérifiez-le de nouveau.",
     "PAYMENT_SUBMISSION_EXISTS": "Ce lot de paiement a déjà été soumis.",
     "PAYMENT_PROVIDER_UNAVAILABLE": "Aucun connecteur de prestataire n’est disponible pour ce lot de paiement.",
-    "PAYMENT_SUBMISSION_KEY_UNAVAILABLE": "La soumission au prestataire est temporairement indisponible. Rien n’a été soumis."
+    "PAYMENT_SUBMISSION_KEY_UNAVAILABLE": "La soumission au prestataire est temporairement indisponible. Rien n’a été soumis.",
+    "PAYMENT_RECONCILIATION_NOT_FOUND": "Aucune vérification de livraison n’existe pour cette soumission de paiement.",
+    "PAYMENT_RECONCILIATION_NOT_ELIGIBLE": "Cette soumission ne peut plus être vérifiée dans son état actuel. Rechargez la page et vérifiez-la de nouveau.",
+    "PAYMENT_RECONCILIATION_EXISTS": "Une vérification a déjà été ouverte pour cette soumission.",
+    "PAYMENT_RECONCILIATION_PREVIEW_STALE": "L’aperçu a expiré ou la soumission a changé. Vérifiez-la de nouveau avant d’ouvrir la vérification."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3006,7 +3010,7 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est en cours et n’est pas encore active ; aucune banque ni aucun opérateur de mobile money réel n’est connecté.",
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement des soumissions incertaines est en cours et n’est pas encore actif.",
           "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et envoi des paiements réels aux banques et aux opérateurs de mobile money."
         },
         "loans": {
@@ -3096,12 +3100,13 @@
         "tasks": "Tâches opérationnelles",
         "expenses": "Notes de frais des employés et approbation par le responsable",
         "languages": "Anglais et français",
-        "payrollRuns": "Exécutions de paie mensuelles en brouillon avec brut contractuel"
+        "payrollRuns": "Exécutions de paie mensuelles en brouillon avec brut contractuel",
+        "paymentSubmission": "Soumission d’un lot de paiement préparé à un prestataire de test synthétique contrôlé (test uniquement : aucune banque ni aucun prestataire réel, aucun argent transféré)"
       },
       "next": {
         "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
         "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et écritures comptables",
-        "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et rapprochement",
+        "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et confirmation de paiement ; le rapprochement des soumissions synthétiques incertaines est en cours",
         "advances": "Avances sur salaire et prêts via des partenaires",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
       },
@@ -6193,6 +6198,103 @@
       "PROVIDER_KEY_UNAVAILABLE": "Soumission indisponible : la clé de signature n’est pas configurée.",
       "DESTINATION_UNREADABLE": "Une destination de paiement est illisible.",
       "LIMIT_REACHED": "Le lot dépasse la limite de soumission."
+    }
+  },
+  "paymentReconciliation": {
+    "title": "Vérification de la livraison",
+    "description": "Demandez au prestataire ce qu’il est advenu d’une soumission dont la livraison est incertaine. Il s’agit d’une demande de statut ; l’instruction de paiement n’est jamais renvoyée.",
+    "notice": "Cette vérification ne renvoie pas l’instruction de paiement. L’acceptation du prestataire ne signifie pas que le paiement est effectué ou réglé.",
+    "status": { "READY": "Prêt pour la vérification", "BLOCKED": "Bloquée" },
+    "open": "Vérifier la livraison",
+    "reviewHeading": "Vérifier avant d’ouvrir la vérification",
+    "previewing": "Vérification en cours…",
+    "confirm": "Confirmer la vérification",
+    "confirming": "Ouverture…",
+    "discard": "Fermer l’aperçu",
+    "loading": "Chargement de la vérification…",
+    "none": "Aucune vérification n’a été ouverte pour cette soumission.",
+    "announce": "La vérification a été ouverte. Le prestataire sera interrogé sur le statut de la demande.",
+    "provider": "Prestataire",
+    "fingerprint": "Empreinte de la demande",
+    "fingerprintHelp": "Les 12 premiers caractères d’une empreinte de la demande. Elle identifie la demande sans la révéler.",
+    "submissionState": "État de la soumission",
+    "submissionStateUnchanged": "État de la soumission (inchangé)",
+    "submissionOutcome": "Résultat de la soumission",
+    "previous": "Conclusion précédente",
+    "previousNone": "Aucune",
+    "expires": "Cet aperçu expire à {{at}}.",
+    "understandNoResend": "Je comprends que cette vérification ne renvoie pas l’instruction de paiement.",
+    "understandNotPaid": "Je comprends que l’acceptation du prestataire ne signifie pas que le paiement est effectué ou réglé.",
+    "current": "Vérification",
+    "state": "Conclusion",
+    "outcome": "Réponse du prestataire",
+    "attempts": "Demandes effectuées",
+    "nextAttempt": "Prochaine demande",
+    "created": "Ouverte à",
+    "updated": "Dernier changement",
+    "refresh": "Actualiser",
+    "watching": "Cette page s’actualise automatiquement tant que la vérification est en cours.",
+    "history": {
+      "title": "Historique des demandes",
+      "caption": "Historique des demandes de la vérification",
+      "sequence": "Étape",
+      "attempt": "Demande",
+      "state": "Conclusion",
+      "outcome": "Réponse du prestataire",
+      "authenticated": "Authentifiée",
+      "yes": "Oui",
+      "no": "Non",
+      "time": "Heure",
+      "empty": "Aucune demande n’a encore été enregistrée.",
+      "more": "Charger la suite",
+      "loading": "Chargement de l’historique des demandes…",
+      "error": "Impossible de charger l’historique des demandes."
+    },
+    "stateLabel": {
+      "OPEN": "Ouverte : en attente de la prochaine demande",
+      "INQUIRY_IN_PROGRESS": "Demande en cours",
+      "CONFIRMED_ACCEPTED_FOR_PROCESSING": "Le prestataire confirme avoir accepté le paiement pour traitement",
+      "CONFIRMED_REJECTED": "Le prestataire confirme avoir rejeté la demande",
+      "STILL_UNRESOLVED": "Toujours non résolue : le prestataire n’a pas pu confirmer",
+      "MANUAL_REVIEW_REQUIRED": "Examen manuel requis"
+    },
+    "stateHelp": {
+      "OPEN": "Le prestataire n’a pas encore répondu. La prochaine demande est planifiée automatiquement.",
+      "INQUIRY_IN_PROGRESS": "Le prestataire est interrogé en ce moment sur le statut de la demande.",
+      "CONFIRMED_ACCEPTED_FOR_PROCESSING": "La réponse authentifiée du prestataire indique qu’il détient la demande et l’a acceptée pour traitement. Cela ne confirme pas qu’un argent a été transféré.",
+      "CONFIRMED_REJECTED": "La réponse authentifiée du prestataire indique qu’il a rejeté la demande. Rien ne sera renvoyé automatiquement.",
+      "STILL_UNRESOLVED": "La réponse du prestataire n’a pas permis de trancher. Rien ne sera renvoyé automatiquement.",
+      "MANUAL_REVIEW_REQUIRED": "Les demandes automatiques se sont terminées sans réponse fiable. Une personne doit relancer le prestataire."
+    },
+    "guidance": {
+      "title": "Que faire ensuite",
+      "MANUAL_REVIEW_REQUIRED": "Le prestataire n’a pas pu confirmer le statut de cette demande. Contactez-le par le canal convenu et indiquez l’empreinte de la demande. DivalHR ne renvoie pas les paiements.",
+      "STILL_UNRESOLVED": "Le prestataire n’a pas pu confirmer le statut de cette demande. Contactez-le par le canal convenu et indiquez l’empreinte de la demande. DivalHR ne renvoie pas les paiements."
+    },
+    "outcomeLabel": {
+      "ACCEPTED_FOR_PROCESSING": "Accepté pour traitement",
+      "REJECTED_INVALID_REQUEST": "Rejeté : demande invalide",
+      "REJECTED_SIGNATURE": "Rejeté : signature",
+      "REJECTED_UNSUPPORTED": "Rejeté : non pris en charge",
+      "REJECTED_DUPLICATE_MISMATCH": "Rejeté : la demande en double diffère",
+      "REJECTED_LIMIT": "Rejeté : limite",
+      "REJECTED_OTHER": "Rejeté : autre motif",
+      "NOT_FOUND": "Le prestataire n’a aucune trace de la demande",
+      "PENDING": "Le prestataire détient la demande et n’a pas encore décidé",
+      "UNKNOWN": "Le prestataire ne peut pas se prononcer",
+      "BAD_RESPONSE": "Réponse non fiable",
+      "TRANSIENT_CONNECT": "Connexion impossible ; nouvelle tentative prévue",
+      "TRANSIENT_TLS": "Échec de la connexion sécurisée ; nouvelle tentative prévue",
+      "TRANSIENT_TIMEOUT": "Pas de réponse à temps ; nouvelle tentative prévue",
+      "TRANSIENT_RATE_LIMITED": "Le prestataire demande de ralentir ; nouvelle tentative prévue",
+      "TRANSIENT_SERVER": "Prestataire indisponible ; nouvelle tentative prévue",
+      "RETRIES_EXHAUSTED": "Tentatives épuisées"
+    },
+    "blockers": {
+      "SUBMISSION_NOT_ELIGIBLE": "Cette soumission ne peut pas être vérifiée dans son état actuel.",
+      "RECONCILIATION_EXISTS": "Une vérification existe déjà pour cette soumission.",
+      "PROVIDER_NOT_AVAILABLE": "Aucun prestataire n’est disponible pour cette soumission.",
+      "PROVIDER_KEY_UNAVAILABLE": "La vérification est indisponible : la clé de signature n’est pas configurée."
     }
   }
 }

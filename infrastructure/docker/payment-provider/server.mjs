@@ -19,8 +19,41 @@ const MAX_BODY = 2 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const SCENARIOS = new Set(['accept', 'reject', 'unknown', 'server-error-once', 'rate-limit-once']);
 
-/** @type {{scenario: string, onceUsed: boolean, requests: Map<string, object>, received: object[]}} */
-const state = { scenario: 'accept', onceUsed: false, requests: new Map(), received: [] };
+const INQUIRY_PATH = '/v1/payment-status-inquiries';
+const MAX_INQUIRY_BODY = 512;
+const INQUIRY_SCENARIOS = new Set([
+  'accepted',
+  'rejected',
+  'pending',
+  'not-found',
+  'unknown',
+  'unsigned',
+  'malformed',
+  'rate-limit-once',
+  'server-error-once',
+  'timeout',
+  'drop',
+]);
+const REJECT_CODES = new Set([
+  'INVALID_REQUEST',
+  'SIGNATURE',
+  'UNSUPPORTED',
+  'DUPLICATE_MISMATCH',
+  'LIMIT',
+  'OTHER',
+]);
+
+/** Payment state plus the MVP-095C inquiry state (final answers by inquiry ID, metadata-only log). */
+const state = {
+  scenario: 'accept',
+  onceUsed: false,
+  requests: new Map(),
+  received: [],
+  inquiryScenario: 'pending',
+  inquiryCode: 'OTHER',
+  inquiries: new Map(), // inquiryId -> { requestId, text } for FINAL answers only
+  inquiryLog: [],
+};
 
 function key() {
   // Development stack only: the key may come from PROVIDER_SIGNING_KEY; hr-dev uses the protected file.
@@ -45,6 +78,28 @@ function sign(requestId, body) {
 
 function verify(requestId, body, presented) {
   const expected = Buffer.from(sign(requestId, body));
+  const given = Buffer.from(String(presented ?? ''));
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+// MVP-095C: status inquiries use a distinct signing prefix. An inquiry carries only two identifiers;
+// the provider keeps only identifiers, flags and the closed result, never a body or a signature.
+function inquirySign(requestId, inquiryId, body) {
+  return (
+    'v1=' +
+    createHmac('sha256', key())
+      .update('v1-inquiry\n')
+      .update(requestId)
+      .update('\n')
+      .update(inquiryId)
+      .update('\n')
+      .update(body)
+      .digest('hex')
+  );
+}
+
+function inquiryVerify(requestId, inquiryId, body, presented) {
+  const expected = Buffer.from(inquirySign(requestId, inquiryId, body));
   const given = Buffer.from(String(presented ?? ''));
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
@@ -129,9 +184,121 @@ function reference(requestId) {
   return 'SYNTH-' + createHash('sha256').update(requestId).digest('hex').slice(0, 12).toUpperCase();
 }
 
+function inquiryAnswer(response, status, text, signature) {
+  response.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(text),
+    'X-Divalhr-Response-Signature': signature,
+    Connection: 'close',
+  });
+  response.end(text);
+}
+
+async function handleInquiry(request, response) {
+  let body;
+  try {
+    body = await readBody(request, MAX_INQUIRY_BODY);
+  } catch {
+    response.writeHead(413, { Connection: 'close' }).end();
+    return;
+  }
+  const requestId = String(request.headers['x-divalhr-request-id'] ?? '');
+  const inquiryId = String(request.headers['x-divalhr-inquiry-id'] ?? '');
+  const idsOk = UUID.test(requestId) && UUID.test(inquiryId);
+  const record = {
+    inquiryId: UUID.test(inquiryId) ? inquiryId : null,
+    requestId: UUID.test(requestId) ? requestId : null,
+    signatureValid: false,
+    replay: false,
+    mismatch: false,
+    result: null,
+  };
+  state.inquiryLog.push(record);
+  const refuse = (status) => {
+    response.writeHead(status, { 'Content-Length': 0, Connection: 'close' }).end();
+  };
+  if (!idsOk) return refuse(400);
+  record.signatureValid = inquiryVerify(
+    requestId,
+    inquiryId,
+    body,
+    request.headers['x-divalhr-signature'],
+  );
+  if (!record.signatureValid) return refuse(401);
+  // Exactly {"inquiryId":..,"requestId":..,"schemaVersion":1}, canonical, ids equal to the headers.
+  const canonical = JSON.stringify({ inquiryId, requestId, schemaVersion: 1 });
+  if (body.toString('utf8') !== canonical) return refuse(400);
+
+  const known = state.inquiries.get(inquiryId);
+  if (known) {
+    if (known.requestId !== requestId) {
+      record.mismatch = true;
+      return refuse(409);
+    }
+    record.replay = true;
+    record.result = known.result;
+    return inquiryAnswer(response, 200, known.text, inquirySign(requestId, inquiryId, known.text));
+  }
+
+  let scenario = state.inquiryScenario;
+  if (scenario === 'rate-limit-once' || scenario === 'server-error-once') {
+    state.inquiryScenario = 'accepted'; // the retry after the single failure is answered normally
+    record.result = scenario === 'rate-limit-once' ? 'RATE_LIMITED' : 'SERVER_ERROR';
+    response
+      .writeHead(scenario === 'rate-limit-once' ? 429 : 503, {
+        'Content-Length': 0,
+        Connection: 'close',
+        ...(scenario === 'rate-limit-once' ? { 'Retry-After': '1' } : {}),
+      })
+      .end();
+    return;
+  }
+  if (scenario === 'timeout') {
+    record.result = 'TIMEOUT';
+    return; // accepted, never answered; the caller times out
+  }
+  if (scenario === 'drop') {
+    record.result = 'DROP';
+    request.socket.destroy();
+    return;
+  }
+  if (scenario === 'malformed') {
+    record.result = 'MALFORMED';
+    const text = 'not json';
+    return inquiryAnswer(response, 200, text, inquirySign(requestId, inquiryId, text));
+  }
+  const names = {
+    accepted: 'ACCEPTED_FOR_PROCESSING',
+    rejected: 'REJECTED',
+    pending: 'PENDING',
+    'not-found': 'NOT_FOUND',
+    unknown: 'UNKNOWN',
+    unsigned: 'ACCEPTED_FOR_PROCESSING',
+  };
+  const result = names[scenario] ?? 'PENDING';
+  const value = { inquiryId, requestId, result };
+  if (result === 'REJECTED') value.code = state.inquiryCode;
+  const text = JSON.stringify(value);
+  record.result = scenario === 'unsigned' ? 'UNSIGNED' : result;
+  if (scenario === 'unsigned') {
+    return inquiryAnswer(response, 200, text, inquirySign(requestId, inquiryId, text + ' '));
+  }
+  if (result === 'ACCEPTED_FOR_PROCESSING' || result === 'REJECTED') {
+    state.inquiries.set(inquiryId, { requestId, text, result });
+  }
+  inquiryAnswer(response, 200, text, inquirySign(requestId, inquiryId, text));
+}
+
 const provider = createHttpsServer(
   { key: readFileSync(`${TLS_DIR}/server.key`), cert: readFileSync(`${TLS_DIR}/server.pem`) },
   async (request, response) => {
+    if (request.url === INQUIRY_PATH) {
+      if (request.method !== 'POST') {
+        response.writeHead(405).end();
+        return;
+      }
+      return handleInquiry(request, response);
+    }
     if (request.method !== 'POST' || request.url !== '/v1/payment-requests') {
       response.writeHead(request.method === 'POST' ? 404 : 405).end();
       return;
@@ -240,7 +407,26 @@ const control = createHttpServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/control/received') {
       return json(200, state.received);
     }
+    if (request.method === 'GET' && url.pathname === '/control/inquiries') {
+      return json(200, state.inquiryLog);
+    }
+    if (request.method === 'POST' && url.pathname === '/control/inquiry-scenario') {
+      const parsed = JSON.parse((await readBody(request, 256)).toString('utf8'));
+      if (!INQUIRY_SCENARIOS.has(parsed.scenario)) return json(400, {});
+      let code = 'OTHER';
+      if (parsed.scenario === 'rejected' && parsed.code !== undefined) {
+        if (!REJECT_CODES.has(parsed.code)) return json(400, {});
+        code = parsed.code;
+      }
+      state.inquiryScenario = parsed.scenario;
+      state.inquiryCode = code;
+      return json(200, { scenario: state.inquiryScenario });
+    }
     if (request.method === 'POST' && url.pathname === '/control/reset') {
+      state.inquiries = new Map();
+      state.inquiryLog = [];
+      state.inquiryScenario = 'pending';
+      state.inquiryCode = 'OTHER';
       state.received = [];
       state.requests = new Map();
       state.scenario = 'accept';

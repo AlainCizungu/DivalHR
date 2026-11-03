@@ -17,6 +17,12 @@ import {
   paymentFailureOf,
   phoneValid,
   PROVIDERS,
+  RECONCILIATION_BLOCKERS,
+  RECONCILIATION_ELIGIBLE,
+  RECONCILIATION_IN_FLIGHT,
+  RECONCILIATION_OUTCOMES,
+  RECONCILIATION_STATES,
+  reconciliationTone,
 } from './payments';
 import { registerFileName } from './useRegisterDownload';
 
@@ -41,6 +47,12 @@ describe('failure mapping', () => {
     ['PAYMENT_BATCH_LIMIT_REACHED', 409, 'domain'],
     ['EMPLOYEE_LINK_REQUIRED', 403, 'forbidden'],
     ['MFA_REQUIRED', 403, 'forbidden'],
+    ['PAYMENT_RECONCILIATION_NOT_FOUND', 404, 'notFound'],
+    ['PAYMENT_RECONCILIATION_NOT_ELIGIBLE', 409, 'stale'],
+    ['PAYMENT_RECONCILIATION_EXISTS', 409, 'stale'],
+    ['PAYMENT_RECONCILIATION_PREVIEW_STALE', 409, 'stale'],
+    ['PAYMENT_PROVIDER_UNAVAILABLE', 409, 'domain'],
+    ['PAYMENT_SUBMISSION_KEY_UNAVAILABLE', 503, 'domain'],
     ['IDEMPOTENCY_KEY_REUSED', 409, 'stale'],
   ] as const)('maps %s', (code, status, kind) => {
     const failure = paymentFailureOf(response(status), problem(code));
@@ -180,5 +192,77 @@ describe.each(['en', 'fr'] as const)('payment wording (%s)', (locale) => {
     expect((payments.my as Tree).title).toBe(
       locale === 'en' ? 'My payment destination' : 'Ma destination de paiement',
     );
+  });
+});
+
+describe('reconciliation lists', () => {
+  it('are closed and complete', () => {
+    expect(RECONCILIATION_STATES).toHaveLength(6);
+    expect(RECONCILIATION_OUTCOMES).toHaveLength(17);
+    expect(RECONCILIATION_BLOCKERS).toHaveLength(4);
+    expect([...RECONCILIATION_ELIGIBLE].sort()).toEqual([
+      'DELIVERY_UNKNOWN',
+      'MANUAL_INTERVENTION',
+    ]);
+    expect([...RECONCILIATION_IN_FLIGHT].sort()).toEqual(['INQUIRY_IN_PROGRESS', 'OPEN']);
+  });
+
+  it('never tones a provider acceptance as anything but success text-backed', () => {
+    expect(reconciliationTone('CONFIRMED_ACCEPTED_FOR_PROCESSING')).toBe('success');
+    expect(reconciliationTone('STILL_UNRESOLVED')).toBe('warning');
+    expect(reconciliationTone('MANUAL_REVIEW_REQUIRED')).toBe('danger');
+    expect(reconciliationTone('OPEN')).toBe('info');
+  });
+});
+
+describe.each(['en', 'fr'] as const)('reconciliation wording (%s)', (locale) => {
+  const common = resources[locale].common as unknown as Record<string, Tree>;
+  const rec = common.paymentReconciliation as Tree;
+
+  it('labels every state, outcome and blocker and carries the fixed warning', () => {
+    for (const state of RECONCILIATION_STATES) {
+      expect((rec.stateLabel as Tree)[state]).toBeTruthy();
+      expect((rec.stateHelp as Tree)[state]).toBeTruthy();
+    }
+    for (const outcome of RECONCILIATION_OUTCOMES) {
+      expect((rec.outcomeLabel as Tree)[outcome]).toBeTruthy();
+    }
+    for (const blocker of RECONCILIATION_BLOCKERS) {
+      expect((rec.blockers as Tree)[blocker]).toBeTruthy();
+    }
+    expect(rec.notice).toBe(
+      locale === 'en'
+        ? 'This inquiry does not resend the payment instruction. Provider acceptance does not mean paid or settled.'
+        : 'Cette vérification ne renvoie pas l’instruction de paiement. L’acceptation du prestataire ne signifie pas que le paiement est effectué ou réglé.',
+    );
+    expect(rec.open).toBe(locale === 'en' ? 'Investigate delivery' : 'Vérifier la livraison');
+  });
+
+  it('never claims a payment: only the warning and its acknowledgement may say paid', () => {
+    const own = flatten(rec, 'paymentReconciliation.');
+    expect(own.length).toBeGreaterThan(60);
+    for (const [key, value] of own) {
+      if (
+        key === 'paymentReconciliation.notice' ||
+        key === 'paymentReconciliation.understandNotPaid'
+      ) {
+        continue;
+      }
+      for (const pattern of FORBIDDEN_PHRASES[locale]) {
+        expect(pattern.test(value), `${key}: ${value}`).toBe(false);
+      }
+      expect(/\bsettled\b|réglé/iu.test(value), `${key}: ${value}`).toBe(false);
+    }
+  });
+
+  it('has the four new error messages', () => {
+    for (const code of [
+      'PAYMENT_RECONCILIATION_NOT_FOUND',
+      'PAYMENT_RECONCILIATION_NOT_ELIGIBLE',
+      'PAYMENT_RECONCILIATION_EXISTS',
+      'PAYMENT_RECONCILIATION_PREVIEW_STALE',
+    ]) {
+      expect(common.errors?.[code as keyof Tree]).toBeTruthy();
+    }
   });
 });

@@ -124,6 +124,7 @@ describe('catalogue (UI2-1, UI2-2, D93-14)', () => {
       'payrollPreparation',
       'compensation',
       'payrollRuns',
+      'paymentSubmission',
       'operations',
       'integrations',
       'tasks',

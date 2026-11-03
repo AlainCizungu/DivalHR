@@ -767,7 +767,18 @@ public enum ErrorCode {
   /** MVP-095B: no active provider profile serves the batch, or it does not support its content. */
   PAYMENT_PROVIDER_UNAVAILABLE(HttpStatus.CONFLICT),
   /** MVP-095B: the submission signing key is not configured; nothing was stored or sent. */
-  PAYMENT_SUBMISSION_KEY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
+  PAYMENT_SUBMISSION_KEY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+  /**
+   * MVP-095C: the reconciliation target is unknown, foreign, malformed or not available to the
+   * caller (one safe answer for batch, submission and reconciliation identifiers).
+   */
+  PAYMENT_RECONCILIATION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-095C: the submission is not (or no longer) in an eligible state, or its version moved. */
+  PAYMENT_RECONCILIATION_NOT_ELIGIBLE(HttpStatus.CONFLICT),
+  /** MVP-095C: an investigation already exists for the submission. */
+  PAYMENT_RECONCILIATION_EXISTS(HttpStatus.CONFLICT),
+  /** MVP-095C: the investigation preview expired or the submission or provider changed. */
+  PAYMENT_RECONCILIATION_PREVIEW_STALE(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

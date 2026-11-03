@@ -1,6 +1,7 @@
 package com.divalhr.core.support;
 
 import com.divalhr.core.payroll.application.PaymentProviderGateway;
+import com.divalhr.core.payroll.domain.PaymentInquiryOutcome;
 import com.divalhr.core.payroll.domain.PaymentSubmissionOutcome;
 import com.divalhr.core.payroll.domain.PaymentSubmissionProfile;
 import java.nio.charset.StandardCharsets;
@@ -38,8 +39,29 @@ public final class FakePaymentProviderGateway implements PaymentProviderGateway 
     }
   }
 
+  /**
+   * One recorded status inquiry (MVP-095C).
+   *
+   * @param requestId stable payment request ID
+   * @param inquiryId stable inquiry ID
+   * @param keyVersion key version header
+   * @param signature signature header
+   * @param body copy of the canonical inquiry bytes
+   */
+  public record InquiryCall(
+      UUID requestId, UUID inquiryId, int keyVersion, String signature, byte[] body) {
+    /**
+     * @return the body as text
+     */
+    public String text() {
+      return new String(body, StandardCharsets.UTF_8);
+    }
+  }
+
   private final Deque<Supplier<Result>> script = new ArrayDeque<>();
   private final List<Call> calls = new ArrayList<>();
+  private final Deque<Supplier<InquiryResult>> inquiryScript = new ArrayDeque<>();
+  private final List<InquiryCall> inquiryCalls = new ArrayList<>();
 
   /**
    * Queues the next result.
@@ -79,10 +101,54 @@ public final class FakePaymentProviderGateway implements PaymentProviderGateway 
     return List.copyOf(calls);
   }
 
+  /**
+   * Queues the next status inquiry result.
+   *
+   * @param outcome the outcome
+   */
+  public synchronized void thenInquiry(PaymentInquiryOutcome outcome) {
+    inquiryScript.add(() -> new InquiryResult(outcome));
+  }
+
+  /**
+   * Queues an arbitrary action (for example a crash simulation or a clock change) whose result is
+   * returned by the next inquiry.
+   *
+   * @param action the action
+   */
+  public synchronized void thenInquiryDo(Supplier<InquiryResult> action) {
+    inquiryScript.add(action);
+  }
+
+  /**
+   * @return the recorded status inquiries
+   */
+  public synchronized List<InquiryCall> inquiryCalls() {
+    return List.copyOf(inquiryCalls);
+  }
+
   /** Forgets scripted results and calls. */
   public synchronized void reset() {
     script.clear();
     calls.clear();
+    inquiryScript.clear();
+    inquiryCalls.clear();
+  }
+
+  @Override
+  public InquiryResult inquire(
+      PaymentSubmissionProfile profile,
+      UUID requestId,
+      UUID inquiryId,
+      int keyVersion,
+      String signature,
+      byte[] body) {
+    Supplier<InquiryResult> next;
+    synchronized (this) {
+      inquiryCalls.add(new InquiryCall(requestId, inquiryId, keyVersion, signature, body.clone()));
+      next = inquiryScript.poll();
+    }
+    return next != null ? next.get() : new InquiryResult(PaymentInquiryOutcome.PENDING);
   }
 
   @Override

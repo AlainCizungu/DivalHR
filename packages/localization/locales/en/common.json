@@ -257,7 +257,7 @@
         },
         "payrollPackages": {
           "title": "Approved payroll",
-          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent to a bank or mobile-money provider. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
+          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent to a real bank or mobile-money provider. A prepared batch can be submitted once to the controlled synthetic test provider only (test-only, no money moves); reconciliation of uncertain submissions is in progress and not yet active. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
         }
       },
       "attention": {
@@ -349,7 +349,7 @@
     "items": {
       "disbursement": {
         "title": "Salary disbursement and reconciliation",
-        "description": "Bank and mobile-money payment instructions prepared from approved payroll, with reconciliation of results."
+        "description": "Real bank and mobile-money connectivity, settlement and payment confirmation. Reconciliation of uncertain synthetic submissions is in progress and not yet active."
       },
       "myDocuments": {
         "title": "Documents",
@@ -714,7 +714,11 @@
     "PAYMENT_SUBMISSION_VERSION_CONFLICT": "The payment batch changed since you reviewed it. Reload the page and review it again.",
     "PAYMENT_SUBMISSION_EXISTS": "This payment batch has already been submitted.",
     "PAYMENT_PROVIDER_UNAVAILABLE": "No provider connector is available for this payment batch.",
-    "PAYMENT_SUBMISSION_KEY_UNAVAILABLE": "Provider submission is temporarily unavailable. Nothing was submitted."
+    "PAYMENT_SUBMISSION_KEY_UNAVAILABLE": "Provider submission is temporarily unavailable. Nothing was submitted.",
+    "PAYMENT_RECONCILIATION_NOT_FOUND": "No delivery investigation exists for this payment submission.",
+    "PAYMENT_RECONCILIATION_NOT_ELIGIBLE": "This submission can no longer be investigated in its current state. Reload the page and review it again.",
+    "PAYMENT_RECONCILIATION_EXISTS": "An investigation was already opened for this submission.",
+    "PAYMENT_RECONCILIATION_PREVIEW_STALE": "The review expired or the submission changed. Review it again before investigating."
   },
   "notFound": {
     "title": "Page not found",
@@ -3006,7 +3010,7 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves. Submitting a prepared batch to a controlled synthetic test provider is in progress and not yet active; no real bank or mobile-money provider is connected.",
+          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves. Submitting a prepared batch to a controlled synthetic test provider is active and test-only: it is not a real bank or mobile-money integration and no money moves. Reconciliation of uncertain submissions is in progress and not yet active.",
           "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and sending real payments to banks and mobile-money providers."
         },
         "loans": {
@@ -3096,12 +3100,13 @@
         "tasks": "Operational tasks",
         "expenses": "Employee expenses and manager approval",
         "languages": "English and French",
-        "payrollRuns": "Monthly draft payroll runs with contractual gross"
+        "payrollRuns": "Monthly draft payroll runs with contractual gross",
+        "paymentSubmission": "Submission of a prepared payment batch to a controlled synthetic test provider (test only: no real bank or provider, no money moves)"
       },
       "next": {
         "statutory": "DRC statutory country pack (awaiting professional verification)",
         "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and accounting posting",
-        "disbursement": "Sending real payments to banks and mobile-money providers, settlement and reconciliation",
+        "disbursement": "Sending real payments to banks and mobile-money providers, settlement and payment confirmation; reconciliation of uncertain synthetic submissions is in progress",
         "advances": "Salary advances and partner loans",
         "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
       },
@@ -6193,6 +6198,103 @@
       "PROVIDER_KEY_UNAVAILABLE": "Submission is unavailable: the signing key is not configured.",
       "DESTINATION_UNREADABLE": "A payment destination cannot be read.",
       "LIMIT_REACHED": "The batch exceeds the submission limit."
+    }
+  },
+  "paymentReconciliation": {
+    "title": "Delivery investigation",
+    "description": "Ask the provider what happened to a submission whose delivery is uncertain. This is a status inquiry; the payment instruction is never sent again.",
+    "notice": "This inquiry does not resend the payment instruction. Provider acceptance does not mean paid or settled.",
+    "status": { "READY": "Ready to investigate", "BLOCKED": "Blocked" },
+    "open": "Investigate delivery",
+    "reviewHeading": "Review before investigating",
+    "previewing": "Reviewing…",
+    "confirm": "Confirm investigation",
+    "confirming": "Opening…",
+    "discard": "Close review",
+    "loading": "Loading the investigation…",
+    "none": "No investigation has been opened for this submission.",
+    "announce": "The investigation was opened. The provider will be asked for the status of the request.",
+    "provider": "Provider",
+    "fingerprint": "Request fingerprint",
+    "fingerprintHelp": "The first 12 characters of a fingerprint of the request. It identifies the request without revealing it.",
+    "submissionState": "Submission state",
+    "submissionStateUnchanged": "Submission state (unchanged)",
+    "submissionOutcome": "Submission outcome",
+    "previous": "Previous conclusion",
+    "previousNone": "None",
+    "expires": "This review expires at {{at}}.",
+    "understandNoResend": "I understand that this inquiry does not resend the payment instruction.",
+    "understandNotPaid": "I understand that provider acceptance does not mean paid or settled.",
+    "current": "Investigation",
+    "state": "Conclusion",
+    "outcome": "Provider answer",
+    "attempts": "Inquiries made",
+    "nextAttempt": "Next inquiry",
+    "created": "Opened at",
+    "updated": "Last change",
+    "refresh": "Refresh",
+    "watching": "This page refreshes by itself while the investigation is running.",
+    "history": {
+      "title": "Inquiry history",
+      "caption": "Inquiry history of the investigation",
+      "sequence": "Step",
+      "attempt": "Inquiry",
+      "state": "Conclusion",
+      "outcome": "Provider answer",
+      "authenticated": "Authenticated",
+      "yes": "Yes",
+      "no": "No",
+      "time": "Time",
+      "empty": "No inquiry has been recorded yet.",
+      "more": "Load more",
+      "loading": "Loading the inquiry history…",
+      "error": "The inquiry history could not be loaded."
+    },
+    "stateLabel": {
+      "OPEN": "Open: waiting for the next inquiry",
+      "INQUIRY_IN_PROGRESS": "Inquiry in progress",
+      "CONFIRMED_ACCEPTED_FOR_PROCESSING": "Provider confirmed it accepted the payment for processing",
+      "CONFIRMED_REJECTED": "Provider confirmed it rejected the request",
+      "STILL_UNRESOLVED": "Still unresolved: the provider could not confirm",
+      "MANUAL_REVIEW_REQUIRED": "Manual review required"
+    },
+    "stateHelp": {
+      "OPEN": "The provider has not answered yet. The next inquiry is scheduled automatically.",
+      "INQUIRY_IN_PROGRESS": "The provider is being asked for the status of the request now.",
+      "CONFIRMED_ACCEPTED_FOR_PROCESSING": "The provider's authenticated answer says it holds the request and accepted it for processing. This does not confirm that any money moved.",
+      "CONFIRMED_REJECTED": "The provider's authenticated answer says it rejected the request. Nothing will be resent automatically.",
+      "STILL_UNRESOLVED": "The provider's answer did not settle the question. Nothing will be resent automatically.",
+      "MANUAL_REVIEW_REQUIRED": "Automatic inquiries ended without a trustworthy answer. A person must follow up with the provider."
+    },
+    "guidance": {
+      "title": "What to do next",
+      "MANUAL_REVIEW_REQUIRED": "The provider could not confirm the status of this request. Contact the provider through your agreed channel and quote the request fingerprint. DivalHR does not resend payments.",
+      "STILL_UNRESOLVED": "The provider could not confirm the status of this request. Contact the provider through your agreed channel and quote the request fingerprint. DivalHR does not resend payments."
+    },
+    "outcomeLabel": {
+      "ACCEPTED_FOR_PROCESSING": "Accepted for processing",
+      "REJECTED_INVALID_REQUEST": "Rejected: invalid request",
+      "REJECTED_SIGNATURE": "Rejected: signature",
+      "REJECTED_UNSUPPORTED": "Rejected: unsupported",
+      "REJECTED_DUPLICATE_MISMATCH": "Rejected: duplicate request differs",
+      "REJECTED_LIMIT": "Rejected: limit",
+      "REJECTED_OTHER": "Rejected: other reason",
+      "NOT_FOUND": "The provider has no record of the request",
+      "PENDING": "The provider holds the request and has not decided",
+      "UNKNOWN": "The provider cannot say",
+      "BAD_RESPONSE": "Answer could not be trusted",
+      "TRANSIENT_CONNECT": "Could not connect; will retry",
+      "TRANSIENT_TLS": "Secure connection failed; will retry",
+      "TRANSIENT_TIMEOUT": "No answer in time; will retry",
+      "TRANSIENT_RATE_LIMITED": "Provider asked to slow down; will retry",
+      "TRANSIENT_SERVER": "Provider unavailable; will retry",
+      "RETRIES_EXHAUSTED": "Retries exhausted"
+    },
+    "blockers": {
+      "SUBMISSION_NOT_ELIGIBLE": "This submission cannot be investigated in its current state.",
+      "RECONCILIATION_EXISTS": "An investigation already exists for this submission.",
+      "PROVIDER_NOT_AVAILABLE": "No provider is available for this submission.",
+      "PROVIDER_KEY_UNAVAILABLE": "The investigation is unavailable: the signing key is not configured."
     }
   }
 }

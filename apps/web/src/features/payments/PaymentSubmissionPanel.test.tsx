@@ -187,6 +187,9 @@ describe.each(['en', 'fr'] as const)('payment submission panel (%s)', (locale) =
             body: submission(state, { outcomeCode: outcome, providerReference: reference }),
           };
         }
+        if (r.path.includes('/submission/reconciliation')) {
+          return { status: 404, body: problem('PAYMENT_RECONCILIATION_NOT_FOUND', 404) };
+        }
         return {
           status: 200,
           body: {

@@ -20,7 +20,7 @@ A story is ready when it has a business owner, French and English copy, acceptan
 
 Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a story is **Merged** when its pull request's merge commit is on the first-parent history of `main` (`git log --merges --first-parent origin/main`), and its merge commit, pull-request number and date are the ones Git records (`git show -s --format=%cI`). "Complete" on older stories keeps its earlier meaning (issue closed as completed and pull request merged); this refresh checked Git only, not the issue tracker, so it does not re-assert whether an issue is closed.
 
-**Deployed hr-dev release (as of 2026-11-02).** `https://hr-dev.dival.ai` runs `main` at `5b0ff854693e702f0cc05f334609d96fb962346a` (merge of PR #184, MVP-095A, merged 2026-11-02T00:42:17-06:00); migration V47 is applied, the payment encryption key is provisioned through the approved secret path, the bilingual synthetic acceptance and privacy scans passed, and Issue #183 is closed. It was preceded by `035072d3d6b0d4afc126490b2414bab43206d18d` (merge of PR #182, MVP-094C, merged 2026-11-01), the payroll release train (MVP-094A, PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`; MVP-094B, PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; MVP-094C, PR #182), merged, deployed and accepted on hr-dev; migrations V44, V45 and V46 are applied; Issue #181 is closed. The real DRC rule pack `CD-SALARY-PREVIEW` is still DRAFT and inactive. Earlier releases: `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, 2026-10-29), `5d4cd1068b63b84e33671123405d6bef1178b6aa` (PR #174, SEC-003) and `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (PR #170, MVP-081). The test environment runs one released commit of `main` at a time and holds synthetic data only. MVP-095B (Issue #187) is in progress: not merged, not deployed.
+**Deployed hr-dev release (as of 2026-11-03).** `https://hr-dev.dival.ai` runs `main` at `c93ce0ec0a828e9dc4fd78298ca10475208ff58a` (merge of PR #189, R187-1: the synthetic payment provider signs with the trimmed key file; merged, deployed and accepted); migration V48 is applied. It was preceded by `b60300f998b5f6cf6bc380a93241be7e93fb4bb7` (merge of PR #188, MVP-095B, controlled synthetic provider submission; merged, deployed and accepted; Issue #187 is closed) and by `5b0ff854693e702f0cc05f334609d96fb962346a` (merge of PR #184, MVP-095A, merged 2026-11-02T00:42:17-06:00; migration V47 is applied; Issue #183 is closed). Before them: `035072d3d6b0d4afc126490b2414bab43206d18d` (merge of PR #182, MVP-094C, merged 2026-11-01), the payroll release train (MVP-094A, PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`; MVP-094B, PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; MVP-094C, PR #182), merged, deployed and accepted on hr-dev; migrations V44, V45 and V46 are applied; Issue #181 is closed. The real DRC rule pack `CD-SALARY-PREVIEW` is still DRAFT and inactive. Earlier releases: `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, 2026-10-29), `5d4cd1068b63b84e33671123405d6bef1178b6aa` (PR #174, SEC-003) and `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (PR #170, MVP-081). The test environment runs one released commit of `main` at a time and holds synthetic data only. MVP-095C (Issue #190, migration V49) is in progress: not merged, not deployed.
 
 ### Git evidence for the stories reconciled by MVP-093A
 
@@ -45,6 +45,8 @@ Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a stor
 | MVP-094B  | #180 | `995a6937c1d22aeef3ab0023856195a1adcae4e2` | 2026-10-30 | contained |
 | MVP-094C  | #182 | `035072d3d6b0d4afc126490b2414bab43206d18d` | 2026-11-01 | deployed  |
 | MVP-095A  | #184 | `5b0ff854693e702f0cc05f334609d96fb962346a` | 2026-11-02 | deployed  |
+| MVP-095B  | #188 | `b60300f998b5f6cf6bc380a93241be7e93fb4bb7` | 2026-11-02 | deployed  |
+| R187-1    | #189 | `c93ce0ec0a828e9dc4fd78298ca10475208ff58a` | 2026-11-03 | deployed  |
 
 Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.
 
@@ -442,7 +444,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-095B Submit a payment batch to a controlled provider connector
 
-**Issue #187. In progress (not merged, not deployed; hr-dev runs `5b0ff854…`).** Branch `feature/187-mvp-095b-provider-submission`, created from `main` at `5b0ff854`. ADR 0037, decisions D95B-1 to D95B-13. Migration V48.
+**Issue #187. Merged (PR #188, merge commit `b60300f998b5f6cf6bc380a93241be7e93fb4bb7`), deployed to hr-dev and accepted; Issue #187 is closed.** Follow-up R187-1 (PR #189, merge commit `c93ce0ec0a828e9dc4fd78298ca10475208ff58a`, the synthetic provider signs with the trimmed key file) is merged, deployed and accepted; hr-dev runs `c93ce0ec…`. ADR 0037, decisions D95B-1 to D95B-13. Migration V48.
 
 - **Outcome.** A tenant administrator with exact MFA reviews a PREPARED payment batch (provider, lines, totals, blockers), confirms twice, and hands it once to a controlled provider connector. The provider's strongest answer is "accepted for processing" or "rejected"; DivalHR keeps no "paid" status.
 - **Boundary.** Only the clearly labelled **SYNTHETIC-TEST** provider exists: an HTTPS receiver inside the development network. No real bank, M-Pesa, Airtel Money or Orange Money endpoint or credential is committed, enabled or contacted, and no real money moves. Every view says « Accepté pour traitement ne signifie pas payé. DivalHR n’a pas confirmé le règlement. » / "Accepted for processing does not mean paid. DivalHR has not confirmed settlement."
@@ -450,6 +452,13 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **Guards.** A submitted batch cannot be cancelled and its package cannot be voided, in the application and in the database.
 - **Web.** Provider submission panel on the batch detail page in English and French; two Playwright journeys (accepted submission; rejection, unknown delivery and authority and privacy boundaries).
 - **Not included:** a real provider, transfer, settlement, paid status, balance inquiry, destination verification, callbacks, polling, reconciliation, resubmission, partial batches, fees, currency conversion, accounting posting, employee notification, loans and salary advances.
+
+### MVP-095C Reconcile uncertain payment submissions
+
+**Issue #190. In progress (not merged, not deployed; hr-dev runs `c93ce0ec…`).** ADR 0038, decisions D95C-1 to D95C-14. Migration V49. It becomes active only after it is deployed and accepted.
+
+- **Outcome.** Reconciliation of uncertain submissions (`DELIVERY_UNKNOWN`) against the controlled SYNTHETIC-TEST provider by read-only inquiry. No operator action resends a payment instruction, and DivalHR keeps no "paid" status.
+- **Truth refresh (D95C-14).** The landing page and administrator home mark controlled synthetic provider submission active (clearly synthetic and test-only) and reconciliation in progress. Real provider connectivity, settlement, paid status, accounting posting, employee payment notification, loans and salary advances stay under "Coming next" / « Prochainement ». The backlog truth test fails CI on a stale release or capability claim.
 
 ## Epic 11 Dashboards and AI
 

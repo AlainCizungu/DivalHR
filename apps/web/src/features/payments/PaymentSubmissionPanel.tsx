@@ -13,10 +13,12 @@ import { formatInstant } from '../compensation/compensation';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { PayrollAlert, useFocusRequest } from '../payrollRuns/PayrollBits';
 import { NETWORK_FAILURE, type PayrollFailure } from '../payrollRuns/payrollRuns';
-import { MethodCounts, MinorAmount } from './PaymentBits';
+import { MethodCounts, MinorAmount, ProviderBadge } from './PaymentBits';
+import { PaymentReconciliationPanel } from './PaymentReconciliationPanel';
 import {
   ATTEMPTS_PAGE,
   paymentFailureOf,
+  RECONCILIATION_ELIGIBLE,
   SUBMISSION_IN_FLIGHT,
   SUBMISSION_REFRESH_MS,
   submissionTone,
@@ -35,30 +37,6 @@ export function SubmissionNotice({ testId = 'submission-notice' }: { testId?: st
     <p className="muted" data-testid={testId}>
       <strong>{t('paymentSubmission.notice')}</strong>
     </p>
-  );
-}
-
-function ProviderBadge({
-  provider,
-}: {
-  provider: { code: string; name: string; synthetic: boolean };
-}) {
-  const { t } = useTranslation();
-  return (
-    <>
-      <strong data-testid="submission-provider-name">{provider.name}</strong>{' '}
-      {provider.synthetic && (
-        <StatusBadge tone="warning" testId="submission-synthetic-badge">
-          {t('paymentSubmission.syntheticBadge')}
-        </StatusBadge>
-      )}
-      {provider.synthetic && (
-        <span className="muted" data-testid="submission-synthetic-help">
-          {' '}
-          {t('paymentSubmission.syntheticHelp')}
-        </span>
-      )}
-    </>
   );
 }
 
@@ -527,6 +505,9 @@ export function PaymentSubmissionPanel({
               </div>
             )}
           </section>
+          {RECONCILIATION_ELIGIBLE.has(current.submission.state) && (
+            <PaymentReconciliationPanel legalEntityId={legalEntityId} batchId={batchId} />
+          )}
         </>
       )}
     </section>
