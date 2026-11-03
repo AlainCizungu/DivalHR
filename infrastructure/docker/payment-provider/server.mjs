@@ -26,7 +26,9 @@ function key() {
   // Development stack only: the key may come from PROVIDER_SIGNING_KEY; hr-dev uses the protected file.
   const inline = process.env.PROVIDER_SIGNING_KEY;
   if (inline) return Buffer.from(inline, 'utf8');
-  return readFileSync(KEY_FILE);
+  // The protected file ends with a newline (init-secrets.sh); Core reads the same file through Spring's
+  // config tree, which strips it. Both sides must therefore sign with the trimmed value.
+  return Buffer.from(readFileSync(KEY_FILE, 'utf8').trim(), 'utf8');
 }
 
 function sign(requestId, body) {
