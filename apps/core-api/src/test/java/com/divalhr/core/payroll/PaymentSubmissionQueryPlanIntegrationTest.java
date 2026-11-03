@@ -23,11 +23,15 @@ import org.springframework.transaction.support.TransactionTemplate;
  * analyzed. Each path is driven by an existing index and never scans a submission table
  * sequentially; the paged evidence needs no sort. No index is added.
  *
+ * <p>R188-1C: the payload-line read ({@code payloadLines()}: tenant, entity and batch predicate,
+ * {@code ORDER BY l.id}) is covered here too, over two 5,000-line batches of the tenant (the batch
+ * cap) beside other tenants' batches. It runs with the planner's sort left enabled and must be
+ * served in order by {@code payment_batch_line_pkey (tenant_id, batch_id, id)} with no sort node
+ * and no sequential scan; the 5,000-line cap is not what makes it acceptable.
+ *
  * <p>The statements mirror the repository's (same predicates, orders and parameters; column lists
- * shortened). The batch-line read of the payload uses the 095A batch-line indexes (covered by
- * {@link PaymentQueryPlanIntegrationTest}; it is bounded by the 5,000-line cap). Rows are written
- * set-based with {@code session_replication_role = replica}; the plan depends on indexes and
- * statistics only. Synthetic data only.
+ * shortened). Rows are written set-based with {@code session_replication_role = replica}; the plan
+ * depends on indexes and statistics only. Synthetic data only.
  */
 @IntegrationTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -45,6 +49,31 @@ class PaymentSubmissionQueryPlanIntegrationTest {
   private final UUID entity = UUID.randomUUID();
   private UUID batch;
   private UUID submission;
+  private UUID lineBatch;
+  private UUID otherLineBatch;
+  private static final int LINES = 5_000;
+
+  private void seedLines(UUID tenantId, UUID entityId, UUID batchId) {
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              jdbc.execute("SET LOCAL session_replication_role = replica");
+              jdbc.update(
+                  "INSERT INTO payroll.payment_batch_line (tenant_id, legal_entity_id, batch_id,"
+                      + " package_id, id, payslip_id, employee_id, employee_number, method,"
+                      + " country_code, provider_code, provider_name, masked_value, destination_id,"
+                      + " destination_sequence, net_minor) SELECT ?, ?, ?, gen_random_uuid(),"
+                      + " gen_random_uuid(), gen_random_uuid(), gen_random_uuid(),"
+                      + " 'E' || lpad(g::text, 6, '0'), 'BANK_ACCOUNT', 'CD', 'SYNTHETIC-BANK',"
+                      + " 'Synthetic bank', '****' || lpad((g % 10000)::text, 4, '0'),"
+                      + " gen_random_uuid(), 1, 92000 FROM generate_series(1, "
+                      + LINES
+                      + ") g",
+                  tenantId,
+                  entityId,
+                  batchId);
+            });
+  }
 
   private void seedTenant(UUID tenantId, UUID entityId) {
     new TransactionTemplate(transactions)
@@ -96,6 +125,15 @@ class PaymentSubmissionQueryPlanIntegrationTest {
       seedTenant(UUID.randomUUID(), UUID.randomUUID());
     }
     seedTenant(tenant, entity);
+    lineBatch = UUID.randomUUID();
+    otherLineBatch = UUID.randomUUID();
+    seedLines(tenant, entity, lineBatch);
+    seedLines(tenant, entity, otherLineBatch);
+    // Many other batches, so the batch under test is a small fraction of the table (about 5%).
+    for (int other = 0; other < 38; other++) {
+      seedLines(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+    }
+    jdbc.execute("ANALYZE payroll.payment_batch_line");
     jdbc.execute("ANALYZE payroll.payment_submission");
     jdbc.execute("ANALYZE payroll.payment_submission_attempt");
     Map<String, Object> row =
@@ -216,8 +254,75 @@ class PaymentSubmissionQueryPlanIntegrationTest {
         "payment_submission_lease");
   }
 
+  /** Only bitmap scans are disabled: the planner stays free to sort, so a sort would show. */
+  private String planWithSortAllowed(String sql, Map<String, Object> params) {
+    return new TransactionTemplate(transactions)
+        .execute(
+            status -> {
+              jdbc.execute("SET LOCAL enable_bitmapscan = off");
+              return String.join(
+                  "\n", named.query("EXPLAIN " + sql, params, (rs, r) -> rs.getString(1)));
+            });
+  }
+
+  @Test
+  void thePayloadLineReadIsServedInOrderByThePrimaryKeyWithoutASortOrASequentialScan() {
+    String sql =
+        "SELECT l.id, l.employee_id, l.method, l.country_code, l.provider_code, l.destination_id,"
+            + " l.destination_sequence, l.net_minor FROM payroll.payment_batch_line l"
+            + " WHERE l.tenant_id = :tenant AND l.legal_entity_id = :entity"
+            + " AND l.batch_id = :batch ORDER BY l.id";
+    String plan =
+        planWithSortAllowed(sql, Map.of("tenant", tenant, "entity", entity, "batch", lineBatch));
+    assertThat(plan).as(plan).contains("payment_batch_line_pkey");
+    assertThat(plan).as(plan).doesNotContain("Sort");
+    assertThat(plan).as(plan).doesNotContain("Seq Scan");
+  }
+
+  @Test
+  void thePayloadLineReadReturnsOnlyTheBatchOfTheTenantInIdOrder() {
+    java.util.List<UUID> ids =
+        named.query(
+            "SELECT l.id FROM payroll.payment_batch_line l WHERE l.tenant_id = :tenant"
+                + " AND l.legal_entity_id = :entity AND l.batch_id = :batch ORDER BY l.id",
+            Map.of("tenant", tenant, "entity", entity, "batch", lineBatch),
+            (rs, r) -> rs.getObject(1, UUID.class));
+    assertThat(ids).hasSize(LINES).doesNotHaveDuplicates();
+    // PostgreSQL orders uuid bytewise, which is the order of the lowercase hex text (not of
+    // java.util.UUID's signed comparison).
+    assertThat(ids.stream().map(UUID::toString).toList()).isSorted();
+    // Another tenant asking for the same batch, or the right tenant with another entity, sees none.
+    assertThat(
+            named.queryForObject(
+                "SELECT count(*) FROM payroll.payment_batch_line l WHERE l.tenant_id = :tenant"
+                    + " AND l.legal_entity_id = :entity AND l.batch_id = :batch",
+                Map.of("tenant", UUID.randomUUID(), "entity", entity, "batch", lineBatch),
+                Long.class))
+        .isZero();
+    assertThat(
+            named.queryForObject(
+                "SELECT count(*) FROM payroll.payment_batch_line l WHERE l.tenant_id = :tenant"
+                    + " AND l.legal_entity_id = :entity AND l.batch_id = :batch",
+                Map.of("tenant", tenant, "entity", UUID.randomUUID(), "batch", lineBatch),
+                Long.class))
+        .isZero();
+    assertThat(otherLineBatch).isNotEqualTo(lineBatch);
+  }
+
   @Test
   void noIndexWasAddedBeyondTheMigration() {
+    assertThat(
+            jdbc.queryForList(
+                "SELECT indexname FROM pg_indexes WHERE schemaname = 'payroll'"
+                    + " AND tablename = 'payment_batch_line' ORDER BY indexname",
+                String.class))
+        .containsExactlyInAnyOrder(
+            "payment_batch_line_pkey",
+            "payment_batch_line_employee_unique",
+            "payment_batch_line_payslip_unique",
+            "payment_batch_line_page",
+            "payment_batch_line_payslip_fk",
+            "payment_batch_line_destination_fk");
     assertThat(
             jdbc.queryForList(
                 "SELECT indexname FROM pg_indexes WHERE schemaname = 'payroll'"

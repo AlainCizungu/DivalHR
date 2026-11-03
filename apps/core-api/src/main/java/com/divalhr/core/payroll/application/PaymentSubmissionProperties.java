@@ -1,6 +1,8 @@
 package com.divalhr.core.payroll.application;
 
+import com.divalhr.core.payroll.domain.PaymentProviderAddressPolicy;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -25,13 +27,25 @@ public record PaymentSubmissionProperties(String signingKey, Synthetic synthetic
    * @param host exact HTTPS host name
    * @param port exact HTTPS port
    * @param caFile PEM file with the receiver's throwaway CA, trusted in addition to the defaults
+   * @param networks the internal CIDR networks (RFC 1918 or unique-local only) the receiver's
+   *     address must lie in; loopback, link-local and metadata ranges are always refused
    */
-  public record Synthetic(Boolean enabled, String host, Integer port, String caFile) {
-    /** Applies defaults. */
+  public record Synthetic(
+      Boolean enabled, String host, Integer port, String caFile, List<String> networks) {
+    /** The private ranges Compose and the hr-dev host allocate container addresses from. */
+    public static final List<String> DEFAULT_NETWORKS =
+        List.of("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16");
+
+    /** Applies defaults and validates the internal networks (private space only). */
     public Synthetic {
       enabled = enabled != null && enabled;
       host = host == null ? "" : host.trim();
       port = port == null ? Integer.valueOf(8443) : port;
+      networks =
+          networks == null || networks.isEmpty()
+              ? DEFAULT_NETWORKS
+              : networks.stream().map(String::trim).filter(n -> !n.isEmpty()).toList();
+      PaymentProviderAddressPolicy.validateInternalNetworks(networks);
     }
 
     /**
@@ -72,7 +86,7 @@ public record PaymentSubmissionProperties(String signingKey, Synthetic synthetic
 
   /** Applies defaults. */
   public PaymentSubmissionProperties {
-    synthetic = synthetic == null ? new Synthetic(false, null, null, null) : synthetic;
+    synthetic = synthetic == null ? new Synthetic(false, null, null, null, null) : synthetic;
     worker = worker == null ? new Worker(null, null, null, null, null, null) : worker;
   }
 

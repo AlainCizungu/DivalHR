@@ -159,3 +159,34 @@ capability claims. No page claims DRC compliance, provider verification, disburs
 Real providers, transfer, settlement, paid status, balance inquiry, destination verification, callbacks, polling,
 reconciliation, resubmission, partial batches, fees, FX, multi-currency, accounting, statutory filing, employee
 notification, loans, tenant-authored endpoints or payload templates, production egress changes.
+
+
+## 13. Addendum: review round R188-1
+
+**Synthetic address exception (R188-1A).** The synthetic receiver is judged by its own rule, never by the
+real-provider rule, and the real-provider rule (public global-unicast only) is unchanged. A resolved address is
+acceptable for the synthetic profile only when it lies inside an explicitly configured internal network
+(`divalhr.payroll.submission.synthetic.networks`, default RFC 1918 space; each entry must itself be wholly inside
+RFC 1918 or unique-local space or the application refuses to start) and in no special-purpose range: loopback,
+unspecified, link-local, multicast, cloud metadata (169.254.169.254, fd00:ec2::254), carrier-grade NAT,
+documentation, benchmark, reserved and transition ranges. An IPv4-mapped IPv6 address is judged as IPv4. A public
+address is never acceptable for the synthetic profile. The host, port and TLS host-name verification are the exact
+configured values.
+
+**Pinning.** Each attempt resolves the host exactly once. Every answer must be acceptable, otherwise the whole
+attempt is refused before anything is dialed or written (one forbidden answer among allowed ones refuses it). The
+connection is made to a validated address object, never to the host name, so no second lookup can rebind it;
+the host name is kept only for SNI and certificate verification. Tests drive the resolver, dialer and writer through
+explicit seams: one resolution per attempt, dial on the validated address only, mixed and rebinding-style answers
+refused, each forbidden range refused, public and out-of-network private addresses refused.
+
+**Request buffer (R188-1B).** The request is written as a small header buffer followed by the caller's body buffer;
+the destination payload is never copied into a second array. Every temporary array that holds the signature is zeroed
+in a `finally` block on success and on failure; the caller wipes the body. Once a request byte may have escaped, a
+failure stays an unknown delivery. Tests observe the temporary arrays through a test seam and assert they are all
+zero after a successful attempt and after an injected write failure. Nothing is logged.
+
+**Payload-line plan (R188-1C).** `payloadLines()` (tenant, entity and batch predicate, `ORDER BY l.id`) is served in
+order by `payment_batch_line_pkey (tenant_id, batch_id, id)`: no sort node and no sequential scan, proven over two
+5,000-line batches beside other tenants' batches with the planner's sort left enabled. No index is added and V48 is
+unchanged; the 5,000-line cap is not what makes the plan acceptable.

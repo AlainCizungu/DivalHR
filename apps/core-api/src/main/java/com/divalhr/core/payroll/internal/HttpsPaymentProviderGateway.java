@@ -24,10 +24,12 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLContext;
@@ -44,11 +46,20 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The only HTTPS adapter of {@link PaymentProviderGateway} (MVP-095B, ADR 0037 section 3). Every
- * attempt resolves the profile's host again, refuses the whole attempt when any answer is not a
- * public address (the single exception is the exact synthetic receiver host and port of the
- * profile), connects only to a validated address while keeping the host name for SNI and
- * certificate verification, never follows a redirect, enforces explicit deadlines, and reads at
- * most {@link #MAX_BODY_BYTES} of response body.
+ * attempt resolves the profile's host exactly once, refuses the whole attempt when any answer is
+ * not acceptable, connects only to a validated address (the connection is pinned: no second lookup)
+ * while keeping the host name for SNI and certificate verification, never follows a redirect,
+ * enforces explicit deadlines, and reads at most {@link #MAX_BODY_BYTES} of response body.
+ *
+ * <p>Acceptable means: for a real provider, a public global-unicast address; for the synthetic
+ * receiver (R188-1A), only an address inside the configured private provider networks and outside
+ * every loopback, unspecified, link-local, multicast, metadata and other special-purpose range. A
+ * public address is never acceptable for the synthetic profile, and one forbidden answer among
+ * several refuses the whole attempt.
+ *
+ * <p>The request is written as a small header buffer and the caller's body buffer separately, so
+ * the destination payload is never duplicated (R188-1B); every temporary array holding the
+ * signature is zeroed in a {@code finally} block, on success and on failure.
  *
  * <p>Outcome classification is fail-closed for money: a failure <em>before</em> any request byte
  * was written is retryable; a failure after the request was written, a response that cannot be
@@ -82,6 +93,75 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     InetAddress[] resolve(String host) throws UnknownHostException;
   }
 
+  /** Opens a TCP connection to an already validated address (never a second lookup). */
+  @FunctionalInterface
+  public interface Dialer {
+    /**
+     * Connects.
+     *
+     * @param address the validated address
+     * @param port the port
+     * @param timeoutMillis connect deadline
+     * @return the connected socket
+     * @throws IOException when the connection cannot be made
+     */
+    Socket connect(InetAddress address, int port, int timeoutMillis) throws IOException;
+  }
+
+  /** Writes the request bytes: the header buffer, then the caller's body buffer. */
+  @FunctionalInterface
+  public interface Wire {
+    /**
+     * Writes and flushes.
+     *
+     * @param out the TLS stream
+     * @param header header bytes (contain the signature)
+     * @param body the body, owned and wiped by the caller
+     * @throws IOException on a write failure
+     */
+    void write(OutputStream out, byte[] header, byte[] body) throws IOException;
+  }
+
+  /**
+   * The seams of the adapter. Production uses {@link #production()}; tests substitute the resolver
+   * and the dialer (to observe resolution and pinning), the writer (to inject a write failure) and
+   * a buffer observer that receives every temporary array holding a signature.
+   *
+   * @param dns resolver
+   * @param dialer connection opener
+   * @param wire request writer
+   * @param buffers observer of temporary signature-bearing arrays (they are zeroed afterwards)
+   */
+  public record Hooks(Dns dns, Dialer dialer, Wire wire, Consumer<byte[]> buffers) {
+    /**
+     * @return the production seams
+     */
+    public static Hooks production() {
+      return new Hooks(
+          InetAddress::getAllByName,
+          (address, port, timeout) -> {
+            Socket socket = new Socket();
+            try {
+              socket.connect(new InetSocketAddress(address, port), timeout);
+              return socket;
+            } catch (IOException refused) {
+              try {
+                socket.close();
+              } catch (IOException ignored) {
+                // not connected
+              }
+              throw refused;
+            }
+          },
+          (out, header, body) -> {
+            out.write(header);
+            out.write(body);
+            out.flush();
+          },
+          buffer -> {});
+    }
+  }
+
   /** Internal control flow carrying only the closed outcome. */
   private static final class Stop extends RuntimeException {
     private static final long serialVersionUID = 1L;
@@ -93,7 +173,8 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     }
   }
 
-  private final Dns dns;
+  private final Hooks hooks;
+  private final List<String> syntheticNetworks;
   private final PaymentSubmissionSecrets keys;
   private final Duration connectTimeout;
   private final Duration requestTimeout;
@@ -109,29 +190,33 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
   public HttpsPaymentProviderGateway(
       PaymentSubmissionProperties properties, PaymentSubmissionSecrets keys) {
     this(
-        InetAddress::getAllByName,
+        Hooks.production(),
         keys,
         properties.worker().connectTimeout(),
         properties.worker().requestTimeout(),
-        trustFactory(properties.synthetic().caFile()));
+        trustFactory(properties.synthetic().caFile()),
+        properties.synthetic().networks());
   }
 
   /**
    * Creates the gateway with explicit collaborators (tests).
    *
-   * @param dns resolver
+   * @param hooks resolver, dialer, writer and buffer observer
    * @param keys the signing key holder
    * @param connectTimeout connect deadline
    * @param requestTimeout overall deadline
    * @param sockets TLS socket factory
+   * @param syntheticNetworks the configured internal networks of the synthetic receiver
    */
   public HttpsPaymentProviderGateway(
-      Dns dns,
+      Hooks hooks,
       PaymentSubmissionSecrets keys,
       Duration connectTimeout,
       Duration requestTimeout,
-      SSLSocketFactory sockets) {
-    this.dns = dns;
+      SSLSocketFactory sockets,
+      List<String> syntheticNetworks) {
+    this.hooks = hooks;
+    this.syntheticNetworks = List.copyOf(syntheticNetworks);
     this.keys = keys;
     this.connectTimeout = connectTimeout;
     this.requestTimeout = requestTimeout;
@@ -194,11 +279,14 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     }
   }
 
-  /** Every answer must be public, except the exact synthetic receiver of the profile. */
+  /**
+   * One resolution per attempt; every answer must be acceptable for the profile, otherwise the
+   * whole attempt is refused before anything is connected or written.
+   */
   private List<InetAddress> validated(PaymentSubmissionProfile profile) {
     InetAddress[] answers;
     try {
-      answers = dns.resolve(profile.host());
+      answers = hooks.dns().resolve(profile.host());
     } catch (UnknownHostException unknown) {
       throw new Stop(PaymentSubmissionOutcome.TRANSIENT_CONNECT);
     }
@@ -207,7 +295,11 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     }
     List<InetAddress> accepted = new ArrayList<>();
     for (InetAddress address : answers) {
-      if (!profile.synthetic() && !PaymentProviderAddressPolicy.isPublic(address)) {
+      boolean acceptable =
+          profile.synthetic()
+              ? PaymentProviderAddressPolicy.isInternalProvider(address, syntheticNetworks)
+              : PaymentProviderAddressPolicy.isPublic(address);
+      if (!acceptable) {
         throw new Stop(PaymentSubmissionOutcome.TRANSIENT_CONNECT);
       }
       accepted.add(address);
@@ -225,6 +317,7 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
       long deadline) {
     Socket plain = null;
     boolean written = false;
+    byte[] header = null;
     try {
       plain = connect(profile, targets, deadline);
       SSLSocket tls = (SSLSocket) sockets.createSocket(plain, profile.host(), profile.port(), true);
@@ -235,11 +328,11 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
       tls.setSSLParameters(parameters);
       tls.setSoTimeout(remaining(deadline, PaymentSubmissionOutcome.TRANSIENT_TLS));
       tls.startHandshake();
-      byte[] request = request(profile, requestId, keyVersion, signature, body);
+      header = header(profile, requestId, keyVersion, signature, body.length);
       OutputStream out = tls.getOutputStream();
+      // From here any byte may have escaped: a failure is an unknown delivery, never a retry.
       written = true;
-      out.write(request);
-      out.flush();
+      hooks.wire().write(out, header, body);
       Response response = read(tls, deadline);
       return classify(requestId, response);
     } catch (Stop stop) {
@@ -260,6 +353,9 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
               ? PaymentSubmissionOutcome.UNKNOWN_CONNECTION_LOST
               : PaymentSubmissionOutcome.TRANSIENT_CONNECT);
     } finally {
+      if (header != null) {
+        Arrays.fill(header, (byte) 0);
+      }
       if (plain != null) {
         try {
           plain.close();
@@ -274,17 +370,11 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
       PaymentSubmissionProfile profile, List<InetAddress> targets, long deadline) {
     long connectDeadline = Math.min(deadline, System.nanoTime() + connectTimeout.toNanos());
     for (InetAddress address : targets) {
-      Socket socket = new Socket();
       try {
         int wait = remaining(connectDeadline, PaymentSubmissionOutcome.TRANSIENT_CONNECT);
-        socket.connect(new InetSocketAddress(address, profile.port()), wait);
-        return socket;
+        return hooks.dialer().connect(address, profile.port(), wait);
       } catch (IOException refused) {
-        try {
-          socket.close();
-        } catch (IOException ignored) {
-          // not connected
-        }
+        // try the next validated address
       }
     }
     throw new Stop(PaymentSubmissionOutcome.TRANSIENT_CONNECT);
@@ -298,28 +388,46 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     return (int) Math.min(millis, Integer.MAX_VALUE);
   }
 
-  private static byte[] request(
+  /**
+   * The request header. The signature is copied from its string into one array that is zeroed at
+   * once; the combined header array is zeroed by the caller. Both are shown to the buffer observer
+   * (tests) before they are cleared. The body is never copied.
+   */
+  private byte[] header(
       PaymentSubmissionProfile profile,
       UUID requestId,
       int keyVersion,
       String signature,
-      byte[] body) {
-    StringBuilder head = new StringBuilder(384);
-    head.append("POST ").append(PATH).append(" HTTP/1.1\r\n");
-    head.append("Host: ").append(profile.host()).append(':').append(profile.port()).append("\r\n");
-    head.append("Content-Type: application/json\r\n");
-    head.append("Accept: application/json\r\n");
-    head.append("User-Agent: DivalHR-PaymentSubmission/1\r\n");
-    head.append("X-Divalhr-Request-Id: ").append(requestId).append("\r\n");
-    head.append("X-Divalhr-Key-Version: ").append(keyVersion).append("\r\n");
-    head.append("X-Divalhr-Signature: ").append(signature).append("\r\n");
-    head.append("Content-Length: ").append(body.length).append("\r\n");
-    head.append("Connection: close\r\n\r\n");
-    byte[] header = head.toString().getBytes(StandardCharsets.US_ASCII);
-    byte[] all = new byte[header.length + body.length];
-    System.arraycopy(header, 0, all, 0, header.length);
-    System.arraycopy(body, 0, all, header.length, body.length);
-    return all;
+      int bodyLength) {
+    byte[] before =
+        ("POST "
+                + PATH
+                + " HTTP/1.1\r\nHost: "
+                + profile.host()
+                + ':'
+                + profile.port()
+                + "\r\nContent-Type: application/json\r\nAccept: application/json\r\n"
+                + "User-Agent: DivalHR-PaymentSubmission/1\r\nX-Divalhr-Request-Id: "
+                + requestId
+                + "\r\nX-Divalhr-Key-Version: "
+                + keyVersion
+                + "\r\nX-Divalhr-Signature: ")
+            .getBytes(StandardCharsets.US_ASCII);
+    byte[] after =
+        ("\r\nContent-Length: " + bodyLength + "\r\nConnection: close\r\n\r\n")
+            .getBytes(StandardCharsets.US_ASCII);
+    byte[] sig = signature.getBytes(StandardCharsets.US_ASCII);
+    byte[] all = new byte[before.length + sig.length + after.length];
+    try {
+      hooks.buffers().accept(sig);
+      System.arraycopy(before, 0, all, 0, before.length);
+      System.arraycopy(sig, 0, all, before.length, sig.length);
+      System.arraycopy(after, 0, all, before.length + sig.length, after.length);
+      hooks.buffers().accept(all);
+      return all;
+    } finally {
+      Arrays.fill(sig, (byte) 0);
+    }
   }
 
   /** A bounded response. */

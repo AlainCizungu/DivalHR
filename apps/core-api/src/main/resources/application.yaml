@@ -360,6 +360,9 @@ divalhr:
         host: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_HOST:}
         port: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_PORT:8443}
         ca-file: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_CA_FILE:}
+        # R188-1A: the receiver's resolved address must lie in these private networks; loopback,
+        # link-local, metadata and every public address are always refused.
+        networks: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_NETWORKS:10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
       worker:
         enabled: ${DIVALHR_PAYMENT_SUBMISSION_WORKER_ENABLED:true}
         interval: ${DIVALHR_PAYMENT_SUBMISSION_WORKER_INTERVAL:PT5S}
