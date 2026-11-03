@@ -32,9 +32,9 @@ import { createSyntheticVerifiedPack } from './synthetic-rule-pack';
 // administrator without MFA cannot sign in through the web client, so both are covered by the unit
 // and Java integration tests instead.
 // Setup uses only public Core API endpoints plus the test-only synthetic pack. The provider's control
-// port (E2E_PAYMENT_PROVIDER_URL) scripts its answers. No retry, no arbitrary sleep: every wait is an
-// auto-waiting assertion on the visible state (the 429 wait of the shared setup helper is the one
-// documented exception, as in payment-submission.spec.ts).
+// port (E2E_PAYMENT_PROVIDER_URL) scripts its answers. No retry, no sleep of any kind: every wait is an
+// auto-waiting assertion on the visible state. The shared rate-limit window is handled by raising the
+// payment buckets of the development/CI compose stack (infrastructure/docker/compose.yaml), not by waiting.
 
 const PROVIDER_CONTROL = process.env.E2E_PAYMENT_PROVIDER_URL ?? 'http://127.0.0.1:8097';
 const stamp = Date.now().toString(36).toUpperCase().slice(-6);

@@ -186,6 +186,9 @@ class PaymentRollbackIntegrationTest {
             w.c.count(
                 "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'payroll'"
                     + " AND table_name LIKE 'payment_%'"))
-        .isEqualTo(6);
+        // V47 (4 tables), V48 submissions (2) and V49 reconciliations (2) are all still present:
+        // the
+        // refused V47 rollback removed nothing.
+        .isEqualTo(8);
   }
 }

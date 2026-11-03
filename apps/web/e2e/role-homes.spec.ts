@@ -101,7 +101,7 @@ for (const locale of ['en', 'fr'] as const) {
     await expect(modules.locator('[data-testid="landing-remaining"]')).toHaveCount(5);
     // The two plain lists (no link, button or figure): Available now grouped, Coming next.
     const today = page.getByTestId('landing-today');
-    await expect(today.getByRole('listitem')).toHaveCount(13);
+    await expect(today.getByRole('listitem')).toHaveCount(14);
     await expect(today.locator('li[data-module="compensation"]')).toHaveText(
       LANDING[locale].compensation,
     );
