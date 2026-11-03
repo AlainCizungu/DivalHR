@@ -26,9 +26,9 @@ import org.springframework.core.io.ClassPathResource;
  * deterministically. The limiters read the system clock inside the application, so a window cannot
  * be moved from an integration test; here each limiter takes a stepped clock instead. The limits
  * are the defaults written in {@code application.yaml} (so a changed default fails here), each of
- * the six subject buckets (one minute) and five tenant buckets (one hour) answers exactly its limit
- * and then a refusal whose Retry-After reaches the end of the window, the next window starts a
- * fresh count, and another subject or tenant is not affected. No sleep, no retry.
+ * the nine subject buckets (one minute) and eight tenant buckets (one hour) answers exactly its
+ * limit and then a refusal whose Retry-After reaches the end of the window, the next window starts
+ * a fresh count, and another subject or tenant is not affected. No sleep, no retry.
  */
 class PaymentRateLimitWindowTest {
 
@@ -39,14 +39,21 @@ class PaymentRateLimitWindowTest {
           "payment-destination-write",
           "payment-batch-preview",
           "payment-batch-write",
-          "payment-register-download");
+          "payment-register-download",
+          // MVP-095B (ADR 0037)
+          "payment-submission-preview",
+          "payment-submission-write",
+          "payment-submission-read");
   private static final List<String> TENANT_BUCKETS =
       List.of(
           "payment-destination-preview",
           "payment-destination-write",
           "payment-batch-preview",
           "payment-batch-write",
-          "payment-register-download");
+          "payment-register-download",
+          "payment-submission-preview",
+          "payment-submission-write",
+          "payment-submission-read");
 
   /** A clock that the test moves. */
   private static final class Stepped extends Clock {
@@ -106,7 +113,10 @@ class PaymentRateLimitWindowTest {
             Map.entry("payment-destination-write", 5),
             Map.entry("payment-batch-preview", 5),
             Map.entry("payment-batch-write", 2),
-            Map.entry("payment-register-download", 30));
+            Map.entry("payment-register-download", 30),
+            Map.entry("payment-submission-preview", 5),
+            Map.entry("payment-submission-write", 2),
+            Map.entry("payment-submission-read", 60));
     Stepped clock = new Stepped("2026-10-01T10:00:15Z");
     SubjectRateLimiter limiter =
         new SubjectRateLimiter(
@@ -159,7 +169,10 @@ class PaymentRateLimitWindowTest {
             Map.entry("payment-destination-write", 60),
             Map.entry("payment-batch-preview", 60),
             Map.entry("payment-batch-write", 20),
-            Map.entry("payment-register-download", 300));
+            Map.entry("payment-register-download", 300),
+            Map.entry("payment-submission-preview", 60),
+            Map.entry("payment-submission-write", 20),
+            Map.entry("payment-submission-read", 300));
     Stepped clock = new Stepped("2026-10-01T10:07:30Z");
     TenantRateLimiter limiter =
         new TenantRateLimiter(new RequestLimitProperties(Map.of(), buckets, null), clock);

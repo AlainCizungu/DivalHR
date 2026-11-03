@@ -301,7 +301,11 @@ class AuthorizationDenialAuditIntegrationTest {
           "payment-batch.read",
           "payment-batch.cancel-preview",
           "payment-batch.cancel",
-          "payment-register.download");
+          "payment-register.download",
+          // MVP-095B: provider submission of a payment batch.
+          "payment-submission.preview",
+          "payment-submission.create",
+          "payment-submission.read");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -824,7 +828,9 @@ class AuthorizationDenialAuditIntegrationTest {
     // payment-destination.read; the batch list, detail and lines share payment-batch.read; the CSV
     // and the manifest share payment-register.download; the employee's own destination is
     // self-service).
-    assertThat(handlers).hasSize(203);
+    // MVP-095B four more handlers over three operations (the submission status and its attempt
+    // history share payment-submission.read).
+    assertThat(handlers).hasSize(207);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

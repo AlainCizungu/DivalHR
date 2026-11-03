@@ -39,6 +39,11 @@ import org.springframework.test.context.TestExecutionListeners;
       "divalhr.integrations.jobs.enabled=false",
       "divalhr.integrations.encryption-key=test-only-webhook-encryption-key-00000001",
       "divalhr.payroll.payment.encryption-key=test-only-payment-encryption-key-000001",
+      "divalhr.payroll.submission.signing-key=test-only-payment-submission-signing-key-001",
+      "divalhr.payroll.submission.synthetic.enabled=true",
+      "divalhr.payroll.submission.synthetic.host=payments.test",
+      "divalhr.payroll.submission.synthetic.port=8443",
+      "divalhr.payroll.submission.worker.enabled=false",
       "divalhr.integrations.test-receiver.host=receiver.test",
       "divalhr.integrations.test-receiver.port=8443",
       "divalhr.messaging.jobs.enabled=false",
@@ -48,7 +53,12 @@ import org.springframework.test.context.TestExecutionListeners;
       "divalhr.messaging.public-base-url=http://localhost:3000"
     })
 @AutoConfigureMockMvc
-@Import({TestSecurityConfig.class, PostgresContainerConfig.class, TestInvitationConfig.class})
+@Import({
+  TestSecurityConfig.class,
+  PostgresContainerConfig.class,
+  TestInvitationConfig.class,
+  FakePaymentProviderGateway.Config.class
+})
 @TestExecutionListeners(
     listeners = Memberships.Binding.class,
     mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)

@@ -7,6 +7,9 @@ import {
   CANCEL_REASONS,
   DESTINATION_REASONS,
   FORBIDDEN_PHRASES,
+  SUBMISSION_BLOCKERS,
+  SUBMISSION_OUTCOMES,
+  SUBMISSION_STATES,
   METHODS,
   minorToAmount,
   normalizeAccount,
@@ -99,6 +102,43 @@ const flatten = (tree: Tree, prefix = ''): [string, string][] =>
   Object.entries(tree).flatMap(([key, value]) =>
     typeof value === 'string' ? [[`${prefix}${key}`, value]] : flatten(value, `${prefix}${key}.`),
   );
+
+describe.each(['en', 'fr'] as const)('provider submission wording (%s)', (locale) => {
+  const common = resources[locale].common as unknown as Record<string, Tree>;
+  const submission = common.paymentSubmission as Tree;
+
+  it('labels every state, outcome and blocker and carries the fixed notice', () => {
+    for (const state of SUBMISSION_STATES) {
+      expect((submission.state as Tree)[state]).toBeTruthy();
+      expect((submission.stateHelp as Tree)[state]).toBeTruthy();
+    }
+    for (const outcome of SUBMISSION_OUTCOMES) {
+      expect((submission.outcomeLabel as Tree)[outcome]).toBeTruthy();
+    }
+    for (const blocker of SUBMISSION_BLOCKERS) {
+      expect((submission.blockers as Tree)[blocker]).toBeTruthy();
+    }
+    expect(submission.notice).toBe(
+      locale === 'en'
+        ? 'Accepted for processing does not mean paid. DivalHR has not confirmed settlement.'
+        : 'Accepté pour traitement ne signifie pas payé. DivalHR n’a pas confirmé le règlement.',
+    );
+    expect(submission.submit).toBe(
+      locale === 'en' ? 'Submit to provider' : 'Soumettre au prestataire',
+    );
+  });
+
+  it('never claims a payment: only the two negations may say paid', () => {
+    const own = flatten(submission, 'paymentSubmission.');
+    expect(own.length).toBeGreaterThan(60);
+    for (const [key, value] of own) {
+      if (key === 'paymentSubmission.notice' || key === 'paymentSubmission.understand') continue;
+      for (const pattern of FORBIDDEN_PHRASES[locale]) {
+        expect(pattern.test(value), `${key}: ${value}`).toBe(false);
+      }
+    }
+  });
+});
 
 describe.each(['en', 'fr'] as const)('payment wording (%s)', (locale) => {
   const common = resources[locale].common as unknown as Record<string, Tree>;

@@ -4,6 +4,9 @@ import type {
   PaymentBatchWarning,
   PaymentDestinationReasonCode,
   PaymentMethod,
+  PaymentSubmissionBlocker,
+  PaymentSubmissionOutcome,
+  PaymentSubmissionState,
   Problem,
 } from '@divalhr/api-client';
 import type { PayrollFailure } from '../payrollRuns/payrollRuns';
@@ -16,7 +19,7 @@ import type { PayrollFailure } from '../payrollRuns/payrollRuns';
  * console. A prepared batch is a payment instruction register: nothing is sent and no money moves.
  */
 
-/** The thirteen stable Problem Details codes of this feature (D95A-10). */
+/** The stable Problem Details codes of this feature (D95A-10, D95B-9). */
 export const PAYMENT_CODES = [
   'PAYMENT_DESTINATION_NOT_FOUND',
   'PAYMENT_DESTINATION_INVALID',
@@ -31,6 +34,15 @@ export const PAYMENT_CODES = [
   'PAYMENT_BATCH_CANCELLED',
   'PAYMENT_BATCH_CANCEL_NOT_ALLOWED',
   'PAYMENT_BATCH_LIMIT_REACHED',
+  // MVP-095B (Issue #187, ADR 0037): provider submission.
+  'PAYMENT_BATCH_ALREADY_SUBMITTED',
+  'PAYMENT_SUBMISSION_NOT_FOUND',
+  'PAYMENT_SUBMISSION_BLOCKED',
+  'PAYMENT_SUBMISSION_PREVIEW_STALE',
+  'PAYMENT_SUBMISSION_VERSION_CONFLICT',
+  'PAYMENT_SUBMISSION_EXISTS',
+  'PAYMENT_PROVIDER_UNAVAILABLE',
+  'PAYMENT_SUBMISSION_KEY_UNAVAILABLE',
 ] as const;
 const PAYMENT_CODE_SET: ReadonlySet<string> = new Set(PAYMENT_CODES);
 const STALE_CODES: ReadonlySet<string> = new Set([
@@ -40,11 +52,16 @@ const STALE_CODES: ReadonlySet<string> = new Set([
   'PAYMENT_BATCH_VERSION_CONFLICT',
   'PAYMENT_BATCH_ALREADY_PREPARED',
   'PAYMENT_BATCH_CANCELLED',
+  'PAYMENT_BATCH_ALREADY_SUBMITTED',
+  'PAYMENT_SUBMISSION_PREVIEW_STALE',
+  'PAYMENT_SUBMISSION_VERSION_CONFLICT',
+  'PAYMENT_SUBMISSION_EXISTS',
   'IDEMPOTENCY_KEY_REUSED',
 ]);
 const NOT_FOUND_CODES: ReadonlySet<string> = new Set([
   'PAYMENT_DESTINATION_NOT_FOUND',
   'PAYMENT_BATCH_NOT_FOUND',
+  'PAYMENT_SUBMISSION_NOT_FOUND',
   'PAYROLL_PACKAGE_NOT_FOUND',
   'LEGAL_ENTITY_NOT_FOUND',
 ]);
@@ -226,3 +243,70 @@ export const FORBIDDEN_PHRASES: Record<'en' | 'fr', readonly RegExp[]> = {
     /compte vérifié/iu,
   ],
 };
+
+/** Closed lists of provider submission (MVP-095B). The states and outcomes come from the server. */
+export const SUBMISSION_STATES: readonly PaymentSubmissionState[] = [
+  'QUEUED',
+  'SENDING',
+  'ACCEPTED_FOR_PROCESSING',
+  'REJECTED',
+  'DELIVERY_UNKNOWN',
+  'MANUAL_INTERVENTION',
+];
+export const SUBMISSION_OUTCOMES: readonly PaymentSubmissionOutcome[] = [
+  'ACCEPTED',
+  'REJECTED_INVALID_REQUEST',
+  'REJECTED_SIGNATURE',
+  'REJECTED_UNSUPPORTED',
+  'REJECTED_DUPLICATE_MISMATCH',
+  'REJECTED_LIMIT',
+  'REJECTED_OTHER',
+  'TRANSIENT_CONNECT',
+  'TRANSIENT_TLS',
+  'TRANSIENT_RATE_LIMITED',
+  'TRANSIENT_SERVER',
+  'UNKNOWN_TIMEOUT',
+  'UNKNOWN_CONNECTION_LOST',
+  'UNKNOWN_LEASE_EXPIRED',
+  'UNKNOWN_BAD_RESPONSE',
+  'RETRIES_EXHAUSTED',
+  'NOT_SENT_UNREADABLE',
+];
+export const SUBMISSION_BLOCKERS: readonly PaymentSubmissionBlocker[] = [
+  'BATCH_NOT_PREPARED',
+  'PACKAGE_NOT_APPROVED',
+  'PACKAGE_VOIDED',
+  'PACKAGE_NOT_LATEST',
+  'SUBMISSION_EXISTS',
+  'PROVIDER_NOT_AVAILABLE',
+  'PROVIDER_UNSUPPORTED',
+  'PROVIDER_KEY_UNAVAILABLE',
+  'DESTINATION_UNREADABLE',
+  'LIMIT_REACHED',
+];
+/** States that still change by themselves: the page refreshes while it shows one of them. */
+export const SUBMISSION_IN_FLIGHT: ReadonlySet<PaymentSubmissionState> = new Set([
+  'QUEUED',
+  'SENDING',
+]);
+/** Page size of the attempt history. */
+export const ATTEMPTS_PAGE = 25;
+/** Refresh period while a submission is in flight (milliseconds). */
+export const SUBMISSION_REFRESH_MS = 4000;
+
+/** Tone of a submission state; the text always carries the meaning. */
+export function submissionTone(
+  state: PaymentSubmissionState,
+): 'neutral' | 'info' | 'success' | 'warning' | 'danger' {
+  switch (state) {
+    case 'ACCEPTED_FOR_PROCESSING':
+      return 'success';
+    case 'REJECTED':
+    case 'MANUAL_INTERVENTION':
+      return 'danger';
+    case 'DELIVERY_UNKNOWN':
+      return 'warning';
+    default:
+      return 'info';
+  }
+}

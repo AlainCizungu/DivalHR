@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
-/** MVP-095A: the thirteen stable payment codes exist, are published and are safe text. */
+/**
+ * MVP-095A: the twenty-one stable payment codes (095A and 095B) exist, are published and are safe
+ * text.
+ */
 class PaymentErrorCodesTest {
 
   private static final Map<String, HttpStatus> CODES =
@@ -37,7 +40,16 @@ class PaymentErrorCodesTest {
           Map.entry("PAYMENT_BATCH_ALREADY_PREPARED", HttpStatus.CONFLICT),
           Map.entry("PAYMENT_BATCH_CANCELLED", HttpStatus.CONFLICT),
           Map.entry("PAYMENT_BATCH_CANCEL_NOT_ALLOWED", HttpStatus.CONFLICT),
-          Map.entry("PAYMENT_BATCH_LIMIT_REACHED", HttpStatus.CONFLICT));
+          Map.entry("PAYMENT_BATCH_LIMIT_REACHED", HttpStatus.CONFLICT),
+          // MVP-095B (ADR 0037): provider submission.
+          Map.entry("PAYMENT_BATCH_ALREADY_SUBMITTED", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_SUBMISSION_NOT_FOUND", HttpStatus.NOT_FOUND),
+          Map.entry("PAYMENT_SUBMISSION_BLOCKED", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_SUBMISSION_PREVIEW_STALE", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_SUBMISSION_VERSION_CONFLICT", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_SUBMISSION_EXISTS", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_PROVIDER_UNAVAILABLE", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_SUBMISSION_KEY_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE));
 
   private static final Path SCHEMA =
       Path.of("../../packages/shared-contracts/schemas/problem.schema.json");
@@ -56,7 +68,7 @@ class PaymentErrorCodesTest {
 
   @Test
   void everyCodeExistsWithItsStatus() {
-    assertThat(CODES).hasSize(13);
+    assertThat(CODES).hasSize(21);
     for (Map.Entry<String, HttpStatus> code : CODES.entrySet()) {
       ErrorCode found = ErrorCode.valueOf(code.getKey());
       assertThat(found.status()).as(code.getKey()).isEqualTo(code.getValue());

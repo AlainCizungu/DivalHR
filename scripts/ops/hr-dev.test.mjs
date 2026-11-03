@@ -1210,7 +1210,7 @@ test('MVP-111: messaging secrets are protected files and the synthetic Meta prov
   // out, one exact host and port for the development/test exception.
   const provider = compose.slice(
     compose.indexOf('\n  meta-provider:'),
-    compose.indexOf('\n  ai-service:'),
+    compose.indexOf('\n  payment-provider:'),
   );
   assert.match(provider, /networks:\n {6}hooks:\n {8}aliases: \[graph\.meta\.test\]/);
   assert.doesNotMatch(provider, /ports:/);
@@ -1227,4 +1227,39 @@ test('MVP-111: messaging secrets are protected files and the synthetic Meta prov
   assert.match(core, /DIVALHR_MESSAGING_TEST_PROVIDER_PORT: '8443'/);
   assert.match(core, /networks: \[app, core-data, hooks\]/);
   assert.doesNotMatch(core, /graph\.facebook\.com/);
+});
+
+test('MVP-095B: the signing key is a protected file, the synthetic provider is isolated and existing environments gain the key', () => {
+  const live = compose
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+  assert.doesNotMatch(live, /DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY/);
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/core\/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY" 10001 random/,
+  );
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/provider\/payment-signing-key" 1000 same_as "\$S\/core\/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY"/,
+  );
+  assert.match(
+    source('remote-deploy.sh'),
+    /secrets\/core\/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY" \]/,
+  );
+  assert.match(
+    read('apps/core-api/src/main/resources/application.yaml'),
+    /\$\{DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY:\}/,
+  );
+  const provider = compose.slice(
+    compose.indexOf('\n  payment-provider:'),
+    compose.indexOf('\n  ai-service:'),
+  );
+  assert.match(provider, /networks:\n {6}hooks:\n {8}aliases: \[payments\.hooks\.test\]/);
+  assert.doesNotMatch(provider, /ports:/);
+  assert.match(
+    provider,
+    /PROVIDER_SIGNING_KEY_FILE: \/run\/secrets\/provider\/payment-signing-key/,
+  );
+  assert.match(live, /DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_HOST: payments\.hooks\.test/);
 });

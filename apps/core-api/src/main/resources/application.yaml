@@ -200,6 +200,11 @@ divalhr:
       payment-batch-preview: ${DIVALHR_PAYMENT_BATCH_PREVIEW_REQUESTS_PER_MINUTE:5}
       payment-batch-write: ${DIVALHR_PAYMENT_BATCH_WRITE_REQUESTS_PER_MINUTE:2}
       payment-register-download: ${DIVALHR_PAYMENT_REGISTER_DOWNLOAD_REQUESTS_PER_MINUTE:30}
+      # MVP-095B: provider submission of a payment batch (ADR 0037, D95B-12). Per subject per
+      # minute: previews 5, submissions 2, reads and attempt history 60.
+      payment-submission-preview: ${DIVALHR_PAYMENT_SUBMISSION_PREVIEW_REQUESTS_PER_MINUTE:5}
+      payment-submission-write: ${DIVALHR_PAYMENT_SUBMISSION_WRITE_REQUESTS_PER_MINUTE:2}
+      payment-submission-read: ${DIVALHR_PAYMENT_SUBMISSION_READ_REQUESTS_PER_MINUTE:60}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -321,6 +326,17 @@ divalhr:
       payment-register-download:
         requests: ${DIVALHR_PAYMENT_REGISTER_TENANT_DOWNLOADS:300}
         window: 1h
+      # MVP-095B: provider submission (ADR 0037): 60 previews, 20 submissions and 300 reads or
+      # attempt-history pages per tenant per hour.
+      payment-submission-preview:
+        requests: ${DIVALHR_PAYMENT_SUBMISSION_TENANT_PREVIEWS:60}
+        window: 1h
+      payment-submission-write:
+        requests: ${DIVALHR_PAYMENT_SUBMISSION_TENANT_WRITES:20}
+        window: 1h
+      payment-submission-read:
+        requests: ${DIVALHR_PAYMENT_SUBMISSION_TENANT_READS:300}
+        window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.
       messaging-write:
@@ -334,6 +350,26 @@ divalhr:
       # MVP-095A: the dedicated payment destination encryption key (ADR 0036). No default; read from
       # the protected secret directory; without it destinations cannot be recorded or read (503).
       encryption-key: ${DIVALHR_PAYMENT_ENCRYPTION_KEY:}
+    # MVP-095B: provider submission (ADR 0037). The HMAC signing key has no default and is read from
+    # the protected secret directory; without it submissions are refused (503) and nothing leaves.
+    # The synthetic provider is the only profile; it is refused outside development and test.
+    submission:
+      signing-key: ${DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY:}
+      synthetic:
+        enabled: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_ENABLED:false}
+        host: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_HOST:}
+        port: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_PORT:8443}
+        ca-file: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_CA_FILE:}
+        # R188-1A: the receiver's resolved address must lie in these private networks; loopback,
+        # link-local, metadata and every public address are always refused.
+        networks: ${DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_NETWORKS:10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      worker:
+        enabled: ${DIVALHR_PAYMENT_SUBMISSION_WORKER_ENABLED:true}
+        interval: ${DIVALHR_PAYMENT_SUBMISSION_WORKER_INTERVAL:PT5S}
+        lease: ${DIVALHR_PAYMENT_SUBMISSION_WORKER_LEASE:PT2M}
+        claim-size: ${DIVALHR_PAYMENT_SUBMISSION_WORKER_CLAIM_SIZE:8}
+        connect-timeout: ${DIVALHR_PAYMENT_SUBMISSION_CONNECT_TIMEOUT:PT3S}
+        request-timeout: ${DIVALHR_PAYMENT_SUBMISSION_REQUEST_TIMEOUT:PT15S}
   integrations:
     encryption-key: ${DIVALHR_WEBHOOK_ENCRYPTION_KEY:}
     extra-ports: ${DIVALHR_WEBHOOK_EXTRA_PORTS:}

@@ -28,6 +28,7 @@ import com.divalhr.core.payroll.internal.JdbcPaymentRepository.BatchRow;
 import com.divalhr.core.payroll.internal.JdbcPaymentRepository.LineRow;
 import com.divalhr.core.payroll.internal.JdbcPaymentRepository.NewBatch;
 import com.divalhr.core.payroll.internal.JdbcPaymentRepository.NewCancel;
+import com.divalhr.core.payroll.internal.JdbcPaymentSubmissionRepository;
 import com.divalhr.core.payroll.internal.JdbcPayrollPackageRepository;
 import com.divalhr.core.payroll.internal.JdbcPayrollPackageRepository.PackageRow;
 import com.divalhr.core.payroll.internal.JdbcPayrollRunRepository;
@@ -127,6 +128,7 @@ public class PaymentBatchService {
   private final PaymentBatchEvidence evidence;
   private final CompensationCalendar calendar;
   private final PaymentRecorder recorder;
+  private final JdbcPaymentSubmissionRepository submissions;
   private final PayrollOperations plumbing;
   private final CursorCodec cursors;
 
@@ -142,6 +144,7 @@ public class PaymentBatchService {
    * @param evidence the loader and evaluator of a batch
    * @param calendar business date and preview window
    * @param recorder audit and outbox
+   * @param submissions provider submission storage (the cancel guard)
    * @param plumbing transactions, metrics and logs
    * @param cursors signed cursors
    */
@@ -155,6 +158,7 @@ public class PaymentBatchService {
       PaymentBatchEvidence evidence,
       CompensationCalendar calendar,
       PaymentRecorder recorder,
+      JdbcPaymentSubmissionRepository submissions,
       PayrollOperations plumbing,
       CursorCodec cursors) {
     this.operations = operations;
@@ -166,6 +170,7 @@ public class PaymentBatchService {
     this.evidence = evidence;
     this.calendar = calendar;
     this.recorder = recorder;
+    this.submissions = submissions;
     this.plumbing = plumbing;
     this.cursors = cursors;
   }
@@ -686,6 +691,9 @@ public class PaymentBatchService {
                 if (!"PREPARED".equals(row.status())) {
                   blockers.add(PaymentBatchCancelBlocker.ALREADY_CANCELLED);
                 }
+                if (submissions.existsForBatch(tenant, row.id())) {
+                  blockers.add(PaymentBatchCancelBlocker.ALREADY_SUBMITTED);
+                }
                 boolean ready = blockers.isEmpty();
                 Instant expiresAt = ready ? CompensationCalendar.expiry(now) : null;
                 String digest =
@@ -782,6 +790,11 @@ public class PaymentBatchService {
     // 1. Already cancelled: final, never reactivated.
     if (!"PREPARED".equals(row.status())) {
       throw new ApiException(ErrorCode.PAYMENT_BATCH_CANCELLED, Map.of());
+    }
+    // 1b. A provider submission exists (MVP-095B): the batch is final. The database refuses too.
+    submissions.lockSubmission(tenant, batchId);
+    if (submissions.existsForBatch(tenant, batchId)) {
+      throw new ApiException(ErrorCode.PAYMENT_BATCH_ALREADY_SUBMITTED, Map.of());
     }
     // 2. Expiry and any difference of a digest.
     Instant expiresAt = command.expiresAt();

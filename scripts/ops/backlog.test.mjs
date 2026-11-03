@@ -18,9 +18,10 @@ const DEPLOYED = [
   '1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf', // MVP-081, PR #170: deployed first
   '5d4cd1068b63b84e33671123405d6bef1178b6aa', // SEC-003, PR #174: deployed second
   '3223454379a9b6342fe3c6b2728d8f17680466e7', // MVP-093A, PR #176: deployed third
-  '035072d3d6b0d4afc126490b2414bab43206d18d', // MVP-094C, PR #182: the payroll release train, running
+  '035072d3d6b0d4afc126490b2414bab43206d18d', // MVP-094C, PR #182: the payroll release train
+  '5b0ff854693e702f0cc05f334609d96fb962346a', // MVP-095A, PR #184: payment destinations and batches, running
 ];
-const RUNNING = DEPLOYED[3];
+const RUNNING = DEPLOYED[4];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
 /** Stories that D93-13 requires to carry a real merged or deployed status. */
@@ -89,15 +90,17 @@ test('the header names the deployed hr-dev release and the one deployed before i
   const header = backlog.split('## Epic 1')[0];
   for (const sha of DEPLOYED) assert.ok(header.includes(sha), `the header names ${sha}`);
   assert.match(header, new RegExp(`runs \`main\` at \`${RUNNING}\``, 'u'));
-  assert.match(header, /PR #182/u);
-  assert.match(header, /as of 2026-11-01/u);
+  assert.match(header, /PR #184, MVP-095A/u);
+  assert.match(header, /as of 2026-11-02/u);
   // The payroll release train (094A, 094B, 094C) is merged, deployed and accepted, from Git.
   assert.match(header, /PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`/u);
   assert.match(header, /PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`/u);
   assert.match(header, /migrations V44, V45 and V46 are applied; Issue #181 is closed/u);
   assert.match(header, /`CD-SALARY-PREVIEW` is still DRAFT and inactive/u);
-  // MVP-095A (Issue #183): in progress, not merged, not deployed.
-  assert.match(header, /MVP-095A \(Issue #183\) is in progress: not merged, not deployed/u);
+  assert.match(header, /migration V47 is applied/u);
+  assert.match(header, /Issue #183 is closed/u);
+  // MVP-095B (Issue #187): in progress, not merged, not deployed.
+  assert.match(header, /MVP-095B \(Issue #187\) is in progress: not merged, not deployed/u);
 });
 
 test('every listed story has a status', () => {
@@ -124,7 +127,7 @@ test('the required stories carry a merged or deployed status, and none is still 
   assert.match(sections.get('SEC-003').body, /deployed to hr-dev on 2026-10-29/u);
 });
 
-test('MVP-093A and the payroll train (094A, 094B, 094C) are merged and deployed; MVP-095A is in progress for Issue #183', () => {
+test('MVP-093A and the payroll train (094A, 094B, 094C) are merged and deployed; MVP-095A is deployed and MVP-095B is in progress for Issue #187', () => {
   const epic10 = backlog.split('## Epic 10')[1].split('\n## ')[0];
   assert.match(epic10, /### MVP-093A /u);
   assert.match(epic10, /### MVP-094A /u);
@@ -156,10 +159,22 @@ test('MVP-093A and the payroll train (094A, 094B, 094C) are merged and deployed;
   assert.match(epic10, /### MVP-095A /u);
   assert.match(
     payment.body,
-    /Issue #183\. In progress \(not merged, not deployed; hr-dev runs `035072d3…`\)/u,
+    /Issue #183\. Merged \(PR #184, merge commit `5b0ff854693e702f0cc05f334609d96fb962346a`\), deployed to hr-dev and accepted/u,
   );
-  assert.match(payment.body, /Nothing is sent to a bank or provider, no money moves/u);
+  assert.match(
+    payment.body,
+    /Nothing is sent to a bank or provider by MVP-095A itself, no money moves/u,
+  );
   assert.doesNotMatch(payment.body, /compliant|disbursed|payment sent/iu);
+  const submission = sections.find((entry) => entry.id === 'MVP-095B');
+  assert.match(epic10, /### MVP-095B /u);
+  assert.match(
+    submission.body,
+    /Issue #187\. In progress \(not merged, not deployed; hr-dev runs `5b0ff854…`\)/u,
+  );
+  assert.match(submission.body, /Accepted for processing does not mean paid/u);
+  assert.match(submission.body, /SYNTHETIC-TEST/u);
+  assert.doesNotMatch(submission.body, /compliant|disbursed|payment sent|\bpaid status exists/iu);
   // D94B-13: only a DRAFT pack ships, so the backlog never calls the statutory preview available.
   assert.match(statutory.body, /`CD-SALARY-PREVIEW` version 1, \*\*DRAFT\*\*/u);
   assert.match(statutory.body, /stays under "coming next"/u);

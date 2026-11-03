@@ -385,3 +385,37 @@ number or token is ever used in hr-dev.
   download sentinel. Payroll paths contain opaque UUIDs only; no amount is ever in a path or query.
 - Dev data contains no real salary or payslip; never paste amounts, employee numbers, digests or
   payslip files into issues, logs or tickets.
+
+## MVP-095B payment submission to a synthetic provider (ADR 0037)
+
+Migration **V48** adds `payroll_payment_submissions`, `payroll_payment_submission_attempts` and
+`payroll_payment_submission_evidence`. Nothing leaves the environment: the only provider profile is
+`SYNTHETIC-TEST`, the `payment-provider` container (`payments.hooks.test:8443`) on the internal `hooks`
+network (no published port, no route out, throwaway CA published read-only at
+`$HR_DEV_DATA/payment-provider`). No real bank, M-Pesa, Airtel Money or Orange Money endpoint or
+credential exists in the repository, seeds or this host.
+
+- **Signing key.** `secrets/core/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY` (uid 10001, 0400, >= 32 bytes) is
+  created once by `init-secrets.sh`, with a copy for the synthetic provider at
+  `secrets/provider/payment-signing-key` (uid 1000). `remote-deploy.sh` adds both to an existing
+  environment and never overwrites them. Never rotate in place, never print, never paste. Back up with
+  the secrets directory. Without the key Core answers `PAYMENT_SUBMISSION_KEY_UNAVAILABLE` (503) and
+  creates nothing.
+- **Observing the provider (test data only).** `docker compose exec payment-provider wget -qO-
+  http://127.0.0.1:8099/control/received` lists request metadata (request id, line count, total, digest
+  prefix); it never holds destinations or signatures. `POST /control/scenario` with `accept`, `reject`,
+  `unknown`, `server-error-once` or `rate-limit-once` and `POST /control/reset` drive acceptance runs.
+- **Worker.** One scheduler in Core claims at most 8 due submissions per cycle with `SKIP LOCKED` and a
+  2-minute lease. A crash after claim becomes `DELIVERY_UNKNOWN` (never resent). Disable with
+  `DIVALHR_PAYMENT_SUBMISSION_WORKER_ENABLED=false` only for diagnosis.
+- **Alerts to wire.** Any submission in `DELIVERY_UNKNOWN` or `MANUAL_INTERVENTION`; repeated worker
+  failures; a `SENDING` row past its lease; queue-depth gauge not draining.
+- **Operator actions never authorize a resend.** Do not edit the tables, replay requests with curl, or
+  re-run a batch to "fix" an unknown delivery. Recovery of an unknown delivery, resubmission after a
+  rejection and settlement reconciliation are later stories; until then the submission stays as the
+  durable evidence.
+- **Rollback.** The V48 rollback refuses while any submission exists. Prefer rolling back only the
+  application: the previous release ignores the V48 tables, but then cancel and void guards are not
+  enforced by the application (they remain enforced by the database).
+- Accepted for processing is not paid. Dev data holds no real person; never paste destinations,
+  signatures or provider references into issues or logs.

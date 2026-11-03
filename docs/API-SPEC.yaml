@@ -12456,7 +12456,7 @@ paths:
       x-divalhr-required-assurance: mfa
       summary: Preview cancelling a payment batch
       description: >-
-        MVP-095A. For a PREPARED batch, validates the closed reason (DESTINATION_CORRECTION, PACKAGE_CORRECTION, PREPARED_IN_ERROR, OTHER_CONTROLLED) and returns READY (previewDigest and 15-minute expiry) or BLOCKED (ALREADY_CANCELLED). Cancelling releases the payroll payment guard; the batch is kept as history and never reactivated.
+        MVP-095A. For a PREPARED batch, validates the closed reason (DESTINATION_CORRECTION, PACKAGE_CORRECTION, PREPARED_IN_ERROR, OTHER_CONTROLLED) and returns READY (previewDigest and 15-minute expiry) or BLOCKED (ALREADY_CANCELLED, or ALREADY_SUBMITTED once a provider submission exists, MVP-095B). Cancelling releases the payroll payment guard; the batch is kept as history and never reactivated.
         A fail-closed disclosure audit is written (payment-batch.read). At most 5 previews per subject per minute. Cache-Control private, no-store.
       tags: [payroll]
       parameters:
@@ -12539,6 +12539,174 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/submissions/preview:
+    post:
+      operationId: previewPaymentSubmission
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview submitting a payment batch to the controlled provider
+      description: >-
+        MVP-095B. For a PREPARED batch, returns what a submission would send: the provider (code, label and whether it is the synthetic test provider), the batch version and digest, line count, currency, total in minor units, method counts, READY or BLOCKED with stable blocker codes (BATCH_NOT_PREPARED, PACKAGE_NOT_APPROVED, PACKAGE_VOIDED, PACKAGE_NOT_LATEST, SUBMISSION_EXISTS, PROVIDER_NOT_AVAILABLE, PROVIDER_UNSUPPORTED, PROVIDER_KEY_UNAVAILABLE, DESTINATION_UNREADABLE, LIMIT_REACHED),
+        and, when READY, a previewDigest with a 15-minute expiry. Every destination is opened, authenticated and mapped as a dry run and discarded; the response carries no destination, holder, account or phone. Unknown, malformed, foreign-tenant and foreign-entity batch IDs are the same 404 PAYMENT_BATCH_NOT_FOUND.
+        A fail-closed disclosure audit is written (payment-submission.preview). At most 5 previews per subject per minute and 60 per tenant per hour. Cache-Control private, no-store. Nothing is sent to any provider by a preview.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The submission preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSubmissionPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/submissions:
+    post:
+      operationId: createPaymentSubmission
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Submit a payment batch to the controlled provider
+      description: >-
+        MVP-095B. Repeats the previewed expectedBatchVersion, batchDigest, previewDigest and expiresAt, reviewedProviderAndTotals=true, understandAcceptedIsNotPaid=true and an Idempotency-Key. In one transaction (idempotency, tenant statutory lock shared, the legal entity's package lock, the package row, the tenant payment lock, the batch row, the batch's submission lock) everything is re-read, every destination is dry-run mapped and exactly one QUEUED submission is created for the batch, with its first evidence row.
+        A moved batch is 409 PAYMENT_SUBMISSION_VERSION_CONFLICT, an existing submission 409 PAYMENT_SUBMISSION_EXISTS, no usable provider 409 PAYMENT_PROVIDER_UNAVAILABLE, any other blocker 409 PAYMENT_SUBMISSION_BLOCKED, an expired or drifted preview 409 PAYMENT_SUBMISSION_PREVIEW_STALE and a missing signing key 503 PAYMENT_SUBMISSION_KEY_UNAVAILABLE (nothing is written). The request does not wait for the provider: a controlled worker delivers it afterwards with a stable request ID, a signed canonical payload, a bounded retry schedule for failures before any byte was written, and DELIVERY_UNKNOWN (never a blind resend) when delivery is uncertain.
+        The audit record (payment-submission.create) and the internal outbox event (payroll.payment-submission.created.v1) carry identifiers, provider code, state, version and counts only. Once a submission exists the batch cannot be cancelled (409 PAYMENT_BATCH_ALREADY_SUBMITTED) and its package cannot be voided. The response is an amount-free receipt. At most 2 submissions per subject per minute and 20 per tenant per hour. The same Idempotency-Key and payload replays the original 201.
+        Accepted for processing does not mean paid: DivalHR has not confirmed settlement.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPaymentSubmission"
+      responses:
+        "201":
+          description: Submitted, or the original submission replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSubmissionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/submission:
+    get:
+      operationId: getPaymentSubmission
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read the submission of a payment batch
+      description: >-
+        MVP-095B. The current state of the batch's submission: provider, state (QUEUED, SENDING, ACCEPTED_FOR_PROCESSING, REJECTED, DELIVERY_UNKNOWN, MANUAL_INTERVENTION), version, attempts, an allow-listed outcome code, the bounded provider reference once accepted, the next due time while queued, counts and the total in minor units. A batch without a submission is 404 PAYMENT_SUBMISSION_NOT_FOUND;
+        unknown, malformed, foreign-tenant and foreign-entity batch IDs are the same 404 PAYMENT_BATCH_NOT_FOUND. A fail-closed disclosure audit is written (payment-submission.read). At most 60 reads per subject per minute and 300 per tenant per hour. Cache-Control private, no-store. ACCEPTED_FOR_PROCESSING never means paid.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The payment submission
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSubmissionView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/submission/attempts:
+    get:
+      operationId: listPaymentSubmissionAttempts
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the attempt history of a payment submission
+      description: >-
+        MVP-095B. The append-only evidence of the submission, newest first, as a keyset page (default 25, maximum 100): sequence, attempt number, state, allow-listed outcome code and bounded provider reference. Sequence 1 is the creation. A fail-closed disclosure audit is written (payment-submission.read; first page).
+        Shares the read limits of the submission. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PaymentSubmissionAttemptLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of attempts
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSubmissionAttemptPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "503":
@@ -13583,6 +13751,14 @@ components:
         type: integer
         minimum: 1
         maximum: 200
+    PaymentSubmissionAttemptLimit:
+      name: limit
+      in: query
+      description: Page size, 1 to 100 (default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
   schemas:
     AccessReviewLookup:
       type: object
@@ -20139,6 +20315,14 @@ components:
         - PAYMENT_BATCH_CANCELLED
         - PAYMENT_BATCH_CANCEL_NOT_ALLOWED
         - PAYMENT_BATCH_LIMIT_REACHED
+        - PAYMENT_BATCH_ALREADY_SUBMITTED
+        - PAYMENT_SUBMISSION_NOT_FOUND
+        - PAYMENT_SUBMISSION_BLOCKED
+        - PAYMENT_SUBMISSION_PREVIEW_STALE
+        - PAYMENT_SUBMISSION_VERSION_CONFLICT
+        - PAYMENT_SUBMISSION_EXISTS
+        - PAYMENT_PROVIDER_UNAVAILABLE
+        - PAYMENT_SUBMISSION_KEY_UNAVAILABLE
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -26071,7 +26255,7 @@ components:
       enum: [MISSING_DESTINATION, DESTINATION_INVALID, INTEGRITY_FAILURE]
     PaymentBatchCancelBlocker:
       type: string
-      enum: [ALREADY_CANCELLED]
+      enum: [ALREADY_CANCELLED, ALREADY_SUBMITTED]
     PaymentProvider:
       type: object
       additionalProperties: false
@@ -26682,7 +26866,7 @@ components:
           enum: [READY, BLOCKED]
         blockers:
           type: array
-          maxItems: 1
+          maxItems: 2
           items:
             $ref: "#/components/schemas/PaymentBatchCancelBlocker"
         reasonCode:
@@ -26700,6 +26884,228 @@ components:
         expiresAt:
           type: [string, "null"]
           format: date-time
+    PaymentSubmissionState:
+      type: string
+      enum: [QUEUED, SENDING, ACCEPTED_FOR_PROCESSING, REJECTED, DELIVERY_UNKNOWN, MANUAL_INTERVENTION]
+    PaymentSubmissionOutcome:
+      type: string
+      description: Closed list of delivery outcome codes. None means paid.
+      enum: [ACCEPTED, REJECTED_INVALID_REQUEST, REJECTED_SIGNATURE, REJECTED_UNSUPPORTED, REJECTED_DUPLICATE_MISMATCH, REJECTED_LIMIT, REJECTED_OTHER, TRANSIENT_CONNECT, TRANSIENT_TLS, TRANSIENT_RATE_LIMITED, TRANSIENT_SERVER, UNKNOWN_TIMEOUT, UNKNOWN_CONNECTION_LOST, UNKNOWN_LEASE_EXPIRED, UNKNOWN_BAD_RESPONSE, RETRIES_EXHAUSTED, NOT_SENT_UNREADABLE]
+    PaymentSubmissionBlocker:
+      type: string
+      enum: [BATCH_NOT_PREPARED, PACKAGE_NOT_APPROVED, PACKAGE_VOIDED, PACKAGE_NOT_LATEST, SUBMISSION_EXISTS, PROVIDER_NOT_AVAILABLE, PROVIDER_UNSUPPORTED, PROVIDER_KEY_UNAVAILABLE, DESTINATION_UNREADABLE, LIMIT_REACHED]
+    PaymentSubmissionProvider:
+      type: object
+      additionalProperties: false
+      description: >-
+        The controlled provider profile. synthetic=true means a clearly labelled test provider inside the development network: no real money moves.
+      required: [code, name, synthetic]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9-]{2,39}$"
+        name:
+          type: string
+          maxLength: 80
+        synthetic:
+          type: boolean
+    PaymentSubmissionPreview:
+      type: object
+      additionalProperties: false
+      description: >-
+        While status is BLOCKED, previewDigest and expiresAt are null. provider is null when no profile serves the batch.
+      required: [legalEntityId, batchId, batchVersion, batchDigest, provider, status, blockers, currency, lineCount, methodCounts, totalNetMinor, previewDigest, expiresAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        batchVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        batchDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        provider:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentSubmissionProvider"
+            - type: "null"
+        status:
+          type: string
+          enum: [READY, BLOCKED]
+        blockers:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/PaymentSubmissionBlocker"
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        lineCount:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        methodCounts:
+          $ref: "#/components/schemas/PaymentBatchMethodCounts"
+        totalNetMinor:
+          type: integer
+          format: int64
+          minimum: 0
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitPaymentSubmission:
+      type: object
+      additionalProperties: false
+      required: [expectedBatchVersion, batchDigest, previewDigest, expiresAt, reviewedProviderAndTotals, understandAcceptedIsNotPaid]
+      properties:
+        expectedBatchVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        batchDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        reviewedProviderAndTotals:
+          type: boolean
+          description: I reviewed the provider, the line count and the totals. Must be true.
+        understandAcceptedIsNotPaid:
+          type: boolean
+          description: I understand that accepted for processing does not mean paid. Must be true.
+    PaymentSubmissionReceipt:
+      type: object
+      additionalProperties: false
+      required: [submissionId, batchId, legalEntityId, providerCode, state, version, createdAt]
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        providerCode:
+          type: string
+          pattern: "^[A-Z][A-Z0-9-]{2,39}$"
+        state:
+          type: string
+          enum: [QUEUED]
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+    PaymentSubmissionView:
+      type: object
+      additionalProperties: false
+      description: >-
+        ACCEPTED_FOR_PROCESSING means a provider accepted the instructions for processing. It never means an employee was paid or that funds settled. providerReference is set only when accepted.
+      required: [id, batchId, legalEntityId, provider, state, version, batchVersion, currency, lineCount, methodCounts, totalNetMinor, attemptCount, outcomeCode, providerReference, nextAttemptAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        provider:
+          $ref: "#/components/schemas/PaymentSubmissionProvider"
+        state:
+          $ref: "#/components/schemas/PaymentSubmissionState"
+        version:
+          type: integer
+          minimum: 1
+        batchVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        lineCount:
+          type: integer
+          minimum: 1
+          maximum: 5000
+        methodCounts:
+          $ref: "#/components/schemas/PaymentBatchMethodCounts"
+        totalNetMinor:
+          type: integer
+          format: int64
+          minimum: 0
+        attemptCount:
+          type: integer
+          minimum: 0
+          maximum: 6
+        outcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentSubmissionOutcome"
+            - type: "null"
+        providerReference:
+          type: [string, "null"]
+          pattern: "^[A-Z0-9][A-Z0-9._-]{5,63}$"
+        nextAttemptAt:
+          type: [string, "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PaymentSubmissionAttempt:
+      type: object
+      additionalProperties: false
+      required: [sequence, attemptNumber, state, outcomeCode, providerReference, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        attemptNumber:
+          type: integer
+          minimum: 0
+          maximum: 6
+        state:
+          $ref: "#/components/schemas/PaymentSubmissionState"
+        outcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentSubmissionOutcome"
+            - type: "null"
+        providerReference:
+          type: [string, "null"]
+          pattern: "^[A-Z0-9][A-Z0-9._-]{5,63}$"
+        occurredAt:
+          type: string
+          format: date-time
+    PaymentSubmissionAttemptPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PaymentSubmissionAttempt"
+        nextCursor:
+          type: [string, "null"]
     CommitPaymentBatchCancel:
       type: object
       additionalProperties: false

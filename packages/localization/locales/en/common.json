@@ -257,7 +257,7 @@
         },
         "payrollPackages": {
           "title": "Approved payroll",
-          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
+          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent to a bank or mobile-money provider. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
         }
       },
       "attention": {
@@ -706,7 +706,15 @@
     "PAYMENT_BATCH_ALREADY_PREPARED": "A prepared payment batch already exists for this payroll package. Cancel it before preparing a new one.",
     "PAYMENT_BATCH_CANCELLED": "This payment batch is cancelled. It stays available as a record, but no further action is possible on it.",
     "PAYMENT_BATCH_CANCEL_NOT_ALLOWED": "This payment batch cannot be cancelled.",
-    "PAYMENT_BATCH_LIMIT_REACHED": "The payment batch line or version limit would be exceeded for this payroll package."
+    "PAYMENT_BATCH_LIMIT_REACHED": "The payment batch line or version limit would be exceeded for this payroll package.",
+    "PAYMENT_BATCH_ALREADY_SUBMITTED": "This payment batch has been submitted to a provider connector, so it can no longer be cancelled.",
+    "PAYMENT_SUBMISSION_NOT_FOUND": "This submission was not found.",
+    "PAYMENT_SUBMISSION_BLOCKED": "This payment batch cannot be submitted. Review the blockers shown in the preview.",
+    "PAYMENT_SUBMISSION_PREVIEW_STALE": "The submission preview has expired or the batch changed. Review it again before submitting.",
+    "PAYMENT_SUBMISSION_VERSION_CONFLICT": "The payment batch changed since you reviewed it. Reload the page and review it again.",
+    "PAYMENT_SUBMISSION_EXISTS": "This payment batch has already been submitted.",
+    "PAYMENT_PROVIDER_UNAVAILABLE": "No provider connector is available for this payment batch.",
+    "PAYMENT_SUBMISSION_KEY_UNAVAILABLE": "Provider submission is temporarily unavailable. Nothing was submitted."
   },
   "notFound": {
     "title": "Page not found",
@@ -2998,8 +3006,8 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves.",
-          "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and sending payments to banks and mobile-money providers."
+          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves. Submitting a prepared batch to a controlled synthetic test provider is in progress and not yet active; no real bank or mobile-money provider is connected.",
+          "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and sending real payments to banks and mobile-money providers."
         },
         "loans": {
           "title": "Loans & Salary Advances",
@@ -3093,7 +3101,7 @@
       "next": {
         "statutory": "DRC statutory country pack (awaiting professional verification)",
         "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and accounting posting",
-        "disbursement": "Sending payments to banks and mobile-money providers, and reconciliation",
+        "disbursement": "Sending real payments to banks and mobile-money providers, settlement and reconciliation",
         "advances": "Salary advances and partner loans",
         "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
       },
@@ -5936,7 +5944,7 @@
     "signInRequired": "Sign in to manage payment destinations and batches.",
     "loading": "Loading…",
     "loadMore": "Load more",
-    "noMoney": "A payment batch is a register prepared for review. Nothing is sent to a bank or provider and no money moves.",
+    "noMoney": "A payment batch is a register prepared for review. DivalHR does not move money and does not confirm settlement.",
     "method": {
       "BANK_ACCOUNT": "Bank account",
       "MOBILE_MONEY": "Mobile money",
@@ -5996,7 +6004,8 @@
       "INTEGRITY_FAILURE": "Integrity check failed"
     },
     "cancelBlockers": {
-      "ALREADY_CANCELLED": "This batch is already cancelled. A cancelled batch is never reactivated."
+      "ALREADY_CANCELLED": "This batch is already cancelled. A cancelled batch is never reactivated.",
+      "ALREADY_SUBMITTED": "This batch was submitted to a provider and can no longer be cancelled."
     },
     "lines": {
       "caption": "Payment lines",
@@ -6092,6 +6101,98 @@
       "requestUpdate": "To change your destination, ask your organization.",
       "unauthorized": "Only linked employees can see their payment destination.",
       "signInRequired": "Sign in to see your payment destination."
+    }
+  },
+  "paymentSubmission": {
+    "title": "Provider submission",
+    "description": "Send this prepared batch once to the controlled provider. The provider's answer is shown here as evidence.",
+    "submit": "Submit to provider",
+    "review": "Review submission",
+    "reviewHeading": "Review before submitting",
+    "syntheticBadge": "SYNTHETIC-TEST",
+    "syntheticHelp": "Synthetic test provider inside the development network. No real money moves.",
+    "notice": "Accepted for processing does not mean paid. DivalHR has not confirmed settlement.",
+    "provider": "Provider",
+    "batchVersion": "Batch version",
+    "lines": "Lines",
+    "total": "Total",
+    "methods": "Methods",
+    "expires": "This review expires at {{at}}.",
+    "reviewed": "I reviewed the provider, the number of lines and the totals.",
+    "understand": "I understand that accepted for processing does not mean paid.",
+    "confirm": "Confirm submission",
+    "confirming": "Submitting…",
+    "previewing": "Reviewing…",
+    "refresh": "Refresh",
+    "loading": "Loading the submission…",
+    "announce": "The batch was queued for the provider.",
+    "none": "This batch has not been submitted to a provider.",
+    "final": "A submitted batch can no longer be cancelled.",
+    "current": "Current state",
+    "reference": "Provider reference",
+    "attemptsMade": "Attempts started",
+    "nextAttempt": "Next attempt",
+    "created": "Queued at",
+    "updated": "Last change",
+    "outcome": "Outcome",
+    "history": {
+      "title": "Attempt history",
+      "caption": "Attempt history of the submission",
+      "sequence": "Step",
+      "attempt": "Attempt",
+      "state": "State",
+      "outcome": "Outcome",
+      "reference": "Reference",
+      "time": "Time",
+      "empty": "No history yet.",
+      "more": "Load more"
+    },
+    "state": {
+      "QUEUED": "Queued",
+      "SENDING": "Sending",
+      "ACCEPTED_FOR_PROCESSING": "Accepted for processing",
+      "REJECTED": "Rejected by provider",
+      "DELIVERY_UNKNOWN": "Delivery unknown",
+      "MANUAL_INTERVENTION": "Needs manual intervention"
+    },
+    "stateHelp": {
+      "QUEUED": "Waiting for the delivery worker. It will be sent shortly.",
+      "SENDING": "Being delivered to the provider now.",
+      "ACCEPTED_FOR_PROCESSING": "The provider accepted the instructions for processing. This is not a payment confirmation.",
+      "REJECTED": "The provider rejected the instructions. Nothing will be resent automatically.",
+      "DELIVERY_UNKNOWN": "DivalHR cannot tell whether the provider received the instructions. They are never resent automatically; ask the provider before any new action.",
+      "MANUAL_INTERVENTION": "Automatic delivery stopped. A person must review this submission with the operator."
+    },
+    "outcomeLabel": {
+      "ACCEPTED": "Accepted for processing",
+      "REJECTED_INVALID_REQUEST": "Rejected: invalid request",
+      "REJECTED_SIGNATURE": "Rejected: signature",
+      "REJECTED_UNSUPPORTED": "Rejected: unsupported",
+      "REJECTED_DUPLICATE_MISMATCH": "Rejected: duplicate request differs",
+      "REJECTED_LIMIT": "Rejected: limit",
+      "REJECTED_OTHER": "Rejected: other reason",
+      "TRANSIENT_CONNECT": "Could not connect; will retry",
+      "TRANSIENT_TLS": "Secure connection failed; will retry",
+      "TRANSIENT_RATE_LIMITED": "Provider asked to slow down; will retry",
+      "TRANSIENT_SERVER": "Provider unavailable; will retry",
+      "UNKNOWN_TIMEOUT": "No answer in time",
+      "UNKNOWN_CONNECTION_LOST": "Connection lost after sending",
+      "UNKNOWN_LEASE_EXPIRED": "Delivery was interrupted",
+      "UNKNOWN_BAD_RESPONSE": "Answer could not be trusted",
+      "RETRIES_EXHAUSTED": "Retries exhausted",
+      "NOT_SENT_UNREADABLE": "Not sent: a destination could not be read"
+    },
+    "blockers": {
+      "BATCH_NOT_PREPARED": "The batch is not prepared.",
+      "PACKAGE_NOT_APPROVED": "The payroll package is not approved.",
+      "PACKAGE_VOIDED": "The payroll package was voided.",
+      "PACKAGE_NOT_LATEST": "A newer payroll package exists.",
+      "SUBMISSION_EXISTS": "This batch was already submitted.",
+      "PROVIDER_NOT_AVAILABLE": "No provider is available for this batch.",
+      "PROVIDER_UNSUPPORTED": "The provider does not support every payment method in this batch.",
+      "PROVIDER_KEY_UNAVAILABLE": "Submission is unavailable: the signing key is not configured.",
+      "DESTINATION_UNREADABLE": "A payment destination cannot be read.",
+      "LIMIT_REACHED": "The batch exceeds the submission limit."
     }
   }
 }

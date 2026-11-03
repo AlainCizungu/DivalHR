@@ -35,7 +35,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * 2 batch commits and 30 register downloads per minute and subject by default) each answer exactly
  * their limit and then a stable 429 {@code RATE_LIMITED} with {@code Retry-After}, disclose nothing
  * and write nothing; the endpoints that share a bucket do share it; one subject's or bucket's
- * refusal does not touch another's. A reflection test ties the executable cases to the 14 annotated
+ * refusal does not touch another's. A reflection test ties the executable cases to the 18 annotated
  * handlers and to the configured buckets, so a new or re-bucketed endpoint fails here until it is
  * covered. The five per-tenant buckets are covered by {@link
  * PaymentTenantRateLimitIntegrationTest}. Synthetic data only.
@@ -69,6 +69,18 @@ class PaymentRateLimitIntegrationTest {
                   "PaymentBatchController.previewCancel",
                   "payment-batch-preview/payment-batch-preview"),
               Map.entry("PaymentBatchController.cancel", "payment-batch-write/payment-batch-write"),
+              Map.entry(
+                  "PaymentSubmissionController.preview",
+                  "payment-submission-preview/payment-submission-preview"),
+              Map.entry(
+                  "PaymentSubmissionController.create",
+                  "payment-submission-write/payment-submission-write"),
+              Map.entry(
+                  "PaymentSubmissionController.get",
+                  "payment-submission-read/payment-submission-read"),
+              Map.entry(
+                  "PaymentSubmissionController.attempts",
+                  "payment-submission-read/payment-submission-read"),
               Map.entry(
                   "PaymentRegisterController.csv",
                   "payment-register-download/payment-register-download"),
@@ -248,6 +260,34 @@ class PaymentRateLimitIntegrationTest {
   }
 
   @Test
+  void theSixthSubmissionPreviewOfAMinuteIsRateLimitedAndWritesNothing() throws Exception {
+    PaymentSubmissionWorld s = new PaymentSubmissionWorld(p);
+    exhaust(5, () -> s.previewRequest(w.admin, UUID.randomUUID()));
+  }
+
+  @Test
+  void theThirdSubmissionCommitOfAMinuteIsRateLimitedAndWritesNothing() throws Exception {
+    PaymentSubmissionWorld s = new PaymentSubmissionWorld(p);
+    Map<String, Object> forged = new LinkedHashMap<>();
+    forged.put("expectedBatchVersion", 1);
+    forged.put("batchDigest", ZEROS);
+    forged.put("previewDigest", ZEROS);
+    forged.put("expiresAt", Instant.now().plusSeconds(600).toString());
+    forged.put("reviewedProviderAndTotals", true);
+    forged.put("understandAcceptedIsNotPaid", true);
+    exhaust(2, () -> s.commitRequest(w.admin, UUID.randomUUID(), Organizations.newKey(), forged));
+  }
+
+  @Test
+  void theSixtyFirstSubmissionReadOfAMinuteIsRateLimitedAcrossStatusAndHistory() throws Exception {
+    UUID batch = UUID.randomUUID();
+    exhaust(
+        60,
+        adminGet(p.batchPath(batch) + "/submission"),
+        adminGet(p.batchPath(batch) + "/submission/attempts"));
+  }
+
+  @Test
   void aRefusedBucketLeavesTheOtherBucketsOfTheSameSubjectAvailable() throws Exception {
     exhaust(10, destinationPreview());
     assertThat(
@@ -276,6 +316,7 @@ class PaymentRateLimitIntegrationTest {
             com.divalhr.core.payroll.api.EmployeePaymentDestinationController.class,
             com.divalhr.core.payroll.api.MyPaymentDestinationController.class,
             com.divalhr.core.payroll.api.PaymentBatchController.class,
+            com.divalhr.core.payroll.api.PaymentSubmissionController.class,
             com.divalhr.core.payroll.api.PaymentRegisterController.class)) {
       for (Method method : controller.getDeclaredMethods()) {
         SubjectRateLimited subject = method.getAnnotation(SubjectRateLimited.class);

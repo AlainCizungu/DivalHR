@@ -287,10 +287,20 @@ services:
       DIVALHR_MESSAGING_TEST_PROVIDER_HOST: graph.meta.test
       DIVALHR_MESSAGING_TEST_PROVIDER_PORT: '8443'
       DIVALHR_MESSAGING_TEST_PROVIDER_CA_FILE: /run/meta-provider-tls/ca.pem
+      # MVP-095B (ADR 0037): the payment submission signing key is the file
+      # secrets/core/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY (configtree), never an environment value.
+      # TEST ENVIRONMENT ONLY: the synthetic payment provider below is the single provider profile
+      # (SYNTHETIC-TEST); no real bank or mobile-money endpoint exists. Core refuses the synthetic
+      # profile outside development and test.
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_ENABLED: 'true'
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_HOST: payments.hooks.test
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_PORT: '8443'
+      DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_CA_FILE: /run/payment-provider-tls/ca.pem
     volumes:
       - ${HR_DEV_DATA:?}/secrets/core:/run/secrets/core:ro
       - ${HR_DEV_DATA:?}/webhook-receiver:/run/webhook-tls:ro
       - ${HR_DEV_DATA:?}/meta-provider:/run/meta-provider-tls:ro
+      - ${HR_DEV_DATA:?}/payment-provider:/run/payment-provider-tls:ro
     networks: [app, core-data, hooks]
     deploy:
       resources:
@@ -304,6 +314,8 @@ services:
       webhook-receiver:
         condition: service_healthy
       meta-provider:
+        condition: service_healthy
+      payment-provider:
         condition: service_healthy
 
   # MVP-110: a CONTROLLED SYNTHETIC HTTPS receiver for live webhook acceptance. It holds in-memory
@@ -356,6 +368,37 @@ services:
     networks:
       hooks:
         aliases: [graph.meta.test]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+  # MVP-095B: a CONTROLLED SYNTHETIC payment provider (profile SYNTHETIC-TEST). NOT a bank or a
+  # mobile-money operator; no money exists here. It shares the internal `hooks` network with Core
+  # only (no route out, no published port), verifies request signatures with a copy of Core's
+  # signing key (secrets/provider, readable by the container user only), is idempotent by request
+  # ID, and keeps request metadata only (never destinations or signatures). Operators drive it with
+  # `docker compose exec` (docs/OPS-HR-DEV.md).
+  payment-provider:
+    <<: *service
+    image: ${HR_DEV_IMAGE_PREFIX:-divalhr-test}/payment-provider:${HR_DEV_RELEASE:?}
+    build:
+      context: ../docker/payment-provider
+    environment:
+      PROVIDER_HOST: payments.hooks.test
+      PROVIDER_SIGNING_KEY_FILE: /run/secrets/provider/payment-signing-key
+    volumes:
+      - ${HR_DEV_DATA:?}/payment-provider:/shared
+      - ${HR_DEV_DATA:?}/secrets/provider:/run/secrets/provider:ro
+    networks:
+      hooks:
+        aliases: [payments.hooks.test]
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
       interval: 10s

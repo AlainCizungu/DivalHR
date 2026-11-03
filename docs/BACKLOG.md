@@ -20,7 +20,7 @@ A story is ready when it has a business owner, French and English copy, acceptan
 
 Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a story is **Merged** when its pull request's merge commit is on the first-parent history of `main` (`git log --merges --first-parent origin/main`), and its merge commit, pull-request number and date are the ones Git records (`git show -s --format=%cI`). "Complete" on older stories keeps its earlier meaning (issue closed as completed and pull request merged); this refresh checked Git only, not the issue tracker, so it does not re-assert whether an issue is closed.
 
-**Deployed hr-dev release (as of 2026-11-01).** `https://hr-dev.dival.ai` runs `main` at `035072d3d6b0d4afc126490b2414bab43206d18d` (merge of PR #182, MVP-094C, merged 2026-11-01T09:23:15-06:00). The payroll release train (MVP-094A, PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`; MVP-094B, PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; MVP-094C, PR #182, merge commit `035072d3d6b0d4afc126490b2414bab43206d18d`) is merged, deployed and accepted on hr-dev; migrations V44, V45 and V46 are applied; Issue #181 is closed. The real DRC rule pack `CD-SALARY-PREVIEW` is still DRAFT and inactive. The release before it was `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, 2026-10-29), preceded by `5d4cd1068b63b84e33671123405d6bef1178b6aa` (PR #174, SEC-003) and `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (PR #170, MVP-081). The test environment runs one released commit of `main` at a time and holds synthetic data only. MVP-095A (Issue #183) is in progress: not merged, not deployed.
+**Deployed hr-dev release (as of 2026-11-02).** `https://hr-dev.dival.ai` runs `main` at `5b0ff854693e702f0cc05f334609d96fb962346a` (merge of PR #184, MVP-095A, merged 2026-11-02T00:42:17-06:00); migration V47 is applied, the payment encryption key is provisioned through the approved secret path, the bilingual synthetic acceptance and privacy scans passed, and Issue #183 is closed. It was preceded by `035072d3d6b0d4afc126490b2414bab43206d18d` (merge of PR #182, MVP-094C, merged 2026-11-01), the payroll release train (MVP-094A, PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`; MVP-094B, PR #180, merge commit `995a6937c1d22aeef3ab0023856195a1adcae4e2`; MVP-094C, PR #182), merged, deployed and accepted on hr-dev; migrations V44, V45 and V46 are applied; Issue #181 is closed. The real DRC rule pack `CD-SALARY-PREVIEW` is still DRAFT and inactive. Earlier releases: `3223454379a9b6342fe3c6b2728d8f17680466e7` (merge of PR #176, MVP-093A, 2026-10-29), `5d4cd1068b63b84e33671123405d6bef1178b6aa` (PR #174, SEC-003) and `1d910234e09c56ba6647dfbdd2f2de2aa83d0ebf` (PR #170, MVP-081). The test environment runs one released commit of `main` at a time and holds synthetic data only. MVP-095B (Issue #187) is in progress: not merged, not deployed.
 
 ### Git evidence for the stories reconciled by MVP-093A
 
@@ -44,6 +44,7 @@ Statuses below are reconciled against Git (MVP-093A, Issue #175, D93-13): a stor
 | MVP-094A  | #178 | `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430` | 2026-10-29 | contained |
 | MVP-094B  | #180 | `995a6937c1d22aeef3ab0023856195a1adcae4e2` | 2026-10-30 | contained |
 | MVP-094C  | #182 | `035072d3d6b0d4afc126490b2414bab43206d18d` | 2026-11-01 | deployed  |
+| MVP-095A  | #184 | `5b0ff854693e702f0cc05f334609d96fb962346a` | 2026-11-02 | deployed  |
 
 Open work is listed apart in "Open maintenance" at the end of this file; it is not part of any story's status.
 
@@ -430,14 +431,25 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 
 ### MVP-095A Record payment destinations and prepare payment batches
 
-**Issue #183. In progress (not merged, not deployed; hr-dev runs `035072d3…`).** Branch `feature/183-mvp-095a-payment-batch`, created from `main` at `035072d3`. ADR 0036, decisions D95A-1 to D95A-13. Migration V47.
+**Issue #183. Merged (PR #184, merge commit `5b0ff854693e702f0cc05f334609d96fb962346a`), deployed to hr-dev and accepted; Issue #183 is closed.** ADR 0036, decisions D95A-1 to D95A-13. Migration V47.
 
 - **Outcome.** A tenant administrator with exact MFA records an employee's effective-dated **payment destination** (bank account, mobile money in E.164, or manual) and, from an APPROVED, non-voided, latest payroll package, prepares one **payment batch**: a register of instructions copied exactly from the approved net amounts. A linked employee reads only their own masked destination at `/me/payment-destination`.
-- **Boundary.** A prepared batch is a payment instruction register. Nothing is sent to a bank or provider, no money moves, and no account is verified: destinations stay RECORDED. DivalHR makes no claim of DRC compliance. Payment submission, reconciliation, accounting and salary advances stay under "Coming next" / « Prochainement ».
+- **Boundary.** A prepared batch is a payment instruction register. Nothing is sent to a bank or provider by MVP-095A itself, no money moves, and no account is verified: destinations stay RECORDED. DivalHR makes no claim of DRC compliance. Provider submission is the next story (MVP-095B, below); reconciliation, accounting and salary advances stay under "Coming next" / « Prochainement ».
 - **Protection.** Account numbers and phone numbers are sealed (AES-256-GCM envelope, keyed fingerprint); only masked values are readable after commit; history is append-only. Amounts and currency are copied from the package, never recalculated; no partial batch.
 - **Lifecycle.** PREPARED or CANCELLED only. A PREPARED batch blocks voiding the payroll package (`PayrollPaymentGuard`); cancelling releases it. Deterministic CSV and manifest downloads. Thirteen stable error codes; limits of 5,000 lines and 25 destination versions.
 - **Web.** Destination section on the employee profile, batch panel on the package page, batch detail and cancel pages, and « Ma destination de paiement » / "My payment destination" for employees, in English and French; two Playwright journeys.
 - **Not included:** payment submission to a bank or provider, disbursement, reconciliation, accounting posting, salary advances, destination verification, notifications of any kind.
+
+### MVP-095B Submit a payment batch to a controlled provider connector
+
+**Issue #187. In progress (not merged, not deployed; hr-dev runs `5b0ff854…`).** Branch `feature/187-mvp-095b-provider-submission`, created from `main` at `5b0ff854`. ADR 0037, decisions D95B-1 to D95B-13. Migration V48.
+
+- **Outcome.** A tenant administrator with exact MFA reviews a PREPARED payment batch (provider, lines, totals, blockers), confirms twice, and hands it once to a controlled provider connector. The provider's strongest answer is "accepted for processing" or "rejected"; DivalHR keeps no "paid" status.
+- **Boundary.** Only the clearly labelled **SYNTHETIC-TEST** provider exists: an HTTPS receiver inside the development network. No real bank, M-Pesa, Airtel Money or Orange Money endpoint or credential is committed, enabled or contacted, and no real money moves. Every view says « Accepté pour traitement ne signifie pas payé. DivalHR n’a pas confirmé le règlement. » / "Accepted for processing does not mean paid. DivalHR has not confirmed settlement."
+- **Delivery.** Signed canonical payloads (HMAC-SHA256, versioned key from the approved secret path), a stable request ID, one submission per batch forever. Retry only before any byte was written and on 429/5xx; a timeout or loss after sending, an unsigned or malformed answer, or an expired lease ends as `DELIVERY_UNKNOWN` and is never resent. Six attempts at most, then manual intervention.
+- **Guards.** A submitted batch cannot be cancelled and its package cannot be voided, in the application and in the database.
+- **Web.** Provider submission panel on the batch detail page in English and French; two Playwright journeys (accepted submission; rejection, unknown delivery and authority and privacy boundaries).
+- **Not included:** a real provider, transfer, settlement, paid status, balance inquiry, destination verification, callbacks, polling, reconciliation, resubmission, partial batches, fees, currency conversion, accounting posting, employee notification, loans and salary advances.
 
 ## Epic 11 Dashboards and AI
 

@@ -751,7 +751,23 @@ public enum ErrorCode {
   /** MVP-095A: the batch cannot be cancelled. */
   PAYMENT_BATCH_CANCEL_NOT_ALLOWED(HttpStatus.CONFLICT),
   /** MVP-095A: 5,000 lines, or the 25-version chain limit of the package, would be exceeded. */
-  PAYMENT_BATCH_LIMIT_REACHED(HttpStatus.CONFLICT);
+  PAYMENT_BATCH_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-095B: the batch has a provider submission, so it cannot be cancelled. */
+  PAYMENT_BATCH_ALREADY_SUBMITTED(HttpStatus.CONFLICT),
+  /** MVP-095B: the submission is unknown, foreign or not available to the caller. */
+  PAYMENT_SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-095B: the batch cannot be submitted; the preview lists the blockers. */
+  PAYMENT_SUBMISSION_BLOCKED(HttpStatus.CONFLICT),
+  /** MVP-095B: the submission preview expired or the batch, package or provider changed. */
+  PAYMENT_SUBMISSION_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-095B: the batch changed version before the submission was committed. */
+  PAYMENT_SUBMISSION_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-095B: a submission already exists for the batch. */
+  PAYMENT_SUBMISSION_EXISTS(HttpStatus.CONFLICT),
+  /** MVP-095B: no active provider profile serves the batch, or it does not support its content. */
+  PAYMENT_PROVIDER_UNAVAILABLE(HttpStatus.CONFLICT),
+  /** MVP-095B: the submission signing key is not configured; nothing was stored or sent. */
+  PAYMENT_SUBMISSION_KEY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
 
   private final HttpStatus status;
 

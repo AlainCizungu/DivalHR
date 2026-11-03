@@ -257,7 +257,7 @@
         },
         "payrollPackages": {
           "title": "Paie approuvée",
-          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
+          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
         }
       },
       "attention": {
@@ -706,7 +706,15 @@
     "PAYMENT_BATCH_ALREADY_PREPARED": "Un lot de paiement préparé existe déjà pour ce dossier de paie. Annulez-le avant d’en préparer un nouveau.",
     "PAYMENT_BATCH_CANCELLED": "Ce lot de paiement est annulé. Il reste consultable comme archive, mais aucune autre action n’est possible.",
     "PAYMENT_BATCH_CANCEL_NOT_ALLOWED": "Ce lot de paiement ne peut pas être annulé.",
-    "PAYMENT_BATCH_LIMIT_REACHED": "La limite de lignes ou de versions des lots de paiement serait dépassée pour ce dossier de paie."
+    "PAYMENT_BATCH_LIMIT_REACHED": "La limite de lignes ou de versions des lots de paiement serait dépassée pour ce dossier de paie.",
+    "PAYMENT_BATCH_ALREADY_SUBMITTED": "Ce lot de paiement a été soumis à un connecteur de prestataire ; il ne peut donc plus être annulé.",
+    "PAYMENT_SUBMISSION_NOT_FOUND": "Cette soumission est introuvable.",
+    "PAYMENT_SUBMISSION_BLOCKED": "Ce lot de paiement ne peut pas être soumis. Consultez les blocages indiqués dans l’aperçu.",
+    "PAYMENT_SUBMISSION_PREVIEW_STALE": "L’aperçu de la soumission a expiré ou le lot a changé. Vérifiez-le de nouveau avant de soumettre.",
+    "PAYMENT_SUBMISSION_VERSION_CONFLICT": "Le lot de paiement a changé depuis votre vérification. Rechargez la page et vérifiez-le de nouveau.",
+    "PAYMENT_SUBMISSION_EXISTS": "Ce lot de paiement a déjà été soumis.",
+    "PAYMENT_PROVIDER_UNAVAILABLE": "Aucun connecteur de prestataire n’est disponible pour ce lot de paiement.",
+    "PAYMENT_SUBMISSION_KEY_UNAVAILABLE": "La soumission au prestataire est temporairement indisponible. Rien n’a été soumis."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2998,8 +3006,8 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré.",
-          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et envoi des paiements aux banques et aux opérateurs de mobile money."
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est en cours et n’est pas encore active ; aucune banque ni aucun opérateur de mobile money réel n’est connecté.",
+          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et envoi des paiements réels aux banques et aux opérateurs de mobile money."
         },
         "loans": {
           "title": "Prêts et avances sur salaire",
@@ -3093,7 +3101,7 @@
       "next": {
         "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
         "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et écritures comptables",
-        "disbursement": "Envoi des paiements aux banques et aux opérateurs de mobile money, et rapprochement",
+        "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et rapprochement",
         "advances": "Avances sur salaire et prêts via des partenaires",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
       },
@@ -5936,7 +5944,7 @@
     "signInRequired": "Connectez-vous pour gérer les destinations et les lots de paiement.",
     "loading": "Chargement…",
     "loadMore": "Afficher plus",
-    "noMoney": "Un lot de paiement est un registre préparé pour vérification. Rien n’est transmis à une banque ou à un prestataire et aucun argent n’est déplacé.",
+    "noMoney": "Un lot de paiement est un registre préparé pour vérification. DivalHR ne déplace aucun argent et ne confirme aucun règlement.",
     "method": {
       "BANK_ACCOUNT": "Compte bancaire",
       "MOBILE_MONEY": "Mobile money",
@@ -5996,7 +6004,8 @@
       "INTEGRITY_FAILURE": "Contrôle d’intégrité échoué"
     },
     "cancelBlockers": {
-      "ALREADY_CANCELLED": "Ce lot est déjà annulé. Un lot annulé n’est jamais réactivé."
+      "ALREADY_CANCELLED": "Ce lot est déjà annulé. Un lot annulé n’est jamais réactivé.",
+      "ALREADY_SUBMITTED": "Ce lot a été soumis à un prestataire et ne peut plus être annulé."
     },
     "lines": {
       "caption": "Lignes de paiement",
@@ -6092,6 +6101,98 @@
       "requestUpdate": "Pour modifier votre destination, adressez-vous à votre organisation.",
       "unauthorized": "Seuls les employés rattachés peuvent voir leur destination de paiement.",
       "signInRequired": "Connectez-vous pour voir votre destination de paiement."
+    }
+  },
+  "paymentSubmission": {
+    "title": "Soumission au prestataire",
+    "description": "Envoyez une seule fois ce lot préparé au prestataire contrôlé. La réponse du prestataire est affichée ici comme preuve.",
+    "submit": "Soumettre au prestataire",
+    "review": "Vérifier la soumission",
+    "reviewHeading": "Vérifier avant de soumettre",
+    "syntheticBadge": "SYNTHETIC-TEST",
+    "syntheticHelp": "Prestataire de test synthétique, interne au réseau de développement. Aucun argent réel n’est déplacé.",
+    "notice": "Accepté pour traitement ne signifie pas payé. DivalHR n’a pas confirmé le règlement.",
+    "provider": "Prestataire",
+    "batchVersion": "Version du lot",
+    "lines": "Lignes",
+    "total": "Total",
+    "methods": "Modes",
+    "expires": "Cette vérification expire à {{at}}.",
+    "reviewed": "J’ai vérifié le prestataire, le nombre de lignes et les totaux.",
+    "understand": "Je comprends qu’accepté pour traitement ne signifie pas payé.",
+    "confirm": "Confirmer la soumission",
+    "confirming": "Soumission en cours…",
+    "previewing": "Vérification en cours…",
+    "refresh": "Actualiser",
+    "loading": "Chargement de la soumission…",
+    "announce": "Le lot a été mis en file pour le prestataire.",
+    "none": "Ce lot n’a pas été soumis à un prestataire.",
+    "final": "Un lot soumis ne peut plus être annulé.",
+    "current": "État actuel",
+    "reference": "Référence du prestataire",
+    "attemptsMade": "Tentatives lancées",
+    "nextAttempt": "Prochaine tentative",
+    "created": "Mis en file le",
+    "updated": "Dernière modification",
+    "outcome": "Résultat",
+    "history": {
+      "title": "Historique des tentatives",
+      "caption": "Historique des tentatives de la soumission",
+      "sequence": "Étape",
+      "attempt": "Tentative",
+      "state": "État",
+      "outcome": "Résultat",
+      "reference": "Référence",
+      "time": "Date et heure",
+      "empty": "Aucun historique pour le moment.",
+      "more": "Charger la suite"
+    },
+    "state": {
+      "QUEUED": "En file",
+      "SENDING": "Envoi en cours",
+      "ACCEPTED_FOR_PROCESSING": "Accepté pour traitement",
+      "REJECTED": "Rejeté par le prestataire",
+      "DELIVERY_UNKNOWN": "Livraison inconnue",
+      "MANUAL_INTERVENTION": "Intervention manuelle requise"
+    },
+    "stateHelp": {
+      "QUEUED": "En attente du service d’envoi. L’envoi aura lieu sous peu.",
+      "SENDING": "Livraison au prestataire en cours.",
+      "ACCEPTED_FOR_PROCESSING": "Le prestataire a accepté les instructions pour traitement. Ce n’est pas une confirmation de paiement.",
+      "REJECTED": "Le prestataire a rejeté les instructions. Rien ne sera renvoyé automatiquement.",
+      "DELIVERY_UNKNOWN": "DivalHR ne peut pas savoir si le prestataire a reçu les instructions. Elles ne sont jamais renvoyées automatiquement ; interrogez le prestataire avant toute nouvelle action.",
+      "MANUAL_INTERVENTION": "L’envoi automatique est arrêté. Une personne doit examiner cette soumission avec l’opérateur."
+    },
+    "outcomeLabel": {
+      "ACCEPTED": "Accepté pour traitement",
+      "REJECTED_INVALID_REQUEST": "Rejeté : demande invalide",
+      "REJECTED_SIGNATURE": "Rejeté : signature",
+      "REJECTED_UNSUPPORTED": "Rejeté : non pris en charge",
+      "REJECTED_DUPLICATE_MISMATCH": "Rejeté : la demande en double diffère",
+      "REJECTED_LIMIT": "Rejeté : limite",
+      "REJECTED_OTHER": "Rejeté : autre motif",
+      "TRANSIENT_CONNECT": "Connexion impossible ; nouvelle tentative prévue",
+      "TRANSIENT_TLS": "Connexion sécurisée en échec ; nouvelle tentative prévue",
+      "TRANSIENT_RATE_LIMITED": "Le prestataire demande de ralentir ; nouvelle tentative prévue",
+      "TRANSIENT_SERVER": "Prestataire indisponible ; nouvelle tentative prévue",
+      "UNKNOWN_TIMEOUT": "Aucune réponse dans le délai",
+      "UNKNOWN_CONNECTION_LOST": "Connexion perdue après l’envoi",
+      "UNKNOWN_LEASE_EXPIRED": "La livraison a été interrompue",
+      "UNKNOWN_BAD_RESPONSE": "Réponse non fiable",
+      "RETRIES_EXHAUSTED": "Tentatives épuisées",
+      "NOT_SENT_UNREADABLE": "Non envoyé : une destination est illisible"
+    },
+    "blockers": {
+      "BATCH_NOT_PREPARED": "Le lot n’est pas préparé.",
+      "PACKAGE_NOT_APPROVED": "Le dossier de paie n’est pas approuvé.",
+      "PACKAGE_VOIDED": "Le dossier de paie a été annulé.",
+      "PACKAGE_NOT_LATEST": "Un dossier de paie plus récent existe.",
+      "SUBMISSION_EXISTS": "Ce lot a déjà été soumis.",
+      "PROVIDER_NOT_AVAILABLE": "Aucun prestataire n’est disponible pour ce lot.",
+      "PROVIDER_UNSUPPORTED": "Le prestataire ne prend pas en charge tous les modes de paiement de ce lot.",
+      "PROVIDER_KEY_UNAVAILABLE": "Soumission indisponible : la clé de signature n’est pas configurée.",
+      "DESTINATION_UNREADABLE": "Une destination de paiement est illisible.",
+      "LIMIT_REACHED": "Le lot dépasse la limite de soumission."
     }
   }
 }

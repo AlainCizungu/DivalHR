@@ -4717,7 +4717,7 @@ export interface paths {
         put?: never;
         /**
          * Preview cancelling a payment batch
-         * @description MVP-095A. For a PREPARED batch, validates the closed reason (DESTINATION_CORRECTION, PACKAGE_CORRECTION, PREPARED_IN_ERROR, OTHER_CONTROLLED) and returns READY (previewDigest and 15-minute expiry) or BLOCKED (ALREADY_CANCELLED). Cancelling releases the payroll payment guard; the batch is kept as history and never reactivated. A fail-closed disclosure audit is written (payment-batch.read). At most 5 previews per subject per minute. Cache-Control private, no-store.
+         * @description MVP-095A. For a PREPARED batch, validates the closed reason (DESTINATION_CORRECTION, PACKAGE_CORRECTION, PREPARED_IN_ERROR, OTHER_CONTROLLED) and returns READY (previewDigest and 15-minute expiry) or BLOCKED (ALREADY_CANCELLED, or ALREADY_SUBMITTED once a provider submission exists, MVP-095B). Cancelling releases the payroll payment guard; the batch is kept as history and never reactivated. A fail-closed disclosure audit is written (payment-batch.read). At most 5 previews per subject per minute. Cache-Control private, no-store.
          */
         post: operations["previewPaymentBatchCancellation"];
         delete?: never;
@@ -4740,6 +4740,86 @@ export interface paths {
          * @description MVP-095A. Repeats the previewed reason, batchVersion and batchDigest, the previewDigest and expiresAt, noMoneySentAcknowledged=true (nothing was sent through DivalHR) and an Idempotency-Key. Appends the cancellation evidence and moves the batch PREPARED to CANCELLED once; a CANCELLED batch is 409 PAYMENT_BATCH_CANCELLED, a different batch is 409 PAYMENT_BATCH_VERSION_CONFLICT, an expired or drifted preview is 409 PAYMENT_BATCH_PREVIEW_STALE and any other refusal is 409 PAYMENT_BATCH_CANCEL_NOT_ALLOWED. The audit record (payment-batch.cancel) and the internal outbox event (payroll.payment-batch.cancelled.v1) carry identifiers, version and status only. A corrected destination or source requires a new batch version. The same Idempotency-Key and payload replays the original 201.
          */
         post: operations["cancelPaymentBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/submissions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview submitting a payment batch to the controlled provider
+         * @description MVP-095B. For a PREPARED batch, returns what a submission would send: the provider (code, label and whether it is the synthetic test provider), the batch version and digest, line count, currency, total in minor units, method counts, READY or BLOCKED with stable blocker codes (BATCH_NOT_PREPARED, PACKAGE_NOT_APPROVED, PACKAGE_VOIDED, PACKAGE_NOT_LATEST, SUBMISSION_EXISTS, PROVIDER_NOT_AVAILABLE, PROVIDER_UNSUPPORTED, PROVIDER_KEY_UNAVAILABLE, DESTINATION_UNREADABLE, LIMIT_REACHED), and, when READY, a previewDigest with a 15-minute expiry. Every destination is opened, authenticated and mapped as a dry run and discarded; the response carries no destination, holder, account or phone. Unknown, malformed, foreign-tenant and foreign-entity batch IDs are the same 404 PAYMENT_BATCH_NOT_FOUND. A fail-closed disclosure audit is written (payment-submission.preview). At most 5 previews per subject per minute and 60 per tenant per hour. Cache-Control private, no-store. Nothing is sent to any provider by a preview.
+         */
+        post: operations["previewPaymentSubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a payment batch to the controlled provider
+         * @description MVP-095B. Repeats the previewed expectedBatchVersion, batchDigest, previewDigest and expiresAt, reviewedProviderAndTotals=true, understandAcceptedIsNotPaid=true and an Idempotency-Key. In one transaction (idempotency, tenant statutory lock shared, the legal entity's package lock, the package row, the tenant payment lock, the batch row, the batch's submission lock) everything is re-read, every destination is dry-run mapped and exactly one QUEUED submission is created for the batch, with its first evidence row. A moved batch is 409 PAYMENT_SUBMISSION_VERSION_CONFLICT, an existing submission 409 PAYMENT_SUBMISSION_EXISTS, no usable provider 409 PAYMENT_PROVIDER_UNAVAILABLE, any other blocker 409 PAYMENT_SUBMISSION_BLOCKED, an expired or drifted preview 409 PAYMENT_SUBMISSION_PREVIEW_STALE and a missing signing key 503 PAYMENT_SUBMISSION_KEY_UNAVAILABLE (nothing is written). The request does not wait for the provider: a controlled worker delivers it afterwards with a stable request ID, a signed canonical payload, a bounded retry schedule for failures before any byte was written, and DELIVERY_UNKNOWN (never a blind resend) when delivery is uncertain. The audit record (payment-submission.create) and the internal outbox event (payroll.payment-submission.created.v1) carry identifiers, provider code, state, version and counts only. Once a submission exists the batch cannot be cancelled (409 PAYMENT_BATCH_ALREADY_SUBMITTED) and its package cannot be voided. The response is an amount-free receipt. At most 2 submissions per subject per minute and 20 per tenant per hour. The same Idempotency-Key and payload replays the original 201. Accepted for processing does not mean paid: DivalHR has not confirmed settlement.
+         */
+        post: operations["createPaymentSubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the submission of a payment batch
+         * @description MVP-095B. The current state of the batch's submission: provider, state (QUEUED, SENDING, ACCEPTED_FOR_PROCESSING, REJECTED, DELIVERY_UNKNOWN, MANUAL_INTERVENTION), version, attempts, an allow-listed outcome code, the bounded provider reference once accepted, the next due time while queued, counts and the total in minor units. A batch without a submission is 404 PAYMENT_SUBMISSION_NOT_FOUND; unknown, malformed, foreign-tenant and foreign-entity batch IDs are the same 404 PAYMENT_BATCH_NOT_FOUND. A fail-closed disclosure audit is written (payment-submission.read). At most 60 reads per subject per minute and 300 per tenant per hour. Cache-Control private, no-store. ACCEPTED_FOR_PROCESSING never means paid.
+         */
+        get: operations["getPaymentSubmission"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payment-batches/{batchId}/submission/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the attempt history of a payment submission
+         * @description MVP-095B. The append-only evidence of the submission, newest first, as a keyset page (default 25, maximum 100): sequence, attempt number, state, allow-listed outcome code and bounded provider reference. Sequence 1 is the creation. A fail-closed disclosure audit is written (payment-submission.read; first page). Shares the read limits of the submission. Cache-Control private, no-store.
+         */
+        get: operations["listPaymentSubmissionAttempts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7795,7 +7875,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -10845,7 +10925,7 @@ export interface components {
         /** @enum {string} */
         PaymentBatchLineIssue: "MISSING_DESTINATION" | "DESTINATION_INVALID" | "INTEGRITY_FAILURE";
         /** @enum {string} */
-        PaymentBatchCancelBlocker: "ALREADY_CANCELLED";
+        PaymentBatchCancelBlocker: "ALREADY_CANCELLED" | "ALREADY_SUBMITTED";
         /** @description A controlled bank or mobile-money provider (code and display name). No logo, partner or integration claim. */
         PaymentProvider: {
             code: string;
@@ -11113,6 +11193,107 @@ export interface components {
             previewDigest: string | null;
             /** Format: date-time */
             expiresAt: string | null;
+        };
+        /** @enum {string} */
+        PaymentSubmissionState: "QUEUED" | "SENDING" | "ACCEPTED_FOR_PROCESSING" | "REJECTED" | "DELIVERY_UNKNOWN" | "MANUAL_INTERVENTION";
+        /**
+         * @description Closed list of delivery outcome codes. None means paid.
+         * @enum {string}
+         */
+        PaymentSubmissionOutcome: "ACCEPTED" | "REJECTED_INVALID_REQUEST" | "REJECTED_SIGNATURE" | "REJECTED_UNSUPPORTED" | "REJECTED_DUPLICATE_MISMATCH" | "REJECTED_LIMIT" | "REJECTED_OTHER" | "TRANSIENT_CONNECT" | "TRANSIENT_TLS" | "TRANSIENT_RATE_LIMITED" | "TRANSIENT_SERVER" | "UNKNOWN_TIMEOUT" | "UNKNOWN_CONNECTION_LOST" | "UNKNOWN_LEASE_EXPIRED" | "UNKNOWN_BAD_RESPONSE" | "RETRIES_EXHAUSTED" | "NOT_SENT_UNREADABLE";
+        /** @enum {string} */
+        PaymentSubmissionBlocker: "BATCH_NOT_PREPARED" | "PACKAGE_NOT_APPROVED" | "PACKAGE_VOIDED" | "PACKAGE_NOT_LATEST" | "SUBMISSION_EXISTS" | "PROVIDER_NOT_AVAILABLE" | "PROVIDER_UNSUPPORTED" | "PROVIDER_KEY_UNAVAILABLE" | "DESTINATION_UNREADABLE" | "LIMIT_REACHED";
+        /** @description The controlled provider profile. synthetic=true means a clearly labelled test provider inside the development network: no real money moves. */
+        PaymentSubmissionProvider: {
+            code: string;
+            name: string;
+            synthetic: boolean;
+        };
+        /** @description While status is BLOCKED, previewDigest and expiresAt are null. provider is null when no profile serves the batch. */
+        PaymentSubmissionPreview: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            batchId: string;
+            batchVersion: number;
+            batchDigest: string;
+            provider: components["schemas"]["PaymentSubmissionProvider"] | null;
+            /** @enum {string} */
+            status: "READY" | "BLOCKED";
+            blockers: components["schemas"]["PaymentSubmissionBlocker"][];
+            currency: string;
+            lineCount: number;
+            methodCounts: components["schemas"]["PaymentBatchMethodCounts"];
+            /** Format: int64 */
+            totalNetMinor: number;
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+        };
+        CommitPaymentSubmission: {
+            expectedBatchVersion: number;
+            batchDigest: string;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description I reviewed the provider, the line count and the totals. Must be true. */
+            reviewedProviderAndTotals: boolean;
+            /** @description I understand that accepted for processing does not mean paid. Must be true. */
+            understandAcceptedIsNotPaid: boolean;
+        };
+        PaymentSubmissionReceipt: {
+            /** Format: uuid */
+            submissionId: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            providerCode: string;
+            /** @enum {string} */
+            state: "QUEUED";
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description ACCEPTED_FOR_PROCESSING means a provider accepted the instructions for processing. It never means an employee was paid or that funds settled. providerReference is set only when accepted. */
+        PaymentSubmissionView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            provider: components["schemas"]["PaymentSubmissionProvider"];
+            state: components["schemas"]["PaymentSubmissionState"];
+            version: number;
+            batchVersion: number;
+            currency: string;
+            lineCount: number;
+            methodCounts: components["schemas"]["PaymentBatchMethodCounts"];
+            /** Format: int64 */
+            totalNetMinor: number;
+            attemptCount: number;
+            outcomeCode: components["schemas"]["PaymentSubmissionOutcome"] | null;
+            providerReference: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PaymentSubmissionAttempt: {
+            sequence: number;
+            attemptNumber: number;
+            state: components["schemas"]["PaymentSubmissionState"];
+            outcomeCode: components["schemas"]["PaymentSubmissionOutcome"] | null;
+            providerReference: string | null;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        PaymentSubmissionAttemptPage: {
+            items: components["schemas"]["PaymentSubmissionAttempt"][];
+            nextCursor: string | null;
         };
         CommitPaymentBatchCancel: {
             reasonCode: components["schemas"]["PaymentBatchCancelReasonCode"];
@@ -11430,6 +11611,8 @@ export interface components {
         PaymentBatchStatusFilter: components["schemas"]["PaymentBatchStatus"];
         /** @description Page size, 1 to 200 (default 25). */
         PaymentBatchLineLimit: number;
+        /** @description Page size, 1 to 100 (default 25). */
+        PaymentSubmissionAttemptLimit: number;
     };
     requestBodies: never;
     headers: {
@@ -21265,6 +21448,159 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewPaymentSubmission: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The submission preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSubmissionPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createPaymentSubmission: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitPaymentSubmission"];
+            };
+        };
+        responses: {
+            /** @description Submitted, or the original submission replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSubmissionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPaymentSubmission: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The payment submission */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSubmissionView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPaymentSubmissionAttempts: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size, 1 to 100 (default 25). */
+                limit?: components["parameters"]["PaymentSubmissionAttemptLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
+                batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of attempts */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSubmissionAttemptPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["ServiceUnavailable"];
         };
