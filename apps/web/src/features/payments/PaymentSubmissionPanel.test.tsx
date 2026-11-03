@@ -9,7 +9,7 @@ import { PaymentSubmissionPanel } from './PaymentSubmissionPanel';
 
 const ENTITY = '22222222-2222-4222-8222-222222222222';
 const BATCH = '66666666-6666-4666-8666-666666666666';
-const SECRET_ACCOUNT = 'SYNTHACCT0099887766';
+const SENTINEL_ACCOUNT = 'SYNTHACCT0099887766';
 
 const problem = (code: string, status: number) => ({
   type: `https://docs.divalhr.com/errors/${code.toLowerCase()}`,
@@ -130,7 +130,7 @@ describe.each(['en', 'fr'] as const)('payment submission panel (%s)', (locale) =
       understandAcceptedIsNotPaid: true,
     });
     expect(screen.getByTestId('submission-notice')).toHaveTextContent(c.paymentSubmission.notice);
-    expect(container).not.toHaveTextContent(SECRET_ACCOUNT);
+    expect(container).not.toHaveTextContent(SENTINEL_ACCOUNT);
     await waitFor(async () => {
       const result = await axe.run(container);
       expect(result.violations.map((v) => v.id)).toEqual([]);

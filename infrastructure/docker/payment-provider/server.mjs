@@ -13,7 +13,8 @@ import { createServer as createHttpsServer } from 'node:https';
 const TLS_DIR = process.env.PROVIDER_TLS_DIR ?? '/tls';
 const HTTPS_PORT = Number(process.env.PROVIDER_HTTPS_PORT ?? 8443);
 const CONTROL_PORT = Number(process.env.PROVIDER_CONTROL_PORT ?? 8099);
-const KEY_FILE = process.env.PROVIDER_SIGNING_KEY_FILE ?? '/run/secrets/provider/payment-signing-key';
+const KEY_FILE =
+  process.env.PROVIDER_SIGNING_KEY_FILE ?? '/run/secrets/provider/payment-signing-key';
 const MAX_BODY = 2 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const SCENARIOS = new Set(['accept', 'reject', 'unknown', 'server-error-once', 'rate-limit-once']);
@@ -75,10 +76,14 @@ function inspect(requestId, parsed) {
   for (const line of lines) {
     const bank = line.method === 'BANK_ACCOUNT';
     const mobile = line.method === 'MOBILE_MONEY';
-    const amount = Number.isSafeInteger(line.amountMinor) && line.amountMinor > 0 ? line.amountMinor : 0;
+    const amount =
+      Number.isSafeInteger(line.amountMinor) && line.amountMinor > 0 ? line.amountMinor : 0;
     sum += amount;
     const destinationOk =
-      (bank && typeof line.account === 'string' && line.account.length > 2 && line.phone === null) ||
+      (bank &&
+        typeof line.account === 'string' &&
+        line.account.length > 2 &&
+        line.phone === null) ||
       (mobile && typeof line.phone === 'string' && line.phone.length > 2 && line.account === null);
     if (
       !(bank || mobile) ||
@@ -185,9 +190,17 @@ const provider = createHttpsServer(
       c.requestIdMatches && c.lineCountMatches && c.totalMatches && c.linesOk && c.lineCount > 0;
     let decision;
     if (!valid) {
-      decision = { status: 400, value: { result: 'REJECTED', code: 'INVALID_REQUEST' }, outcome: 'REJECTED_INVALID_REQUEST' };
+      decision = {
+        status: 400,
+        value: { result: 'REJECTED', code: 'INVALID_REQUEST' },
+        outcome: 'REJECTED_INVALID_REQUEST',
+      };
     } else if (state.scenario === 'reject') {
-      decision = { status: 422, value: { result: 'REJECTED', code: 'UNSUPPORTED' }, outcome: 'REJECTED_UNSUPPORTED' };
+      decision = {
+        status: 422,
+        value: { result: 'REJECTED', code: 'UNSUPPORTED' },
+        outcome: 'REJECTED_UNSUPPORTED',
+      };
     } else if (state.scenario === 'unknown') {
       decision = { hang: true, outcome: 'ACCEPTED_SILENT' };
     } else if (state.scenario === 'server-error-once' && !state.onceUsed) {

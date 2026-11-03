@@ -161,7 +161,10 @@ test('MVP-093A and the payroll train (094A, 094B, 094C) are merged and deployed;
     payment.body,
     /Issue #183\. Merged \(PR #184, merge commit `5b0ff854693e702f0cc05f334609d96fb962346a`\), deployed to hr-dev and accepted/u,
   );
-  assert.match(payment.body, /Nothing is sent to a bank or provider by MVP-095A itself, no money moves/u);
+  assert.match(
+    payment.body,
+    /Nothing is sent to a bank or provider by MVP-095A itself, no money moves/u,
+  );
   assert.doesNotMatch(payment.body, /compliant|disbursed|payment sent/iu);
   const submission = sections.find((entry) => entry.id === 'MVP-095B');
   assert.match(epic10, /### MVP-095B /u);

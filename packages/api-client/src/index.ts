@@ -734,7 +734,8 @@ export type CommitPaymentSubmission = CoreComponents['schemas']['CommitPaymentSu
 export type PaymentSubmissionReceipt = CoreComponents['schemas']['PaymentSubmissionReceipt'];
 export type PaymentSubmissionView = CoreComponents['schemas']['PaymentSubmissionView'];
 export type PaymentSubmissionAttempt = CoreComponents['schemas']['PaymentSubmissionAttempt'];
-export type PaymentSubmissionAttemptPage = CoreComponents['schemas']['PaymentSubmissionAttemptPage'];
+export type PaymentSubmissionAttemptPage =
+  CoreComponents['schemas']['PaymentSubmissionAttemptPage'];
 export type PaymentBatchCancelReceipt = CoreComponents['schemas']['PaymentBatchCancelReceipt'];
 export type CommitPaymentDestination = CoreComponents['schemas']['CommitPaymentDestination'];
 export type CommitPaymentBatch = CoreComponents['schemas']['CommitPaymentBatch'];

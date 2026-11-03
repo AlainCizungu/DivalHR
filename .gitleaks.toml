@@ -5,7 +5,11 @@ useDefault = true
 
 [allowlist]
 description = "Published development-only placeholders and test fixtures"
-regexes = ['''dev-only-[A-Za-z0-9-]+''']
+regexes = [
+  '''dev-only-[A-Za-z0-9-]+''',
+  # Synthetic account-number sentinels of the payment tests and journeys (never a real account).
+  '''SYNTHACCT[A-Za-z0-9 ]+''',
+]
 paths = [
   '''apps/core-api/src/test/''',
   '''apps/ai-service/tests/''',

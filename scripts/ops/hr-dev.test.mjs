@@ -1257,6 +1257,9 @@ test('MVP-095B: the signing key is a protected file, the synthetic provider is i
   );
   assert.match(provider, /networks:\n {6}hooks:\n {8}aliases: \[payments\.hooks\.test\]/);
   assert.doesNotMatch(provider, /ports:/);
-  assert.match(provider, /PROVIDER_SIGNING_KEY_FILE: \/run\/secrets\/provider\/payment-signing-key/);
+  assert.match(
+    provider,
+    /PROVIDER_SIGNING_KEY_FILE: \/run\/secrets\/provider\/payment-signing-key/,
+  );
   assert.match(live, /DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_HOST: payments\.hooks\.test/);
 });
