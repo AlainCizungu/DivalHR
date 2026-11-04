@@ -598,7 +598,8 @@ const WARNING = {
 } as const;
 const PAID_WORDS = {
   en: /\b(paid|settled)\b/iu,
-  fr: /(payé|payée|réglé|réglée|effectué)/iu,
+  // Whole words only: the French label « Demandes effectuées » (requests made) is not a payment claim.
+  fr: /(?<![\p{L}])(payé|payée|réglé|réglée|effectué)(?![\p{L}])/iu,
 } as const;
 
 interface Seen {
@@ -874,15 +875,6 @@ test.describe.serial('MVP-095C: reconciliation of uncertain payment submissions'
     for (const entity of entities) await submitViaApi(page, bearer, entity);
     for (const entity of entities) await untilUnknown(page, bearer, entity);
     await page.close();
-  });
-
-  // Diagnostic: the list reporter prints errors only when the whole suite ends; print them as they happen.
-  test.afterEach(({ browser }, info) => {
-    void browser;
-    for (const error of info.errors) {
-      const message = (error.message ?? '').slice(0, 1500);
-      console.log(`RC-ERROR ${info.title.slice(0, 20)} :: ${message}`);
-    }
   });
 
   test.afterAll(async ({ browser }) => {
