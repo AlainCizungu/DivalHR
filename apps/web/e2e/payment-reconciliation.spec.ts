@@ -1,17 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import {
-  CORE_API,
-  TENANT_A,
-  USERS,
-  acceptInvitation,
-  expectAccessible,
-  mailTo,
-  openSecretLink,
-  signIn,
-  sql,
-  subjectLock,
-  typeSecret,
-} from './support';
+import { CORE_API, TENANT_A, USERS, expectAccessible, signIn, sql, subjectLock } from './support';
 import { createSyntheticVerifiedPack } from './synthetic-rule-pack';
 
 // MVP-095C (Issue #190): exactly two journeys against the SYNTHETIC-TEST provider (an HTTPS receiver
@@ -418,56 +406,6 @@ async function approveViaApi(page: Page, bearer: () => string, entity: Site) {
   return receipt.packageId;
 }
 
-/** Invites an employee, sets the password through the emailed link and links the record. */
-async function inviteAndLink(
-  browser: import('@playwright/test').Browser,
-  page: Page,
-  bearer: () => string,
-  p: Person,
-) {
-  expect(
-    (
-      await post(page, bearer, '/invitations', `inv-${p.number}`, {
-        email: p.email,
-        role: 'employee',
-        locale: 'fr',
-      })
-    ).status(),
-  ).toBe(201);
-  const link = /https?:\/\/[^\s"<>]+\/invitation#token=([A-Za-z0-9_-]{43})/u.exec(
-    await mailTo(p.email, /Invitation (à rejoindre|to join)/u),
-  );
-  expect(link, 'invitation link').not.toBeNull();
-  expect(await acceptInvitation(page, link?.[1] ?? '')).toBe(200);
-  const setup = /https?:\/\/[^\s"<>]+\/login-actions\/action-token\?[^\s"<>]+/u.exec(
-    await mailTo(p.email, /mot de passe|password|actions|compte|account/iu),
-  );
-  expect(setup, 'password setup link').not.toBeNull();
-  const context = await browser.newContext({ locale: 'fr-FR' });
-  const setupPage = await context.newPage();
-  await openSecretLink(setupPage, setup?.[0] ?? '');
-  const proceed = setupPage.locator('a[href*="login-actions"], #kc-info-message a').first();
-  if ((await setupPage.locator('#password-new').count()) === 0 && (await proceed.count()) > 0) {
-    await proceed.click();
-  }
-  await typeSecret(setupPage, '#password-new', p.password);
-  await typeSecret(setupPage, '#password-confirm', p.password);
-  await setupPage.locator('[type="submit"]').first().click();
-  await context.close();
-  const lookup = await page.request.post(`${CORE_API}/employees/${p.employee}/access-link/lookup`, {
-    headers: { Authorization: bearer() },
-    data: { email: p.email },
-  });
-  expect(lookup.status()).toBe(200);
-  expect(
-    (
-      await post(page, bearer, `/employees/${p.employee}/access-link`, `link-${p.number}`, {
-        membershipId: ((await lookup.json()) as { membershipId: string }).membershipId,
-      })
-    ).status(),
-  ).toBe(201);
-}
-
 const get = (page: Page, bearer: () => string, path: string) =>
   page.request.get(`${CORE_API}${path}`, { headers: { Authorization: bearer() } });
 
@@ -869,7 +807,6 @@ test.describe.serial('MVP-095C: reconciliation of uncertain payment submissions'
     await recordDestination(page, bearer, PEN, bank);
     await recordDestination(page, bearer, ROB, mobile);
     for (const entity of entities) await prepareBatch(page, bearer, entity);
-    await inviteAndLink(browser, page, bearer, ANA);
     // The provider swallows every payment request: each submission ends as DELIVERY_UNKNOWN.
     await control(page, 'scenario', { scenario: 'unknown' });
     for (const entity of entities) await submitViaApi(page, bearer, entity);
@@ -1001,7 +938,8 @@ test.describe.serial('MVP-095C: reconciliation of uncertain payment submissions'
     // 1. The linked employee and anonymous callers reach nothing.
     const annaContext = await browser.newContext({ locale: 'fr-FR' });
     const anna = await annaContext.newPage();
-    const annaBearer = await signIn(anna, [ANA.email, ANA.password], 'fr', undefined);
+    // The seeded employee of tenant A (no invitation: the shared hourly invitation budget is spent).
+    const annaBearer = await signIn(anna, USERS.employeeA, 'fr', undefined);
     for (const path of [reconciliation(ACCEPTED), `${reconciliation(ACCEPTED)}/inquiries`]) {
       expect([403, 404], path).toContain((await get(anna, annaBearer, path)).status());
       expect((await anna.request.get(`${CORE_API}${path}`)).status(), `${path} anonymous`).toBe(
