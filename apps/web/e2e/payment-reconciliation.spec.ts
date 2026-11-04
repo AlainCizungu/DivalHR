@@ -876,6 +876,15 @@ test.describe.serial('MVP-095C: reconciliation of uncertain payment submissions'
     await page.close();
   });
 
+  // Diagnostic: the list reporter prints errors only when the whole suite ends; print them as they happen.
+  test.afterEach(({ browser }, info) => {
+    void browser;
+    for (const error of info.errors) {
+      const message = (error.message ?? '').slice(0, 1500);
+      console.log(`RC-ERROR ${info.title.slice(0, 20)} :: ${message}`);
+    }
+  });
+
   test.afterAll(async ({ browser }) => {
     const page = await browser.newPage();
     await control(page, 'reset');
