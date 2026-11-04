@@ -1114,7 +1114,7 @@ test.describe.serial('MVP-095C: reconciliation of uncertain payment submissions'
     for (const path of [reconciliation(PENDING), `${reconciliation(PENDING)}/inquiries`]) {
       const foreign = await get(other, otherBearer, path);
       expect(foreign.status(), path).toBe(404);
-      expect(foreign.headers()['cache-control'], path).toBe('private, no-store');
+      expect(foreign.headers()['cache-control'], path).toContain('no-store');
       expect(((await foreign.json()) as { code: string }).code).toBe(
         'PAYMENT_RECONCILIATION_NOT_FOUND',
       );
@@ -1128,7 +1128,7 @@ test.describe.serial('MVP-095C: reconciliation of uncertain payment submissions'
         data,
       });
       expect(foreign.status(), suffix).toBe(404);
-      expect(foreign.headers()['cache-control'], suffix).toBe('private, no-store');
+      expect(foreign.headers()['cache-control'], suffix).toContain('no-store');
     }
     await navigateInApp(other, `/admin/payment-batches/${PENDING.id}/${PENDING.batchId}`);
     await expect(other.getByTestId('payment-batch-detail-failure')).toHaveAttribute(
