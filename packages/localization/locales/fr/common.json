@@ -257,7 +257,7 @@
         },
         "payrollPackages": {
           "title": "Paie approuvée",
-          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money réel. Un lot préparé peut être soumis une seule fois au prestataire de test synthétique contrôlé uniquement (test seulement, aucun argent n’est transféré) ; le rapprochement des soumissions incertaines est en cours et n’est pas encore actif. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
+          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money réel. Un lot préparé peut être soumis une seule fois au prestataire de test synthétique contrôlé uniquement (test seulement, aucun argent n’est transféré) ; le rapprochement d’une soumission incertaine est disponible uniquement pour ce prestataire de test synthétique : il l’interroge sur la soumission existante et ne renvoie jamais le paiement. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
         }
       },
       "attention": {
@@ -348,8 +348,8 @@
     "badge": "Prochainement",
     "items": {
       "disbursement": {
-        "title": "Versement des salaires et rapprochement",
-        "description": "Connectivité bancaire et mobile money réelle, règlement et confirmation de paiement. Le rapprochement des soumissions synthétiques incertaines est en cours et n’est pas encore actif."
+        "title": "Versement des salaires",
+        "description": "Connectivité bancaire et mobile money réelle, versement réel, règlement et confirmation de paiement."
       },
       "myDocuments": {
         "title": "Documents",
@@ -3010,7 +3010,7 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement des soumissions incertaines est en cours et n’est pas encore actif.",
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé : il interroge ce prestataire sur la soumission existante, ne renvoie jamais le paiement, et l’acceptation par le prestataire n’est ni un paiement ni un règlement. Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible.",
           "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et envoi des paiements réels aux banques et aux opérateurs de mobile money."
         },
         "loans": {
@@ -3101,12 +3101,12 @@
         "expenses": "Notes de frais des employés et approbation par le responsable",
         "languages": "Anglais et français",
         "payrollRuns": "Exécutions de paie mensuelles en brouillon avec brut contractuel",
-        "paymentSubmission": "Soumission d’un lot de paiement préparé à un prestataire de test synthétique contrôlé (test uniquement : aucune banque ni aucun prestataire réel, aucun argent transféré)"
+        "paymentSubmission": "Soumission d’un lot de paiement préparé à un prestataire de test synthétique contrôlé, et demande d’état d’une soumission incertaine sans jamais la renvoyer (test uniquement : aucune banque ni aucun prestataire réel, aucun argent transféré)"
       },
       "next": {
         "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
         "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et écritures comptables",
-        "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et confirmation de paiement ; le rapprochement des soumissions synthétiques incertaines est en cours",
+        "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et confirmation de paiement",
         "advances": "Avances sur salaire et prêts via des partenaires",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
       },
@@ -3131,8 +3131,8 @@
           "description": "Les retenues légales, l’approbation de la paie et les bulletins de paie bilingues exigent un jeu de règles vérifié par un professionnel. Celui de la RDC n’est pas encore vérifié : pilote et préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement."
         },
         "payment": {
-          "title": "Paiement et rapprochement",
-          "description": "Instructions de paiement par mobile money ou banque, et rapprochement des résultats."
+          "title": "Paiement réel et rapprochement",
+          "description": "Instructions de paiement vers de vraies banques et de vrais opérateurs de mobile money, et rapprochement des résultats réels. Seul un prestataire de test synthétique contrôlé existe aujourd’hui."
         },
         "runs": {
           "title": "Exécutions mensuelles en brouillon",

@@ -18,9 +18,11 @@ import type { IconName } from '../../ui/Icon';
  * MVP-095A (Issue #183): payment destinations and payment instruction registers are shipped; sending
  * payments to banks or providers and reconciliation stay here as "Coming next".
  * MVP-095B (Issue #187) and R187-1: provider submission to the SYNTHETIC-TEST connector is active
- * (deployed and accepted, test-only). MVP-095C (Issue #190): reconciliation of uncertain submissions is
- * in progress and not active until deployed and accepted; real provider connectivity, settlement, paid
- * status, accounting posting, employee notification and salary advances stay "Coming next".
+ * (deployed and accepted, test-only). MVP-095C (Issue #190, PR #191; deployed and accepted on 2026-11-05; truth refresh TRUTH-002, Issue #192):
+ * reconciliation of uncertain submissions is active for the SYNTHETIC-TEST provider only and is no longer a
+ * roadmap item; the "disbursement" tile names only real provider connectivity, real disbursement, settlement
+ * and payment confirmation. Paid status, accounting posting, employee notification, loans and salary advances
+ * stay "Coming next".
  */
 export interface RoadmapItem {
   id: string;
