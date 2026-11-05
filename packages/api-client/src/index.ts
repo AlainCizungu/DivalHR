@@ -736,6 +736,22 @@ export type PaymentSubmissionView = CoreComponents['schemas']['PaymentSubmission
 export type PaymentSubmissionAttempt = CoreComponents['schemas']['PaymentSubmissionAttempt'];
 export type PaymentSubmissionAttemptPage =
   CoreComponents['schemas']['PaymentSubmissionAttemptPage'];
+export type PaymentReconciliationState = CoreComponents['schemas']['PaymentReconciliationState'];
+export type PaymentReconciliationOutcome =
+  CoreComponents['schemas']['PaymentReconciliationOutcome'];
+export type PaymentReconciliationConclusion =
+  CoreComponents['schemas']['PaymentReconciliationConclusion'];
+export type PaymentReconciliationPreview =
+  CoreComponents['schemas']['PaymentReconciliationPreview'];
+export type CommitPaymentReconciliation = CoreComponents['schemas']['CommitPaymentReconciliation'];
+export type PaymentReconciliationReceipt =
+  CoreComponents['schemas']['PaymentReconciliationReceipt'];
+export type PaymentReconciliationView = CoreComponents['schemas']['PaymentReconciliationView'];
+export type PaymentReconciliationInquiry =
+  CoreComponents['schemas']['PaymentReconciliationInquiry'];
+export type PaymentReconciliationInquiryPage =
+  CoreComponents['schemas']['PaymentReconciliationInquiryPage'];
+export type PaymentReconciliationBlocker = PaymentReconciliationPreview['blockers'][number];
 export type PaymentBatchCancelReceipt = CoreComponents['schemas']['PaymentBatchCancelReceipt'];
 export type CommitPaymentDestination = CoreComponents['schemas']['CommitPaymentDestination'];
 export type CommitPaymentBatch = CoreComponents['schemas']['CommitPaymentBatch'];

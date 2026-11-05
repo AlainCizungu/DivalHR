@@ -4,6 +4,9 @@ import type {
   PaymentBatchWarning,
   PaymentDestinationReasonCode,
   PaymentMethod,
+  PaymentReconciliationBlocker,
+  PaymentReconciliationOutcome,
+  PaymentReconciliationState,
   PaymentSubmissionBlocker,
   PaymentSubmissionOutcome,
   PaymentSubmissionState,
@@ -43,6 +46,11 @@ export const PAYMENT_CODES = [
   'PAYMENT_SUBMISSION_EXISTS',
   'PAYMENT_PROVIDER_UNAVAILABLE',
   'PAYMENT_SUBMISSION_KEY_UNAVAILABLE',
+  // MVP-095C (Issue #190, ADR 0038): reconciliation of uncertain submissions.
+  'PAYMENT_RECONCILIATION_NOT_FOUND',
+  'PAYMENT_RECONCILIATION_NOT_ELIGIBLE',
+  'PAYMENT_RECONCILIATION_EXISTS',
+  'PAYMENT_RECONCILIATION_PREVIEW_STALE',
 ] as const;
 const PAYMENT_CODE_SET: ReadonlySet<string> = new Set(PAYMENT_CODES);
 const STALE_CODES: ReadonlySet<string> = new Set([
@@ -56,12 +64,16 @@ const STALE_CODES: ReadonlySet<string> = new Set([
   'PAYMENT_SUBMISSION_PREVIEW_STALE',
   'PAYMENT_SUBMISSION_VERSION_CONFLICT',
   'PAYMENT_SUBMISSION_EXISTS',
+  'PAYMENT_RECONCILIATION_NOT_ELIGIBLE',
+  'PAYMENT_RECONCILIATION_EXISTS',
+  'PAYMENT_RECONCILIATION_PREVIEW_STALE',
   'IDEMPOTENCY_KEY_REUSED',
 ]);
 const NOT_FOUND_CODES: ReadonlySet<string> = new Set([
   'PAYMENT_DESTINATION_NOT_FOUND',
   'PAYMENT_BATCH_NOT_FOUND',
   'PAYMENT_SUBMISSION_NOT_FOUND',
+  'PAYMENT_RECONCILIATION_NOT_FOUND',
   'PAYROLL_PACKAGE_NOT_FOUND',
   'LEGAL_ENTITY_NOT_FOUND',
 ]);
@@ -305,6 +317,79 @@ export function submissionTone(
     case 'MANUAL_INTERVENTION':
       return 'danger';
     case 'DELIVERY_UNKNOWN':
+      return 'warning';
+    default:
+      return 'info';
+  }
+}
+
+/** MVP-095C (Issue #190, ADR 0038): closed lists of the delivery investigation. */
+export const RECONCILIATION_STATES: readonly PaymentReconciliationState[] = [
+  'OPEN',
+  'INQUIRY_IN_PROGRESS',
+  'CONFIRMED_ACCEPTED_FOR_PROCESSING',
+  'CONFIRMED_REJECTED',
+  'STILL_UNRESOLVED',
+  'MANUAL_REVIEW_REQUIRED',
+];
+export const RECONCILIATION_OUTCOMES: readonly PaymentReconciliationOutcome[] = [
+  'ACCEPTED_FOR_PROCESSING',
+  'REJECTED_INVALID_REQUEST',
+  'REJECTED_SIGNATURE',
+  'REJECTED_UNSUPPORTED',
+  'REJECTED_DUPLICATE_MISMATCH',
+  'REJECTED_LIMIT',
+  'REJECTED_OTHER',
+  'NOT_FOUND',
+  'PENDING',
+  'UNKNOWN',
+  'BAD_RESPONSE',
+  'TRANSIENT_CONNECT',
+  'TRANSIENT_TLS',
+  'TRANSIENT_TIMEOUT',
+  'TRANSIENT_RATE_LIMITED',
+  'TRANSIENT_SERVER',
+  'RETRIES_EXHAUSTED',
+];
+export const RECONCILIATION_BLOCKERS: readonly PaymentReconciliationBlocker[] = [
+  'SUBMISSION_NOT_ELIGIBLE',
+  'RECONCILIATION_EXISTS',
+  'PROVIDER_NOT_AVAILABLE',
+  'PROVIDER_KEY_UNAVAILABLE',
+];
+/** Submission states that may be investigated (the server decides; this only shows the panel). */
+export const RECONCILIATION_ELIGIBLE: ReadonlySet<PaymentSubmissionState> = new Set([
+  'DELIVERY_UNKNOWN',
+  'MANUAL_INTERVENTION',
+]);
+/** Reconciliation states that still change by themselves: the panel refreshes while it shows one. */
+export const RECONCILIATION_IN_FLIGHT: ReadonlySet<PaymentReconciliationState> = new Set([
+  'OPEN',
+  'INQUIRY_IN_PROGRESS',
+]);
+/** States whose guidance asks for a human follow-up with the provider. */
+export const RECONCILIATION_GUIDED: ReadonlySet<PaymentReconciliationState> = new Set([
+  'STILL_UNRESOLVED',
+  'MANUAL_REVIEW_REQUIRED',
+]);
+/** Page size of the inquiry history. */
+export const INQUIRIES_PAGE = 25;
+/** Refresh period while an investigation is running (milliseconds). */
+export const RECONCILIATION_REFRESH_MS = 4000;
+/** Upper bound of automatic refreshes per panel visit (the server stops at six inquiries). */
+export const RECONCILIATION_REFRESH_MAX = 150;
+
+/** Tone of a reconciliation state; the text always carries the meaning. */
+export function reconciliationTone(
+  state: PaymentReconciliationState,
+): 'neutral' | 'info' | 'success' | 'warning' | 'danger' {
+  switch (state) {
+    case 'CONFIRMED_ACCEPTED_FOR_PROCESSING':
+      return 'success';
+    case 'CONFIRMED_REJECTED':
+    case 'MANUAL_REVIEW_REQUIRED':
+      return 'danger';
+    case 'STILL_UNRESOLVED':
       return 'warning';
     default:
       return 'info';

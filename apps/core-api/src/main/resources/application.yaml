@@ -205,6 +205,11 @@ divalhr:
       payment-submission-preview: ${DIVALHR_PAYMENT_SUBMISSION_PREVIEW_REQUESTS_PER_MINUTE:5}
       payment-submission-write: ${DIVALHR_PAYMENT_SUBMISSION_WRITE_REQUESTS_PER_MINUTE:2}
       payment-submission-read: ${DIVALHR_PAYMENT_SUBMISSION_READ_REQUESTS_PER_MINUTE:60}
+      # MVP-095C: reconciliation of uncertain submissions (ADR 0038). Per subject per minute:
+      # previews 5, investigations 2, reads and inquiry history 60.
+      payment-reconciliation-preview: ${DIVALHR_PAYMENT_RECONCILIATION_PREVIEW_REQUESTS_PER_MINUTE:5}
+      payment-reconciliation-write: ${DIVALHR_PAYMENT_RECONCILIATION_WRITE_REQUESTS_PER_MINUTE:2}
+      payment-reconciliation-read: ${DIVALHR_PAYMENT_RECONCILIATION_READ_REQUESTS_PER_MINUTE:60}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -336,6 +341,17 @@ divalhr:
         window: 1h
       payment-submission-read:
         requests: ${DIVALHR_PAYMENT_SUBMISSION_TENANT_READS:300}
+        window: 1h
+      # MVP-095C: reconciliation (ADR 0038): 60 previews, 20 investigations and 300 reads or
+      # inquiry-history pages per tenant per hour.
+      payment-reconciliation-preview:
+        requests: ${DIVALHR_PAYMENT_RECONCILIATION_TENANT_PREVIEWS:60}
+        window: 1h
+      payment-reconciliation-write:
+        requests: ${DIVALHR_PAYMENT_RECONCILIATION_TENANT_WRITES:20}
+        window: 1h
+      payment-reconciliation-read:
+        requests: ${DIVALHR_PAYMENT_RECONCILIATION_TENANT_READS:300}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.

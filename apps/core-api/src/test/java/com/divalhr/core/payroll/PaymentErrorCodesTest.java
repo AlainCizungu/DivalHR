@@ -49,7 +49,12 @@ class PaymentErrorCodesTest {
           Map.entry("PAYMENT_SUBMISSION_VERSION_CONFLICT", HttpStatus.CONFLICT),
           Map.entry("PAYMENT_SUBMISSION_EXISTS", HttpStatus.CONFLICT),
           Map.entry("PAYMENT_PROVIDER_UNAVAILABLE", HttpStatus.CONFLICT),
-          Map.entry("PAYMENT_SUBMISSION_KEY_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE));
+          Map.entry("PAYMENT_SUBMISSION_KEY_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE),
+          // MVP-095C (ADR 0038): reconciliation of uncertain submissions.
+          Map.entry("PAYMENT_RECONCILIATION_NOT_FOUND", HttpStatus.NOT_FOUND),
+          Map.entry("PAYMENT_RECONCILIATION_NOT_ELIGIBLE", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_RECONCILIATION_EXISTS", HttpStatus.CONFLICT),
+          Map.entry("PAYMENT_RECONCILIATION_PREVIEW_STALE", HttpStatus.CONFLICT));
 
   private static final Path SCHEMA =
       Path.of("../../packages/shared-contracts/schemas/problem.schema.json");
@@ -68,7 +73,7 @@ class PaymentErrorCodesTest {
 
   @Test
   void everyCodeExistsWithItsStatus() {
-    assertThat(CODES).hasSize(21);
+    assertThat(CODES).hasSize(25);
     for (Map.Entry<String, HttpStatus> code : CODES.entrySet()) {
       ErrorCode found = ErrorCode.valueOf(code.getKey());
       assertThat(found.status()).as(code.getKey()).isEqualTo(code.getValue());

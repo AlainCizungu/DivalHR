@@ -71,6 +71,51 @@ public final class PaymentSubmissionSigner {
         presented.getBytes(StandardCharsets.US_ASCII));
   }
 
+  /**
+   * Signs a status inquiry or its answer (MVP-095C): {@code v1=<hex>} where the value is
+   * HMAC-SHA256 over {@code "v1-inquiry\n" + requestId + "\n" + inquiryId + "\n" + body}. The
+   * distinct prefix makes an inquiry signature unusable as a payment-request signature and the
+   * reverse.
+   *
+   * @param requestId the stable payment request ID
+   * @param inquiryId the stable inquiry ID
+   * @param body the canonical inquiry bytes, or the answer bytes
+   * @return {@code v1=<64 hex characters>}
+   */
+  public String signInquiry(UUID requestId, UUID inquiryId, byte[] body) {
+    try {
+      Mac mac = Mac.getInstance("HmacSHA256");
+      mac.init(new SecretKeySpec(key, "HmacSHA256"));
+      mac.update("v1-inquiry\n".getBytes(StandardCharsets.US_ASCII));
+      mac.update(requestId.toString().getBytes(StandardCharsets.US_ASCII));
+      mac.update((byte) '\n');
+      mac.update(inquiryId.toString().getBytes(StandardCharsets.US_ASCII));
+      mac.update((byte) '\n');
+      mac.update(body);
+      return "v1=" + HexFormat.of().formatHex(mac.doFinal());
+    } catch (GeneralSecurityException failure) {
+      throw new IllegalStateException("the inquiry signature could not be computed");
+    }
+  }
+
+  /**
+   * Constant-time verification of an inquiry signature or of an answer's signature.
+   *
+   * @param requestId the stable payment request ID
+   * @param inquiryId the stable inquiry ID
+   * @param body the bytes that were signed
+   * @param presented the presented signature
+   * @return {@code true} when equal
+   */
+  public boolean verifyInquiry(UUID requestId, UUID inquiryId, byte[] body, String presented) {
+    if (presented == null) {
+      return false;
+    }
+    return MessageDigest.isEqual(
+        signInquiry(requestId, inquiryId, body).getBytes(StandardCharsets.US_ASCII),
+        presented.getBytes(StandardCharsets.US_ASCII));
+  }
+
   @Override
   public String toString() {
     return "PaymentSubmissionSigner[redacted]";

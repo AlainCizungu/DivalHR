@@ -1,5 +1,6 @@
 package com.divalhr.core.payroll.application;
 
+import com.divalhr.core.payroll.domain.PaymentInquiryOutcome;
 import com.divalhr.core.payroll.domain.PaymentSubmissionOutcome;
 import com.divalhr.core.payroll.domain.PaymentSubmissionProfile;
 import java.util.UUID;
@@ -33,6 +34,34 @@ public interface PaymentProviderGateway {
   Result send(
       PaymentSubmissionProfile profile,
       UUID requestId,
+      int keyVersion,
+      String signature,
+      byte[] body);
+
+  /**
+   * The closed result of one status inquiry (MVP-095C).
+   *
+   * @param outcome the allow-listed outcome
+   */
+  record InquiryResult(PaymentInquiryOutcome outcome) {}
+
+  /**
+   * Asks the provider for the status of an existing payment request by its stable request ID. This
+   * is a read-like operation: it carries no payment data and can never send or resend a payment
+   * instruction. The same inquiry ID is reused by every attempt of one investigation.
+   *
+   * @param profile the operator-controlled profile (exact host and port)
+   * @param requestId the stable payment request ID
+   * @param inquiryId the stable inquiry ID
+   * @param keyVersion the signing key version
+   * @param signature the {@code v1=<hex>} inquiry signature of the canonical body
+   * @param body the canonical inquiry bytes
+   * @return the closed result
+   */
+  InquiryResult inquire(
+      PaymentSubmissionProfile profile,
+      UUID requestId,
+      UUID inquiryId,
       int keyVersion,
       String signature,
       byte[] body);

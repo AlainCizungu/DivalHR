@@ -12711,6 +12711,168 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/submission/reconciliation/preview:
+    post:
+      operationId: previewPaymentReconciliation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview an investigation of an uncertain payment submission
+      description: >-
+        MVP-095C. For a submission in DELIVERY_UNKNOWN or MANUAL_INTERVENTION, returns what a status inquiry would ask: the provider (code, label, synthetic flag), a request-ID fingerprint (never the request ID or any key), the submission state, version and outcome code, the previous reconciliation conclusion if one exists, READY or BLOCKED with stable blocker codes (SUBMISSION_NOT_ELIGIBLE, RECONCILIATION_EXISTS, PROVIDER_NOT_AVAILABLE, PROVIDER_KEY_UNAVAILABLE), and, when READY, a previewDigest with a 15-minute expiry. The inquiry would carry only the stable request ID and an inquiry ID: no employee, destination, amount, line or payment payload. It never resends the payment instruction. Unknown, malformed, foreign-tenant, foreign-entity batch IDs and a batch without a submission are the same 404 PAYMENT_RECONCILIATION_NOT_FOUND.
+        A fail-closed disclosure audit is written (payment-reconciliation.preview). At most 5 previews per subject per minute and 60 per tenant per hour. Cache-Control private, no-store. Provider acceptance does not mean paid or settled.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The investigation preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentReconciliationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/submission/reconciliation:
+    post:
+      operationId: createPaymentReconciliation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Open an investigation of an uncertain payment submission
+      description: >-
+        MVP-095C. Repeats the previewed expectedSubmissionVersion, expectedSubmissionState, previewDigest and expiresAt, understandInquiryDoesNotResend=true, understandAcceptedIsNotPaid=true and an Idempotency-Key. In one transaction everything is re-read and exactly one OPEN reconciliation is created for the submission, with its opening evidence row, an audit record (payment-reconciliation.create) and the internal outbox event payroll.payment-reconciliation.created.v1. The request does not wait for the provider: a bounded worker asks the provider for the status of the existing stable request ID under one stable inquiry ID. No payment instruction is ever resent.
+        A submission that is not (or no longer) in an eligible state or whose version moved is 409 PAYMENT_RECONCILIATION_NOT_ELIGIBLE, an existing investigation 409 PAYMENT_RECONCILIATION_EXISTS, no usable provider 409 PAYMENT_PROVIDER_UNAVAILABLE, an expired or drifted preview 409 PAYMENT_RECONCILIATION_PREVIEW_STALE and a missing signing key 503 PAYMENT_SUBMISSION_KEY_UNAVAILABLE (nothing is written). At most 2 per subject per minute and 20 per tenant per hour. The same Idempotency-Key and command replays the original 201.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPaymentReconciliation"
+      responses:
+        "201":
+          description: Investigation opened, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentReconciliationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: getPaymentReconciliation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read the investigation of a payment submission
+      description: >-
+        MVP-095C. The current reconciliation: provider, state (OPEN, INQUIRY_IN_PROGRESS, CONFIRMED_ACCEPTED_FOR_PROCESSING, CONFIRMED_REJECTED, STILL_UNRESOLVED, MANUAL_REVIEW_REQUIRED), version, the submission's own (unchanged) state, the request-ID fingerprint, inquiry attempts, an allow-listed outcome code and the next due time while open. A submission without an investigation, and every unknown or foreign identifier, is 404 PAYMENT_RECONCILIATION_NOT_FOUND. A fail-closed disclosure audit is written (payment-reconciliation.read). At most 60 reads per subject per minute and 300 per tenant per hour. Cache-Control private, no-store. Provider acceptance does not mean paid or settled.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The payment reconciliation
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentReconciliationView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payment-batches/{batchId}/submission/reconciliation/inquiries:
+    get:
+      operationId: listPaymentReconciliationInquiries
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the inquiry history of a payment reconciliation
+      description: >-
+        MVP-095C. The append-only evidence of the investigation, newest first, as a keyset page (default 25, maximum 100): sequence, inquiry attempt number, state, allow-listed outcome code and whether the answer was authenticated. Sequence 1 is the opening. A fail-closed disclosure audit is written (payment-reconciliation.read; first page). Shares the read limits of the reconciliation. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PaymentBatchId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PaymentSubmissionAttemptLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of inquiries
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentReconciliationInquiryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /legal-entities/{legalEntityId}/payment-batches/{batchId}/register.csv:
     get:
       operationId: downloadPaymentRegisterCsv
@@ -20323,6 +20485,10 @@ components:
         - PAYMENT_SUBMISSION_EXISTS
         - PAYMENT_PROVIDER_UNAVAILABLE
         - PAYMENT_SUBMISSION_KEY_UNAVAILABLE
+        - PAYMENT_RECONCILIATION_NOT_FOUND
+        - PAYMENT_RECONCILIATION_NOT_ELIGIBLE
+        - PAYMENT_RECONCILIATION_EXISTS
+        - PAYMENT_RECONCILIATION_PREVIEW_STALE
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -27104,6 +27270,229 @@ components:
           maxItems: 100
           items:
             $ref: "#/components/schemas/PaymentSubmissionAttempt"
+        nextCursor:
+          type: [string, "null"]
+    PaymentReconciliationState:
+      type: string
+      description: MVP-095C. The closed reconciliation states. A confirmed acceptance is never paid or settled.
+      enum: [OPEN, INQUIRY_IN_PROGRESS, CONFIRMED_ACCEPTED_FOR_PROCESSING, CONFIRMED_REJECTED, STILL_UNRESOLVED, MANUAL_REVIEW_REQUIRED]
+    PaymentReconciliationOutcome:
+      type: string
+      description: MVP-095C. The allow-listed outcome codes of an inquiry. No provider text is ever returned.
+      enum:
+        - ACCEPTED_FOR_PROCESSING
+        - REJECTED_INVALID_REQUEST
+        - REJECTED_SIGNATURE
+        - REJECTED_UNSUPPORTED
+        - REJECTED_DUPLICATE_MISMATCH
+        - REJECTED_LIMIT
+        - REJECTED_OTHER
+        - NOT_FOUND
+        - PENDING
+        - UNKNOWN
+        - BAD_RESPONSE
+        - TRANSIENT_CONNECT
+        - TRANSIENT_TLS
+        - TRANSIENT_TIMEOUT
+        - TRANSIENT_RATE_LIMITED
+        - TRANSIENT_SERVER
+        - RETRIES_EXHAUSTED
+    PaymentReconciliationConclusion:
+      type: object
+      additionalProperties: false
+      required: [state, outcomeCode, updatedAt]
+      properties:
+        state:
+          $ref: "#/components/schemas/PaymentReconciliationState"
+        outcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentReconciliationOutcome"
+            - type: "null"
+        updatedAt:
+          type: string
+          format: date-time
+    PaymentReconciliationPreview:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, batchId, submissionId, submissionState, submissionVersion, submissionOutcomeCode, provider, requestFingerprint, previous, status, blockers, previewDigest, expiresAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        submissionId:
+          type: string
+          format: uuid
+        submissionState:
+          $ref: "#/components/schemas/PaymentSubmissionState"
+        submissionVersion:
+          type: integer
+          minimum: 1
+        submissionOutcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentSubmissionOutcome"
+            - type: "null"
+        provider:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentSubmissionProvider"
+            - type: "null"
+        requestFingerprint:
+          type: string
+          pattern: "^[0-9a-f]{12}$"
+          description: The first 12 hex characters of the SHA-256 of the stable payment request ID. Never the request ID.
+        previous:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentReconciliationConclusion"
+            - type: "null"
+        status:
+          type: string
+          enum: [READY, BLOCKED]
+        blockers:
+          type: array
+          items:
+            type: string
+            enum: [SUBMISSION_NOT_ELIGIBLE, RECONCILIATION_EXISTS, PROVIDER_NOT_AVAILABLE, PROVIDER_KEY_UNAVAILABLE]
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitPaymentReconciliation:
+      type: object
+      additionalProperties: false
+      required: [expectedSubmissionVersion, expectedSubmissionState, previewDigest, expiresAt, understandInquiryDoesNotResend, understandAcceptedIsNotPaid]
+      properties:
+        expectedSubmissionVersion:
+          type: integer
+          minimum: 1
+        expectedSubmissionState:
+          type: string
+          enum: [DELIVERY_UNKNOWN, MANUAL_INTERVENTION]
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        understandInquiryDoesNotResend:
+          type: boolean
+          description: I understand that this inquiry does not resend the payment instruction. Must be true.
+        understandAcceptedIsNotPaid:
+          type: boolean
+          description: I understand that provider acceptance does not mean paid or settled. Must be true.
+    PaymentReconciliationReceipt:
+      type: object
+      additionalProperties: false
+      required: [reconciliationId, submissionId, batchId, legalEntityId, providerCode, state, version, createdAt]
+      properties:
+        reconciliationId:
+          type: string
+          format: uuid
+        submissionId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        providerCode:
+          type: string
+          pattern: "^[A-Z][A-Z0-9-]{2,39}$"
+        state:
+          type: string
+          enum: [OPEN]
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+    PaymentReconciliationView:
+      type: object
+      additionalProperties: false
+      required: [id, submissionId, batchId, legalEntityId, provider, state, version, submissionState, requestFingerprint, attemptCount, outcomeCode, nextAttemptAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        submissionId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        provider:
+          $ref: "#/components/schemas/PaymentSubmissionProvider"
+        state:
+          $ref: "#/components/schemas/PaymentReconciliationState"
+        version:
+          type: integer
+          minimum: 1
+        submissionState:
+          $ref: "#/components/schemas/PaymentSubmissionState"
+          description: The submission's own state, which a reconciliation never changes.
+        requestFingerprint:
+          type: string
+          pattern: "^[0-9a-f]{12}$"
+        attemptCount:
+          type: integer
+          minimum: 0
+          maximum: 6
+        outcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentReconciliationOutcome"
+            - type: "null"
+        nextAttemptAt:
+          type: [string, "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PaymentReconciliationInquiry:
+      type: object
+      additionalProperties: false
+      required: [sequence, attemptNumber, state, outcomeCode, authenticated, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        attemptNumber:
+          type: integer
+          minimum: 0
+          maximum: 6
+        state:
+          $ref: "#/components/schemas/PaymentReconciliationState"
+        outcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentReconciliationOutcome"
+            - type: "null"
+        authenticated:
+          type: boolean
+          description: Whether the provider's answer carried a valid signature for this inquiry.
+        occurredAt:
+          type: string
+          format: date-time
+    PaymentReconciliationInquiryPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PaymentReconciliationInquiry"
         nextCursor:
           type: [string, "null"]
     CommitPaymentBatchCancel:

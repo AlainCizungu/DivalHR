@@ -155,6 +155,10 @@
       <Class name="~com\.divalhr\.core\.payroll\.(application|api)\.PaymentSubmission[A-Za-z]*"/>
       <Class name="com.divalhr.core.payroll.internal.JdbcPaymentSubmissionRepository"/>
       <Class name="com.divalhr.core.payroll.internal.HttpsPaymentProviderGateway"/>
+      <!-- MVP-095C: reconciliation service, worker, recorder, repository and controller hold injected
+           collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.(application|api)\.PaymentReconciliation[A-Za-z]*"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcPaymentReconciliationRepository"/>
       <!-- MVP-093A: monthly compensation services, guard, adapter, repository and controllers
            hold injected collaborators. -->
       <Class name="~com\.divalhr\.core\.payroll\.application\.(Compensation|MyCompensation|PayrollCompensation)[A-Za-z]*"/>

@@ -1,6 +1,7 @@
 import type { PaymentBatchLine, PaymentBatchMethodCounts } from '@divalhr/api-client';
 import { useTranslation } from 'react-i18next';
 import { formatMoney } from '../compensation/compensation';
+import { StatusBadge } from '../../ui/primitives';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { minorToAmount } from './payments';
 
@@ -85,5 +86,30 @@ export function BatchLinesTable({
         </tbody>
       </table>
     </ScrollRegion>
+  );
+}
+
+/** The provider of a submission; a synthetic provider is always flagged as test-only. */
+export function ProviderBadge({
+  provider,
+}: {
+  provider: { code: string; name: string; synthetic: boolean };
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <strong data-testid="submission-provider-name">{provider.name}</strong>{' '}
+      {provider.synthetic && (
+        <StatusBadge tone="warning" testId="submission-synthetic-badge">
+          {t('paymentSubmission.syntheticBadge')}
+        </StatusBadge>
+      )}
+      {provider.synthetic && (
+        <span className="muted" data-testid="submission-synthetic-help">
+          {' '}
+          {t('paymentSubmission.syntheticHelp')}
+        </span>
+      )}
+    </>
   );
 }

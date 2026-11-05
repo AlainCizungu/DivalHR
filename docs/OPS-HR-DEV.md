@@ -419,3 +419,17 @@ credential exists in the repository, seeds or this host.
   enforced by the application (they remain enforced by the database).
 - Accepted for processing is not paid. Dev data holds no real person; never paste destinations,
   signatures or provider references into issues or logs.
+
+## MVP-095C payment reconciliation (ADR 0038; not yet deployed)
+
+Not deployed: hr-dev runs `c93ce0ec…` until MVP-095C is deployed and accepted. This section applies from that point.
+
+- **Metrics.** `divalhr.payment.reconciliation.transitions{provider,state,outcome}` (counter) and the gauge
+  `divalhr.payment.reconciliation.open`.
+- **Alerts to wire.** (1) Repeated inquiry failure; (2) a stale reconciliation lease; (3) any reconciliation in
+  `STILL_UNRESOLVED`; (4) any reconciliation in `MANUAL_REVIEW_REQUIRED`.
+- **No operator action resends a payment instruction.** Reconciliation is a read-only inquiry. Do not edit the
+  tables, replay requests with curl, or re-run a batch to resolve an uncertain submission.
+- **Evidence.** The genuine `DELIVERY_UNKNOWN` row from the first live acceptance is evidence. It must never be
+  altered, deleted or resent. Do not copy any identifier of that row into an issue, log or document.
+- Reconciliation is not settlement and DivalHR keeps no "paid" status.

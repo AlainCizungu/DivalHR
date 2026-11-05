@@ -275,4 +275,24 @@ class TenantPredicateArchitectureTest {
           .and()
           .areNotAnnotatedWith(CrossTenantAccess.class)
           .should(TAKE_TENANT_ID);
+
+  /**
+   * MVP-095C: the reconciliation repository requires the verified tenant on every public method,
+   * except the two worker claims and the open-count gauge, which are explicitly marked {@link
+   * CrossTenantAccess}.
+   */
+  @ArchTest
+  static final ArchRule paymentReconciliationRepositoryRequiresTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.payroll.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleName("JdbcPaymentReconciliationRepository")
+          .and()
+          .arePublic()
+          .and()
+          .areNotAnnotatedWith(CrossTenantAccess.class)
+          .should(TAKE_TENANT_ID);
 }

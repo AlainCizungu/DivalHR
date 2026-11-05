@@ -38,7 +38,9 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * refusal does not touch another's. A reflection test ties the executable cases to the 18 annotated
  * handlers and to the configured buckets, so a new or re-bucketed endpoint fails here until it is
  * covered. The five per-tenant buckets are covered by {@link
- * PaymentTenantRateLimitIntegrationTest}. Synthetic data only.
+ * PaymentTenantRateLimitIntegrationTest}; the executable cases of the four reconciliation handlers
+ * (MVP-095C) are in {@link PaymentReconciliationRateLimitIntegrationTest} and {@link
+ * PaymentReconciliationTenantRateLimitIntegrationTest}. Synthetic data only.
  */
 @IntegrationTest
 @Import(SettableClock.Config.class)
@@ -81,6 +83,18 @@ class PaymentRateLimitIntegrationTest {
               Map.entry(
                   "PaymentSubmissionController.attempts",
                   "payment-submission-read/payment-submission-read"),
+              Map.entry(
+                  "PaymentReconciliationController.preview",
+                  "payment-reconciliation-preview/payment-reconciliation-preview"),
+              Map.entry(
+                  "PaymentReconciliationController.create",
+                  "payment-reconciliation-write/payment-reconciliation-write"),
+              Map.entry(
+                  "PaymentReconciliationController.get",
+                  "payment-reconciliation-read/payment-reconciliation-read"),
+              Map.entry(
+                  "PaymentReconciliationController.inquiries",
+                  "payment-reconciliation-read/payment-reconciliation-read"),
               Map.entry(
                   "PaymentRegisterController.csv",
                   "payment-register-download/payment-register-download"),
@@ -317,6 +331,7 @@ class PaymentRateLimitIntegrationTest {
             com.divalhr.core.payroll.api.MyPaymentDestinationController.class,
             com.divalhr.core.payroll.api.PaymentBatchController.class,
             com.divalhr.core.payroll.api.PaymentSubmissionController.class,
+            com.divalhr.core.payroll.api.PaymentReconciliationController.class,
             com.divalhr.core.payroll.api.PaymentRegisterController.class)) {
       for (Method method : controller.getDeclaredMethods()) {
         SubjectRateLimited subject = method.getAnnotation(SubjectRateLimited.class);

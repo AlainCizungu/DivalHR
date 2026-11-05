@@ -69,7 +69,38 @@ public final class PaymentConstraintViolations {
   /** The submission no longer copies the batch exactly (MVP-095B). */
   public static final Set<String> SUBMISSION_STALE = Set.of("payment_submission_batch_exact");
 
+  /** Reconciliation already exists for the submission. */
+  public static final Set<String> RECONCILIATION_EXISTS =
+      Set.of("payment_reconciliation_one_per_submission", "payment_reconciliation_inquiry_id");
+
+  /** The submission is no longer eligible. */
+  public static final Set<String> RECONCILIATION_NOT_ELIGIBLE =
+      Set.of("payment_reconciliation_submission_state");
+
+  /** The submission moved since the preview. */
+  public static final Set<String> RECONCILIATION_STALE =
+      Set.of("payment_reconciliation_submission_exact");
+
   private PaymentConstraintViolations() {}
+
+  /**
+   * The stable business answer of a reconciliation constraint, if it has one.
+   *
+   * @param constraint a constraint name
+   * @return the error code, or empty when the violation is a defect
+   */
+  public static Optional<ErrorCode> reconciliationAnswer(String constraint) {
+    if (RECONCILIATION_EXISTS.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYMENT_RECONCILIATION_EXISTS);
+    }
+    if (RECONCILIATION_NOT_ELIGIBLE.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYMENT_RECONCILIATION_NOT_ELIGIBLE);
+    }
+    if (RECONCILIATION_STALE.contains(constraint)) {
+      return Optional.of(ErrorCode.PAYMENT_RECONCILIATION_PREVIEW_STALE);
+    }
+    return Optional.empty();
+  }
 
   /**
    * The stable business answer of a batch constraint, if it has one.

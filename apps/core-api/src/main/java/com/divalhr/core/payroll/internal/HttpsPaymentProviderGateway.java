@@ -3,6 +3,7 @@ package com.divalhr.core.payroll.internal;
 import com.divalhr.core.payroll.application.PaymentProviderGateway;
 import com.divalhr.core.payroll.application.PaymentSubmissionProperties;
 import com.divalhr.core.payroll.application.PaymentSubmissionSecrets;
+import com.divalhr.core.payroll.domain.PaymentInquiryOutcome;
 import com.divalhr.core.payroll.domain.PaymentProviderAddressPolicy;
 import com.divalhr.core.payroll.domain.PaymentSubmissionOutcome;
 import com.divalhr.core.payroll.domain.PaymentSubmissionProfile;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLContext;
@@ -77,6 +79,7 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
   static final int MAX_HEADER_BYTES = 8192;
 
   private static final String PATH = "/v1/payment-requests";
+  private static final String INQUIRY_PATH = "/v1/payment-status-inquiries";
   private static final Pattern REFERENCE = Pattern.compile("^[A-Z0-9][A-Z0-9._-]{5,63}$");
   private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -270,13 +273,74 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     long deadline = System.nanoTime() + requestTimeout.toNanos();
     try {
       List<InetAddress> targets = validated(profile);
-      return exchange(profile, requestId, keyVersion, signature, body, targets, deadline);
+      return exchange(
+          profile,
+          PATH,
+          "X-Divalhr-Request-Id: "
+              + requestId
+              + "\r\nX-Divalhr-Key-Version: "
+              + keyVersion
+              + "\r\n",
+          signature,
+          body,
+          targets,
+          deadline,
+          response -> classify(requestId, response));
     } catch (Stop stop) {
       return new Result(stop.outcome, null);
     } catch (RuntimeException unexpected) {
       // Nothing is known about what was written: never resend blindly.
       return new Result(PaymentSubmissionOutcome.UNKNOWN_CONNECTION_LOST, null);
     }
+  }
+
+  /**
+   * Asks the provider for the status of an existing payment request (MVP-095C, ADR 0038 section 4).
+   * Same resolution, pinning, TLS, deadlines and response cap as {@link #send}; the request carries
+   * only the two identifiers. An inquiry is read-like, so any failure before a usable answer is a
+   * retryable transport outcome, never a payment decision, and nothing here can send a payment.
+   */
+  @Override
+  public InquiryResult inquire(
+      PaymentSubmissionProfile profile,
+      UUID requestId,
+      UUID inquiryId,
+      int keyVersion,
+      String signature,
+      byte[] body) {
+    long deadline = System.nanoTime() + requestTimeout.toNanos();
+    try {
+      List<InetAddress> targets = validated(profile);
+      return exchange(
+          profile,
+          INQUIRY_PATH,
+          "X-Divalhr-Request-Id: "
+              + requestId
+              + "\r\nX-Divalhr-Inquiry-Id: "
+              + inquiryId
+              + "\r\nX-Divalhr-Key-Version: "
+              + keyVersion
+              + "\r\n",
+          signature,
+          body,
+          targets,
+          deadline,
+          response -> classifyInquiry(requestId, inquiryId, response));
+    } catch (Stop stop) {
+      return new InquiryResult(transport(stop.outcome));
+    } catch (RuntimeException unexpected) {
+      return new InquiryResult(PaymentInquiryOutcome.TRANSIENT_CONNECT);
+    }
+  }
+
+  /** The inquiry outcome of an internal stop: every transport failure is retryable. */
+  private static PaymentInquiryOutcome transport(PaymentSubmissionOutcome stop) {
+    return switch (stop) {
+      case TRANSIENT_TLS -> PaymentInquiryOutcome.TRANSIENT_TLS;
+      case UNKNOWN_TIMEOUT -> PaymentInquiryOutcome.TRANSIENT_TIMEOUT;
+      case UNKNOWN_BAD_RESPONSE -> PaymentInquiryOutcome.BAD_RESPONSE;
+      default -> PaymentInquiryOutcome.TRANSIENT_CONNECT;
+    };
   }
 
   /**
@@ -307,14 +371,15 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
     return accepted;
   }
 
-  private Result exchange(
+  private <T> T exchange(
       PaymentSubmissionProfile profile,
-      UUID requestId,
-      int keyVersion,
+      String path,
+      String identity,
       String signature,
       byte[] body,
       List<InetAddress> targets,
-      long deadline) {
+      long deadline,
+      Function<Response, T> classifier) {
     Socket plain = null;
     boolean written = false;
     byte[] header = null;
@@ -328,13 +393,13 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
       tls.setSSLParameters(parameters);
       tls.setSoTimeout(remaining(deadline, PaymentSubmissionOutcome.TRANSIENT_TLS));
       tls.startHandshake();
-      header = header(profile, requestId, keyVersion, signature, body.length);
+      header = header(profile, path, identity, signature, body.length);
       OutputStream out = tls.getOutputStream();
       // From here any byte may have escaped: a failure is an unknown delivery, never a retry.
       written = true;
       hooks.wire().write(out, header, body);
       Response response = read(tls, deadline);
-      return classify(requestId, response);
+      return classifier.apply(response);
     } catch (Stop stop) {
       throw stop;
     } catch (InterruptedIOException timeout) {
@@ -395,23 +460,21 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
    */
   private byte[] header(
       PaymentSubmissionProfile profile,
-      UUID requestId,
-      int keyVersion,
+      String path,
+      String identity,
       String signature,
       int bodyLength) {
     byte[] before =
         ("POST "
-                + PATH
+                + path
                 + " HTTP/1.1\r\nHost: "
                 + profile.host()
                 + ':'
                 + profile.port()
                 + "\r\nContent-Type: application/json\r\nAccept: application/json\r\n"
-                + "User-Agent: DivalHR-PaymentSubmission/1\r\nX-Divalhr-Request-Id: "
-                + requestId
-                + "\r\nX-Divalhr-Key-Version: "
-                + keyVersion
-                + "\r\nX-Divalhr-Signature: ")
+                + "User-Agent: DivalHR-PaymentSubmission/1\r\n"
+                + identity
+                + "X-Divalhr-Signature: ")
             .getBytes(StandardCharsets.US_ASCII);
     byte[] after =
         ("\r\nContent-Length: " + bodyLength + "\r\nConnection: close\r\n\r\n")
@@ -593,6 +656,64 @@ public final class HttpsPaymentProviderGateway implements PaymentProviderGateway
       return new Result(PaymentSubmissionOutcome.UNKNOWN_BAD_RESPONSE, null);
     }
     return new Result(rejection(code.asString()), null);
+  }
+
+  /**
+   * The inquiry contract: only an authenticated, well-formed answer for exactly this request and
+   * inquiry decides anything; everything else is a retryable transport outcome or {@code
+   * BAD_RESPONSE}.
+   */
+  private InquiryResult classifyInquiry(UUID requestId, UUID inquiryId, Response response) {
+    int status = response.status();
+    if (status == 429) {
+      return new InquiryResult(PaymentInquiryOutcome.TRANSIENT_RATE_LIMITED);
+    }
+    if (status >= 500) {
+      return new InquiryResult(PaymentInquiryOutcome.TRANSIENT_SERVER);
+    }
+    if (status != 200
+        || !keys.signer()
+            .verifyInquiry(requestId, inquiryId, response.body(), response.signature())) {
+      return new InquiryResult(PaymentInquiryOutcome.BAD_RESPONSE);
+    }
+    JsonNode node;
+    try {
+      node = JSON.readTree(new String(response.body(), StandardCharsets.UTF_8));
+    } catch (RuntimeException malformed) {
+      return new InquiryResult(PaymentInquiryOutcome.BAD_RESPONSE);
+    }
+    if (node == null
+        || !node.isObject()
+        || !node.path("requestId").isString()
+        || !requestId.toString().equals(node.path("requestId").asString())
+        || !node.path("inquiryId").isString()
+        || !inquiryId.toString().equals(node.path("inquiryId").asString())
+        || !node.path("result").isString()) {
+      return new InquiryResult(PaymentInquiryOutcome.BAD_RESPONSE);
+    }
+    return new InquiryResult(
+        switch (node.path("result").asString()) {
+          case "ACCEPTED_FOR_PROCESSING" -> PaymentInquiryOutcome.ACCEPTED_FOR_PROCESSING;
+          case "NOT_FOUND" -> PaymentInquiryOutcome.NOT_FOUND;
+          case "PENDING" -> PaymentInquiryOutcome.PENDING;
+          case "UNKNOWN" -> PaymentInquiryOutcome.UNKNOWN;
+          case "REJECTED" ->
+              node.path("code").isString()
+                  ? inquiryRejection(node.path("code").asString())
+                  : PaymentInquiryOutcome.BAD_RESPONSE;
+          default -> PaymentInquiryOutcome.BAD_RESPONSE;
+        });
+  }
+
+  private static PaymentInquiryOutcome inquiryRejection(String code) {
+    return switch (code) {
+      case "INVALID_REQUEST" -> PaymentInquiryOutcome.REJECTED_INVALID_REQUEST;
+      case "SIGNATURE" -> PaymentInquiryOutcome.REJECTED_SIGNATURE;
+      case "UNSUPPORTED" -> PaymentInquiryOutcome.REJECTED_UNSUPPORTED;
+      case "DUPLICATE_MISMATCH" -> PaymentInquiryOutcome.REJECTED_DUPLICATE_MISMATCH;
+      case "LIMIT" -> PaymentInquiryOutcome.REJECTED_LIMIT;
+      default -> PaymentInquiryOutcome.REJECTED_OTHER;
+    };
   }
 
   private static PaymentSubmissionOutcome rejection(String code) {

@@ -74,3 +74,8 @@ Retry-After to the window end, fresh count in the next window).
 
 Payment submission to a bank or provider, disbursement, reconciliation, accounting posting, salary advances,
 destination verification, notifications.
+
+## 8. Clarification (MVP-095C documentation refresh)
+
+Once a provider submission exists for a batch, the batch cannot be cancelled and its package cannot be voided (ADR 0037 section 7), and the destination and batch evidence stays immutable.
+A batch is never marked paid by DivalHR: PREPARED means only that payment instructions are prepared.
