@@ -407,6 +407,35 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     expect(strings.landing.modules.now.payrollRuns).not.toMatch(/payslip|bulletin/iu);
   });
 
+  it('states reconciliation as active for the synthetic provider only, never in progress or coming next (TRUTH-002)', () => {
+    const en = locale === 'en';
+    const text = strings.landing.modules.items.payroll.description;
+    expect(text).toMatch(
+      en
+        ? /Reconciliation of an uncertain submission is available for the controlled synthetic test provider only/u
+        : /Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé/u,
+    );
+    expect(text).toMatch(en ? /never resends the payment/u : /ne renvoie jamais le paiement/u);
+    expect(text).toMatch(en ? /not payment or settlement/u : /ni un paiement ni un règlement/u);
+    expect(text).toMatch(
+      en
+        ? /No real provider is connected and real disbursement is not available yet/u
+        : /Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible/u,
+    );
+    expect(text).toMatch(
+      en
+        ? /not a real bank or mobile-money integration and no money moves/u
+        : /pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré/u,
+    );
+    // Never "in progress" or "not yet active" next to a reconciliation statement, and never "coming next".
+    expect(JSON.stringify(strings.landing)).not.toMatch(
+      /reconciliation[^"]*(in progress|not yet active|not active)|rapprochement[^"]*(en cours|pas encore actif)/iu,
+    );
+    expect(strings.landing.modules.next.disbursement).not.toMatch(/reconcil|rapproch/iu);
+    expect(JSON.stringify(strings.roadmap)).not.toMatch(/reconcil|rapproch/iu);
+    expect(COMING_NEXT).not.toContain('reconciliation');
+  });
+
   it('describes Dival AI as the governed, grounded daily briefing only (D93-14)', async () => {
     const { container } = await renderLanding(locale);
     const heading = document.getElementById('landing-ai-title') as HTMLElement;

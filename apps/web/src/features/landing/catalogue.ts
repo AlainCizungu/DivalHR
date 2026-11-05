@@ -32,7 +32,7 @@ export const MODULES: readonly ModuleEntry[] = [
   // (MVP-094A). The statutory preview of MVP-094B (Issue #179, D94B-13) ships with a DRAFT rule pack
   // only and is usable only once a professionally verified pack is activated, so DRC statutory
   // calculation stays under "coming next"; payslips and net-pay approval exist on a verified pack only. MVP-095A (Issue #183) adds payment
-  // destinations and payment instruction registers; submission to a controlled SYNTHETIC-TEST provider (MVP-095B, Issue #187, R187-1) is active and test-only; reconciliation of uncertain submissions (MVP-095C, Issue #190) is in progress and not active until deployed and accepted; no real bank or provider is connected.
+  // destinations and payment instruction registers; submission to a controlled SYNTHETIC-TEST provider (MVP-095B, Issue #187, R187-1) is active and test-only; reconciliation of an uncertain submission (MVP-095C, Issue #190; deployed and accepted on 2026-11-05; truth refresh Issue #192) is active for the SYNTHETIC-TEST provider only and is described on the payroll card and in the payment line of "Available now", never under "coming next"; no real bank or provider is connected.
   { id: 'payroll', icon: 'payroll', status: 'capabilities', vision: true },
   { id: 'loans', icon: 'bank', status: 'later', vision: true },
   { id: 'benefits', icon: 'benefits', status: 'later', vision: true },
