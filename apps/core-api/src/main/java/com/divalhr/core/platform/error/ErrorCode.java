@@ -778,7 +778,31 @@ public enum ErrorCode {
   /** MVP-095C: an investigation already exists for the submission. */
   PAYMENT_RECONCILIATION_EXISTS(HttpStatus.CONFLICT),
   /** MVP-095C: the investigation preview expired or the submission or provider changed. */
-  PAYMENT_RECONCILIATION_PREVIEW_STALE(HttpStatus.CONFLICT);
+  PAYMENT_RECONCILIATION_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-096: no accounting mapping applies to the package month and currency. */
+  ACCOUNTING_MAPPING_NOT_FOUND(HttpStatus.CONFLICT),
+  /** MVP-096: an account code is not valid (the parameter names the field, never the value). */
+  ACCOUNTING_MAPPING_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-096: the effective date is not strictly later than the latest mapping version's. */
+  ACCOUNTING_MAPPING_OVERLAP(HttpStatus.CONFLICT),
+  /** MVP-096: the legal entity and currency already have ten mapping versions. */
+  ACCOUNTING_MAPPING_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-096: the mapping preview expired or the chain changed since it was shown. */
+  ACCOUNTING_MAPPING_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-096: the payroll package is not APPROVED. */
+  ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED(HttpStatus.CONFLICT),
+  /** MVP-096: the payroll package was voided. */
+  ACCOUNTING_JOURNAL_SOURCE_VOIDED(HttpStatus.CONFLICT),
+  /** MVP-096: the payroll package already has an accounting journal. */
+  ACCOUNTING_JOURNAL_ALREADY_EXISTS(HttpStatus.CONFLICT),
+  /** MVP-096: the journal preview expired or the package, mapping or totals changed. */
+  ACCOUNTING_JOURNAL_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-096: the frozen amounts do not balance or do not equal the package totals. */
+  ACCOUNTING_JOURNAL_UNBALANCED(HttpStatus.CONFLICT),
+  /** MVP-096: more than 10,000 entries before or 2,000 lines after aggregation. */
+  ACCOUNTING_JOURNAL_TOO_LARGE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-096: the journal is unknown, foreign or not available to the caller. */
+  ACCOUNTING_JOURNAL_NOT_FOUND(HttpStatus.NOT_FOUND);
 
   private final HttpStatus status;
 

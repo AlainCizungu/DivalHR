@@ -81,6 +81,7 @@ describe('signed-in frame', () => {
         en.nav.payrollPreparation,
         en.nav.payrollRuns,
         en.nav.payrollPackages,
+        en.nav.accountingMappings,
         en.nav.hierarchy,
         en.nav.contractTemplates,
         en.nav.contractExpirations,

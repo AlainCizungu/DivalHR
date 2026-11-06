@@ -59,6 +59,7 @@
     "expenseApprovals": "Expense approvals",
     "payrollRuns": "Payroll runs",
     "payrollPackages": "Approved payroll",
+    "accountingMappings": "Accounting mappings",
     "myPayslips": "My payslips",
     "myPaymentDestination": "My payment destination"
   },
@@ -95,7 +96,8 @@
       "payrollApproval": "Approval review",
       "payrollPackage": "Approved payroll",
       "payslip": "Payslip",
-      "paymentBatch": "Payment batch"
+      "paymentBatch": "Payment batch",
+      "accountingJournal": "Accounting journal"
     }
   },
   "locale": {
@@ -257,7 +259,7 @@
         },
         "payrollPackages": {
           "title": "Approved payroll",
-          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent to a real bank or mobile-money provider. A prepared batch can be submitted once to the controlled synthetic test provider only (test-only, no money moves); reconciliation of an uncertain submission is available for that synthetic test provider only: it asks the provider about the existing submission and never resends the payment. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
+          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent to a real bank or mobile-money provider. A prepared batch can be submitted once to the controlled synthetic test provider only (test-only, no money moves); reconciliation of an uncertain submission is available for that synthetic test provider only: it asks the provider about the existing submission and never resends the payment. An immutable, balanced accounting journal export (CSV and manifest) for an approved package is being built and is not available yet; it will never post to accounting software. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
         }
       },
       "attention": {
@@ -377,7 +379,7 @@
       },
       "filingAccounting": {
         "title": "Filing and accounting posting",
-        "description": "Payroll declarations and accounting entries prepared from approved payroll."
+        "description": "Payroll declarations and posting to accounting software. A balanced accounting journal export file (never a posting) is being built and is not available yet."
       }
     }
   },
@@ -718,7 +720,19 @@
     "PAYMENT_RECONCILIATION_NOT_FOUND": "No delivery investigation exists for this payment submission.",
     "PAYMENT_RECONCILIATION_NOT_ELIGIBLE": "This submission can no longer be investigated in its current state. Reload the page and review it again.",
     "PAYMENT_RECONCILIATION_EXISTS": "An investigation was already opened for this submission.",
-    "PAYMENT_RECONCILIATION_PREVIEW_STALE": "The review expired or the submission changed. Review it again before investigating."
+    "PAYMENT_RECONCILIATION_PREVIEW_STALE": "The review expired or the submission changed. Review it again before investigating.",
+    "ACCOUNTING_MAPPING_NOT_FOUND": "No accounting mapping applies to this payroll package. Schedule a mapping for its currency that takes effect on or before the first day of the payroll month.",
+    "ACCOUNTING_MAPPING_INVALID": "An account code is not valid. Use one to forty characters: uppercase letters, digits, period, underscore or hyphen, starting with a letter or digit.",
+    "ACCOUNTING_MAPPING_OVERLAP": "The effective date must be later than the effective date of the latest mapping version for this currency.",
+    "ACCOUNTING_MAPPING_LIMIT_REACHED": "The maximum number of mapping versions for this currency has been reached.",
+    "ACCOUNTING_MAPPING_PREVIEW_STALE": "The mapping review expired or the mapping versions changed. Review it again before confirming.",
+    "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED": "Only an approved payroll package can produce an accounting journal.",
+    "ACCOUNTING_JOURNAL_SOURCE_VOIDED": "This payroll package was voided, so no accounting journal can be generated from it.",
+    "ACCOUNTING_JOURNAL_ALREADY_EXISTS": "An accounting journal already exists for this payroll package. A journal is never replaced.",
+    "ACCOUNTING_JOURNAL_PREVIEW_STALE": "The journal review expired or the payroll package or the mapping changed. Review it again before generating.",
+    "ACCOUNTING_JOURNAL_UNBALANCED": "The journal could not be generated because debits and credits do not balance. Nothing was created.",
+    "ACCOUNTING_JOURNAL_TOO_LARGE": "The journal would exceed the size limit, so it was not generated.",
+    "ACCOUNTING_JOURNAL_NOT_FOUND": "This accounting journal was not found."
   },
   "notFound": {
     "title": "Page not found",
@@ -3010,7 +3024,7 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves. Submitting a prepared batch to a controlled synthetic test provider is active and test-only: it is not a real bank or mobile-money integration and no money moves. Reconciliation of an uncertain submission is available for the controlled synthetic test provider only: it asks that provider about the existing submission, never resends the payment, and provider acceptance is not payment or settlement. No real provider is connected and real disbursement is not available yet.",
+          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves. Submitting a prepared batch to a controlled synthetic test provider is active and test-only: it is not a real bank or mobile-money integration and no money moves. Reconciliation of an uncertain submission is available for the controlled synthetic test provider only: it asks that provider about the existing submission, never resends the payment, and provider acceptance is not payment or settlement. An accounting journal export (CSV and manifest, never a posting to accounting software) is being built and is not available yet. No real provider is connected and real disbursement is not available yet.",
           "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and sending real payments to banks and mobile-money providers."
         },
         "loans": {
@@ -3116,7 +3130,7 @@
     "payroll": {
       "kicker": "From approved time to payroll preparation",
       "title": "Prepare payroll inputs. Record compensation. Draft contractual gross.",
-      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. From it, administrators create monthly draft runs that show contractual gross with the evidence behind every amount. Payroll review and approval and bilingual payslips are built as a foundation: they work only when a professionally verified statutory rule pack is active, and the DRC pack is not verified yet, so this is pilot and readiness only. A payslip is not proof of payment. Filing, accounting posting, bank and mobile-money disbursement and salary advances come next.",
+      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. From it, administrators create monthly draft runs that show contractual gross with the evidence behind every amount. Payroll review and approval and bilingual payslips are built as a foundation: they work only when a professionally verified statutory rule pack is active, and the DRC pack is not verified yet, so this is pilot and readiness only. A payslip is not proof of payment. An accounting journal export file is being built and is not available yet. Filing, direct accounting posting, bank and mobile-money disbursement and salary advances come next.",
       "steps": {
         "preparation": {
           "title": "Payroll preparation",
@@ -6295,6 +6309,152 @@
       "RECONCILIATION_EXISTS": "An investigation already exists for this submission.",
       "PROVIDER_NOT_AVAILABLE": "No provider is available for this submission.",
       "PROVIDER_KEY_UNAVAILABLE": "The investigation is unavailable: the signing key is not configured."
+    }
+  },
+  "accounting": {
+    "notice": "Accounting export only — not posted and not proof of payment.",
+    "loading": "Loading…",
+    "validation": "Some information is missing or invalid. Check the highlighted fields.",
+    "forbidden": "You do not have permission to see or change accounting exports.",
+    "unauthorized": "Only organization administrators can manage accounting mappings and journals.",
+    "signInRequired": "Sign in to manage accounting mappings and journals.",
+    "currency": {
+      "CDF": "Congolese franc (CDF)",
+      "USD": "US dollar (USD)"
+    },
+    "direction": {
+      "DEBIT": "Debit",
+      "CREDIT": "Credit"
+    },
+    "previewStatus": {
+      "READY": "Ready to confirm",
+      "BLOCKED": "Blocked"
+    },
+    "accounts": {
+      "salaryExpense": "Salary expense account",
+      "employeeDeductionLiability": "Employee deductions liability account",
+      "employerContributionExpense": "Employer contributions expense account",
+      "employerContributionLiability": "Employer contributions liability account",
+      "netSalaryPayable": "Net salary payable account"
+    },
+    "mappings": {
+      "title": "Accounting mappings",
+      "description": "Choose the account codes your accounting system expects for each payroll currency. A new version never changes an earlier one.",
+      "entity": {
+        "title": "Legal entity",
+        "label": "Legal entity",
+        "choose": "Choose a legal entity",
+        "none": "No legal entity exists yet.",
+        "unavailable": "The legal entities could not be loaded."
+      },
+      "status": {
+        "SCHEDULED": "Scheduled",
+        "ACTIVE": "Active",
+        "SUPERSEDED": "Superseded"
+      },
+      "list": {
+        "title": "Versions in {{currency}}",
+        "tableLabel": "Mapping versions in {{currency}}",
+        "empty": "No mapping version exists for this currency yet.",
+        "version": "Version",
+        "effective": "Effective from",
+        "status": "Status"
+      },
+      "blockers": {
+        "OVERLAP": "The effective date is not later than the latest version of this currency.",
+        "LIMIT_REACHED": "The maximum number of versions for this currency is reached."
+      },
+      "form": {
+        "title": "Schedule a new version",
+        "help": "Enter the five account codes and the date the version takes effect. Review it before confirming.",
+        "currency": "Currency",
+        "effectiveFrom": "Effective from",
+        "effectiveHelp": "Must be later than the latest version of this currency. A payroll package uses the version in force on the first day of its month.",
+        "codeHint": "Use one to forty characters: uppercase letters, digits, period, underscore or hyphen, starting with a letter or digit.",
+        "preview": "Review version",
+        "previewing": "Reviewing…",
+        "previewHeading": "Review of the new version",
+        "nextVersion": "New version",
+        "previousEffective": "Latest existing effective date",
+        "previousNone": "None",
+        "expires": "Review valid until {{at}}",
+        "confirm": "I understand this is an accounting export only.",
+        "commit": "Schedule version",
+        "saving": "Saving…",
+        "whyBlocked": "The review is blocked. Change the values and review again.",
+        "whyConfirm": "Tick the confirmation to continue.",
+        "announceCreated": "The mapping version was scheduled.",
+        "staleRefresh": "The review was discarded. Review the version again."
+      }
+    },
+    "journal": {
+      "title": "Accounting journal",
+      "help": "Generate an immutable, balanced list of debit and credit lines from this approved payroll package, with a CSV file and a manifest to import by hand.",
+      "preview": "Review journal",
+      "previewing": "Reviewing…",
+      "previewHeading": "Journal review",
+      "period": "Period",
+      "currency": "Currency",
+      "packageVersion": "Package version",
+      "mapping": "Mapping used",
+      "mappingValue": "Version {{version}}, effective {{date}}",
+      "noMapping": "None",
+      "lineCount": "Journal lines",
+      "sourceEntries": "Entries before grouping",
+      "totalDebits": "Total debits",
+      "totalCredits": "Total credits",
+      "expires": "Review valid until {{at}}",
+      "confirm": "I understand this is an accounting export only.",
+      "generate": "Generate journal",
+      "generating": "Generating…",
+      "whyBlocked": "The review is blocked. Resolve the blocker and review again.",
+      "whyConfirm": "Tick the confirmation to continue.",
+      "announceGenerated": "The accounting journal was generated.",
+      "staleRefresh": "The review was discarded. Review the journal again.",
+      "mappingLink": "Open accounting mappings",
+      "blockers": {
+        "PACKAGE_VOIDED": "This payroll package was voided.",
+        "PACKAGE_NOT_APPROVED": "This payroll package is not approved.",
+        "JOURNAL_ALREADY_EXISTS": "A journal already exists for this package. A journal is never replaced.",
+        "MAPPING_NOT_FOUND": "No accounting mapping applies to this package currency and month.",
+        "TOO_LARGE": "The journal would exceed the size limit.",
+        "UNBALANCED": "The journal lines do not balance."
+      },
+      "lines": {
+        "caption": "Journal lines",
+        "number": "Line",
+        "account": "Account code",
+        "direction": "Direction",
+        "amount": "Amount",
+        "costCenter": "Cost center",
+        "site": "Site"
+      },
+      "history": {
+        "title": "Journal history",
+        "empty": "No journal has been generated for this package.",
+        "item": "Journal version {{version}}",
+        "meta": "{{count}} lines, generated {{at}}"
+      },
+      "sourceVoided": "Source voided",
+      "sourceVoidedHelp": "The payroll package was voided after this journal was generated. The journal and its files are unchanged."
+    },
+    "detail": {
+      "title": "Accounting journal",
+      "description": "Immutable journal lines and the two files to import by hand.",
+      "fallbackTitle": "Accounting journal",
+      "summary": "Summary",
+      "version": "Journal version",
+      "generatedAt": "Generated",
+      "payslips": "Payslips included",
+      "csvBytes": "CSV size (bytes)",
+      "csvSha256": "CSV SHA-256",
+      "lines": "Stored lines",
+      "files": "Files",
+      "filesHelp": "Both files are generated from the stored lines and are identical on every download. The manifest records the CSV digest.",
+      "downloadCsv": "Download CSV",
+      "downloadManifest": "Download manifest",
+      "downloaded": "The file was downloaded.",
+      "back": "Back to the journal history"
     }
   }
 }

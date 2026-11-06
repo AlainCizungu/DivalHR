@@ -59,6 +59,7 @@
     "expenseApprovals": "Notes de frais à approuver",
     "payrollRuns": "Exécutions de paie",
     "payrollPackages": "Paie approuvée",
+    "accountingMappings": "Paramètres comptables",
     "myPayslips": "Mes bulletins de paie",
     "myPaymentDestination": "Ma destination de paiement"
   },
@@ -95,7 +96,8 @@
       "payrollApproval": "Revue de l’approbation",
       "payrollPackage": "Paie approuvée",
       "payslip": "Bulletin de paie",
-      "paymentBatch": "Lot de paiement"
+      "paymentBatch": "Lot de paiement",
+      "accountingJournal": "Journal comptable"
     }
   },
   "locale": {
@@ -257,7 +259,7 @@
         },
         "payrollPackages": {
           "title": "Paie approuvée",
-          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money réel. Un lot préparé peut être soumis une seule fois au prestataire de test synthétique contrôlé uniquement (test seulement, aucun argent n’est transféré) ; le rapprochement d’une soumission incertaine est disponible uniquement pour ce prestataire de test synthétique : il l’interroge sur la soumission existante et ne renvoie jamais le paiement. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
+          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money réel. Un lot préparé peut être soumis une seule fois au prestataire de test synthétique contrôlé uniquement (test seulement, aucun argent n’est transféré) ; le rapprochement d’une soumission incertaine est disponible uniquement pour ce prestataire de test synthétique : il l’interroge sur la soumission existante et ne renvoie jamais le paiement. Un export de journal comptable équilibré et immuable (CSV et manifeste) pour un dossier approuvé est en préparation et n’est pas encore disponible ; il ne sera jamais comptabilisé dans un logiciel comptable. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
         }
       },
       "attention": {
@@ -377,7 +379,7 @@
       },
       "filingAccounting": {
         "title": "Déclarations et écritures comptables",
-        "description": "Déclarations de paie et écritures comptables préparées à partir de la paie approuvée."
+        "description": "Déclarations de paie et comptabilisation dans un logiciel comptable. Un fichier d’export de journal comptable équilibré (jamais une comptabilisation) est en préparation et n’est pas encore disponible."
       }
     }
   },
@@ -718,7 +720,19 @@
     "PAYMENT_RECONCILIATION_NOT_FOUND": "Aucune vérification de livraison n’existe pour cette soumission de paiement.",
     "PAYMENT_RECONCILIATION_NOT_ELIGIBLE": "Cette soumission ne peut plus être vérifiée dans son état actuel. Rechargez la page et vérifiez-la de nouveau.",
     "PAYMENT_RECONCILIATION_EXISTS": "Une vérification a déjà été ouverte pour cette soumission.",
-    "PAYMENT_RECONCILIATION_PREVIEW_STALE": "L’aperçu a expiré ou la soumission a changé. Vérifiez-la de nouveau avant d’ouvrir la vérification."
+    "PAYMENT_RECONCILIATION_PREVIEW_STALE": "L’aperçu a expiré ou la soumission a changé. Vérifiez-la de nouveau avant d’ouvrir la vérification.",
+    "ACCOUNTING_MAPPING_NOT_FOUND": "Aucun paramètre comptable ne s’applique à ce dossier de paie. Planifiez un paramétrage pour sa devise, avec une date d’effet au plus tard le premier jour du mois de paie.",
+    "ACCOUNTING_MAPPING_INVALID": "Un code de compte n’est pas valide. Utilisez de un à quarante caractères : lettres majuscules, chiffres, point, tiret bas ou tiret, en commençant par une lettre ou un chiffre.",
+    "ACCOUNTING_MAPPING_OVERLAP": "La date d’effet doit être postérieure à celle de la dernière version du paramétrage pour cette devise.",
+    "ACCOUNTING_MAPPING_LIMIT_REACHED": "Le nombre maximal de versions de paramétrage pour cette devise est atteint.",
+    "ACCOUNTING_MAPPING_PREVIEW_STALE": "L’aperçu du paramétrage a expiré ou les versions ont changé. Relancez l’aperçu avant de confirmer.",
+    "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED": "Seul un dossier de paie approuvé peut produire un journal comptable.",
+    "ACCOUNTING_JOURNAL_SOURCE_VOIDED": "Ce dossier de paie a été annulé : aucun journal comptable ne peut en être généré.",
+    "ACCOUNTING_JOURNAL_ALREADY_EXISTS": "Un journal comptable existe déjà pour ce dossier de paie. Un journal n’est jamais remplacé.",
+    "ACCOUNTING_JOURNAL_PREVIEW_STALE": "L’aperçu du journal a expiré ou le dossier de paie ou le paramétrage a changé. Relancez l’aperçu avant de générer.",
+    "ACCOUNTING_JOURNAL_UNBALANCED": "Le journal n’a pas pu être généré : les débits et les crédits ne s’équilibrent pas. Rien n’a été créé.",
+    "ACCOUNTING_JOURNAL_TOO_LARGE": "Le journal dépasserait la taille maximale : il n’a pas été généré.",
+    "ACCOUNTING_JOURNAL_NOT_FOUND": "Ce journal comptable est introuvable."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3010,7 +3024,7 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé : il interroge ce prestataire sur la soumission existante, ne renvoie jamais le paiement, et l’acceptation par le prestataire n’est ni un paiement ni un règlement. Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible.",
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé : il interroge ce prestataire sur la soumission existante, ne renvoie jamais le paiement, et l’acceptation par le prestataire n’est ni un paiement ni un règlement. Un export de journal comptable (CSV et manifeste, jamais une comptabilisation dans un logiciel comptable) est en préparation et n’est pas encore disponible. Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible.",
           "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et envoi des paiements réels aux banques et aux opérateurs de mobile money."
         },
         "loans": {
@@ -3116,7 +3130,7 @@
     "payroll": {
       "kicker": "Du temps approuvé à la préparation de la paie",
       "title": "Préparez les données de paie. Enregistrez les rémunérations. Brut contractuel en brouillon.",
-      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. La revue et l’approbation de la paie et les bulletins de paie bilingues existent comme socle : ils ne fonctionnent que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif, et celui de la RDC ne l’est pas encore ; il s’agit donc d’un pilote et d’une préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement. Les déclarations, les écritures comptables, le versement par banque et mobile money et les avances sur salaire arrivent prochainement.",
+      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. La revue et l’approbation de la paie et les bulletins de paie bilingues existent comme socle : ils ne fonctionnent que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif, et celui de la RDC ne l’est pas encore ; il s’agit donc d’un pilote et d’une préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement. Un fichier d’export de journal comptable est en préparation et n’est pas encore disponible. Les déclarations, la comptabilisation directe, le versement par banque et mobile money et les avances sur salaire arrivent prochainement.",
       "steps": {
         "preparation": {
           "title": "Préparation de la paie",
@@ -6295,6 +6309,152 @@
       "RECONCILIATION_EXISTS": "Une vérification existe déjà pour cette soumission.",
       "PROVIDER_NOT_AVAILABLE": "Aucun prestataire n’est disponible pour cette soumission.",
       "PROVIDER_KEY_UNAVAILABLE": "La vérification est indisponible : la clé de signature n’est pas configurée."
+    }
+  },
+  "accounting": {
+    "notice": "Export comptable uniquement — ni comptabilisé ni preuve de paiement.",
+    "loading": "Chargement…",
+    "validation": "Des informations sont manquantes ou invalides. Vérifiez les champs signalés.",
+    "forbidden": "Vous n’avez pas l’autorisation de consulter ou de modifier les exports comptables.",
+    "unauthorized": "Seuls les administrateurs de l’organisation peuvent gérer les paramètres et les journaux comptables.",
+    "signInRequired": "Connectez-vous pour gérer les paramètres et les journaux comptables.",
+    "currency": {
+      "CDF": "Franc congolais (CDF)",
+      "USD": "Dollar américain (USD)"
+    },
+    "direction": {
+      "DEBIT": "Débit",
+      "CREDIT": "Crédit"
+    },
+    "previewStatus": {
+      "READY": "Prêt à confirmer",
+      "BLOCKED": "Bloqué"
+    },
+    "accounts": {
+      "salaryExpense": "Compte de charge de salaires",
+      "employeeDeductionLiability": "Compte de dettes sur retenues salariales",
+      "employerContributionExpense": "Compte de charge de cotisations patronales",
+      "employerContributionLiability": "Compte de dettes de cotisations patronales",
+      "netSalaryPayable": "Compte de salaires nets à payer"
+    },
+    "mappings": {
+      "title": "Paramètres comptables",
+      "description": "Choisissez les codes de compte attendus par votre comptabilité pour chaque devise de paie. Une nouvelle version ne modifie jamais une version antérieure.",
+      "entity": {
+        "title": "Entité juridique",
+        "label": "Entité juridique",
+        "choose": "Choisissez une entité juridique",
+        "none": "Aucune entité juridique n’existe pour le moment.",
+        "unavailable": "Les entités juridiques n’ont pas pu être chargées."
+      },
+      "status": {
+        "SCHEDULED": "Planifiée",
+        "ACTIVE": "Active",
+        "SUPERSEDED": "Remplacée"
+      },
+      "list": {
+        "title": "Versions en {{currency}}",
+        "tableLabel": "Versions du paramétrage en {{currency}}",
+        "empty": "Aucune version de paramétrage n’existe encore pour cette devise.",
+        "version": "Version",
+        "effective": "Date d’effet",
+        "status": "Statut"
+      },
+      "blockers": {
+        "OVERLAP": "La date d’effet n’est pas postérieure à celle de la dernière version de cette devise.",
+        "LIMIT_REACHED": "Le nombre maximal de versions pour cette devise est atteint."
+      },
+      "form": {
+        "title": "Planifier une nouvelle version",
+        "help": "Saisissez les cinq codes de compte et la date d’effet de la version. Vérifiez-la avant de confirmer.",
+        "currency": "Devise",
+        "effectiveFrom": "Date d’effet",
+        "effectiveHelp": "Elle doit être postérieure à la dernière version de cette devise. Un dossier de paie utilise la version en vigueur le premier jour de son mois.",
+        "codeHint": "Utilisez de un à quarante caractères : lettres majuscules, chiffres, point, tiret bas ou tiret, en commençant par une lettre ou un chiffre.",
+        "preview": "Vérifier la version",
+        "previewing": "Vérification…",
+        "previewHeading": "Aperçu de la nouvelle version",
+        "nextVersion": "Nouvelle version",
+        "previousEffective": "Dernière date d’effet existante",
+        "previousNone": "Aucune",
+        "expires": "Aperçu valable jusqu’au {{at}}",
+        "confirm": "Je comprends qu’il s’agit uniquement d’un export comptable.",
+        "commit": "Planifier la version",
+        "saving": "Enregistrement…",
+        "whyBlocked": "L’aperçu est bloqué. Modifiez les valeurs et vérifiez de nouveau.",
+        "whyConfirm": "Cochez la confirmation pour continuer.",
+        "announceCreated": "La version du paramétrage a été planifiée.",
+        "staleRefresh": "L’aperçu a été écarté. Vérifiez de nouveau la version."
+      }
+    },
+    "journal": {
+      "title": "Journal comptable",
+      "help": "Générez une liste immuable et équilibrée de lignes de débit et de crédit à partir de ce dossier de paie approuvé, avec un fichier CSV et un manifeste à importer manuellement.",
+      "preview": "Vérifier le journal",
+      "previewing": "Vérification…",
+      "previewHeading": "Aperçu du journal",
+      "period": "Période",
+      "currency": "Devise",
+      "packageVersion": "Version du dossier",
+      "mapping": "Paramétrage utilisé",
+      "mappingValue": "Version {{version}}, en vigueur le {{date}}",
+      "noMapping": "Aucun",
+      "lineCount": "Lignes du journal",
+      "sourceEntries": "Écritures avant regroupement",
+      "totalDebits": "Total des débits",
+      "totalCredits": "Total des crédits",
+      "expires": "Aperçu valable jusqu’au {{at}}",
+      "confirm": "Je comprends qu’il s’agit uniquement d’un export comptable.",
+      "generate": "Générer le journal",
+      "generating": "Génération…",
+      "whyBlocked": "L’aperçu est bloqué. Levez le blocage et vérifiez de nouveau.",
+      "whyConfirm": "Cochez la confirmation pour continuer.",
+      "announceGenerated": "Le journal comptable a été généré.",
+      "staleRefresh": "L’aperçu a été écarté. Vérifiez de nouveau le journal.",
+      "mappingLink": "Ouvrir les paramètres comptables",
+      "blockers": {
+        "PACKAGE_VOIDED": "Ce dossier de paie a été annulé.",
+        "PACKAGE_NOT_APPROVED": "Ce dossier de paie n’est pas approuvé.",
+        "JOURNAL_ALREADY_EXISTS": "Un journal existe déjà pour ce dossier. Un journal n’est jamais remplacé.",
+        "MAPPING_NOT_FOUND": "Aucun paramètre comptable ne s’applique à la devise et au mois de ce dossier.",
+        "TOO_LARGE": "Le journal dépasserait la taille maximale.",
+        "UNBALANCED": "Les lignes du journal ne s’équilibrent pas."
+      },
+      "lines": {
+        "caption": "Lignes du journal",
+        "number": "Ligne",
+        "account": "Code de compte",
+        "direction": "Sens",
+        "amount": "Montant",
+        "costCenter": "Centre de coût",
+        "site": "Site"
+      },
+      "history": {
+        "title": "Historique des journaux",
+        "empty": "Aucun journal n’a été généré pour ce dossier.",
+        "item": "Journal version {{version}}",
+        "meta": "{{count}} lignes, généré le {{at}}"
+      },
+      "sourceVoided": "Source annulée",
+      "sourceVoidedHelp": "Le dossier de paie a été annulé après la génération de ce journal. Le journal et ses fichiers sont inchangés."
+    },
+    "detail": {
+      "title": "Journal comptable",
+      "description": "Lignes immuables du journal et les deux fichiers à importer manuellement.",
+      "fallbackTitle": "Journal comptable",
+      "summary": "Synthèse",
+      "version": "Version du journal",
+      "generatedAt": "Généré",
+      "payslips": "Bulletins inclus",
+      "csvBytes": "Taille du CSV (octets)",
+      "csvSha256": "SHA-256 du CSV",
+      "lines": "Lignes enregistrées",
+      "files": "Fichiers",
+      "filesHelp": "Les deux fichiers sont produits à partir des lignes enregistrées et sont identiques à chaque téléchargement. Le manifeste contient l’empreinte du CSV.",
+      "downloadCsv": "Télécharger le CSV",
+      "downloadManifest": "Télécharger le manifeste",
+      "downloaded": "Le fichier a été téléchargé.",
+      "back": "Retour à l’historique des journaux"
     }
   }
 }
