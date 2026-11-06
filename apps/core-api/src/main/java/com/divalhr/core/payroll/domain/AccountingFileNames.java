@@ -3,10 +3,10 @@ package com.divalhr.core.payroll.domain;
 import java.util.regex.Pattern;
 
 /**
- * The generated file names of an accounting journal export (MVP-096, ADR 0039 section 9):
- * {@code accounting-journal-<ENTITYCODE>-<YYYY-MM>-<CUR>-v<version>.csv} and {@code
- * .manifest.json}. Built only from the stored legal entity code, the period, the currency and the
- * version, never from user text; a part that does not fit the stored formats is refused.
+ * The generated file names of an accounting journal export (MVP-096, ADR 0039 section 9): {@code
+ * accounting-journal-<ENTITYCODE>-<YYYY-MM>-<CUR>-v<version>.csv} and {@code .manifest.json}. Built
+ * only from the stored legal entity code, the period, the currency and the version, never from user
+ * text; a part that does not fit the stored formats is refused.
  */
 public final class AccountingFileNames {
 

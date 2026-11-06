@@ -71,14 +71,11 @@ class AccountingCsvTest {
         .isEqualTo("accounting-journal-ENT-1-2026-01-CDF-v2.csv");
     assertThat(AccountingFileNames.manifest("ENT-1", "2026-01", "USD", 1))
         .isEqualTo("accounting-journal-ENT-1-2026-01-USD-v1.manifest.json");
-    assertThatThrownBy(
-            () -> AccountingFileNames.csv("../x", "2026-01", "CDF", 1))
+    assertThatThrownBy(() -> AccountingFileNames.csv("../x", "2026-01", "CDF", 1))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(
-            () -> AccountingFileNames.csv("ENT-1", "2026-13", "CDF", 1))
+    assertThatThrownBy(() -> AccountingFileNames.csv("ENT-1", "2026-13", "CDF", 1))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(
-            () -> AccountingFileNames.csv("ENT-1", "2026-01", "EUR", 1))
+    assertThatThrownBy(() -> AccountingFileNames.csv("ENT-1", "2026-01", "EUR", 1))
         .isInstanceOf(IllegalArgumentException.class);
   }
 }

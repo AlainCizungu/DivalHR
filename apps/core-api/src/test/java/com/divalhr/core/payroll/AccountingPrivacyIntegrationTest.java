@@ -129,8 +129,7 @@ class AccountingPrivacyIntegrationTest {
     w.s.standard(second);
     String run = w.s.cdfRun();
     String calculation = w.s.create(run).get("calculationId").asText();
-    String pkg =
-        w.approve(new Chain(pack, first, run, calculation)).get("packageId").asText();
+    String pkg = w.approve(new Chain(pack, first, run, calculation)).get("packageId").asText();
     a = new AccountingWorld(w, pkg);
 
     String slipsPath = w.slipsPath(pkg) + "?limit=200";
@@ -225,9 +224,7 @@ class AccountingPrivacyIntegrationTest {
     errors.add(
         w.c
             .problem(
-                a.generate(Organizations.newKey(), forged),
-                409,
-                "ACCOUNTING_JOURNAL_PREVIEW_STALE")
+                a.generate(Organizations.newKey(), forged), 409, "ACCOUNTING_JOURNAL_PREVIEW_STALE")
             .toString());
     String key = Organizations.newKey();
     JsonNode receipt = w.c.expect(a.generate(key, body), 201);
@@ -280,14 +277,12 @@ class AccountingPrivacyIntegrationTest {
                     + " || actor_subject"
                     + " FROM platform.audit_event WHERE tenant_id = ?"
                     + " AND action LIKE 'accounting-%'",
-                String.class,
-                w.tenant));
+                String.class, w.tenant));
     rows.addAll(
         jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.accounting-%'",
-            String.class,
-            w.tenant));
+            String.class, w.tenant));
     rows.addAll(
         jdbc.queryForList(
             "SELECT response_body::text FROM platform.idempotency_record"
@@ -340,8 +335,7 @@ class AccountingPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT DISTINCT action FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND action LIKE 'accounting-%'",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(actions)
         .containsExactlyInAnyOrder(
             "accounting-journal.download",
@@ -355,8 +349,7 @@ class AccountingPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT metadata::text FROM platform.audit_event WHERE tenant_id = ?"
                 + " AND action LIKE 'accounting-%'",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(metadata).hasSizeGreaterThanOrEqualTo(10);
     for (String row : metadata) {
       assertThat(AccountingRecorder.ALLOWED).containsAll(keys(json(row)));
@@ -373,8 +366,7 @@ class AccountingPrivacyIntegrationTest {
         jdbc.queryForList(
             "SELECT event_type || '|' || envelope::text FROM platform.outbox_event"
                 + " WHERE tenant_id = ? AND event_type LIKE 'payroll.accounting-%'",
-            String.class,
-            w.tenant);
+            String.class, w.tenant);
     assertThat(events).hasSize(2);
     List<String> types = new ArrayList<>();
     for (String row : events) {

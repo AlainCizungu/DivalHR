@@ -19,8 +19,26 @@ class AccountingManifestTest {
   private static Facts facts(String entityCode) {
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
     return new Facts(
-        id, 1, id, 2, id, 3, id, entityCode, "2026-01", "CDF", id, 1, "a".repeat(64), 5, 1100,
-        1100, Instant.parse("2026-02-01T10:00:00Z"), "f.csv", 321, "b".repeat(64));
+        id,
+        1,
+        id,
+        2,
+        id,
+        3,
+        id,
+        entityCode,
+        "2026-01",
+        "CDF",
+        id,
+        1,
+        "a".repeat(64),
+        5,
+        1100,
+        1100,
+        Instant.parse("2026-02-01T10:00:00Z"),
+        "f.csv",
+        321,
+        "b".repeat(64));
   }
 
   private static String text(Facts facts) {

@@ -234,8 +234,8 @@ public class AccountingJournalService {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * Reviews the journal a package would produce, without writing anything but the disclosure
-   * audit. A preview never fails for a blocker: its status is {@code READY} or {@code BLOCKED}.
+   * Reviews the journal a package would produce, without writing anything but the disclosure audit.
+   * A preview never fails for a blocker: its status is {@code READY} or {@code BLOCKED}.
    *
    * @param caller verified tenant administrator
    * @param legalEntityId raw path value
@@ -344,9 +344,7 @@ public class AccountingJournalService {
               GENERATE_SPEC,
               caller.subject(),
               idempotencyKey,
-              parsed
-                  .command()
-                  .canonical(caller.tenant().value(), parsed.entity(), parsed.source()),
+              parsed.command().canonical(caller.tenant().value(), parsed.entity(), parsed.source()),
               Receipt.class,
               WRITE_TIMEOUT,
               () -> generated(caller, parsed.entity(), parsed.source(), parsed.command()));

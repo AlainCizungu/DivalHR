@@ -62,8 +62,8 @@ public class PayrollEntities {
   }
 
   /**
-   * The stored code of a legal entity of the tenant (organizational data, not personal data), for
-   * a generated file name.
+   * The stored code of a legal entity of the tenant (organizational data, not personal data), for a
+   * generated file name.
    *
    * @param tenant verified tenant
    * @param id the identifier

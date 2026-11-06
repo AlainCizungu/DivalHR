@@ -214,8 +214,7 @@ public class AccountingRecorder {
                     + "\nsequence="
                     + change.version()
                     + "\n")));
-    outbox.append(
-        envelope(caller, MAPPING_CREATED_EVENT, change.mappingId(), change.at(), data));
+    outbox.append(envelope(caller, MAPPING_CREATED_EVENT, change.mappingId(), change.at(), data));
   }
 
   /**
@@ -253,8 +252,7 @@ public class AccountingRecorder {
                     + "\npackage="
                     + change.packageId()
                     + "\n")));
-    outbox.append(
-        envelope(caller, JOURNAL_GENERATED_EVENT, change.journalId(), change.at(), data));
+    outbox.append(envelope(caller, JOURNAL_GENERATED_EVENT, change.journalId(), change.at(), data));
   }
 
   private static void requireAllowed(Map<String, Object> metadata) {

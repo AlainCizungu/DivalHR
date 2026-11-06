@@ -44,8 +44,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class AccountingEventsNotDeliveredIntegrationTest {
 
   private static final List<String> TYPES =
-      List.of(
-          AccountingRecorder.MAPPING_CREATED_EVENT, AccountingRecorder.JOURNAL_GENERATED_EVENT);
+      List.of(AccountingRecorder.MAPPING_CREATED_EVENT, AccountingRecorder.JOURNAL_GENERATED_EVENT);
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -93,15 +92,13 @@ class AccountingEventsNotDeliveredIntegrationTest {
         jdbc.queryForList(
             "SELECT event_id FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.accounting-%'",
-            UUID.class,
-            w.tenant);
+            UUID.class, w.tenant);
     assertThat(events).hasSize(2);
     assertThat(
             jdbc.queryForList(
                 "SELECT DISTINCT event_type FROM platform.outbox_event WHERE tenant_id = ?"
                     + " AND event_type LIKE 'payroll.accounting-%'",
-                String.class,
-                w.tenant))
+                String.class, w.tenant))
         .containsExactlyInAnyOrderElementsOf(TYPES);
 
     // Control: asked for by name, the reader returns both, so it can see them.
@@ -140,8 +137,7 @@ class AccountingEventsNotDeliveredIntegrationTest {
           .isZero();
       assertThat(
               count(
-                  "SELECT count(*) FROM integrations.messaging_delivery WHERE event_id = ?",
-                  event))
+                  "SELECT count(*) FROM integrations.messaging_delivery WHERE event_id = ?", event))
           .as("WhatsApp delivery")
           .isZero();
     }

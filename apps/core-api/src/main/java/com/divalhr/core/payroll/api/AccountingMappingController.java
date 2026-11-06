@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
  * MVP-096: the append-only accounting mapping versions of a legal entity for tenant administrators
  * with privileged MFA (ADR 0039): the list, the preview and the idempotent creation. The tenant
  * comes from the verified JWT and the actor is the verified subject (never the body or the path);
- * every response is {@code Cache-Control: private, no-store}. A version is never edited or
- * deleted, and no endpoint contacts an accounting system. Accounting export only: not posted and
- * not proof of payment.
+ * every response is {@code Cache-Control: private, no-store}. A version is never edited or deleted,
+ * and no endpoint contacts an accounting system. Accounting export only: not posted and not proof
+ * of payment.
  */
 @RestController
 public class AccountingMappingController {
@@ -79,8 +79,7 @@ public class AccountingMappingController {
       @Parameter(hidden = true) HttpServletRequest request) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
-        .body(
-            mappings.list(Caller.of(tenants, authentication, request), legalEntityId, currency));
+        .body(mappings.list(Caller.of(tenants, authentication, request), legalEntityId, currency));
   }
 
   /**
@@ -103,9 +102,7 @@ public class AccountingMappingController {
       @Parameter(hidden = true) HttpServletRequest request) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
-        .body(
-            mappings.preview(
-                Caller.of(tenants, authentication, request), legalEntityId, body));
+        .body(mappings.preview(Caller.of(tenants, authentication, request), legalEntityId, body));
   }
 
   /**

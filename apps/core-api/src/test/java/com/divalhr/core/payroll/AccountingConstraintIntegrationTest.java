@@ -157,8 +157,7 @@ class AccountingConstraintIntegrationTest {
             PSQLException.class,
             e ->
                 assertThat(constraints)
-                    .contains(
-                        Objects.requireNonNull(e.getServerErrorMessage()).getConstraint()));
+                    .contains(Objects.requireNonNull(e.getServerErrorMessage()).getConstraint()));
   }
 
   /** Runs work in a transaction that is always rolled back and must fail for any reason. */
@@ -569,7 +568,12 @@ class AccountingConstraintIntegrationTest {
           c ->
               exec(
                   c,
-                  "UPDATE payroll." + table + " SET " + column + " = " + column
+                  "UPDATE payroll."
+                      + table
+                      + " SET "
+                      + column
+                      + " = "
+                      + column
                       + " WHERE tenant_id = ?",
                   w.tenant));
       refuses(

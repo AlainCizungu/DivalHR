@@ -214,18 +214,21 @@ class AccountingApiIntegrationTest {
     createMapping("2000-01-01");
     JsonNode preview = journalPreview();
     String journal =
-        w.c.expect(generate(Organizations.newKey(), journalBody(preview)), 201)
+        w.c
+            .expect(generate(Organizations.newKey(), journalBody(preview)), 201)
             .get("journalId")
             .asText();
     byte[] before =
-        w.c.call(PayrollPackageWorld.get(w.admin, journalPath(journal) + "/csv"))
+        w.c
+            .call(PayrollPackageWorld.get(w.admin, journalPath(journal) + "/csv"))
             .getContentAsByteArray();
     w.advance(5);
     w.voidPackage(pkg, "ADMINISTRATIVE_ERROR", null);
     JsonNode blocked = journalPreview();
     assertThat(blocked.get("status").asText()).isEqualTo("BLOCKED");
     byte[] after =
-        w.c.call(PayrollPackageWorld.get(w.admin, journalPath(journal) + "/csv"))
+        w.c
+            .call(PayrollPackageWorld.get(w.admin, journalPath(journal) + "/csv"))
             .getContentAsByteArray();
     assertThat(after).isEqualTo(before);
     JsonNode view = w.c.expect(PayrollPackageWorld.get(w.admin, journalPath(journal)), 200);
@@ -254,8 +257,7 @@ class AccountingApiIntegrationTest {
                 "SELECT coalesce(string_agg(metadata::text, ' '), '')"
                     + " FROM platform.audit_event"
                     + " WHERE tenant_id = ? AND action LIKE 'accounting-%'",
-                String.class,
-                w.tenant));
+                String.class, w.tenant));
     for (String code : ACCOUNTS.values().stream().map(Object::toString).toList()) {
       assertThat(evidence).doesNotContain("\"" + code + "\"");
     }

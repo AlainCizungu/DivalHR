@@ -207,8 +207,7 @@ public class AccountingMappingService {
   }
 
   private Evaluation evaluate(TenantId tenant, UUID entity, MappingDraft draft) {
-    Optional<MappingRow> latest =
-        accounting.latestMapping(tenant, entity, draft.currency().name());
+    Optional<MappingRow> latest = accounting.latestMapping(tenant, entity, draft.currency().name());
     List<AccountingMappingBlocker> blockers = new ArrayList<>();
     if (latest.isPresent() && latest.get().version() >= MAX_VERSIONS) {
       blockers.add(AccountingMappingBlocker.LIMIT_REACHED);

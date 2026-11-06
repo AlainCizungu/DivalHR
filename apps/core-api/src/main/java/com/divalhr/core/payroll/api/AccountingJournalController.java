@@ -31,10 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
  * MVP-096: the accounting journal of an approved payroll package for tenant administrators with
  * privileged MFA (ADR 0039): the preview, the idempotent generation, the history of a package and
  * the immutable journal. The tenant comes from the verified JWT and the actor is the verified
- * subject (never the body or the path); every response is {@code Cache-Control: private,
- * no-store}. There is no cancel, delete, regenerate or overwrite endpoint, and none contacts an
- * accounting system, a bank or a provider. Accounting export only: not posted and not proof of
- * payment.
+ * subject (never the body or the path); every response is {@code Cache-Control: private, no-store}.
+ * There is no cancel, delete, regenerate or overwrite endpoint, and none contacts an accounting
+ * system, a bank or a provider. Accounting export only: not posted and not proof of payment.
  */
 @RestController
 public class AccountingJournalController {
@@ -148,8 +147,7 @@ public class AccountingJournalController {
       @Parameter(hidden = true) HttpServletRequest request) {
     return ResponseEntity.ok()
         .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL)
-        .body(
-            journals.list(Caller.of(tenants, authentication, request), legalEntityId, packageId));
+        .body(journals.list(Caller.of(tenants, authentication, request), legalEntityId, packageId));
   }
 
   /**
