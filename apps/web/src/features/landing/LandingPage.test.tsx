@@ -383,7 +383,7 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     // Filing, accounting posting, disbursement and advances stay "coming next".
     expect(strings.landing.payroll.body).toMatch(
       locale === 'en'
-        ? /Filing, accounting posting, bank and mobile-money disbursement and salary advances come next/u
+        ? /Filing, direct accounting posting, bank and mobile-money disbursement and salary advances come next/u
         : /arrivent prochainement/u,
     );
     // No operational DRC payslip claim, and none of the forbidden phrases, anywhere on the landing.
