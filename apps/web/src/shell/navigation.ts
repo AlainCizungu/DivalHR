@@ -157,6 +157,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'contract',
         role: 'tenant-admin',
       },
+      {
+        to: '/admin/accounting-mappings',
+        labelKey: 'nav.accountingMappings',
+        icon: 'payroll',
+        role: 'tenant-admin',
+      },
     ],
   },
   {

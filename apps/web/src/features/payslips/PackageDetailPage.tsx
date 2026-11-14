@@ -20,6 +20,7 @@ import {
 } from './PayslipBits';
 import { packageFailureOf, PAYSLIP_PAGE_LIMIT } from './payslips';
 import { usePdfDownload } from './usePdfDownload';
+import { AccountingJournalPanel } from '../accounting/AccountingJournalPanel';
 import { PaymentBatchPanel } from '../payments/PaymentBatchPanel';
 import { VoidPanel } from './VoidPanel';
 
@@ -403,6 +404,13 @@ function Detail({ legalEntityId, packageId }: { legalEntityId: string; packageId
               setAnnouncement(message);
               setRevision((value) => value + 1);
             }}
+          />
+          <AccountingJournalPanel
+            legalEntityId={legalEntityId}
+            packageId={packageId}
+            packageStatus={pkg.status}
+            revision={revision}
+            onChanged={setAnnouncement}
           />
           {pkg.status === 'APPROVED' && (
             <VoidPanel

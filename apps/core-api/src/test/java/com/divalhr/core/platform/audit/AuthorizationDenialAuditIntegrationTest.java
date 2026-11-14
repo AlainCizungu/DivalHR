@@ -309,7 +309,15 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-095C: reconciliation of an uncertain provider submission.
           "payment-reconciliation.preview",
           "payment-reconciliation.create",
-          "payment-reconciliation.read");
+          "payment-reconciliation.read",
+          // MVP-096: accounting-ready journal export.
+          "accounting-mapping.preview",
+          "accounting-mapping.create",
+          "accounting-mapping.read",
+          "accounting-journal.preview",
+          "accounting-journal.generate",
+          "accounting-journal.read",
+          "accounting-journal.download");
 
   /** MVP-030 (A30-1): employee self-service operations are never durable denial evidence. */
   private static final Set<String> SELF_SERVICE_OPERATIONS =
@@ -836,7 +844,10 @@ class AuthorizationDenialAuditIntegrationTest {
     // history share payment-submission.read).
     // MVP-095C four more handlers over three operations (the reconciliation status and its
     // inquiry history share payment-reconciliation.read).
-    assertThat(handlers).hasSize(211);
+    // MVP-096 nine more handlers over seven operations (the mapping and the journal reads, the
+    // journal list and detail share accounting-journal.read; the CSV and the manifest share
+    // accounting-journal.download).
+    assertThat(handlers).hasSize(220);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

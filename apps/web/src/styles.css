@@ -498,6 +498,12 @@ fieldset.field {
   margin: 0;
 }
 
+/* MVP-096: an account code (up to 40 characters) or a digest is one long word: wrap it at 320 px. */
+.accounting-code {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 .decision-reason {
   margin: 0 0 var(--dv-space-4);
 }

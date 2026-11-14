@@ -462,6 +462,15 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **Acceptance (2026-11-05).** Bilingual live acceptance on hr-dev with fresh synthetic data and the SYNTHETIC-TEST provider only: one accepted-for-processing conclusion (English, keyboard-only), a still-unresolved and a rejected conclusion (French), authority checks, every inquiry using the original stable request ID with no payment instruction resent, the genuine `DELIVERY_UNKNOWN` submission unchanged, and zero privacy sentinels in the database and in every service log. The evidence is on PR #191 and Issue #190. Earlier attempts stopped for reasons unrelated to the release and are recorded there.
 - **Truth refresh (D95C-14, completed by TRUTH-002, Issue #192).** The landing page and administrator home mark controlled synthetic provider submission and reconciliation of uncertain submissions active (clearly synthetic and test-only; the real DRC pack `CD-SALARY-PREVIEW` stays DRAFT). Real provider connectivity, settlement, paid status, accounting posting, employee payment notification, loans and salary advances stay under "Coming next" / « Prochainement ». The backlog truth test fails CI on a stale release or capability claim.
 
+### MVP-096 Accounting journal export
+
+**Issue #194. In progress: implemented on branch `feature/194-mvp-096-accounting-journal` and in review. It is not merged, not deployed and not accepted.** ADR 0039, decisions D96-1 to D96-10. Migration V50.
+
+- **Outcome.** An administrator maps five account codes per legal entity and currency (append-only versions), then generates one immutable, balanced accounting journal from an approved, non-voided payroll package and downloads a deterministic CSV with a SHA-256 manifest. DivalHR never posts to an accounting system.
+- **Disclosed repository facts.** A payroll package can only be in CDF today (a CHECK constraint), so USD and CDF separation is proven at the mapping level only. Frozen payroll lines carry no cost center or site, so those CSV columns are empty; the aggregation key and columns exist for later. The real DRC pack `CD-SALARY-PREVIEW` stays DRAFT and inactive.
+- **Truth wording.** The landing page and administrator home say the journal export is being built and is not available yet. It becomes active only after it is deployed and accepted, in a later truth refresh (as TRUTH-002 did for MVP-095C). Direct accounting posting, real bank or mobile-money connectivity, settlement, paid status, employee notification, loans and salary advances stay under "Coming next" / « Prochainement ».
+- **Not included:** direct accounting-system posting, real payment connectivity, settlement, employee notifications, loans and salary advances.
+
 ## Epic 11 Dashboards and AI
 
 ### MVP-100 View operational status

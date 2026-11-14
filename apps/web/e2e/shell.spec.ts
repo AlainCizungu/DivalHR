@@ -63,6 +63,7 @@ test.describe('desktop', () => {
       'Payroll preparation',
       'Payroll runs',
       'Approved payroll',
+      'Accounting mappings',
       'Organizational structure',
       'Contract templates',
       'Contract expirations',
@@ -211,7 +212,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(24);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(25);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

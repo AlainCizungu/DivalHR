@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.divalhr.core.integrations.domain.WebhookEventType;
 import com.divalhr.core.integrations.messaging.domain.NotificationType;
+import com.divalhr.core.payroll.application.AccountingRecorder;
 import com.divalhr.core.payroll.application.PaymentReconciliationRecorder;
 import com.divalhr.core.payroll.application.PaymentRecorder;
 import com.divalhr.core.payroll.application.PaymentSubmissionRecorder;
@@ -119,6 +120,21 @@ class PaymentEventsNotDeliveredTest {
       }
     }
     assertThat(declared).containsExactlyInAnyOrderElementsOf(submission);
+  }
+
+  @Test
+  void accountingEventsAreInternalToo() {
+    List<String> accounting =
+        List.of(
+            AccountingRecorder.MAPPING_CREATED_EVENT, AccountingRecorder.JOURNAL_GENERATED_EVENT);
+    assertThat(accounting)
+        .containsExactly(
+            "payroll.accounting-mapping-created.v1", "payroll.accounting-journal-generated.v1");
+    assertThat(WebhookEventType.INTERNAL_TYPES).doesNotContainAnyElementsOf(accounting);
+    for (String type : accounting) {
+      assertThat(WebhookEventType.fromInternal(type)).as(type).isEmpty();
+      assertThat(NotificationType.fromInternal(type)).as(type).isEmpty();
+    }
   }
 
   @Test
