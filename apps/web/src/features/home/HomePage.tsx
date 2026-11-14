@@ -184,6 +184,12 @@ const TENANT_GROUPS: {
         'contract',
         'home-card-payroll-packages',
       ),
+      tenantCard(
+        'accountingMappings',
+        '/admin/accounting-mappings',
+        'contract',
+        'home-card-accounting-mappings',
+      ),
       tenantCard('tasks', '/admin/tasks', 'check', 'home-card-tasks'),
       tenantCard('expenses', '/admin/expenses', 'payroll', 'home-card-expenses'),
     ],
@@ -217,6 +223,7 @@ const TENANT_GROUPS: {
 const PROGRESS: { id: string; icon: IconName }[] = [
   { id: 'payroll', icon: 'payroll' },
   { id: 'payrollRuns', icon: 'payroll' },
+  { id: 'accountingJournal', icon: 'contract' },
   { id: 'compensation', icon: 'contract' },
   { id: 'briefing', icon: 'pulse' },
   { id: 'integrations', icon: 'network' },

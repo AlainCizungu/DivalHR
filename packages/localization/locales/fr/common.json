@@ -259,7 +259,11 @@
         },
         "payrollPackages": {
           "title": "Paie approuvée",
-          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money réel. Un lot préparé peut être soumis une seule fois au prestataire de test synthétique contrôlé uniquement (test seulement, aucun argent n’est transféré) ; le rapprochement d’une soumission incertaine est disponible uniquement pour ce prestataire de test synthétique : il l’interroge sur la soumission existante et ne renvoie jamais le paiement. Un export de journal comptable équilibré et immuable (CSV et manifeste) pour un dossier approuvé est en préparation et n’est pas encore disponible ; il ne sera jamais comptabilisé dans un logiciel comptable. L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
+          "description": "Consultez les dossiers de paie approuvés et leurs bulletins de paie, et annulez un dossier tant qu’aucun registre d’instructions de paiement n’est préparé. Les destinations et registres de paiement se préparent sur la page du dossier ; rien n’est envoyé à une banque ni à un opérateur de mobile money réel. Un lot préparé peut être soumis une seule fois au prestataire de test synthétique contrôlé uniquement (test seulement, aucun argent n’est transféré) ; le rapprochement d’une soumission incertaine est disponible uniquement pour ce prestataire de test synthétique : il l’interroge sur la soumission existante et ne renvoie jamais le paiement. Un dossier approuvé propose aussi un export de journal comptable prêt pour la comptabilité : aperçu, génération et téléchargement d’un journal immuable et équilibré en CSV et manifeste, pour import manuel uniquement (rien n’est comptabilisé dans un système comptable). L’approbation part d’un calcul statutaire et exige un jeu de règles vérifié."
+        },
+        "accountingMappings": {
+          "title": "Correspondances comptables",
+          "description": "Définissez les codes de compte de votre comptabilité par entité juridique et par devise, datés et versionnés. Les journaux sont générés à partir d’un dossier de paie approuvé comme export manuel, jamais comptabilisés dans un système comptable."
         }
       },
       "attention": {
@@ -292,6 +296,10 @@
           "integrations": {
             "title": "Webhooks et WhatsApp Business",
             "description": "Webhooks signés et connecteur WhatsApp Business gouverné, configurés par les administrateurs."
+          },
+          "accountingJournal": {
+            "title": "Export du journal comptable",
+            "description": "Associez des codes de compte, puis générez un journal immuable et équilibré à partir d’un dossier de paie approuvé et téléchargez son CSV et son manifeste. Un export manuel pour les dossiers en CDF : rien n’est comptabilisé dans un système comptable et ce n’est pas une preuve de paiement."
           },
           "tasksExpenses": {
             "title": "Tâches et notes de frais",
@@ -379,7 +387,7 @@
       },
       "filingAccounting": {
         "title": "Déclarations et écritures comptables",
-        "description": "Déclarations de paie et comptabilisation dans un logiciel comptable. Un fichier d’export de journal comptable équilibré (jamais une comptabilisation) est en préparation et n’est pas encore disponible."
+        "description": "Déclarations de paie et comptabilisation directe dans les systèmes comptables. Le fichier d’export de journal comptable prêt pour la comptabilité est disponible ; ce n’est pas une comptabilisation."
       }
     }
   },
@@ -3024,8 +3032,8 @@
         },
         "payroll": {
           "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé : il interroge ce prestataire sur la soumission existante, ne renvoie jamais le paiement, et l’acceptation par le prestataire n’est ni un paiement ni un règlement. Un export de journal comptable (CSV et manifeste, jamais une comptabilisation dans un logiciel comptable) est en préparation et n’est pas encore disponible. Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible.",
-          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, écritures comptables, et envoi des paiements réels aux banques et aux opérateurs de mobile money."
+          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé : il interroge ce prestataire sur la soumission existante, ne renvoie jamais le paiement, et l’acceptation par le prestataire n’est ni un paiement ni un règlement. Les administrateurs configurent des correspondances de comptes datées, et DivalHR génère un journal comptable immuable et équilibré à partir d’un dossier de paie approuvé, avec des téléchargements déterministes du CSV et du manifeste, le manifeste liant l’empreinte SHA-256 du CSV. Il s’agit d’un export manuel prêt pour la comptabilité, pour les dossiers en CDF : il n’est pas comptabilisé dans Sage, Odoo, QuickBooks ni dans aucun système comptable et ne constitue pas une preuve de paiement. Aucun journal n’est produit pour l’USD, et aucune dimension de centre de coûts ou de site n’est revendiquée. Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible.",
+          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, comptabilisation directe dans un système comptable, et envoi des paiements réels aux banques et aux opérateurs de mobile money."
         },
         "loans": {
           "title": "Prêts et avances sur salaire",
@@ -3115,11 +3123,12 @@
         "expenses": "Notes de frais des employés et approbation par le responsable",
         "languages": "Anglais et français",
         "payrollRuns": "Exécutions de paie mensuelles en brouillon avec brut contractuel",
-        "paymentSubmission": "Soumission d’un lot de paiement préparé à un prestataire de test synthétique contrôlé, et demande d’état d’une soumission incertaine sans jamais la renvoyer (test uniquement : aucune banque ni aucun prestataire réel, aucun argent transféré)"
+        "paymentSubmission": "Soumission d’un lot de paiement préparé à un prestataire de test synthétique contrôlé, et demande d’état d’une soumission incertaine sans jamais la renvoyer (test uniquement : aucune banque ni aucun prestataire réel, aucun argent transféré)",
+        "accountingExport": "Correspondances de comptes et journal comptable immuable et équilibré à partir d’un dossier de paie approuvé, avec téléchargement du CSV et du manifeste (export manuel pour les dossiers en CDF : rien n’est comptabilisé dans un système comptable)"
       },
       "next": {
         "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
-        "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et écritures comptables",
+        "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et comptabilisation directe dans un système comptable",
         "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et confirmation de paiement",
         "advances": "Avances sur salaire et prêts via des partenaires",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
@@ -3130,7 +3139,7 @@
     "payroll": {
       "kicker": "Du temps approuvé à la préparation de la paie",
       "title": "Préparez les données de paie. Enregistrez les rémunérations. Brut contractuel en brouillon.",
-      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. La revue et l’approbation de la paie et les bulletins de paie bilingues existent comme socle : ils ne fonctionnent que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif, et celui de la RDC ne l’est pas encore ; il s’agit donc d’un pilote et d’une préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement. Un fichier d’export de journal comptable est en préparation et n’est pas encore disponible. Les déclarations, la comptabilisation directe, le versement par banque et mobile money et les avances sur salaire arrivent prochainement.",
+      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. La revue et l’approbation de la paie et les bulletins de paie bilingues existent comme socle : ils ne fonctionnent que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif, et celui de la RDC ne l’est pas encore ; il s’agit donc d’un pilote et d’une préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement. Un export de journal comptable prêt pour la comptabilité (CSV et manifeste, import manuel uniquement) est disponible pour les dossiers de paie approuvés en CDF. Les déclarations, la comptabilisation directe, le versement par banque et mobile money et les avances sur salaire arrivent prochainement.",
       "steps": {
         "preparation": {
           "title": "Préparation de la paie",

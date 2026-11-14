@@ -259,7 +259,11 @@
         },
         "payrollPackages": {
           "title": "Approved payroll",
-          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent to a real bank or mobile-money provider. A prepared batch can be submitted once to the controlled synthetic test provider only (test-only, no money moves); reconciliation of an uncertain submission is available for that synthetic test provider only: it asks the provider about the existing submission and never resends the payment. An immutable, balanced accounting journal export (CSV and manifest) for an approved package is being built and is not available yet; it will never post to accounting software. Approving a payroll starts from a statutory calculation and needs a verified rule pack."
+          "description": "Read approved payroll packages and their payslips, and void a package unless a payment instruction register is prepared. Payment destinations and registers are prepared on the package page; nothing is sent to a real bank or mobile-money provider. A prepared batch can be submitted once to the controlled synthetic test provider only (test-only, no money moves); reconciliation of an uncertain submission is available for that synthetic test provider only: it asks the provider about the existing submission and never resends the payment. An approved package also offers an accounting-ready journal export: preview, generate and download an immutable, balanced journal as a CSV and a manifest, for manual import only (nothing is posted to an accounting system). Approving a payroll starts from a statutory calculation and needs a verified rule pack."
+        },
+        "accountingMappings": {
+          "title": "Accounting mappings",
+          "description": "Set the account codes of your accounting system per legal entity and currency, effective-dated and versioned. Journals are generated from an approved payroll package as a manual export, never posted to an accounting system."
         }
       },
       "attention": {
@@ -292,6 +296,10 @@
           "integrations": {
             "title": "Webhooks and WhatsApp Business",
             "description": "Signed webhooks and a governed WhatsApp Business connector, set up by administrators."
+          },
+          "accountingJournal": {
+            "title": "Accounting journal export",
+            "description": "Map account codes, then generate an immutable, balanced journal from an approved payroll package and download its CSV and manifest. A manual, accounting-ready export for CDF packages: not posted to any accounting system and not proof of payment."
           },
           "tasksExpenses": {
             "title": "Tasks and expenses",
@@ -379,7 +387,7 @@
       },
       "filingAccounting": {
         "title": "Filing and accounting posting",
-        "description": "Payroll declarations and posting to accounting software. A balanced accounting journal export file (never a posting) is being built and is not available yet."
+        "description": "Payroll declarations and direct posting to accounting systems. The accounting-ready journal export file is available now; it is not a posting."
       }
     }
   },
@@ -3024,8 +3032,8 @@
         },
         "payroll": {
           "title": "Payroll & Payments",
-          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves. Submitting a prepared batch to a controlled synthetic test provider is active and test-only: it is not a real bank or mobile-money integration and no money moves. Reconciliation of an uncertain submission is available for the controlled synthetic test provider only: it asks that provider about the existing submission, never resends the payment, and provider acceptance is not payment or settlement. An accounting journal export (CSV and manifest, never a posting to accounting software) is being built and is not available yet. No real provider is connected and real disbursement is not available yet.",
-          "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, accounting posting, and sending real payments to banks and mobile-money providers."
+          "description": "Period locking, payroll-input generation, variance review, locked input export, monthly compensation records and monthly draft runs with contractual gross. Payroll approval and bilingual payslips are built as a foundation and can be used only when a professionally verified statutory rule pack is active (pilot and readiness). Payment destinations and payment instruction registers can be prepared from an approved payroll; nothing is sent and no money moves. Submitting a prepared batch to a controlled synthetic test provider is active and test-only: it is not a real bank or mobile-money integration and no money moves. Reconciliation of an uncertain submission is available for the controlled synthetic test provider only: it asks that provider about the existing submission, never resends the payment, and provider acceptance is not payment or settlement. Administrators configure effective-dated account mappings, and DivalHR generates an immutable, balanced accounting journal from an approved payroll package, with deterministic CSV and manifest downloads in which the manifest binds the CSV SHA-256. This is an accounting-ready manual export for CDF packages: it is not posted to Sage, Odoo, QuickBooks or any accounting system and it is not proof of payment. No journal is produced for USD, and no cost-center or site dimension is claimed. No real provider is connected and real disbursement is not available yet.",
+          "remaining": "Operational DRC statutory payslips (the DRC rule pack is not yet verified), filing, direct accounting posting, and sending real payments to banks and mobile-money providers."
         },
         "loans": {
           "title": "Loans & Salary Advances",
@@ -3115,11 +3123,12 @@
         "expenses": "Employee expenses and manager approval",
         "languages": "English and French",
         "payrollRuns": "Monthly draft payroll runs with contractual gross",
-        "paymentSubmission": "Submission of a prepared payment batch to a controlled synthetic test provider, and a status inquiry on an uncertain submission that never resends it (test only: no real bank or provider, no money moves)"
+        "paymentSubmission": "Submission of a prepared payment batch to a controlled synthetic test provider, and a status inquiry on an uncertain submission that never resends it (test only: no real bank or provider, no money moves)",
+        "accountingExport": "Accounting mappings and an immutable, balanced journal from an approved payroll package, with CSV and manifest downloads (manual export for CDF packages: nothing is posted to an accounting system)"
       },
       "next": {
         "statutory": "DRC statutory country pack (awaiting professional verification)",
-        "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and accounting posting",
+        "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and direct accounting posting",
         "disbursement": "Sending real payments to banks and mobile-money providers, settlement and payment confirmation",
         "advances": "Salary advances and partner loans",
         "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
@@ -3130,7 +3139,7 @@
     "payroll": {
       "kicker": "From approved time to payroll preparation",
       "title": "Prepare payroll inputs. Record compensation. Draft contractual gross.",
-      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. From it, administrators create monthly draft runs that show contractual gross with the evidence behind every amount. Payroll review and approval and bilingual payslips are built as a foundation: they work only when a professionally verified statutory rule pack is active, and the DRC pack is not verified yet, so this is pilot and readiness only. A payslip is not proof of payment. An accounting journal export file is being built and is not available yet. Filing, direct accounting posting, bank and mobile-money disbursement and salary advances come next.",
+      "body": "DivalHR locks approved weeks, generates traceable payroll inputs from them, reviews differences between periods and exports a locked file for your payroll and accounting tools. Administrators also record effective-dated monthly base compensation in CDF or USD, and each employee can read their own. From it, administrators create monthly draft runs that show contractual gross with the evidence behind every amount. Payroll review and approval and bilingual payslips are built as a foundation: they work only when a professionally verified statutory rule pack is active, and the DRC pack is not verified yet, so this is pilot and readiness only. A payslip is not proof of payment. An accounting-ready journal export (CSV and manifest, manual import only) is available for approved CDF payroll packages. Filing, direct accounting posting, bank and mobile-money disbursement and salary advances come next.",
       "steps": {
         "preparation": {
           "title": "Payroll preparation",

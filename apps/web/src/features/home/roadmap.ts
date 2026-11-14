@@ -23,6 +23,10 @@ import type { IconName } from '../../ui/Icon';
  * roadmap item; the "disbursement" tile names only real provider connectivity, real disbursement, settlement
  * and payment confirmation. Paid status, accounting posting, employee notification, loans and salary advances
  * stay "Coming next".
+ * MVP-096 (Issue #194, PR #195; deployed and accepted on 2026-11-14; truth refresh TRUTH-003, Issue #198): the
+ * accounting journal export is active as a manual CSV and manifest export for CDF packages and is not a
+ * roadmap item; the "filingAccounting" tile keeps filing and direct posting to accounting systems under
+ * "Coming next". The export is never a posting and never proof of payment.
  */
 export interface RoadmapItem {
   id: string;
