@@ -999,3 +999,18 @@ Authorization is enforced before retrieval. Tools are narrowly scoped. High-impa
 - **Limits.** Subject per minute: previews 5, approval or void 2, PDF downloads 30, reads 60; tenant
   per hour: previews 60, approval or void 20, downloads 300; at most 5,000 payslips and 25 package
   versions per entity and month.
+
+## Accounting journal export (Issue #194, MVP-096, ADR 0039)
+
+- **Scope.** A tenant administrator (`payroll:accounting:*` actions under the payroll authority) maps account
+  codes and generates one immutable, balanced journal per approved, non-voided payroll package. The CSV and
+  manifest are Restricted financial data. Nothing is posted to an accounting system.
+- **Controls.** Preview and commit with a digest, 15-minute expiry, `Idempotency-Key` and an explicit
+  `understandExportOnly=true`; one journal per package, no regenerate, cancel or delete. Account codes match
+  `^[A-Z0-9][A-Z0-9._-]{0,39}$` so a CSV cell can never begin as a spreadsheet formula.
+- **Privacy.** Audit entries and the two outbox events (`payroll.accounting-mapping-created.v1`,
+  `payroll.accounting-journal-generated.v1`) carry identifiers and counts only, never amounts or totals.
+  The events are internal and are not delivered to any webhook. The source status is not in the files.
+- **Limits.** Previews 20 per subject per hour; journal writes 5 and mapping writes 20 per tenant per hour;
+  reads 60 per subject per minute and 300 per tenant per hour; at most 10,000 entries before and 2,000 lines
+  after aggregation.

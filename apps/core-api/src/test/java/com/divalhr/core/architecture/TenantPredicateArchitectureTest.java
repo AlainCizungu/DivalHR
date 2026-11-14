@@ -295,4 +295,18 @@ class TenantPredicateArchitectureTest {
           .and()
           .areNotAnnotatedWith(CrossTenantAccess.class)
           .should(TAKE_TENANT_ID);
+
+  /** MVP-096: the accounting repository requires the verified tenant on every public method. */
+  @ArchTest
+  static final ArchRule accountingRepositoryRequiresTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.payroll.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleName("JdbcAccountingRepository")
+          .and()
+          .arePublic()
+          .should(TAKE_TENANT_ID);
 }

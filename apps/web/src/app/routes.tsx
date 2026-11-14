@@ -51,6 +51,8 @@ import { PackageDetailPage } from '../features/payslips/PackageDetailPage';
 import { PackageListPage } from '../features/payslips/PackageListPage';
 import { MyPaymentDestinationPage } from '../features/payments/MyPaymentDestinationPage';
 import { PaymentBatchDetailPage } from '../features/payments/PaymentBatchDetailPage';
+import { AccountingJournalDetailPage } from '../features/accounting/AccountingJournalDetailPage';
+import { AccountingMappingsPage } from '../features/accounting/AccountingMappingsPage';
 import { StatutoryProfilePage } from '../features/statutory/StatutoryProfilePage';
 import { StatutoryRunPage } from '../features/statutory/StatutoryRunPage';
 import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
@@ -315,6 +317,23 @@ export const ROUTES: AppRoute[] = [
       { key: 'nav.payrollPackages', to: '/admin/payroll-packages' },
       { key: 'shell.crumb.paymentBatch' },
     ],
+  },
+  {
+    path: '/admin/accounting-journals/:legalEntityId/:journalId',
+    element: <AccountingJournalDetailPage />,
+    access: tenantAdmin('accounting.unauthorized', 'accounting.signInRequired'),
+    crumbs: [
+      HOME,
+      PAYROLL,
+      { key: 'nav.payrollPackages', to: '/admin/payroll-packages' },
+      { key: 'shell.crumb.accountingJournal' },
+    ],
+  },
+  {
+    path: '/admin/accounting-mappings',
+    element: <AccountingMappingsPage />,
+    access: tenantAdmin('accounting.unauthorized', 'accounting.signInRequired'),
+    crumbs: [HOME, PAYROLL, { key: 'nav.accountingMappings' }],
   },
   {
     path: '/admin/payroll-packages/:legalEntityId/:packageId/payslips/:payslipId',

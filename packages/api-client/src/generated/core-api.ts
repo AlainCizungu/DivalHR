@@ -4930,6 +4930,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/legal-entities/{legalEntityId}/accounting-mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the accounting mapping versions of a legal entity
+         * @description MVP-096. Every append-only mapping version of the legal entity (optionally one currency), newest first, at most 20 (10 per currency). Each version holds exactly five account codes (salary expense, employee deduction liability, employer contribution expense, employer contribution liability, net salary payable) and an effective date; its status is derived: SCHEDULED, ACTIVE or SUPERSEDED. Versions are never edited or deleted. A fail-closed disclosure audit is written (accounting-mapping.read). At most 60 reads per subject per minute and 300 per tenant per hour. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+         */
+        get: operations["listAccountingMappings"];
+        put?: never;
+        /**
+         * Append an accounting mapping version
+         * @description MVP-096. Repeats the previewed currency, effectiveFrom and five account codes plus expectedVersion, previewDigest, expiresAt, understandExportOnly=true and an Idempotency-Key. In one transaction the chain is re-read and exactly one immutable version is appended, with an audit record (accounting-mapping.create) and the internal outbox event payroll.accounting-mapping-created.v1 (identifiers, currency and version only). An invalid code is 422 ACCOUNTING_MAPPING_INVALID (params.field names the property, the value is never echoed), an effective date that is not strictly later than the latest version is 409 ACCOUNTING_MAPPING_OVERLAP, an eleventh version 409 ACCOUNTING_MAPPING_LIMIT_REACHED, an expired or drifted preview 409 ACCOUNTING_MAPPING_PREVIEW_STALE (nothing is written). At most 20 per tenant per hour. The same Idempotency-Key and command replays the original 201. Accounting export only: not posted and not proof of payment.
+         */
+        post: operations["createAccountingMapping"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/accounting-mappings/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview appending an accounting mapping version
+         * @description MVP-096. Validates the five account codes (trimmed; 1 to 40 characters; uppercase letters, digits, hyphen, underscore and period; the first character a letter or digit) and the effective date against the chain, returns the next version number, READY or BLOCKED with blocker codes (OVERLAP, LIMIT_REACHED) and, when READY, a previewDigest with a 15-minute expiry. Nothing is written. A fail-closed disclosure audit is written (accounting-mapping.preview). At most 20 previews per subject per hour. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+         */
+        post: operations["previewAccountingMapping"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payroll-packages/{packageId}/accounting-journals/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the accounting journal of an approved payroll package
+         * @description MVP-096. For an APPROVED, non-voided package returns the exact journal that would be generated from its frozen approval evidence and the applicable mapping version: the aggregated lines, the line counts, the exact debit and credit totals in minor units, READY or BLOCKED with blocker codes (PACKAGE_VOIDED, PACKAGE_NOT_APPROVED, JOURNAL_ALREADY_EXISTS, MAPPING_NOT_FOUND, TOO_LARGE, UNBALANCED) and, when READY, a previewDigest with a 15-minute expiry. Nothing is recalculated, no currency is converted and nothing is written. A package with a prepared or submitted payment batch is still eligible. A fail-closed disclosure audit is written (accounting-journal.preview). At most 20 previews per subject per hour. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+         */
+        post: operations["previewAccountingJournal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/payroll-packages/{packageId}/accounting-journals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the accounting journals of a payroll package
+         * @description MVP-096. The journal history of the package (at most one in this story), each with its version, period, currency, line count, generation instant and the derived sourceVoided flag that marks a journal whose package was voided later; the journal itself never changes. A fail-closed disclosure audit is written (accounting-journal.read). Shares the read limits. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+         */
+        get: operations["listAccountingJournals"];
+        put?: never;
+        /**
+         * Generate the immutable accounting journal of an approved payroll package
+         * @description MVP-096. Repeats the previewed expectedPackageVersion, expectedMappingVersion, previewDigest, expiresAt, understandExportOnly=true and an Idempotency-Key. In one transaction the package, its frozen evidence and the mapping are re-read and exactly one immutable, balanced journal with its lines is created, with an audit record (accounting-journal.generate) and the internal outbox event payroll.accounting-journal-generated.v1 (identifiers, version, currency and line count only). A voided package is 409 ACCOUNTING_JOURNAL_SOURCE_VOIDED, another status 409 ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED, no applicable mapping 409 ACCOUNTING_MAPPING_NOT_FOUND, an existing journal 409 ACCOUNTING_JOURNAL_ALREADY_EXISTS, an expired or drifted preview 409 ACCOUNTING_JOURNAL_PREVIEW_STALE, a frozen calculation that cannot balance 409 ACCOUNTING_JOURNAL_UNBALANCED and more than 10,000 entries (2,000 aggregated lines) 422 ACCOUNTING_JOURNAL_TOO_LARGE (nothing is written). At most 5 per tenant per hour. The same Idempotency-Key and command replays the original 201. The response is an amount-free receipt. Accounting export only: not posted and not proof of payment.
+         */
+        post: operations["generateAccountingJournal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/accounting-journals/{journalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an accounting journal
+         * @description MVP-096. The immutable journal: identity, package and mapping evidence, exact totals in minor units, the ordered lines, the CSV SHA-256 and the derived sourceVoided flag. No employee data is stored in or returned with a journal. Unknown, malformed, foreign-tenant and foreign-entity IDs are the same 404 ACCOUNTING_JOURNAL_NOT_FOUND. A fail-closed disclosure audit is written (accounting-journal.read). Shares the read limits. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+         */
+        get: operations["getAccountingJournal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/accounting-journals/{journalId}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the accounting journal as CSV
+         * @description MVP-096. A deterministic UTF-8 CSV with a byte order mark, comma separated, RFC 4180 escaping, CRLF after every row, fixed columns journal_id, package_id, legal_entity_id, currency, line_number, account_code, direction, amount_minor, cost_center_code, site_code, lines in a fixed order. No employee name, number, e-mail, bank account, phone, national identifier, payslip detail or free text. The file is byte-identical on every download, including after the source package is voided. The filename is generated (accounting-journal-<ENTITY CODE>-<YYYY-MM>-<CURRENCY>-v<version>.csv). Disclosure-audited before any byte is returned (accounting-journal.download, view csv), Cache-Control private, no-store, X-Content-Type-Options nosniff. Shares the read limits. Accounting export only: not posted and not proof of payment.
+         */
+        get: operations["downloadAccountingJournalCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/accounting-journals/{journalId}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the accounting journal manifest
+         * @description MVP-096. The canonical JSON manifest (sorted keys, no insignificant whitespace): schemaVersion, journal, package, calculation and mapping identifiers and versions, legal entity code, period, currency, line count, total debits and credits in minor units, the generation instant, the CSV file name, its size in bytes and its SHA-256, which equals the SHA-256 of the downloaded CSV bytes. It carries no source status and no employee data, so it is byte-identical on every download. Same authority, audit (view manifest), limits and headers as the CSV; the filename is generated (accounting-journal-<ENTITY CODE>-<YYYY-MM>-<CURRENCY>-v<version>.manifest.json). Accounting export only: not posted and not proof of payment.
+         */
+        get: operations["downloadAccountingJournalManifest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7939,7 +8087,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -11462,6 +11610,214 @@ export interface components {
             items: components["schemas"]["PaymentReconciliationInquiry"][];
             nextCursor: string | null;
         };
+        /**
+         * @description MVP-096. The currency of a mapping and of a journal. Mappings of different currencies are independent and nothing is converted.
+         * @enum {string}
+         */
+        AccountingCurrency: "CDF" | "USD";
+        /** @description MVP-096. A trimmed account code of 1 to 40 characters (uppercase letters, digits, hyphen, underscore, period; the first character a letter or digit). Never a name or free text. */
+        AccountingAccountCode: string;
+        AccountingAccounts: {
+            salaryExpense: components["schemas"]["AccountingAccountCode"];
+            employeeDeductionLiability: components["schemas"]["AccountingAccountCode"];
+            employerContributionExpense: components["schemas"]["AccountingAccountCode"];
+            employerContributionLiability: components["schemas"]["AccountingAccountCode"];
+            netSalaryPayable: components["schemas"]["AccountingAccountCode"];
+        };
+        /**
+         * @description MVP-096. Derived at read time from the effective date and the business date; a stored version never changes.
+         * @enum {string}
+         */
+        AccountingMappingStatus: "SCHEDULED" | "ACTIVE" | "SUPERSEDED";
+        AccountingMapping: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            currency: components["schemas"]["AccountingCurrency"];
+            version: number;
+            /** Format: date */
+            effectiveFrom: string;
+            accounts: components["schemas"]["AccountingAccounts"];
+            mappingDigest: string;
+            status: components["schemas"]["AccountingMappingStatus"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AccountingMappingList: {
+            items: components["schemas"]["AccountingMapping"][];
+        };
+        PreviewAccountingMapping: {
+            currency: components["schemas"]["AccountingCurrency"];
+            /** Format: date */
+            effectiveFrom: string;
+            accounts: components["schemas"]["AccountingAccounts"];
+        };
+        AccountingMappingPreview: {
+            /** Format: uuid */
+            legalEntityId: string;
+            currency: components["schemas"]["AccountingCurrency"];
+            nextVersion: number;
+            /** Format: date */
+            effectiveFrom: string;
+            accounts: components["schemas"]["AccountingAccounts"];
+            /**
+             * Format: date
+             * @description The effective date of the latest existing version of this currency, if any.
+             */
+            previousEffectiveFrom: string | null;
+            /** @enum {string} */
+            status: "READY" | "BLOCKED";
+            blockers: ("OVERLAP" | "LIMIT_REACHED")[];
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+        };
+        CommitAccountingMapping: {
+            currency: components["schemas"]["AccountingCurrency"];
+            /** Format: date */
+            effectiveFrom: string;
+            accounts: components["schemas"]["AccountingAccounts"];
+            /** @description The version number the preview announced (nextVersion). */
+            expectedVersion: number;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description I understand this is an accounting export only, not posted and not proof of payment. Must be true. */
+            understandExportOnly: boolean;
+        };
+        AccountingMappingReceipt: {
+            /** Format: uuid */
+            mappingId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            currency: components["schemas"]["AccountingCurrency"];
+            version: number;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @enum {string} */
+        AccountingDirection: "DEBIT" | "CREDIT";
+        AccountingJournalLine: {
+            lineNumber: number;
+            accountCode: components["schemas"]["AccountingAccountCode"];
+            direction: components["schemas"]["AccountingDirection"];
+            /** Format: int64 */
+            amountMinor: number;
+            /** @description Present only when the frozen payroll line carried a cost center (none does today). */
+            costCenterCode: string | null;
+            /** @description Present only when the frozen payroll line carried a site (none does today). */
+            siteCode: string | null;
+        };
+        AccountingJournalMappingRef: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            /** Format: date */
+            effectiveFrom: string;
+        };
+        AccountingJournalPreview: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packageId: string;
+            packageVersion: number;
+            period: string;
+            currency: components["schemas"]["AccountingCurrency"];
+            mapping: components["schemas"]["AccountingJournalMappingRef"] | null;
+            /** @enum {string} */
+            status: "READY" | "BLOCKED";
+            blockers: ("PACKAGE_VOIDED" | "PACKAGE_NOT_APPROVED" | "JOURNAL_ALREADY_EXISTS" | "MAPPING_NOT_FOUND" | "TOO_LARGE" | "UNBALANCED")[];
+            /** @description Entries before aggregation (at most 10,000 for a READY preview). */
+            sourceEntryCount: number;
+            lineCount: number;
+            /** Format: int64 */
+            totalDebitsMinor: number;
+            /** Format: int64 */
+            totalCreditsMinor: number;
+            lines: components["schemas"]["AccountingJournalLine"][];
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+        };
+        CommitAccountingJournal: {
+            expectedPackageVersion: number;
+            expectedMappingVersion: number;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description I understand this is an accounting export only, not posted and not proof of payment. Must be true. */
+            understandExportOnly: boolean;
+        };
+        AccountingJournalReceipt: {
+            /** Format: uuid */
+            journalId: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packageId: string;
+            currency: components["schemas"]["AccountingCurrency"];
+            version: number;
+            lineCount: number;
+            /** Format: date-time */
+            generatedAt: string;
+        };
+        AccountingJournalSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: uuid */
+            packageId: string;
+            version: number;
+            period: string;
+            currency: components["schemas"]["AccountingCurrency"];
+            lineCount: number;
+            /** Format: date-time */
+            generatedAt: string;
+            /** @description Derived at read time. True when the source package was voided after generation; the journal and its files never change. */
+            sourceVoided: boolean;
+        };
+        AccountingJournalList: {
+            items: components["schemas"]["AccountingJournalSummary"][];
+        };
+        AccountingJournalView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            legalEntityId: string;
+            legalEntityCode: string;
+            /** Format: uuid */
+            packageId: string;
+            packageVersion: number;
+            version: number;
+            period: string;
+            currency: components["schemas"]["AccountingCurrency"];
+            mapping: components["schemas"]["AccountingJournalMappingRef"];
+            mappingDigest: string;
+            payslipCount: number;
+            sourceEntryCount: number;
+            lineCount: number;
+            /** Format: int64 */
+            totalDebitsMinor: number;
+            /**
+             * Format: int64
+             * @description Always equal to totalDebitsMinor.
+             */
+            totalCreditsMinor: number;
+            csvSha256: string;
+            csvBytes: number;
+            journalDigest: string;
+            /** @enum {integer} */
+            schemaVersion: 1;
+            /** Format: date-time */
+            generatedAt: string;
+            /** @description Derived at read time. True when the source package was voided after generation; the journal and its files never change. */
+            sourceVoided: boolean;
+            lines: components["schemas"]["AccountingJournalLine"][];
+        };
         CommitPaymentBatchCancel: {
             reasonCode: components["schemas"]["PaymentBatchCancelReasonCode"];
             batchVersion: number;
@@ -11525,7 +11881,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS), SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT, SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params. LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant) carries no params. LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params; LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE. LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a decision on a cancelled or amended request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) and LEAVE_REQUEST_ALREADY_AMENDED (MVP-041D: the employee already replaced the request) carry no params. MVP-093A: COMPENSATION_VERSION_CONFLICT (another command changed the employee's compensation first), COMPENSATION_PREVIEW_STALE (the preview expired, or the employment or compensation differs from the preview), COMPENSATION_EMPLOYMENT_CONFLICT (the date is outside every qualifying employment, or a separation would end the employment before an active compensation interval starts) or COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per employee). No params. MVP-094A: PAYROLL_POLICY_NOT_FOUND (no payroll policy is in force on the month's last day), PAYROLL_POLICY_CONFLICT (the policy version moved, the policy equals the one in force or the effective date is used), PAYROLL_RUN_BLOCKED (an employee blocker exists), PAYROLL_RUN_PREVIEW_STALE (the preview expired or the inputs changed), PAYROLL_RUN_NO_CHANGE (the recalculation equals the current draft), PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or PAYROLL_RUN_LIMIT_REACHED (60 policies, 25 versions of a chain or 5,000 employees). No params. MVP-094B: STATUTORY_RULE_PACK_NOT_VERIFIED (the rule pack is DRAFT or RETIRED, or none is in effect), STATUTORY_RULE_PACK_NOT_APPLICABLE (the month is outside the pack interval, or the country or currency differs), STATUTORY_PROFILE_MISSING and STATUTORY_PROFILE_UNSUPPORTED (an employee of the run has no profile, or an unsupported one), STATUTORY_CALCULATION_BLOCKED (another blocker exists), STATUTORY_PREVIEW_STALE (the preview expired, or the run, profiles or rule pack changed), STATUTORY_CALCULATION_NO_CHANGE (the recalculation equals the current draft), STATUTORY_VERSION_CONFLICT (another command changed the activations, the profile timeline or the calculation chain first, or the month is already activated) or STATUTORY_LIMIT_REACHED (60 activations, 100 profile entries, 25 versions of a chain or 5,000 lines). No params. MVP-094C: PAYROLL_PACKAGE_BLOCKED (an approval blocker exists), PAYROLL_APPROVAL_PREVIEW_STALE (the approval preview expired, or the run, calculation, policy, profiles or rule pack changed), PAYROLL_APPROVAL_NO_CHANGE (an APPROVED package already exists for exactly this run and calculation), PAYROLL_PACKAGE_VERSION_CONFLICT (another command changed the package chain first), PAYROLL_PACKAGE_ALREADY_APPROVED (another APPROVED package exists for the entity and month), PAYROLL_PACKAGE_VOIDED (the package is already voided), PAYROLL_VOID_PREVIEW_STALE (the void preview expired or the package changed), PAYROLL_VOID_NOT_ALLOWED (a payment record exists) or PAYROLL_PACKAGE_LIMIT_REACHED (5,000 payslips or 25 package versions per entity and month). No params. */
+        /** @description IDEMPOTENCY_KEY_REUSED (the key was already used with a different payload), or DUPLICATE_LEGAL_ENTITY_CODE / DUPLICATE_SITE_CODE / DUPLICATE_DEPARTMENT_CODE / DUPLICATE_COST_CENTER_CODE / DUPLICATE_REGION_CODE / DUPLICATE_TEAM_CODE (the code already exists for that resource type in the tenant, in any letter case), or SITE_REGION_ALREADY_ASSIGNED (the site already has a different region; carries no params), or INVITATION_ALREADY_PENDING / INVITATION_RECIPIENT_ALREADY_MEMBER (params.field = email; only the caller's own tenant is consulted), INVITATION_NOT_PENDING (the invitation is accepted, expired or being accepted), INVITATION_CANNOT_BE_ACCEPTED or INVITATION_ACCEPTANCE_IN_PROGRESS (no params), or TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE (the organization already has a tenant administrator or an open tenant-admin invitation; no params, and which of the two is not disclosed), or, for employee imports (MVP-020), IMPORT_LIMIT_REACHED (3 open imports in the tenant), IMPORT_NOT_COMMITTABLE (params.status: the import is no longer open), IMPORT_PREVIEW_CHANGED (the commit does not repeat the staged preview), IMPORT_STALE (a row became invalid since the preview; nothing was created) or IMPORT_NOTHING_TO_COMMIT (no valid row), or, for employment history (MVP-021), EMPLOYMENT_VERSION_CONFLICT (the employment changed since the preview), EMPLOYMENT_PREVIEW_CHANGED (the recomputed change differs from the preview), EMPLOYMENT_CHANGE_DATE_TAKEN (the kind already changes on that date), EMPLOYMENT_CHANGE_NOT_CANCELLABLE (not an active future change) or EMPLOYMENT_CHANGE_HAS_DEPENDENTS (a later row derives from the change), or, for separations (MVP-022), SEPARATION_EXISTS (the employment already has a separation that is not cancelled), SEPARATION_FUTURE_CHANGES (future effects after the last day must be cancelled first; params.count), SEPARATION_PROTECTED (params.reason SELF or ADMIN_ACCESS), SEPARATION_PREVIEW_CHANGED, SEPARATION_NOT_CANCELLABLE (params.reason NOT_SCHEDULED, ACCESS_ALREADY_REVOKED or HISTORY_CHANGED_SINCE), SEPARATION_TASK_VERSION_CONFLICT, SEPARATION_TASK_CLOSED, ACCESS_LINK_CONFLICT (params.reason EMPLOYEE_LINKED, ALREADY_LINKED or ACCESS_REVOKED), ACCESS_LINK_LOCKED, ACCESS_LINK_VERSION_CONFLICT or ACCESS_REVOCATION_NOT_RETRYABLE. Other MVP-021/022 codes carry no params. LEAVE_POLICY_CODE_EXISTS (MVP-040A: the leave policy code already exists in the tenant) carries no params. LEAVE_POLICY_NOT_REQUESTABLE and LEAVE_REQUEST_OVERLAP (MVP-041A) carry no params; LEAVE_REQUEST_NOT_ELIGIBLE carries params.reason EMPLOYMENT_PERIOD or MINIMUM_SERVICE. LEAVE_REQUEST_ALREADY_DECIDED (MVP-041B: the request already has its decision; also a decision on a cancelled or amended request) carries no params. LEAVE_REQUEST_ALREADY_CANCELLED (MVP-041C: the employee already cancelled the request) and LEAVE_REQUEST_ALREADY_AMENDED (MVP-041D: the employee already replaced the request) carry no params. MVP-093A: COMPENSATION_VERSION_CONFLICT (another command changed the employee's compensation first), COMPENSATION_PREVIEW_STALE (the preview expired, or the employment or compensation differs from the preview), COMPENSATION_EMPLOYMENT_CONFLICT (the date is outside every qualifying employment, or a separation would end the employment before an active compensation interval starts) or COMPENSATION_LIMIT_REACHED (at most 100 changes and 10 scheduled changes per employee). No params. MVP-094A: PAYROLL_POLICY_NOT_FOUND (no payroll policy is in force on the month's last day), PAYROLL_POLICY_CONFLICT (the policy version moved, the policy equals the one in force or the effective date is used), PAYROLL_RUN_BLOCKED (an employee blocker exists), PAYROLL_RUN_PREVIEW_STALE (the preview expired or the inputs changed), PAYROLL_RUN_NO_CHANGE (the recalculation equals the current draft), PAYROLL_RUN_VERSION_CONFLICT (another command changed the chain first) or PAYROLL_RUN_LIMIT_REACHED (60 policies, 25 versions of a chain or 5,000 employees). No params. MVP-094B: STATUTORY_RULE_PACK_NOT_VERIFIED (the rule pack is DRAFT or RETIRED, or none is in effect), STATUTORY_RULE_PACK_NOT_APPLICABLE (the month is outside the pack interval, or the country or currency differs), STATUTORY_PROFILE_MISSING and STATUTORY_PROFILE_UNSUPPORTED (an employee of the run has no profile, or an unsupported one), STATUTORY_CALCULATION_BLOCKED (another blocker exists), STATUTORY_PREVIEW_STALE (the preview expired, or the run, profiles or rule pack changed), STATUTORY_CALCULATION_NO_CHANGE (the recalculation equals the current draft), STATUTORY_VERSION_CONFLICT (another command changed the activations, the profile timeline or the calculation chain first, or the month is already activated) or STATUTORY_LIMIT_REACHED (60 activations, 100 profile entries, 25 versions of a chain or 5,000 lines). No params. MVP-094C: PAYROLL_PACKAGE_BLOCKED (an approval blocker exists), PAYROLL_APPROVAL_PREVIEW_STALE (the approval preview expired, or the run, calculation, policy, profiles or rule pack changed), PAYROLL_APPROVAL_NO_CHANGE (an APPROVED package already exists for exactly this run and calculation), PAYROLL_PACKAGE_VERSION_CONFLICT (another command changed the package chain first), PAYROLL_PACKAGE_ALREADY_APPROVED (another APPROVED package exists for the entity and month), PAYROLL_PACKAGE_VOIDED (the package is already voided), PAYROLL_VOID_PREVIEW_STALE (the void preview expired or the package changed), PAYROLL_VOID_NOT_ALLOWED (a payment record exists) or PAYROLL_PACKAGE_LIMIT_REACHED (5,000 payslips or 25 package versions per entity and month). No params. MVP-096: ACCOUNTING_MAPPING_NOT_FOUND (no mapping applies to the package month and currency), ACCOUNTING_MAPPING_OVERLAP (the effective date is not strictly later than the latest version), ACCOUNTING_MAPPING_LIMIT_REACHED (10 versions per legal entity and currency), ACCOUNTING_MAPPING_PREVIEW_STALE, ACCOUNTING_JOURNAL_SOURCE_VOIDED, ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED, ACCOUNTING_JOURNAL_ALREADY_EXISTS, ACCOUNTING_JOURNAL_PREVIEW_STALE and ACCOUNTING_JOURNAL_UNBALANCED. No params, no amount, no account code. */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -11589,7 +11945,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description MVP-021 business rules. EMPLOYMENT_CHANGE_NO_EFFECT (params.field: the assignment kind whose value would not change), EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT, RETROACTIVE_WINDOW_EXCEEDED (before the configurable pilot window, 60 days by default), MANAGER_INVALID (params.reason: NOT_FOUND, SELF, NOT_EMPLOYED, CYCLE or CHAIN_TOO_DEEP) or PLACEMENT_INVALID (params.field: legalEntityId, siteId, departmentId, costCenterId or teamId; params.reason: NOT_FOUND, MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). MVP-022: SEPARATION_DATE_OUT_OF_RANGE (before the employment start, the retroactive window, or more than 180 days ahead), SEPARATION_ACCESS_TIMING_INVALID (IMMEDIATELY with a future last day), SEPARATION_ACKNOWLEDGEMENT_REQUIRED (params.acknowledgement), SEPARATION_REPORT_PLAN_REQUIRED, SEPARATION_TOO_MANY_INTERVALS (params.count) and MANAGER_INVALID for the replacement manager. Params never carry a date, a value or an ID. MVP-093A: COMPENSATION_DATE_OUT_OF_RANGE (an effective date, or the reach of a correction, is outside 60 days back to 366 days ahead of the business date) and COMPENSATION_TRANSITION_NOT_ALLOWED (the action is not legal in the current timeline, the values are identical, or the change is not an unstarted CHANGED interval). No params. MVP-094A: PAYROLL_PERIOD_INVALID (the month is not fully closed, is older than 24 months, or a policy effective date is outside 24 months back to 366 days ahead of the business date). No params. */
+        /** @description MVP-021 business rules. EMPLOYMENT_CHANGE_NO_EFFECT (params.field: the assignment kind whose value would not change), EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT, RETROACTIVE_WINDOW_EXCEEDED (before the configurable pilot window, 60 days by default), MANAGER_INVALID (params.reason: NOT_FOUND, SELF, NOT_EMPLOYED, CYCLE or CHAIN_TOO_DEEP) or PLACEMENT_INVALID (params.field: legalEntityId, siteId, departmentId, costCenterId or teamId; params.reason: NOT_FOUND, MISMATCH, NOT_EFFECTIVE or ENDS_DURING_PERIOD). MVP-022: SEPARATION_DATE_OUT_OF_RANGE (before the employment start, the retroactive window, or more than 180 days ahead), SEPARATION_ACCESS_TIMING_INVALID (IMMEDIATELY with a future last day), SEPARATION_ACKNOWLEDGEMENT_REQUIRED (params.acknowledgement), SEPARATION_REPORT_PLAN_REQUIRED, SEPARATION_TOO_MANY_INTERVALS (params.count) and MANAGER_INVALID for the replacement manager. Params never carry a date, a value or an ID. MVP-093A: COMPENSATION_DATE_OUT_OF_RANGE (an effective date, or the reach of a correction, is outside 60 days back to 366 days ahead of the business date) and COMPENSATION_TRANSITION_NOT_ALLOWED (the action is not legal in the current timeline, the values are identical, or the change is not an unstarted CHANGED interval). No params. MVP-094A: PAYROLL_PERIOD_INVALID (the month is not fully closed, is older than 24 months, or a policy effective date is outside 24 months back to 366 days ahead of the business date). No params. MVP-096: ACCOUNTING_MAPPING_INVALID (params.field is one of salaryExpense, employeeDeductionLiability, employerContributionExpense, employerContributionLiability, netSalaryPayable; the value is never echoed) and ACCOUNTING_JOURNAL_TOO_LARGE (more than 10,000 entries or 2,000 aggregated lines). No other params. */
         UnprocessableContent: {
             headers: {
                 [name: string]: unknown;
@@ -11770,6 +12126,10 @@ export interface components {
         ExpectedVersion: number;
         /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND. */
         PaymentEmployeeId: string;
+        /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 ACCOUNTING_JOURNAL_NOT_FOUND. */
+        AccountingJournalId: string;
+        /** @description MVP-096. Restricts the mapping versions to one currency. Any other value is VALIDATION_FAILED. */
+        AccountingCurrencyFilter: "CDF" | "USD";
         /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
         PaymentBatchId: string;
         /** @description Optional payroll package filter. */
@@ -21976,6 +22336,349 @@ export interface operations {
                 legalEntityId: components["parameters"]["PayrollLegalEntityId"];
                 /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYMENT_BATCH_NOT_FOUND. */
                 batchId: components["parameters"]["PaymentBatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The JSON manifest */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    /** @description nosniff */
+                    "X-Content-Type-Options"?: "nosniff";
+                    /** @description attachment with a generated filename (never an employee name or number) */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listAccountingMappings: {
+        parameters: {
+            query?: {
+                /** @description MVP-096. Restricts the mapping versions to one currency. Any other value is VALIDATION_FAILED. */
+                currency?: components["parameters"]["AccountingCurrencyFilter"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The mapping versions */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingMappingList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createAccountingMapping: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitAccountingMapping"];
+            };
+        };
+        responses: {
+            /** @description Appended, or the original replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingMappingReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewAccountingMapping: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewAccountingMapping"];
+            };
+        };
+        responses: {
+            /** @description The mapping preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingMappingPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewAccountingJournal: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYROLL_PACKAGE_NOT_FOUND. */
+                packageId: components["parameters"]["PayrollPackageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The journal preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingJournalPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listAccountingJournals: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYROLL_PACKAGE_NOT_FOUND. */
+                packageId: components["parameters"]["PayrollPackageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The journals of the package */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingJournalList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    generateAccountingJournal: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 PAYROLL_PACKAGE_NOT_FOUND. */
+                packageId: components["parameters"]["PayrollPackageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitAccountingJournal"];
+            };
+        };
+        responses: {
+            /** @description Generated, or the original replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingJournalReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getAccountingJournal: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 ACCOUNTING_JOURNAL_NOT_FOUND. */
+                journalId: components["parameters"]["AccountingJournalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The accounting journal */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountingJournalView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    downloadAccountingJournalCsv: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 ACCOUNTING_JOURNAL_NOT_FOUND. */
+                journalId: components["parameters"]["AccountingJournalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV journal */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    /** @description nosniff */
+                    "X-Content-Type-Options"?: "nosniff";
+                    /** @description attachment with a generated filename (never an employee name or number) */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    downloadAccountingJournalManifest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 ACCOUNTING_JOURNAL_NOT_FOUND. */
+                journalId: components["parameters"]["AccountingJournalId"];
             };
             cookie?: never;
         };

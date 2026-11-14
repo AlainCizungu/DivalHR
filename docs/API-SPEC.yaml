@@ -12968,6 +12968,393 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/accounting-mappings:
+    get:
+      operationId: listAccountingMappings
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the accounting mapping versions of a legal entity
+      description: >-
+        MVP-096. Every append-only mapping version of the legal entity (optionally one currency), newest first, at most 20 (10 per currency). Each version holds exactly five account codes (salary expense, employee deduction liability, employer contribution expense, employer contribution liability, net salary payable) and an effective date; its status is derived: SCHEDULED, ACTIVE or SUPERSEDED. Versions are never edited or deleted.
+        A fail-closed disclosure audit is written (accounting-mapping.read). At most 60 reads per subject per minute and 300 per tenant per hour. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/AccountingCurrencyFilter"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The mapping versions
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountingMappingList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: createAccountingMapping
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Append an accounting mapping version
+      description: >-
+        MVP-096. Repeats the previewed currency, effectiveFrom and five account codes plus expectedVersion, previewDigest, expiresAt, understandExportOnly=true and an Idempotency-Key. In one transaction the chain is re-read and exactly one immutable version is appended, with an audit record (accounting-mapping.create) and the internal outbox event payroll.accounting-mapping-created.v1 (identifiers, currency and version only).
+        An invalid code is 422 ACCOUNTING_MAPPING_INVALID (params.field names the property, the value is never echoed), an effective date that is not strictly later than the latest version is 409 ACCOUNTING_MAPPING_OVERLAP, an eleventh version 409 ACCOUNTING_MAPPING_LIMIT_REACHED, an expired or drifted preview 409 ACCOUNTING_MAPPING_PREVIEW_STALE (nothing is written). At most 20 per tenant per hour. The same Idempotency-Key and command replays the original 201. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitAccountingMapping"
+      responses:
+        "201":
+          description: Appended, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountingMappingReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/accounting-mappings/preview:
+    post:
+      operationId: previewAccountingMapping
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview appending an accounting mapping version
+      description: >-
+        MVP-096. Validates the five account codes (trimmed; 1 to 40 characters; uppercase letters, digits, hyphen, underscore and period; the first character a letter or digit) and the effective date against the chain, returns the next version number, READY or BLOCKED with blocker codes (OVERLAP, LIMIT_REACHED) and, when READY, a previewDigest with a 15-minute expiry. Nothing is written. A fail-closed disclosure audit is written (accounting-mapping.preview). At most 20 previews per subject per hour. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewAccountingMapping"
+      responses:
+        "200":
+          description: The mapping preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountingMappingPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-packages/{packageId}/accounting-journals/preview:
+    post:
+      operationId: previewAccountingJournal
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the accounting journal of an approved payroll package
+      description: >-
+        MVP-096. For an APPROVED, non-voided package returns the exact journal that would be generated from its frozen approval evidence and the applicable mapping version: the aggregated lines, the line counts, the exact debit and credit totals in minor units, READY or BLOCKED with blocker codes (PACKAGE_VOIDED, PACKAGE_NOT_APPROVED, JOURNAL_ALREADY_EXISTS, MAPPING_NOT_FOUND, TOO_LARGE, UNBALANCED) and, when READY, a previewDigest with a 15-minute expiry.
+        Nothing is recalculated, no currency is converted and nothing is written. A package with a prepared or submitted payment batch is still eligible. A fail-closed disclosure audit is written (accounting-journal.preview). At most 20 previews per subject per hour. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollPackageId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The journal preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountingJournalPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/payroll-packages/{packageId}/accounting-journals:
+    post:
+      operationId: generateAccountingJournal
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Generate the immutable accounting journal of an approved payroll package
+      description: >-
+        MVP-096. Repeats the previewed expectedPackageVersion, expectedMappingVersion, previewDigest, expiresAt, understandExportOnly=true and an Idempotency-Key. In one transaction the package, its frozen evidence and the mapping are re-read and exactly one immutable, balanced journal with its lines is created, with an audit record (accounting-journal.generate) and the internal outbox event payroll.accounting-journal-generated.v1 (identifiers, version, currency and line count only).
+        A voided package is 409 ACCOUNTING_JOURNAL_SOURCE_VOIDED, another status 409 ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED, no applicable mapping 409 ACCOUNTING_MAPPING_NOT_FOUND, an existing journal 409 ACCOUNTING_JOURNAL_ALREADY_EXISTS, an expired or drifted preview 409 ACCOUNTING_JOURNAL_PREVIEW_STALE, a frozen calculation that cannot balance 409 ACCOUNTING_JOURNAL_UNBALANCED and more than 10,000 entries (2,000 aggregated lines) 422 ACCOUNTING_JOURNAL_TOO_LARGE (nothing is written). At most 5 per tenant per hour. The same Idempotency-Key and command replays the original 201. The response is an amount-free receipt. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollPackageId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitAccountingJournal"
+      responses:
+        "201":
+          description: Generated, or the original replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountingJournalReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: listAccountingJournals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the accounting journals of a payroll package
+      description: >-
+        MVP-096. The journal history of the package (at most one in this story), each with its version, period, currency, line count, generation instant and the derived sourceVoided flag that marks a journal whose package was voided later; the journal itself never changes. A fail-closed disclosure audit is written (accounting-journal.read). Shares the read limits. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/PayrollPackageId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The journals of the package
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountingJournalList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/accounting-journals/{journalId}:
+    get:
+      operationId: getAccountingJournal
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read an accounting journal
+      description: >-
+        MVP-096. The immutable journal: identity, package and mapping evidence, exact totals in minor units, the ordered lines, the CSV SHA-256 and the derived sourceVoided flag. No employee data is stored in or returned with a journal. Unknown, malformed, foreign-tenant and foreign-entity IDs are the same 404 ACCOUNTING_JOURNAL_NOT_FOUND. A fail-closed disclosure audit is written (accounting-journal.read). Shares the read limits. Cache-Control private, no-store. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/AccountingJournalId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The accounting journal
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountingJournalView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/accounting-journals/{journalId}/csv:
+    get:
+      operationId: downloadAccountingJournalCsv
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download the accounting journal as CSV
+      description: >-
+        MVP-096. A deterministic UTF-8 CSV with a byte order mark, comma separated, RFC 4180 escaping, CRLF after every row, fixed columns journal_id, package_id, legal_entity_id, currency, line_number, account_code, direction, amount_minor, cost_center_code, site_code, lines in a fixed order. No employee name, number, e-mail, bank account, phone, national identifier, payslip detail or free text. The file is byte-identical on every download, including after the source package is voided. The filename is generated (accounting-journal-<ENTITY CODE>-<YYYY-MM>-<CURRENCY>-v<version>.csv).
+        Disclosure-audited before any byte is returned (accounting-journal.download, view csv), Cache-Control private, no-store, X-Content-Type-Options nosniff. Shares the read limits. Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/AccountingJournalId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The CSV journal
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            X-Content-Type-Options:
+              description: nosniff
+              schema:
+                type: string
+                enum: [nosniff]
+            Content-Disposition:
+              description: 'attachment with a generated filename (never an employee name or number)'
+              schema:
+                type: string
+          content:
+            text/csv:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/accounting-journals/{journalId}/manifest:
+    get:
+      operationId: downloadAccountingJournalManifest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Download the accounting journal manifest
+      description: >-
+        MVP-096. The canonical JSON manifest (sorted keys, no insignificant whitespace): schemaVersion, journal, package, calculation and mapping identifiers and versions, legal entity code, period, currency, line count, total debits and credits in minor units, the generation instant, the CSV file name, its size in bytes and its SHA-256, which equals the SHA-256 of the downloaded CSV bytes. It carries no source status and no employee data, so it is byte-identical on every download.
+        Same authority, audit (view manifest), limits and headers as the CSV; the filename is generated (accounting-journal-<ENTITY CODE>-<YYYY-MM>-<CURRENCY>-v<version>.manifest.json). Accounting export only: not posted and not proof of payment.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/AccountingJournalId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The JSON manifest
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            X-Content-Type-Options:
+              description: nosniff
+              schema:
+                type: string
+                enum: [nosniff]
+            Content-Disposition:
+              description: 'attachment with a generated filename (never an employee name or number)'
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -13144,6 +13531,9 @@ components:
         PAYROLL_PACKAGE_VOIDED (the package is already voided), PAYROLL_VOID_PREVIEW_STALE (the void
         preview expired or the package changed), PAYROLL_VOID_NOT_ALLOWED (a payment record exists) or
         PAYROLL_PACKAGE_LIMIT_REACHED (5,000 payslips or 25 package versions per entity and month). No params.
+        MVP-096: ACCOUNTING_MAPPING_NOT_FOUND (no mapping applies to the package month and currency), ACCOUNTING_MAPPING_OVERLAP (the effective date is not strictly later than the latest version),
+        ACCOUNTING_MAPPING_LIMIT_REACHED (10 versions per legal entity and currency), ACCOUNTING_MAPPING_PREVIEW_STALE, ACCOUNTING_JOURNAL_SOURCE_VOIDED, ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED,
+        ACCOUNTING_JOURNAL_ALREADY_EXISTS, ACCOUNTING_JOURNAL_PREVIEW_STALE and ACCOUNTING_JOURNAL_UNBALANCED. No params, no amount, no account code.
       content:
         application/problem+json:
           schema:
@@ -13255,6 +13645,8 @@ components:
         values are identical, or the change is not an unstarted CHANGED interval). No params.
         MVP-094A: PAYROLL_PERIOD_INVALID (the month is not fully closed, is older than 24 months, or a
         policy effective date is outside 24 months back to 366 days ahead of the business date). No params.
+        MVP-096: ACCOUNTING_MAPPING_INVALID (params.field is one of salaryExpense, employeeDeductionLiability, employerContributionExpense, employerContributionLiability, netSalaryPayable; the value is never echoed)
+        and ACCOUNTING_JOURNAL_TOO_LARGE (more than 10,000 entries or 2,000 aggregated lines). No other params.
       content:
         application/problem+json:
           schema:
@@ -13886,6 +14278,21 @@ components:
       description: Malformed, unknown, foreign and unauthorized IDs give the same 404 PAYMENT_DESTINATION_NOT_FOUND.
       schema:
         type: string
+    AccountingJournalId:
+      name: journalId
+      in: path
+      required: true
+      description: Malformed, unknown, foreign-tenant and foreign-entity IDs give the same 404 ACCOUNTING_JOURNAL_NOT_FOUND.
+      schema:
+        type: string
+    AccountingCurrencyFilter:
+      name: currency
+      in: query
+      required: false
+      description: MVP-096. Restricts the mapping versions to one currency. Any other value is VALIDATION_FAILED.
+      schema:
+        type: string
+        enum: [CDF, USD]
     PaymentBatchId:
       name: batchId
       in: path
@@ -20489,6 +20896,18 @@ components:
         - PAYMENT_RECONCILIATION_NOT_ELIGIBLE
         - PAYMENT_RECONCILIATION_EXISTS
         - PAYMENT_RECONCILIATION_PREVIEW_STALE
+        - ACCOUNTING_MAPPING_NOT_FOUND
+        - ACCOUNTING_MAPPING_INVALID
+        - ACCOUNTING_MAPPING_OVERLAP
+        - ACCOUNTING_MAPPING_LIMIT_REACHED
+        - ACCOUNTING_MAPPING_PREVIEW_STALE
+        - ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED
+        - ACCOUNTING_JOURNAL_SOURCE_VOIDED
+        - ACCOUNTING_JOURNAL_ALREADY_EXISTS
+        - ACCOUNTING_JOURNAL_PREVIEW_STALE
+        - ACCOUNTING_JOURNAL_UNBALANCED
+        - ACCOUNTING_JOURNAL_TOO_LARGE
+        - ACCOUNTING_JOURNAL_NOT_FOUND
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -27495,6 +27914,444 @@ components:
             $ref: "#/components/schemas/PaymentReconciliationInquiry"
         nextCursor:
           type: [string, "null"]
+    AccountingCurrency:
+      type: string
+      description: MVP-096. The currency of a mapping and of a journal. Mappings of different currencies are independent and nothing is converted.
+      enum: [CDF, USD]
+    AccountingAccountCode:
+      type: string
+      description: MVP-096. A trimmed account code of 1 to 40 characters (uppercase letters, digits, hyphen, underscore, period; the first character a letter or digit). Never a name or free text.
+      pattern: "^[A-Z0-9][A-Z0-9._-]{0,39}$"
+      minLength: 1
+      maxLength: 40
+    AccountingAccounts:
+      type: object
+      additionalProperties: false
+      required: [salaryExpense, employeeDeductionLiability, employerContributionExpense, employerContributionLiability, netSalaryPayable]
+      properties:
+        salaryExpense:
+          $ref: "#/components/schemas/AccountingAccountCode"
+        employeeDeductionLiability:
+          $ref: "#/components/schemas/AccountingAccountCode"
+        employerContributionExpense:
+          $ref: "#/components/schemas/AccountingAccountCode"
+        employerContributionLiability:
+          $ref: "#/components/schemas/AccountingAccountCode"
+        netSalaryPayable:
+          $ref: "#/components/schemas/AccountingAccountCode"
+    AccountingMappingStatus:
+      type: string
+      description: MVP-096. Derived at read time from the effective date and the business date; a stored version never changes.
+      enum: [SCHEDULED, ACTIVE, SUPERSEDED]
+    AccountingMapping:
+      type: object
+      additionalProperties: false
+      required: [id, legalEntityId, currency, version, effectiveFrom, accounts, mappingDigest, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 10
+        effectiveFrom:
+          type: string
+          format: date
+        accounts:
+          $ref: "#/components/schemas/AccountingAccounts"
+        mappingDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        status:
+          $ref: "#/components/schemas/AccountingMappingStatus"
+        createdAt:
+          type: string
+          format: date-time
+    AccountingMappingList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/AccountingMapping"
+    PreviewAccountingMapping:
+      type: object
+      additionalProperties: false
+      required: [currency, effectiveFrom, accounts]
+      properties:
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        effectiveFrom:
+          type: string
+          format: date
+        accounts:
+          $ref: "#/components/schemas/AccountingAccounts"
+    AccountingMappingPreview:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, currency, nextVersion, effectiveFrom, accounts, previousEffectiveFrom, status, blockers, previewDigest, expiresAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        nextVersion:
+          type: integer
+          minimum: 1
+          maximum: 11
+        effectiveFrom:
+          type: string
+          format: date
+        accounts:
+          $ref: "#/components/schemas/AccountingAccounts"
+        previousEffectiveFrom:
+          type: [string, "null"]
+          format: date
+          description: The effective date of the latest existing version of this currency, if any.
+        status:
+          type: string
+          enum: [READY, BLOCKED]
+        blockers:
+          type: array
+          items:
+            type: string
+            enum: [OVERLAP, LIMIT_REACHED]
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitAccountingMapping:
+      type: object
+      additionalProperties: false
+      required: [currency, effectiveFrom, accounts, expectedVersion, previewDigest, expiresAt, understandExportOnly]
+      properties:
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        effectiveFrom:
+          type: string
+          format: date
+        accounts:
+          $ref: "#/components/schemas/AccountingAccounts"
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: The version number the preview announced (nextVersion).
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        understandExportOnly:
+          type: boolean
+          description: I understand this is an accounting export only, not posted and not proof of payment. Must be true.
+    AccountingMappingReceipt:
+      type: object
+      additionalProperties: false
+      required: [mappingId, legalEntityId, currency, version, effectiveFrom, createdAt]
+      properties:
+        mappingId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 10
+        effectiveFrom:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    AccountingDirection:
+      type: string
+      enum: [DEBIT, CREDIT]
+    AccountingJournalLine:
+      type: object
+      additionalProperties: false
+      required: [lineNumber, accountCode, direction, amountMinor, costCenterCode, siteCode]
+      properties:
+        lineNumber:
+          type: integer
+          minimum: 1
+          maximum: 2000
+        accountCode:
+          $ref: "#/components/schemas/AccountingAccountCode"
+        direction:
+          $ref: "#/components/schemas/AccountingDirection"
+        amountMinor:
+          type: integer
+          format: int64
+          minimum: 1
+        costCenterCode:
+          type: [string, "null"]
+          description: Present only when the frozen payroll line carried a cost center (none does today).
+        siteCode:
+          type: [string, "null"]
+          description: Present only when the frozen payroll line carried a site (none does today).
+    AccountingJournalMappingRef:
+      type: object
+      additionalProperties: false
+      required: [id, version, effectiveFrom]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 10
+        effectiveFrom:
+          type: string
+          format: date
+    AccountingJournalPreview:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, packageId, packageVersion, period, currency, mapping, status, blockers, sourceEntryCount, lineCount, totalDebitsMinor, totalCreditsMinor, lines, previewDigest, expiresAt]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        packageVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        period:
+          type: string
+          pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        mapping:
+          oneOf:
+            - $ref: "#/components/schemas/AccountingJournalMappingRef"
+            - type: "null"
+        status:
+          type: string
+          enum: [READY, BLOCKED]
+        blockers:
+          type: array
+          items:
+            type: string
+            enum: [PACKAGE_VOIDED, PACKAGE_NOT_APPROVED, JOURNAL_ALREADY_EXISTS, MAPPING_NOT_FOUND, TOO_LARGE, UNBALANCED]
+        sourceEntryCount:
+          type: integer
+          minimum: 0
+          description: Entries before aggregation (at most 10,000 for a READY preview).
+        lineCount:
+          type: integer
+          minimum: 0
+          maximum: 2000
+        totalDebitsMinor:
+          type: integer
+          format: int64
+          minimum: 0
+        totalCreditsMinor:
+          type: integer
+          format: int64
+          minimum: 0
+        lines:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: "#/components/schemas/AccountingJournalLine"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+    CommitAccountingJournal:
+      type: object
+      additionalProperties: false
+      required: [expectedPackageVersion, expectedMappingVersion, previewDigest, expiresAt, understandExportOnly]
+      properties:
+        expectedPackageVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        expectedMappingVersion:
+          type: integer
+          minimum: 1
+          maximum: 10
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        understandExportOnly:
+          type: boolean
+          description: I understand this is an accounting export only, not posted and not proof of payment. Must be true.
+    AccountingJournalReceipt:
+      type: object
+      additionalProperties: false
+      required: [journalId, legalEntityId, packageId, currency, version, lineCount, generatedAt]
+      properties:
+        journalId:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        lineCount:
+          type: integer
+          minimum: 1
+          maximum: 2000
+        generatedAt:
+          type: string
+          format: date-time
+    AccountingJournalSummary:
+      type: object
+      additionalProperties: false
+      required: [id, legalEntityId, packageId, version, period, currency, lineCount, generatedAt, sourceVoided]
+      properties:
+        id:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        period:
+          type: string
+          pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        lineCount:
+          type: integer
+          minimum: 1
+          maximum: 2000
+        generatedAt:
+          type: string
+          format: date-time
+        sourceVoided:
+          type: boolean
+          description: Derived at read time. True when the source package was voided after generation; the journal and its files never change.
+    AccountingJournalList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/AccountingJournalSummary"
+    AccountingJournalView:
+      type: object
+      additionalProperties: false
+      required: [id, legalEntityId, legalEntityCode, packageId, packageVersion, version, period, currency, mapping, mappingDigest, payslipCount, sourceEntryCount, lineCount, totalDebitsMinor, totalCreditsMinor, csvSha256, csvBytes, journalDigest, schemaVersion, generatedAt, sourceVoided, lines]
+      properties:
+        id:
+          type: string
+          format: uuid
+        legalEntityId:
+          type: string
+          format: uuid
+        legalEntityCode:
+          type: string
+          pattern: "^[A-Z0-9_-]{2,20}$"
+        packageId:
+          type: string
+          format: uuid
+        packageVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        period:
+          type: string
+          pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
+        currency:
+          $ref: "#/components/schemas/AccountingCurrency"
+        mapping:
+          $ref: "#/components/schemas/AccountingJournalMappingRef"
+        mappingDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        payslipCount:
+          type: integer
+          minimum: 1
+          maximum: 5000
+        sourceEntryCount:
+          type: integer
+          minimum: 1
+          maximum: 10000
+        lineCount:
+          type: integer
+          minimum: 1
+          maximum: 2000
+        totalDebitsMinor:
+          type: integer
+          format: int64
+          minimum: 1
+        totalCreditsMinor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Always equal to totalDebitsMinor.
+        csvSha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        csvBytes:
+          type: integer
+          minimum: 1
+        journalDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        schemaVersion:
+          type: integer
+          enum: [1]
+        generatedAt:
+          type: string
+          format: date-time
+        sourceVoided:
+          type: boolean
+          description: Derived at read time. True when the source package was voided after generation; the journal and its files never change.
+        lines:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: "#/components/schemas/AccountingJournalLine"
     CommitPaymentBatchCancel:
       type: object
       additionalProperties: false

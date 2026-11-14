@@ -159,6 +159,10 @@
            collaborators. -->
       <Class name="~com\.divalhr\.core\.payroll\.(application|api)\.PaymentReconciliation[A-Za-z]*"/>
       <Class name="com.divalhr.core.payroll.internal.JdbcPaymentReconciliationRepository"/>
+      <!-- MVP-096: accounting mapping and journal services, recorder, quotas, repository and
+           controllers hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.(application|api)\.Accounting[A-Za-z]*"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcAccountingRepository"/>
       <!-- MVP-093A: monthly compensation services, guard, adapter, repository and controllers
            hold injected collaborators. -->
       <Class name="~com\.divalhr\.core\.payroll\.application\.(Compensation|MyCompensation|PayrollCompensation)[A-Za-z]*"/>

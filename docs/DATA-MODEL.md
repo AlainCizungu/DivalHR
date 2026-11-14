@@ -566,3 +566,15 @@ Same schema `integrations`; no existing table is altered. Tables: `messaging_con
   tenant/employee binding. Advisory lock `payroll.compensation:{tenant}:{employee}`.
 - **Classification.** Restricted financial and HR data: amounts, explanations and before/after values.
   Rollback `db/rollback/V43__rollback.sql` is manual and refuses while any row exists.
+
+## Accounting journal export (Issue #194, V50)
+
+- **Tables.** `payroll.accounting_mapping` (append-only versions 1..10 per legal entity and currency, five
+  account codes, `effective_from` strictly increasing; status derived), `payroll.accounting_journal`
+  (one per package, version 1) and `payroll.accounting_journal_line`.
+- **Integrity.** Triggers refuse update, delete and truncate; guards check the source package state, exact
+  totals, the entity code and the applicable mapping; a deferred constraint refuses an incomplete or
+  unbalanced journal at COMMIT. Package currency is CDF only today; frozen payroll lines carry no cost
+  center or site, so those columns are empty.
+- **Classification.** Restricted financial data. Rollback `db/rollback/V50__rollback.sql` is manual and
+  refuses while any row exists.

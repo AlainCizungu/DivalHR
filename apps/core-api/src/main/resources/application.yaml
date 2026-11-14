@@ -210,6 +210,14 @@ divalhr:
       payment-reconciliation-preview: ${DIVALHR_PAYMENT_RECONCILIATION_PREVIEW_REQUESTS_PER_MINUTE:5}
       payment-reconciliation-write: ${DIVALHR_PAYMENT_RECONCILIATION_WRITE_REQUESTS_PER_MINUTE:2}
       payment-reconciliation-read: ${DIVALHR_PAYMENT_RECONCILIATION_READ_REQUESTS_PER_MINUTE:60}
+      # MVP-096: accounting-ready journal export (ADR 0039, section 11). Per subject per minute:
+      # previews 20 (mapping and journal previews share the bucket; the hourly quota of 20 per
+      # subject is enforced by AccountingQuotas), journal generations 5, mapping creations 20,
+      # reads and downloads 60.
+      accounting-preview: ${DIVALHR_ACCOUNTING_PREVIEW_REQUESTS_PER_MINUTE:20}
+      accounting-journal-write: ${DIVALHR_ACCOUNTING_JOURNAL_WRITE_REQUESTS_PER_MINUTE:5}
+      accounting-mapping-write: ${DIVALHR_ACCOUNTING_MAPPING_WRITE_REQUESTS_PER_MINUTE:20}
+      accounting-read: ${DIVALHR_ACCOUNTING_READ_REQUESTS_PER_MINUTE:60}
     tenant:
       employee-import-upload:
         requests: ${DIVALHR_EMPLOYEE_IMPORT_TENANT_UPLOADS:30}
@@ -352,6 +360,17 @@ divalhr:
         window: 1h
       payment-reconciliation-read:
         requests: ${DIVALHR_PAYMENT_RECONCILIATION_TENANT_READS:300}
+        window: 1h
+      # MVP-096: accounting-ready journal export (ADR 0039): 5 journal generations, 20 mapping
+      # creations and 300 reads or downloads per tenant per hour.
+      accounting-journal-write:
+        requests: ${DIVALHR_ACCOUNTING_JOURNAL_TENANT_WRITES:5}
+        window: 1h
+      accounting-mapping-write:
+        requests: ${DIVALHR_ACCOUNTING_MAPPING_TENANT_WRITES:20}
+        window: 1h
+      accounting-read:
+        requests: ${DIVALHR_ACCOUNTING_TENANT_READS:300}
         window: 1h
       # MVP-111: WhatsApp commands. Test messages are limited in the database (3 per recipient and
       # 10 per tenant per hour), not here.

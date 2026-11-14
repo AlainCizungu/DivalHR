@@ -60,4 +60,23 @@ public class PayrollEntities {
     }
     return id;
   }
+
+  /**
+   * The stored code of a legal entity of the tenant (organizational data, not personal data), for a
+   * generated file name.
+   *
+   * @param tenant verified tenant
+   * @param id the identifier
+   * @param notFound the 404 code of the operation
+   * @return the legal entity code
+   * @throws ApiException {@code notFound} for anything that is not a legal entity of the tenant
+   */
+  String code(TenantId tenant, UUID id, ErrorCode notFound) {
+    Map<UUID, UnitView> found = placements.resolveIds(tenant, Set.of(id));
+    UnitView unit = found.get(id);
+    if (unit == null || unit.kind() != UnitKind.LEGAL_ENTITY || unit.code() == null) {
+      throw new ApiException(notFound, Map.of());
+    }
+    return unit.code();
+  }
 }
