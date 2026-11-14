@@ -267,7 +267,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
   });
 
   it('gives the other role homes no accounting capability (TRUTH-003)', async () => {
-    for (const roles of [['employee'], ['manager']] as const) {
+    for (const roles of [['employee'], ['platform-admin']] as const) {
       const { container, unmount } = await renderHome(sessionWithRoles([...roles]), locale);
       expect(container.querySelector('a[href^="/admin/accounting"]')).toBeNull();
       expect(screen.queryByTestId('home-card-accounting-mappings')).toBeNull();
