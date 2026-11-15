@@ -22,9 +22,12 @@ const DEPLOYED = [
   '5b0ff854693e702f0cc05f334609d96fb962346a', // MVP-095A, PR #184: payment destinations and batches
   'b60300f998b5f6cf6bc380a93241be7e93fb4bb7', // MVP-095B, PR #188: synthetic provider submission
   'c93ce0ec0a828e9dc4fd78298ca10475208ff58a', // R187-1, PR #189: trimmed provider key
-  'e8759cc5ca71cb8a54dc22b97aa9b6760fa1969f', // MVP-095C, PR #191: reconciliation of uncertain submissions (synthetic provider only), running
+  'e8759cc5ca71cb8a54dc22b97aa9b6760fa1969f', // MVP-095C, PR #191: reconciliation of uncertain submissions (synthetic provider only)
+  'ce871f48e7be14d824a0800bc7a03be05b72d2ff', // TRUTH-002, PR #193: truth refresh for MVP-095C, preserved as the previous release
+  'c368d58b15e1aeddb755997728154a497348c07c', // MVP-096, PR #195: accounting journal export (manual export, never a posting), running
 ];
-const RUNNING = DEPLOYED[7];
+const RUNNING = DEPLOYED[9];
+const PREVIOUS = DEPLOYED[8];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
 /** Stories that D93-13 requires to carry a real merged or deployed status. */
@@ -96,7 +99,13 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #184, MVP-095A/u);
   assert.match(header, /PR #188, MVP-095B/u);
   assert.match(header, /PR #189, R187-1/u);
-  assert.match(header, /as of 2026-11-05/u);
+  assert.match(header, /as of 2026-11-14/u);
+  assert.match(header, /PR #195, MVP-096/u);
+  assert.match(header, /PR #193, TRUTH-002/u);
+  assert.match(
+    header,
+    /migration V50 is applied; Issue #194|Issue #194 is closed\); migration V50 is applied/u,
+  );
   assert.match(header, /PR #191, MVP-095C/u);
   // The payroll release train (094A, 094B, 094C) is merged, deployed and accepted, from Git.
   assert.match(header, /PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`/u);
@@ -283,7 +292,7 @@ const SHA_PATTERN = /\b[0-9a-f]{40}\b/gu;
  * Rule 1: the release the header says hr-dev runs equals the expected one, the migration it names is the expected
  * one, MVP-095C is stated merged, deployed and accepted, and the evidence table agrees.
  */
-export function releaseClaimProblems(text, expected, migration = 'V49') {
+export function releaseClaimProblems(text, expected, migration = 'V50') {
   const header = text.split('## Epic 1')[0];
   const problems = [];
   const running = /runs `main` at `([0-9a-f]{40})`/u.exec(header)?.[1];
@@ -299,6 +308,14 @@ export function releaseClaimProblems(text, expected, migration = 'V49') {
     )
   )
     problems.push('header does not state MVP-095C as merged, deployed and accepted');
+  if (
+    !/MVP-096 \(Issue #194, PR #195, migration V50\) is merged, deployed and accepted on hr-dev on 2026-11-14/u.test(
+      header,
+    )
+  )
+    problems.push('header does not state MVP-096 as merged, deployed and accepted');
+  if (!/previous release, `[0-9a-f]{40}`[^\n]*?is preserved as `ce871f48e7be`/u.test(header))
+    problems.push('header does not preserve the previous release ce871f48e7be');
   if (/MVP-095C[^.]*(in progress|not merged|not deployed)/iu.test(header))
     problems.push('header still says MVP-095C is in progress or not deployed');
   const lastDeployed = [
@@ -436,19 +453,19 @@ export function localeTruthProblems(strings, locale, catalogueText, roadmapText)
 }
 
 /** The capabilities the landing page and homes list as active in the payment train. */
-const ACTIVE_STORIES = ['MVP-095A', 'MVP-095B', 'MVP-095C'];
+const ACTIVE_STORIES = ['MVP-095A', 'MVP-095B', 'MVP-095C', 'MVP-096'];
 
 test('truth rule 1: the stated release, migration and MVP-095C status equal the deployed ones, and a stale header fails', () => {
   assert.deepEqual(releaseClaimProblems(backlog, RUNNING), []);
   const stale = backlog.replace(
     `runs \`main\` at \`${RUNNING}\``,
-    `runs \`main\` at \`${DEPLOYED[6]}\``,
+    `runs \`main\` at \`${PREVIOUS}\``,
   );
   assert.notEqual(stale, backlog);
   assert.ok(releaseClaimProblems(stale, RUNNING).length > 0, 'a stale header SHA fails');
   const wrongMigration = backlog.replace(
-    'Issue #190 is closed); migration V49 is applied',
-    'Issue #190 is closed); migration V48 is applied',
+    'Issue #194 is closed); migration V50 is applied',
+    'Issue #194 is closed); migration V49 is applied',
   );
   assert.notEqual(wrongMigration, backlog);
   assert.ok(
@@ -461,7 +478,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   );
   assert.notEqual(inProgress, backlog);
   assert.ok(releaseClaimProblems(inProgress, RUNNING).length > 0, 'an in-progress MVP-095C fails');
-  const staleTable = backlog.replace(/^\| MVP-095C .*$/mu, '');
+  const staleTable = backlog.replace(/^\| MVP-096 .*$/mu, '');
   assert.notEqual(staleTable, backlog);
   assert.ok(
     releaseClaimProblems(staleTable, RUNNING).length > 0,
@@ -486,6 +503,15 @@ test('truth rule 2: every capability claimed active has a deployed-and-accepted 
   assert.ok(
     capabilityClaimProblems(staleReconciliation, ACTIVE_STORIES).length > 0,
     'a stale MVP-095C entry fails',
+  );
+  const staleJournal = backlog.replace(
+    'deployed to hr-dev and accepted on 2026-11-14; Issue #194 is closed',
+    'merged; Issue #194 is open',
+  );
+  assert.notEqual(staleJournal, backlog);
+  assert.ok(
+    capabilityClaimProblems(staleJournal, ACTIVE_STORIES).length > 0,
+    'a stale MVP-096 entry fails',
   );
   assert.ok(capabilityClaimProblems(backlog, ['MVP-999']).length > 0, 'an unknown story fails');
 });
@@ -609,4 +635,521 @@ test('truth rule 4: both locales state reconciliation as active for the syntheti
     ).length > 0,
     'a roadmap tile fails',
   );
+});
+
+/**
+ * Rule 5 (TRUTH-003, Issue #198): MVP-096, the accounting journal export, is active, and every surface keeps its limits.
+ * Pure over text and parsed locale JSON so each guard is proved to fail on a stale fixture.
+ */
+const JOURNAL_MENTION = {
+  en: /accounting[- ]ready journal|accounting journal|journal export|balanced journal|journals? (is|are) generated/iu,
+  fr: /journal comptable|export (de|du) journal|journal immuable|journaux sont générés/iu,
+};
+const NOT_AVAILABLE_JOURNAL = {
+  en: /being built|not (yet )?available|not (yet )?active|\bplanned\b|coming (next|soon)|under construction/iu,
+  fr: /en préparation|en cours de (construction|développement)|pas encore (disponible|actif)|n’est pas encore (disponible|actif)|\bprévu|prochainement|à venir/iu,
+};
+const NEGATION = {
+  en: /\b(not|no|never|without|nor|nothing)\b/iu,
+  fr: /\b(pas|aucun|aucune|jamais|rien|ni|sans)\b|\bn’/iu,
+};
+const FORBIDDEN_CLAIMS = {
+  en: [
+    /(?<!not )(?<!nothing is )(?<!never )posted (directly )?(to|into|in) (Sage|Odoo|QuickBooks|an? accounting|any accounting)/iu,
+    /\b(posts?|pushes|sends?) (the )?(journals?|entries) (directly )?(to|into) (Sage|Odoo|QuickBooks)/iu,
+    /direct (accounting )?posting (is )?(available|active|now)/iu,
+    /\b(USD|multi-currency) journals? (is|are) (generated|supported|available|active)/iu,
+    /(cost[- ]cent(er|re)|site) (allocation|dimension)s? (is|are) (supported|available|active)/iu,
+    /(real|live) (bank|mobile-money) (payment|disbursement|connection) (is|are) (available|active)/iu,
+    /(paid status|settlement|salary advances?|loans?|employee payment notifications?) (is|are) (available|active|supported)/iu,
+  ],
+  fr: [
+    /(?<!pas )(?<!jamais )(?<!rien n’est )comptabilis[ée]s? (directement )?(dans|vers) (Sage|Odoo|QuickBooks|un système comptable)/iu,
+    /comptabilisation directe (est )?(disponible|active)/iu,
+    /journaux? (en|de) USD (est|sont) (généré|pris en charge|disponible|actif)/iu,
+    /(centre de coûts|site)[^.]*(répartition|dimension)s? (est|sont) (prise? en charge|disponible|active?)/iu,
+    /(paiement|versement|connexion) (bancaire|mobile money) réel(le)? (est|sont) (disponible|active?)/iu,
+    /(statut payé|règlement|avances sur salaire|prêts|notification de paiement aux employés) (est|sont) (disponible|actif|actifs|pris en charge)/iu,
+  ],
+};
+/** Sentences of a string; a claim and its limit are judged within one sentence. */
+const SENTENCES = (value) => value.split(/(?<=[.;:])\s+/u);
+const LIMITED_TOPIC = {
+  en: /paid status|settlement|proof of payment|payment notification|salary advance|\bloans?\b|cost[- ]cent(er|re)|site (dimension|allocation)|\bUSD\b/iu,
+  fr: /statut payé|règlement|preuve de paiement|notification de paiement|avance sur salaire|avances sur salaire|\bprêts\b|\bprêt(?! pour)\b|centre de coûts|dimension de[^.]*site|\bUSD\b/iu,
+};
+const SURFACES = {
+  payrollDescription: 'landing.modules.items.payroll.description',
+  payrollBody: 'landing.payroll.body',
+  nowExport: 'landing.modules.now.accountingExport',
+  homeCard: 'home.tenant.cards.accountingMappings.description',
+  homeProgress: 'home.tenant.progress.items.accountingJournal.description',
+  homePayrollCard: 'home.tenant.cards.payrollPackages.description',
+  roadmap: 'roadmap.items.filingAccounting.description',
+  nextPayslips: 'landing.modules.next.payslips',
+};
+const REQUIRED_JOURNAL = {
+  en: {
+    payrollDescription: [
+      /effective-dated account mappings/u,
+      /immutable, balanced accounting journal from an approved payroll package/u,
+      /deterministic CSV and manifest downloads/u,
+      /manifest binds the CSV SHA-256/u,
+      /accounting-ready manual export for CDF packages/u,
+      /not posted to Sage, Odoo, QuickBooks or any accounting system/u,
+      /not proof of payment/u,
+      /No journal is produced for USD/u,
+      /no cost-center or site dimension is claimed/u,
+    ],
+    payrollBody: [
+      /accounting-ready journal export \(CSV and manifest, manual import only\) is available for approved CDF payroll packages/u,
+      /Filing, direct accounting posting,[^.]*salary advances come next/u,
+    ],
+    nowExport: [
+      /immutable, balanced journal/u,
+      /CSV and manifest downloads/u,
+      /nothing is posted to an accounting system/u,
+      /CDF/u,
+    ],
+    homeCard: [/effective-dated/u, /never posted to an accounting system/u],
+    homeProgress: [
+      /immutable, balanced journal/u,
+      /CSV and manifest/u,
+      /CDF packages/u,
+      /not posted to any accounting system/u,
+      /not proof of payment/u,
+    ],
+    homePayrollCard: [
+      /accounting-ready journal export/u,
+      /manual import only/u,
+      /nothing is posted to an accounting system/u,
+    ],
+    roadmap: [/direct posting to accounting systems/u, /not a posting/u],
+    nextPayslips: [/direct accounting posting/u],
+  },
+  fr: {
+    payrollDescription: [
+      /correspondances de comptes datées/u,
+      /journal comptable immuable et équilibré à partir d’un dossier de paie approuvé/u,
+      /téléchargements déterministes du CSV et du manifeste/u,
+      /manifeste liant l’empreinte SHA-256 du CSV/u,
+      /export manuel prêt pour la comptabilité, pour les dossiers en CDF/u,
+      /pas comptabilisé dans Sage, Odoo, QuickBooks ni dans aucun système comptable/u,
+      /pas une preuve de paiement/u,
+      /Aucun journal n’est produit pour l’USD/u,
+      /aucune dimension de centre de coûts ou de site n’est revendiquée/u,
+    ],
+    payrollBody: [
+      /export de journal comptable prêt pour la comptabilité \(CSV et manifeste, import manuel uniquement\) est disponible pour les dossiers de paie approuvés en CDF/u,
+      /déclarations, la comptabilisation directe[^.]*avances sur salaire arrivent prochainement/u,
+    ],
+    nowExport: [
+      /journal comptable immuable et équilibré/u,
+      /CSV et du manifeste/u,
+      /rien n’est comptabilisé dans un système comptable/u,
+      /CDF/u,
+    ],
+    homeCard: [/datés et versionnés/u, /jamais comptabilisés dans un système comptable/u],
+    homeProgress: [
+      /journal immuable et équilibré/u,
+      /CSV et son manifeste/u,
+      /dossiers en CDF/u,
+      /rien n’est comptabilisé dans un système comptable/u,
+      /pas une preuve de paiement/u,
+    ],
+    homePayrollCard: [
+      /export de journal comptable prêt pour la comptabilité/u,
+      /import manuel uniquement/u,
+      /rien n’est comptabilisé dans un système comptable/u,
+    ],
+    roadmap: [/comptabilisation directe/u, /pas une comptabilisation/u],
+    nextPayslips: [/comptabilisation directe/u],
+  },
+};
+const dig = (strings, path) => path.split('.').reduce((node, key) => node?.[key], strings);
+
+/** One locale: MVP-096 is active, every limit is kept, nothing overclaims. */
+export function journalLocaleProblems(strings, locale) {
+  const problems = [];
+  for (const [surface, path] of Object.entries(SURFACES)) {
+    const value = dig(strings, path);
+    if (typeof value !== 'string') {
+      problems.push(`${locale}: ${path} is missing`);
+      continue;
+    }
+    for (const pattern of REQUIRED_JOURNAL[locale][surface])
+      if (!pattern.test(value)) problems.push(`${locale}: ${path} lacks ${pattern}`);
+  }
+  for (const [path, value] of LEAVES(strings)) {
+    if (!/^(landing|home|roadmap)\./u.test(path)) continue;
+    for (const sentence of SENTENCES(value)) {
+      if (JOURNAL_MENTION[locale].test(sentence) && NOT_AVAILABLE_JOURNAL[locale].test(sentence))
+        problems.push(`${locale}: ${path} describes the accounting journal export as not active`);
+      if (
+        JOURNAL_MENTION[locale].test(sentence) &&
+        LIMITED_TOPIC[locale].test(sentence) &&
+        !NEGATION[locale].test(sentence)
+      )
+        problems.push(`${locale}: ${path} ties the journal export to an unlimited claim`);
+    }
+    for (const pattern of FORBIDDEN_CLAIMS[locale])
+      if (pattern.test(value)) problems.push(`${locale}: ${path} overclaims (${pattern})`);
+  }
+  // "Available now" lists the export; "Coming next" never lists the journal export.
+  for (const [path, value] of LEAVES(strings)) {
+    if (
+      (path.startsWith('roadmap.items.') || path.startsWith('landing.modules.next.')) &&
+      JOURNAL_MENTION[locale].test(
+        value.replace(/[^.]*\b(not a posting|pas une comptabilisation)[^.]*\./u, ''),
+      )
+    )
+      problems.push(`${locale}: ${path} lists the journal export under "Coming next"`);
+  }
+  return problems;
+}
+
+/** English and French carry the same claims on the same surfaces. */
+export function journalParityProblems(en, fr) {
+  const problems = [];
+  const keys = (strings, path) => Object.keys(dig(strings, path) ?? {}).sort();
+  for (const path of [
+    'landing.modules.now',
+    'landing.modules.next',
+    'home.tenant.cards',
+    'home.tenant.progress.items',
+    'roadmap.items',
+  ])
+    if (keys(en, path).join() !== keys(fr, path).join())
+      problems.push(`${path}: English and French keys diverge`);
+  for (const [surface, path] of Object.entries(SURFACES)) {
+    const required = [REQUIRED_JOURNAL.en[surface].length, REQUIRED_JOURNAL.fr[surface].length];
+    if (required[0] !== required[1]) problems.push(`${surface}: required claims diverge`);
+    if (typeof dig(en, path) !== typeof dig(fr, path))
+      problems.push(`${path}: one locale lacks it`);
+  }
+  const sha = (strings) => /SHA-256/u.test(dig(strings, SURFACES.payrollDescription) ?? '');
+  if (sha(en) !== sha(fr))
+    problems.push('the SHA-256 manifest binding is stated in one locale only');
+  return problems;
+}
+
+/** The backlog records MVP-096 as merged, deployed and accepted, with its limits, and never as planned or unavailable. */
+export function journalBacklogProblems(text) {
+  const problems = [];
+  const header = text.split('## Epic 1')[0];
+  const section = new Map(sectionsOf(text).map((entry) => [entry.id, entry.body])).get('MVP-096');
+  if (!section) return ['MVP-096 has no backlog entry'];
+  const opening = section.split('\n').slice(0, 4).join('\n');
+  const need = (label, haystack, pattern) => {
+    if (!pattern.test(haystack)) problems.push(`${label} lacks ${pattern}`);
+  };
+  need(
+    'MVP-096 entry',
+    opening,
+    /Merged \(PR #195, merge commit `c368d58b15e1aeddb755997728154a497348c07c`\)/u,
+  );
+  need('MVP-096 entry', opening, /deployed to hr-dev and accepted on 2026-11-14/u);
+  need('MVP-096 entry', opening, /Issue #194/u);
+  need('MVP-096 entry', opening, /Migration V50 is applied/u);
+  need('MVP-096 entry', opening, /hr-dev runs `c368d58b…`/u);
+  need('MVP-096 entry', opening, /previous release `ce871f48e7be` is preserved/u);
+  for (const [label, haystack] of [
+    ['MVP-096 entry', section],
+    ['header', header],
+  ]) {
+    if (
+      /being built|not available yet|in progress|\bplanned\b|not merged|not deployed/iu.test(
+        haystack.replace(/MVP-095[A-C][^\n]*/gu, ''),
+      )
+    )
+      problems.push(`${label} still describes MVP-096 as planned, being built or unavailable`);
+    for (const pattern of FORBIDDEN_CLAIMS.en)
+      if (pattern.test(haystack)) problems.push(`${label} overclaims (${pattern})`);
+  }
+  for (const pattern of [
+    /not posted to Sage, Odoo, QuickBooks or any accounting system/u,
+    /not proof of payment/u,
+    /no real bank or mobile-money connection exists/u,
+    /no settlement or paid status/u,
+    /no employee payment notification/u,
+    /no loans or salary advances/u,
+    /real DRC statutory pack stays DRAFT/u,
+    /SYNTHETIC-TEST only and no money moves/u,
+    /USD journal generation is not claimed while payroll packages are CDF-only/u,
+    /cost-center and site dimensions are not claimed while frozen payroll lines do not carry them/u,
+    /manifest binds the CSV SHA-256/u,
+    /effective-dated account mappings/u,
+  ])
+    need('header', header, pattern);
+  need('MVP-096 entry', section, /DivalHR never posts to an accounting system/u);
+  need(
+    'MVP-096 entry',
+    section,
+    /Not included:[^\n]*direct accounting-system posting[^\n]*settlement or paid status[^\n]*employee notifications[^\n]*loans and salary advances/u,
+  );
+  return problems;
+}
+
+test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with its limits (TRUTH-003)', () => {
+  assert.deepEqual(journalBacklogProblems(backlog), []);
+  const fixtures = [
+    [
+      'header SHA',
+      (t) =>
+        t.replace(
+          'runs `main` at `c368d58b15e1aeddb755997728154a497348c07c`',
+          'runs `main` at `ce871f48e7be14d824a0800bc7a03be05b72d2ff`',
+        ),
+      null,
+    ],
+    [
+      'entry deployed',
+      (t) =>
+        t.replace(
+          'deployed to hr-dev and accepted on 2026-11-14; Issue #194 is closed',
+          'in review',
+        ),
+      /deployed to hr-dev and accepted/,
+    ],
+    [
+      'entry planned',
+      (t) =>
+        t.replace(
+          '### MVP-096 Accounting journal export\n',
+          '### MVP-096 Accounting journal export\n\nThe journal export is being built.\n',
+        ),
+      /being built/,
+    ],
+    [
+      'entry V50',
+      (t) => t.replace('Migration V50 is applied;', 'Migration V50 is pending;'),
+      /V50/,
+    ],
+    [
+      'previous release',
+      (t) => t.replace('previous release `ce871f48e7be` is preserved', 'previous release is gone'),
+      /previous release/,
+    ],
+    [
+      'posting claim',
+      (t) =>
+        t.replace(
+          'not posted to Sage, Odoo, QuickBooks or any accounting system',
+          'posted to Sage',
+        ),
+      /posted to Sage|overclaims/,
+    ],
+    [
+      'USD limit',
+      (t) =>
+        t.replace(
+          'USD journal generation is not claimed while payroll packages are CDF-only',
+          'USD journals are available',
+        ),
+      /USD/,
+    ],
+    [
+      'site limit',
+      (t) =>
+        t.replace(
+          'cost-center and site dimensions are not claimed while frozen payroll lines do not carry them',
+          'cost-center allocation is available',
+        ),
+      /cost-center/,
+    ],
+    [
+      'paid status',
+      (t) => t.replace('no settlement or paid status', 'paid status is available'),
+      /paid status|settlement/,
+    ],
+    [
+      'salary advances',
+      (t) => t.replace('no loans or salary advances', 'salary advances are available'),
+      /salary advances|loans/,
+    ],
+  ];
+  for (const [name, mutate, expected] of fixtures) {
+    const stale = mutate(backlog);
+    assert.notEqual(stale, backlog, `${name}: the fixture changed the backlog`);
+    const found = journalBacklogProblems(stale);
+    const release = releaseClaimProblems(stale, RUNNING);
+    assert.ok(found.length > 0 || release.length > 0, `${name}: a stale backlog fails`);
+    if (expected)
+      assert.ok(
+        found.some((p) => expected.test(p)),
+        `${name}: names the problem`,
+      );
+  }
+  const noTableRow = backlog.replace(/^\| MVP-096 .*$/mu, '');
+  assert.ok(releaseClaimProblems(noTableRow, RUNNING).length > 0, 'a missing release row fails');
+  const wrongPr = backlog.replace('| MVP-096   | #195 |', '| MVP-096   | #196 |');
+  assert.notEqual(wrongPr, backlog);
+});
+
+test('truth rule 5: both locales mark the journal export active, keep every limit and stay in step (TRUTH-003)', () => {
+  const read = (path) => readFileSync(`${root}${path}`, 'utf8');
+  const en = JSON.parse(read('packages/localization/locales/en/common.json'));
+  const fr = JSON.parse(read('packages/localization/locales/fr/common.json'));
+  assert.deepEqual(journalLocaleProblems(en, 'en'), [], 'en truth');
+  assert.deepEqual(journalLocaleProblems(fr, 'fr'), [], 'fr truth');
+  assert.deepEqual(journalParityProblems(en, fr), [], 'en/fr parity');
+  const catalogue = read('apps/web/src/features/landing/catalogue.ts');
+  const roadmap = read('apps/web/src/features/home/roadmap.ts');
+  const home = read('apps/web/src/features/home/HomePage.tsx');
+  assert.match(catalogue, /AVAILABLE_NOW[^\]]*'accountingExport'/su);
+  assert.doesNotMatch(roadmap, /id: 'accounting(Journal|Export)'/u);
+  assert.match(home, /'accountingMappings',\s*'\/admin\/accounting-mappings'/u);
+  for (const [locale, strings] of [
+    ['en', en],
+    ['fr', fr],
+  ]) {
+    const clone = () => structuredClone(strings);
+    const edit = (path, change) => {
+      const copy = clone();
+      const parts = path.split('.');
+      const last = parts.pop();
+      const parent = parts.reduce((node, key) => node[key], copy);
+      parent[last] = change(parent[last]);
+      return copy;
+    };
+    const failing = (name, copy, expected) => {
+      const found = journalLocaleProblems(copy, locale);
+      assert.ok(found.length > 0, `${locale}: ${name} fails`);
+      if (expected)
+        assert.ok(
+          found.some((p) => expected.test(p)),
+          `${locale}: ${name} names the problem`,
+        );
+    };
+    const en_ = locale === 'en';
+    failing(
+      '"being built" on the payroll card',
+      edit(
+        SURFACES.payrollDescription,
+        (v) =>
+          v +
+          (en_
+            ? ' An accounting journal export is being built.'
+            : ' Un export de journal comptable est en préparation.'),
+      ),
+      /not active/u,
+    );
+    failing(
+      '"not available yet" on the home progress item',
+      edit(
+        SURFACES.homeProgress,
+        (v) =>
+          v +
+          (en_
+            ? ' The accounting journal export is not available yet.'
+            : ' L’export du journal comptable n’est pas encore disponible.'),
+      ),
+      /not active/u,
+    );
+    failing(
+      'journal back under "Coming next"',
+      edit(
+        'landing.modules.next.disbursement',
+        (v) => v + (en_ ? '; accounting journal export' : ' ; export de journal comptable'),
+      ),
+      /Coming next|not active|unlimited/u,
+    );
+    failing(
+      'direct posting available',
+      edit(
+        SURFACES.nowExport,
+        (v) =>
+          v +
+          (en_
+            ? ' Direct accounting posting is available.'
+            : ' La comptabilisation directe est disponible.'),
+      ),
+      /overclaims/u,
+    );
+    failing(
+      'posted to Sage',
+      edit(SURFACES.payrollDescription, (v) =>
+        v.replace(
+          en_ ? 'not posted to Sage' : 'pas comptabilisé dans Sage',
+          en_ ? 'posted to Sage' : 'comptabilisé dans Sage',
+        ),
+      ),
+      /overclaims|lacks/u,
+    );
+    failing(
+      'USD journal claimed',
+      edit(SURFACES.payrollDescription, (v) =>
+        v.replace(
+          en_ ? 'No journal is produced for USD' : 'Aucun journal n’est produit pour l’USD',
+          en_ ? 'USD journals are generated' : 'Les journaux en USD sont générés',
+        ),
+      ),
+      /overclaims|lacks/u,
+    );
+    failing(
+      'cost-center claimed',
+      edit(SURFACES.payrollDescription, (v) =>
+        v.replace(
+          en_
+            ? 'no cost-center or site dimension is claimed'
+            : 'aucune dimension de centre de coûts ou de site n’est revendiquée',
+          en_
+            ? 'cost-center allocation is available'
+            : 'la répartition par centre de coûts est disponible',
+        ),
+      ),
+      /overclaims|lacks/u,
+    );
+    failing(
+      'proof of payment dropped',
+      edit(SURFACES.homeProgress, (v) =>
+        v.replace(en_ ? 'and not proof of payment' : 'et ce n’est pas une preuve de paiement', ''),
+      ),
+      /lacks/u,
+    );
+    failing(
+      'settlement claimed with the journal',
+      edit(
+        SURFACES.homeCard,
+        (v) =>
+          v +
+          (en_
+            ? ' The journal export confirms settlement and paid status.'
+            : ' L’export du journal confirme le règlement et le statut payé.'),
+      ),
+      /unlimited|overclaims/u,
+    );
+    failing(
+      'SHA-256 binding dropped',
+      edit(SURFACES.payrollDescription, (v) => v.replace('SHA-256', 'checksum')),
+      /lacks/u,
+    );
+    failing(
+      'export removed from "Available now"',
+      (() => {
+        const c = clone();
+        delete c.landing.modules.now.accountingExport;
+        return c;
+      })(),
+      /missing/u,
+    );
+    failing(
+      'real payment claimed',
+      edit(
+        SURFACES.payrollBody,
+        (v) =>
+          v +
+          (en_ ? ' Real bank payment is available.' : ' Le paiement bancaire réel est disponible.'),
+      ),
+      /overclaims/u,
+    );
+  }
+  const lopsided = structuredClone(fr);
+  delete lopsided.landing.modules.now.accountingExport;
+  assert.ok(journalParityProblems(en, lopsided).length > 0, 'a one-sided claim fails');
+  const extra = structuredClone(en);
+  extra.home.tenant.cards.accountingExtra = { title: 'x', description: 'y' };
+  assert.ok(journalParityProblems(extra, fr).length > 0, 'diverging keys fail');
+  assert.ok(journalLocaleProblems(en, 'en').length === 0);
+  assert.ok(!/accountingExport/u.test(roadmap), 'the roadmap does not list the export');
 });

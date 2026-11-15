@@ -88,7 +88,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
         // UI2-3, UI2-4: no authentication instructions, secrets or invented figures.
         const text = await page.locator('body').innerText();
         expect(text).not.toMatch(FORBIDDEN);
-        const numbers = text.match(/\d+/gu) ?? [];
+        // SHA-256 names the digest algorithm the accounting manifest binds (MVP-096); it is not a figure.
+        const numbers = text.replace(/SHA-256/gu, '').match(/\d+/gu) ?? [];
         expect(numbers.filter((number) => !ALLOWED_NUMBERS.has(number))).toEqual([]);
 
         // Only preferences are stored; nothing personal.

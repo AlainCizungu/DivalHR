@@ -125,6 +125,7 @@ describe('catalogue (UI2-1, UI2-2, D93-14)', () => {
       'compensation',
       'payrollRuns',
       'paymentSubmission',
+      'accountingExport',
       'operations',
       'integrations',
       'tasks',
@@ -605,7 +606,8 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     const { container } = await renderLanding(locale);
     const text = container.textContent;
     expect(text).not.toMatch(FORBIDDEN);
-    const numbers = text.match(/\d+/gu) ?? [];
+    // SHA-256 names the digest algorithm bound by the accounting manifest (MVP-096); it is not a figure.
+    const numbers = text.replace(/SHA-256/gu, '').match(/\d+/gu) ?? [];
     expect(numbers.filter((number) => !ALLOWED_NUMBERS.has(number))).toEqual([]);
     expect(text).not.toMatch(/%/u);
     // The illustration is announced once, by its caption.

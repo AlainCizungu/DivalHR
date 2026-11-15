@@ -101,7 +101,7 @@ for (const locale of ['en', 'fr'] as const) {
     await expect(modules.locator('[data-testid="landing-remaining"]')).toHaveCount(5);
     // The two plain lists (no link, button or figure): Available now grouped, Coming next.
     const today = page.getByTestId('landing-today');
-    await expect(today.getByRole('listitem')).toHaveCount(14);
+    await expect(today.getByRole('listitem')).toHaveCount(15);
     await expect(today.locator('li[data-module="compensation"]')).toHaveText(
       LANDING[locale].compensation,
     );
@@ -154,7 +154,7 @@ test.describe('organization administrator home', () => {
     await expect(page.locator('main a[href^="/me/"]')).toHaveCount(0);
     // U4-3: the progress panel is static text with no control; the roadmap names what comes next.
     const progress = page.getByTestId('home-progress');
-    await expect(progress.getByRole('listitem')).toHaveCount(6);
+    await expect(progress.getByRole('listitem')).toHaveCount(7);
     await expect(progress).toContainText('Monthly compensation records');
     await expect(progress).toContainText('Payroll preparation, locking and export');
     await expect(progress.locator('a, button')).toHaveCount(0);
@@ -210,6 +210,7 @@ test.describe('organization administrator home', () => {
           ['Payroll preparation', '/admin/payroll-preparation'],
           ['Payroll runs', '/admin/payroll-runs'],
           ['Approved payroll', '/admin/payroll-packages'],
+          ['Accounting mappings', '/admin/accounting-mappings'],
           ['Tasks', '/admin/tasks'],
           ['Expenses', '/admin/expenses'],
         ],

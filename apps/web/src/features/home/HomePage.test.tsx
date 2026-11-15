@@ -87,6 +87,7 @@ const TENANT_DESTINATIONS = {
     ['payrollPreparation', '/admin/payroll-preparation'],
     ['payrollRuns', '/admin/payroll-runs'],
     ['payrollPackages', '/admin/payroll-packages'],
+    ['accountingMappings', '/admin/accounting-mappings'],
     ['tasks', '/admin/tasks'],
     ['expenses', '/admin/expenses'],
   ],
@@ -175,6 +176,7 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     const progressIds = [
       'payroll',
       'payrollRuns',
+      'accountingJournal',
       'compensation',
       'briefing',
       'integrations',
@@ -222,6 +224,57 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
     // UI3-7: the only request is the approved contract summary.
     expect(requestedPaths).toEqual(['/contract-expirations/summary']);
     expectNoFigures(container);
+  });
+
+  it('marks the accounting journal export active on the organization administrator home only, with its limits (TRUTH-003)', async () => {
+    const en = locale === 'en';
+    const { container } = await renderHome(sessionWithRoles(['tenant-admin']), locale);
+    const card = screen.getByTestId('home-card-accounting-mappings');
+    expect(within(card).getByRole('link')).toHaveAttribute('href', '/admin/accounting-mappings');
+    expect(guardOf('/admin/accounting-mappings')).toBe('tenant-admin');
+    expect(card).toHaveTextContent(c.home.tenant.cards.accountingMappings.title);
+    expect(card).toHaveTextContent(c.home.tenant.cards.accountingMappings.description);
+    const item = c.home.tenant.progress.items.accountingJournal;
+    const progress = screen.getByTestId('home-progress');
+    expect(progress).toHaveTextContent(item.title);
+    expect(progress).toHaveTextContent(item.description);
+    // Active and truthful: a manual export, never a posting, not proof of payment, CDF only.
+    const claims = [
+      item.description,
+      c.home.tenant.cards.accountingMappings.description,
+      c.home.tenant.cards.payrollPackages.description,
+    ].join(' ');
+    expect(claims).toMatch(
+      en
+        ? /accounting-ready journal export[^.]*manual import only[^.]*nothing is posted to an accounting system/iu
+        : /export de journal comptable prêt pour la comptabilité[^.]*import manuel uniquement[^.]*rien n’est comptabilisé dans un système comptable/iu,
+    );
+    expect(item.description).toMatch(en ? /not proof of payment/u : /pas une preuve de paiement/u);
+    expect(item.description).toMatch(en ? /CDF packages/u : /dossiers en CDF/u);
+    expect(claims).not.toMatch(
+      en
+        ? /being built|not available yet|planned|coming next|posted to (Sage|Odoo|QuickBooks)|USD journal|cost[- ]cent(er|re) allocation|site allocation/iu
+        : /en préparation|pas encore disponible|prévu|prochainement|comptabilisé dans (Sage|Odoo|QuickBooks)|journal en USD|répartition par centre de coûts|répartition par site/iu,
+    );
+    // No count, total or status data: the home stays static text and links.
+    expectNoFigures(container);
+    // The roadmap keeps the real limits as "Coming next" and never lists the export there.
+    const roadmap = screen.getByTestId('roadmap');
+    expect(roadmap).toHaveTextContent(c.roadmap.items.filingAccounting.description);
+    expect(c.roadmap.items.filingAccounting.description).toMatch(
+      en ? /direct posting to accounting systems/u : /comptabilisation directe/u,
+    );
+  });
+
+  it('gives the other role homes no accounting capability (TRUTH-003)', async () => {
+    for (const roles of [['employee'], ['platform-admin']] as const) {
+      const { container, unmount } = await renderHome(sessionWithRoles([...roles]), locale);
+      expect(container.querySelector('a[href^="/admin/accounting"]')).toBeNull();
+      expect(screen.queryByTestId('home-card-accounting-mappings')).toBeNull();
+      expect(screen.queryByTestId('home-progress')).toBeNull();
+      expect(container).not.toHaveTextContent(c.home.tenant.progress.items.accountingJournal.title);
+      unmount();
+    }
   });
 
   it('gives an employee My work, the approvals card and their own roadmap', async () => {
