@@ -155,7 +155,12 @@ public final class StatutoryPackResponses {
    */
   @Schema(name = "StatutoryPackTransition")
   public record Transition(
-      int seq, String kind, String fromState, String toState, Instant occurredAt, boolean byCaller) {}
+      int seq,
+      String kind,
+      String fromState,
+      String toState,
+      Instant occurredAt,
+      boolean byCaller) {}
 
   /**
    * A pack version in detail.

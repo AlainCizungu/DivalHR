@@ -19,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Platform scope: the audit and outbox rows carry the platform sentinel {@link #PLATFORM_SCOPE},
  * never a tenant. Metadata and event data are an allow-list ({@link #ALLOWED}): the pack row, its
  * code, versions, country, state and digests. They never carry a rate, a formula, an amount,
- * personal data, a reviewer note, a source URL or a reference value; a key outside the allow-list is
- * refused before anything is written. The events are internal: no webhook or WhatsApp type maps
+ * personal data, a reviewer note, a source URL or a reference value; a key outside the allow-list
+ * is refused before anything is written. The events are internal: no webhook or WhatsApp type maps
  * them.
  */
 @Component

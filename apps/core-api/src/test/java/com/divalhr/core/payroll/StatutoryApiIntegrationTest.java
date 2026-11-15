@@ -526,7 +526,8 @@ class StatutoryApiIntegrationTest {
   @Test
   void packReadsAreSafeAndPaged() throws Exception {
     StatutoryWorld.verifiedPack(w.jdbc);
-    // Disjoint interval: two overlapping ACTIVE versions cannot coexist (the second would retire the first).
+    // Disjoint interval: two overlapping ACTIVE versions cannot coexist (the second would retire
+    // the first).
     StatutoryWorld.verifiedPack(w.jdbc, StatutoryFixtures.SEED_JSON, "2010-01-01", "2010-12-31");
     w.c.problem(
         PayrollRunWorld.get(w.admin, StatutoryWorld.PACKS + "/" + UUID.randomUUID()),

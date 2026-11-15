@@ -57,7 +57,9 @@ class StatutoryPackApplicabilityIntegrationTest {
   }
 
   private String path(String period) {
-    return "/api/v1/legal-entities/" + w.entity + "/statutory-pack-applicability"
+    return "/api/v1/legal-entities/"
+        + w.entity
+        + "/statutory-pack-applicability"
         + (period == null ? "" : "?payrollPeriod=" + period);
   }
 
@@ -83,7 +85,8 @@ class StatutoryPackApplicabilityIntegrationTest {
   void theActivePackOfTheCountryAndPeriodIsReturnedWithPublicProvenanceOnly() throws Exception {
     UUID pack = StatutoryWorld.verifiedPack(jdbc);
     String code =
-        jdbc.queryForObject("SELECT code FROM payroll.statutory_rule_pack WHERE id = ?", String.class, pack);
+        jdbc.queryForObject(
+            "SELECT code FROM payroll.statutory_rule_pack WHERE id = ?", String.class, pack);
     MockHttpServletResponse response = read(w.admin, w.month.toString());
     assertThat(response.getStatus()).isEqualTo(200);
     JsonNode answer = body(response);
@@ -119,8 +122,7 @@ class StatutoryPackApplicabilityIntegrationTest {
 
   @Test
   void aPeriodOutsideTheActiveIntervalHasNoApplicablePack() throws Exception {
-    StatutoryWorld.verifiedPack(
-        jdbc, StatutoryFixtures.SEED_JSON, "2090-01-01", "2090-12-31");
+    StatutoryWorld.verifiedPack(jdbc, StatutoryFixtures.SEED_JSON, "2090-01-01", "2090-12-31");
     JsonNode answer = body(read(w.admin, "2089-12"));
     assertThat(answer.path("applicable").asBoolean()).isFalse();
     assertThat(body(read(w.admin, "2090-06")).path("applicable").asBoolean()).isTrue();
@@ -162,8 +164,10 @@ class StatutoryPackApplicabilityIntegrationTest {
         mvc.perform(
                 PayrollRunWorld.get(
                     w.admin,
-                    "/api/v1/legal-entities/" + UUID.randomUUID()
-                        + "/statutory-pack-applicability?payrollPeriod=" + w.month))
+                    "/api/v1/legal-entities/"
+                        + UUID.randomUUID()
+                        + "/statutory-pack-applicability?payrollPeriod="
+                        + w.month))
             .andReturn()
             .getResponse();
     assertThat(foreign.getStatus()).isEqualTo(404);

@@ -30,11 +30,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * MVP-097A: governance of statutory payroll packs by platform administrators with exact MFA
- * ({@link PlatformScoped}; ADR 0040). Subject, platform role and assurance are checked before the
- * path or body is bound; the caller's {@code tenant_id} claim is never read. There is no operation
- * that creates or edits a pack or its rules. Every response is {@code Cache-Control: private,
- * no-store}. Technical validation is not legal approval.
+ * MVP-097A: governance of statutory payroll packs by platform administrators with exact MFA ({@link
+ * PlatformScoped}; ADR 0040). Subject, platform role and assurance are checked before the path or
+ * body is bound; the caller's {@code tenant_id} claim is never read. There is no operation that
+ * creates or edits a pack or its rules. Every response is {@code Cache-Control: private, no-store}.
+ * Technical validation is not legal approval.
  */
 @RestController
 public class StatutoryPackGovernanceController {
@@ -126,7 +126,8 @@ public class StatutoryPackGovernanceController {
       @RequestBody StatutoryPackCommandRequest body,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
-    return command(Action.VALIDATE, packCode, version, idempotencyKey, body, authentication, request);
+    return command(
+        Action.VALIDATE, packCode, version, idempotencyKey, body, authentication, request);
   }
 
   /**
@@ -176,7 +177,8 @@ public class StatutoryPackGovernanceController {
       @RequestBody StatutoryPackCommandRequest body,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
-    return command(Action.APPROVE, packCode, version, idempotencyKey, body, authentication, request);
+    return command(
+        Action.APPROVE, packCode, version, idempotencyKey, body, authentication, request);
   }
 
   /**
@@ -226,7 +228,8 @@ public class StatutoryPackGovernanceController {
       @RequestBody StatutoryPackCommandRequest body,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
-    return command(Action.SCHEDULE, packCode, version, idempotencyKey, body, authentication, request);
+    return command(
+        Action.SCHEDULE, packCode, version, idempotencyKey, body, authentication, request);
   }
 
   /**
@@ -251,7 +254,8 @@ public class StatutoryPackGovernanceController {
       @RequestBody StatutoryPackCommandRequest body,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
-    return command(Action.ACTIVATE, packCode, version, idempotencyKey, body, authentication, request);
+    return command(
+        Action.ACTIVATE, packCode, version, idempotencyKey, body, authentication, request);
   }
 
   /**
@@ -307,6 +311,7 @@ public class StatutoryPackGovernanceController {
     if (subject == null || subject.isBlank()) {
       throw new ApiException(ErrorCode.ACCESS_DENIED, Map.of());
     }
-    return new Caller(subject, String.valueOf(request.getAttribute(CorrelationId.REQUEST_ATTRIBUTE)));
+    return new Caller(
+        subject, String.valueOf(request.getAttribute(CorrelationId.REQUEST_ATTRIBUTE)));
   }
 }

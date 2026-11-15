@@ -56,13 +56,14 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Governance of statutory payroll packs by platform administrators (MVP-097A, ADR 0040): the closed
- * lifecycle DRAFT, VALIDATED, REVIEWED, SCHEDULED, ACTIVE, RETIRED with independent four-eyes review.
+ * lifecycle DRAFT, VALIDATED, REVIEWED, SCHEDULED, ACTIVE, RETIRED with independent four-eyes
+ * review.
  *
  * <p>The service never writes statutory content: it validates it offline, records evidence and
  * moves a version through states. Every command runs in one transaction under the version row lock
- * and checks, in this order and before any write: the version exists, the expected row version,
- * the transition, independence (the reviewer is never the submitter), the evidence and the digests,
- * the quota. Technical validation is not legal approval. Logs and metrics carry the operation and
+ * and checks, in this order and before any write: the version exists, the expected row version, the
+ * transition, independence (the reviewer is never the submitter), the evidence and the digests, the
+ * quota. Technical validation is not legal approval. Logs and metrics carry the operation and
  * outcome only; audit and events carry identifiers, state and digests only.
  */
 @Service
@@ -260,7 +261,9 @@ public class StatutoryPackGovernanceService {
           return read(
               () -> {
                 VersionRow row =
-                    governance.find(code, number).orElseThrow(StatutoryPackGovernanceService::notFound);
+                    governance
+                        .find(code, number)
+                        .orElseThrow(StatutoryPackGovernanceService::notFound);
                 Map<String, Object> metadata = new LinkedHashMap<>();
                 metadata.put("packId", row.id().toString());
                 metadata.put("packCode", row.code());
@@ -283,9 +286,7 @@ public class StatutoryPackGovernanceService {
 
   private VersionDetail detail(Caller caller, VersionRow row) {
     List<ValidationRun> runs =
-        governance.runs(row.id(), 10).stream()
-            .map(run -> validationRun(caller, run))
-            .toList();
+        governance.runs(row.id(), 10).stream().map(run -> validationRun(caller, run)).toList();
     Review review =
         governance
             .review(row.id())
@@ -350,7 +351,8 @@ public class StatutoryPackGovernanceService {
   static List<ValidationCheck> checks(String summaryJson) {
     List<ValidationCheck> checks = new ArrayList<>();
     java.util.regex.Matcher matcher =
-        Pattern.compile("\"code\"\\s*:\\s*\"([A-Z0-9_:-]+)\"\\s*,\\s*\"passed\"\\s*:\\s*(true|false)")
+        Pattern.compile(
+                "\"code\"\\s*:\\s*\"([A-Z0-9_:-]+)\"\\s*,\\s*\"passed\"\\s*:\\s*(true|false)")
             .matcher(summaryJson);
     while (matcher.find()) {
       checks.add(new ValidationCheck(matcher.group(1), Boolean.parseBoolean(matcher.group(2))));
@@ -450,7 +452,8 @@ public class StatutoryPackGovernanceService {
     governance.limits(TIMEOUT);
     VersionRow found =
         governance.find(code, number).orElseThrow(StatutoryPackGovernanceService::notFound);
-    VersionRow row = governance.lock(found.id()).orElseThrow(StatutoryPackGovernanceService::notFound);
+    VersionRow row =
+        governance.lock(found.id()).orElseThrow(StatutoryPackGovernanceService::notFound);
     if (row.rowVersion() != command.expectedVersion()) {
       throw new ApiException(ErrorCode.STATUTORY_PACK_VERSION_CONFLICT, Map.of());
     }
@@ -504,14 +507,20 @@ public class StatutoryPackGovernanceService {
         .log("statutory_pack_command_recorded");
     return new IdempotentOperation.Completed<>(
         new CommandReceipt(
-            after.code(), after.version(), after.state(), after.rowVersion(), validationOutcome, revision),
+            after.code(),
+            after.version(),
+            after.state(),
+            after.rowVersion(),
+            validationOutcome,
+            revision),
         after.id(),
         Outcome.UPDATED);
   }
 
   private static String eventType(Action action, String validationOutcome) {
     return switch (action) {
-      case VALIDATE -> "PASSED".equals(validationOutcome) ? StatutoryPackRecorder.VALIDATED_EVENT : null;
+      case VALIDATE ->
+          "PASSED".equals(validationOutcome) ? StatutoryPackRecorder.VALIDATED_EVENT : null;
       case APPROVE -> StatutoryPackRecorder.REVIEWED_EVENT;
       case ACTIVATE -> StatutoryPackRecorder.ACTIVATED_EVENT;
       case RETIRE -> StatutoryPackRecorder.RETIRED_EVENT;
@@ -526,8 +535,7 @@ public class StatutoryPackGovernanceService {
       throw refusal(row);
     }
     quota(Action.VALIDATE, caller, now);
-    String rules =
-        governance.rules(row.id()).orElseThrow(StatutoryPackGovernanceService::notFound);
+    String rules = governance.rules(row.id()).orElseThrow(StatutoryPackGovernanceService::notFound);
     Set<String> keys = new HashSet<>(governance.sourceKeys(row.id()));
     Report report =
         StatutoryPackValidator.validate(
@@ -638,7 +646,12 @@ public class StatutoryPackGovernanceService {
     requireDigests(row, cases);
     quota(Action.SCHEDULE, caller, now);
     if (!governance.markScheduled(
-        row.id(), row.rowVersion(), command.effectiveFrom(), row.effectiveTo(), caller.subject(), now)) {
+        row.id(),
+        row.rowVersion(),
+        command.effectiveFrom(),
+        row.effectiveTo(),
+        caller.subject(),
+        now)) {
       throw new ApiException(ErrorCode.STATUTORY_PACK_VERSION_CONFLICT, Map.of());
     }
   }
@@ -735,7 +748,8 @@ public class StatutoryPackGovernanceService {
     Instant since = now.minus(HOUR);
     boolean exceeded =
         action == Action.VALIDATE
-            ? governance.runsBySubjectSince(caller.subject(), since) >= VALIDATIONS_PER_SUBJECT_PER_HOUR
+            ? governance.runsBySubjectSince(caller.subject(), since)
+                    >= VALIDATIONS_PER_SUBJECT_PER_HOUR
                 || governance.runsSince(since) >= VALIDATIONS_PER_PLATFORM_PER_HOUR
             : governance.commandsBySubjectSince(caller.subject(), since)
                 >= COMMANDS_PER_SUBJECT_PER_HOUR;
@@ -858,7 +872,8 @@ public class StatutoryPackGovernanceService {
       errors.add("expectedVersion", Constraint.REQUIRED);
       return 0;
     }
-    if ((raw instanceof Integer || raw instanceof Long) && ((Number) raw).longValue() >= 1
+    if ((raw instanceof Integer || raw instanceof Long)
+        && ((Number) raw).longValue() >= 1
         && ((Number) raw).longValue() <= 1_000_000L) {
       return ((Number) raw).intValue();
     }

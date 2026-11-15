@@ -59,9 +59,9 @@ class StatutoryPackGovernanceDatabaseIntegrationTest {
   private int version(UUID pack) {
     return java.util.Objects.requireNonNull(
         jdbc.queryForObject(
-        "SELECT row_version FROM payroll.statutory_pack_governance WHERE pack_id = ?",
-        Integer.class,
-        pack));
+            "SELECT row_version FROM payroll.statutory_pack_governance WHERE pack_id = ?",
+            Integer.class,
+            pack));
   }
 
   private void move(UUID pack, String set) {
@@ -246,8 +246,7 @@ class StatutoryPackGovernanceDatabaseIntegrationTest {
             "statutory_pack_transition")) {
       refused(
           "payroll_statutory_pack_evidence_immutable",
-          () ->
-              jdbc.update("DELETE FROM payroll." + table + " WHERE pack_id = ?", pack));
+          () -> jdbc.update("DELETE FROM payroll." + table + " WHERE pack_id = ?", pack));
     }
     refused(
         "payroll_statutory_pack_evidence_immutable",
@@ -345,7 +344,8 @@ class StatutoryPackGovernanceDatabaseIntegrationTest {
 
   @Test
   void aCodeHasAtMostTwentyFiveVersions() {
-    String code = "SYNTHETIC-TEST-LIMIT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    String code =
+        "SYNTHETIC-TEST-LIMIT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     for (int version = 1; version <= 25; version++) {
       jdbc.update(
           "INSERT INTO payroll.statutory_rule_pack (id, code, version, country, currency, status,"

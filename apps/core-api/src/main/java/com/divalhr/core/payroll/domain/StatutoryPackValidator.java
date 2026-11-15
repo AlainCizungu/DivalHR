@@ -17,10 +17,10 @@ import java.util.TreeMap;
  * reviewed reference cases (MVP-097A, D97A-5, ADR 0040). Pure: no clock, no I/O, no locale API, no
  * floating point. The same input always yields the same byte-identical report.
  *
- * <p>Technical validation proves a mechanism: the pack parses under the closed formula model,
- * every source and variable it cites is declared, money is integer minor units, brackets are
- * ordered, the effective period is valid, and every reference case has exact expected results.
- * It is NOT legal approval and says nothing about whether any rate or rule is correct in law.
+ * <p>Technical validation proves a mechanism: the pack parses under the closed formula model, every
+ * source and variable it cites is declared, money is integer minor units, brackets are ordered, the
+ * effective period is valid, and every reference case has exact expected results. It is NOT legal
+ * approval and says nothing about whether any rate or rule is correct in law.
  */
 public final class StatutoryPackValidator {
 
@@ -126,8 +126,7 @@ public final class StatutoryPackValidator {
     checks.add(new Check("BRACKETS_ORDERED", rules != null && bracketsOrdered(rules)));
     checks.add(new Check("EFFECTIVE_PERIOD_VALID", period(effectiveFrom, effectiveTo)));
     checks.add(
-        new Check(
-            "CASES_PRESENT", cases != null && !cases.isEmpty() && cases.size() <= MAX_CASES));
+        new Check("CASES_PRESENT", cases != null && !cases.isEmpty() && cases.size() <= MAX_CASES));
     List<Parsed> parsed = new ArrayList<>();
     boolean wellFormed = cases != null;
     if (wellFormed) {
@@ -143,8 +142,7 @@ public final class StatutoryPackValidator {
     }
     checks.add(new Check("CASES_WELL_FORMED", wellFormed));
     checks.add(
-        new Check(
-            "CASES_COVER_RULES", rules != null && wellFormed && coversRules(rules, parsed)));
+        new Check("CASES_COVER_RULES", rules != null && wellFormed && coversRules(rules, parsed)));
     boolean deterministic = false;
     boolean ascii = false;
     if (rules != null && wellFormed) {
@@ -274,8 +272,9 @@ public final class StatutoryPackValidator {
       char c = rulesJson.charAt(i);
       if (c == '"') {
         inString = !inString;
-      } else if (!inString && (c == '.' || ((c == 'e' || c == 'E') && i > 0
-          && Character.isDigit(rulesJson.charAt(i - 1))))) {
+      } else if (!inString
+          && (c == '.'
+              || ((c == 'e' || c == 'E') && i > 0 && Character.isDigit(rulesJson.charAt(i - 1))))) {
         return false;
       }
     }
@@ -370,7 +369,8 @@ public final class StatutoryPackValidator {
           .append(one.employee())
           .append('|')
           .append(one.employer());
-      one.components().forEach((id, amount) -> text.append('|').append(id).append('=').append(amount));
+      one.components()
+          .forEach((id, amount) -> text.append('|').append(id).append('=').append(amount));
       text.append('\n');
     }
     return text.toString();

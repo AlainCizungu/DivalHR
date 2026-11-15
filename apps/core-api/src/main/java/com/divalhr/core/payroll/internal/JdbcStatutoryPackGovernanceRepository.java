@@ -395,7 +395,8 @@ public class JdbcStatutoryPackGovernanceRepository {
         .param("pack", packId)
         .query(
             (rs, row) ->
-                new CaseRow(rs.getString("case_key"), rs.getString("inputs"), rs.getString("expected")))
+                new CaseRow(
+                    rs.getString("case_key"), rs.getString("inputs"), rs.getString("expected")))
         .list();
   }
 

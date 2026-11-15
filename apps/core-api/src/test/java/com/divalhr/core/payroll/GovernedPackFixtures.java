@@ -4,10 +4,10 @@ import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * MVP-097A test fixtures: walks a synthetic DRAFT pack through the governed lifecycle as the database
- * owner, the one way a pack becomes ACTIVE (the legacy VERIFIED status can no longer be written
- * directly). Synthetic evidence and reviewers only; it has no legal meaning and never reaches a
- * migration, a seed or a dev script.
+ * MVP-097A test fixtures: walks a synthetic DRAFT pack through the governed lifecycle as the
+ * database owner, the one way a pack becomes ACTIVE (the legacy VERIFIED status can no longer be
+ * written directly). Synthetic evidence and reviewers only; it has no legal meaning and never
+ * reaches a migration, a seed or a dev script.
  */
 final class GovernedPackFixtures {
 
@@ -16,14 +16,19 @@ final class GovernedPackFixtures {
 
   private GovernedPackFixtures() {}
 
-  /** DRAFT to ACTIVE over the pack's own interval, retiring any overlapping ACTIVE version first. */
+  /**
+   * DRAFT to ACTIVE over the pack's own interval, retiring any overlapping ACTIVE version first.
+   */
   static void activate(JdbcTemplate jdbc, UUID id) {
     retireOverlapping(jdbc, id);
     toReviewed(jdbc, id);
     activateReviewed(jdbc, id);
   }
 
-  /** DRAFT to REVIEWED: synthetic evidence, one case, a passing run, a submission and an independent approval. */
+  /**
+   * DRAFT to REVIEWED: synthetic evidence, one case, a passing run, a submission and an independent
+   * approval.
+   */
   static void toReviewed(JdbcTemplate jdbc, UUID id) {
     step(
         jdbc,
@@ -103,7 +108,10 @@ final class GovernedPackFixtures {
         id);
   }
 
-  /** Retires every ACTIVE or SCHEDULED version of every country: a clean applicability slate for a test. */
+  /**
+   * Retires every ACTIVE or SCHEDULED version of every country: a clean applicability slate for a
+   * test.
+   */
   static void retireAll(JdbcTemplate jdbc) {
     jdbc.queryForList(
             "SELECT pack_id FROM payroll.statutory_pack_governance"

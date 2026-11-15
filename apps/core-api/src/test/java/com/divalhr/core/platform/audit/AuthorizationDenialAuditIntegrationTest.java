@@ -856,7 +856,8 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-096 nine more handlers over seven operations (the mapping and the journal reads, the
     // journal list and detail share accounting-journal.read; the CSV and the manifest share
     // accounting-journal.download).
-    // MVP-097A added ten handlers: nine platform operations (list, read and seven commands) and the tenant read.
+    // MVP-097A added ten handlers: nine platform operations (list, read and seven commands) and the
+    // tenant read.
     assertThat(handlers).hasSize(230);
 
     for (Privileged handler : handlers) {

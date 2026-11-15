@@ -177,7 +177,8 @@ class StatutoryPackMigrationRollbackIntegrationTest {
           migrate(db.url(), "51");
           String v51 = db.jdbc().queryForObject(SIGNATURE, String.class);
           assertThat(v51).isNotEqualTo(v50).contains("statutory_pack_governance");
-          // V51 only gives the existing, DRAFT pack its governance row: no case, run, review or history.
+          // V51 only gives the existing, DRAFT pack its governance row: no case, run, review or
+          // history.
           assertThat(count(db, "SELECT count(*) FROM payroll.statutory_pack_governance"))
               .isEqualTo(count(db, "SELECT count(*) FROM payroll.statutory_rule_pack"));
           assertThat(

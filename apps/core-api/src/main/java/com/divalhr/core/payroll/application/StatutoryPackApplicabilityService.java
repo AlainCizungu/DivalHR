@@ -20,8 +20,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * The read-only view of the statutory pack that applies to a legal entity and a payroll period
- * (MVP-097A, D97A-6 and D97A-12). The pack is selected by the legal entity's country and the
- * period among governed ACTIVE versions, never by a client-supplied pack identifier. A tenant
+ * (MVP-097A, D97A-6 and D97A-12). The pack is selected by the legal entity's country and the period
+ * among governed ACTIVE versions, never by a client-supplied pack identifier. A tenant
  * administrator sees the public provenance only: no formula, rate, reviewer, note or raw document.
  */
 @Service
@@ -30,7 +30,8 @@ public class StatutoryPackApplicabilityService {
   /** Operation and audit action of the read. */
   public static final String READ = StatutoryPackRecorder.APPLICABILITY_READ;
 
-  private static final Logger LOG = LoggerFactory.getLogger(StatutoryPackApplicabilityService.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(StatutoryPackApplicabilityService.class);
   private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
   private final JdbcStatutoryPackGovernanceRepository governance;
@@ -112,8 +113,20 @@ public class StatutoryPackApplicabilityService {
                     calendar.now());
                 if (found.isEmpty()) {
                   return new Applicability(
-                      entity, period.text(), country, false, null, null, null, null, null, null,
-                      null, null, null, null);
+                      entity,
+                      period.text(),
+                      country,
+                      false,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null);
                 }
                 VersionRow row = found.get();
                 return new Applicability(

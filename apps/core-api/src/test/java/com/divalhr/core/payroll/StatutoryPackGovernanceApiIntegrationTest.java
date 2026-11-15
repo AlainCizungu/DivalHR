@@ -87,7 +87,9 @@ class StatutoryPackGovernanceApiIntegrationTest {
   /** A SYNTHETIC DRAFT pack in 2090 with three reference cases, with or without evidence. */
   private Pack draft(boolean evidence) {
     UUID id = StatutoryWorld.draftPack(jdbc, RULES, "2090-01-01", "2090-12-31");
-    String code = jdbc.queryForObject("SELECT code FROM payroll.statutory_rule_pack WHERE id = ?", String.class, id);
+    String code =
+        jdbc.queryForObject(
+            "SELECT code FROM payroll.statutory_rule_pack WHERE id = ?", String.class, id);
     jdbc.update(
         "INSERT INTO payroll.statutory_reference_case (pack_id, seq, case_key, inputs, expected) VALUES"
             + " (?, 1, 'BOTH', '{\"cnssSubject\":true,\"irppSubject\":true,\"grossMinor\":100000}'::jsonb,"
@@ -117,9 +119,9 @@ class StatutoryPackGovernanceApiIntegrationTest {
   private int rowVersion(Pack pack) {
     return java.util.Objects.requireNonNull(
         jdbc.queryForObject(
-        "SELECT row_version FROM payroll.statutory_pack_governance WHERE pack_id = ?",
-        Integer.class,
-        pack.id()));
+            "SELECT row_version FROM payroll.statutory_pack_governance WHERE pack_id = ?",
+            Integer.class,
+            pack.id()));
   }
 
   private String state(Pack pack) {
@@ -132,9 +134,9 @@ class StatutoryPackGovernanceApiIntegrationTest {
   private int transitions(Pack pack) {
     return java.util.Objects.requireNonNull(
         jdbc.queryForObject(
-        "SELECT count(*) FROM payroll.statutory_pack_transition WHERE pack_id = ?",
-        Integer.class,
-        pack.id()));
+            "SELECT count(*) FROM payroll.statutory_pack_transition WHERE pack_id = ?",
+            Integer.class,
+            pack.id()));
   }
 
   private static Map<String, Object> command(int expected, Object... extra) {
@@ -146,7 +148,8 @@ class StatutoryPackGovernanceApiIntegrationTest {
     return body;
   }
 
-  private MockHttpServletResponse call(String bearer, Pack pack, String verb, Map<String, Object> body, String key)
+  private MockHttpServletResponse call(
+      String bearer, Pack pack, String verb, Map<String, Object> body, String key)
       throws Exception {
     return mvc.perform(
             post(pack.path() + ":" + verb)
@@ -158,8 +161,8 @@ class StatutoryPackGovernanceApiIntegrationTest {
         .getResponse();
   }
 
-  private MockHttpServletResponse call(String bearer, Pack pack, String verb, Map<String, Object> body)
-      throws Exception {
+  private MockHttpServletResponse call(
+      String bearer, Pack pack, String verb, Map<String, Object> body) throws Exception {
     return call(bearer, pack, verb, body, "key-" + UUID.randomUUID());
   }
 
@@ -173,7 +176,8 @@ class StatutoryPackGovernanceApiIntegrationTest {
 
   /** DRAFT to VALIDATED and submitted, by the submitter. */
   private void submitted(Pack pack) throws Exception {
-    assertThat(call(submitter, pack, "validate", command(rowVersion(pack))).getStatus()).isEqualTo(200);
+    assertThat(call(submitter, pack, "validate", command(rowVersion(pack))).getStatus())
+        .isEqualTo(200);
     assertThat(call(submitter, pack, "submit-review", command(rowVersion(pack))).getStatus())
         .isEqualTo(200);
   }
@@ -218,8 +222,10 @@ class StatutoryPackGovernanceApiIntegrationTest {
                   .getStatus())
           .isEqualTo(403);
       for (String verb :
-          List.of("validate", "submit-review", "approve", "reject", "schedule", "activate", "retire")) {
-        // The body is not even bound: an empty object is refused for authority, not as a field error.
+          List.of(
+              "validate", "submit-review", "approve", "reject", "schedule", "activate", "retire")) {
+        // The body is not even bound: an empty object is refused for authority, not as a field
+        // error.
         assertThat(call(denied, pack, verb, Map.of()).getStatus()).as(verb).isEqualTo(403);
       }
     }
@@ -273,7 +279,11 @@ class StatutoryPackGovernanceApiIntegrationTest {
         .isEqualTo("STATUTORY_PACK_TRANSITION_NOT_ALLOWED");
 
     MockHttpServletResponse retired =
-        call(reviewer, pack, "retire", command(rowVersion(pack), "confirmed", true, "reasonCode", "WITHDRAWN"));
+        call(
+            reviewer,
+            pack,
+            "retire",
+            command(rowVersion(pack), "confirmed", true, "reasonCode", "WITHDRAWN"));
     assertThat(retired.getStatus()).isEqualTo(200);
     assertThat(state(pack)).isEqualTo("RETIRED");
 
@@ -314,16 +324,27 @@ class StatutoryPackGovernanceApiIntegrationTest {
     Pack pack = draft(true);
     int version = rowVersion(pack);
     // A DRAFT cannot be submitted, approved, scheduled, activated or retired.
-    assertThat(code(call(submitter, pack, "submit-review", command(version)))).isEqualTo("STATUTORY_PACK_VALIDATION_FAILED");
+    assertThat(code(call(submitter, pack, "submit-review", command(version))))
+        .isEqualTo("STATUTORY_PACK_VALIDATION_FAILED");
     assertThat(code(call(reviewer, pack, "approve", command(version, "confirmed", true))))
         .isEqualTo("STATUTORY_PACK_VALIDATION_FAILED");
     assertThat(
-            code(call(reviewer, pack, "schedule", command(version, "confirmed", true, "effectiveFrom", "2090-02-01"))))
+            code(
+                call(
+                    reviewer,
+                    pack,
+                    "schedule",
+                    command(version, "confirmed", true, "effectiveFrom", "2090-02-01"))))
         .isEqualTo("STATUTORY_PACK_REVIEW_REQUIRED");
     assertThat(code(call(reviewer, pack, "activate", command(version, "confirmed", true))))
         .isEqualTo("STATUTORY_PACK_REVIEW_REQUIRED");
     assertThat(
-            code(call(reviewer, pack, "retire", command(version, "confirmed", true, "reasonCode", "ERROR"))))
+            code(
+                call(
+                    reviewer,
+                    pack,
+                    "retire",
+                    command(version, "confirmed", true, "reasonCode", "ERROR"))))
         .isEqualTo("STATUTORY_PACK_TRANSITION_NOT_ALLOWED");
     assertThat(state(pack)).isEqualTo("DRAFT");
     assertThat(rowVersion(pack)).isEqualTo(version);
@@ -332,8 +353,10 @@ class StatutoryPackGovernanceApiIntegrationTest {
   @Test
   void aSubmissionNeedsCompleteEvidence() throws Exception {
     Pack pack = draft(false);
-    assertThat(call(submitter, pack, "validate", command(rowVersion(pack))).getStatus()).isEqualTo(200);
-    MockHttpServletResponse refused = call(submitter, pack, "submit-review", command(rowVersion(pack)));
+    assertThat(call(submitter, pack, "validate", command(rowVersion(pack))).getStatus())
+        .isEqualTo(200);
+    MockHttpServletResponse refused =
+        call(submitter, pack, "submit-review", command(rowVersion(pack)));
     assertThat(refused.getStatus()).isEqualTo(422);
     assertThat(code(refused)).isEqualTo("STATUTORY_PACK_EVIDENCE_INCOMPLETE");
     assertThat(
@@ -366,7 +389,11 @@ class StatutoryPackGovernanceApiIntegrationTest {
     assertThat(call(reviewer, pack, "reject", command(version, "confirmed", true)).getStatus())
         .isEqualTo(400);
     assertThat(
-            call(reviewer, pack, "reject", command(version, "confirmed", true, "reasonCode", "NOT_A_REASON"))
+            call(
+                    reviewer,
+                    pack,
+                    "reject",
+                    command(version, "confirmed", true, "reasonCode", "NOT_A_REASON"))
                 .getStatus())
         .isEqualTo(400);
     assertThat(state(pack)).isEqualTo("VALIDATED");
@@ -382,7 +409,14 @@ class StatutoryPackGovernanceApiIntegrationTest {
             reviewer,
             pack,
             "reject",
-            command(rowVersion(pack), "confirmed", true, "reasonCode", "SOURCE_MISMATCH", "note", NOTE));
+            command(
+                rowVersion(pack),
+                "confirmed",
+                true,
+                "reasonCode",
+                "SOURCE_MISMATCH",
+                "note",
+                NOTE));
     assertThat(rejected.getStatus()).isEqualTo(200);
     assertThat(state(pack)).isEqualTo("RETIRED");
     int revision = body(rejected).path("revisionVersion").asInt();
@@ -473,26 +507,35 @@ class StatutoryPackGovernanceApiIntegrationTest {
                     reviewer,
                     pack,
                     "reject",
-                    command(rowVersion(pack), "confirmed", true, "reasonCode", "SOURCE_MISMATCH", "note", NOTE))
+                    command(
+                        rowVersion(pack),
+                        "confirmed",
+                        true,
+                        "reasonCode",
+                        "SOURCE_MISMATCH",
+                        "note",
+                        NOTE))
                 .getStatus())
         .isEqualTo(200);
     List<String> audit =
         jdbc.queryForList(
             "SELECT metadata::text FROM platform.audit_event WHERE action LIKE 'statutory-pack.%'"
                 + " AND resource_id = ?",
-            String.class,
-            pack.id());
+            String.class, pack.id());
     assertThat(audit).isNotEmpty();
     List<String> events =
         jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE event_type LIKE 'payroll.statutory-pack.%'"
                 + " AND envelope::text LIKE ?",
-            String.class,
-            "%" + pack.id() + "%");
+            String.class, "%" + pack.id() + "%");
     List<String> receipts =
-        jdbc.queryForList("SELECT response_body::text FROM platform.idempotency_record", String.class);
+        jdbc.queryForList(
+            "SELECT response_body::text FROM platform.idempotency_record", String.class);
     for (String text : concat(audit, events, receipts)) {
-      assertThat(text).doesNotContain(NOTE).doesNotContain("rateBp").doesNotContain("SYN_TAX")
+      assertThat(text)
+          .doesNotContain(NOTE)
+          .doesNotContain("rateBp")
+          .doesNotContain("SYN_TAX")
           .doesNotContain("grossMinor");
     }
     // A platform action has no tenant: it uses the nil-UUID platform scope.

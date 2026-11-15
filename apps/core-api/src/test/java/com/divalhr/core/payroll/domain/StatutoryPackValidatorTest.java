@@ -103,12 +103,22 @@ class StatutoryPackValidatorTest {
   void aMutatedFixtureInputOrExpectedResultFailsAndChangesTheDigest() {
     Report base = run(RULES, cases(), null);
     List<ReferenceCase> input = new java.util.ArrayList<>(cases());
-    input.set(0, new ReferenceCase("BOTH", input.get(0).inputsJson().replace("100000", "100100"), input.get(0).expectedJson()));
+    input.set(
+        0,
+        new ReferenceCase(
+            "BOTH",
+            input.get(0).inputsJson().replace("100000", "100100"),
+            input.get(0).expectedJson()));
     Report mutatedInput = run(RULES, input, null);
     assertThat(failed(mutatedInput, "CASE:BOTH")).isTrue();
     assertThat(mutatedInput.fixtureSha256()).isNotEqualTo(base.fixtureSha256());
     List<ReferenceCase> expected = new java.util.ArrayList<>(cases());
-    expected.set(0, new ReferenceCase("BOTH", expected.get(0).inputsJson(), expected.get(0).expectedJson().replace("8000", "8001")));
+    expected.set(
+        0,
+        new ReferenceCase(
+            "BOTH",
+            expected.get(0).inputsJson(),
+            expected.get(0).expectedJson().replace("8000", "8001")));
     assertThat(failed(run(RULES, expected, null), "CASE:BOTH")).isTrue();
   }
 
@@ -125,7 +135,8 @@ class StatutoryPackValidatorTest {
 
   @Test
   void anInvalidEffectivePeriodAndMissingCasesAreRefused() {
-    assertThat(failed(run(RULES, cases(), LocalDate.of(2019, 12, 31)), "EFFECTIVE_PERIOD_VALID")).isTrue();
+    assertThat(failed(run(RULES, cases(), LocalDate.of(2019, 12, 31)), "EFFECTIVE_PERIOD_VALID"))
+        .isTrue();
     Report none = run(RULES, List.of(), null);
     assertThat(failed(none, "CASES_PRESENT")).isTrue();
     assertThat(none.fixtureSha256()).isNull();

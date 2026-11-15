@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
-/** MVP-097A: the eleven stable statutory pack governance codes exist, are published and are safe text. */
+/**
+ * MVP-097A: the eleven stable statutory pack governance codes exist, are published and are safe
+ * text.
+ */
 class StatutoryPackErrorCodesTest {
 
   private static final Map<String, HttpStatus> CODES =

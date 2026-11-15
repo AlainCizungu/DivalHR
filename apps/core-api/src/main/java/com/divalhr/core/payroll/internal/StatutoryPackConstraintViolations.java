@@ -28,13 +28,10 @@ public final class StatutoryPackConstraintViolations {
 
   /** The guards that mean the period is invalid or taken. */
   public static final Set<String> PERIOD =
-      Set.of(
-          "payroll_statutory_pack_governance_period",
-          "payroll_statutory_pack_period_overlap");
+      Set.of("payroll_statutory_pack_governance_period", "payroll_statutory_pack_period_overlap");
 
   /** The guards that mean evidence is incomplete. */
-  public static final Set<String> EVIDENCE =
-      Set.of("payroll_statutory_pack_governance_incomplete");
+  public static final Set<String> EVIDENCE = Set.of("payroll_statutory_pack_governance_incomplete");
 
   /** The guards that mean the digests or the validation no longer match. */
   public static final Set<String> DIGEST =
