@@ -464,7 +464,7 @@ test.describe.serial('MVP-094B: source-versioned DRC statutory preview', () => {
       .locator(`[data-testid="statutory-pack"][data-code="${PACK_CODE}"]`);
     await expect(synthetic).toHaveAttribute('data-status', 'VERIFIED');
     await expect(synthetic.getByTestId('statutory-pack-reviewer')).toContainText(
-      'Synthetic Test Reviewer',
+      'Independent platform review',
     );
     await expect(synthetic.getByTestId('statutory-source-hash').first()).toBeVisible();
     // Verification is still required until the pack is activated; activation needs the acknowledgement.

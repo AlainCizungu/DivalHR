@@ -6,7 +6,8 @@
 -- `sqlScript`), as the database owner.
 --
 -- It is NOT a professional verification and carries no legal meaning: the code is SYNTHETIC-TEST-*,
--- the reviewer is "Synthetic Test Reviewer" / "Test Only", the hashes are fake. It must never be
+-- the independent reviewer is a synthetic subject (the legacy columns read "Independent platform review"),
+-- the hashes are fake, and the interval ends before 2090 so it never overlaps the 2090 governance fixtures. It must never be
 -- referenced from a migration, seed data, a dev script or a deployment. The repository and the
 -- hr-dev environment seed only the DRAFT pack CD-SALARY-PREVIEW.
 --
@@ -17,7 +18,7 @@ BEGIN;
 
 INSERT INTO payroll.statutory_rule_pack
     (id, code, version, country, currency, status, effective_from, effective_to, method_version, rules, created_at)
-VALUES (:'pack_id', :'pack_code', 1, 'CD', 'CDF', 'DRAFT', DATE '2020-01-01', NULL, '1',
+VALUES (:'pack_id', :'pack_code', 1, 'CD', 'CDF', 'DRAFT', DATE '2020-01-01', DATE '2089-12-31', '1',
         $rules${
   "schemaVersion": 1,
   "components": [
