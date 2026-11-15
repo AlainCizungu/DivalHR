@@ -807,3 +807,11 @@ fieldset.field {
 .payslip-document dl {
   margin-block-end: var(--dv-space-3);
 }
+
+/* MVP-097A: long identifiers and digests wrap instead of overflowing at 320 px and 200 % zoom. */
+.wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  min-width: 0;
+  max-width: 100%;
+}

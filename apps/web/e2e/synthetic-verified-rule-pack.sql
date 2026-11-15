@@ -51,23 +51,15 @@ VALUES
 -- the governed lifecycle DRAFT -> VALIDATED -> REVIEWED -> ACTIVE as the database owner, with synthetic
 -- evidence and a synthetic independent reviewer. Any overlapping ACTIVE CD version is retired first
 -- (one ACTIVE version per country and period).
-DO $walk$
-DECLARE
-    other uuid;
-BEGIN
-    FOR other IN
-        SELECT o.pack_id FROM payroll.statutory_pack_governance o
-          JOIN payroll.statutory_rule_pack op ON op.id = o.pack_id
-         WHERE op.country = 'CD' AND o.state IN ('ACTIVE', 'SCHEDULED') AND o.pack_id <> :'pack_id'
-    LOOP
-        UPDATE payroll.statutory_pack_governance
-           SET state = 'RETIRED', retired_at = now(), retired_by = 'synthetic-reviewer',
-               retire_reason = 'SUPERSEDED', row_version = row_version + 1,
-               transition_actor = 'synthetic-reviewer', transition_at = now()
-         WHERE pack_id = other;
-    END LOOP;
-END
-$walk$;
+-- (Plain SQL, not a DO block: psql does not interpolate variables inside dollar-quoted text.)
+UPDATE payroll.statutory_pack_governance
+   SET state = 'RETIRED', retired_at = now(), retired_by = 'synthetic-reviewer',
+       retire_reason = 'SUPERSEDED', row_version = row_version + 1,
+       transition_actor = 'synthetic-reviewer', transition_at = now()
+ WHERE pack_id IN (SELECT o.pack_id FROM payroll.statutory_pack_governance o
+                     JOIN payroll.statutory_rule_pack op ON op.id = o.pack_id
+                    WHERE op.country = 'CD' AND o.state IN ('ACTIVE', 'SCHEDULED')
+                      AND o.pack_id <> :'pack_id');
 
 UPDATE payroll.statutory_pack_governance
    SET source_authority = 'Synthetic test authority', source_title = 'Synthetic test source bundle',

@@ -103,13 +103,13 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #189, R187-1/u);
   assert.match(header, /as of 2026-11-15/u);
   assert.match(header, /PR #199, TRUTH-003/u);
-  assert.match(header, new RegExp(`latest capability release before MVP-097A is \`${CAPABILITY}\``, 'u'));
-  assert.match(header, /PR #195, MVP-096/u);
-  assert.match(header, /PR #193, TRUTH-002/u);
   assert.match(
     header,
-    /Issue #198 is closed\); migration V50 is applied/u,
+    new RegExp(`latest capability release before MVP-097A is \`${CAPABILITY}\``, 'u'),
   );
+  assert.match(header, /PR #195, MVP-096/u);
+  assert.match(header, /PR #193, TRUTH-002/u);
+  assert.match(header, /Issue #198 is closed\); migration V50 is applied/u);
   assert.match(header, /PR #191, MVP-095C/u);
   // The payroll release train (094A, 094B, 094C) is merged, deployed and accepted, from Git.
   assert.match(header, /PR #178, merge commit `dcd4d7e24c6a0c2a3af68a481a576d5eb3cc5430`/u);
@@ -855,7 +855,11 @@ export function journalBacklogProblems(text) {
   need('MVP-096 entry', opening, /deployed to hr-dev and accepted on 2026-11-14/u);
   need('MVP-096 entry', opening, /Issue #194/u);
   need('MVP-096 entry', opening, /Migration V50 is applied/u);
-  need('MVP-096 entry', opening, /hr-dev ran `c368d58b…` when it was accepted, and now runs the presentation release `55b130f5…`/u);
+  need(
+    'MVP-096 entry',
+    opening,
+    /hr-dev ran `c368d58b…` when it was accepted, and now runs the presentation release `55b130f5…`/u,
+  );
   need('MVP-096 entry', opening, /previous release `ce871f48e7be` is preserved/u);
   for (const [label, haystack] of [
     ['MVP-096 entry', section],
