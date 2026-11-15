@@ -7,6 +7,7 @@ import { PageHeader } from '../../ui/primitives';
 import { PayrollAlert, useFocusRequest } from '../payrollRuns/PayrollBits';
 import { formatMonth, NETWORK_FAILURE, type PayrollFailure } from '../payrollRuns/payrollRuns';
 import { CalculationPanel } from './CalculationPanel';
+import { ApplicabilityPanel } from '../statutoryPacks/ApplicabilityPanel';
 import { RulePackPanel } from './RulePackPanel';
 import { StatutoryLabel } from './StatutoryBits';
 import { statutoryFailureOf } from './statutory';
@@ -104,6 +105,7 @@ function Statutory({ legalEntityId, runId }: { legalEntityId: string; runId: str
       )}
       {run && (
         <>
+          <ApplicabilityPanel legalEntityId={legalEntityId} month={run.period} />
           <RulePackPanel
             legalEntityId={legalEntityId}
             month={run.period}

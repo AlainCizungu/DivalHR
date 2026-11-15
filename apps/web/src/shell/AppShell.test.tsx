@@ -117,7 +117,7 @@ describe('signed-in frame', () => {
     [
       'platform-admin',
       ['platform-admin'] as const,
-      [en.nav.home, en.nav.platformAdmin, en.nav.firstAdmin],
+      [en.nav.home, en.nav.platformAdmin, en.nav.firstAdmin, en.nav.statutoryPacks],
     ],
   ])('shows a %s exactly their destinations', async (_name, roles, expected) => {
     await renderShell(sessionWithRoles([...roles]));

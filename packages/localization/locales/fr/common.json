@@ -12,6 +12,7 @@
     "hierarchy": "Structure organisationnelle",
     "users": "Utilisateurs et invitations",
     "firstAdmin": "Premier administrateur",
+    "statutoryPacks": "Référentiels légaux de paie",
     "accessReview": "Revue des accès",
     "employees": "Employés",
     "employeeImport": "Importer des employés",
@@ -92,6 +93,7 @@
       "contract": "Contrat",
       "payrollRun": "Exécution de paie",
       "statutoryPreview": "Aperçu statutaire",
+      "statutoryPack": "Version de référentiel légal",
       "statutoryProfile": "Profil statutaire",
       "payrollApproval": "Revue de l’approbation",
       "payrollPackage": "Paie approuvée",
@@ -740,7 +742,18 @@
     "ACCOUNTING_JOURNAL_PREVIEW_STALE": "L’aperçu du journal a expiré ou le dossier de paie ou le paramétrage a changé. Relancez l’aperçu avant de générer.",
     "ACCOUNTING_JOURNAL_UNBALANCED": "Le journal n’a pas pu être généré : les débits et les crédits ne s’équilibrent pas. Rien n’a été créé.",
     "ACCOUNTING_JOURNAL_TOO_LARGE": "Le journal dépasserait la taille maximale : il n’a pas été généré.",
-    "ACCOUNTING_JOURNAL_NOT_FOUND": "Ce journal comptable est introuvable."
+    "ACCOUNTING_JOURNAL_NOT_FOUND": "Ce journal comptable est introuvable.",
+    "STATUTORY_PACK_NOT_FOUND": "Cette version de référentiel légal n’existe pas ou ne vous est pas accessible.",
+    "STATUTORY_PACK_VERSION_CONFLICT": "Quelqu’un a modifié cette version du référentiel entre-temps. Rechargez son état le plus récent avant de réessayer.",
+    "STATUTORY_PACK_TRANSITION_NOT_ALLOWED": "Cette action n’est pas autorisée dans l’état actuel de la version du référentiel.",
+    "STATUTORY_PACK_VALIDATION_FAILED": "La validation technique a échoué. Ouvrez les résultats de validation pour voir les contrôles non réussis.",
+    "STATUTORY_PACK_EVIDENCE_INCOMPLETE": "Les preuves de source de cette version du référentiel sont incomplètes : elle ne peut pas avancer.",
+    "STATUTORY_PACK_DIGEST_MISMATCH": "Le référentiel ou ses cas de référence ne correspondent plus aux empreintes enregistrées à la validation. Validez à nouveau.",
+    "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN": "La personne qui a soumis cette version du référentiel ne peut pas aussi la relire. Un autre administrateur doit le faire.",
+    "STATUTORY_PACK_REVIEW_REQUIRED": "Une relecture indépendante est requise avant cette action.",
+    "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT": "Une autre version planifiée ou active couvre déjà une partie de ce pays et de cette période.",
+    "STATUTORY_PACK_NO_ACTIVE_VERSION": "Aucun référentiel légal actif ne s’applique à ce pays et à cette période de paie : la paie ne peut pas être calculée.",
+    "STATUTORY_PACK_ALREADY_ACTIVE": "Cette version du référentiel est déjà active."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -6318,6 +6331,172 @@
       "RECONCILIATION_EXISTS": "Une vérification existe déjà pour cette soumission.",
       "PROVIDER_NOT_AVAILABLE": "Aucun prestataire n’est disponible pour cette soumission.",
       "PROVIDER_KEY_UNAVAILABLE": "La vérification est indisponible : la clé de signature n’est pas configurée."
+    }
+  },
+  "statutoryPacks": {
+    "title": "Référentiels légaux de paie",
+    "description": "Gérez, validez et révisez les versions des référentiels légaux de paie. Ceci est la vue de la plateforme.",
+    "unauthorized": "Seuls les administrateurs de la plateforme peuvent utiliser la gouvernance des référentiels légaux.",
+    "signInRequired": "Connectez-vous en tant qu’administrateur de la plateforme pour voir les référentiels légaux.",
+    "loading": "Chargement…",
+    "empty": "Il n’y a encore aucune version de référentiel légal.",
+    "openEnded": "sans fin définie",
+    "draftNotice": "BROUILLON — non approuvé pour la paie opérationnelle",
+    "notice": {
+      "label": "La validation technique n’est pas une approbation légale",
+      "heading": "La validation technique n’est pas une approbation légale.",
+      "body": "Une validation réussie montre qu’un référentiel est cohérent en interne et reproduit ses cas de référence. Elle ne montre pas qu’un taux, un seuil ou une règle est juste en droit. DivalHR n’affirme pas que la paie est conforme à la loi."
+    },
+    "errors": {
+      "validation": "Vérifiez les valeurs saisies et réessayez.",
+      "forbidden": "Vous n’êtes pas autorisé à effectuer cette action."
+    },
+    "state": {
+      "DRAFT": "Brouillon",
+      "VALIDATED": "Validée techniquement",
+      "REVIEWED": "Revue",
+      "SCHEDULED": "Planifiée",
+      "ACTIVE": "Active",
+      "RETIRED": "Retirée"
+    },
+    "reason": {
+      "SOURCE_MISMATCH": "Le référentiel ne correspond pas à sa source",
+      "VALUE_ERROR": "Une valeur est erronée",
+      "EVIDENCE_INSUFFICIENT": "Les preuves sont insuffisantes",
+      "SCOPE_ERROR": "Le périmètre ou la période est erroné",
+      "OTHER": "Autre motif",
+      "SUPERSEDED": "Remplacée par une version plus récente",
+      "WITHDRAWN": "Retirée",
+      "LEGAL_CHANGE": "La source légale a changé",
+      "ERROR": "Enregistrée par erreur",
+      "REJECTED": "Rejetée lors de la revue"
+    },
+    "validation": {
+      "PASSED": "Validation technique réussie",
+      "FAILED": "Validation technique échouée",
+      "NONE": "Pas encore validée"
+    },
+    "list": {
+      "tableLabel": "Versions des référentiels légaux",
+      "pack": "Référentiel et version",
+      "packVersion": "{{code}}, version {{version}}",
+      "country": "Pays",
+      "state": "État",
+      "effective": "Intervalle d’effet",
+      "validation": "Dernière validation technique",
+      "more": "Afficher plus de versions"
+    },
+    "detail": {
+      "title": "{{code}}, version {{version}}",
+      "back": "Retour aux référentiels légaux",
+      "stateTitle": "État",
+      "country": "Pays {{country}}",
+      "semantic": "Version sémantique {{value}}",
+      "interval": "En vigueur du {{from}} au {{to}}",
+      "activeFrom": "S’applique à partir du {{date}}",
+      "retireReason": "Motif du retrait : {{reason}}"
+    },
+    "evidence": {
+      "title": "Preuves de source",
+      "complete": "Preuves complètes",
+      "incomplete": "Preuves incomplètes",
+      "authority": "Autorité source",
+      "documentTitle": "Titre du document",
+      "publishedOn": "Date de publication",
+      "reference": "Référence",
+      "bundleSha": "SHA-256 de l’archive des sources",
+      "counts": "Sources et cas de référence",
+      "countsValue": "{{sources}} sources, {{cases}} cas de référence"
+    },
+    "digests": {
+      "title": "Empreintes",
+      "rules": "SHA-256 des règles",
+      "pack": "SHA-256 du référentiel validé",
+      "fixtures": "SHA-256 des cas de référence"
+    },
+    "runs": {
+      "title": "Résultats de la validation technique",
+      "empty": "Aucune validation n’a encore été exécutée.",
+      "outcome": {
+        "PASSED": "Validation technique réussie",
+        "FAILED": "Validation technique échouée"
+      },
+      "counts": "{{passed}} contrôles sur {{total}} réussis",
+      "checkPassed": "réussi",
+      "checkFailed": "échoué"
+    },
+    "history": {
+      "title": "Historique de revue et d’activation",
+      "empty": "Aucune étape du cycle de vie n’a encore été enregistrée.",
+      "byYou": "par vous",
+      "kind": {
+        "VALIDATE": "Validée",
+        "SUBMIT": "Soumise",
+        "APPROVE": "Approuvée",
+        "REJECT": "Rejetée",
+        "SCHEDULE": "Planifiée",
+        "ACTIVATE": "Activée",
+        "RETIRE": "Retirée"
+      },
+      "review": {
+        "APPROVED": "Revue indépendante : approuvée le {{date}}",
+        "REJECTED": "Revue indépendante : rejetée le {{date}}"
+      }
+    },
+    "actions": {
+      "title": "Actions",
+      "none": "Aucune action n’est disponible pour une version retirée.",
+      "choose": "Choisissez une action",
+      "selfHint": "Vous avez soumis cette version : un autre administrateur de la plateforme doit la réviser.",
+      "command": {
+        "validate": "Lancer la validation technique",
+        "submit-review": "Soumettre à la revue",
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "schedule": "Planifier",
+        "activate": "Activer",
+        "retire": "Retirer"
+      },
+      "help": {
+        "validate": "Exécute les contrôles hors ligne et chaque cas de référence. Une réussite est uniquement technique.",
+        "submit-review": "Vous enregistre comme soumetteur. Un autre administrateur de la plateforme doit effectuer la revue.",
+        "approve": "Enregistre une décision de revue indépendante. Elle exige une personne différente du soumetteur et un second facteur vérifié.",
+        "reject": "Rejette cette version. Une correction est une nouvelle version ; rien n’est modifié ni supprimé.",
+        "schedule": "Planifie la version à partir d’une date future, dans son propre intervalle.",
+        "activate": "Fait de cette version la version active pour son pays et sa période. Elle ne peut pas en chevaucher une autre.",
+        "retire": "Retire cette version définitivement. Une version retirée reste consultable et n’est jamais réactivée."
+      },
+      "confirm": {
+        "approve": "Je confirme cette décision de revue indépendante.",
+        "reject": "Je confirme ce rejet.",
+        "schedule": "Je confirme cette date de planification.",
+        "activate": "Je confirme l’activation de cette version.",
+        "retire": "Je comprends que le retrait est définitif."
+      },
+      "announce": {
+        "validate": "Validation technique réussie.",
+        "submit-review": "Soumise à la revue.",
+        "approve": "Approuvée lors de la revue.",
+        "reject": "Rejetée.",
+        "schedule": "Planifiée.",
+        "activate": "Activée.",
+        "retire": "Retirée.",
+        "validateFailed": "La validation technique n’a pas réussi. Ouvrez les résultats de validation."
+      },
+      "reason": "Motif",
+      "reasonChoose": "Choisissez un motif",
+      "note": "Note (facultative)",
+      "noteHelp": "{{max}} caractères au plus. Ne saisissez pas de données personnelles.",
+      "effectiveFrom": "En vigueur à partir du",
+      "effectiveHelp": "Une date future comprise dans l’intervalle de cette version.",
+      "why": "Complétez les champs et la confirmation pour continuer."
+    },
+    "applicability": {
+      "title": "Référentiel légal applicable",
+      "none": "Aucun référentiel légal actif ne s’applique au pays {{country}} pour {{period}}. La paie ne peut pas être calculée pour cette période tant qu’un référentiel n’est pas actif.",
+      "pack": "Référentiel",
+      "effective": "Intervalle d’effet",
+      "note": "Lecture seule. L’équipe de la plateforme gère les référentiels légaux ; la validation technique n’est pas une approbation légale."
     }
   },
   "accounting": {

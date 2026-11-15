@@ -433,3 +433,20 @@ Not deployed: hr-dev runs `c93ce0ec…` until MVP-095C is deployed and accepted.
 - **Evidence.** The genuine `DELIVERY_UNKNOWN` row from the first live acceptance is evidence. It must never be
   altered, deleted or resent. Do not copy any identifier of that row into an issue, log or document.
 - Reconciliation is not settlement and DivalHR keeps no "paid" status.
+
+## Statutory pack governance (MVP-097A, Issue #200, ADR 0040, V51)
+
+- **What it is.** A governed lifecycle (`DRAFT → VALIDATED → REVIEWED → SCHEDULED → ACTIVE → RETIRED`) with offline
+  reference-case validation and independent four-eyes approval. Platform administrators use "Statutory packs" /
+  « Référentiels légaux de paie ». It is a mechanism: technical validation is not legal approval.
+- **The real pack stays DRAFT.** `CD-SALARY-PREVIEW` has no evidence and no reference cases and is never validated,
+  reviewed, scheduled or activated with synthetic data. Operators must not activate it; activation with authentic legal
+  evidence and independent approval is MVP-097B.
+- **Calculation.** Without exactly one ACTIVE pack for the legal entity's country and the payroll period, a statutory
+  calculation is refused (`STATUTORY_PACK_NO_ACTIVE_VERSION`). Frozen calculations keep their pack code, version and digest.
+- **Browser fixtures (test-only).** `apps/web/e2e/synthetic-verified-rule-pack.sql` now walks a `SYNTHETIC-TEST-*` pack
+  through the governed lifecycle; `synthetic-governed-draft-pack.sql` creates a SYNTHETIC DRAFT pack with reference cases
+  (effective in 2090). Neither appears in a migration, seed or deployment. The development realm adds a second platform
+  administrator, `dev-platform-reviewer` (published development seed), so the four-eyes journey uses two subjects.
+- **Rollback.** `db/rollback/V51__rollback.sql` refuses once any evidence, case, validation run, review or transition
+  exists or any governance row was touched. After that, restore the pre-deploy backup (section 9).

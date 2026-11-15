@@ -53,6 +53,12 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'key',
         role: 'platform-admin',
       },
+      {
+        to: '/admin/statutory-packs',
+        labelKey: 'nav.statutoryPacks',
+        icon: 'payroll',
+        role: 'platform-admin',
+      },
     ],
   },
   {

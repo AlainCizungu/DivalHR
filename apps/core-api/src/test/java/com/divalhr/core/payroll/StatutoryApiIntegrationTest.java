@@ -232,7 +232,7 @@ class StatutoryApiIntegrationTest {
     w.c.problem(
         w.createRequest(run, Organizations.newKey(), StatutoryWorld.calculationCommitting(preview)),
         409,
-        "STATUTORY_RULE_PACK_NOT_VERIFIED");
+        "STATUTORY_PACK_NO_ACTIVE_VERSION");
     assertThat(w.evidence().get(2)).isZero();
   }
 
@@ -510,7 +510,7 @@ class StatutoryApiIntegrationTest {
     assertThat(detail.get("pack").get("status").asText()).isEqualTo("VERIFIED");
     assertThat(detail.get("pack").get("rulesDigest").asText()).hasSize(64);
     assertThat(detail.get("verification").get("reviewerName").asText())
-        .isEqualTo("Synthetic Test Reviewer");
+        .isEqualTo("Independent platform review");
     assertThat(detail.get("verification").get("attested").asBoolean()).isTrue();
     assertThat(detail.get("sources")).hasSize(2);
     assertThat(detail.get("components").get(0).get("method").get("type").asText())
@@ -526,7 +526,8 @@ class StatutoryApiIntegrationTest {
   @Test
   void packReadsAreSafeAndPaged() throws Exception {
     StatutoryWorld.verifiedPack(w.jdbc);
-    StatutoryWorld.verifiedPack(w.jdbc);
+    // Disjoint interval: two overlapping ACTIVE versions cannot coexist (the second would retire the first).
+    StatutoryWorld.verifiedPack(w.jdbc, StatutoryFixtures.SEED_JSON, "2010-01-01", "2010-12-31");
     w.c.problem(
         PayrollRunWorld.get(w.admin, StatutoryWorld.PACKS + "/" + UUID.randomUUID()),
         404,

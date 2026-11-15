@@ -67,12 +67,7 @@ final class StatutoryWorld {
   /** A synthetic VERIFIED pack with the given rules and interval. */
   static UUID verifiedPack(JdbcTemplate jdbc, String rules, String from, String to) {
     UUID id = draftPack(jdbc, rules, from, to);
-    jdbc.update(
-        "UPDATE payroll.statutory_rule_pack SET status = 'VERIFIED',"
-            + " reviewer_name = 'Synthetic Test Reviewer', reviewer_organization = 'Test Only',"
-            + " reviewed_on = DATE '2026-10-01', attested = true, verified_at = now()"
-            + " WHERE id = ?",
-        id);
+    GovernedPackFixtures.activate(jdbc, id);
     return id;
   }
 

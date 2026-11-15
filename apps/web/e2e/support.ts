@@ -27,7 +27,12 @@ export const FEATURES_PROJECT = 'features';
  * employee's password-level SSO session ("Invalid username or password"), so employees always sign
  * in interactively, one sign-in per user at a time (withSignInLock).
  */
-export const SSO_SEED_USERS = [USERS.adminA, USERS.adminB, USERS.platformAdmin];
+export const SSO_SEED_USERS = [
+  USERS.adminA,
+  USERS.adminB,
+  USERS.platformAdmin,
+  USERS.platformReviewer,
+];
 
 /**
  * DEVX-001A (A75-4): in `features`, one interactive password sign-in per user at a time across

@@ -135,7 +135,18 @@ public class StatutoryEvaluator {
     if (activation.isEmpty()) {
       return Optional.empty();
     }
-    return resolve(activation.get());
+    // MVP-097A (D97A-6): the pack is selected by the legal entity's country and the payroll
+    // date among governed ACTIVE versions, never by the pack identifier of the activation alone.
+    // The activation remains the employer's acknowledgement that payroll may use the pack.
+    Optional<String> country = statutory.legalEntityCountry(tenant, legalEntityId);
+    if (country.isEmpty()) {
+      return Optional.empty();
+    }
+    Optional<UUID> governed = packs.applicableActivePackId(country.get(), month);
+    if (governed.isEmpty()) {
+      return Optional.empty();
+    }
+    return resolve(activation.get(), governed.get());
   }
 
   /**
@@ -145,11 +156,22 @@ public class StatutoryEvaluator {
    * @return the resolved pack, or empty when the pack row is missing (cannot happen: foreign key)
    */
   Optional<Resolved> resolve(ActivationRow activation) {
-    Optional<PackWithRules> found = packs.packWithRules(activation.packId());
+    return resolve(activation, activation.packId());
+  }
+
+  /**
+   * An activation with the governed pack that applies, its sources and parsed rules.
+   *
+   * @param activation the employer's activation
+   * @param packId the governed ACTIVE pack selected by country and period
+   * @return the resolved pack, or empty when the pack row is missing
+   */
+  Optional<Resolved> resolve(ActivationRow activation, UUID packId) {
+    Optional<PackWithRules> found = packs.packWithRules(packId);
     if (found.isEmpty()) {
       return Optional.empty();
     }
-    List<SourceRow> sources = packs.sources(activation.packId());
+    List<SourceRow> sources = packs.sources(packId);
     return Optional.of(
         new Resolved(activation, found.get().row(), sources, rules(found.get().rules(), sources)));
   }

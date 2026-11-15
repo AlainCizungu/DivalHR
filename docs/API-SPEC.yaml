@@ -10160,6 +10160,504 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs:
+    get:
+      operationId: listStatutoryPackVersions
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the governed statutory pack versions
+      description: >-
+        MVP-097A (ADR 0040). Platform administrators with exact MFA. The governed lifecycle state of every statutory pack version
+        (DRAFT, VALIDATED, REVIEWED, SCHEDULED, ACTIVE, RETIRED), ordered by pack code then version descending, as a keyset page
+        (default 25, maximum 100; the cursor is bound to the operation, subject, role and page size). A fail-closed disclosure
+        (audit statutory-pack.read; counts only). At most 60 reads per subject per minute. Cache-Control private, no-store.
+        Technical validation is not legal approval.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackVersionPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:
+    get:
+      operationId: getStatutoryPackVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read one governed statutory pack version
+      description: >-
+        MVP-097A. The version's state and optimistic row version, immutable source evidence metadata (authority, title, publication
+        date, informational reference, bundle SHA-256), the digests bound at validation, the latest validation runs with their
+        bounded check summary, the independent review decision and the lifecycle history. No rate, formula or reference value is
+        returned and no subject is named: entries say only whether the caller performed them. Unknown and malformed codes or
+        versions are the same 404 STATUTORY_PACK_NOT_FOUND. A fail-closed disclosure (audit statutory-pack.read). Cache-Control
+        private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackVersionDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:validate:
+    post:
+      operationId: validateStatutoryPackVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Run the offline technical validation
+      description: >-
+        MVP-097A. Validates the version against its immutable reviewed reference cases, offline and deterministically (closed formula
+        model, declared sources and variables, integer money, ordered brackets, valid effective period, exact expected results,
+        stable digests). A passing run on a DRAFT moves it to VALIDATED and binds the pack and fixture digests; a failing run is
+        recorded and the version stays DRAFT (200 with validationOutcome FAILED). Technical validation is not legal approval.
+        At most 10 runs per subject and 50 per platform per hour.
+        Commands need an Idempotency-Key, the expectedVersion the read returned and, where consequential, confirmed=true.
+        A stale version is 409 STATUTORY_PACK_VERSION_CONFLICT and an invalid transition is 409
+        STATUTORY_PACK_TRANSITION_NOT_ALLOWED, both before any state change. At most 5 commands per subject per minute and 10
+        review or activation commands per subject per hour. The same Idempotency-Key and payload replays the original response.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryPackCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackCommandReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:submit-review:
+    post:
+      operationId: submitStatutoryPackVersionForReview
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Submit a VALIDATED version for independent review
+      description: >-
+        MVP-097A. Records the submitter. Requires complete source evidence (409 or 422 STATUTORY_PACK_EVIDENCE_INCOMPLETE) and
+        digests that still match (409 STATUTORY_PACK_DIGEST_MISMATCH). The state stays VALIDATED.
+        Commands need an Idempotency-Key, the expectedVersion the read returned and, where consequential, confirmed=true.
+        A stale version is 409 STATUTORY_PACK_VERSION_CONFLICT and an invalid transition is 409
+        STATUTORY_PACK_TRANSITION_NOT_ALLOWED, both before any state change. At most 5 commands per subject per minute and 10
+        review or activation commands per subject per hour. The same Idempotency-Key and payload replays the original response.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryPackCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackCommandReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:approve:
+    post:
+      operationId: approveStatutoryPackVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Approve a submitted version as an independent reviewer
+      description: >-
+        MVP-097A. The reviewer must be a different verified subject than the submitter (409 STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN,
+        checked before any write) and must send confirmed=true. VALIDATED becomes REVIEWED with immutable approval evidence.
+        Commands need an Idempotency-Key, the expectedVersion the read returned and, where consequential, confirmed=true.
+        A stale version is 409 STATUTORY_PACK_VERSION_CONFLICT and an invalid transition is 409
+        STATUTORY_PACK_TRANSITION_NOT_ALLOWED, both before any state change. At most 5 commands per subject per minute and 10
+        review or activation commands per subject per hour. The same Idempotency-Key and payload replays the original response.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryPackCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackCommandReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:reject:
+    post:
+      operationId: rejectStatutoryPackVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Reject a submitted version
+      description: >-
+        MVP-097A. One bounded reasonCode and an optional bounded internal note. The version retires and a new immutable DRAFT
+        version with the same rules, sources and reference cases is created (revisionVersion). The same independence rule applies.
+        Commands need an Idempotency-Key, the expectedVersion the read returned and, where consequential, confirmed=true.
+        A stale version is 409 STATUTORY_PACK_VERSION_CONFLICT and an invalid transition is 409
+        STATUTORY_PACK_TRANSITION_NOT_ALLOWED, both before any state change. At most 5 commands per subject per minute and 10
+        review or activation commands per subject per hour. The same Idempotency-Key and payload replays the original response.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryPackCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackCommandReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:schedule:
+    post:
+      operationId: scheduleStatutoryPackVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Schedule a REVIEWED version from a future date
+      description: >-
+        MVP-097A. effectiveFrom must be after today and inside the pack interval, and must not overlap another SCHEDULED or
+        ACTIVE version of the same country and applicability (409 STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT).
+        Commands need an Idempotency-Key, the expectedVersion the read returned and, where consequential, confirmed=true.
+        A stale version is 409 STATUTORY_PACK_VERSION_CONFLICT and an invalid transition is 409
+        STATUTORY_PACK_TRANSITION_NOT_ALLOWED, both before any state change. At most 5 commands per subject per minute and 10
+        review or activation commands per subject per hour. The same Idempotency-Key and payload replays the original response.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryPackCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackCommandReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:activate:
+    post:
+      operationId: activateStatutoryPackVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Activate a REVIEWED or due SCHEDULED version
+      description: >-
+        MVP-097A. At most one ACTIVE version applies to a country and payroll date. A version that is not REVIEWED is 409
+        STATUTORY_PACK_REVIEW_REQUIRED; an ACTIVE version is 409 STATUTORY_PACK_ALREADY_ACTIVE. Tenant payroll selects the ACTIVE
+        version by the legal entity's country and the payroll period, never by a pack id.
+        Commands need an Idempotency-Key, the expectedVersion the read returned and, where consequential, confirmed=true.
+        A stale version is 409 STATUTORY_PACK_VERSION_CONFLICT and an invalid transition is 409
+        STATUTORY_PACK_TRANSITION_NOT_ALLOWED, both before any state change. At most 5 commands per subject per minute and 10
+        review or activation commands per subject per hour. The same Idempotency-Key and payload replays the original response.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryPackCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackCommandReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/statutory-packs/{packCode}/versions/{version}:retire:
+    post:
+      operationId: retireStatutoryPackVersion
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Retire a version
+      description: >-
+        MVP-097A. A REVIEWED, SCHEDULED or ACTIVE version retires with one bounded reasonCode. RETIRED is readable forever and can
+        never be reactivated. Frozen calculations keep their original pack code, version and digest.
+        Commands need an Idempotency-Key, the expectedVersion the read returned and, where consequential, confirmed=true.
+        A stale version is 409 STATUTORY_PACK_VERSION_CONFLICT and an invalid transition is 409
+        STATUTORY_PACK_TRANSITION_NOT_ALLOWED, both before any state change. At most 5 commands per subject per minute and 10
+        review or activation commands per subject per hour. The same Idempotency-Key and payload replays the original response.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/StatutoryPackCode"
+        - $ref: "#/components/parameters/StatutoryPackVersionNumber"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatutoryPackCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackCommandReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/statutory-pack-applicability:
+    get:
+      operationId: getStatutoryPackApplicability
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read the statutory pack that applies to a legal entity and period
+      description: >-
+        MVP-097A. Read-only for tenant administrators. The single ACTIVE governed version applicable to the legal entity's country and
+        the payroll period (YYYY-MM), with its public provenance only: code, version, state, effective period and the public source
+        reference. applicable is false when no ACTIVE version applies (payroll is then refused with STATUTORY_PACK_NO_ACTIVE_VERSION).
+        No formula, rate, reviewer note or raw document is returned. Unknown, malformed, foreign and unauthorized legal entities are
+        the same 404 LEGAL_ENTITY_NOT_FOUND. A fail-closed disclosure (audit statutory-pack.applicability-read). Cache-Control private,
+        no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/StatutoryPackPayrollPeriod"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatutoryPackApplicability"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /statutory-rule-packs:
     get:
       operationId: listStatutoryRulePacks
@@ -13870,6 +14368,27 @@ components:
       description: Optional rule-pack status filter.
       schema:
         $ref: "#/components/schemas/StatutoryRulePackStatus"
+    StatutoryPackCode:
+      name: packCode
+      in: path
+      required: true
+      description: The statutory pack code. Malformed and unknown codes give the same 404 STATUTORY_PACK_NOT_FOUND.
+      schema:
+        type: string
+    StatutoryPackVersionNumber:
+      name: version
+      in: path
+      required: true
+      description: The integer version of the pack code. Malformed and unknown versions give the same 404 STATUTORY_PACK_NOT_FOUND.
+      schema:
+        type: string
+    StatutoryPackPayrollPeriod:
+      name: payrollPeriod
+      in: query
+      required: true
+      description: The payroll period (YYYY-MM) whose applicable statutory pack is requested.
+      schema:
+        $ref: "#/components/schemas/PayrollPeriod"
     StatutoryMonth:
       name: month
       in: query
@@ -18489,6 +19008,290 @@ components:
           type: integer
           minimum: 1
           maximum: 12
+    StatutoryPackVersionSummary:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. A governed statutory pack version, summarized. approvedForOperationalPayroll is true only for ACTIVE.
+      required: [packCode, version, semanticVersion, country, applicability, state, effectiveFrom, effectiveTo, activeFrom, evidenceComplete, lastValidation, rowVersion, approvedForOperationalPayroll]
+      properties:
+        packCode:
+          type: string
+        version:
+          type: integer
+        semanticVersion:
+          type: string
+        country:
+          type: string
+        applicability:
+          type: string
+        state:
+          type: string
+          enum: [DRAFT, VALIDATED, REVIEWED, SCHEDULED, ACTIVE, RETIRED]
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        activeFrom:
+          type: [string, "null"]
+          format: date
+        evidenceComplete:
+          type: boolean
+        lastValidation:
+          type: [string, "null"]
+          enum: [PASSED, FAILED, null]
+        rowVersion:
+          type: integer
+        approvedForOperationalPayroll:
+          type: boolean
+    StatutoryPackVersionPage:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. A page of governed pack versions.
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StatutoryPackVersionSummary"
+        nextCursor:
+          type: [string, "null"]
+    StatutoryPackEvidence:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. Immutable, non-secret source evidence metadata; no document is stored and the reference is never fetched.
+      required: [sourceAuthority, sourceTitle, sourcePublishedOn, sourceReference, sourceBundleSha256, evidenceSchemaVersion]
+      properties:
+        sourceAuthority:
+          type: [string, "null"]
+        sourceTitle:
+          type: [string, "null"]
+        sourcePublishedOn:
+          type: [string, "null"]
+          format: date
+        sourceReference:
+          type: [string, "null"]
+        sourceBundleSha256:
+          type: [string, "null"]
+        evidenceSchemaVersion:
+          type: [integer, "null"]
+    StatutoryPackDigests:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. The digests of the pack rules and, once validated, the pack and the reference fixtures.
+      required: [rulesSha256, packSha256, fixtureSha256]
+      properties:
+        rulesSha256:
+          type: string
+        packSha256:
+          type: [string, "null"]
+        fixtureSha256:
+          type: [string, "null"]
+    StatutoryPackValidationCheck:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. One named technical check.
+      required: [code, passed]
+      properties:
+        code:
+          type: string
+        passed:
+          type: boolean
+    StatutoryPackValidationRun:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. One offline technical validation run. Technical validation is not legal approval.
+      required: [runId, ranAt, outcome, checkCount, failedCount, checks, engineVersion, ranByCaller]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        ranAt:
+          type: string
+          format: date-time
+        outcome:
+          type: string
+          enum: [PASSED, FAILED]
+        checkCount:
+          type: integer
+        failedCount:
+          type: integer
+        checks:
+          type: array
+          maxItems: 400
+          items:
+            $ref: "#/components/schemas/StatutoryPackValidationCheck"
+        engineVersion:
+          type: string
+        ranByCaller:
+          type: boolean
+    StatutoryPackReview:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. The independent review decision; no reviewer identity or note is returned.
+      required: [decision, decidedAt, reasonCode, decidedByCaller]
+      properties:
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+        decidedAt:
+          type: string
+          format: date-time
+        reasonCode:
+          type: [string, "null"]
+        decidedByCaller:
+          type: boolean
+    StatutoryPackTransition:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. One entry of the append-only lifecycle history.
+      required: [seq, kind, fromState, toState, occurredAt, byCaller]
+      properties:
+        seq:
+          type: integer
+        kind:
+          type: string
+          enum: [VALIDATE, SUBMIT, APPROVE, REJECT, SCHEDULE, ACTIVATE, RETIRE]
+        fromState:
+          type: string
+        toState:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        byCaller:
+          type: boolean
+    StatutoryPackVersionDetail:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. A governed pack version in detail. No rate, formula or reference value is returned.
+      required: [summary, evidence, digests, sourceCount, caseCount, submittedAt, submittedByCaller, retireReason, supersedesVersion, validationRuns, review, history]
+      properties:
+        summary:
+          $ref: "#/components/schemas/StatutoryPackVersionSummary"
+        evidence:
+          $ref: "#/components/schemas/StatutoryPackEvidence"
+        digests:
+          $ref: "#/components/schemas/StatutoryPackDigests"
+        sourceCount:
+          type: integer
+        caseCount:
+          type: integer
+        submittedAt:
+          type: [string, "null"]
+          format: date-time
+        submittedByCaller:
+          type: boolean
+        retireReason:
+          type: [string, "null"]
+        supersedesVersion:
+          type: [integer, "null"]
+        validationRuns:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/StatutoryPackValidationRun"
+        review:
+          oneOf:
+            - $ref: "#/components/schemas/StatutoryPackReview"
+            - type: "null"
+        history:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StatutoryPackTransition"
+    StatutoryPackCommandReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. The result of a lifecycle command (what the idempotency store keeps).
+      required: [packCode, version, state, rowVersion, validationOutcome, revisionVersion]
+      properties:
+        packCode:
+          type: string
+        version:
+          type: integer
+        state:
+          type: string
+          enum: [DRAFT, VALIDATED, REVIEWED, SCHEDULED, ACTIVE, RETIRED]
+        rowVersion:
+          type: integer
+        validationOutcome:
+          type: [string, "null"]
+          enum: [PASSED, FAILED, null]
+        revisionVersion:
+          type: [integer, "null"]
+    StatutoryPackCommand:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. The body of a lifecycle command. expectedVersion is always required; confirmed=true for approve, reject, schedule, activate and retire; reasonCode for reject (SOURCE_MISMATCH, VALUE_ERROR, EVIDENCE_INSUFFICIENT, SCOPE_ERROR, OTHER) and retire (SUPERSEDED, WITHDRAWN, LEGAL_CHANGE, ERROR); note (at most 500 characters) for reject only; effectiveFrom for schedule only. Any other member is a field error.
+      required: [expectedVersion]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        confirmed:
+          type: boolean
+        reasonCode:
+          type: string
+        note:
+          type: string
+          minLength: 1
+          maxLength: 500
+        effectiveFrom:
+          type: string
+          format: date
+    StatutoryPackApplicability:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-097A. The statutory pack that applies to a legal entity and period, public provenance only.
+      required: [legalEntityId, payrollPeriod, country, applicable, packCode, version, semanticVersion, state, effectiveFrom, effectiveTo, sourceAuthority, sourceTitle, sourcePublishedOn, sourceReference]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        payrollPeriod:
+          type: string
+        country:
+          type: string
+        applicable:
+          type: boolean
+        packCode:
+          type: [string, "null"]
+        version:
+          type: [integer, "null"]
+        semanticVersion:
+          type: [string, "null"]
+        state:
+          type: [string, "null"]
+        effectiveFrom:
+          type: [string, "null"]
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        sourceAuthority:
+          type: [string, "null"]
+        sourceTitle:
+          type: [string, "null"]
+        sourcePublishedOn:
+          type: [string, "null"]
+          format: date
+        sourceReference:
+          type: [string, "null"]
     StatutoryRulePackPage:
       type: object
       additionalProperties: false
@@ -20908,6 +21711,17 @@ components:
         - ACCOUNTING_JOURNAL_UNBALANCED
         - ACCOUNTING_JOURNAL_TOO_LARGE
         - ACCOUNTING_JOURNAL_NOT_FOUND
+        - STATUTORY_PACK_NOT_FOUND
+        - STATUTORY_PACK_VERSION_CONFLICT
+        - STATUTORY_PACK_TRANSITION_NOT_ALLOWED
+        - STATUTORY_PACK_VALIDATION_FAILED
+        - STATUTORY_PACK_EVIDENCE_INCOMPLETE
+        - STATUTORY_PACK_DIGEST_MISMATCH
+        - STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN
+        - STATUTORY_PACK_REVIEW_REQUIRED
+        - STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT
+        - STATUTORY_PACK_NO_ACTIVE_VERSION
+        - STATUTORY_PACK_ALREADY_ACTIVE
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.

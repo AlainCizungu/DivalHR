@@ -131,21 +131,13 @@ final class PayrollPackageWorld {
         "a".repeat(64),
         id,
         "b".repeat(64));
-    jdbc.update(
-        "UPDATE payroll.statutory_rule_pack SET status = 'VERIFIED',"
-            + " reviewer_name = 'Synthetic Test Reviewer', reviewer_organization = 'Test Only',"
-            + " reviewed_on = DATE '2026-10-01', attested = true, verified_at = now()"
-            + " WHERE id = ?",
-        id);
+    GovernedPackFixtures.activate(jdbc, id);
     return id;
   }
 
   /** Retires a VERIFIED pack through the one legal forward step. */
   void retire(UUID pack) {
-    jdbc.update(
-        "UPDATE payroll.statutory_rule_pack SET status = 'RETIRED', retired_at = now()"
-            + " WHERE id = ?",
-        pack);
+    GovernedPackFixtures.retire(jdbc, pack);
   }
 
   // ------------------------------------------------------------------------------------------

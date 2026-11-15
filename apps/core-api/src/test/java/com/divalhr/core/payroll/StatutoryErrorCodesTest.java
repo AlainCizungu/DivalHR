@@ -44,7 +44,10 @@ class StatutoryErrorCodesTest {
   void noOtherStatutoryCodeExists() {
     long statutory =
         java.util.Arrays.stream(ErrorCode.values())
-            .filter(code -> code.name().startsWith("STATUTORY_"))
+            .filter(
+                code ->
+                    code.name().startsWith("STATUTORY_")
+                        && !code.name().startsWith("STATUTORY_PACK_"))
             .count();
     assertThat(statutory).isEqualTo(CODES.size());
   }

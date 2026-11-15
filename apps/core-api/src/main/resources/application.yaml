@@ -185,6 +185,11 @@ divalhr:
       statutory-profile-preview: ${DIVALHR_STATUTORY_PROFILE_PREVIEW_REQUESTS_PER_MINUTE:10}
       statutory-profile-write: ${DIVALHR_STATUTORY_PROFILE_WRITE_REQUESTS_PER_MINUTE:5}
       statutory-activation-write: ${DIVALHR_STATUTORY_ACTIVATION_WRITE_REQUESTS_PER_MINUTE:2}
+      # MVP-097A: statutory pack governance (ADR 0040). Per subject per minute: reads 60 and
+      # commands 5; the hourly quotas (10 validations, 10 review and activation commands per
+      # subject, 50 validations per platform) are enforced by the governance service.
+      statutory-pack-read: ${DIVALHR_STATUTORY_PACK_READ_REQUESTS_PER_MINUTE:60}
+      statutory-pack-command: ${DIVALHR_STATUTORY_PACK_COMMAND_REQUESTS_PER_MINUTE:5}
       # MVP-094C: payroll approval and payslips (ADR 0035, D94C-16). Per subject per minute: reads
       # 60, previews (approval and void) 5, commits (approval and void) 2, PDF downloads 30.
       payroll-package-read: ${DIVALHR_PAYROLL_PACKAGE_READ_REQUESTS_PER_MINUTE:60}

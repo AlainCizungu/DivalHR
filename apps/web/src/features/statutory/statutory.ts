@@ -106,6 +106,10 @@ export function statutoryFailureOf(response: Response, error: unknown): PayrollF
           : 'domain';
     return { ...base, code, kind, messageKey: `errors.${code}` };
   }
+  // MVP-097A: a calculation commit with no ACTIVE governed pack for the entity's country and period.
+  if (code === 'STATUTORY_PACK_NO_ACTIVE_VERSION') {
+    return { ...base, code, kind: 'domain', messageKey: `errors.${code}` };
+  }
   if (code === 'IDEMPOTENCY_KEY_REUSED') {
     return { ...base, code, kind: 'stale', messageKey: 'errors.IDEMPOTENCY_KEY_REUSED' };
   }

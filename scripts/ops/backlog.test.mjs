@@ -24,10 +24,12 @@ const DEPLOYED = [
   'c93ce0ec0a828e9dc4fd78298ca10475208ff58a', // R187-1, PR #189: trimmed provider key
   'e8759cc5ca71cb8a54dc22b97aa9b6760fa1969f', // MVP-095C, PR #191: reconciliation of uncertain submissions (synthetic provider only)
   'ce871f48e7be14d824a0800bc7a03be05b72d2ff', // TRUTH-002, PR #193: truth refresh for MVP-095C, preserved as the previous release
-  'c368d58b15e1aeddb755997728154a497348c07c', // MVP-096, PR #195: accounting journal export (manual export, never a posting), running
+  'c368d58b15e1aeddb755997728154a497348c07c', // MVP-096, PR #195: accounting journal export (manual export, never a posting), the latest capability release before MVP-097A
+  '55b130f5bde8eedee4589f5e00b9e17d927457f1', // TRUTH-003, PR #199: presentation and truth release for MVP-096, running
 ];
-const RUNNING = DEPLOYED[9];
-const PREVIOUS = DEPLOYED[8];
+const RUNNING = DEPLOYED[10];
+const PREVIOUS = DEPLOYED[9];
+const CAPABILITY = DEPLOYED[9];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
 /** Stories that D93-13 requires to carry a real merged or deployed status. */
@@ -99,12 +101,14 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #184, MVP-095A/u);
   assert.match(header, /PR #188, MVP-095B/u);
   assert.match(header, /PR #189, R187-1/u);
-  assert.match(header, /as of 2026-11-14/u);
+  assert.match(header, /as of 2026-11-15/u);
+  assert.match(header, /PR #199, TRUTH-003/u);
+  assert.match(header, new RegExp(`latest capability release before MVP-097A is \`${CAPABILITY}\``, 'u'));
   assert.match(header, /PR #195, MVP-096/u);
   assert.match(header, /PR #193, TRUTH-002/u);
   assert.match(
     header,
-    /migration V50 is applied; Issue #194|Issue #194 is closed\); migration V50 is applied/u,
+    /Issue #198 is closed\); migration V50 is applied/u,
   );
   assert.match(header, /PR #191, MVP-095C/u);
   // The payroll release train (094A, 094B, 094C) is merged, deployed and accepted, from Git.
@@ -464,8 +468,8 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   assert.notEqual(stale, backlog);
   assert.ok(releaseClaimProblems(stale, RUNNING).length > 0, 'a stale header SHA fails');
   const wrongMigration = backlog.replace(
-    'Issue #194 is closed); migration V50 is applied',
-    'Issue #194 is closed); migration V49 is applied',
+    'Issue #198 is closed); migration V50 is applied',
+    'Issue #198 is closed); migration V49 is applied',
   );
   assert.notEqual(wrongMigration, backlog);
   assert.ok(
@@ -478,7 +482,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   );
   assert.notEqual(inProgress, backlog);
   assert.ok(releaseClaimProblems(inProgress, RUNNING).length > 0, 'an in-progress MVP-095C fails');
-  const staleTable = backlog.replace(/^\| MVP-096 .*$/mu, '');
+  const staleTable = backlog.replace(/^\| TRUTH-003 .*$/mu, '');
   assert.notEqual(staleTable, backlog);
   assert.ok(
     releaseClaimProblems(staleTable, RUNNING).length > 0,
@@ -851,7 +855,7 @@ export function journalBacklogProblems(text) {
   need('MVP-096 entry', opening, /deployed to hr-dev and accepted on 2026-11-14/u);
   need('MVP-096 entry', opening, /Issue #194/u);
   need('MVP-096 entry', opening, /Migration V50 is applied/u);
-  need('MVP-096 entry', opening, /hr-dev runs `c368d58b…`/u);
+  need('MVP-096 entry', opening, /hr-dev ran `c368d58b…` when it was accepted, and now runs the presentation release `55b130f5…`/u);
   need('MVP-096 entry', opening, /previous release `ce871f48e7be` is preserved/u);
   for (const [label, haystack] of [
     ['MVP-096 entry', section],
@@ -897,8 +901,8 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
       'header SHA',
       (t) =>
         t.replace(
+          'runs `main` at `55b130f5bde8eedee4589f5e00b9e17d927457f1`',
           'runs `main` at `c368d58b15e1aeddb755997728154a497348c07c`',
-          'runs `main` at `ce871f48e7be14d824a0800bc7a03be05b72d2ff`',
         ),
       null,
     ],
@@ -980,7 +984,7 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
         `${name}: names the problem`,
       );
   }
-  const noTableRow = backlog.replace(/^\| MVP-096 .*$/mu, '');
+  const noTableRow = backlog.replace(/^\| TRUTH-003 .*$/mu, '');
   assert.ok(releaseClaimProblems(noTableRow, RUNNING).length > 0, 'a missing release row fails');
   const wrongPr = backlog.replace('| MVP-096   | #195 |', '| MVP-096   | #196 |');
   assert.notEqual(wrongPr, backlog);

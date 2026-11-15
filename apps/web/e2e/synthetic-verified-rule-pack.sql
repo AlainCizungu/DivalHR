@@ -11,7 +11,7 @@
 -- hr-dev environment seed only the DRAFT pack CD-SALARY-PREVIEW.
 --
 -- Variables: pack_id (a UUID) and pack_code (SYNTHETIC-TEST-...). The pack is created DRAFT with its
--- sources, then moved DRAFT -> VERIFIED in the same transaction, as the pack state machine requires.
+-- sources, then walked through the governed lifecycle to ACTIVE in the same transaction.
 
 BEGIN;
 
@@ -47,13 +47,67 @@ VALUES
      'https://cnss.cd/?page_id=1388',
      'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', DATE '2026-10-29');
 
-UPDATE payroll.statutory_rule_pack
-   SET status = 'VERIFIED',
-       reviewer_name = 'Synthetic Test Reviewer',
-       reviewer_organization = 'Test Only',
-       reviewed_on = DATE '2026-10-29',
-       attested = true,
-       verified_at = now()
- WHERE id = :'pack_id';
+-- MVP-097A (Issue #200): the legacy VERIFIED status can no longer be written directly. The pack walks
+-- the governed lifecycle DRAFT -> VALIDATED -> REVIEWED -> ACTIVE as the database owner, with synthetic
+-- evidence and a synthetic independent reviewer. Any overlapping ACTIVE CD version is retired first
+-- (one ACTIVE version per country and period).
+DO $walk$
+DECLARE
+    other uuid;
+BEGIN
+    FOR other IN
+        SELECT o.pack_id FROM payroll.statutory_pack_governance o
+          JOIN payroll.statutory_rule_pack op ON op.id = o.pack_id
+         WHERE op.country = 'CD' AND o.state IN ('ACTIVE', 'SCHEDULED') AND o.pack_id <> :'pack_id'
+    LOOP
+        UPDATE payroll.statutory_pack_governance
+           SET state = 'RETIRED', retired_at = now(), retired_by = 'synthetic-reviewer',
+               retire_reason = 'SUPERSEDED', row_version = row_version + 1,
+               transition_actor = 'synthetic-reviewer', transition_at = now()
+         WHERE pack_id = other;
+    END LOOP;
+END
+$walk$;
+
+UPDATE payroll.statutory_pack_governance
+   SET source_authority = 'Synthetic test authority', source_title = 'Synthetic test source bundle',
+       source_published_on = DATE '2026-10-01', source_reference = 'https://example.test/synthetic-source',
+       source_bundle_sha256 = repeat('d', 64), evidence_schema_version = 1,
+       row_version = row_version + 1, transition_actor = 'synthetic-submitter', transition_at = now()
+ WHERE pack_id = :'pack_id';
+
+INSERT INTO payroll.statutory_reference_case (pack_id, seq, case_key, inputs, expected)
+VALUES (:'pack_id', 1, 'SYNTHETIC-CASE', '{}'::jsonb, '{}'::jsonb);
+
+INSERT INTO payroll.statutory_pack_validation_run
+    (id, pack_id, run_by, run_at, outcome, check_count, failed_count, summary, pack_sha256, fixture_sha256, engine_version)
+SELECT gen_random_uuid(), p.id, 'synthetic-submitter', now(), 'PASSED', 1, 0,
+       '[{"code":"PACK_PARSES","passed":true}]'::jsonb, p.rules_digest, repeat('c', 64), 'pack-validator-1'
+  FROM payroll.statutory_rule_pack p WHERE p.id = :'pack_id';
+
+UPDATE payroll.statutory_pack_governance g
+   SET state = 'VALIDATED', pack_sha256 = p.rules_digest, fixture_sha256 = repeat('c', 64),
+       validated_at = now(), row_version = g.row_version + 1,
+       transition_actor = 'synthetic-submitter', transition_at = now()
+  FROM payroll.statutory_rule_pack p WHERE p.id = g.pack_id AND g.pack_id = :'pack_id';
+
+UPDATE payroll.statutory_pack_governance
+   SET submitted_by = 'synthetic-submitter', submitted_at = now(), row_version = row_version + 1,
+       transition_actor = 'synthetic-submitter', transition_at = now()
+ WHERE pack_id = :'pack_id';
+
+INSERT INTO payroll.statutory_pack_review (pack_id, decision, reviewer_subject, decided_at, confirmed, mfa_verified)
+VALUES (:'pack_id', 'APPROVED', 'synthetic-reviewer', now(), true, true);
+
+UPDATE payroll.statutory_pack_governance
+   SET state = 'REVIEWED', row_version = row_version + 1,
+       transition_actor = 'synthetic-reviewer', transition_at = now()
+ WHERE pack_id = :'pack_id';
+
+UPDATE payroll.statutory_pack_governance g
+   SET state = 'ACTIVE', active_from = p.effective_from, active_to = p.effective_to,
+       activated_at = now(), activated_by = 'synthetic-reviewer', row_version = g.row_version + 1,
+       transition_actor = 'synthetic-reviewer', transition_at = now()
+  FROM payroll.statutory_rule_pack p WHERE p.id = g.pack_id AND g.pack_id = :'pack_id';
 
 COMMIT;

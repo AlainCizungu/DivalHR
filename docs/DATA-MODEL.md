@@ -578,3 +578,20 @@ Same schema `integrations`; no existing table is altered. Tables: `messaging_con
   center or site, so those columns are empty.
 - **Classification.** Restricted financial data. Rollback `db/rollback/V50__rollback.sql` is manual and
   refuses while any row exists.
+
+## Statutory pack governance (Issue #200, V51)
+
+- **Tables.** `payroll.statutory_pack_governance` (one row per pack version: lifecycle state, immutable source evidence,
+  canonical pack and fixture digests, submitter, reviewer, activation interval, optimistic `row_version`),
+  `statutory_reference_case` (at most 100 per version, editable only in DRAFT), `statutory_pack_validation_run`
+  (append-only, bound to both digests), `statutory_pack_review` (one independent, confirmed, MFA-verified decision per
+  version) and `statutory_pack_transition` (append-only history). Platform-owned reference data: no tenant column.
+- **Guards.** A trigger enforces `DRAFT → VALIDATED → REVIEWED → SCHEDULED → ACTIVE → RETIRED`, refuses skipped steps,
+  evidence edits after DRAFT, reviewer = submitter, an overlapping SCHEDULED/ACTIVE interval per country
+  (`payroll_statutory_pack_period_overlap`) and more than 25 versions per code. The legacy `statutory_rule_pack` status
+  follows the governed state and cannot be written directly (`payroll_statutory_rule_pack_governed`). The migration
+  refuses to run when a non-DRAFT pack exists without governance evidence.
+- **Classification.** Platform reference data, no personal data. The real pack `CD-SALARY-PREVIEW` stays DRAFT.
+- **Rollback.** `db/rollback/V51__rollback.sql` is manual and refuses while any governance business row exists beyond
+  untouched DRAFT rows; it then restores the V45 guard. Otherwise restore the pre-deploy backup.
+
