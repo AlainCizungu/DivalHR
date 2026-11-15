@@ -193,6 +193,26 @@ public class JdbcStatutoryRulePackRepository {
   }
 
   /**
+   * The one governed ACTIVE pack version applicable to a country on a date (MVP-097A, D97A-6),
+   * independent of any client-supplied pack identifier.
+   *
+   * @param country legal entity country
+   * @param date payroll date
+   * @return the pack, if exactly the governed ACTIVE version applies
+   */
+  public Optional<UUID> applicableActivePackId(String country, LocalDate date) {
+    return jdbc.sql(
+            "SELECT p.id FROM payroll.statutory_rule_pack p"
+                + " JOIN payroll.statutory_pack_governance g ON g.pack_id = p.id"
+                + " WHERE p.country = :country AND g.state = 'ACTIVE' AND p.status = 'VERIFIED'"
+                + " AND g.active_from <= :date AND (g.active_to IS NULL OR g.active_to >= :date)")
+        .param("country", country)
+        .param("date", date)
+        .query(UUID.class)
+        .optional();
+  }
+
+  /**
    * The official sources of a pack, in order.
    *
    * @param packId pack

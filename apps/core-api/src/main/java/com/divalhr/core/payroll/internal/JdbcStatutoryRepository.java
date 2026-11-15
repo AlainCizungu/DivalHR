@@ -559,6 +559,23 @@ public class JdbcStatutoryRepository {
   }
 
   /**
+   * The country of a legal entity of the tenant, or empty when it is not found.
+   *
+   * @param tenant verified tenant
+   * @param legalEntityId legal entity
+   * @return the two-letter country code
+   */
+  public Optional<String> legalEntityCountry(TenantId tenant, UUID legalEntityId) {
+    return jdbc.sql(
+            "SELECT trim(e.country_code) FROM tenant.legal_entity e"
+                + " WHERE e.tenant_id = :tenant AND e.id = :entity")
+        .param("tenant", tenant.value())
+        .param("entity", legalEntityId)
+        .query(String.class)
+        .optional();
+  }
+
+  /**
    * Inserts an activation.
    *
    * @param tenant verified tenant

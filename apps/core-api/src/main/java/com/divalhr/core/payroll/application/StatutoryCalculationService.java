@@ -396,9 +396,10 @@ public class StatutoryCalculationService {
     if (!evaluation.current()) {
       throw new ApiException(ErrorCode.STATUTORY_PREVIEW_STALE, Map.of());
     }
-    // 3. No activation in effect, or a pack that is not VERIFIED (DRAFT and RETIRED never count).
+    // 3. No employer activation in effect, or no governed ACTIVE pack version for the legal
+    // entity's country and the payroll period (MVP-097A, D97A-6): refused with a stable error.
     if (resolved == null || !"VERIFIED".equals(resolved.pack().status())) {
-      throw new ApiException(ErrorCode.STATUTORY_RULE_PACK_NOT_VERIFIED, Map.of());
+      throw new ApiException(ErrorCode.STATUTORY_PACK_NO_ACTIVE_VERSION, Map.of());
     }
     // 4. A pack that does not cover the month or the currency, or that does not parse.
     if (result.runBlockers().contains(StatutoryRunBlocker.CURRENCY_NOT_SUPPORTED)

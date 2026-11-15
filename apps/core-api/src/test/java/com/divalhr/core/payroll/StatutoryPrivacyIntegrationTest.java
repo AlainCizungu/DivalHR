@@ -206,6 +206,7 @@ class StatutoryPrivacyIntegrationTest {
                 "Kapinga",
                 "Mbuyi",
                 "Synthetic Test Reviewer",
+                "Independent platform review",
                 "STANDARD_RESIDENT",
                 "EMPLOYMENT_CONTRACT"));
     String evidence = w.persistedEvidence();

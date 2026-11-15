@@ -5,7 +5,11 @@ import { activeItemPath, NAVIGATION, navigationRoles, visibleGroups } from './na
 const visiblePaths = (roles: Role[]) =>
   visibleGroups(roles).flatMap((group) => group.items.map((item) => item.to));
 
-const PLATFORM = ['/admin/organizations/new', '/admin/organizations/first-admin'];
+const PLATFORM = [
+  '/admin/organizations/new',
+  '/admin/organizations/first-admin',
+  '/admin/statutory-packs',
+];
 const TENANT = [
   '/admin/people',
   '/admin/people/import',
@@ -110,6 +114,8 @@ describe('navigation and route registry consistency', () => {
         '/status',
         '/admin/organizations/new',
         '/admin/organizations/first-admin',
+        '/admin/statutory-packs',
+        '/admin/statutory-packs/:packCode/:version',
         '/admin/hierarchy',
         '/admin/users',
         '/admin/access',

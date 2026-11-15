@@ -12,6 +12,7 @@
     "hierarchy": "Organizational structure",
     "users": "Users and invitations",
     "firstAdmin": "First administrator",
+    "statutoryPacks": "Statutory packs",
     "accessReview": "Access review",
     "employees": "Employees",
     "employeeImport": "Import employees",
@@ -92,6 +93,7 @@
       "contract": "Contract",
       "payrollRun": "Payroll run",
       "statutoryPreview": "Statutory preview",
+      "statutoryPack": "Statutory pack version",
       "statutoryProfile": "Statutory profile",
       "payrollApproval": "Approval review",
       "payrollPackage": "Approved payroll",
@@ -740,7 +742,18 @@
     "ACCOUNTING_JOURNAL_PREVIEW_STALE": "The journal review expired or the payroll package or the mapping changed. Review it again before generating.",
     "ACCOUNTING_JOURNAL_UNBALANCED": "The journal could not be generated because debits and credits do not balance. Nothing was created.",
     "ACCOUNTING_JOURNAL_TOO_LARGE": "The journal would exceed the size limit, so it was not generated.",
-    "ACCOUNTING_JOURNAL_NOT_FOUND": "This accounting journal was not found."
+    "ACCOUNTING_JOURNAL_NOT_FOUND": "This accounting journal was not found.",
+    "STATUTORY_PACK_NOT_FOUND": "This statutory pack version does not exist or is not available to you.",
+    "STATUTORY_PACK_VERSION_CONFLICT": "Someone else changed this pack version in the meantime. Reload its latest state before trying again.",
+    "STATUTORY_PACK_TRANSITION_NOT_ALLOWED": "This action is not allowed from the current state of the pack version.",
+    "STATUTORY_PACK_VALIDATION_FAILED": "Technical validation failed. Open the validation results to see which checks did not pass.",
+    "STATUTORY_PACK_EVIDENCE_INCOMPLETE": "The source evidence of this pack version is incomplete, so it cannot move forward.",
+    "STATUTORY_PACK_DIGEST_MISMATCH": "The pack or its reference cases no longer match the digests recorded at validation. Validate again.",
+    "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN": "The person who submitted this pack version cannot also review it. A different administrator must do it.",
+    "STATUTORY_PACK_REVIEW_REQUIRED": "An independent review is required before this action.",
+    "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT": "Another scheduled or active version already covers part of this country and period.",
+    "STATUTORY_PACK_NO_ACTIVE_VERSION": "No active statutory pack applies to this country and payroll period, so payroll cannot be calculated.",
+    "STATUTORY_PACK_ALREADY_ACTIVE": "This pack version is already active."
   },
   "notFound": {
     "title": "Page not found",
@@ -6318,6 +6331,172 @@
       "RECONCILIATION_EXISTS": "An investigation already exists for this submission.",
       "PROVIDER_NOT_AVAILABLE": "No provider is available for this submission.",
       "PROVIDER_KEY_UNAVAILABLE": "The investigation is unavailable: the signing key is not configured."
+    }
+  },
+  "statutoryPacks": {
+    "title": "Statutory packs",
+    "description": "Govern, validate and review the versions of statutory payroll packs. This is the platform view.",
+    "unauthorized": "Only platform administrators can use statutory pack governance.",
+    "signInRequired": "Sign in as a platform administrator to see statutory packs.",
+    "loading": "Loading…",
+    "empty": "There is no statutory pack version yet.",
+    "openEnded": "open-ended",
+    "draftNotice": "DRAFT — not approved for operational payroll",
+    "notice": {
+      "label": "Technical validation is not legal approval",
+      "heading": "Technical validation is not legal approval.",
+      "body": "A passing validation shows that a pack is internally consistent and reproduces its reference cases. It does not show that any rate, threshold or rule is correct in law. DivalHR does not state that payroll is legally compliant."
+    },
+    "errors": {
+      "validation": "Check the values you entered and try again.",
+      "forbidden": "You are not allowed to do this."
+    },
+    "state": {
+      "DRAFT": "Draft",
+      "VALIDATED": "Technically validated",
+      "REVIEWED": "Reviewed",
+      "SCHEDULED": "Scheduled",
+      "ACTIVE": "Active",
+      "RETIRED": "Retired"
+    },
+    "reason": {
+      "SOURCE_MISMATCH": "The pack does not match its source",
+      "VALUE_ERROR": "A value is wrong",
+      "EVIDENCE_INSUFFICIENT": "The evidence is insufficient",
+      "SCOPE_ERROR": "The scope or period is wrong",
+      "OTHER": "Another reason",
+      "SUPERSEDED": "Superseded by a newer version",
+      "WITHDRAWN": "Withdrawn",
+      "LEGAL_CHANGE": "The legal source changed",
+      "ERROR": "Recorded in error",
+      "REJECTED": "Rejected at review"
+    },
+    "validation": {
+      "PASSED": "Technical validation passed",
+      "FAILED": "Technical validation failed",
+      "NONE": "Not validated yet"
+    },
+    "list": {
+      "tableLabel": "Statutory pack versions",
+      "pack": "Pack and version",
+      "packVersion": "{{code}}, version {{version}}",
+      "country": "Country",
+      "state": "State",
+      "effective": "Effective interval",
+      "validation": "Last technical validation",
+      "more": "Show more versions"
+    },
+    "detail": {
+      "title": "{{code}}, version {{version}}",
+      "back": "Back to statutory packs",
+      "stateTitle": "State",
+      "country": "Country {{country}}",
+      "semantic": "Semantic version {{value}}",
+      "interval": "Effective from {{from}} to {{to}}",
+      "activeFrom": "Applies from {{date}}",
+      "retireReason": "Retirement reason: {{reason}}"
+    },
+    "evidence": {
+      "title": "Source evidence",
+      "complete": "Evidence complete",
+      "incomplete": "Evidence incomplete",
+      "authority": "Source authority",
+      "documentTitle": "Document title",
+      "publishedOn": "Publication date",
+      "reference": "Reference",
+      "bundleSha": "Archived source bundle SHA-256",
+      "counts": "Sources and reference cases",
+      "countsValue": "{{sources}} sources, {{cases}} reference cases"
+    },
+    "digests": {
+      "title": "Digests",
+      "rules": "Rules SHA-256",
+      "pack": "Validated pack SHA-256",
+      "fixtures": "Reference cases SHA-256"
+    },
+    "runs": {
+      "title": "Technical validation results",
+      "empty": "No validation has run yet.",
+      "outcome": {
+        "PASSED": "Technical validation passed",
+        "FAILED": "Technical validation failed"
+      },
+      "counts": "{{passed}} of {{total}} checks passed",
+      "checkPassed": "passed",
+      "checkFailed": "failed"
+    },
+    "history": {
+      "title": "Review and activation history",
+      "empty": "No lifecycle step has been recorded yet.",
+      "byYou": "by you",
+      "kind": {
+        "VALIDATE": "Validated",
+        "SUBMIT": "Submitted",
+        "APPROVE": "Approved",
+        "REJECT": "Rejected",
+        "SCHEDULE": "Scheduled",
+        "ACTIVATE": "Activated",
+        "RETIRE": "Retired"
+      },
+      "review": {
+        "APPROVED": "Independent review: approved on {{date}}",
+        "REJECTED": "Independent review: rejected on {{date}}"
+      }
+    },
+    "actions": {
+      "title": "Actions",
+      "none": "No action is available for a retired version.",
+      "choose": "Choose an action",
+      "selfHint": "You submitted this version, so a different platform administrator must review it.",
+      "command": {
+        "validate": "Run technical validation",
+        "submit-review": "Submit for review",
+        "approve": "Approve",
+        "reject": "Reject",
+        "schedule": "Schedule",
+        "activate": "Activate",
+        "retire": "Retire"
+      },
+      "help": {
+        "validate": "Runs the offline checks and every reference case. A pass is technical only.",
+        "submit-review": "Records you as the submitter. A different platform administrator must review it.",
+        "approve": "Records an independent review decision. It needs a different person than the submitter and a verified second factor.",
+        "reject": "Rejects this version. A correction is a new version; nothing is edited or deleted.",
+        "schedule": "Schedules the version from a future date, inside its own interval.",
+        "activate": "Makes this version the active one for its country and period. It cannot overlap another.",
+        "retire": "Retires this version permanently. A retired version stays readable and is never reactivated."
+      },
+      "confirm": {
+        "approve": "I confirm this independent review decision.",
+        "reject": "I confirm this rejection.",
+        "schedule": "I confirm this scheduled date.",
+        "activate": "I confirm the activation of this version.",
+        "retire": "I understand that retirement is permanent."
+      },
+      "announce": {
+        "validate": "Technical validation passed.",
+        "submit-review": "Submitted for review.",
+        "approve": "Approved at review.",
+        "reject": "Rejected.",
+        "schedule": "Scheduled.",
+        "activate": "Activated.",
+        "retire": "Retired.",
+        "validateFailed": "Technical validation did not pass. Open the validation results."
+      },
+      "reason": "Reason",
+      "reasonChoose": "Choose a reason",
+      "note": "Note (optional)",
+      "noteHelp": "At most {{max}} characters. Do not enter personal data.",
+      "effectiveFrom": "Effective from",
+      "effectiveHelp": "A future date inside the interval of this version.",
+      "why": "Complete the fields and the confirmation to continue."
+    },
+    "applicability": {
+      "title": "Applicable statutory pack",
+      "none": "No active statutory pack applies to country {{country}} for {{period}}. Payroll cannot be calculated for this period until one is active.",
+      "pack": "Pack",
+      "effective": "Effective interval",
+      "note": "Read only. The platform team governs statutory packs; technical validation is not legal approval."
     }
   },
   "accounting": {

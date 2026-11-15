@@ -197,13 +197,11 @@ class StatutoryConcurrencyIntegrationTest {
 
   @Test
   void racingActivationsRecordOneSequence() throws Exception {
-    UUID second = StatutoryWorld.verifiedPack(jdbc);
     List<MockHttpServletRequestBuilder> calls = new ArrayList<>();
     for (int i = 1; i <= 3; i++) {
       calls.add(
           w.activateRequest(
-              Organizations.newKey(),
-              StatutoryWorld.activation(i == 2 ? second : pack, w.month.plusMonths(i), 1)));
+              Organizations.newKey(), StatutoryWorld.activation(pack, w.month.plusMonths(i), 1)));
     }
     int activations = w.evidence().get(0);
 

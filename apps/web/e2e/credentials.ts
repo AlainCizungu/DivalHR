@@ -8,6 +8,7 @@ export const USERS = {
   adminB: ['dev-admin-b', 'dev-only-Admin-B-2026'],
   employeeA: ['dev-employee-a', 'dev-only-Employee-A-2026'],
   platformAdmin: ['dev-platform-admin', 'dev-only-Platform-2026'],
+  platformReviewer: ['dev-platform-reviewer', 'dev-only-Reviewer-2026'],
 } as const;
 /**
  * DEVELOPMENT-ONLY published TOTP seeds of the privileged seed users (MVP-011, realm import).
@@ -17,6 +18,7 @@ export const TOTP_SEEDS: Readonly<Partial<Record<string, string>>> = {
   'dev-admin-a': 'dev-only-totp-admin-a-2026',
   'dev-admin-b': 'dev-only-totp-admin-b-2026',
   'dev-platform-admin': 'dev-only-totp-platform-2026',
+  'dev-platform-reviewer': 'dev-only-totp-platform-reviewer-2026',
 };
 
 /** RFC 6238 TOTP (HMAC-SHA1, 6 digits, 30 s) over the raw secret, as Keycloak configures it. */

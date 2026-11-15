@@ -94,10 +94,19 @@ class AuthorizationDenialAuditIntegrationTest {
           "tenant-admin-bootstrap.read",
           "tenant-admin-bootstrap.create",
           "tenant-admin-bootstrap.revoke",
-          "tenant-admin-bootstrap.resend");
+          "tenant-admin-bootstrap.resend",
+          "statutory-pack.read",
+          "statutory-pack.validate",
+          "statutory-pack.submit-review",
+          "statutory-pack.approve",
+          "statutory-pack.reject",
+          "statutory-pack.schedule",
+          "statutory-pack.activate",
+          "statutory-pack.retire");
 
   private static final Set<String> TENANT_OPERATIONS =
       Set.of(
+          "statutory-pack.applicability-read",
           "legal-entity.list",
           "legal-entity.create",
           "region.list",
@@ -847,7 +856,9 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-096 nine more handlers over seven operations (the mapping and the journal reads, the
     // journal list and detail share accounting-journal.read; the CSV and the manifest share
     // accounting-journal.download).
-    assertThat(handlers).hasSize(220);
+    // MVP-097A added ten handlers: nine platform operations (list, read and seven commands) and the
+    // tenant read.
+    assertThat(handlers).hasSize(230);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

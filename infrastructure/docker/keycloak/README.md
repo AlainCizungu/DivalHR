@@ -20,6 +20,7 @@ into, or reused by, any shared, staging or production environment:
 | `dev-employee-a` | A (`…000a`) | employee | `dev-only-Employee-A-2026` |
 | `dev-employee-b` | B (`…000b`) | employee | `dev-only-Employee-B-2026` |
 | `dev-platform-admin` | A (`…000a`) | platform-admin | `dev-only-Platform-2026` |
+| `dev-platform-reviewer` | A (`…000a`) | platform-admin | `dev-only-Reviewer-2026` |
 
 The bootstrap administrator credentials in `.env.example` are also development-only.
 
@@ -185,6 +186,7 @@ one to an authenticator app with the base32 key (type *time-based*, SHA-1, 6 dig
 | `dev-admin-a` | `dev-only-totp-admin-a-2026` | `MRSXMLLPNZWHSLLUN52HALLBMRWWS3RNMEWTEMBSGY` |
 | `dev-admin-b` | `dev-only-totp-admin-b-2026` | `MRSXMLLPNZWHSLLUN52HALLBMRWWS3RNMIWTEMBSGY` |
 | `dev-platform-admin` | `dev-only-totp-platform-2026` | `MRSXMLLPNZWHSLLUN52HALLQNRQXIZTPOJWS2MRQGI3A` |
+| `dev-platform-reviewer` | `dev-only-totp-platform-reviewer-2026` | `MRSXMLLPNZWHSLLUN52HALLQNRQXIZTPOJWS24TFOZUWK53FOIWTEMBSGY` |
 
 Employees have none. A code works once; the previous and next 30-second periods are also
 accepted. Five failures lock the account for 60 seconds, growing to at most 15 minutes. To unlock

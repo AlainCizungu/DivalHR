@@ -53,6 +53,8 @@ import { MyPaymentDestinationPage } from '../features/payments/MyPaymentDestinat
 import { PaymentBatchDetailPage } from '../features/payments/PaymentBatchDetailPage';
 import { AccountingJournalDetailPage } from '../features/accounting/AccountingJournalDetailPage';
 import { AccountingMappingsPage } from '../features/accounting/AccountingMappingsPage';
+import { StatutoryPackDetailPage } from '../features/statutoryPacks/StatutoryPackDetailPage';
+import { StatutoryPacksPage } from '../features/statutoryPacks/StatutoryPacksPage';
 import { StatutoryProfilePage } from '../features/statutory/StatutoryProfilePage';
 import { StatutoryRunPage } from '../features/statutory/StatutoryRunPage';
 import { TimeExportsPage } from '../features/schedules/TimeExportsPage';
@@ -125,6 +127,31 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'firstAdmin.signInRequired',
     },
     crumbs: [HOME, PLATFORM, { key: 'nav.firstAdmin' }],
+  },
+  {
+    path: '/admin/statutory-packs',
+    element: <StatutoryPacksPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'statutoryPacks.unauthorized',
+      signInKey: 'statutoryPacks.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.statutoryPacks' }],
+  },
+  {
+    path: '/admin/statutory-packs/:packCode/:version',
+    element: <StatutoryPackDetailPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'statutoryPacks.unauthorized',
+      signInKey: 'statutoryPacks.signInRequired',
+    },
+    crumbs: [
+      HOME,
+      PLATFORM,
+      { key: 'nav.statutoryPacks', to: '/admin/statutory-packs' },
+      { key: 'shell.crumb.statutoryPack' },
+    ],
   },
   {
     path: '/admin/hierarchy',

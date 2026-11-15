@@ -802,7 +802,29 @@ public enum ErrorCode {
   /** MVP-096: more than 10,000 entries before or 2,000 lines after aggregation. */
   ACCOUNTING_JOURNAL_TOO_LARGE(HttpStatus.UNPROCESSABLE_CONTENT),
   /** MVP-096: the journal is unknown, foreign or not available to the caller. */
-  ACCOUNTING_JOURNAL_NOT_FOUND(HttpStatus.NOT_FOUND);
+  ACCOUNTING_JOURNAL_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_VALIDATION_FAILED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_EVIDENCE_INCOMPLETE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_DIGEST_MISMATCH(HttpStatus.CONFLICT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN(HttpStatus.CONFLICT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_REVIEW_REQUIRED(HttpStatus.CONFLICT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_NO_ACTIVE_VERSION(HttpStatus.CONFLICT),
+  /** MVP-097A: statutory pack governance. */
+  STATUTORY_PACK_ALREADY_ACTIVE(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

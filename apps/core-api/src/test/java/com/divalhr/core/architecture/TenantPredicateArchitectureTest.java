@@ -240,6 +240,37 @@ class TenantPredicateArchitectureTest {
               });
 
   /**
+   * MVP-097A: the statutory pack governance repository is platform-owned reference data as well, so
+   * none of its operations takes a tenant (JdbcStatutoryPackGovernanceRepositoryScopeTest also
+   * asserts that no statement names a tenant or a tenant-owned table).
+   */
+  @ArchTest
+  static final ArchRule packGovernanceRepositoryIsPlatformOwnedAndTakesNoTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.payroll.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleName("JdbcStatutoryPackGovernanceRepository")
+          .and()
+          .arePublic()
+          .should(
+              new ArchCondition<JavaMethod>("not take a TenantId parameter (platform data)") {
+                @Override
+                public void check(JavaMethod method, ConditionEvents events) {
+                  boolean scoped =
+                      method.getRawParameterTypes().stream()
+                          .anyMatch(type -> type.isEquivalentTo(TenantId.class));
+                  events.add(
+                      new SimpleConditionEvent(
+                          method,
+                          !scoped,
+                          method.getFullName() + " must not take a TenantId: platform data"));
+                }
+              });
+
+  /**
    * MVP-094C: the tenant-owned payroll package repository follows the same rule, with no exception
    * (every statement filters on the tenant, and the employee payslip reads also on the employee).
    */

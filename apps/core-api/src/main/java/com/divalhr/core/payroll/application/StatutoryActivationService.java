@@ -228,6 +228,18 @@ public class StatutoryActivationService {
         || !StatutoryEvaluator.covers(pack, command.fromMonth().first())) {
       throw new ApiException(ErrorCode.STATUTORY_RULE_PACK_NOT_APPLICABLE, Map.of());
     }
+    // MVP-097A (D97A-6): only the governed ACTIVE version applicable to the legal entity's country
+    // and the first month can be acknowledged; a pack identifier alone selects nothing.
+    String country =
+        statutory
+            .legalEntityCountry(tenant, entity)
+            .orElseThrow(() -> new ApiException(ErrorCode.LEGAL_ENTITY_NOT_FOUND, Map.of()));
+    if (packs
+        .applicableActivePackId(country, command.fromMonth().first())
+        .filter(pack.id()::equals)
+        .isEmpty()) {
+      throw new ApiException(ErrorCode.STATUTORY_PACK_NO_ACTIVE_VERSION, Map.of());
+    }
     List<ActivationRow> existing = statutory.activations(tenant, entity);
     int version = statutory.activationVersion(tenant, entity);
     boolean monthTaken =

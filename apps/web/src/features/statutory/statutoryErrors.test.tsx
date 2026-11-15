@@ -15,7 +15,10 @@ import { StatutoryRunPage } from './StatutoryRunPage';
  * without a message cannot slip through.
  */
 const schema = problemSchema as { properties: { code: { enum: string[] } } };
-const CODES = schema.properties.code.enum.filter((code) => code.startsWith('STATUTORY_'));
+// The MVP-097A pack-governance codes (STATUTORY_PACK_*) have their own feature and test.
+const CODES = schema.properties.code.enum.filter(
+  (code) => code.startsWith('STATUTORY_') && !code.startsWith('STATUTORY_PACK_'),
+);
 
 function message(locale: 'en' | 'fr', code: string): string {
   const text = (resources[locale].common.errors as Record<string, string | undefined>)[code];
@@ -90,6 +93,7 @@ describe('statutory error messages', () => {
     expect(kind('STATUTORY_VERSION_CONFLICT')).toBe('stale');
     expect(kind('STATUTORY_CALCULATION_NO_CHANGE')).toBe('domain');
     expect(kind('STATUTORY_RULE_PACK_NOT_VERIFIED')).toBe('domain');
+    expect(kind('STATUTORY_PACK_NO_ACTIVE_VERSION')).toBe('domain');
     expect(kind('STATUTORY_RULE_PACK_NOT_APPLICABLE')).toBe('domain');
     expect(kind('STATUTORY_PROFILE_MISSING')).toBe('domain');
     expect(kind('STATUTORY_PROFILE_UNSUPPORTED')).toBe('domain');
