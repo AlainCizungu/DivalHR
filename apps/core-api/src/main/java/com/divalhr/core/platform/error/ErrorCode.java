@@ -824,7 +824,37 @@ public enum ErrorCode {
   /** MVP-097A: statutory pack governance. */
   STATUTORY_PACK_NO_ACTIVE_VERSION(HttpStatus.CONFLICT),
   /** MVP-097A: statutory pack governance. */
-  STATUTORY_PACK_ALREADY_ACTIVE(HttpStatus.CONFLICT);
+  STATUTORY_PACK_ALREADY_ACTIVE(HttpStatus.CONFLICT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_POLICY_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_POLICY_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_POLICY_OVERLAP(HttpStatus.CONFLICT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_POLICY_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_NOT_ELIGIBLE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_CURRENCY_MISMATCH(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_OPEN_LIMIT_REACHED(HttpStatus.CONFLICT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_WAITING_PERIOD(HttpStatus.CONFLICT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_CONSENT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_CONSENT_VERSION_STALE(HttpStatus.CONFLICT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-120A: consented salary-advance requests (ADR 0041). */
+  SALARY_ADVANCE_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

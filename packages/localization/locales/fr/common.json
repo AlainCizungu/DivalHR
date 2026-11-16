@@ -753,7 +753,22 @@
     "STATUTORY_PACK_REVIEW_REQUIRED": "Une relecture indépendante est requise avant cette action.",
     "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT": "Une autre version planifiée ou active couvre déjà une partie de ce pays et de cette période.",
     "STATUTORY_PACK_NO_ACTIVE_VERSION": "Aucun référentiel légal actif ne s’applique à ce pays et à cette période de paie : la paie ne peut pas être calculée.",
-    "STATUTORY_PACK_ALREADY_ACTIVE": "Cette version du référentiel est déjà active."
+    "STATUTORY_PACK_ALREADY_ACTIVE": "Cette version du référentiel est déjà active.",
+    "SALARY_ADVANCE_POLICY_NOT_FOUND": "Cette politique d’avance sur salaire est introuvable.",
+    "SALARY_ADVANCE_POLICY_INVALID": "La politique d’avance sur salaire n’est pas valide. Vérifiez les dates, les limites et la version du consentement.",
+    "SALARY_ADVANCE_POLICY_OVERLAP": "Une autre politique pour cette entité juridique et cette devise couvre déjà une partie de cette période.",
+    "SALARY_ADVANCE_POLICY_PREVIEW_STALE": "L’aperçu a expiré ou ne correspond plus. Prévisualisez de nouveau la politique.",
+    "SALARY_ADVANCE_NOT_ELIGIBLE": "Cette demande ne respecte pas la politique d’avance sur salaire de l’employeur.",
+    "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING": "Aucune référence de paie approuvée admissible n’est disponible pour cette demande.",
+    "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE": "Le montant demandé est hors de la plage autorisée par la politique de l’employeur.",
+    "SALARY_ADVANCE_CURRENCY_MISMATCH": "La devise ne correspond pas à la politique de l’employeur ni à la référence de paie.",
+    "SALARY_ADVANCE_OPEN_LIMIT_REACHED": "La limite de demandes d’avance sur salaire ouvertes est atteinte.",
+    "SALARY_ADVANCE_WAITING_PERIOD": "Le délai d’attente après une demande retirée ou refusée n’est pas terminé.",
+    "SALARY_ADVANCE_CONSENT_REQUIRED": "Vous devez lire et confirmer le consentement avant de soumettre.",
+    "SALARY_ADVANCE_CONSENT_VERSION_STALE": "Le consentement a changé. Consultez la version actuelle et confirmez-la de nouveau.",
+    "SALARY_ADVANCE_REQUEST_NOT_FOUND": "Cette demande d’avance sur salaire est introuvable.",
+    "SALARY_ADVANCE_VERSION_CONFLICT": "Cette demande a changé depuis son ouverture. Rechargez et réessayez.",
+    "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "Cette action n’est pas permise dans le statut actuel."
   },
   "notFound": {
     "title": "Page introuvable",

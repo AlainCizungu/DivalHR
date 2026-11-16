@@ -753,7 +753,22 @@
     "STATUTORY_PACK_REVIEW_REQUIRED": "An independent review is required before this action.",
     "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT": "Another scheduled or active version already covers part of this country and period.",
     "STATUTORY_PACK_NO_ACTIVE_VERSION": "No active statutory pack applies to this country and payroll period, so payroll cannot be calculated.",
-    "STATUTORY_PACK_ALREADY_ACTIVE": "This pack version is already active."
+    "STATUTORY_PACK_ALREADY_ACTIVE": "This pack version is already active.",
+    "SALARY_ADVANCE_POLICY_NOT_FOUND": "This salary-advance policy was not found.",
+    "SALARY_ADVANCE_POLICY_INVALID": "The salary-advance policy is not valid. Check the dates, limits and consent version.",
+    "SALARY_ADVANCE_POLICY_OVERLAP": "Another policy for this legal entity and currency already covers part of this period.",
+    "SALARY_ADVANCE_POLICY_PREVIEW_STALE": "The preview has expired or no longer matches. Preview the policy again.",
+    "SALARY_ADVANCE_NOT_ELIGIBLE": "This request does not fit the employer's salary-advance policy.",
+    "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING": "No eligible approved payroll reference is available for this request.",
+    "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE": "The requested amount is outside the range the employer's policy allows.",
+    "SALARY_ADVANCE_CURRENCY_MISMATCH": "The currency does not match the employer's policy and payroll reference.",
+    "SALARY_ADVANCE_OPEN_LIMIT_REACHED": "The limit of open salary-advance requests is reached.",
+    "SALARY_ADVANCE_WAITING_PERIOD": "The waiting period after a withdrawn or refused request has not ended.",
+    "SALARY_ADVANCE_CONSENT_REQUIRED": "You must read and affirm the consent disclosure before submitting.",
+    "SALARY_ADVANCE_CONSENT_VERSION_STALE": "The consent disclosure has changed. Review the current version and affirm it again.",
+    "SALARY_ADVANCE_REQUEST_NOT_FOUND": "This salary-advance request was not found.",
+    "SALARY_ADVANCE_VERSION_CONFLICT": "This request changed since you opened it. Reload and try again.",
+    "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current status."
   },
   "notFound": {
     "title": "Page not found",
