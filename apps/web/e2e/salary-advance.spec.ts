@@ -1,7 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   CORE_API,
-  TENANT_A,
   USERS,
   acceptInvitation,
   expectAccessible,
@@ -91,11 +90,17 @@ function plusDays(date: string, days: number): string {
   return value.toISOString().slice(0, 10);
 }
 
+/**
+ * Tenant B hosts this journey: tenant A's administrator and its 50-per-hour invitation quota are
+ * already close to their limits across the other journeys.
+ */
+const TENANT_B = '00000000-0000-4000-8000-00000000000b';
+
 /** Today in the organization's business time zone, as the Core computes it. */
 function today(): string {
   return sql(
     `SELECT (now() AT TIME ZONE timezone)::date::text FROM tenant.organization
-     WHERE id = '${TENANT_A}'`,
+     WHERE id = '${TENANT_B}'`,
   );
 }
 
@@ -517,10 +522,10 @@ let packId = '';
 test.describe.serial('MVP-120A: consented salary-advance requests', () => {
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(600_000);
-    // The other specs writing as tenant A's administrator never run at the same time.
-    releaseSubject = await subjectLock(USERS.adminA[0]);
+    // The other specs writing as tenant B's administrator never run at the same time.
+    releaseSubject = await subjectLock(USERS.adminB[0]);
     const page = await browser.newPage();
-    const bearer = await signIn(page, USERS.adminA, 'fr');
+    const bearer = await signIn(page, USERS.adminB, 'fr');
     for (const entity of [EN_ENTITY, FR_ENTITY]) {
       const created = await post(page, bearer, '/legal-entities', `le-${entity.entityCode}`, {
         code: entity.entityCode,
@@ -615,7 +620,7 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
     test.setTimeout(300_000);
     const adminContext = await browser.newContext();
     const admin = await adminContext.newPage();
-    await signIn(admin, USERS.adminA, 'en');
+    await signIn(admin, USERS.adminB, 'en');
 
     // 1. Policy: preview, then an explicit commit.
     await primaryNav(admin)
@@ -731,7 +736,7 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
 
     const adminContext = await browser.newContext({ locale: 'fr-FR' });
     const admin = await adminContext.newPage();
-    await signIn(admin, USERS.adminA, 'fr');
+    await signIn(admin, USERS.adminB, 'fr');
     await primaryNav(admin)
       .getByRole('link', { name: 'Demandes d’avance sur salaire', exact: true })
       .click();
