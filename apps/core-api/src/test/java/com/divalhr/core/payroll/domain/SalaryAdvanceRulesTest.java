@@ -74,7 +74,8 @@ class SalaryAdvanceRulesTest {
     Facts exact = new Facts(true, true, true, 6, 6, true, true, 0, 2, 0, null, TODAY);
     Facts short1 = new Facts(true, true, true, 5, 6, true, true, 0, 2, 0, null, TODAY);
     assertThat(SalaryAdvanceRules.reasons(exact)).isEmpty();
-    assertThat(SalaryAdvanceRules.reasons(short1)).containsExactly(SalaryAdvanceReason.TENURE_TOO_SHORT);
+    assertThat(SalaryAdvanceRules.reasons(short1))
+        .containsExactly(SalaryAdvanceReason.TENURE_TOO_SHORT);
   }
 
   @Test
@@ -91,7 +92,8 @@ class SalaryAdvanceRulesTest {
     Facts waiting =
         new Facts(true, true, true, 18, 6, true, true, 0, 2, 0, TODAY.plusDays(1), TODAY);
     Facts over = new Facts(true, true, true, 18, 6, true, true, 0, 2, 0, TODAY, TODAY);
-    assertThat(SalaryAdvanceRules.reasons(waiting)).containsExactly(SalaryAdvanceReason.WAITING_PERIOD);
+    assertThat(SalaryAdvanceRules.reasons(waiting))
+        .containsExactly(SalaryAdvanceReason.WAITING_PERIOD);
     assertThat(SalaryAdvanceRules.reasons(over)).isEmpty();
   }
 

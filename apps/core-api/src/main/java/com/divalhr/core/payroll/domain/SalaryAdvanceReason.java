@@ -3,8 +3,8 @@ package com.divalhr.core.payroll.domain;
 /**
  * MVP-120A (D120A-5): the closed, stable reason codes of the employer-policy eligibility. They are
  * codes, never free text, and carry no amount; the client translates them. Eligibility means only
- * that a request fits employer policy: it is not a lender affordability assessment, credit
- * approval or an entitlement.
+ * that a request fits employer policy: it is not a lender affordability assessment, credit approval
+ * or an entitlement.
  */
 public enum SalaryAdvanceReason {
   /** No enabled, non-cancelled policy is in force for the legal entity and currency. */

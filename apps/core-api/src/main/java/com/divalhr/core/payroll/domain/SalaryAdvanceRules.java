@@ -118,7 +118,8 @@ public final class SalaryAdvanceRules {
     } else if (facts.policyApplies() && !facts.placedInPolicyEntity()) {
       found.add(SalaryAdvanceReason.LEGAL_ENTITY_MISMATCH);
     }
-    if (facts.policyApplies() && facts.employmentActive()
+    if (facts.policyApplies()
+        && facts.employmentActive()
         && facts.tenureMonths() < facts.minTenureMonths()) {
       found.add(SalaryAdvanceReason.TENURE_TOO_SHORT);
     }
