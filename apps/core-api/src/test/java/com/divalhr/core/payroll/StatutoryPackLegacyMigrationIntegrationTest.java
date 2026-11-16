@@ -50,28 +50,22 @@ class StatutoryPackLegacyMigrationIntegrationTest {
 
   private static final String SIGNATURE =
       """
-      SELECT coalesce((SELECT string_agg(table_name, ',' ORDER BY table_name)
-                       FROM information_schema.tables WHERE table_schema = 'payroll'), '')
-          || '|' || coalesce((SELECT string_agg(table_name || '.' || column_name || ':'
-                                  || data_type || ':' || is_nullable || ':'
-                                  || coalesce(column_default, ''),
-                                  ',' ORDER BY table_name, column_name)
-                              FROM information_schema.columns
-                              WHERE table_schema = 'payroll'), '')
-          || '|' || coalesce((SELECT string_agg(indexname || ':' || indexdef, ','
-                                  ORDER BY indexname)
-                              FROM pg_indexes WHERE schemaname = 'payroll'), '')
-          || '|' || coalesce((SELECT string_agg(conrelid::regclass::text || '.' || conname, ','
-                                  ORDER BY conrelid::regclass::text, conname)
-                              FROM pg_constraint
-                              WHERE connamespace = 'payroll'::regnamespace), '')
-          || '|' || coalesce((SELECT string_agg(p.proname, ',' ORDER BY p.proname)
-                              FROM pg_proc p
-                              WHERE p.pronamespace = 'payroll'::regnamespace), '')
-          || '|' || coalesce((SELECT string_agg(tgrelid::regclass::text || '.' || tgname, ','
-                                  ORDER BY tgrelid::regclass::text, tgname)
+      SELECT md5(
+          coalesce((SELECT string_agg(c.relname || ':' || c.relkind::text, ',' ORDER BY c.relname)
+                    FROM pg_class c WHERE c.relnamespace = 'payroll'::regnamespace), '')
+          || '|' || coalesce((SELECT string_agg(c.relname || '.' || a.attname || ':'
+                                  || format_type(a.atttypid, a.atttypmod) || ':' || a.attnotnull::text,
+                                  ',' ORDER BY c.relname, a.attname)
+                              FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid
+                              WHERE c.relnamespace = 'payroll'::regnamespace AND a.attnum > 0
+                                AND NOT a.attisdropped AND c.relkind = 'r'), '')
+          || '|' || coalesce((SELECT string_agg(conname || ':' || pg_get_constraintdef(oid), ',' ORDER BY conrelid::regclass::text, conname)
+                              FROM pg_constraint WHERE connamespace = 'payroll'::regnamespace), '')
+          || '|' || coalesce((SELECT string_agg(proname || ':' || md5(prosrc), ',' ORDER BY proname)
+                              FROM pg_proc WHERE pronamespace = 'payroll'::regnamespace), '')
+          || '|' || coalesce((SELECT string_agg(tgrelid::regclass::text || '.' || tgname, ',' ORDER BY tgrelid::regclass::text, tgname)
                               FROM pg_trigger WHERE NOT tgisinternal
-                              AND tgrelid::regclass::text LIKE 'payroll.%'), '')
+                              AND tgrelid::regclass::text LIKE 'payroll.%'), ''))
       """;
 
   @Autowired private JdbcTemplate jdbc;
