@@ -874,7 +874,7 @@ class AuthorizationDenialAuditIntegrationTest {
     // accounting-journal.download).
     // MVP-097A added ten handlers: nine platform operations (list, read and seven commands) and the
     // tenant read.
-    assertThat(handlers).hasSize(230);
+    assertThat(handlers).hasSize(238);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).
