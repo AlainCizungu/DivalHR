@@ -13857,7 +13857,7 @@ paths:
   /legal-entities/{legalEntityId}/salary-advance-policies:
     get:
       operationId: listSalaryAdvancePolicies
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -13899,7 +13899,7 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
     post:
       operationId: commitSalaryAdvancePolicy
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -13957,7 +13957,7 @@ paths:
   /legal-entities/{legalEntityId}/salary-advance-policies/preview:
     post:
       operationId: previewSalaryAdvancePolicy
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -14007,7 +14007,7 @@ paths:
   /legal-entities/{legalEntityId}/salary-advance-policies/{policyId}/cancel:
     post:
       operationId: cancelSalaryAdvancePolicy
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -14062,7 +14062,7 @@ paths:
   /salary-advance-requests:
     get:
       operationId: listSalaryAdvanceRequests
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -14103,7 +14103,7 @@ paths:
   /salary-advance-requests/{requestId}:
     get:
       operationId: getSalaryAdvanceRequest
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -14143,7 +14143,7 @@ paths:
   /salary-advance-requests/{requestId}/confirm-employer:
     post:
       operationId: confirmSalaryAdvanceEmployer
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -14198,7 +14198,7 @@ paths:
   /salary-advance-requests/{requestId}/refuse-employer:
     post:
       operationId: refuseSalaryAdvanceEmployer
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: tenant-admin
       x-divalhr-required-assurance: mfa
@@ -14253,7 +14253,7 @@ paths:
   /me/salary-advance-eligibility:
     get:
       operationId: getMySalaryAdvanceEligibility
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Read my preliminary employer-policy eligibility
@@ -14292,7 +14292,7 @@ paths:
   /me/salary-advance-requests/preview:
     post:
       operationId: previewMySalaryAdvanceRequest
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Preview my salary-advance request
@@ -14338,7 +14338,7 @@ paths:
   /me/salary-advance-requests:
     get:
       operationId: listMySalaryAdvanceRequests
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: List my salary-advance requests
@@ -14375,7 +14375,7 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
     post:
       operationId: submitMySalaryAdvanceRequest
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Submit my salary-advance request to my employer
@@ -14431,7 +14431,7 @@ paths:
   /me/salary-advance-requests/{requestId}:
     get:
       operationId: getMySalaryAdvanceRequest
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Read one of my salary-advance requests
@@ -14469,7 +14469,7 @@ paths:
   /me/salary-advance-requests/{requestId}/withdraw:
     post:
       operationId: withdrawMySalaryAdvanceRequest
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Withdraw my salary-advance request before any external handoff
