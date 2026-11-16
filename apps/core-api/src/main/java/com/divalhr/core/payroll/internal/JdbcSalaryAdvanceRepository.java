@@ -260,6 +260,20 @@ public class JdbcSalaryAdvanceRepository {
    */
   public record Usage(int count, Instant oldest) {}
 
+  /**
+   * Bounds the current transaction's statements and lock waits.
+   *
+   * @param tenant verified tenant whose transaction it is
+   * @param statementTimeout the bound
+   */
+  public void limits(TenantId tenant, java.time.Duration statementTimeout) {
+    java.util.Objects.requireNonNull(tenant, "tenant");
+    long millis = Math.max(1, statementTimeout.toMillis());
+    // Values are server-owned integers; SET does not accept bind parameters.
+    jdbc.sql("SET LOCAL statement_timeout = " + millis).update();
+    jdbc.sql("SET LOCAL lock_timeout = " + millis).update();
+  }
+
   // -------------------------------------------------------------------------------------------
   // Policy
   // -------------------------------------------------------------------------------------------
@@ -727,6 +741,19 @@ public class JdbcSalaryAdvanceRepository {
         .param("version", fromVersion)
         .param("status", toStatus)
         .update();
+  }
+
+  /**
+   * Runs the deferred V52 completeness check now (inside the caller's transaction), so a violation
+   * surfaces inside the business work, where it is mapped by constraint name, rather than at
+   * commit.
+   *
+   * @param tenant verified tenant whose transaction it is
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void checkDeferred(TenantId tenant) {
+    java.util.Objects.requireNonNull(tenant, "tenant");
+    jdbc.sql("SET CONSTRAINTS payroll.payroll_salary_advance_request_complete IMMEDIATE").update();
   }
 
   /**
