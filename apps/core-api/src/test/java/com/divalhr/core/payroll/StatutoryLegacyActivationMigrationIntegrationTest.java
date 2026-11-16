@@ -17,11 +17,11 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * MVP-097A, R202-1 (Issue #200, ADR 0040 section 7a): a database that holds a legacy VERIFIED pack
- * with an existing employer activation migrates to V51. The pack is quarantined as LEGACY without
- * a column changing, the activation row is untouched and still points to the pack, no evidence,
+ * with an existing employer activation migrates to V51. The pack is quarantined as LEGACY without a
+ * column changing, the activation row is untouched and still points to the pack, no evidence,
  * digest, period or history is fabricated, and the pack is neither the applicable ACTIVE version
- * nor a pack whose governance state is ACTIVE, so it can power no new calculation. Directly
- * against PostgreSQL in a database of its own. Synthetic data only.
+ * nor a pack whose governance state is ACTIVE, so it can power no new calculation. Directly against
+ * PostgreSQL in a database of its own. Synthetic data only.
  */
 @IntegrationTest
 class StatutoryLegacyActivationMigrationIntegrationTest {
@@ -133,7 +133,8 @@ class StatutoryLegacyActivationMigrationIntegrationTest {
 
       // No governed ACTIVE version exists, so the activation resolves nothing for a new
       // calculation: the pack's governance state is LEGACY, never ACTIVE.
-      JdbcStatutoryRulePackRepository packs = new JdbcStatutoryRulePackRepository(JdbcClient.create(source));
+      JdbcStatutoryRulePackRepository packs =
+          new JdbcStatutoryRulePackRepository(JdbcClient.create(source));
       assertThat(packs.governanceState(pack)).contains("LEGACY");
       assertThat(packs.applicableActivePackId("CD", LocalDate.of(2026, 6, 1))).isEmpty();
     } finally {

@@ -24,8 +24,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * MVP-097A, R202-1 (Issue #200, ADR 0040 sections 6 and 7a) through the public API against real
  * PostgreSQL: a pack in the governance state LEGACY (quarantined, pre-governance) never powers a
  * new statutory calculation, even when an older employer activation points to it and even when
- * another governed ACTIVE pack applies to the same country and period (nothing is substituted);
- * the applicability read never reports it; and a calculation frozen before the quarantine stays
+ * another governed ACTIVE pack applies to the same country and period (nothing is substituted); the
+ * applicability read never reports it; and a calculation frozen before the quarantine stays
  * readable and unchanged. The LEGACY state is reached the way the V51 backfill leaves it: the
  * governance row is reduced to the evidence-free quarantine shape with triggers bypassed (test
  * setup only; the migration itself is proved in {@code StatutoryPackLegacyMigrationIntegrationTest}
@@ -69,7 +69,9 @@ class StatutoryLegacyPackResolutionIntegrationTest {
     clock.reset();
   }
 
-  /** The state V51 leaves a pre-governance pack in: LEGACY, no evidence, digest, period or history. */
+  /**
+   * The state V51 leaves a pre-governance pack in: LEGACY, no evidence, digest, period or history.
+   */
   private void quarantine(UUID pack) {
     new TransactionTemplate(transactions)
         .executeWithoutResult(
