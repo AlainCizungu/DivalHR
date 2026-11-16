@@ -12441,7 +12441,7 @@ export interface components {
          */
         SalaryAdvancePartnerCode: "SYNTHETIC-TEST";
         /**
-         * @description The closed lifecycle. SUBMITTED means received by the employer only. EMPLOYER_CONFIRMED means the employer is prepared to support a later deduction if a regulated partner approves, not credit approval. EMPLOYER_REFUSED is a bounded employer-policy refusal, not a credit decision. No other state exists (no approved, funded, disbursed, paid or repaid state, and no partner-submission state).
+         * @description The closed lifecycle. SUBMITTED means received by the employer only. EMPLOYER_CONFIRMED means the employer is prepared to support a later deduction if a regulated partner approves, not credit approval. EMPLOYER_REFUSED is a bounded employer-policy refusal, not a credit decision. No other state exists: the lifecycle ends at the employer's confirmation, refusal or the employee's withdrawal, and nothing is submitted to any partner.
          * @enum {string}
          */
         SalaryAdvanceRequestStatus: "SUBMITTED" | "EMPLOYER_CONFIRMED" | "EMPLOYER_REFUSED" | "WITHDRAWN";

@@ -390,7 +390,7 @@ export function SalaryAdvanceRequestsPage() {
           </p>
         )}
         {page && page.items.length > 0 && (
-          <ScrollRegion label={t('salaryAdvance.requests.title')}>
+          <ScrollRegion label={t('salaryAdvance.requests.table')}>
             <table>
               <thead>
                 <tr>

@@ -5871,6 +5871,7 @@
       "reviewAmount": "Montant demandé :",
       "submit": "Transmettre la demande",
       "submitted": "Votre demande a été transmise à votre employeur. Rien n’a été envoyé à une institution.",
+      "requestsTable": "Tableau de mes demandes",
       "requestsTitle": "Mes demandes",
       "requestsEmpty": "Vous n’avez aucune demande d’avance sur salaire.",
       "withdraw": "Retirer",
@@ -5880,6 +5881,7 @@
     "policies": {
       "title": "Politique d’avance sur salaire",
       "description": "Définissez les limites de participation de l’employeur qui décident qui peut demander. Une politique n’est jamais une condition de prêt.",
+      "table": "Tableau des versions de la politique",
       "listTitle": "Versions de la politique",
       "rowTitle": "{{currency}} · {{code}} · n°{{sequence}}",
       "empty": "Aucune politique n’a été ajoutée pour cette entité juridique.",
@@ -5920,6 +5922,7 @@
       }
     },
     "requests": {
+      "table": "Liste des demandes",
       "title": "Demandes d’avance sur salaire",
       "description": "Examinez les demandes de vos employés et indiquez si votre organisation y participe.",
       "filter": "Filtrer par statut",

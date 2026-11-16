@@ -90,6 +90,12 @@ function stub(handler: (request: Recorded) => Reply) {
   return requests;
 }
 
+/** The app keeps only its language choice; nothing of this feature is ever stored. */
+const storedKeys = () =>
+  [...Object.keys(localStorage), ...Object.keys(sessionStorage)].filter(
+    (key) => key !== 'divalhr.locale',
+  );
+
 async function expectAccessible(container: HTMLElement) {
   const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
   expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
@@ -161,7 +167,7 @@ describe.each(['en', 'fr'] as const)('employee page /me/salary-advance (%s)', (l
     expect(screen.queryByTestId('request-amount')).toBeNull();
     expect(await screen.findByTestId('requests-empty')).toBeVisible();
     expect(requests.every((request) => request.method === 'GET')).toBe(true);
-    expect([Object.keys(localStorage), Object.keys(sessionStorage)]).toEqual([[], []]);
+    expect(storedKeys()).toEqual([]);
     await expectAccessible(document.body);
   });
 
@@ -209,7 +215,7 @@ describe.each(['en', 'fr'] as const)('employee page /me/salary-advance (%s)', (l
       consent: { version: 'SA-CONSENT-1', language: locale, affirmed: true },
     });
     expect(requests.every((request) => !request.path.includes('5000'))).toBe(true);
-    expect([Object.keys(localStorage), Object.keys(sessionStorage)]).toEqual([[], []]);
+    expect(storedKeys()).toEqual([]);
   });
 
   it('shows the blockers of a refused preview and offers no submission', async () => {

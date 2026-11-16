@@ -5871,6 +5871,7 @@
       "reviewAmount": "Amount requested:",
       "submit": "Submit request",
       "submitted": "Your request was submitted to your employer. Nothing was sent to any institution.",
+      "requestsTable": "Table of my requests",
       "requestsTitle": "My requests",
       "requestsEmpty": "You have no salary-advance requests.",
       "withdraw": "Withdraw",
@@ -5880,6 +5881,7 @@
     "policies": {
       "title": "Salary-advance policy",
       "description": "Set the employer participation limits that decide who may ask. A policy is never a lending term.",
+      "table": "Policy versions table",
       "listTitle": "Policy versions",
       "rowTitle": "{{currency}} · {{code}} · #{{sequence}}",
       "empty": "No policy has been added for this legal entity.",
@@ -5920,6 +5922,7 @@
       }
     },
     "requests": {
+      "table": "Request list",
       "title": "Salary-advance requests",
       "description": "Review requests from your employees and state whether your organization takes part.",
       "filter": "Filter by status",

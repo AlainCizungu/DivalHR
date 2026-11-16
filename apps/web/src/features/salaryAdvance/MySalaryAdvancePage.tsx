@@ -382,7 +382,7 @@ function MyRequests({ revision }: { revision: number }) {
         </p>
       )}
       {load.kind === 'ready' && load.value.items.length > 0 && (
-        <ScrollRegion label={t('salaryAdvance.me.requestsTitle')}>
+        <ScrollRegion label={t('salaryAdvance.me.requestsTable')}>
           <table>
             <thead>
               <tr>

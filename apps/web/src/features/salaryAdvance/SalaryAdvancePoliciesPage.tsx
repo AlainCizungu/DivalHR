@@ -120,7 +120,7 @@ function PolicyRows({
   const { t, i18n } = useTranslation();
   const [confirming, setConfirming] = useState<string | null>(null);
   return (
-    <ScrollRegion label={t('salaryAdvance.policies.listTitle')}>
+    <ScrollRegion label={t('salaryAdvance.policies.table')}>
       <table>
         <thead>
           <tr>
