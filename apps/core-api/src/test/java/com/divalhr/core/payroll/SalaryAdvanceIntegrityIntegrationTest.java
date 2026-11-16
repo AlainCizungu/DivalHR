@@ -13,13 +13,13 @@ import com.divalhr.core.payroll.api.SalaryAdvanceBodies;
 import com.divalhr.core.payroll.application.PayrollCaller;
 import com.divalhr.core.payroll.application.SalaryAdvanceReviewService;
 import com.divalhr.core.platform.access.SalaryAdvanceEmployment;
-import com.divalhr.core.platform.error.ApiException;
-import com.divalhr.core.platform.error.ErrorCode;
-import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.platform.audit.AuditEvent;
 import com.divalhr.core.platform.audit.AuditRecorder;
+import com.divalhr.core.platform.error.ApiException;
+import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.outbox.EventEnvelope;
 import com.divalhr.core.platform.outbox.OutboxWriter;
+import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
@@ -394,8 +394,9 @@ class SalaryAdvanceIntegrityIntegrationTest {
     Map<String, JsonNode> submitted = new LinkedHashMap<>();
     submitted.put("confirm-employer", submit("5000"));
     submitted.put("refuse-employer", submit("6000"));
-    for (String verb : submitted.keySet()) {
-      JsonNode request = submitted.get(verb);
+    for (Map.Entry<String, JsonNode> entry : submitted.entrySet()) {
+      String verb = entry.getKey();
+      JsonNode request = entry.getValue();
       UUID id = UUID.fromString(request.get("requestId").asText());
       int version = request.get("version").asInt();
       Map<String, Object> body =
