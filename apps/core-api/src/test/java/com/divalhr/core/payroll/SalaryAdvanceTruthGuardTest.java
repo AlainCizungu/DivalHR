@@ -38,7 +38,8 @@ class SalaryAdvanceTruthGuardTest {
     String spec = read(SPEC);
     StringBuilder out = new StringBuilder();
     Matcher block =
-        Pattern.compile("(?m)^    (SalaryAdvance\\w*|Me?SalaryAdvance\\w*):\\n(?:(?:      .*)?\\n)*")
+        Pattern.compile(
+                "(?m)^    (SalaryAdvance\\w*|Me?SalaryAdvance\\w*):\\n(?:(?:      .*)?\\n)*")
             .matcher(spec);
     while (block.find()) {
       out.append(block.group());

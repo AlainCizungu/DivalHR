@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -140,6 +141,7 @@ public class MySalaryAdvanceController {
    */
   @Operation(operationId = "submitMySalaryAdvanceRequest")
   @PostMapping(path = PATH, consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
   @EmployeeSelfOperation(operation = SalaryAdvanceRequestService.SELF_SUBMIT)
   @SubjectRateLimited(bucket = SalaryAdvanceRequestService.SUBJECT_WRITE_BUCKET)
   @TenantRateLimited(bucket = SalaryAdvanceRequestService.TENANT_WRITE_BUCKET)

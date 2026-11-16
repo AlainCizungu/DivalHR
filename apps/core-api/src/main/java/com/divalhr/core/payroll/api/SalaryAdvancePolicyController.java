@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -118,6 +119,7 @@ public class SalaryAdvancePolicyController {
    */
   @Operation(operationId = "commitSalaryAdvancePolicy")
   @PostMapping(path = PATH, consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
   @TenantAdminOperation(operation = SalaryAdvancePolicyService.COMMIT)
   @SubjectRateLimited(bucket = SalaryAdvancePolicyService.SUBJECT_WRITE_BUCKET)
   public ResponseEntity<PolicyReceipt> commit(

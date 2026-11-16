@@ -10,6 +10,7 @@ import com.divalhr.core.payroll.domain.SalaryAdvanceRules.Facts;
 import com.divalhr.core.payroll.internal.JdbcSalaryAdvanceRepository;
 import com.divalhr.core.payroll.internal.JdbcSalaryAdvanceRepository.PolicyRow;
 import com.divalhr.core.payroll.internal.JdbcSalaryAdvanceRepository.ReferenceRow;
+import com.divalhr.core.platform.access.SalaryAdvanceEmployment;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -67,9 +68,12 @@ class SalaryAdvanceEligibility {
   }
 
   private final JdbcSalaryAdvanceRepository repository;
+  private final SalaryAdvanceEmployment employment;
 
-  SalaryAdvanceEligibility(JdbcSalaryAdvanceRepository repository) {
+  SalaryAdvanceEligibility(
+      JdbcSalaryAdvanceRepository repository, SalaryAdvanceEmployment employment) {
     this.repository = repository;
+    this.employment = employment;
   }
 
   /**
@@ -91,10 +95,10 @@ class SalaryAdvanceEligibility {
       Instant now,
       Long requestedMinor) {
     String code = currency.name();
-    Optional<LocalDate> start = repository.employmentStart(tenant, employeeId, today);
+    Optional<LocalDate> start = employment.employmentStart(tenant, employeeId, today);
     Optional<UUID> entity =
         start.isPresent()
-            ? repository.placementEntity(tenant, employeeId, today)
+            ? employment.placementEntity(tenant, employeeId, today)
             : Optional.empty();
     PolicyRow policy =
         entity.flatMap(id -> repository.applicablePolicy(tenant, id, code, today)).orElse(null);

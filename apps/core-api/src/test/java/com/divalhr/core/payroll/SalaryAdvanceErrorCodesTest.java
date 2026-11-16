@@ -20,10 +20,7 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
-/**
- * MVP-120A: the fifteen stable salary-advance codes exist, are published and are safe
- * text.
- */
+/** MVP-120A: the fifteen stable salary-advance codes exist, are published and are safe text. */
 class SalaryAdvanceErrorCodesTest {
 
   private static final Map<String, HttpStatus> CODES =
