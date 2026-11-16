@@ -93,11 +93,19 @@ runbook rolled back; no data changed. The architect's decision R200-1 replaces t
   RETIRED; a DRAFT pack keeps a DRAFT row. The backfill sets nothing else: no evidence, no digest, no period, no review, no
   case, no history row. Nothing is invented, inferred or approved, and LEGACY is not a statement that the pack is correct
   or legally valid.
-- Not one column of the pack changes. Its legacy status stays as it was, so existing activations and frozen calculations
-  keep resolving the same pack, code, version and digest, and payroll history is unchanged. The legacy status can still
-  move only from the governance guard, which refuses LEGACY, so a legacy pack is frozen.
+- Not one column of the pack changes. Its legacy status stays as it was, and every historical reference is preserved
+  exactly: frozen calculations, approved packages, payslips and evidence keep the pack code, version and digest they
+  were made with and stay readable and unchanged, and the activation rows are never edited or deleted. The legacy status
+  can still move only from the governance guard, which refuses LEGACY, so a legacy pack is frozen.
 - A LEGACY version is never the applicable ACTIVE version (`applicableActivePackId` requires governed ACTIVE), so no new
-  employer activation or governed calculation can rest on it. It is readable by platform administrators with the state
+  employer activation can rest on it. **R202-1: it powers no new calculation either.** `StatutoryEvaluator.resolve` uses
+  only a pack whose governance state is exactly ACTIVE (selected by country and period, then checked again by state),
+  and an older activation that points to a LEGACY pack resolves nothing: a preview is BLOCKED with `RULE_PACK_MISSING`
+  and a commit is refused with `STATUTORY_PACK_NO_ACTIVE_VERSION`. No other pack (a DRAFT one, or another governed ACTIVE
+  one that applies to the same country and period) is substituted for it. Applicability reads never report LEGACY as
+  applicable. Frozen calculations never go through this resolution: they read their stored pack by identifier. The one
+  consequence to know: a package approval that re-reads the current pack digest of a month whose activation points to a
+  LEGACY pack no longer finds one, so it is not offered as current. That is the intended quarantine. It is readable by platform administrators with the state
   `LEGACY` and a plain notice, offers no command, and is excluded from overlap checks. A correction is a new governed
   version, created DRAFT and walked through the full lifecycle with independent review.
 - `LEGACY` is never assigned to a new row: a trigger refuses an INSERT with that state once the backfill has run.
@@ -105,7 +113,7 @@ runbook rolled back; no data changed. The architect's decision R200-1 replaces t
 - V51 was edited in place because it had not applied successfully anywhere: every database it ran on was fresh
   (continuous integration, the AWS verification environment) or rolled back (hr-dev). Flyway on hr-dev has no V51 row.
 
-Evidence: `StatutoryPackLegacyMigrationIntegrationTest` (a V50 database holding a VERIFIED and a RETIRED pack migrates, the
+Evidence: `StatutoryLegacyPackResolutionIntegrationTest` and `StatutoryLegacyActivationMigrationIntegrationTest` (R202-1: a legacy VERIFIED pack with an existing activation migrates, history stays readable, a new calculation and another substituted pack are refused, applicability never reports it, nothing is fabricated), `StatutoryPackLegacyMigrationIntegrationTest` (a V50 database holding a VERIFIED and a RETIRED pack migrates, the
 packs are byte-identical, the rows are LEGACY with no evidence, the rows are frozen, never applicable and never inserted,
 the rollback still restores V50), the web tests of the LEGACY state and notice, and the English and French locale files.
 

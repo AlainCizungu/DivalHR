@@ -45,6 +45,12 @@ public class StatutoryEvaluator {
   /** The most source lines a statutory calculation accepts. */
   public static final int MAX_LINES = 5_000;
 
+  /** The governance state of a pack that predates governance (quarantined, R202-1). */
+  private static final String LEGACY = "LEGACY";
+
+  /** The only governance state a new calculation may use. */
+  private static final String ACTIVE = "ACTIVE";
+
   private final JdbcStatutoryRepository statutory;
   private final JdbcStatutoryRulePackRepository packs;
   private final StatutoryEarningsGuard earnings;
@@ -138,12 +144,21 @@ public class StatutoryEvaluator {
     // MVP-097A (D97A-6): the pack is selected by the legal entity's country and the payroll
     // date among governed ACTIVE versions, never by the pack identifier of the activation alone.
     // The activation remains the employer's acknowledgement that payroll may use the pack.
+    // R202-1: an activation that points to a LEGACY (quarantined, pre-governance) pack powers no
+    // new calculation, and no other pack is substituted for it: the answer is "no active
+    // version". Frozen calculations never come through here: they read their stored pack.
+    Optional<String> acknowledged = packs.governanceState(activation.get().packId());
+    if (acknowledged.filter(LEGACY::equals).isPresent()) {
+      return Optional.empty();
+    }
     Optional<String> country = statutory.legalEntityCountry(tenant, legalEntityId);
     if (country.isEmpty()) {
       return Optional.empty();
     }
     Optional<UUID> governed = packs.applicableActivePackId(country.get(), month);
-    if (governed.isEmpty()) {
+    // Only a pack whose governance state is exactly ACTIVE is ever used (checked again here).
+    if (governed.isEmpty()
+        || packs.governanceState(governed.get()).filter(ACTIVE::equals).isEmpty()) {
       return Optional.empty();
     }
     return resolve(activation.get(), governed.get());
