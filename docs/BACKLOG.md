@@ -483,6 +483,15 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **Legal boundary.** This builds a mechanism only. No statutory rate, threshold, formula or rule was invented, inferred or approved, and passing tests never means that DivalHR is legally compliant. The real DRC pack `CD-SALARY-PREVIEW` stays DRAFT and inactive, without evidence or reference cases, until authentic legal evidence and independent approval exist (MVP-097B). Technical validation is not legal approval.
 - **Not included:** activation of the real DRC pack, any legal content, filing and declarations, real bank or mobile-money connectivity, settlement, paid status, loans and salary advances.
 
+### MVP-120A Create consented salary-advance requests
+
+**Issue #204. In review (branch `feature/204-mvp-120a-salary-advance-foundation`); not merged and not deployed.** ADR 0041, decisions D120A-1 to D120A-16. Migration V52 (not applied anywhere until a release is deployed).
+
+- **Outcome.** An administrator records effective-dated employer participation policies per legal entity and currency (preview, then explicit commit; append-only versions; a scheduled version can be cancelled). A linked employee sees whether the policy lets them ask, previews an amount against the employer-policy ceiling, reads and affirms a bilingual consent, and submits or withdraws a request. The employer confirms its participation or refuses with a closed reason. Lifecycle: `SUBMITTED` to `EMPLOYER_CONFIRMED`, `EMPLOYER_REFUSED` or `WITHDRAWN`, and `EMPLOYER_CONFIRMED` to `WITHDRAWN`.
+- **Boundary.** DivalHR is not the lender. Employer eligibility is not credit approval. No funds are sent in this step: there is no lender, partner, bank, bureau or endpoint (the partner code is the synthetic `SYNTHETIC-TEST`), no credit decision, pricing, disbursement or payroll deduction. Amounts, notes and consent details never appear in URLs, cursors, audit or outbox metadata, logs or error bodies. The real DRC pack `CD-SALARY-PREVIEW` is untouched.
+- **Truth surfaces.** The landing page keeps Loans & Salary Advances under "Coming next" / « Prochainement »; the pages are reachable from the navigation only.
+- **Not included:** lending, underwriting, pricing, disbursement, payroll deductions, any external partner or handoff, notifications, and USD requests while payroll packages are CDF-only.
+
 ## Epic 11 Dashboards and AI
 
 ### MVP-100 View operational status

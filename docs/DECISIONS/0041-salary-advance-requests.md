@@ -25,7 +25,7 @@ in the schema, the API, the translations or the UI (a guard test scans for them)
 The suggested custom-method paths (`:preview`, `:cancel`, `:withdraw`) are adapted to the established convention of this API
 (`…/preview`, `…/cancel`, `…/{id}/withdraw`; Spring cannot bind a path variable followed by a colon suffix, and `docs/API-SPEC.yaml`
 uses slash segments everywhere). Operation names, bodies, limits and errors follow the issue. The contract was added first, marked
-`x-divalhr-lifecycle: planned`, and flips to `implemented` with the controllers. Amounts are `CompensationMoney` (`currency`,
+`x-divalhr-lifecycle: planned`, and is `implemented` with the controllers. Amounts are `CompensationMoney` (`currency`,
 canonical decimal text, never a JSON number); CDF has exponent 0 and USD exponent 2 as elsewhere.
 
 ## 3. Policy (D120A-3)
@@ -114,9 +114,9 @@ the completion report.
 
 ## 11. Evidence map (updated as the story lands)
 
-| Requirement | Evidence |
-|---|---|
-| D120A-11 tenant, immutability, transitions, no handoff state, rollback | `V52__salary_advance_requests.sql`, `V52__rollback.sql`; PostgreSQL 16 guard harness (75 checks, see the completion report) and the Testcontainers test added with the Java layer |
-| D120A-9 contract first | `docs/API-SPEC.yaml` (14 operations, lifecycle `planned` until the controllers exist) |
-| D120A-1/15 truthfulness | truth-guard tests over API schema, locales and landing/home pages |
-| D120A-16 accessibility and localisation | locale parity test, axe and reflow checks in the two Playwright journeys |
+| Requirement                                                            | Evidence                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D120A-11 tenant, immutability, transitions, no handoff state, rollback | `V52__salary_advance_requests.sql`, `V52__rollback.sql`; PostgreSQL 16 guard harness (75 checks, see the completion report); `TenantPredicateArchitectureTest`, `AccessPortArchitectureTest` (people tables read only through the `SalaryAdvanceEmployment` port) |
+| D120A-9 contract first                                                 | `docs/API-SPEC.yaml` (14 operations, lifecycle `implemented`; `ApiContractDriftTest`)                                                                                                                                                                             |
+| D120A-1/15 truthfulness                                                | `SalaryAdvanceTruthGuardTest`, `SalaryAdvanceErrorCodesTest`, the web page tests and the landing test                                                                                                                                                             |
+| D120A-16 accessibility and localisation                                | locale parity check, axe in the page tests, axe and reflow in `e2e/salary-advance.spec.ts` (two journeys)                                                                                                                                                         |
