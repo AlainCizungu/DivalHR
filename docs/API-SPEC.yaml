@@ -13854,6 +13854,671 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/salary-advance-policies:
+    get:
+      operationId: listSalaryAdvancePolicies
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List a legal entity's salary-advance participation policies
+      description: >-
+        MVP-120A (ADR 0041, D120A-3). The effective-dated employer participation policy versions of one legal entity,
+        optionally one currency, newest first, at most 50 (25 per currency), with the status of each version
+        (SCHEDULED, IN_FORCE, ENDED, CANCELLED) on the organization's business date and the last version sequence per
+        currency. A policy is an employer participation limit: it contains no interest, fee, repayment term or credit
+        criterion, and DivalHR is not the lender. Unknown, malformed, foreign and unauthorized legal entities are the same
+        404 LEGAL_ENTITY_NOT_FOUND. A fail-closed disclosure (audit salary-advance-policy.read; counts only).
+        Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/SalaryAdvanceCurrencyFilter"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The policy timelines
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvancePolicyView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: commitSalaryAdvancePolicy
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Commit a previewed salary-advance participation policy
+      description: >-
+        MVP-120A (D120A-3). Repeats the previewed policy with the expectedVersion, previewDigest and expiresAt the preview
+        returned, confirmed=true and an Idempotency-Key. In one transaction the chain of the legal entity and currency is
+        re-read under a lock: a different version is 409 SALARY_ADVANCE_VERSION_CONFLICT, an expired or different preview
+        is 409 SALARY_ADVANCE_POLICY_PREVIEW_STALE, an overlapping period is 409 SALARY_ADVANCE_POLICY_OVERLAP, and an
+        invalid policy is 422 SALARY_ADVANCE_POLICY_INVALID. At most 25 versions per legal entity and currency. Policies are
+        appended, never edited or deleted, never enabled automatically, and carry no employee-specific exception. The
+        business rows, the audit record (salary-advance-policy.create) and the internal outbox event
+        (payroll.salary-advance-policy.created.v1) commit together and carry no amount. At most 20 commits per subject per
+        hour. The same Idempotency-Key and payload replays the original 201; a different payload is 409
+        IDEMPOTENCY_KEY_REUSED. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitSalaryAdvancePolicy"
+      responses:
+        "201":
+          description: Recorded, or the original recording replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvancePolicyReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/salary-advance-policies/preview:
+    post:
+      operationId: previewSalaryAdvancePolicy
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview adding a salary-advance participation policy
+      description: >-
+        MVP-120A (D120A-3). Validates the policy without writing and returns the timeline before and after, stable
+        blockers, the chain version, a previewDigest and its expiry (15 minutes). A blocked preview has a null
+        previewDigest and expiresAt. Bounds: minimum completed months 0-60, maximum percentage of the reference net salary
+        1-50 (whole percent; the ceiling is the reference net times the percentage divided by 100 in whole minor units,
+        rounded down), an optional absolute maximum, a minimum request, 1-3 open requests, 0-90 waiting days, a consent
+        document version, and the synthetic partner code SYNTHETIC-TEST exactly. Recorded as a disclosure (audit
+        salary-advance-policy.preview). At most 20 previews per subject per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvancePolicyCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvancePolicyPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /legal-entities/{legalEntityId}/salary-advance-policies/{policyId}/cancel:
+    post:
+      operationId: cancelSalaryAdvancePolicy
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Cancel a scheduled salary-advance policy version
+      description: >-
+        MVP-120A (D120A-3). Cancels one policy version that has not taken effect on the organization's business date and
+        that no request references; the version stays readable as CANCELLED and is never edited or deleted. Requires
+        expectedVersion (the version's sequence), confirmed=true and an Idempotency-Key. A version in force, ended or
+        already cancelled is 409 SALARY_ADVANCE_TRANSITION_NOT_ALLOWED; an unknown, malformed or foreign id is 404
+        SALARY_ADVANCE_POLICY_NOT_FOUND; a different expectedVersion is 409 SALARY_ADVANCE_VERSION_CONFLICT. Audit
+        salary-advance-policy.cancel; no amount in audit. At most 20 per subject per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/PayrollLegalEntityId"
+        - $ref: "#/components/parameters/SalaryAdvancePolicyId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceCancelPolicy"
+      responses:
+        "200":
+          description: Cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvancePolicyEntry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-requests:
+    get:
+      operationId: listSalaryAdvanceRequests
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List salary-advance requests for employer review
+      description: >-
+        MVP-120A (D120A-8, D120A-12). The caller's tenant's requests, newest first, as a keyset page (default 25, maximum
+        100; the cursor is bound to the operation, tenant, subject, role, filter and page size and carries no amount,
+        employee or date). Optional status filter. Managers and platform administrators have no route. Statuses are
+        SUBMITTED, EMPLOYER_CONFIRMED, EMPLOYER_REFUSED and WITHDRAWN: employer participation only, never a credit decision.
+        A fail-closed disclosure (audit salary-advance-request.read; counts only). At most 60 reads per subject per hour.
+        Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceStatusFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of requests
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-requests/{requestId}:
+    get:
+      operationId: getSalaryAdvanceRequest
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read one salary-advance request for employer review
+      description: >-
+        MVP-120A (D120A-8). The bounded request, its frozen policy and payroll-reference evidence, its consent evidence
+        (version, language, instant and disclosure digest, never the rendered text), its immutable lifecycle and the
+        employer decision with the optional internal note (visible to administrators only). An unknown, malformed, foreign
+        or wrong-tenant id is the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. A fail-closed disclosure (audit
+        salary-advance-request.read). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The request
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-requests/{requestId}/confirm-employer:
+    post:
+      operationId: confirmSalaryAdvanceEmployer
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Confirm employer participation in a salary-advance request
+      description: >-
+        MVP-120A (D120A-7, D120A-8). SUBMITTED to EMPLOYER_CONFIRMED. The employer states that it is prepared to support a
+        later payroll deduction if a regulated partner approves; this is NOT credit approval, nothing is sent to any
+        institution, no funds move and no deduction is made. Requires expectedVersion, confirmed=true and an
+        Idempotency-Key. The amount, terms and partner cannot be changed. Any other current state is 409
+        SALARY_ADVANCE_TRANSITION_NOT_ALLOWED; a stale version is 409 SALARY_ADVANCE_VERSION_CONFLICT. Audit
+        salary-advance-request.employer-confirm and event payroll.salary-advance-request.employer-confirmed.v1 (no
+        amount). At most 20 decisions per subject and 200 per tenant per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceEmployerConfirm"
+      responses:
+        "200":
+          description: Confirmed, or the original confirmation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-requests/{requestId}/refuse-employer:
+    post:
+      operationId: refuseSalaryAdvanceEmployer
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Refuse employer participation in a salary-advance request
+      description: >-
+        MVP-120A (D120A-7, D120A-8). SUBMITTED to EMPLOYER_REFUSED with exactly one closed reason code and an optional
+        internal note of at most 500 characters with no personal or medical information. The refusal is a bounded
+        employer-policy outcome, not a credit decision; the employee sees the translated reason code, never the note, and
+        the note is never sent to a partner. Requires expectedVersion, confirmed=true and an Idempotency-Key. Starts the
+        policy's waiting period. Audit salary-advance-request.employer-refuse and event
+        payroll.salary-advance-request.employer-refused.v1 (reason code, no amount or note). Limits as for
+        confirmation. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceEmployerRefuse"
+      responses:
+        "200":
+          description: Refused, or the original refusal replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-eligibility:
+    get:
+      operationId: getMySalaryAdvanceEligibility
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read my preliminary employer-policy eligibility
+      description: >-
+        MVP-120A (D120A-4, D120A-5). For the caller's own active employee-access link (403 EMPLOYEE_LINK_REQUIRED
+        otherwise), one entry per currency with the deterministic, closed result: ELIGIBLE or NOT_ELIGIBLE with stable
+        reason codes, the applicable policy, the payroll reference month and currency, the employer-policy ceiling (never
+        called a credit limit, never the salary), the open-request count, the end of any waiting period and the consent
+        document (version and canonical content digest). The reference is only the latest APPROVED, non-voided monthly
+        payroll package of the employee, legal entity and currency produced under a governed pack that is neither DRAFT nor
+        LEGACY; it is never recalculated and never converted. Approved packages are CDF-only today, so a USD entry is
+        NOT_ELIGIBLE (PAYROLL_REFERENCE_MISSING). Eligibility means only that a request fits employer policy: it is not
+        a lender affordability assessment, credit approval or an entitlement. Audit salary-advance-eligibility.read
+        (reason codes and counts only, no amount). At most 30 reads per subject per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The caller's preliminary employer-policy eligibility
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceEligibilityView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-requests/preview:
+    post:
+      operationId: previewMySalaryAdvanceRequest
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Preview my salary-advance request
+      description: >-
+        MVP-120A (D120A-5, D120A-6). Evaluates one requested amount for the caller's own employee record against the
+        employer policy and returns the closed eligibility result, the ceiling, blockers (SALARY_ADVANCE_* reason codes),
+        the policy version the amount was evaluated against, the consent document the employee must affirm, a
+        previewDigest and its expiry (15 minutes). The digest binds the tenant, employee, policy, payroll reference, amount
+        and consent version. Nothing is stored except an audit disclosure (salary-advance-request.preview, no amount).
+        No external call is made. At most 10 previews per subject and 100 per tenant per hour. Cache-Control private,
+        no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceRequestCommand"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-requests:
+    get:
+      operationId: listMySalaryAdvanceRequests
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my salary-advance requests
+      description: >-
+        MVP-120A. The caller's own requests, newest first, as a keyset page (default 25, maximum 100; the cursor is bound to
+        the operation, tenant, subject, role and page size and carries no amount or date), resolved from the caller's
+        current active employee-access link on every request (403 EMPLOYEE_LINK_REQUIRED otherwise). No other employee's
+        request and no administrator note can be reached. A fail-closed disclosure (audit salary-advance-request.read; counts
+        only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/TaskLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The caller's own requests
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: submitMySalaryAdvanceRequest
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Submit my salary-advance request to my employer
+      description: >-
+        MVP-120A (D120A-6, D120A-7). Repeats the previewed request with the previewDigest and expiresAt the preview returned
+        and the consent affirmation: the consent document version, the language shown (en or fr) and affirmed=true. The
+        control is never pre-checked; without it 422 SALARY_ADVANCE_CONSENT_REQUIRED, and a consent version that is not the
+        policy's current one is 409 SALARY_ADVANCE_CONSENT_VERSION_STALE. In one idempotent transaction the employee, policy
+        chain, payroll reference and limits are re-evaluated; the immutable request header with its frozen policy, payroll
+        and consent evidence (version, language, instant, canonical disclosure SHA-256; no IP address, user agent or rendered
+        text), the SUBMITTED history row, the audit record (salary-advance-request.submit) and the internal outbox event
+        (payroll.salary-advance-request.submitted.v1) commit together and carry no amount. SUBMITTED means received by the
+        employer only: no loan exists, nothing is sent to any institution, no funds move and no deduction is made. At most
+        10 submissions per subject and 100 per tenant per hour, 10 requests per employee per rolling 12 months. The same
+        Idempotency-Key and payload replays the original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED.
+        Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitSalaryAdvanceRequest"
+      responses:
+        "201":
+          description: Submitted, or the original submission replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-requests/{requestId}:
+    get:
+      operationId: getMySalaryAdvanceRequest
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read one of my salary-advance requests
+      description: >-
+        MVP-120A. One of the caller's own requests with its lifecycle, consent evidence and the translated employer reason
+        code when refused (never the administrator's note). A request that is unknown, malformed, of another employee or
+        tenant is the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. A fail-closed disclosure (audit
+        salary-advance-request.read). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The caller's own request
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-requests/{requestId}/withdraw:
+    post:
+      operationId: withdrawMySalaryAdvanceRequest
+      x-divalhr-lifecycle: planned
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Withdraw my salary-advance request before any external handoff
+      description: >-
+        MVP-120A (D120A-7). SUBMITTED or EMPLOYER_CONFIRMED to WITHDRAWN, by the owning employee only. No partner handoff
+        exists in this story, so withdrawal is always possible from those two states; any other state is 409
+        SALARY_ADVANCE_TRANSITION_NOT_ALLOWED. Requires expectedVersion, confirmed=true and an Idempotency-Key. A
+        withdrawn request is never reopened or edited: a correction is a new request after the policy's waiting period.
+        Audit salary-advance-request.withdraw and event payroll.salary-advance-request.withdrawn.v1 (no amount). At most
+        10 per subject per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceWithdraw"
+      responses:
+        "200":
+          description: Withdrawn, or the original withdrawal replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -14848,6 +15513,37 @@ components:
         type: integer
         minimum: 1
         maximum: 100
+    SalaryAdvancePolicyId:
+      name: policyId
+      in: path
+      required: true
+      description: An opaque UUID. Malformed, unknown, foreign-entity, foreign-tenant and unauthorized IDs give the same 404 SALARY_ADVANCE_POLICY_NOT_FOUND.
+      schema:
+        type: string
+    SalaryAdvanceRequestId:
+      name: requestId
+      in: path
+      required: true
+      description: >-
+        An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404
+        SALARY_ADVANCE_REQUEST_NOT_FOUND.
+      schema:
+        type: string
+    SalaryAdvanceCurrencyFilter:
+      name: currency
+      in: query
+      required: false
+      description: Optional currency of the policy chain to read (CDF or USD); both when absent.
+      schema:
+        type: string
+        enum: [CDF, USD]
+    SalaryAdvanceStatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Optional status filter; the cursor is bound to it.
+      schema:
+        $ref: "#/components/schemas/SalaryAdvanceRequestStatus"
   schemas:
     AccessReviewLookup:
       type: object
@@ -21723,6 +22419,21 @@ components:
         - STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT
         - STATUTORY_PACK_NO_ACTIVE_VERSION
         - STATUTORY_PACK_ALREADY_ACTIVE
+        - SALARY_ADVANCE_POLICY_NOT_FOUND
+        - SALARY_ADVANCE_POLICY_INVALID
+        - SALARY_ADVANCE_POLICY_OVERLAP
+        - SALARY_ADVANCE_POLICY_PREVIEW_STALE
+        - SALARY_ADVANCE_NOT_ELIGIBLE
+        - SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING
+        - SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE
+        - SALARY_ADVANCE_CURRENCY_MISMATCH
+        - SALARY_ADVANCE_OPEN_LIMIT_REACHED
+        - SALARY_ADVANCE_WAITING_PERIOD
+        - SALARY_ADVANCE_CONSENT_REQUIRED
+        - SALARY_ADVANCE_CONSENT_VERSION_STALE
+        - SALARY_ADVANCE_REQUEST_NOT_FOUND
+        - SALARY_ADVANCE_VERSION_CONFLICT
+        - SALARY_ADVANCE_TRANSITION_NOT_ALLOWED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -29216,3 +29927,744 @@ components:
         cancelledAt:
           type: string
           format: date-time
+    SalaryAdvanceNotice:
+      type: string
+      description: >-
+        MVP-120A (D120A-1). The permanent responsibility notice, as a stable code the client translates (en and fr). It is
+        returned on every salary-advance response so that no screen can omit it. DIVALHR_NOT_LENDER means: DivalHR is not
+        the lender; employer eligibility is not credit approval; no funds are sent in this step.
+      enum: [DIVALHR_NOT_LENDER]
+    SalaryAdvanceCurrency:
+      type: string
+      enum: [CDF, USD]
+    SalaryAdvancePartnerCode:
+      type: string
+      description: The only controlled partner type, a development and test partner with no endpoint, credential, price or licence claim.
+      enum: [SYNTHETIC-TEST]
+    SalaryAdvanceRequestStatus:
+      type: string
+      description: >-
+        The closed lifecycle. SUBMITTED means received by the employer only. EMPLOYER_CONFIRMED means the employer is
+        prepared to support a later deduction if a regulated partner approves, not credit approval. EMPLOYER_REFUSED is a
+        bounded employer-policy refusal, not a credit decision. No other state exists (no approved, funded, disbursed, paid
+        or repaid state, and no partner-submission state).
+      enum: [SUBMITTED, EMPLOYER_CONFIRMED, EMPLOYER_REFUSED, WITHDRAWN]
+    SalaryAdvancePolicyStatus:
+      type: string
+      enum: [SCHEDULED, IN_FORCE, ENDED, CANCELLED]
+    SalaryAdvanceRefusalReason:
+      type: string
+      enum:
+        - POLICY_NO_LONGER_APPLIES
+        - EMPLOYMENT_ENDING
+        - PAYROLL_REFERENCE_INVALID
+        - OPEN_REQUEST_LIMIT
+        - EMPLOYER_NOT_PARTICIPATING
+        - OTHER_POLICY_REASON
+    SalaryAdvanceReason:
+      type: string
+      description: >-
+        Closed eligibility and blocker reason codes, never free text. NO_ENABLED_POLICY (no enabled, non-cancelled policy in
+        force for the legal entity and currency), EMPLOYMENT_NOT_ACTIVE, LEGAL_ENTITY_MISMATCH (not placed in the policy's
+        legal entity), TENURE_TOO_SHORT, PAYROLL_REFERENCE_MISSING (no eligible approved package), CURRENCY_MISMATCH,
+        OPEN_LIMIT_REACHED, WAITING_PERIOD, AMOUNT_OUT_OF_RANGE (below the policy minimum or above the ceiling),
+        ROLLING_LIMIT_REACHED (10 requests in 12 months).
+      enum:
+        - NO_ENABLED_POLICY
+        - EMPLOYMENT_NOT_ACTIVE
+        - LEGAL_ENTITY_MISMATCH
+        - TENURE_TOO_SHORT
+        - PAYROLL_REFERENCE_MISSING
+        - CURRENCY_MISMATCH
+        - OPEN_LIMIT_REACHED
+        - WAITING_PERIOD
+        - AMOUNT_OUT_OF_RANGE
+        - ROLLING_LIMIT_REACHED
+    SalaryAdvancePolicyEntry:
+      type: object
+      additionalProperties: false
+      description: One immutable policy version. No interest, fee, repayment term or credit criterion exists.
+      required:
+        - policyId
+        - sequence
+        - currency
+        - code
+        - effectiveFrom
+        - effectiveTo
+        - enabled
+        - minTenureMonths
+        - maxPercent
+        - absoluteMax
+        - minRequest
+        - maxOpenRequests
+        - waitingDays
+        - consentVersion
+        - partnerCode
+        - status
+        - createdAt
+        - cancelledAt
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 25
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9-]{2,31}$"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        enabled:
+          type: boolean
+        minTenureMonths:
+          type: integer
+          minimum: 0
+          maximum: 60
+        maxPercent:
+          type: integer
+          minimum: 1
+          maximum: 50
+          description: Whole percent of the reference net salary; the ceiling is rounded down to a whole minor unit.
+        absoluteMax:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        minRequest:
+          $ref: "#/components/schemas/CompensationMoney"
+        maxOpenRequests:
+          type: integer
+          minimum: 1
+          maximum: 3
+        waitingDays:
+          type: integer
+          minimum: 0
+          maximum: 90
+        consentVersion:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        partnerCode:
+          $ref: "#/components/schemas/SalaryAdvancePartnerCode"
+        status:
+          $ref: "#/components/schemas/SalaryAdvancePolicyStatus"
+        createdAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: [string, "null"]
+          format: date-time
+    SalaryAdvanceChainVersion:
+      type: object
+      additionalProperties: false
+      required: [currency, version]
+      properties:
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        version:
+          type: integer
+          minimum: 0
+          maximum: 25
+          description: The last sequence of the chain (0 when none).
+    SalaryAdvancePolicyView:
+      type: object
+      additionalProperties: false
+      required: [legalEntityId, today, notice, versions, items]
+      properties:
+        legalEntityId:
+          type: string
+          format: uuid
+        today:
+          type: string
+          format: date
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+        versions:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceChainVersion"
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/SalaryAdvancePolicyEntry"
+    SalaryAdvancePolicyCommand:
+      type: object
+      additionalProperties: false
+      required:
+        - currency
+        - code
+        - effectiveFrom
+        - effectiveTo
+        - enabled
+        - minTenureMonths
+        - maxPercent
+        - absoluteMax
+        - minRequest
+        - maxOpenRequests
+        - waitingDays
+        - consentVersion
+        - partnerCode
+      properties:
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9-]{2,31}$"
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        enabled:
+          type: boolean
+          description: Never enabled automatically; the administrator states it.
+        minTenureMonths:
+          type: integer
+          minimum: 0
+          maximum: 60
+        maxPercent:
+          type: integer
+          minimum: 1
+          maximum: 50
+        absoluteMax:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        minRequest:
+          $ref: "#/components/schemas/CompensationMoney"
+        maxOpenRequests:
+          type: integer
+          minimum: 1
+          maximum: 3
+        waitingDays:
+          type: integer
+          minimum: 0
+          maximum: 90
+        consentVersion:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        partnerCode:
+          $ref: "#/components/schemas/SalaryAdvancePartnerCode"
+    SalaryAdvancePolicyBlocker:
+      type: string
+      enum: [PERIOD_OVERLAP, LIMIT_REACHED, EFFECTIVE_DATE_INVALID, CONSENT_VERSION_UNKNOWN, AMOUNT_BOUNDS_INVALID]
+    SalaryAdvancePolicyPreview:
+      type: object
+      additionalProperties: false
+      required: [policy, before, after, blockers, version, previewDigest, expiresAt, notice]
+      properties:
+        policy:
+          $ref: "#/components/schemas/SalaryAdvancePolicyCommand"
+        before:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/SalaryAdvancePolicyEntry"
+        after:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/SalaryAdvancePolicyEntry"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalaryAdvancePolicyBlocker"
+        version:
+          type: integer
+          minimum: 0
+          maximum: 25
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+    CommitSalaryAdvancePolicy:
+      type: object
+      additionalProperties: false
+      required: [policy, expectedVersion, previewDigest, expiresAt, confirmed]
+      properties:
+        policy:
+          $ref: "#/components/schemas/SalaryAdvancePolicyCommand"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 25
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvancePolicyReceipt:
+      type: object
+      additionalProperties: false
+      required: [policyId, sequence, currency, effectiveFrom, version, notice]
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 25
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        effectiveFrom:
+          type: string
+          format: date
+        version:
+          type: integer
+          minimum: 1
+          maximum: 25
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+    SalaryAdvanceCancelPolicy:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 25
+          description: The sequence of the version being cancelled.
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvanceConsentDocument:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120A (D120A-6). The canonical, versioned disclosure as stable codes the client translates into plain English
+        and French. contentSha256 is the SHA-256 of the canonical JSON of {version, purpose, shared, notShared,
+        externalSharing, withdrawal, retention} (never the rendered text, never the language); the server recomputes it at
+        submission. Nothing in this step is sent externally.
+      required: [version, contentSha256, purpose, shared, notShared, externalSharing, withdrawal, retention]
+      properties:
+        version:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        contentSha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        purpose:
+          type: string
+          enum: [EVALUATION_BY_FUTURE_APPROVED_PARTNER]
+        shared:
+          type: array
+          description: Data categories that MAY be shared in a later story (MVP-120B).
+          items:
+            type: string
+            enum:
+              - REQUEST_ID
+              - EMPLOYER_LEGAL_ENTITY
+              - EMPLOYMENT_STATUS
+              - EMPLOYMENT_START_DATE
+              - PAYROLL_REFERENCE_MONTH
+              - CURRENCY
+              - REQUESTED_AMOUNT
+              - EMPLOYER_POLICY_CEILING
+              - EMPLOYER_PARTICIPATION_STATUS
+        notShared:
+          type: array
+          description: Categories explicitly not shared by this story.
+          items:
+            type: string
+            enum:
+              - HEALTH
+              - LEAVE_REASON
+              - ATTENDANCE_DETAIL
+              - PERFORMANCE
+              - DISCIPLINARY
+              - RECEIPT_OR_DOCUMENT_CONTENT
+              - PASSWORD
+              - MFA_DATA
+              - FULL_PAYSLIP
+              - BANK_OR_MOBILE_MONEY_DESTINATION
+              - NATIONAL_IDENTIFIER
+              - UNRELATED_HR_HISTORY
+        externalSharing:
+          type: string
+          enum: [NONE_IN_THIS_STEP]
+        withdrawal:
+          type: string
+          enum: [BEFORE_EXTERNAL_HANDOFF]
+        retention:
+          type: string
+          enum: [NO_DELETION_SCHEDULE_YET]
+    SalaryAdvanceEligibilityEntry:
+      type: object
+      additionalProperties: false
+      description: >-
+        The deterministic employer-policy result for one currency. ceiling is the employer-policy ceiling, never a credit
+        limit, and is null unless ELIGIBLE or the only blockers concern the amount. The salary itself is never returned.
+      required:
+        - currency
+        - status
+        - reasons
+        - policy
+        - referencePeriod
+        - ceiling
+        - minRequest
+        - openRequests
+        - waitingUntil
+        - consent
+      properties:
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        status:
+          type: string
+          enum: [ELIGIBLE, NOT_ELIGIBLE]
+        reasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceReason"
+        policy:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvancePolicyRef"
+            - type: "null"
+        referencePeriod:
+          type: [string, "null"]
+          pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
+          description: The payroll reference month (YYYY-MM) of the latest eligible approved package.
+        ceiling:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        minRequest:
+          oneOf:
+            - $ref: "#/components/schemas/CompensationMoney"
+            - type: "null"
+        openRequests:
+          type: integer
+          minimum: 0
+          maximum: 3
+        waitingUntil:
+          type: [string, "null"]
+          format: date
+        consent:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceConsentDocument"
+            - type: "null"
+    SalaryAdvancePolicyRef:
+      type: object
+      additionalProperties: false
+      required: [policyId, sequence, maxOpenRequests, waitingDays, consentVersion, partnerCode]
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 25
+        maxOpenRequests:
+          type: integer
+          minimum: 1
+          maximum: 3
+        waitingDays:
+          type: integer
+          minimum: 0
+          maximum: 90
+        consentVersion:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        partnerCode:
+          $ref: "#/components/schemas/SalaryAdvancePartnerCode"
+    SalaryAdvanceEligibilityView:
+      type: object
+      additionalProperties: false
+      required: [asOf, notice, items]
+      properties:
+        asOf:
+          type: string
+          format: date
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+        items:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceEligibilityEntry"
+    SalaryAdvanceRequestCommand:
+      type: object
+      additionalProperties: false
+      required: [currency, amount]
+      properties:
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        amount:
+          $ref: "#/components/schemas/CompensationMoney"
+    SalaryAdvanceRequestPreview:
+      type: object
+      additionalProperties: false
+      required: [eligibility, blockers, previewDigest, expiresAt, notice]
+      properties:
+        eligibility:
+          $ref: "#/components/schemas/SalaryAdvanceEligibilityEntry"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceReason"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+    SalaryAdvanceConsentAffirmation:
+      type: object
+      additionalProperties: false
+      description: The explicit, never pre-checked affirmation of the disclosure shown.
+      required: [version, language, affirmed]
+      properties:
+        version:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        language:
+          type: string
+          enum: [en, fr]
+        affirmed:
+          type: boolean
+          description: Must be true.
+    CommitSalaryAdvanceRequest:
+      type: object
+      additionalProperties: false
+      required: [currency, amount, previewDigest, expiresAt, consent]
+      properties:
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        amount:
+          $ref: "#/components/schemas/CompensationMoney"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        consent:
+          $ref: "#/components/schemas/SalaryAdvanceConsentAffirmation"
+    SalaryAdvanceWithdraw:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 3
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvanceEmployerConfirm:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 3
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvanceEmployerRefuse:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, reasonCode, note, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 3
+        reasonCode:
+          $ref: "#/components/schemas/SalaryAdvanceRefusalReason"
+        note:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 500
+          description: Internal, at most 500 characters, no personal or medical information; never shown to the employee or a partner.
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvanceLifecycleEntry:
+      type: object
+      additionalProperties: false
+      required: [sequence, fromStatus, toStatus, actorRole, occurredAt, reasonCode]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 3
+        fromStatus:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceRequestStatus"
+            - type: "null"
+        toStatus:
+          $ref: "#/components/schemas/SalaryAdvanceRequestStatus"
+        actorRole:
+          type: string
+          enum: [EMPLOYEE, TENANT_ADMIN]
+        occurredAt:
+          type: string
+          format: date-time
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceRefusalReason"
+            - type: "null"
+    SalaryAdvanceConsentEvidence:
+      type: object
+      additionalProperties: false
+      description: Immutable consent evidence. No IP address, user agent or rendered text is stored.
+      required: [version, language, consentedAt, disclosureSha256]
+      properties:
+        version:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        language:
+          type: string
+          enum: [en, fr]
+        consentedAt:
+          type: string
+          format: date-time
+        disclosureSha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    SalaryAdvanceRequestSummary:
+      type: object
+      additionalProperties: false
+      required: [requestId, status, version, currency, requested, submittedAt, employeeId, employeeNumber, notice]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/SalaryAdvanceRequestStatus"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 3
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        requested:
+          $ref: "#/components/schemas/CompensationMoney"
+        submittedAt:
+          type: string
+          format: date-time
+        employeeId:
+          type: [string, "null"]
+          format: uuid
+          description: Present for administrators only.
+        employeeNumber:
+          type: [string, "null"]
+          description: Present for administrators only.
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+    SalaryAdvanceRequestPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceRequestSummary"
+        nextCursor:
+          type: [string, "null"]
+    SalaryAdvanceRequestView:
+      type: object
+      additionalProperties: false
+      description: >-
+        One request with its frozen evidence. No status is a credit decision; no funds move; no deduction is made. The
+        internal note is present for administrators only and never for the employee.
+      required:
+        - requestId
+        - status
+        - version
+        - currency
+        - requested
+        - ceiling
+        - referencePeriod
+        - policySequence
+        - partnerCode
+        - tenureMonths
+        - submittedAt
+        - consent
+        - lifecycle
+        - refusalReason
+        - internalNote
+        - employeeId
+        - employeeNumber
+        - notice
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/SalaryAdvanceRequestStatus"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 3
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        requested:
+          $ref: "#/components/schemas/CompensationMoney"
+        ceiling:
+          $ref: "#/components/schemas/CompensationMoney"
+        referencePeriod:
+          type: string
+          pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
+        policySequence:
+          type: integer
+          minimum: 1
+          maximum: 25
+        partnerCode:
+          $ref: "#/components/schemas/SalaryAdvancePartnerCode"
+        tenureMonths:
+          type: integer
+          minimum: 0
+        submittedAt:
+          type: string
+          format: date-time
+        consent:
+          $ref: "#/components/schemas/SalaryAdvanceConsentEvidence"
+        lifecycle:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceLifecycleEntry"
+        refusalReason:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceRefusalReason"
+            - type: "null"
+        internalNote:
+          type: [string, "null"]
+          description: Administrators only; always null for the employee.
+        employeeId:
+          type: [string, "null"]
+          format: uuid
+          description: Administrators only.
+        employeeNumber:
+          type: [string, "null"]
+          description: Administrators only.
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
