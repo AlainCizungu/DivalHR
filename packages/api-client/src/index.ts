@@ -786,18 +786,24 @@ export type SalaryAdvancePolicyBlocker = CoreComponents['schemas']['SalaryAdvanc
 export type SalaryAdvancePolicyPreview = CoreComponents['schemas']['SalaryAdvancePolicyPreview'];
 export type SalaryAdvancePolicyReceipt = CoreComponents['schemas']['SalaryAdvancePolicyReceipt'];
 export type SalaryAdvanceCancelPolicy = CoreComponents['schemas']['SalaryAdvanceCancelPolicy'];
-export type SalaryAdvanceConsentDocument = CoreComponents['schemas']['SalaryAdvanceConsentDocument'];
-export type SalaryAdvanceEligibilityEntry = CoreComponents['schemas']['SalaryAdvanceEligibilityEntry'];
+export type SalaryAdvanceConsentDocument =
+  CoreComponents['schemas']['SalaryAdvanceConsentDocument'];
+export type SalaryAdvanceEligibilityEntry =
+  CoreComponents['schemas']['SalaryAdvanceEligibilityEntry'];
 export type SalaryAdvancePolicyRef = CoreComponents['schemas']['SalaryAdvancePolicyRef'];
-export type SalaryAdvanceEligibilityView = CoreComponents['schemas']['SalaryAdvanceEligibilityView'];
+export type SalaryAdvanceEligibilityView =
+  CoreComponents['schemas']['SalaryAdvanceEligibilityView'];
 export type SalaryAdvanceRequestCommand = CoreComponents['schemas']['SalaryAdvanceRequestCommand'];
 export type SalaryAdvanceRequestPreview = CoreComponents['schemas']['SalaryAdvanceRequestPreview'];
-export type SalaryAdvanceConsentAffirmation = CoreComponents['schemas']['SalaryAdvanceConsentAffirmation'];
+export type SalaryAdvanceConsentAffirmation =
+  CoreComponents['schemas']['SalaryAdvanceConsentAffirmation'];
 export type SalaryAdvanceWithdraw = CoreComponents['schemas']['SalaryAdvanceWithdraw'];
-export type SalaryAdvanceEmployerConfirm = CoreComponents['schemas']['SalaryAdvanceEmployerConfirm'];
+export type SalaryAdvanceEmployerConfirm =
+  CoreComponents['schemas']['SalaryAdvanceEmployerConfirm'];
 export type SalaryAdvanceEmployerRefuse = CoreComponents['schemas']['SalaryAdvanceEmployerRefuse'];
 export type SalaryAdvanceLifecycleEntry = CoreComponents['schemas']['SalaryAdvanceLifecycleEntry'];
-export type SalaryAdvanceConsentEvidence = CoreComponents['schemas']['SalaryAdvanceConsentEvidence'];
+export type SalaryAdvanceConsentEvidence =
+  CoreComponents['schemas']['SalaryAdvanceConsentEvidence'];
 export type SalaryAdvanceRequestSummary = CoreComponents['schemas']['SalaryAdvanceRequestSummary'];
 export type SalaryAdvanceRequestPage = CoreComponents['schemas']['SalaryAdvanceRequestPage'];
 export type SalaryAdvanceRequestView = CoreComponents['schemas']['SalaryAdvanceRequestView'];
