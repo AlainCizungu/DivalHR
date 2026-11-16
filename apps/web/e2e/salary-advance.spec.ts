@@ -495,7 +495,7 @@ async function recordAdvancePolicy(page: Page, bearer: () => string, entity: Sit
 }
 
 const BANNED =
-  /approved loan|guarantee|funded|interest rate|\bAPR\b|credit score|prêt approuvé|garanti|financé|taux d.intérêt|score de crédit/iu;
+  /approved loan|guarantee|funded|interest rate|(?<!\p{L})APR(?!\p{L})|credit score|prêt approuvé|garanti|financé|taux d.intérêt|score de crédit/iu;
 
 async function expectNoLendingClaim(page: Page) {
   expect(await page.locator('main').innerText()).not.toMatch(BANNED);
