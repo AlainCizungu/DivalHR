@@ -7,6 +7,9 @@ import { WhatsAppPage } from '../features/whatsapp/WhatsAppPage';
 import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage';
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { MyCompensationPage } from '../features/compensation/MyCompensationPage';
+import { MySalaryAdvancePage } from '../features/salaryAdvance/MySalaryAdvancePage';
+import { SalaryAdvancePoliciesPage } from '../features/salaryAdvance/SalaryAdvancePoliciesPage';
+import { SalaryAdvanceRequestsPage } from '../features/salaryAdvance/SalaryAdvanceRequestsPage';
 import { ContractExpirationsPage } from '../features/contracts/ContractExpirationsPage';
 import { ContractTemplatePage } from '../features/contracts/ContractTemplatePage';
 import { ContractTemplatesPage } from '../features/contracts/ContractTemplatesPage';
@@ -318,6 +321,18 @@ export const ROUTES: AppRoute[] = [
     ],
   },
   {
+    path: '/admin/salary-advance-policies',
+    element: <SalaryAdvancePoliciesPage />,
+    access: tenantAdmin('salaryAdvance.unauthorized', 'salaryAdvance.signInRequired'),
+    crumbs: [HOME, PAYROLL, { key: 'nav.salaryAdvancePolicies' }],
+  },
+  {
+    path: '/admin/salary-advance-requests',
+    element: <SalaryAdvanceRequestsPage />,
+    access: tenantAdmin('salaryAdvance.unauthorized', 'salaryAdvance.signInRequired'),
+    crumbs: [HOME, PAYROLL, { key: 'nav.salaryAdvanceRequests' }],
+  },
+  {
     path: '/admin/payroll-packages',
     element: <PackageListPage />,
     access: tenantAdmin('payrollPackages.unauthorized', 'payrollPackages.signInRequired'),
@@ -551,6 +566,16 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'compensation.me.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myCompensation' }],
+  },
+  {
+    path: '/me/salary-advance',
+    element: <MySalaryAdvancePage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'salaryAdvance.me.unauthorized',
+      signInKey: 'salaryAdvance.me.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.mySalaryAdvance' }],
   },
   {
     path: '/me/payment-destination',

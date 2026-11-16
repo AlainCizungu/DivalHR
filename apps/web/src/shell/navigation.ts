@@ -164,6 +164,18 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'tenant-admin',
       },
       {
+        to: '/admin/salary-advance-policies',
+        labelKey: 'nav.salaryAdvancePolicies',
+        icon: 'contract',
+        role: 'tenant-admin',
+      },
+      {
+        to: '/admin/salary-advance-requests',
+        labelKey: 'nav.salaryAdvanceRequests',
+        icon: 'contract',
+        role: 'tenant-admin',
+      },
+      {
         to: '/admin/accounting-mappings',
         labelKey: 'nav.accountingMappings',
         icon: 'payroll',
@@ -266,6 +278,12 @@ export const NAVIGATION: NavGroupDef[] = [
       {
         to: '/me/compensation',
         labelKey: 'nav.myCompensation',
+        icon: 'contract',
+        role: 'employee',
+      },
+      {
+        to: '/me/salary-advance',
+        labelKey: 'nav.mySalaryAdvance',
         icon: 'contract',
         role: 'employee',
       },
