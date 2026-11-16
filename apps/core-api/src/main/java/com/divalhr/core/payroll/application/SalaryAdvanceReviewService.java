@@ -45,9 +45,9 @@ import org.springframework.stereotype.Service;
  *
  * <p>The internal note (at most 500 characters) is stored with the decision, shown to
  * administrators only, and never appears in an employee response, an audit record, an outbox event,
- * a log or a partner-facing field. No rule stops an administrator who is also the requesting
- * employee from deciding their own request; none was asked for (open question recorded in ADR
- * 0041).
+ * a log or a partner-facing field. An administrator who is also the requesting employee never
+ * decides their own request: the reviewer subject must differ from the immutable submitting
+ * subject, in this service and in the database decision guard (R205-2, ADR 0041).
  */
 @Service
 public class SalaryAdvanceReviewService {
@@ -345,6 +345,9 @@ public class SalaryAdvanceReviewService {
             .lockRequest(tenant, requestId)
             .orElseThrow(
                 () -> new ApiException(ErrorCode.SALARY_ADVANCE_REQUEST_NOT_FOUND, Map.of()));
+    if (row.submittedBy().equals(caller.subject())) {
+      throw new ApiException(ErrorCode.SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN, Map.of());
+    }
     if (row.rowVersion() != expectedVersion) {
       throw new ApiException(ErrorCode.SALARY_ADVANCE_VERSION_CONFLICT, Map.of());
     }

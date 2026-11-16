@@ -96,10 +96,13 @@ class SalaryAdvanceEligibility {
       Long requestedMinor) {
     String code = currency.name();
     Optional<LocalDate> start = employment.employmentStart(tenant, employeeId, today);
-    Optional<UUID> entity =
+    List<UUID> placements =
         start.isPresent()
-            ? employment.placementEntity(tenant, employeeId, today)
-            : Optional.empty();
+            ? employment.placementEntities(tenant, employeeId, today)
+            : List.of();
+    boolean ambiguous = placements.size() > 1;
+    Optional<UUID> entity =
+        placements.size() == 1 ? Optional.of(placements.get(0)) : Optional.empty();
     PolicyRow policy =
         entity.flatMap(id -> repository.applicablePolicy(tenant, id, code, today)).orElse(null);
     ReferenceRow reference =
@@ -141,6 +144,20 @@ class SalaryAdvanceEligibility {
             waitingUntil,
             today);
     Set<SalaryAdvanceReason> reasons = EnumSet.noneOf(SalaryAdvanceReason.class);
+    if (ambiguous) {
+      reasons.add(SalaryAdvanceReason.MULTIPLE_ACTIVE_PLACEMENTS);
+      return new Evaluation(
+          currency,
+          List.copyOf(reasons),
+          null,
+          null,
+          null,
+          start.orElse(null),
+          tenure,
+          null,
+          open,
+          null);
+    }
     reasons.addAll(SalaryAdvanceRules.reasons(facts));
     if (policy != null && ceiling != null) {
       if (requestedMinor != null) {

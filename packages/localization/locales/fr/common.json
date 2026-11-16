@@ -771,7 +771,8 @@
     "SALARY_ADVANCE_CONSENT_VERSION_STALE": "Le consentement a changé. Consultez la version actuelle et confirmez-la de nouveau.",
     "SALARY_ADVANCE_REQUEST_NOT_FOUND": "Cette demande d’avance sur salaire est introuvable.",
     "SALARY_ADVANCE_VERSION_CONFLICT": "Cette demande a changé depuis son ouverture. Rechargez et réessayez.",
-    "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "Cette action n’est pas permise dans le statut actuel."
+    "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "Cette action n’est pas permise dans le statut actuel.",
+    "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN": "Vous ne pouvez pas examiner une demande que vous avez soumise vous-même."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -5807,7 +5808,8 @@
       "OPEN_LIMIT_REACHED": "Vous avez déjà le nombre maximal de demandes ouvertes.",
       "WAITING_PERIOD": "Un délai d’attente après votre dernière demande retirée ou refusée court encore.",
       "AMOUNT_OUT_OF_RANGE": "Le montant est hors des limites de la politique de l’employeur.",
-      "ROLLING_LIMIT_REACHED": "Vous avez atteint le nombre de demandes autorisé sur douze mois."
+      "ROLLING_LIMIT_REACHED": "Vous avez atteint le nombre de demandes autorisé sur douze mois.",
+      "MULTIPLE_ACTIVE_PLACEMENTS": "Plus d’une affectation active couvre aujourd’hui : l’admissibilité ne peut pas être évaluée. Contactez votre employeur."
     },
     "col": {
       "submitted": "Transmise",

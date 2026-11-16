@@ -4,6 +4,7 @@ import com.divalhr.core.people.internal.JdbcEmploymentHistoryRepository;
 import com.divalhr.core.platform.access.SalaryAdvanceEmployment;
 import com.divalhr.core.platform.tenancy.TenantId;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -32,7 +33,7 @@ public class PeopleSalaryAdvanceEmployment implements SalaryAdvanceEmployment {
   }
 
   @Override
-  public Optional<UUID> placementEntity(TenantId tenant, UUID employeeId, LocalDate on) {
-    return history.placementEntityOn(tenant, employeeId, on);
+  public List<UUID> placementEntities(TenantId tenant, UUID employeeId, LocalDate on) {
+    return history.placementEntitiesOn(tenant, employeeId, on);
   }
 }

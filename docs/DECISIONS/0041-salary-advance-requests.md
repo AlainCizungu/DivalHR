@@ -55,7 +55,10 @@ matching query. Approved packages are CDF-only today (`payroll_package_currency`
 
 Deterministic and closed. Reason codes: `NO_ENABLED_POLICY`, `EMPLOYMENT_NOT_ACTIVE`, `LEGAL_ENTITY_MISMATCH`, `TENURE_TOO_SHORT`,
 `PAYROLL_REFERENCE_MISSING`, `CURRENCY_MISMATCH`, `OPEN_LIMIT_REACHED`, `WAITING_PERIOD`, `AMOUNT_OUT_OF_RANGE`,
-`ROLLING_LIMIT_REACHED`. Tenure is completed calendar months from the covering employment's start to the request date
+`ROLLING_LIMIT_REACHED`, `MULTIPLE_ACTIVE_PLACEMENTS`. When more than one legal-entity placement covers the request date the
+evaluation does not choose one (no identifier order has business meaning): `MULTIPLE_ACTIVE_PLACEMENTS` is the only reason
+returned, the request is refused as not eligible, and the request guard in V52 rejects it too (`payroll_salary_advance_request_placement`).
+A future story may add an explicit legal-entity selection. Tenure is completed calendar months from the covering employment's start to the request date
 (PostgreSQL `age()` semantics, the same expression as the service). The waiting period starts on the business date of the
 employee's own WITHDRAWN or EMPLOYER_REFUSED event for the same legal entity and currency and lasts the policy's `waitingDays`.
 "Open" means SUBMITTED or EMPLOYER_CONFIRMED. The response shows the reference month, currency and the employer-policy ceiling,
@@ -78,9 +81,9 @@ Header, history and decision are enforced by database triggers and a deferred co
 reopening, a second decision, a confirmation without its recorded decision or an employee-signed employer outcome all fail at
 commit. Exactly one command wins under concurrency: every command locks the request row first, then re-reads. A request is
 `row_version` 1..3. The internal note (≤ 500 characters) is stored in the decision row, shown to administrators only, and is
-never in an employee response, audit, outbox, log or partner-facing field. No rule prevents an administrator who is also the
-requesting employee from deciding their own request; the issue does not ask for one, and none was added (open question for the
-architect).
+never in an employee response, audit, outbox, log or partner-facing field. Self-review is forbidden (review R205-2): confirmation or refusal
+by the verified subject that submitted the request is 409 `SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN`, enforced in the service and in the
+database decision guard (`payroll_salary_advance_decision_self_review`); a different tenant administrator may decide.
 
 ## 8. Authorization, privacy and audit (D120A-12, D120A-13)
 

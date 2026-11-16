@@ -33,6 +33,11 @@ public final class SalaryAdvanceConstraintViolations {
           Map.entry("payroll_salary_advance_request_owner", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
           Map.entry(
               "payroll_salary_advance_request_employment", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
+          Map.entry(
+              "payroll_salary_advance_request_placement", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
+          Map.entry(
+              "payroll_salary_advance_decision_self_review",
+              ErrorCode.SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN),
           Map.entry("payroll_salary_advance_request_tenure", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
           Map.entry(
               "payroll_salary_advance_request_rolling_limit",

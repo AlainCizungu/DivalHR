@@ -771,7 +771,8 @@
     "SALARY_ADVANCE_CONSENT_VERSION_STALE": "The consent disclosure has changed. Review the current version and affirm it again.",
     "SALARY_ADVANCE_REQUEST_NOT_FOUND": "This salary-advance request was not found.",
     "SALARY_ADVANCE_VERSION_CONFLICT": "This request changed since you opened it. Reload and try again.",
-    "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current status."
+    "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current status.",
+    "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN": "You cannot review a request that you submitted yourself."
   },
   "notFound": {
     "title": "Page not found",
@@ -5807,7 +5808,8 @@
       "OPEN_LIMIT_REACHED": "You already have the maximum number of open requests.",
       "WAITING_PERIOD": "A waiting period after your last withdrawn or refused request is still running.",
       "AMOUNT_OUT_OF_RANGE": "The amount is outside the limits of the employer’s policy.",
-      "ROLLING_LIMIT_REACHED": "You have reached the number of requests allowed in twelve months."
+      "ROLLING_LIMIT_REACHED": "You have reached the number of requests allowed in twelve months.",
+      "MULTIPLE_ACTIVE_PLACEMENTS": "More than one active placement covers today, so eligibility cannot be evaluated. Contact your employer."
     },
     "col": {
       "submitted": "Submitted",

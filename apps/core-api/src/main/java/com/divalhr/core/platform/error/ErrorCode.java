@@ -854,7 +854,9 @@ public enum ErrorCode {
   /** MVP-120A: consented salary-advance requests (ADR 0041). */
   SALARY_ADVANCE_VERSION_CONFLICT(HttpStatus.CONFLICT),
   /** MVP-120A: consented salary-advance requests (ADR 0041). */
-  SALARY_ADVANCE_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT);
+  SALARY_ADVANCE_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-120A: the reviewer is the submitting subject (R205-2). */
+  SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN(HttpStatus.CONFLICT);
 
   private final HttpStatus status;
 

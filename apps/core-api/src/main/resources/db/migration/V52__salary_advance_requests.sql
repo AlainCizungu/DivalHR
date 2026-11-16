@@ -334,12 +334,18 @@ CREATE FUNCTION payroll.salary_advance_decision_guard() RETURNS trigger LANGUAGE
 $fn$
 DECLARE
     current_status text;
+    requester      text;
 BEGIN
-    SELECT r.status INTO current_status FROM payroll.salary_advance_request r
+    SELECT r.status, r.submitted_by INTO current_status, requester FROM payroll.salary_advance_request r
      WHERE r.tenant_id = NEW.tenant_id AND r.id = NEW.request_id FOR UPDATE;
     IF current_status IS DISTINCT FROM 'SUBMITTED' THEN
         RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_salary_advance_decision_state',
             MESSAGE = 'an employer decision applies to a SUBMITTED request only';
+    END IF;
+    -- R205-2: the reviewer is never the immutable submitting subject.
+    IF NEW.decided_by = requester THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_salary_advance_decision_self_review',
+            MESSAGE = 'a request is never decided by the subject who submitted it';
     END IF;
     RETURN NEW;
 END
@@ -477,6 +483,14 @@ BEGIN
                AND a.period @> NEW.requested_on) THEN
         RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_salary_advance_request_employment',
             MESSAGE = 'the employee is not actively employed in the policy legal entity';
+    END IF;
+    -- R205-1: several legal-entity placements on the date are ambiguous; none is chosen, the request fails closed.
+    IF (SELECT count(*) FROM people.employment_assignment a
+         WHERE a.tenant_id = NEW.tenant_id AND a.employee_id = NEW.employee_id AND a.kind = 'PLACEMENT'
+           AND a.legal_entity_id IS NOT NULL AND a.superseded_by_change_id IS NULL
+           AND a.period @> NEW.requested_on) > 1 THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_salary_advance_request_placement',
+            MESSAGE = 'more than one active placement covers the request date';
     END IF;
     months := (extract(year FROM age(NEW.requested_on, start_date)) * 12
                + extract(month FROM age(NEW.requested_on, start_date)))::integer;

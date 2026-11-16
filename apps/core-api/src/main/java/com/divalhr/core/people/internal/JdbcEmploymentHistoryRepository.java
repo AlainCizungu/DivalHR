@@ -989,24 +989,25 @@ public class JdbcEmploymentHistoryRepository {
   }
 
   /**
-   * The legal entity of the employee's current placement.
+   * The legal entities of the employee's placements covering a date, at most two rows: a second row
+   * means the placement is ambiguous and callers fail closed. No identifier order is meaningful.
    *
    * @param tenant verified tenant
    * @param employeeId employee
    * @param on business date
-   * @return the legal entity (the lowest identifier when several), if the employee is placed
+   * @return one entry per covering placement row, empty when the employee is not placed
    */
-  public Optional<UUID> placementEntityOn(TenantId tenant, UUID employeeId, LocalDate on) {
+  public List<UUID> placementEntitiesOn(TenantId tenant, UUID employeeId, LocalDate on) {
     return jdbc.sql(
             "SELECT a.legal_entity_id FROM people.employment_assignment a"
                 + " WHERE a.tenant_id = :tenant AND a.employee_id = :employee"
                 + " AND a.kind = 'PLACEMENT' AND a.superseded_by_change_id IS NULL"
                 + " AND a.legal_entity_id IS NOT NULL AND a.period @> CAST(:on AS date)"
-                + " ORDER BY a.legal_entity_id LIMIT 1")
+                + " LIMIT 2")
         .param("tenant", tenant.value())
         .param("employee", employeeId)
         .param("on", on)
         .query((rs, row) -> rs.getObject("legal_entity_id", UUID.class))
-        .optional();
+        .list();
   }
 }

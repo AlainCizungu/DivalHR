@@ -14153,7 +14153,9 @@ paths:
         later payroll deduction if a regulated partner approves; this is NOT credit approval, nothing is sent to any
         institution, no funds move and no deduction is made. Requires expectedVersion, confirmed=true and an
         Idempotency-Key. The amount, terms and partner cannot be changed. Any other current state is 409
-        SALARY_ADVANCE_TRANSITION_NOT_ALLOWED; a stale version is 409 SALARY_ADVANCE_VERSION_CONFLICT. Audit
+        SALARY_ADVANCE_TRANSITION_NOT_ALLOWED; a stale version is 409 SALARY_ADVANCE_VERSION_CONFLICT. A reviewer who is the
+        subject that submitted the request (for example a tenant administrator who is also the employee) is 409
+        SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN with no detail; a different administrator may decide. Audit
         salary-advance-request.employer-confirm and event payroll.salary-advance-request.employer-confirmed.v1 (no
         amount). At most 20 decisions per subject and 200 per tenant per hour. Cache-Control private, no-store.
       tags: [payroll]
@@ -22434,6 +22436,7 @@ components:
         - SALARY_ADVANCE_REQUEST_NOT_FOUND
         - SALARY_ADVANCE_VERSION_CONFLICT
         - SALARY_ADVANCE_TRANSITION_NOT_ALLOWED
+        - SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -29968,7 +29971,8 @@ components:
         force for the legal entity and currency), EMPLOYMENT_NOT_ACTIVE, LEGAL_ENTITY_MISMATCH (not placed in the policy's
         legal entity), TENURE_TOO_SHORT, PAYROLL_REFERENCE_MISSING (no eligible approved package), CURRENCY_MISMATCH,
         OPEN_LIMIT_REACHED, WAITING_PERIOD, AMOUNT_OUT_OF_RANGE (below the policy minimum or above the ceiling),
-        ROLLING_LIMIT_REACHED (10 requests in 12 months).
+        ROLLING_LIMIT_REACHED (10 requests in 12 months). MULTIPLE_ACTIVE_PLACEMENTS (more than one legal-entity placement
+        covers the date: no placement is chosen, nothing else is evaluated and it is the only reason returned).
       enum:
         - NO_ENABLED_POLICY
         - EMPLOYMENT_NOT_ACTIVE
@@ -29980,6 +29984,7 @@ components:
         - WAITING_PERIOD
         - AMOUNT_OUT_OF_RANGE
         - ROLLING_LIMIT_REACHED
+        - MULTIPLE_ACTIVE_PLACEMENTS
     SalaryAdvancePolicyEntry:
       type: object
       additionalProperties: false

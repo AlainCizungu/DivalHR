@@ -13,6 +13,11 @@ public enum SalaryAdvanceReason {
   EMPLOYMENT_NOT_ACTIVE,
   /** The employee is not placed in the legal entity of the policy. */
   LEGAL_ENTITY_MISMATCH,
+  /**
+   * More than one active legal-entity placement covers the request date: eligibility is not
+   * evaluated and no placement is chosen (R205-1). Always the only reason returned.
+   */
+  MULTIPLE_ACTIVE_PLACEMENTS,
   /** Fewer completed employment months than the policy requires. */
   TENURE_TOO_SHORT,
   /** No eligible approved payroll reference exists. */

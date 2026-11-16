@@ -30,6 +30,7 @@ export const REASONS: readonly SalaryAdvanceReason[] = [
   'WAITING_PERIOD',
   'AMOUNT_OUT_OF_RANGE',
   'ROLLING_LIMIT_REACHED',
+  'MULTIPLE_ACTIVE_PLACEMENTS',
 ];
 export const REFUSAL_REASONS: readonly SalaryAdvanceRefusalReason[] = [
   'POLICY_NO_LONGER_APPLIES',
