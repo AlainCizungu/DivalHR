@@ -688,6 +688,8 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
 
     // 4. The employee sees the confirmed status; the amount never left the page body.
     await anna.reload();
+    // The reload ended the in-memory session; the identity session is kept.
+    await anna.getByRole('banner').getByRole('button', { name: 'Sign in' }).click();
     await expect(anna.getByTestId('my-request-row')).toHaveAttribute(
       'data-status',
       'EMPLOYER_CONFIRMED',
@@ -753,6 +755,7 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
 
     // The employee sees the refusal and the waiting period, never the internal note.
     await clo.reload();
+    await clo.getByRole('banner').getByRole('button', { name: 'Se connecter' }).click();
     await expect(clo.getByTestId('my-request-row')).toHaveAttribute(
       'data-status',
       'EMPLOYER_REFUSED',
