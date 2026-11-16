@@ -660,7 +660,8 @@ public class JdbcSalaryAdvanceRepository {
       spec = spec.param("status", status);
     }
     if (after != null) {
-      spec = spec.param("afterAt", Timestamp.from(after.submittedAt())).param("afterId", after.id());
+      spec =
+          spec.param("afterAt", Timestamp.from(after.submittedAt())).param("afterId", after.id());
     }
     return spec.param("limit", limit).query(JdbcSalaryAdvanceRepository::requestRow).list();
   }
