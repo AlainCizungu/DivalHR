@@ -219,7 +219,8 @@ public class JdbcStatutoryRulePackRepository {
    * @return its governance state (for example ACTIVE or LEGACY), or empty when it has no row
    */
   public Optional<String> governanceState(UUID packId) {
-    return jdbc.sql("SELECT state FROM payroll.statutory_pack_governance WHERE pack_id = :pack")
+    return jdbc.sql(
+            "SELECT g.state FROM payroll.statutory_rule_pack p JOIN payroll.statutory_pack_governance g ON g.pack_id = p.id WHERE p.id = :pack")
         .param("pack", packId)
         .query(String.class)
         .optional();
