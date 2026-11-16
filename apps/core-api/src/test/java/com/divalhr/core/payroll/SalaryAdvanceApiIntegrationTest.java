@@ -136,8 +136,7 @@ class SalaryAdvanceApiIntegrationTest {
 
   private JsonNode eligibility() throws Exception {
     return w.c
-        .expect(
-            get("/api/v1/me/salary-advance-eligibility").header("Authorization", employee), 200)
+        .expect(get("/api/v1/me/salary-advance-eligibility").header("Authorization", employee), 200)
         .get("items")
         .get(0);
   }
@@ -353,11 +352,9 @@ class SalaryAdvanceApiIntegrationTest {
     policyInForce();
     String id = submit("5000").get("requestId").asText();
     CompensationWorld.Person other = w.linkedEmployee("Ilunga", PayrollPackageWorld.GROSS);
-    JsonNode mine =
-        w.c.expect(get(REQUESTS).header("Authorization", employee), 200);
+    JsonNode mine = w.c.expect(get(REQUESTS).header("Authorization", employee), 200);
     assertThat(mine.get("items")).hasSize(1);
-    assertThat(
-            w.c.expect(get(REQUESTS).header("Authorization", other.bearer()), 200).get("items"))
+    assertThat(w.c.expect(get(REQUESTS).header("Authorization", other.bearer()), 200).get("items"))
         .isEmpty();
     w.c.problem(
         get(REQUESTS + "/" + id).header("Authorization", other.bearer()),
@@ -474,7 +471,7 @@ class SalaryAdvanceApiIntegrationTest {
     String id = request.get("requestId").asText();
     int version = request.get("version").asInt();
     w.c.problem(
-        decision(id, "confirm-employer", confirming(version + 5)),
+        decision(id, "confirm-employer", confirming(version + 1)),
         409,
         "SALARY_ADVANCE_VERSION_CONFLICT");
     JsonNode confirmed = w.c.expect(decision(id, "confirm-employer", confirming(version)), 200);
@@ -528,8 +525,7 @@ class SalaryAdvanceApiIntegrationTest {
         w.c.expect(
             get("/api/v1/salary-advance-requests/" + id).header("Authorization", w.admin), 200);
     assertThat(adminView.get("internalNote").asText()).isEqualTo(SECRET_NOTE);
-    JsonNode mine =
-        w.c.expect(get(REQUESTS + "/" + id).header("Authorization", employee), 200);
+    JsonNode mine = w.c.expect(get(REQUESTS + "/" + id).header("Authorization", employee), 200);
     assertThat(mine.toString()).doesNotContain(SECRET_NOTE);
     assertThat(mine.get("internalNote").isNull()).isTrue();
     JsonNode after = eligibility();
@@ -558,14 +554,12 @@ class SalaryAdvanceApiIntegrationTest {
                 "SELECT metadata::text || coalesce(after_state_sha256, '') || actor_subject"
                     + " FROM platform.audit_event WHERE tenant_id = ?"
                     + " AND action LIKE 'salary-advance-%'",
-                String.class,
-                w.tenant));
+                String.class, w.tenant));
     rows.addAll(
         jdbc.queryForList(
             "SELECT envelope::text FROM platform.outbox_event WHERE tenant_id = ?"
                 + " AND event_type LIKE 'payroll.salary-advance-%'",
-            String.class,
-            w.tenant));
+            String.class, w.tenant));
     assertThat(rows).isNotEmpty();
     String text = String.join("\n", rows);
     assertThat(text).doesNotContain(SECRET_AMOUNT).doesNotContain(SECRET_NOTE);
@@ -587,7 +581,9 @@ class SalaryAdvanceApiIntegrationTest {
     List<Integer> before = counts();
     String key = Organizations.newKey();
     assertThat(
-            status(CompensationWorld.json(REQUESTS, employee, key, submission(preview, "5000", false))))
+            status(
+                CompensationWorld.json(
+                    REQUESTS, employee, key, submission(preview, "5000", false))))
         .isIn(400, 422);
     assertThat(counts()).isEqualTo(before);
     w.c.expect(
