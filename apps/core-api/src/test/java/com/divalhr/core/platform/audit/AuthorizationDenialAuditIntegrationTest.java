@@ -283,6 +283,15 @@ class AuthorizationDenialAuditIntegrationTest {
           "payroll-run.preview",
           "payroll-run.read",
           "payroll-run.create",
+          // MVP-120A: employer salary-advance policies and request review (administrator).
+          "salary-advance-policy.read",
+          "salary-advance-policy.preview",
+          "salary-advance-policy.commit",
+          "salary-advance-policy.cancel",
+          "salary-advance-request.list",
+          "salary-advance-request.read",
+          "salary-advance-request.confirm",
+          "salary-advance-request.refuse",
           // MVP-094B: statutory preview (administrator).
           "statutory-rule-pack.read",
           "statutory-activation.read",
@@ -406,6 +415,13 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-094C: the employee's own published payslips.
           "payslip.self-read",
           "payslip.self-download",
+          // MVP-120A: the employee's own salary-advance requests.
+          "salary-advance.self-eligibility",
+          "salary-advance.self-preview",
+          "salary-advance.self-list",
+          "salary-advance.self-read",
+          "salary-advance.self-submit",
+          "salary-advance.self-withdraw",
           // MVP-095A: the employee's own masked payment destination.
           "payment-destination.self-read");
 
@@ -858,7 +874,7 @@ class AuthorizationDenialAuditIntegrationTest {
     // accounting-journal.download).
     // MVP-097A added ten handlers: nine platform operations (list, read and seven commands) and the
     // tenant read.
-    assertThat(handlers).hasSize(230);
+    assertThat(handlers).hasSize(238);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

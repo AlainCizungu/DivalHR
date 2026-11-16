@@ -966,4 +966,48 @@ public class JdbcEmploymentHistoryRepository {
         rs.getTimestamp("recorded_at").toInstant(),
         rs.getLong("version_after"));
   }
+
+  /**
+   * The start date of the employment covering a date.
+   *
+   * @param tenant verified tenant
+   * @param employeeId employee
+   * @param on business date
+   * @return the employment start, if the employee is employed on the date
+   */
+  public Optional<LocalDate> employmentStartOn(TenantId tenant, UUID employeeId, LocalDate on) {
+    return jdbc.sql(
+            "SELECT e.effective_from FROM people.employment e WHERE e.tenant_id = :tenant"
+                + " AND e.employee_id = :employee AND e.effective_from <= CAST(:on AS date)"
+                + " AND (e.effective_to IS NULL OR e.effective_to >= CAST(:on AS date))"
+                + " ORDER BY e.effective_from DESC LIMIT 1")
+        .param("tenant", tenant.value())
+        .param("employee", employeeId)
+        .param("on", on)
+        .query((rs, row) -> rs.getObject("effective_from", LocalDate.class))
+        .optional();
+  }
+
+  /**
+   * The legal entities of the employee's placements covering a date, at most two rows: a second row
+   * means the placement is ambiguous and callers fail closed. No identifier order is meaningful.
+   *
+   * @param tenant verified tenant
+   * @param employeeId employee
+   * @param on business date
+   * @return one entry per covering placement row, empty when the employee is not placed
+   */
+  public List<UUID> placementEntitiesOn(TenantId tenant, UUID employeeId, LocalDate on) {
+    return jdbc.sql(
+            "SELECT a.legal_entity_id FROM people.employment_assignment a"
+                + " WHERE a.tenant_id = :tenant AND a.employee_id = :employee"
+                + " AND a.kind = 'PLACEMENT' AND a.superseded_by_change_id IS NULL"
+                + " AND a.legal_entity_id IS NOT NULL AND a.period @> CAST(:on AS date)"
+                + " LIMIT 2")
+        .param("tenant", tenant.value())
+        .param("employee", employeeId)
+        .param("on", on)
+        .query((rs, row) -> rs.getObject("legal_entity_id", UUID.class))
+        .list();
+  }
 }

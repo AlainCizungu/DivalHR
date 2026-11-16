@@ -5278,6 +5278,254 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/legal-entities/{legalEntityId}/salary-advance-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a legal entity's salary-advance participation policies
+         * @description MVP-120A (ADR 0041, D120A-3). The effective-dated employer participation policy versions of one legal entity, optionally one currency, newest first, at most 50 (25 per currency), with the status of each version (SCHEDULED, IN_FORCE, ENDED, CANCELLED) on the organization's business date and the last version sequence per currency. A policy is an employer participation limit: it contains no interest, fee, repayment term or credit criterion, and DivalHR is not the lender. Unknown, malformed, foreign and unauthorized legal entities are the same 404 LEGAL_ENTITY_NOT_FOUND. A fail-closed disclosure (audit salary-advance-policy.read; counts only). Cache-Control private, no-store.
+         */
+        get: operations["listSalaryAdvancePolicies"];
+        put?: never;
+        /**
+         * Commit a previewed salary-advance participation policy
+         * @description MVP-120A (D120A-3). Repeats the previewed policy with the expectedVersion, previewDigest and expiresAt the preview returned, confirmed=true and an Idempotency-Key. In one transaction the chain of the legal entity and currency is re-read under a lock: a different version is 409 SALARY_ADVANCE_VERSION_CONFLICT, an expired or different preview is 409 SALARY_ADVANCE_POLICY_PREVIEW_STALE, an overlapping period is 409 SALARY_ADVANCE_POLICY_OVERLAP, and an invalid policy is 422 SALARY_ADVANCE_POLICY_INVALID. At most 25 versions per legal entity and currency. Policies are appended, never edited or deleted, never enabled automatically, and carry no employee-specific exception. The business rows, the audit record (salary-advance-policy.create) and the internal outbox event (payroll.salary-advance-policy.created.v1) commit together and carry no amount. At most 20 commits per subject per hour. The same Idempotency-Key and payload replays the original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED. Cache-Control private, no-store.
+         */
+        post: operations["commitSalaryAdvancePolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/salary-advance-policies/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview adding a salary-advance participation policy
+         * @description MVP-120A (D120A-3). Validates the policy without writing and returns the timeline before and after, stable blockers, the chain version, a previewDigest and its expiry (15 minutes). A blocked preview has a null previewDigest and expiresAt. Bounds: minimum completed months 0-60, maximum percentage of the reference net salary 1-50 (whole percent; the ceiling is the reference net times the percentage divided by 100 in whole minor units, rounded down), an optional absolute maximum, a minimum request, 1-3 open requests, 0-90 waiting days, a consent document version, and the synthetic partner code SYNTHETIC-TEST exactly. Recorded as a disclosure (audit salary-advance-policy.preview). At most 20 previews per subject per hour. Cache-Control private, no-store.
+         */
+        post: operations["previewSalaryAdvancePolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/legal-entities/{legalEntityId}/salary-advance-policies/{policyId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a scheduled salary-advance policy version
+         * @description MVP-120A (D120A-3). Cancels one policy version that has not taken effect on the organization's business date and that no request references; the version stays readable as CANCELLED and is never edited or deleted. Requires expectedVersion (the version's sequence), confirmed=true and an Idempotency-Key. A version in force, ended or already cancelled is 409 SALARY_ADVANCE_TRANSITION_NOT_ALLOWED; an unknown, malformed or foreign id is 404 SALARY_ADVANCE_POLICY_NOT_FOUND; a different expectedVersion is 409 SALARY_ADVANCE_VERSION_CONFLICT. Audit salary-advance-policy.cancel; no amount in audit. At most 20 per subject per hour. Cache-Control private, no-store.
+         */
+        post: operations["cancelSalaryAdvancePolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/salary-advance-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List salary-advance requests for employer review
+         * @description MVP-120A (D120A-8, D120A-12). The caller's tenant's requests, newest first, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, role, filter and page size and carries no amount, employee or date). Optional status filter. Managers and platform administrators have no route. Statuses are SUBMITTED, EMPLOYER_CONFIRMED, EMPLOYER_REFUSED and WITHDRAWN: employer participation only, never a credit decision. A fail-closed disclosure (audit salary-advance-request.read; counts only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+         */
+        get: operations["listSalaryAdvanceRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/salary-advance-requests/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one salary-advance request for employer review
+         * @description MVP-120A (D120A-8). The bounded request, its frozen policy and payroll-reference evidence, its consent evidence (version, language, instant and disclosure digest, never the rendered text), its immutable lifecycle and the employer decision with the optional internal note (visible to administrators only). An unknown, malformed, foreign or wrong-tenant id is the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. A fail-closed disclosure (audit salary-advance-request.read). Cache-Control private, no-store.
+         */
+        get: operations["getSalaryAdvanceRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/salary-advance-requests/{requestId}/confirm-employer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm employer participation in a salary-advance request
+         * @description MVP-120A (D120A-7, D120A-8). SUBMITTED to EMPLOYER_CONFIRMED. The employer states that it is prepared to support a later payroll deduction if a regulated partner approves; this is NOT credit approval, nothing is sent to any institution, no funds move and no deduction is made. Requires expectedVersion, confirmed=true and an Idempotency-Key. The amount, terms and partner cannot be changed. Any other current state is 409 SALARY_ADVANCE_TRANSITION_NOT_ALLOWED; a stale version is 409 SALARY_ADVANCE_VERSION_CONFLICT. A reviewer who is the subject that submitted the request (for example a tenant administrator who is also the employee) is 409 SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN with no detail; a different administrator may decide. Audit salary-advance-request.employer-confirm and event payroll.salary-advance-request.employer-confirmed.v1 (no amount). At most 20 decisions per subject and 200 per tenant per hour. Cache-Control private, no-store.
+         */
+        post: operations["confirmSalaryAdvanceEmployer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/salary-advance-requests/{requestId}/refuse-employer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refuse employer participation in a salary-advance request
+         * @description MVP-120A (D120A-7, D120A-8). SUBMITTED to EMPLOYER_REFUSED with exactly one closed reason code and an optional internal note of at most 500 characters with no personal or medical information. The refusal is a bounded employer-policy outcome, not a credit decision; the employee sees the translated reason code, never the note, and the note is never sent to a partner. Requires expectedVersion, confirmed=true and an Idempotency-Key. Starts the policy's waiting period. Audit salary-advance-request.employer-refuse and event payroll.salary-advance-request.employer-refused.v1 (reason code, no amount or note). Limits as for confirmation. Cache-Control private, no-store.
+         */
+        post: operations["refuseSalaryAdvanceEmployer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-eligibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read my preliminary employer-policy eligibility
+         * @description MVP-120A (D120A-4, D120A-5). For the caller's own active employee-access link (403 EMPLOYEE_LINK_REQUIRED otherwise), one entry per currency with the deterministic, closed result: ELIGIBLE or NOT_ELIGIBLE with stable reason codes, the applicable policy, the payroll reference month and currency, the employer-policy ceiling (never called a credit limit, never the salary), the open-request count, the end of any waiting period and the consent document (version and canonical content digest). The reference is only the latest APPROVED, non-voided monthly payroll package of the employee, legal entity and currency produced under a governed pack that is neither DRAFT nor LEGACY; it is never recalculated and never converted. Approved packages are CDF-only today, so a USD entry is NOT_ELIGIBLE (PAYROLL_REFERENCE_MISSING). Eligibility means only that a request fits employer policy: it is not a lender affordability assessment, credit approval or an entitlement. Audit salary-advance-eligibility.read (reason codes and counts only, no amount). At most 30 reads per subject per hour. Cache-Control private, no-store.
+         */
+        get: operations["getMySalaryAdvanceEligibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-requests/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview my salary-advance request
+         * @description MVP-120A (D120A-5, D120A-6). Evaluates one requested amount for the caller's own employee record against the employer policy and returns the closed eligibility result, the ceiling, blockers (SALARY_ADVANCE_* reason codes), the policy version the amount was evaluated against, the consent document the employee must affirm, a previewDigest and its expiry (15 minutes). The digest binds the tenant, employee, policy, payroll reference, amount and consent version. Nothing is stored except an audit disclosure (salary-advance-request.preview, no amount). No external call is made. At most 10 previews per subject and 100 per tenant per hour. Cache-Control private, no-store.
+         */
+        post: operations["previewMySalaryAdvanceRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my salary-advance requests
+         * @description MVP-120A. The caller's own requests, newest first, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, tenant, subject, role and page size and carries no amount or date), resolved from the caller's current active employee-access link on every request (403 EMPLOYEE_LINK_REQUIRED otherwise). No other employee's request and no administrator note can be reached. A fail-closed disclosure (audit salary-advance-request.read; counts only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+         */
+        get: operations["listMySalaryAdvanceRequests"];
+        put?: never;
+        /**
+         * Submit my salary-advance request to my employer
+         * @description MVP-120A (D120A-6, D120A-7). Repeats the previewed request with the previewDigest and expiresAt the preview returned and the consent affirmation: the consent document version, the language shown (en or fr) and affirmed=true. The control is never pre-checked; without it 422 SALARY_ADVANCE_CONSENT_REQUIRED, and a consent version that is not the policy's current one is 409 SALARY_ADVANCE_CONSENT_VERSION_STALE. In one idempotent transaction the employee, policy chain, payroll reference and limits are re-evaluated; the immutable request header with its frozen policy, payroll and consent evidence (version, language, instant, canonical disclosure SHA-256; no IP address, user agent or rendered text), the SUBMITTED history row, the audit record (salary-advance-request.submit) and the internal outbox event (payroll.salary-advance-request.submitted.v1) commit together and carry no amount. SUBMITTED means received by the employer only: no loan exists, nothing is sent to any institution, no funds move and no deduction is made. At most 10 submissions per subject and 100 per tenant per hour, 10 requests per employee per rolling 12 months. The same Idempotency-Key and payload replays the original 201; a different payload is 409 IDEMPOTENCY_KEY_REUSED. Cache-Control private, no-store.
+         */
+        post: operations["submitMySalaryAdvanceRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-requests/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one of my salary-advance requests
+         * @description MVP-120A. One of the caller's own requests with its lifecycle, consent evidence and the translated employer reason code when refused (never the administrator's note). A request that is unknown, malformed, of another employee or tenant is the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. A fail-closed disclosure (audit salary-advance-request.read). Cache-Control private, no-store.
+         */
+        get: operations["getMySalaryAdvanceRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-requests/{requestId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw my salary-advance request before any external handoff
+         * @description MVP-120A (D120A-7). SUBMITTED or EMPLOYER_CONFIRMED to WITHDRAWN, by the owning employee only. No partner handoff exists in this story, so withdrawal is always possible from those two states; any other state is 409 SALARY_ADVANCE_TRANSITION_NOT_ALLOWED. Requires expectedVersion, confirmed=true and an Idempotency-Key. A withdrawn request is never reopened or edited: a correction is a new request after the policy's waiting period. Audit salary-advance-request.withdraw and event payroll.salary-advance-request.withdrawn.v1 (no amount). At most 10 per subject per hour. Cache-Control private, no-store.
+         */
+        post: operations["withdrawMySalaryAdvanceRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -8425,7 +8673,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE" | "SALARY_ADVANCE_POLICY_NOT_FOUND" | "SALARY_ADVANCE_POLICY_INVALID" | "SALARY_ADVANCE_POLICY_OVERLAP" | "SALARY_ADVANCE_POLICY_PREVIEW_STALE" | "SALARY_ADVANCE_NOT_ELIGIBLE" | "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING" | "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE" | "SALARY_ADVANCE_CURRENCY_MISMATCH" | "SALARY_ADVANCE_OPEN_LIMIT_REACHED" | "SALARY_ADVANCE_WAITING_PERIOD" | "SALARY_ADVANCE_CONSENT_REQUIRED" | "SALARY_ADVANCE_CONSENT_VERSION_STALE" | "SALARY_ADVANCE_REQUEST_NOT_FOUND" | "SALARY_ADVANCE_VERSION_CONFLICT" | "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -12180,6 +12428,293 @@ export interface components {
             /** Format: date-time */
             cancelledAt: string;
         };
+        /**
+         * @description MVP-120A (D120A-1). The permanent responsibility notice, as a stable code the client translates (en and fr). It is returned on every salary-advance response so that no screen can omit it. DIVALHR_NOT_LENDER means: DivalHR is not the lender; employer eligibility is not credit approval; no funds are sent in this step.
+         * @enum {string}
+         */
+        SalaryAdvanceNotice: "DIVALHR_NOT_LENDER";
+        /** @enum {string} */
+        SalaryAdvanceCurrency: "CDF" | "USD";
+        /**
+         * @description The only controlled partner type, a development and test partner with no endpoint, credential, price or licence claim.
+         * @enum {string}
+         */
+        SalaryAdvancePartnerCode: "SYNTHETIC-TEST";
+        /**
+         * @description The closed lifecycle. SUBMITTED means received by the employer only. EMPLOYER_CONFIRMED means the employer is prepared to support a later deduction if a regulated partner approves, not credit approval. EMPLOYER_REFUSED is a bounded employer-policy refusal, not a credit decision. No other state exists: the lifecycle ends at the employer's confirmation, refusal or the employee's withdrawal, and nothing is submitted to any partner.
+         * @enum {string}
+         */
+        SalaryAdvanceRequestStatus: "SUBMITTED" | "EMPLOYER_CONFIRMED" | "EMPLOYER_REFUSED" | "WITHDRAWN";
+        /** @enum {string} */
+        SalaryAdvancePolicyStatus: "SCHEDULED" | "IN_FORCE" | "ENDED" | "CANCELLED";
+        /** @enum {string} */
+        SalaryAdvanceRefusalReason: "POLICY_NO_LONGER_APPLIES" | "EMPLOYMENT_ENDING" | "PAYROLL_REFERENCE_INVALID" | "OPEN_REQUEST_LIMIT" | "EMPLOYER_NOT_PARTICIPATING" | "OTHER_POLICY_REASON";
+        /**
+         * @description Closed eligibility and blocker reason codes, never free text. NO_ENABLED_POLICY (no enabled, non-cancelled policy in force for the legal entity and currency), EMPLOYMENT_NOT_ACTIVE, LEGAL_ENTITY_MISMATCH (not placed in the policy's legal entity), TENURE_TOO_SHORT, PAYROLL_REFERENCE_MISSING (no eligible approved package), CURRENCY_MISMATCH, OPEN_LIMIT_REACHED, WAITING_PERIOD, AMOUNT_OUT_OF_RANGE (below the policy minimum or above the ceiling), ROLLING_LIMIT_REACHED (10 requests in 12 months). MULTIPLE_ACTIVE_PLACEMENTS (more than one legal-entity placement covers the date: no placement is chosen, nothing else is evaluated and it is the only reason returned).
+         * @enum {string}
+         */
+        SalaryAdvanceReason: "NO_ENABLED_POLICY" | "EMPLOYMENT_NOT_ACTIVE" | "LEGAL_ENTITY_MISMATCH" | "TENURE_TOO_SHORT" | "PAYROLL_REFERENCE_MISSING" | "CURRENCY_MISMATCH" | "OPEN_LIMIT_REACHED" | "WAITING_PERIOD" | "AMOUNT_OUT_OF_RANGE" | "ROLLING_LIMIT_REACHED" | "MULTIPLE_ACTIVE_PLACEMENTS";
+        /** @description One immutable policy version. No interest, fee, repayment term or credit criterion exists. */
+        SalaryAdvancePolicyEntry: {
+            /** Format: uuid */
+            policyId: string;
+            sequence: number;
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            code: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            enabled: boolean;
+            minTenureMonths: number;
+            /** @description Whole percent of the reference net salary; the ceiling is rounded down to a whole minor unit. */
+            maxPercent: number;
+            absoluteMax: components["schemas"]["CompensationMoney"] | null;
+            minRequest: components["schemas"]["CompensationMoney"];
+            maxOpenRequests: number;
+            waitingDays: number;
+            consentVersion: string;
+            partnerCode: components["schemas"]["SalaryAdvancePartnerCode"];
+            status: components["schemas"]["SalaryAdvancePolicyStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            cancelledAt: string | null;
+        };
+        SalaryAdvanceChainVersion: {
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            /** @description The last sequence of the chain (0 when none). */
+            version: number;
+        };
+        SalaryAdvancePolicyView: {
+            /** Format: uuid */
+            legalEntityId: string;
+            /** Format: date */
+            today: string;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+            versions: components["schemas"]["SalaryAdvanceChainVersion"][];
+            items: components["schemas"]["SalaryAdvancePolicyEntry"][];
+        };
+        SalaryAdvancePolicyCommand: {
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            code: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            /** @description Never enabled automatically; the administrator states it. */
+            enabled: boolean;
+            minTenureMonths: number;
+            maxPercent: number;
+            absoluteMax: components["schemas"]["CompensationMoney"] | null;
+            minRequest: components["schemas"]["CompensationMoney"];
+            maxOpenRequests: number;
+            waitingDays: number;
+            consentVersion: string;
+            partnerCode: components["schemas"]["SalaryAdvancePartnerCode"];
+        };
+        /** @enum {string} */
+        SalaryAdvancePolicyBlocker: "PERIOD_OVERLAP" | "LIMIT_REACHED" | "EFFECTIVE_DATE_INVALID" | "CONSENT_VERSION_UNKNOWN" | "AMOUNT_BOUNDS_INVALID";
+        SalaryAdvancePolicyPreview: {
+            policy: components["schemas"]["SalaryAdvancePolicyCommand"];
+            before: components["schemas"]["SalaryAdvancePolicyEntry"][];
+            after: components["schemas"]["SalaryAdvancePolicyEntry"][];
+            blockers: components["schemas"]["SalaryAdvancePolicyBlocker"][];
+            version: number;
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+        };
+        CommitSalaryAdvancePolicy: {
+            policy: components["schemas"]["SalaryAdvancePolicyCommand"];
+            expectedVersion: number;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        SalaryAdvancePolicyReceipt: {
+            /** Format: uuid */
+            policyId: string;
+            sequence: number;
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            /** Format: date */
+            effectiveFrom: string;
+            version: number;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+        };
+        SalaryAdvanceCancelPolicy: {
+            /** @description The sequence of the version being cancelled. */
+            expectedVersion: number;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        /** @description MVP-120A (D120A-6). The canonical, versioned disclosure as stable codes the client translates into plain English and French. contentSha256 is the SHA-256 of the canonical JSON of {version, purpose, shared, notShared, externalSharing, withdrawal, retention} (never the rendered text, never the language); the server recomputes it at submission. Nothing in this step is sent externally. */
+        SalaryAdvanceConsentDocument: {
+            version: string;
+            contentSha256: string;
+            /** @enum {string} */
+            purpose: "EVALUATION_BY_FUTURE_APPROVED_PARTNER";
+            /** @description Data categories that MAY be shared in a later story (MVP-120B). */
+            shared: ("REQUEST_ID" | "EMPLOYER_LEGAL_ENTITY" | "EMPLOYMENT_STATUS" | "EMPLOYMENT_START_DATE" | "PAYROLL_REFERENCE_MONTH" | "CURRENCY" | "REQUESTED_AMOUNT" | "EMPLOYER_POLICY_CEILING" | "EMPLOYER_PARTICIPATION_STATUS")[];
+            /** @description Categories explicitly not shared by this story. */
+            notShared: ("HEALTH" | "LEAVE_REASON" | "ATTENDANCE_DETAIL" | "PERFORMANCE" | "DISCIPLINARY" | "RECEIPT_OR_DOCUMENT_CONTENT" | "PASSWORD" | "MFA_DATA" | "FULL_PAYSLIP" | "BANK_OR_MOBILE_MONEY_DESTINATION" | "NATIONAL_IDENTIFIER" | "UNRELATED_HR_HISTORY")[];
+            /** @enum {string} */
+            externalSharing: "NONE_IN_THIS_STEP";
+            /** @enum {string} */
+            withdrawal: "BEFORE_EXTERNAL_HANDOFF";
+            /** @enum {string} */
+            retention: "NO_DELETION_SCHEDULE_YET";
+        };
+        /** @description The deterministic employer-policy result for one currency. ceiling is the employer-policy ceiling, never a credit limit, and is null unless ELIGIBLE or the only blockers concern the amount. The salary itself is never returned. */
+        SalaryAdvanceEligibilityEntry: {
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            /** @enum {string} */
+            status: "ELIGIBLE" | "NOT_ELIGIBLE";
+            reasons: components["schemas"]["SalaryAdvanceReason"][];
+            policy: components["schemas"]["SalaryAdvancePolicyRef"] | null;
+            /** @description The payroll reference month (YYYY-MM) of the latest eligible approved package. */
+            referencePeriod: string | null;
+            ceiling: components["schemas"]["CompensationMoney"] | null;
+            minRequest: components["schemas"]["CompensationMoney"] | null;
+            openRequests: number;
+            /** Format: date */
+            waitingUntil: string | null;
+            consent: components["schemas"]["SalaryAdvanceConsentDocument"] | null;
+        };
+        SalaryAdvancePolicyRef: {
+            /** Format: uuid */
+            policyId: string;
+            sequence: number;
+            maxOpenRequests: number;
+            waitingDays: number;
+            consentVersion: string;
+            partnerCode: components["schemas"]["SalaryAdvancePartnerCode"];
+        };
+        SalaryAdvanceEligibilityView: {
+            /** Format: date */
+            asOf: string;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+            items: components["schemas"]["SalaryAdvanceEligibilityEntry"][];
+        };
+        SalaryAdvanceRequestCommand: {
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            amount: components["schemas"]["CompensationMoney"];
+        };
+        SalaryAdvanceRequestPreview: {
+            eligibility: components["schemas"]["SalaryAdvanceEligibilityEntry"];
+            blockers: components["schemas"]["SalaryAdvanceReason"][];
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+        };
+        /** @description The explicit, never pre-checked affirmation of the disclosure shown. */
+        SalaryAdvanceConsentAffirmation: {
+            version: string;
+            /** @enum {string} */
+            language: "en" | "fr";
+            /** @description Must be true. */
+            affirmed: boolean;
+        };
+        CommitSalaryAdvanceRequest: {
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            amount: components["schemas"]["CompensationMoney"];
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            consent: components["schemas"]["SalaryAdvanceConsentAffirmation"];
+        };
+        SalaryAdvanceWithdraw: {
+            expectedVersion: number;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        SalaryAdvanceEmployerConfirm: {
+            expectedVersion: number;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        SalaryAdvanceEmployerRefuse: {
+            expectedVersion: number;
+            reasonCode: components["schemas"]["SalaryAdvanceRefusalReason"];
+            /** @description Internal, at most 500 characters, no personal or medical information; never shown to the employee or a partner. */
+            note: string | null;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        SalaryAdvanceLifecycleEntry: {
+            sequence: number;
+            fromStatus: components["schemas"]["SalaryAdvanceRequestStatus"] | null;
+            toStatus: components["schemas"]["SalaryAdvanceRequestStatus"];
+            /** @enum {string} */
+            actorRole: "EMPLOYEE" | "TENANT_ADMIN";
+            /** Format: date-time */
+            occurredAt: string;
+            reasonCode: components["schemas"]["SalaryAdvanceRefusalReason"] | null;
+        };
+        /** @description Immutable consent evidence. No IP address, user agent or rendered text is stored. */
+        SalaryAdvanceConsentEvidence: {
+            version: string;
+            /** @enum {string} */
+            language: "en" | "fr";
+            /** Format: date-time */
+            consentedAt: string;
+            disclosureSha256: string;
+        };
+        SalaryAdvanceRequestSummary: {
+            /** Format: uuid */
+            requestId: string;
+            status: components["schemas"]["SalaryAdvanceRequestStatus"];
+            version: number;
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            requested: components["schemas"]["CompensationMoney"];
+            /** Format: date-time */
+            submittedAt: string;
+            /**
+             * Format: uuid
+             * @description Present for administrators only.
+             */
+            employeeId: string | null;
+            /** @description Present for administrators only. */
+            employeeNumber: string | null;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+        };
+        SalaryAdvanceRequestPage: {
+            items: components["schemas"]["SalaryAdvanceRequestSummary"][];
+            nextCursor: string | null;
+        };
+        /** @description One request with its frozen evidence. No status is a credit decision; no funds move; no deduction is made. The internal note is present for administrators only and never for the employee. */
+        SalaryAdvanceRequestView: {
+            /** Format: uuid */
+            requestId: string;
+            status: components["schemas"]["SalaryAdvanceRequestStatus"];
+            version: number;
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            requested: components["schemas"]["CompensationMoney"];
+            ceiling: components["schemas"]["CompensationMoney"];
+            referencePeriod: string;
+            policySequence: number;
+            partnerCode: components["schemas"]["SalaryAdvancePartnerCode"];
+            tenureMonths: number;
+            /** Format: date-time */
+            submittedAt: string;
+            consent: components["schemas"]["SalaryAdvanceConsentEvidence"];
+            lifecycle: components["schemas"]["SalaryAdvanceLifecycleEntry"][];
+            refusalReason: components["schemas"]["SalaryAdvanceRefusalReason"] | null;
+            /** @description Administrators only; always null for the employee. */
+            internalNote: string | null;
+            /**
+             * Format: uuid
+             * @description Administrators only.
+             */
+            employeeId: string | null;
+            /** @description Administrators only. */
+            employeeNumber: string | null;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+        };
     };
     responses: {
         /** @description Missing, invalid or expired access token */
@@ -12484,6 +13019,14 @@ export interface components {
         PaymentBatchLineLimit: number;
         /** @description Page size, 1 to 100 (default 25). */
         PaymentSubmissionAttemptLimit: number;
+        /** @description An opaque UUID. Malformed, unknown, foreign-entity, foreign-tenant and unauthorized IDs give the same 404 SALARY_ADVANCE_POLICY_NOT_FOUND. */
+        SalaryAdvancePolicyId: string;
+        /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+        SalaryAdvanceRequestId: string;
+        /** @description Optional currency of the policy chain to read (CDF or USD); both when absent. */
+        SalaryAdvanceCurrencyFilter: "CDF" | "USD";
+        /** @description Optional status filter; the cursor is bound to it. */
+        SalaryAdvanceStatusFilter: components["schemas"]["SalaryAdvanceRequestStatus"];
     };
     requestBodies: never;
     headers: {
@@ -23452,6 +23995,528 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listSalaryAdvancePolicies: {
+        parameters: {
+            query?: {
+                /** @description Optional currency of the policy chain to read (CDF or USD); both when absent. */
+                currency?: components["parameters"]["SalaryAdvanceCurrencyFilter"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The policy timelines */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvancePolicyView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    commitSalaryAdvancePolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitSalaryAdvancePolicy"];
+            };
+        };
+        responses: {
+            /** @description Recorded, or the original recording replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvancePolicyReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewSalaryAdvancePolicy: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvancePolicyCommand"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvancePolicyPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    cancelSalaryAdvancePolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description Malformed, unknown, foreign and unauthorized IDs give the same 404 LEGAL_ENTITY_NOT_FOUND. */
+                legalEntityId: components["parameters"]["PayrollLegalEntityId"];
+                /** @description An opaque UUID. Malformed, unknown, foreign-entity, foreign-tenant and unauthorized IDs give the same 404 SALARY_ADVANCE_POLICY_NOT_FOUND. */
+                policyId: components["parameters"]["SalaryAdvancePolicyId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvanceCancelPolicy"];
+            };
+        };
+        responses: {
+            /** @description Cancelled, or the original cancellation replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvancePolicyEntry"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listSalaryAdvanceRequests: {
+        parameters: {
+            query?: {
+                /** @description Optional status filter; the cursor is bound to it. */
+                status?: components["parameters"]["SalaryAdvanceStatusFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of requests */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getSalaryAdvanceRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    confirmSalaryAdvanceEmployer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvanceEmployerConfirm"];
+            };
+        };
+        responses: {
+            /** @description Confirmed, or the original confirmation replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    refuseSalaryAdvanceEmployer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvanceEmployerRefuse"];
+            };
+        };
+        responses: {
+            /** @description Refused, or the original refusal replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMySalaryAdvanceEligibility: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's preliminary employer-policy eligibility */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceEligibilityView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewMySalaryAdvanceRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvanceRequestCommand"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listMySalaryAdvanceRequests: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-100, default 25). */
+                limit?: components["parameters"]["TaskLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's own requests */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    submitMySalaryAdvanceRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitSalaryAdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Submitted, or the original submission replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMySalaryAdvanceRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's own request */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    withdrawMySalaryAdvanceRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvanceWithdraw"];
+            };
+        };
+        responses: {
+            /** @description Withdrawn, or the original withdrawal replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["ServiceUnavailable"];
         };

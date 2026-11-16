@@ -63,6 +63,8 @@ test.describe('desktop', () => {
       'Payroll preparation',
       'Payroll runs',
       'Approved payroll',
+      'Salary-advance policy',
+      'Salary-advance requests',
       'Accounting mappings',
       'Organizational structure',
       'Contract templates',
@@ -154,6 +156,7 @@ test.describe('desktop', () => {
       'Mes tâches',
       'Mes notes de frais',
       'Ma rémunération',
+      'Avance sur salaire',
       'Ma destination de paiement',
       'Mes bulletins de paie',
       'Notes de frais à approuver',
@@ -213,7 +216,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(25);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(27);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

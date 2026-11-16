@@ -196,6 +196,19 @@ divalhr:
       payroll-approval-preview: ${DIVALHR_PAYROLL_APPROVAL_PREVIEW_REQUESTS_PER_MINUTE:5}
       payroll-approval-write: ${DIVALHR_PAYROLL_APPROVAL_WRITE_REQUESTS_PER_MINUTE:2}
       payslip-download: ${DIVALHR_PAYSLIP_DOWNLOAD_REQUESTS_PER_MINUTE:30}
+      # MVP-120A: salary-advance requests (ADR 0041, D120A-14). Per subject per minute: reads 60,
+      # policy previews 10 and commands 5, employee previews 10 and commands 5, employer decisions
+      # 5; the hourly per-subject quotas (30 eligibility reads, 60 list reads, 10 employee previews
+      # and commands, 20 employer decisions, 20 policy previews and commands) are enforced by the
+      # services. The shared limiter is per Core API instance.
+      salary-advance-policy-read: ${DIVALHR_SALARY_ADVANCE_POLICY_READ_REQUESTS_PER_MINUTE:60}
+      salary-advance-policy-preview: ${DIVALHR_SALARY_ADVANCE_POLICY_PREVIEW_REQUESTS_PER_MINUTE:10}
+      salary-advance-policy-write: ${DIVALHR_SALARY_ADVANCE_POLICY_WRITE_REQUESTS_PER_MINUTE:5}
+      salary-advance-request-read: ${DIVALHR_SALARY_ADVANCE_REQUEST_READ_REQUESTS_PER_MINUTE:60}
+      salary-advance-decision-write: ${DIVALHR_SALARY_ADVANCE_DECISION_WRITE_REQUESTS_PER_MINUTE:5}
+      salary-advance-self-read: ${DIVALHR_SALARY_ADVANCE_SELF_READ_REQUESTS_PER_MINUTE:60}
+      salary-advance-self-preview: ${DIVALHR_SALARY_ADVANCE_SELF_PREVIEW_REQUESTS_PER_MINUTE:10}
+      salary-advance-self-write: ${DIVALHR_SALARY_ADVANCE_SELF_WRITE_REQUESTS_PER_MINUTE:5}
       # MVP-095A: payment destinations and payment batches (ADR 0036, D95A-13). Per subject per
       # minute: reads 60, destination previews 10 and commits 5, batch previews 5 and commits
       # (prepare and cancel) 2, register downloads 30.
@@ -325,6 +338,17 @@ divalhr:
         window: 1h
       payslip-download:
         requests: ${DIVALHR_PAYSLIP_TENANT_DOWNLOADS:300}
+        window: 1h
+      # MVP-120A: salary-advance requests (ADR 0041): 100 employee previews, 100 employee commands
+      # and 200 employer decisions per tenant per hour.
+      salary-advance-self-preview:
+        requests: ${DIVALHR_SALARY_ADVANCE_TENANT_PREVIEWS:100}
+        window: 1h
+      salary-advance-self-write:
+        requests: ${DIVALHR_SALARY_ADVANCE_TENANT_WRITES:100}
+        window: 1h
+      salary-advance-decision-write:
+        requests: ${DIVALHR_SALARY_ADVANCE_TENANT_DECISIONS:200}
         window: 1h
       # MVP-095A: payment destinations and batches (ADR 0036): 120 destination previews, 60
       # destination commits, 60 batch previews, 20 batch commits and 300 register downloads per
