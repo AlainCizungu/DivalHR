@@ -248,7 +248,9 @@ public class SalaryAdvanceRequestService {
                 EligibilityEntry entry = SalaryAdvanceEligibility.entry(evaluation);
                 Instant expiresAt = CompensationCalendar.expiry(now);
                 String digest =
-                    evaluation.eligible() ? digest(tenant, link, draft, evaluation, expiresAt) : null;
+                    evaluation.eligible()
+                        ? digest(tenant, link, draft, evaluation, expiresAt)
+                        : null;
                 recorder.disclosed(
                     caller,
                     SalaryAdvanceRecorder.REQUEST_PREVIEW,
@@ -298,11 +300,7 @@ public class SalaryAdvanceRequestService {
                 SelfLink link = link(caller);
                 Instant now = calendar.now();
                 quotas.requireCounted(
-                    "self-read",
-                    SalaryAdvanceQuotas.READS_PER_HOUR,
-                    tenant,
-                    caller.subject(),
-                    now);
+                    "self-read", SalaryAdvanceQuotas.READS_PER_HOUR, tenant, caller.subject(), now);
                 CursorScope scope = scope(caller, SELF_LIST, filter, size);
                 RequestPosition after = null;
                 if (cursor != null) {
@@ -361,11 +359,7 @@ public class SalaryAdvanceRequestService {
                 SelfLink link = link(caller);
                 Instant now = calendar.now();
                 quotas.requireCounted(
-                    "self-read",
-                    SalaryAdvanceQuotas.READS_PER_HOUR,
-                    tenant,
-                    caller.subject(),
-                    now);
+                    "self-read", SalaryAdvanceQuotas.READS_PER_HOUR, tenant, caller.subject(), now);
                 RequestRow row =
                     repository
                         .myRequest(tenant, link.employeeId(), id)

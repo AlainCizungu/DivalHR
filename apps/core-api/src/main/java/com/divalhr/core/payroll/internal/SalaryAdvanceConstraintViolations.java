@@ -29,14 +29,11 @@ public final class SalaryAdvanceConstraintViolations {
           Map.entry(
               "payroll_salary_advance_policy_immutable",
               ErrorCode.SALARY_ADVANCE_TRANSITION_NOT_ALLOWED),
-          Map.entry(
-              "payroll_salary_advance_request_policy", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
-          Map.entry(
-              "payroll_salary_advance_request_owner", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
+          Map.entry("payroll_salary_advance_request_policy", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
+          Map.entry("payroll_salary_advance_request_owner", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
           Map.entry(
               "payroll_salary_advance_request_employment", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
-          Map.entry(
-              "payroll_salary_advance_request_tenure", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
+          Map.entry("payroll_salary_advance_request_tenure", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
           Map.entry(
               "payroll_salary_advance_request_rolling_limit",
               ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),

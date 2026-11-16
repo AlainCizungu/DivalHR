@@ -73,8 +73,8 @@ final class SalaryAdvanceViews {
   }
 
   /** A candidate policy as the preview shows it (never stored). */
-  static PolicyEntry candidate(PolicyDraft draft, java.util.UUID id, int sequence, LocalDate today,
-      java.time.Instant at) {
+  static PolicyEntry candidate(
+      PolicyDraft draft, java.util.UUID id, int sequence, LocalDate today, java.time.Instant at) {
     String currency = draft.currency().name();
     return new PolicyEntry(
         id,
@@ -151,7 +151,10 @@ final class SalaryAdvanceViews {
         row.tenureMonths(),
         row.submittedAt(),
         new ConsentEvidence(
-            consent.version(), consent.language(), consent.consentedAt(), consent.disclosureSha256()),
+            consent.version(),
+            consent.language(),
+            consent.consentedAt(),
+            consent.disclosureSha256()),
         events.stream()
             .map(
                 event ->

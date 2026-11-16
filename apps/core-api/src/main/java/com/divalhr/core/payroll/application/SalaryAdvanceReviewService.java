@@ -43,10 +43,11 @@ import org.springframework.stereotype.Service;
  * actor never come from the request. Every command locks the request row first and then re-reads
  * it, so exactly one of two concurrent commands wins; the other is a stable conflict.
  *
- * <p>The internal note (at most 500 characters) is stored with the decision, shown to administrators
- * only, and never appears in an employee response, an audit record, an outbox event, a log or a
- * partner-facing field. No rule stops an administrator who is also the requesting employee from
- * deciding their own request; none was asked for (open question recorded in ADR 0041).
+ * <p>The internal note (at most 500 characters) is stored with the decision, shown to
+ * administrators only, and never appears in an employee response, an audit record, an outbox event,
+ * a log or a partner-facing field. No rule stops an administrator who is also the requesting
+ * employee from deciding their own request; none was asked for (open question recorded in ADR
+ * 0041).
  */
 @Service
 public class SalaryAdvanceReviewService {
@@ -77,8 +78,7 @@ public class SalaryAdvanceReviewService {
   private static final String ADMIN_ROLE = "tenant-admin";
   private static final String POSITION_CODE = "REQ";
   private static final IdempotentOperation.Spec CONFIRM_SPEC =
-      new IdempotentOperation.Spec(
-          CONFIRM, "salary_advance_decision", "confirm", "confirmed", 200);
+      new IdempotentOperation.Spec(CONFIRM, "salary_advance_decision", "confirm", "confirmed", 200);
   private static final IdempotentOperation.Spec REFUSE_SPEC =
       new IdempotentOperation.Spec(REFUSE, "salary_advance_decision", "refuse", "refused", 200);
 
@@ -164,7 +164,8 @@ public class SalaryAdvanceReviewService {
                           .orElseThrow(() -> new ApiException(ErrorCode.CURSOR_INVALID, Map.of()));
                   after = new RequestPosition(at.submittedAt(), at.id());
                 }
-                List<RequestRow> rows = repository.requestPage(tenant, null, filter, after, size + 1);
+                List<RequestRow> rows =
+                    repository.requestPage(tenant, null, filter, after, size + 1);
                 List<RequestRow> shown = rows.subList(0, Math.min(rows.size(), size));
                 String next = null;
                 if (rows.size() > size) {
@@ -353,9 +354,7 @@ public class SalaryAdvanceReviewService {
     int version = row.rowVersion() + 1;
     try {
       repository.insertDecision(
-          tenant,
-          requestId,
-          new DecisionRow(decision, reasonCode, note, caller.subject(), now));
+          tenant, requestId, new DecisionRow(decision, reasonCode, note, caller.subject(), now));
       repository.insertEvent(
           tenant,
           requestId,
@@ -392,8 +391,7 @@ public class SalaryAdvanceReviewService {
         .addKeyValue("operation", confirmed ? CONFIRM : REFUSE)
         .addKeyValue("outcome", "recorded")
         .log("salary_advance_decision_recorded");
-    return new IdempotentOperation.Completed<>(
-        view(tenant, requestId), requestId, Outcome.UPDATED);
+    return new IdempotentOperation.Completed<>(view(tenant, requestId), requestId, Outcome.UPDATED);
   }
 
   // ------------------------------------------------------------------------------------------

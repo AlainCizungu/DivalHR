@@ -44,7 +44,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class SalaryAdvancePolicyController {
 
   /** Base path of a legal entity's salary-advance policies. */
-  public static final String PATH = "/api/v1/legal-entities/{legalEntityId}/salary-advance-policies";
+  public static final String PATH =
+      "/api/v1/legal-entities/{legalEntityId}/salary-advance-policies";
 
   private static final String CACHE_CONTROL = "private, no-store";
 

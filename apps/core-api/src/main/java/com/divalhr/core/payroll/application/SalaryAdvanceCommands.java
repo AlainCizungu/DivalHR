@@ -45,7 +45,8 @@ final class SalaryAdvanceCommands {
   private static final Pattern CODE = Pattern.compile("^[A-Z][A-Z0-9-]{2,31}$");
   private static final Pattern VERSION = Pattern.compile("^[A-Za-z0-9._-]{1,32}$");
   private static final Pattern UUID_SHAPE =
-      Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+      Pattern.compile(
+          "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
   private static final LocalDate EARLIEST = LocalDate.of(2000, 1, 1);
   private static final LocalDate LATEST = LocalDate.of(2999, 12, 31);
   private static final Set<String> MONEY_KEYS = Set.of("currency", "amount");
@@ -433,7 +434,8 @@ final class SalaryAdvanceCommands {
       // The affirmation is explicit and never pre-checked: its absence is its own stable answer.
       throw new ApiException(ErrorCode.SALARY_ADVANCE_CONSENT_REQUIRED, Map.of());
     }
-    return new RequestCommit(new RequestDraft(currency, minor), digest, expiresAt, version, language);
+    return new RequestCommit(
+        new RequestDraft(currency, minor), digest, expiresAt, version, language);
   }
 
   static VersionedAction versioned(String idempotencyKey, VersionedCommand body) {

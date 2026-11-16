@@ -114,7 +114,9 @@ public class SalaryAdvanceReviewController {
    * @return the confirmed request; replays carry {@code Idempotent-Replayed: true}
    */
   @Operation(operationId = "confirmSalaryAdvanceEmployer")
-  @PostMapping(path = PATH + "/{requestId}/confirm-employer", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @PostMapping(
+      path = PATH + "/{requestId}/confirm-employer",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
   @TenantAdminOperation(operation = SalaryAdvanceReviewService.CONFIRM)
   @SubjectRateLimited(bucket = SalaryAdvanceReviewService.SUBJECT_DECISION_BUCKET)
   @TenantRateLimited(bucket = SalaryAdvanceReviewService.TENANT_DECISION_BUCKET)
@@ -139,7 +141,9 @@ public class SalaryAdvanceReviewController {
    * @return the refused request; replays carry {@code Idempotent-Replayed: true}
    */
   @Operation(operationId = "refuseSalaryAdvanceEmployer")
-  @PostMapping(path = PATH + "/{requestId}/refuse-employer", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @PostMapping(
+      path = PATH + "/{requestId}/refuse-employer",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
   @TenantAdminOperation(operation = SalaryAdvanceReviewService.REFUSE)
   @SubjectRateLimited(bucket = SalaryAdvanceReviewService.SUBJECT_DECISION_BUCKET)
   @TenantRateLimited(bucket = SalaryAdvanceReviewService.TENANT_DECISION_BUCKET)

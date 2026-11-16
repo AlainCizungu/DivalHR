@@ -37,9 +37,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * MVP-120A: an employee's own salary-advance requests (ADR 0041). Subject, role {@code employee},
- * tenant and an active membership are checked, then the request limit, before any argument is
- * read; the service binds every query to the caller's own active employee-access link. Managers
- * and platform administrators have no route here. Every response is {@code Cache-Control: private,
+ * tenant and an active membership are checked, then the request limit, before any argument is read;
+ * the service binds every query to the caller's own active employee-access link. Managers and
+ * platform administrators have no route here. Every response is {@code Cache-Control: private,
  * no-store}. A request is a request to the employer: DivalHR is not the lender, employer
  * eligibility is not credit approval and no funds are sent in this step.
  */

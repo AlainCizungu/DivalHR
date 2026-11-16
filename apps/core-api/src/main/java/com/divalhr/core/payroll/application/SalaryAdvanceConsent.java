@@ -110,6 +110,8 @@ final class SalaryAdvanceConsent {
   }
 
   private static String array(List<String> codes) {
-    return codes.stream().map(code -> "\"" + code + "\"").collect(Collectors.joining(",", "[", "]"));
+    return codes.stream()
+        .map(code -> "\"" + code + "\"")
+        .collect(Collectors.joining(",", "[", "]"));
   }
 }

@@ -146,7 +146,11 @@ public class SalaryAdvancePolicyService {
                 UUID entity = entities.require(tenant, entityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND);
                 Instant now = calendar.now();
                 quotas.requireCounted(
-                    "policy-read", SalaryAdvanceQuotas.READS_PER_HOUR, tenant, caller.subject(), now);
+                    "policy-read",
+                    SalaryAdvanceQuotas.READS_PER_HOUR,
+                    tenant,
+                    caller.subject(),
+                    now);
                 LocalDate today = calendar.today(tenant);
                 List<PolicyRow> rows = repository.policies(tenant, entity);
                 List<PolicyEntry> items =
@@ -305,8 +309,7 @@ public class SalaryAdvancePolicyService {
     } catch (DataIntegrityViolationException violated) {
       throw integrity(violated);
     }
-    recorder.policyCreated(
-        caller, entity, row.id(), row.sequence(), row.currency(), now);
+    recorder.policyCreated(caller, entity, row.id(), row.sequence(), row.currency(), now);
     LOG.atInfo()
         .addKeyValue("operation", COMMIT)
         .addKeyValue("outcome", "recorded")
@@ -353,7 +356,8 @@ public class SalaryAdvancePolicyService {
                   () ->
                       new Parsed(
                           SalaryAdvanceCommands.id(legalEntityId, ErrorCode.LEGAL_ENTITY_NOT_FOUND),
-                          SalaryAdvanceCommands.id(policyId, ErrorCode.SALARY_ADVANCE_POLICY_NOT_FOUND),
+                          SalaryAdvanceCommands.id(
+                              policyId, ErrorCode.SALARY_ADVANCE_POLICY_NOT_FOUND),
                           SalaryAdvanceCommands.policyCancel(idempotencyKey, body)));
           return operations.execute(
               CANCEL_SPEC,
@@ -376,12 +380,14 @@ public class SalaryAdvancePolicyService {
     PolicyRow found =
         repository
             .policy(tenant, entity, policyId)
-            .orElseThrow(() -> new ApiException(ErrorCode.SALARY_ADVANCE_POLICY_NOT_FOUND, Map.of()));
+            .orElseThrow(
+                () -> new ApiException(ErrorCode.SALARY_ADVANCE_POLICY_NOT_FOUND, Map.of()));
     repository.lockChain(tenant, entity, found.currency());
     PolicyRow policy =
         repository
             .policy(tenant, entity, policyId)
-            .orElseThrow(() -> new ApiException(ErrorCode.SALARY_ADVANCE_POLICY_NOT_FOUND, Map.of()));
+            .orElseThrow(
+                () -> new ApiException(ErrorCode.SALARY_ADVANCE_POLICY_NOT_FOUND, Map.of()));
     if (policy.sequence() != command.expectedSequence()) {
       throw new ApiException(ErrorCode.SALARY_ADVANCE_VERSION_CONFLICT, Map.of());
     }
