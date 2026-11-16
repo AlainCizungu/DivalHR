@@ -1009,5 +1009,4 @@ public class JdbcEmploymentHistoryRepository {
         .query((rs, row) -> rs.getObject("legal_entity_id", UUID.class))
         .optional();
   }
-
 }
