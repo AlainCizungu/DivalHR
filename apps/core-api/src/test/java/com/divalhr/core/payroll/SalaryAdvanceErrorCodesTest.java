@@ -59,7 +59,7 @@ class SalaryAdvanceErrorCodesTest {
 
   @Test
   void everyCodeExistsWithItsStatus() {
-    assertThat(CODES).hasSize(15);
+    assertThat(CODES).hasSize(16);
     for (Map.Entry<String, HttpStatus> code : CODES.entrySet()) {
       ErrorCode found = ErrorCode.valueOf(code.getKey());
       assertThat(found.status()).as(code.getKey()).isEqualTo(code.getValue());

@@ -212,13 +212,18 @@ class SalaryAdvanceIntegrityIntegrationTest {
         confirming(request.get("version").asInt()));
   }
 
-  /** The employee who is also a tenant administrator: same verified subject, both roles, MFA. */
+  /** The employee who is also a tenant administrator: the same verified subject holding the administrator role, MFA. */
   private String requesterAsAdministrator() {
+    jdbc.update(
+        "UPDATE identity.tenant_membership SET role = 'tenant-admin'"
+            + " WHERE tenant_id = ? AND subject = ?",
+        w.tenant,
+        linked.person().subject());
     return "Bearer "
         + TestTokens.token()
             .tenant(w.tenant)
             .subject(linked.person().subject())
-            .roles(List.of("tenant-admin", "employee"))
+            .roles(List.of("tenant-admin"))
             .build();
   }
 
@@ -276,6 +281,7 @@ class SalaryAdvanceIntegrityIntegrationTest {
 
     // One placement (the real data): eligible, no ambiguity reason.
     assertThat(eligibility().get("reasons")).isEmpty();
+    JsonNode valid = previewRequest("5000");
 
     // None: nothing to evaluate against, and never the ambiguity reason.
     doReturn(List.of()).when(employment).placementEntities(any(), any(), any());
@@ -293,10 +299,11 @@ class SalaryAdvanceIntegrityIntegrationTest {
     JsonNode preview = previewRequest("5000");
     assertThat(preview.get("blockers")).hasSize(1);
     assertThat(preview.get("blockers").toString()).contains("MULTIPLE_ACTIVE_PLACEMENTS");
+    assertThat(valid.get("blockers")).isEmpty();
     List<Integer> before = totals();
     w.c.problem(
         CompensationWorld.json(
-            REQUESTS, employee, Organizations.newKey(), submission(preview, "5000")),
+            REQUESTS, employee, Organizations.newKey(), submission(valid, "5000")),
         422,
         "SALARY_ADVANCE_NOT_ELIGIBLE");
     assertThat(totals()).isEqualTo(before);
@@ -321,7 +328,12 @@ class SalaryAdvanceIntegrityIntegrationTest {
 
     JsonNode refused =
         w.c.problem(
-            decision(self, Organizations.newKey(), id.toString(), "confirm-employer", confirming(version)),
+            decision(
+                self,
+                Organizations.newKey(),
+                id.toString(),
+                "confirm-employer",
+                confirming(version)),
             409,
             "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN");
     assertThat(refused.toString()).doesNotContain(linked.person().subject()).doesNotContain("5000");
@@ -337,7 +349,11 @@ class SalaryAdvanceIntegrityIntegrationTest {
     JsonNode confirmed =
         w.c.expect(
             decision(
-                w.colleague(), Organizations.newKey(), id.toString(), "confirm-employer", confirming(version)),
+                w.colleague(),
+                Organizations.newKey(),
+                id.toString(),
+                "confirm-employer",
+                confirming(version)),
             200);
     assertThat(confirmed.get("status").asText()).isEqualTo("EMPLOYER_CONFIRMED");
     assertThat(count("payroll.salary_advance_employer_decision", id)).isEqualTo(1);
@@ -405,7 +421,10 @@ class SalaryAdvanceIntegrityIntegrationTest {
             .as("%s: exactly one command wins", verb)
             .containsExactlyInAnyOrder(200, 409);
 
-        String winner = decided == 200 ? ("confirm-employer".equals(verb) ? "EMPLOYER_CONFIRMED" : "EMPLOYER_REFUSED") : "WITHDRAWN";
+        String winner =
+            decided == 200
+                ? ("confirm-employer".equals(verb) ? "EMPLOYER_CONFIRMED" : "EMPLOYER_REFUSED")
+                : "WITHDRAWN";
         assertThat(statusOf(id)).isEqualTo(winner);
         assertThat(
                 jdbc.queryForObject(
@@ -468,7 +487,10 @@ class SalaryAdvanceIntegrityIntegrationTest {
     reset(AopTestUtils.<OutboxWriter>getUltimateTargetObject(outbox));
     reset(AopTestUtils.<AuditRecorder>getUltimateTargetObject(audit));
     assertThat(totals()).as("nothing of the submission survived").isEqualTo(empty);
-    assertThat(w.c.count("SELECT count(*) FROM platform.idempotency_record WHERE idempotency_key = ?", submitKey))
+    assertThat(
+            w.c.count(
+                "SELECT count(*) FROM platform.idempotency_record WHERE idempotency_key = ?",
+                submitKey))
         .as("no completed idempotency evidence")
         .isZero();
 
@@ -485,14 +507,18 @@ class SalaryAdvanceIntegrityIntegrationTest {
     failure.install();
     assertThat(
             failed(
-                decision(w.admin, decisionKey, id.toString(), "confirm-employer", confirming(version))))
+                decision(
+                    w.admin, decisionKey, id.toString(), "confirm-employer", confirming(version))))
         .isTrue();
     reset(AopTestUtils.<OutboxWriter>getUltimateTargetObject(outbox));
     reset(AopTestUtils.<AuditRecorder>getUltimateTargetObject(audit));
     assertThat(totals()).as("nothing of the decision survived").isEqualTo(submitted);
     assertThat(statusOf(id)).isEqualTo("SUBMITTED");
     assertThat(count("payroll.salary_advance_employer_decision", id)).isZero();
-    assertThat(w.c.count("SELECT count(*) FROM platform.idempotency_record WHERE idempotency_key = ?", decisionKey))
+    assertThat(
+            w.c.count(
+                "SELECT count(*) FROM platform.idempotency_record WHERE idempotency_key = ?",
+                decisionKey))
         .isZero();
 
     JsonNode confirmed =
@@ -560,7 +586,12 @@ class SalaryAdvanceIntegrityIntegrationTest {
     JsonNode request = submit("5000");
     UUID id = UUID.fromString(request.get("requestId").asText());
     w.c.expect(
-        decision(w.admin, Organizations.newKey(), id.toString(), "confirm-employer", confirming(request.get("version").asInt())),
+        decision(
+            w.admin,
+            Organizations.newKey(),
+            id.toString(),
+            "confirm-employer",
+            confirming(request.get("version").asInt())),
         200);
     List<Integer> before = totals();
     List<String> snapshot = new ArrayList<>();
@@ -571,16 +602,42 @@ class SalaryAdvanceIntegrityIntegrationTest {
             + " || (SELECT row_to_json(r)::text FROM payroll.salary_advance_request r WHERE r.id = ?)";
     snapshot.add(jdbc.queryForObject(frozen, String.class, id, id, id, id));
 
-    rejected("consent version", "UPDATE payroll.salary_advance_consent SET consent_version = 'SA-CONSENT-9' WHERE request_id = ?", id);
-    rejected("consent digest", "UPDATE payroll.salary_advance_consent SET disclosure_sha256 = repeat('0', 64) WHERE request_id = ?", id);
-    rejected("consent delete", "DELETE FROM payroll.salary_advance_consent WHERE request_id = ?", id);
-    rejected("decision value", "UPDATE payroll.salary_advance_employer_decision SET decision = 'REFUSED', reason_code = 'OTHER_POLICY_REASON' WHERE request_id = ?", id);
-    rejected("decision actor", "UPDATE payroll.salary_advance_employer_decision SET decided_by = 'sub-forged' WHERE request_id = ?", id);
-    rejected("decision delete", "DELETE FROM payroll.salary_advance_employer_decision WHERE request_id = ?", id);
-    rejected("event edit", "UPDATE payroll.salary_advance_request_event SET actor_subject = 'sub-forged' WHERE request_id = ?", id);
-    rejected("event delete", "DELETE FROM payroll.salary_advance_request_event WHERE request_id = ?", id);
-    rejected("amount", "UPDATE payroll.salary_advance_request SET requested_minor = 1 WHERE id = ?", id);
-    rejected("submitter", "UPDATE payroll.salary_advance_request SET submitted_by = 'sub-forged' WHERE id = ?", id);
+    rejected(
+        "consent version",
+        "UPDATE payroll.salary_advance_consent SET consent_version = 'SA-CONSENT-9' WHERE request_id = ?",
+        id);
+    rejected(
+        "consent digest",
+        "UPDATE payroll.salary_advance_consent SET disclosure_sha256 = repeat('0', 64) WHERE request_id = ?",
+        id);
+    rejected(
+        "consent delete", "DELETE FROM payroll.salary_advance_consent WHERE request_id = ?", id);
+    rejected(
+        "decision value",
+        "UPDATE payroll.salary_advance_employer_decision SET decision = 'REFUSED', reason_code = 'OTHER_POLICY_REASON' WHERE request_id = ?",
+        id);
+    rejected(
+        "decision actor",
+        "UPDATE payroll.salary_advance_employer_decision SET decided_by = 'sub-forged' WHERE request_id = ?",
+        id);
+    rejected(
+        "decision delete",
+        "DELETE FROM payroll.salary_advance_employer_decision WHERE request_id = ?",
+        id);
+    rejected(
+        "event edit",
+        "UPDATE payroll.salary_advance_request_event SET actor_subject = 'sub-forged' WHERE request_id = ?",
+        id);
+    rejected(
+        "event delete",
+        "DELETE FROM payroll.salary_advance_request_event WHERE request_id = ?",
+        id);
+    rejected(
+        "amount", "UPDATE payroll.salary_advance_request SET requested_minor = 1 WHERE id = ?", id);
+    rejected(
+        "submitter",
+        "UPDATE payroll.salary_advance_request SET submitted_by = 'sub-forged' WHERE id = ?",
+        id);
     rejected("request delete", "DELETE FROM payroll.salary_advance_request WHERE id = ?", id);
     rejected("consent truncate", "TRUNCATE payroll.salary_advance_consent");
     rejected("decision truncate", "TRUNCATE payroll.salary_advance_employer_decision");

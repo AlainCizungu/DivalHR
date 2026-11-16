@@ -34,6 +34,9 @@ public final class SalaryAdvanceConstraintViolations {
           Map.entry(
               "payroll_salary_advance_request_employment", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
           Map.entry(
+              "payroll_salary_advance_decision_transition",
+              ErrorCode.SALARY_ADVANCE_TRANSITION_NOT_ALLOWED),
+          Map.entry(
               "payroll_salary_advance_request_placement", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
           Map.entry(
               "payroll_salary_advance_decision_self_review",

@@ -575,3 +575,26 @@ $fn$;
 CREATE CONSTRAINT TRIGGER payroll_salary_advance_request_complete
     AFTER INSERT OR UPDATE ON payroll.salary_advance_request
     DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION payroll.salary_advance_request_complete();
+
+-- R205-3: a decision never stands alone. At commit its legal transition event (SUBMITTED to the matching
+-- employer outcome, signed by the same reviewer, same reason) must exist; the header check above covers the rest.
+CREATE FUNCTION payroll.salary_advance_decision_complete() RETURNS trigger LANGUAGE plpgsql AS
+$fn$
+BEGIN
+    IF NOT EXISTS (
+            SELECT 1 FROM payroll.salary_advance_request_event e
+             WHERE e.tenant_id = NEW.tenant_id AND e.request_id = NEW.request_id AND e.sequence = 2
+               AND e.from_status = 'SUBMITTED'
+               AND e.to_status = CASE NEW.decision WHEN 'CONFIRMED' THEN 'EMPLOYER_CONFIRMED' ELSE 'EMPLOYER_REFUSED' END
+               AND e.actor_role = 'TENANT_ADMIN' AND e.actor_subject = NEW.decided_by
+               AND e.reason_code IS NOT DISTINCT FROM NEW.reason_code) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_salary_advance_decision_transition',
+            MESSAGE = 'an employer decision needs its legal transition event';
+    END IF;
+    RETURN NULL;
+END
+$fn$;
+
+CREATE CONSTRAINT TRIGGER payroll_salary_advance_decision_complete
+    AFTER INSERT ON payroll.salary_advance_employer_decision
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION payroll.salary_advance_decision_complete();

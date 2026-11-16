@@ -97,9 +97,7 @@ class SalaryAdvanceEligibility {
     String code = currency.name();
     Optional<LocalDate> start = employment.employmentStart(tenant, employeeId, today);
     List<UUID> placements =
-        start.isPresent()
-            ? employment.placementEntities(tenant, employeeId, today)
-            : List.of();
+        start.isPresent() ? employment.placementEntities(tenant, employeeId, today) : List.of();
     boolean ambiguous = placements.size() > 1;
     Optional<UUID> entity =
         placements.size() == 1 ? Optional.of(placements.get(0)) : Optional.empty();
