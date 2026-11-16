@@ -589,9 +589,11 @@ Same schema `integrations`; no existing table is altered. Tables: `messaging_con
 - **Guards.** A trigger enforces `DRAFT → VALIDATED → REVIEWED → SCHEDULED → ACTIVE → RETIRED`, refuses skipped steps,
   evidence edits after DRAFT, reviewer = submitter, an overlapping SCHEDULED/ACTIVE interval per country
   (`payroll_statutory_pack_period_overlap`) and more than 25 versions per code. The legacy `statutory_rule_pack` status
-  follows the governed state and cannot be written directly (`payroll_statutory_rule_pack_governed`). The migration
-  refuses to run when a non-DRAFT pack exists without governance evidence.
+  follows the governed state and cannot be written directly (`payroll_statutory_rule_pack_governed`). A pack that
+  predates governance (legacy status VERIFIED or RETIRED) is quarantined by the migration as state `LEGACY` (R200-1): no
+  evidence, digest or history is invented, the pack is unchanged, frozen and never applicable, and `LEGACY` is never
+  assigned to a new row.
 - **Classification.** Platform reference data, no personal data. The real pack `CD-SALARY-PREVIEW` stays DRAFT.
 - **Rollback.** `db/rollback/V51__rollback.sql` is manual and refuses while any governance business row exists beyond
-  untouched DRAFT rows; it then restores the V45 guard. Otherwise restore the pre-deploy backup.
+  untouched DRAFT or LEGACY rows; it then restores the V45 guard. Otherwise restore the pre-deploy backup.
 

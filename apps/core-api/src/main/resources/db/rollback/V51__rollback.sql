@@ -3,7 +3,7 @@
 --
 -- Prefer rolling back only the application. This script restores the V50 schema exactly, but it REFUSES once any
 -- MVP-097A business row exists: a reference case, validation run, review, transition, or a governance row that is
--- anything other than an untouched DRAFT (no evidence, row_version 1). That evidence records who validated,
+-- anything other than an untouched DRAFT or an untouched LEGACY quarantine row (no evidence, row_version 1). That evidence records who validated,
 -- reviewed and activated a statutory pack; none of it is erased by a schema rollback; there is no override, no
 -- deletion and no retention decision. V51 seeded nothing and changed no statutory content.
 --
@@ -24,7 +24,7 @@ BEGIN
         OR EXISTS (SELECT 1 FROM payroll.statutory_pack_validation_run)
         OR EXISTS (SELECT 1 FROM payroll.statutory_reference_case)
         OR EXISTS (SELECT 1 FROM payroll.statutory_pack_governance
-                   WHERE state <> 'DRAFT' OR row_version <> 1 OR source_authority IS NOT NULL
+                   WHERE state NOT IN ('DRAFT', 'LEGACY') OR row_version <> 1 OR source_authority IS NOT NULL
                       OR source_title IS NOT NULL OR source_reference IS NOT NULL
                       OR source_bundle_sha256 IS NOT NULL OR supersedes_pack_id IS NOT NULL) THEN
         RAISE EXCEPTION 'V51 rollback refused: statutory pack governance rows exist';
@@ -38,8 +38,9 @@ DROP TABLE payroll.statutory_pack_transition;
 DROP TABLE payroll.statutory_pack_review;
 DROP TABLE payroll.statutory_pack_validation_run;
 DROP TABLE payroll.statutory_reference_case;
-DROP TABLE payroll.statutory_pack_governance;
+DROP TABLE payroll.statutory_pack_governance; -- its triggers go with it
 DROP FUNCTION payroll.statutory_pack_governance_birth();
+DROP FUNCTION payroll.statutory_pack_governance_no_legacy_insert();
 DROP FUNCTION payroll.statutory_pack_governance_follow();
 DROP FUNCTION payroll.statutory_pack_governance_guard();
 DROP FUNCTION payroll.statutory_pack_review_guard();

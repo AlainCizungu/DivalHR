@@ -18,6 +18,7 @@ public final class StatutoryPackConstraintViolations {
           "payroll_statutory_pack_governance_transition",
           "payroll_statutory_pack_governance_version",
           "payroll_statutory_pack_governance_retired",
+          "payroll_statutory_pack_governance_legacy",
           "payroll_statutory_pack_governance_review",
           "payroll_statutory_pack_review_pkey",
           "payroll_statutory_pack_review_state");

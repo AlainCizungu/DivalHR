@@ -92,6 +92,9 @@ export function StatutoryPackDetailPage() {
             {summary.state === 'DRAFT' && (
               <p data-testid="statutory-pack-draft-notice">{t('statutoryPacks.draftNotice')}</p>
             )}
+            {summary.state === 'LEGACY' && (
+              <p data-testid="statutory-pack-legacy-notice">{t('statutoryPacks.legacyNotice')}</p>
+            )}
             <p>
               {t('statutoryPacks.detail.interval', {
                 from: formatDay(i18n.language, summary.effectiveFrom),

@@ -3779,7 +3779,7 @@ export interface paths {
         };
         /**
          * List the governed statutory pack versions
-         * @description MVP-097A (ADR 0040). Platform administrators with exact MFA. The governed lifecycle state of every statutory pack version (DRAFT, VALIDATED, REVIEWED, SCHEDULED, ACTIVE, RETIRED), ordered by pack code then version descending, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, subject, role and page size). A fail-closed disclosure (audit statutory-pack.read; counts only). At most 60 reads per subject per minute. Cache-Control private, no-store. Technical validation is not legal approval.
+         * @description MVP-097A (ADR 0040). Platform administrators with exact MFA. The governed lifecycle state of every statutory pack version (DRAFT, VALIDATED, REVIEWED, SCHEDULED, ACTIVE, RETIRED, or LEGACY for a pack that predates governance and is quarantined: readable, never changed, never applicable), ordered by pack code then version descending, as a keyset page (default 25, maximum 100; the cursor is bound to the operation, subject, role and page size). A fail-closed disclosure (audit statutory-pack.read; counts only). At most 60 reads per subject per minute. Cache-Control private, no-store. Technical validation is not legal approval.
          */
         get: operations["listStatutoryPackVersions"];
         put?: never;
@@ -7325,7 +7325,7 @@ export interface components {
             country: string;
             applicability: string;
             /** @enum {string} */
-            state: "DRAFT" | "VALIDATED" | "REVIEWED" | "SCHEDULED" | "ACTIVE" | "RETIRED";
+            state: "DRAFT" | "VALIDATED" | "REVIEWED" | "SCHEDULED" | "ACTIVE" | "RETIRED" | "LEGACY";
             /** Format: date */
             effectiveFrom: string;
             /** Format: date */
@@ -7419,7 +7419,7 @@ export interface components {
             packCode: string;
             version: number;
             /** @enum {string} */
-            state: "DRAFT" | "VALIDATED" | "REVIEWED" | "SCHEDULED" | "ACTIVE" | "RETIRED";
+            state: "DRAFT" | "VALIDATED" | "REVIEWED" | "SCHEDULED" | "ACTIVE" | "RETIRED" | "LEGACY";
             rowVersion: number;
             /** @enum {string|null} */
             validationOutcome: "PASSED" | "FAILED" | null;
