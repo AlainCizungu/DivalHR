@@ -87,7 +87,14 @@ public final class SalaryAdvanceResponses {
       LocalDate today,
       String notice,
       List<ChainVersion> versions,
-      List<PolicyEntry> items) {}
+      List<PolicyEntry> items) {
+
+    /** Copies the lists so the record is immutable. */
+    public PolicyView {
+      versions = List.copyOf(versions);
+      items = List.copyOf(items);
+    }
+  }
 
   /**
    * The previewed policy.
@@ -110,7 +117,15 @@ public final class SalaryAdvanceResponses {
       int version,
       String previewDigest,
       Instant expiresAt,
-      String notice) {}
+      String notice) {
+
+    /** Copies the lists so the record is immutable. */
+    public PolicyPreview {
+      before = List.copyOf(before);
+      after = List.copyOf(after);
+      blockers = List.copyOf(blockers);
+    }
+  }
 
   /**
    * The validated policy command, echoed.
@@ -185,7 +200,14 @@ public final class SalaryAdvanceResponses {
       List<String> notShared,
       String externalSharing,
       String withdrawal,
-      String retention) {}
+      String retention) {
+
+    /** Copies the lists so the record is immutable. */
+    public ConsentDocument {
+      shared = List.copyOf(shared);
+      notShared = List.copyOf(notShared);
+    }
+  }
 
   /**
    * The frozen policy reference of an eligibility entry.
@@ -231,7 +253,13 @@ public final class SalaryAdvanceResponses {
       MoneyView minRequest,
       int openRequests,
       LocalDate waitingUntil,
-      ConsentDocument consent) {}
+      ConsentDocument consent) {
+
+    /** Copies the lists so the record is immutable. */
+    public EligibilityEntry {
+      reasons = List.copyOf(reasons);
+    }
+  }
 
   /**
    * The employee's eligibility in both currencies.
@@ -241,7 +269,13 @@ public final class SalaryAdvanceResponses {
    * @param items one entry per currency
    */
   @Schema(name = "SalaryAdvanceEligibilityView")
-  public record EligibilityView(LocalDate asOf, String notice, List<EligibilityEntry> items) {}
+  public record EligibilityView(LocalDate asOf, String notice, List<EligibilityEntry> items) {
+
+    /** Copies the lists so the record is immutable. */
+    public EligibilityView {
+      items = List.copyOf(items);
+    }
+  }
 
   /**
    * The previewed request.
@@ -258,7 +292,13 @@ public final class SalaryAdvanceResponses {
       List<String> blockers,
       String previewDigest,
       Instant expiresAt,
-      String notice) {}
+      String notice) {
+
+    /** Copies the lists so the record is immutable. */
+    public RequestPreview {
+      blockers = List.copyOf(blockers);
+    }
+  }
 
   /**
    * One history entry.
@@ -323,7 +363,13 @@ public final class SalaryAdvanceResponses {
    * @param nextCursor opaque cursor, or {@code null}
    */
   @Schema(name = "SalaryAdvanceRequestPage")
-  public record RequestPage(List<RequestSummary> items, String nextCursor) {}
+  public record RequestPage(List<RequestSummary> items, String nextCursor) {
+
+    /** Copies the lists so the record is immutable. */
+    public RequestPage {
+      items = List.copyOf(items);
+    }
+  }
 
   /**
    * One request with its frozen evidence.
@@ -366,5 +412,11 @@ public final class SalaryAdvanceResponses {
       String internalNote,
       UUID employeeId,
       String employeeNumber,
-      String notice) {}
+      String notice) {
+
+    /** Copies the lists so the record is immutable. */
+    public RequestView {
+      lifecycle = List.copyOf(lifecycle);
+    }
+  }
 }

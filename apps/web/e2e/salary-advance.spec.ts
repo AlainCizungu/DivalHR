@@ -647,7 +647,7 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
     await expect(anna.getByTestId('salary-advance-notice')).toHaveText(
       'DivalHR is not the lender. Employer eligibility is not credit approval. No funds are sent in this step.',
     );
-    const card = anna.getByTestId('salary-advance-currency');
+    const card = anna.locator('[data-testid="salary-advance-currency"][data-currency="CDF"]');
     await expect(card).toHaveAttribute('data-status', 'ELIGIBLE');
     await expect(card.getByTestId('eligibility-ceiling')).toBeVisible();
     await card.getByTestId('request-amount').fill(AMOUNT);
@@ -708,7 +708,7 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
     const cloBearer = await signIn(clo, [CLO.email, CLO.password], 'fr', undefined);
     await primaryNav(clo).getByRole('link', { name: 'Avance sur salaire', exact: true }).click();
     await expect(clo.getByTestId('salary-advance-notice')).toHaveText(FR_NOTICE);
-    const card = clo.getByTestId('salary-advance-currency');
+    const card = clo.locator('[data-testid="salary-advance-currency"][data-currency="CDF"]');
     await expect(card).toHaveAttribute('data-status', 'ELIGIBLE');
     await card.getByTestId('request-amount').fill(AMOUNT);
     await card.getByTestId('request-preview').click();
@@ -757,10 +757,9 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
       'data-status',
       'EMPLOYER_REFUSED',
     );
-    await expect(clo.getByTestId('salary-advance-currency')).toHaveAttribute(
-      'data-status',
-      'NOT_ELIGIBLE',
-    );
+    await expect(
+      clo.locator('[data-testid="salary-advance-currency"][data-currency="CDF"]'),
+    ).toHaveAttribute('data-status', 'NOT_ELIGIBLE');
     await expect(clo.locator('[data-reason="WAITING_PERIOD"]')).toBeVisible();
     expect(await clo.locator('main').innerText()).not.toContain(NOTE);
     await expectNoLendingClaim(clo);

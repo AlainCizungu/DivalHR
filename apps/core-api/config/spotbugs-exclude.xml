@@ -7,6 +7,12 @@
     <Class name="com.divalhr.core.payroll.application.StatutoryCommands"/>
     <Method name="flag"/>
   </Match>
+  <!-- MVP-120A: the request parser returns null for an absent or malformed flag (a third state next to true and false); the null is always rejected with a field error before use. -->
+  <Match>
+    <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+    <Class name="com.divalhr.core.payroll.application.SalaryAdvanceCommands"/>
+    <Method name="bool"/>
+  </Match>
   <!-- Spring beans intentionally hold injected collaborators (constructor injection). -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP2"/>
@@ -185,6 +191,10 @@
       <Class name="~com\.divalhr\.core\.payroll\.application\.(PayrollApproval|PayrollVoid|PayrollPackage|Payslip)[A-Za-z]*"/>
       <Class name="com.divalhr.core.payroll.internal.JdbcPayrollPackageRepository"/>
       <Class name="~com\.divalhr\.core\.payroll\.api\.(PayrollApproval|PayrollPackage|PackagePayslip|MyPayslip)Controller"/>
+      <!-- MVP-120A: salary-advance services, recorder, quotas, repository adapter and the people
+           employment adapter hold injected collaborators. -->
+      <Class name="~com\.divalhr\.core\.payroll\.application\.SalaryAdvance[A-Za-z]*"/>
+      <Class name="com.divalhr.core.people.application.PeopleSalaryAdvanceEmployment"/>
       <Class name="com.divalhr.core.documents.application.MyContractService"/>
       <Class name="com.divalhr.core.documents.application.ContractIntegrityJob"/>
       <Class name="com.divalhr.core.integrations.application.WebhookService"/>
