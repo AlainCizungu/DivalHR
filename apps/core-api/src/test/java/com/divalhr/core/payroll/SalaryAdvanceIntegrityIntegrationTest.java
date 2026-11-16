@@ -9,7 +9,13 @@ import static org.mockito.Mockito.reset;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.divalhr.core.identity.application.EmailLookup;
+import com.divalhr.core.payroll.api.SalaryAdvanceBodies;
+import com.divalhr.core.payroll.application.PayrollCaller;
+import com.divalhr.core.payroll.application.SalaryAdvanceReviewService;
 import com.divalhr.core.platform.access.SalaryAdvanceEmployment;
+import com.divalhr.core.platform.error.ApiException;
+import com.divalhr.core.platform.error.ErrorCode;
+import com.divalhr.core.platform.tenancy.TenantId;
 import com.divalhr.core.platform.audit.AuditEvent;
 import com.divalhr.core.platform.audit.AuditRecorder;
 import com.divalhr.core.platform.outbox.EventEnvelope;
@@ -17,7 +23,6 @@ import com.divalhr.core.platform.outbox.OutboxWriter;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
-import com.divalhr.core.support.TestTokens;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -71,6 +76,7 @@ class SalaryAdvanceIntegrityIntegrationTest {
   @Autowired private JdbcTemplate jdbc;
   @Autowired private EmailLookup lookups;
   @Autowired private SettableClock clock;
+  @Autowired private SalaryAdvanceReviewService reviews;
   @MockitoSpyBean private SalaryAdvanceEmployment employment;
   @MockitoSpyBean private OutboxWriter outbox;
   @MockitoSpyBean private AuditRecorder audit;
@@ -212,21 +218,6 @@ class SalaryAdvanceIntegrityIntegrationTest {
         confirming(request.get("version").asInt()));
   }
 
-  /** The employee who is also a tenant administrator: the same verified subject holding the administrator role, MFA. */
-  private String requesterAsAdministrator() {
-    jdbc.update(
-        "UPDATE identity.tenant_membership SET role = 'tenant-admin'"
-            + " WHERE tenant_id = ? AND subject = ?",
-        w.tenant,
-        linked.person().subject());
-    return "Bearer "
-        + TestTokens.token()
-            .tenant(w.tenant)
-            .subject(linked.person().subject())
-            .roles(List.of("tenant-admin"))
-            .build();
-  }
-
   /** True when the call did not succeed: an exception or a server error answer. */
   private boolean failed(MockHttpServletRequestBuilder request) {
     try {
@@ -317,30 +308,39 @@ class SalaryAdvanceIntegrityIntegrationTest {
   // R205-2: nobody reviews their own request
   // ------------------------------------------------------------------------------------------
 
+  /**
+   * Identity gives a subject one membership, so no token can be both the employee and a tenant
+   * administrator today; the rule is still enforced where a command is decided, so the service is
+   * driven directly with the submitting subject as the verified reviewer.
+   */
   @Test
-  void aRequesterWhoIsAlsoAnAdministratorCannotConfirmOrRefuseTheirOwnRequest() throws Exception {
+  void aReviewerWhoSubmittedTheRequestCannotConfirmOrRefuseIt() throws Exception {
     policyInForce(2);
     JsonNode request = submit("5000");
     UUID id = UUID.fromString(request.get("requestId").asText());
     int version = request.get("version").asInt();
-    String self = requesterAsAdministrator();
+    String submitter = linked.person().subject();
+    PayrollCaller self = new PayrollCaller(new TenantId(w.tenant), submitter, "corr-self-review");
     List<Integer> before = totals();
 
-    JsonNode refused =
-        w.c.problem(
-            decision(
-                self,
-                Organizations.newKey(),
-                id.toString(),
-                "confirm-employer",
-                confirming(version)),
-            409,
-            "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN");
-    assertThat(refused.toString()).doesNotContain(linked.person().subject()).doesNotContain("5000");
-    w.c.problem(
-        decision(self, Organizations.newKey(), id.toString(), "refuse-employer", refusing(version)),
-        409,
-        "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN");
+    SalaryAdvanceBodies.VersionedCommand confirm = new SalaryAdvanceBodies.VersionedCommand();
+    confirm.setExpectedVersion(version);
+    confirm.setConfirmed(true);
+    assertThatThrownBy(() -> reviews.confirm(self, id.toString(), Organizations.newKey(), confirm))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> {
+              assertThat(e.code()).isEqualTo(ErrorCode.SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN);
+              assertThat(e.params()).isEmpty();
+            });
+    SalaryAdvanceBodies.RefuseCommand refuse = new SalaryAdvanceBodies.RefuseCommand();
+    refuse.setExpectedVersion(version);
+    refuse.setReasonCode("OTHER_POLICY_REASON");
+    refuse.setConfirmed(true);
+    assertThatThrownBy(() -> reviews.refuse(self, id.toString(), Organizations.newKey(), refuse))
+        .isInstanceOfSatisfying(
+            ApiException.class,
+            e -> assertThat(e.code()).isEqualTo(ErrorCode.SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN));
     assertThat(totals()).isEqualTo(before);
     assertThat(statusOf(id)).isEqualTo("SUBMITTED");
     assertThat(count("payroll.salary_advance_employer_decision", id)).isZero();
@@ -391,8 +391,11 @@ class SalaryAdvanceIntegrityIntegrationTest {
   void aDecisionRacingAWithdrawalProducesExactlyOneOutcomeAndOneConsistentHistory()
       throws Exception {
     policyInForce(3);
-    for (String verb : List.of("confirm-employer", "refuse-employer")) {
-      JsonNode request = submit("5000");
+    Map<String, JsonNode> submitted = new LinkedHashMap<>();
+    submitted.put("confirm-employer", submit("5000"));
+    submitted.put("refuse-employer", submit("6000"));
+    for (String verb : submitted.keySet()) {
+      JsonNode request = submitted.get(verb);
       UUID id = UUID.fromString(request.get("requestId").asText());
       int version = request.get("version").asInt();
       Map<String, Object> body =
