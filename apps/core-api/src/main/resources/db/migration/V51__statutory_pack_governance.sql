@@ -22,17 +22,21 @@
 -- validation, no self-approval, valid effective periods, no overlap of SCHEDULED or ACTIVE versions of one
 -- country and applicability, and at most 25 versions per pack code.
 --
+-- Legacy quarantine (R200-1, Issue #200): V51 must apply to a database that already holds VERIFIED or RETIRED packs
+-- created before governance existed (hr-dev holds such synthetic test packs). Each such pack gets the governance
+-- state LEGACY: a quarantine, not a lifecycle step. A LEGACY version keeps its legacy status and every column
+-- unchanged (so existing activations and frozen calculations keep resolving it), is readable forever, and is never
+-- validated, reviewed, scheduled, activated, retired or edited through governance. It carries no evidence, no digests
+-- and no history, because none exists: nothing is invented, inferred or backfilled, and LEGACY is not a statement
+-- that the pack is correct or legally approved. It is never selected as the applicable ACTIVE version, so no new
+-- employer activation can rest on it. A correction is a new governed version. Only a pack that is still DRAFT gets a
+-- DRAFT governance row.
+--
 -- Rollback: db/rollback/V51__rollback.sql (manual, never run by Flyway) restores V50 exactly and refuses while
--- any governance row beyond the untouched DRAFT seed, or any case, run, review or transition row, exists.
+-- any governance row beyond the untouched DRAFT or LEGACY seed, or any case, run, review or transition row, exists.
 
-DO
-$$
-BEGIN
-    IF EXISTS (SELECT 1 FROM payroll.statutory_rule_pack WHERE status <> 'DRAFT') THEN
-        RAISE EXCEPTION 'V51 refused: a non-DRAFT statutory rule pack exists without governance evidence';
-    END IF;
-END
-$$;
+-- R200-1: there is no precondition on the status of existing packs. A pack that is not DRAFT is quarantined as
+-- LEGACY below; it is neither refused nor promoted.
 
 -- ---------------------------------------------------------------------------------------------
 -- Governance: one row per pack version
@@ -74,7 +78,7 @@ CREATE TABLE payroll.statutory_pack_governance (
     CONSTRAINT payroll_statutory_pack_governance_supersedes
         FOREIGN KEY (supersedes_pack_id) REFERENCES payroll.statutory_rule_pack (id),
     CONSTRAINT payroll_statutory_pack_governance_state CHECK (state IN
-        ('DRAFT', 'VALIDATED', 'REVIEWED', 'SCHEDULED', 'ACTIVE', 'RETIRED')),
+        ('DRAFT', 'VALIDATED', 'REVIEWED', 'SCHEDULED', 'ACTIVE', 'RETIRED', 'LEGACY')),
     CONSTRAINT payroll_statutory_pack_governance_row_version CHECK (row_version BETWEEN 1 AND 1000000),
     CONSTRAINT payroll_statutory_pack_governance_semver
         CHECK (semantic_version ~ '^(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,3})$'),
@@ -136,7 +140,15 @@ CREATE TABLE payroll.statutory_pack_governance (
             AND submitted_by IS NOT NULL AND active_from IS NOT NULL
             AND activated_at IS NOT NULL AND activated_by IS NOT NULL AND retired_at IS NULL)
         OR (state = 'RETIRED'
-            AND retired_at IS NOT NULL AND retired_by IS NOT NULL AND retire_reason IS NOT NULL))
+            AND retired_at IS NOT NULL AND retired_by IS NOT NULL AND retire_reason IS NOT NULL)
+        OR (state = 'LEGACY'
+            AND pack_sha256 IS NULL AND fixture_sha256 IS NULL AND validated_at IS NULL
+            AND submitted_by IS NULL AND submitted_at IS NULL AND scheduled_at IS NULL
+            AND activated_at IS NULL AND activated_by IS NULL AND active_from IS NULL
+            AND active_to IS NULL AND retired_at IS NULL AND retired_by IS NULL AND retire_reason IS NULL
+            AND source_authority IS NULL AND source_title IS NULL AND source_published_on IS NULL
+            AND source_reference IS NULL AND source_bundle_sha256 IS NULL
+            AND evidence_schema_version IS NULL AND supersedes_pack_id IS NULL))
 );
 
 CREATE INDEX payroll_statutory_pack_governance_applicable
@@ -381,8 +393,24 @@ $fn$;
 CREATE TRIGGER payroll_statutory_rule_pack_governance_birth AFTER INSERT ON payroll.statutory_rule_pack
     FOR EACH ROW EXECUTE FUNCTION payroll.statutory_pack_governance_birth();
 
-INSERT INTO payroll.statutory_pack_governance (pack_id, semantic_version, created_at)
-    SELECT id, version::text || '.0.0', created_at FROM payroll.statutory_rule_pack;
+-- Existing packs: DRAFT stays DRAFT; a VERIFIED or RETIRED pack predates governance and is quarantined as LEGACY
+-- (R200-1). No other column of the governance row is set and no history row is written.
+INSERT INTO payroll.statutory_pack_governance (pack_id, state, semantic_version, created_at)
+    SELECT id, CASE WHEN status = 'DRAFT' THEN 'DRAFT' ELSE 'LEGACY' END, version::text || '.0.0', created_at
+    FROM payroll.statutory_rule_pack;
+
+-- After the backfill, no row is ever INSERTED as LEGACY: the quarantine belongs to this migration alone.
+CREATE FUNCTION payroll.statutory_pack_governance_no_legacy_insert() RETURNS trigger LANGUAGE plpgsql AS
+$fn$
+BEGIN
+    RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_statutory_pack_governance_legacy',
+        MESSAGE = 'LEGACY is the quarantine of packs that predate governance and is never assigned to a new version';
+END
+$fn$;
+CREATE TRIGGER payroll_statutory_pack_governance_no_legacy_insert
+    BEFORE INSERT ON payroll.statutory_pack_governance
+    FOR EACH ROW WHEN (NEW.state = 'LEGACY')
+    EXECUTE FUNCTION payroll.statutory_pack_governance_no_legacy_insert();
 
 -- ---------------------------------------------------------------------------------------------
 -- The governance guard: the closed lifecycle, evidence, digests, independence and no overlap
@@ -411,6 +439,10 @@ BEGIN
         OR (OLD.supersedes_pack_id IS NOT NULL AND NEW.supersedes_pack_id IS DISTINCT FROM OLD.supersedes_pack_id) THEN
         RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_statutory_pack_governance_identity',
             MESSAGE = 'the identity of a pack version never changes: correct it as a new version';
+    END IF;
+    IF OLD.state = 'LEGACY' OR NEW.state = 'LEGACY' THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_statutory_pack_governance_legacy',
+            MESSAGE = 'a LEGACY pack version is quarantined: it is readable forever and never changed through governance; correct it as a new version';
     END IF;
     IF OLD.state = 'RETIRED' THEN
         RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'payroll_statutory_pack_governance_retired',

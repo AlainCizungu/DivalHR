@@ -132,6 +132,11 @@ export function StatutoryPacksPage() {
                             {t('statutoryPacks.draftNotice')}
                           </p>
                         )}
+                        {item.state === 'LEGACY' && (
+                          <p className="muted" data-testid="statutory-pack-legacy-notice">
+                            {t('statutoryPacks.legacyNotice')}
+                          </p>
+                        )}
                       </td>
                       <td>
                         {formatDay(i18n.language, item.effectiveFrom)}

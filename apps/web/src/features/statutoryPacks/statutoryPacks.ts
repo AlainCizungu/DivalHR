@@ -17,6 +17,7 @@ export const PACK_STATES = [
   'SCHEDULED',
   'ACTIVE',
   'RETIRED',
+  'LEGACY',
 ] as const;
 export type PackState = (typeof PACK_STATES)[number];
 
@@ -144,6 +145,7 @@ export const STATE_TONES = {
   SCHEDULED: 'info',
   ACTIVE: 'success',
   RETIRED: 'neutral',
+  LEGACY: 'neutral',
 } as const;
 
 /** The path of one version page: the code and the integer version only, never evidence. */

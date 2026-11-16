@@ -115,6 +115,8 @@ describe('statutory pack lifecycle rules', () => {
     expect(commandsFor('SCHEDULED', true)).toEqual(['activate', 'retire']);
     expect(commandsFor('ACTIVE', true)).toEqual(['retire']);
     expect(commandsFor('RETIRED', true)).toEqual([]);
+    expect(commandsFor('LEGACY', false)).toEqual([]);
+    expect(commandsFor('LEGACY', true)).toEqual([]);
   });
 
   it('asks for a confirmation exactly where the API requires one', () => {
@@ -364,6 +366,16 @@ describe.each(['en', 'fr'] as const)('statutory pack detail (%s)', (locale) => {
     expect(alert).toHaveTextContent(errors.STATUTORY_PACK_VERSION_CONFLICT as string);
     expect(alert).toHaveAttribute('data-kind', 'stale');
     expect(alert).not.toHaveTextContent('STATUTORY_PACK_');
+  });
+
+  it('shows a quarantined legacy version with its notice and no action', async () => {
+    stub((r): Reply => (isDetail(r) ? { status: 200, body: detail('LEGACY') } : { status: 500 }));
+    await showDetail(locale);
+    expect(await screen.findByTestId('statutory-pack-legacy-notice')).toHaveTextContent(
+      p.legacyNotice,
+    );
+    expect(screen.getByTestId('statutory-pack-state')).toHaveTextContent(p.state.LEGACY);
+    expect(screen.getByTestId('statutory-pack-actions')).toHaveTextContent(p.actions.none);
   });
 
   it('offers no action for a retired version', async () => {

@@ -6342,6 +6342,7 @@
     "empty": "Il n’y a encore aucune version de référentiel légal.",
     "openEnded": "sans fin définie",
     "draftNotice": "BROUILLON — non approuvé pour la paie opérationnelle",
+    "legacyNotice": "Antérieure à la gouvernance et mise en quarantaine : lisible, jamais modifiée, jamais applicable. Aucune preuve n'existe pour elle et ce n'est pas une approbation.",
     "notice": {
       "label": "La validation technique n’est pas une approbation légale",
       "heading": "La validation technique n’est pas une approbation légale.",
@@ -6357,7 +6358,8 @@
       "REVIEWED": "Revue",
       "SCHEDULED": "Planifiée",
       "ACTIVE": "Active",
-      "RETIRED": "Retirée"
+      "RETIRED": "Retirée",
+      "LEGACY": "Héritée (en quarantaine)"
     },
     "reason": {
       "SOURCE_MISMATCH": "Le référentiel ne correspond pas à sa source",

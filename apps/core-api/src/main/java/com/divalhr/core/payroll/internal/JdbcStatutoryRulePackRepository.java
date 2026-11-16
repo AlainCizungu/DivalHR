@@ -213,6 +213,20 @@ public class JdbcStatutoryRulePackRepository {
   }
 
   /**
+   * The governance state of a pack version (MVP-097A, R202-1), read by identifier.
+   *
+   * @param packId pack version
+   * @return its governance state (for example ACTIVE or LEGACY), or empty when it has no row
+   */
+  public Optional<String> governanceState(UUID packId) {
+    return jdbc.sql(
+            "SELECT g.state FROM payroll.statutory_rule_pack p JOIN payroll.statutory_pack_governance g ON g.pack_id = p.id WHERE p.id = :pack")
+        .param("pack", packId)
+        .query(String.class)
+        .optional();
+  }
+
+  /**
    * The official sources of a pack, in order.
    *
    * @param packId pack

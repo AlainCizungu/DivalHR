@@ -79,9 +79,43 @@ refused (`payroll_statutory_rule_pack_governed`). The DRAFT preview path stays v
 New tables: `statutory_pack_governance`, `statutory_reference_case` (≤100 per version), `statutory_pack_validation_run`,
 `statutory_pack_review` (one decision per version, `confirmed AND mfa_verified`, reviewer ≠ submitter) and
 `statutory_pack_transition` (append-only history). Evidence tables are append-only (update, delete and truncate refused).
-At most 25 versions per pack code. The migration refuses to run if a non-DRAFT pack exists without governance evidence, so
-no existing VERIFIED pack is silently grandfathered. The rollback script refuses while any new business row exists, then
-restores the V45 guard.
+At most 25 versions per pack code. The rollback script refuses while any new business row exists, then restores the V45
+guard. Existing packs are handled by the legacy quarantine of section 7a.
+
+## 7a. Legacy quarantine (R200-1, amends section 7)
+
+The first deployment of V51 to hr-dev was refused by the migration itself: the original version raised if any non-DRAFT
+pack existed, and hr-dev holds seventeen VERIFIED or RETIRED synthetic test packs created before governance existed. The
+runbook rolled back; no data changed. The architect's decision R200-1 replaces that refusal with a quarantine:
+
+- The state `LEGACY` is added to the closed set. It is **not** a lifecycle step: no command leads to it or from it, and the
+  guard refuses every update of a LEGACY row. V51 backfills it for every existing pack whose legacy status is VERIFIED or
+  RETIRED; a DRAFT pack keeps a DRAFT row. The backfill sets nothing else: no evidence, no digest, no period, no review, no
+  case, no history row. Nothing is invented, inferred or approved, and LEGACY is not a statement that the pack is correct
+  or legally valid.
+- Not one column of the pack changes. Its legacy status stays as it was, and every historical reference is preserved
+  exactly: frozen calculations, approved packages, payslips and evidence keep the pack code, version and digest they
+  were made with and stay readable and unchanged, and the activation rows are never edited or deleted. The legacy status
+  can still move only from the governance guard, which refuses LEGACY, so a legacy pack is frozen.
+- A LEGACY version is never the applicable ACTIVE version (`applicableActivePackId` requires governed ACTIVE), so no new
+  employer activation can rest on it. **R202-1: it powers no new calculation either.** `StatutoryEvaluator.resolve` uses
+  only a pack whose governance state is exactly ACTIVE (selected by country and period, then checked again by state),
+  and an older activation that points to a LEGACY pack resolves nothing: a preview is BLOCKED with `RULE_PACK_MISSING`
+  and a commit is refused with `STATUTORY_PACK_NO_ACTIVE_VERSION`. No other pack (a DRAFT one, or another governed ACTIVE
+  one that applies to the same country and period) is substituted for it. Applicability reads never report LEGACY as
+  applicable. Frozen calculations never go through this resolution: they read their stored pack by identifier. The one
+  consequence to know: a package approval that re-reads the current pack digest of a month whose activation points to a
+  LEGACY pack no longer finds one, so it is not offered as current. That is the intended quarantine. It is readable by platform administrators with the state
+  `LEGACY` and a plain notice, offers no command, and is excluded from overlap checks. A correction is a new governed
+  version, created DRAFT and walked through the full lifecycle with independent review.
+- `LEGACY` is never assigned to a new row: a trigger refuses an INSERT with that state once the backfill has run.
+- The rollback script treats an untouched LEGACY row like an untouched DRAFT row and still restores V50 exactly.
+- V51 was edited in place because it had not applied successfully anywhere: every database it ran on was fresh
+  (continuous integration, the AWS verification environment) or rolled back (hr-dev). Flyway on hr-dev has no V51 row.
+
+Evidence: `StatutoryLegacyPackResolutionIntegrationTest` and `StatutoryLegacyActivationMigrationIntegrationTest` (R202-1: a legacy VERIFIED pack with an existing activation migrates, history stays readable, a new calculation and another substituted pack are refused, applicability never reports it, nothing is fabricated), `StatutoryPackLegacyMigrationIntegrationTest` (a V50 database holding a VERIFIED and a RETIRED pack migrates, the
+packs are byte-identical, the rows are LEGACY with no evidence, the rows are frozen, never applicable and never inserted,
+the rollback still restores V50), the web tests of the LEGACY state and notice, and the English and French locale files.
 
 ## 8. API (D97A-8)
 
@@ -133,7 +167,7 @@ backlog test pins both. MVP-097A is recorded as merged or deployed only when tha
 | D97A-7 | `StatutoryPackGovernanceDatabaseIntegrationTest` and `StatutoryPackGovernanceApiIntegrationTest` (seeded `CD-SALARY-PREVIEW` stays DRAFT, no evidence, no cases), web DRAFT notice |
 | D97A-8 | `docs/API-SPEC.yaml`, `ApiContractDriftTest`, regenerated `core-api.ts` |
 | D97A-9 | `ErrorCode`, `problem.schema.json`, locale files |
-| D97A-10 | `V51__statutory_pack_governance.sql`, `V51__rollback.sql`, `StatutoryPackMigrationRollbackIntegrationTest` |
+| D97A-10 | `V51__statutory_pack_governance.sql`, `V51__rollback.sql`, `StatutoryPackMigrationRollbackIntegrationTest`, `StatutoryPackLegacyMigrationIntegrationTest` (R200-1) |
 | D97A-11 | `StatutoryPackRecorder` allow-list, privacy test in `StatutoryPackGovernanceApiIntegrationTest`, `JdbcStatutoryPackGovernanceRepositoryScopeTest`, `TenantPredicateArchitectureTest` |
 | D97A-12/14 | `apps/web/src/features/statutoryPacks`, `statutory-pack-governance.spec.ts` (two journeys) |
 | D97A-13 | `docs/BACKLOG.md`, `scripts/ops/backlog.test.mjs` |
