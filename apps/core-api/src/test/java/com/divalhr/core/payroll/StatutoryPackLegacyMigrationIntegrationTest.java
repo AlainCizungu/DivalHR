@@ -24,10 +24,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
  * MVP-097A, R200-1 (Issue #200, ADR 0040 section 7): V51 applies to a database that already holds
  * VERIFIED and RETIRED statutory packs created before governance existed. Each one is quarantined
  * as LEGACY without changing a single column of the pack, nothing is invented (no evidence, no
- * digest, no history), the DRAFT pack stays DRAFT, and a LEGACY version can never be moved,
- * edited, validated, selected as applicable or created again. Directly against PostgreSQL in a
- * database of its own. Synthetic data only: the packs below prove the mechanism and carry no
- * statutory meaning.
+ * digest, no history), the DRAFT pack stays DRAFT, and a LEGACY version can never be moved, edited,
+ * validated, selected as applicable or created again. Directly against PostgreSQL in a database of
+ * its own. Synthetic data only: the packs below prove the mechanism and carry no statutory meaning.
  */
 @IntegrationTest
 class StatutoryPackLegacyMigrationIntegrationTest {
@@ -105,7 +104,6 @@ class StatutoryPackLegacyMigrationIntegrationTest {
         .migrate();
   }
 
-
   private static String rollbackScript() {
     try {
       return new ClassPathResource("db/rollback/V51__rollback.sql")
@@ -132,7 +130,9 @@ class StatutoryPackLegacyMigrationIntegrationTest {
     return java.util.Objects.requireNonNull(db.jdbc().queryForObject(sql, Integer.class));
   }
 
-  /** A pack created the way V45 allowed: DRAFT with its source, then VERIFIED, then maybe RETIRED. */
+  /**
+   * A pack created the way V45 allowed: DRAFT with its source, then VERIFIED, then maybe RETIRED.
+   */
   private static UUID legacyPack(Db db, String code, boolean retired) {
     UUID id = UUID.randomUUID();
     db.jdbc()
@@ -173,8 +173,11 @@ class StatutoryPackLegacyMigrationIntegrationTest {
           migrate(db.url(), "50");
           UUID verified = legacyPack(db, "SYNTHETIC-LEGACY-VERIFIED", false);
           UUID retired = legacyPack(db, "SYNTHETIC-LEGACY-RETIRED", true);
-          assertThat(count(db, "SELECT count(*) FROM payroll.statutory_rule_pack WHERE status <>"
-                  + " 'DRAFT'"))
+          assertThat(
+                  count(
+                      db,
+                      "SELECT count(*) FROM payroll.statutory_rule_pack WHERE status <>"
+                          + " 'DRAFT'"))
               .isEqualTo(2);
           String before = db.jdbc().queryForObject(PACKS, String.class);
 
