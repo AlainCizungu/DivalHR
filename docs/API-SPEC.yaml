@@ -14474,10 +14474,11 @@ paths:
       x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
-      summary: Withdraw my salary-advance request before any external handoff
+      summary: Withdraw my salary-advance request while it has no partner handoff
       description: >-
-        MVP-120A (D120A-7). SUBMITTED or EMPLOYER_CONFIRMED to WITHDRAWN, by the owning employee only. No partner handoff
-        exists in this story, so withdrawal is always possible from those two states; any other state is 409
+        MVP-120A (D120A-7). SUBMITTED or EMPLOYER_CONFIRMED to WITHDRAWN, by the owning employee only. While no MVP-120B handoff
+        exists for the request, withdrawal is possible from those two states; once a handoff exists the request is withdrawn
+        only through the handoff withdrawal (409 SALARY_ADVANCE_HANDOFF_EXISTS here); any other state is 409
         SALARY_ADVANCE_TRANSITION_NOT_ALLOWED. Requires expectedVersion, confirmed=true and an Idempotency-Key. A
         withdrawn request is never reopened or edited: a correction is a new request after the policy's waiting period.
         Audit salary-advance-request.withdraw and event payroll.salary-advance-request.withdrawn.v1 (no amount). At most
@@ -14517,6 +14518,420 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-requests/{requestId}/handoff/preview:
+    post:
+      operationId: previewMySalaryAdvanceHandoff
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Preview the controlled partner handoff of my employer-confirmed request
+      description: >-
+        MVP-120B (D120B-1, D120B-2, D120B-3). Evaluates whether the caller's own EMPLOYER_CONFIRMED request may be handed
+        to the controlled SYNTHETIC-TEST partner adapter and returns the closed handoff disclosure (version SA-HANDOFF-1, the
+        exact categories that would be shared and the categories never shared), blockers, the request version, a
+        previewDigest and its expiry (15 minutes). The digest binds the tenant, employee, request, request version, handoff
+        consent version and the payload digest. Nothing is stored except an audit disclosure (salary-advance-handoff.preview,
+        no amount) and no external call is made. At most 10 previews per subject and 100 per tenant per hour.
+        Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffPreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-requests/{requestId}/handoff:
+    post:
+      operationId: authorizeMySalaryAdvanceHandoff
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Authorize the controlled partner handoff of my request
+      description: >-
+        MVP-120B (D120B-2, D120B-5). Requires the previewDigest and expiry of a fresh preview, the request version, the
+        explicit never-pre-checked affirmation of the handoff disclosure (SA-HANDOFF-1), understandsSyntheticTest=true and an
+        Idempotency-Key. One transaction re-evaluates everything, stores the immutable consent evidence (request id, consent
+        version, language, disclosure SHA-256, consented instant, verified employee subject), creates exactly one handoff per
+        request (QUEUED, version 1) with its AUTHORIZED and QUEUED events, writes the audit record
+        (salary-advance-handoff.authorize) and the internal outbox event (payroll.salary-advance-handoff.authorized.v1, no
+        amount) and returns. Delivery is asynchronous. The same key replays the original response; the key stays reusable if
+        the audit or outbox write fails and the command rolls back. At most 10 per subject and 100 per tenant per hour.
+        Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitSalaryAdvanceHandoff"
+      responses:
+        "201":
+          description: Authorized and queued, or the original authorization replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: getMySalaryAdvanceHandoff
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read the delivery and review status of my handoff
+      description: >-
+        MVP-120B (D120B-7). Only the owning employee. 404 SALARY_ADVANCE_HANDOFF_NOT_FOUND when the request has no handoff
+        and for every unknown, foreign-tenant or other-employee id (the same safe body). No partner internals, attempt
+        diagnostics or application id are returned to the employee. A fail-closed disclosure (audit
+        salary-advance-handoff.read; counts only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The handoff
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-requests/{requestId}/handoff/withdraw:
+    post:
+      operationId: withdrawMySalaryAdvanceHandoff
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Withdraw my handoff and request before the partner has durably received it
+      description: >-
+        MVP-120B (D120B-1, D120B-5). QUEUED to WITHDRAWN, by the owning employee only, and the source request becomes
+        WITHDRAWN in the same transaction. The withdrawal takes the same row lock as the delivery claim and the receiver
+        acknowledgement, so exactly one of WITHDRAWN and RECEIVED wins. After the claim or receipt, or while the outcome is
+        unknown, the withdrawal is 409 SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED: shared data is never pretended erased.
+        Requires expectedVersion, confirmed=true and an Idempotency-Key. Audit salary-advance-handoff.withdraw and event
+        payroll.salary-advance-handoff.withdrawn.v1 (no amount). At most 10 per subject per hour. Cache-Control private,
+        no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceHandoffWithdraw"
+      responses:
+        "200":
+          description: Withdrawn, or the original withdrawal replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/salary-advance-handoffs:
+    get:
+      operationId: listMySalaryAdvanceHandoffs
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my handoffs
+      description: >-
+        MVP-120B (D120B-7). The caller's own handoffs, newest first, keyset-paginated (default 25, maximum 100; the cursor is
+        opaque, bound to the filter and carries no amount). A fail-closed disclosure (audit salary-advance-handoff.read;
+        counts only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceHandoffStateFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of the caller's handoffs
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-handoffs:
+    get:
+      operationId: listSalaryAdvanceHandoffs
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: List controlled partner handoffs of the tenant
+      description: >-
+        MVP-120B (D120B-7). Tenant administrator with exact MFA only; managers and platform administrators have no implicit
+        access. Newest first, keyset-paginated (default 25, maximum 100; the cursor is bound to the filter and carries no
+        amount). A fail-closed disclosure (audit salary-advance-handoff.read; counts only). At most 60 reads per subject per
+        hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceHandoffStateFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of the tenant's handoffs
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-handoffs/{handoffId}:
+    get:
+      operationId: getSalaryAdvanceHandoff
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read one controlled partner handoff with safe delivery diagnostics
+      description: >-
+        MVP-120B (D120B-7). Tenant administrator with exact MFA. Returns the state, the review state, the closed event
+        history and the safe delivery diagnostics (attempt number, instant and allow-listed outcome code per attempt). It
+        never returns a payload, signature, header, endpoint, partner response, consent digest or employee identity beyond
+        employeeId and employeeNumber. Unknown, malformed, foreign-tenant ids give the same 404
+        SALARY_ADVANCE_HANDOFF_NOT_FOUND. Audit salary-advance-handoff.read. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceHandoffId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The handoff
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-handoffs/{handoffId}/reconcile:
+    post:
+      operationId: reconcileSalaryAdvanceHandoff
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Reconcile or retry a handoff with the controlled synthetic partner
+      description: >-
+        MVP-120B (D120B-5, D120B-7). Tenant administrator with exact MFA. For DELIVERY_UNKNOWN, sends a signed status inquiry
+        for the application id: an acknowledgement moves the handoff to RECEIVED without any resend; a signed proof that the
+        partner never received it moves it to QUEUED (the only case in which a resend becomes allowed); any other answer leaves
+        it DELIVERY_UNKNOWN (409 SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN). For FAILED, moves it to QUEUED for a bounded
+        retry. At most 3 reconciliations per handoff. Requires expectedVersion, confirmed=true and an Idempotency-Key. The
+        administrator can never create or alter employee consent. Audit salary-advance-handoff.reconcile and event
+        payroll.salary-advance-handoff.state-changed.v1 (ids, states and outcome code only). At most 20 per subject and
+        200 per tenant per hour. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvanceHandoffId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceHandoffReconcile"
+      responses:
+        "200":
+          description: The handoff after reconciliation, or the original result replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceHandoffView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /public/partners/synthetic-test/callbacks:
+    post:
+      operationId: receiveSyntheticPartnerCallback
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: public
+      summary: Signed review-status callback from the controlled synthetic partner (anonymous, partner only)
+      description: >-
+        MVP-120B (D120B-6). The SYNTHETIC-TEST receiver reports only the bounded review states UNDER_REVIEW,
+        MORE_INFORMATION_REQUIRED and DECLINED with a closed reason code; no free-form note exists. Before any state is read the
+        request is checked in this order: body at most 4 KiB, Content-Type application/json (415), timestamp within 300 seconds,
+        HMAC-SHA256 signature over "v1\n" + timestamp + "\n" + callbackId + "\n" + the exact body bytes with the dedicated
+        callback key in constant time, and the closed schema. One transaction then records the replay evidence (a repeated
+        callback id fails), derives the tenant from the stored application (never from the body) and applies a legal review
+        transition. Unknown application ids, foreign tenants, invalid signatures, stale timestamps, replays and illegal transitions
+        all answer 400 PARTNER_CALLBACK_INVALID with the same generic body and leave no state change. 413 over the limit, 429
+        over the ceiling, 503 when unconfigured. No credentials, payloads or amounts are logged. Cache-Control no-store.
+      tags: [payroll]
+      security: []
+      parameters:
+        - name: X-Divalhr-Timestamp
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9]{10}$"
+        - name: X-Divalhr-Callback-Id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Divalhr-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: "^v1=[0-9a-f]{64}$"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyntheticPartnerCallback"
+      responses:
+        "204":
+          description: Accepted and applied
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          description: The body exceeds 4 KiB. Empty body.
+        "415":
+          description: Missing or other Content-Type. Empty body.
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "503":
@@ -15546,6 +15961,22 @@ components:
       description: Optional status filter; the cursor is bound to it.
       schema:
         $ref: "#/components/schemas/SalaryAdvanceRequestStatus"
+    SalaryAdvanceHandoffId:
+      name: handoffId
+      in: path
+      required: true
+      description: >-
+        An opaque UUID. Malformed, unknown, foreign-tenant and unauthorized IDs give the same 404
+        SALARY_ADVANCE_HANDOFF_NOT_FOUND.
+      schema:
+        type: string
+    SalaryAdvanceHandoffStateFilter:
+      name: state
+      in: query
+      required: false
+      description: Optional delivery-state filter; the cursor is bound to it.
+      schema:
+        $ref: "#/components/schemas/SalaryAdvanceHandoffState"
   schemas:
     AccessReviewLookup:
       type: object
@@ -22437,6 +22868,19 @@ components:
         - SALARY_ADVANCE_VERSION_CONFLICT
         - SALARY_ADVANCE_TRANSITION_NOT_ALLOWED
         - SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN
+        - SALARY_ADVANCE_HANDOFF_NOT_FOUND
+        - SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED
+        - SALARY_ADVANCE_REQUEST_TERMINAL
+        - SALARY_ADVANCE_HANDOFF_EXISTS
+        - SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED
+        - SALARY_ADVANCE_HANDOFF_CONSENT_STALE
+        - SALARY_ADVANCE_HANDOFF_PREVIEW_STALE
+        - SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED
+        - SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT
+        - SALARY_ADVANCE_PARTNER_UNAVAILABLE
+        - SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN
+        - SALARY_ADVANCE_PARTNER_NOT_ENABLED
+        - PARTNER_CALLBACK_INVALID
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -29950,7 +30394,8 @@ components:
         The closed lifecycle. SUBMITTED means received by the employer only. EMPLOYER_CONFIRMED means the employer is
         prepared to support a later deduction if a regulated partner approves, not credit approval. EMPLOYER_REFUSED is a
         bounded employer-policy refusal, not a credit decision. No other state exists: the lifecycle ends at the employer's confirmation, refusal or the
-        employee's withdrawal, and nothing is submitted to any partner.
+        employee's withdrawal. A confirmed request reaches the controlled synthetic partner only through the separate MVP-120B
+        handoff, which has its own consent and its own status.
       enum: [SUBMITTED, EMPLOYER_CONFIRMED, EMPLOYER_REFUSED, WITHDRAWN]
     SalaryAdvancePolicyStatus:
       type: string
@@ -30673,3 +31118,477 @@ components:
           description: Administrators only.
         notice:
           $ref: "#/components/schemas/SalaryAdvanceNotice"
+    SalaryAdvanceHandoffNotice:
+      type: string
+      description: >-
+        MVP-120B (D120B-1). The permanent handoff notice, as a stable code the client translates (en and fr).
+        DIVALHR_HANDOFF_SYNTHETIC means: this is a controlled test handoff; no real financial partner is connected and no funds
+        are sent. It is returned on every handoff response next to the MVP-120A notice, so no screen can omit it.
+      enum: [DIVALHR_HANDOFF_SYNTHETIC]
+    SalaryAdvanceHandoffState:
+      type: string
+      description: >-
+        The closed delivery lifecycle. RECEIVED means the controlled synthetic receiver durably acknowledged receipt of the
+        application, never that anything was reviewed, decided or paid out. DELIVERY_UNKNOWN means the outcome of a send is
+        ambiguous: it is never resent automatically. No decision, payout or repayment state exists.
+      enum: [AUTHORIZED, QUEUED, SENDING, RECEIVED, DELIVERY_UNKNOWN, FAILED, WITHDRAWN]
+    SalaryAdvanceHandoffReviewState:
+      type: string
+      description: >-
+        The bounded partner-review status, separate from delivery and present only after RECEIVED. It is a status report of a
+        controlled synthetic partner, not a credit decision of DivalHR.
+      enum: [RECEIVED, UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED]
+    SalaryAdvanceHandoffReviewReason:
+      type: string
+      description: Closed reason code reported by the synthetic partner; there is no free-form partner note.
+      enum: [ADDITIONAL_DOCUMENTS, CLARIFICATION, PARTNER_POLICY, SYNTHETIC_TEST_SCENARIO]
+    SalaryAdvanceHandoffOutcome:
+      type: string
+      description: Closed, allow-listed outcome codes. Never a partner response, header, endpoint or signature.
+      enum:
+        - RECEIVED_ACKNOWLEDGED
+        - REJECTED_BY_PARTNER
+        - TRANSIENT_NOT_SENT
+        - UNKNOWN_TIMEOUT
+        - UNKNOWN_BAD_RESPONSE
+        - UNKNOWN_LEASE_EXPIRED
+        - RETRIES_EXHAUSTED
+        - WITHDRAWN_BEFORE_RECEIPT
+        - RECONCILED_RECEIVED
+        - RECONCILED_NOT_RECEIVED
+        - RECONCILE_INCONCLUSIVE
+        - ADMIN_RETRY
+    SalaryAdvanceHandoffBlocker:
+      type: string
+      enum:
+        - EMPLOYER_CONFIRMATION_REQUIRED
+        - REQUEST_TERMINAL
+        - HANDOFF_EXISTS
+        - PARTNER_NOT_ENABLED
+        - PARTNER_UNAVAILABLE
+    SalaryAdvanceHandoffConsentDocument:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120B (D120B-2). The canonical, versioned handoff disclosure as stable codes the client translates into plain
+        English and French. contentSha256 is the SHA-256 of the canonical JSON of {version, purpose, recipient, shared,
+        notShared, promise, withdrawal, retention, lender} (never the rendered text, never the language); the server
+        recomputes it at authorization.
+      required: [version, contentSha256, purpose, recipient, shared, notShared, promise, withdrawal, retention, lender]
+      properties:
+        version:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        contentSha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        purpose:
+          type: string
+          enum: [SUBMIT_CONFIRMED_REQUEST_FOR_PARTNER_REVIEW]
+        recipient:
+          $ref: "#/components/schemas/SalaryAdvancePartnerCode"
+        shared:
+          type: array
+          description: The exact categories carried by the closed payload.
+          items:
+            type: string
+            enum:
+              - APPLICATION_ID
+              - REQUEST_ID
+              - EMPLOYER_LEGAL_ENTITY_REFERENCE
+              - EMPLOYMENT_ACTIVE
+              - EMPLOYMENT_START_DATE
+              - PAYROLL_REFERENCE_MONTH
+              - CURRENCY
+              - REQUESTED_AMOUNT
+              - EMPLOYER_POLICY_CEILING
+              - EMPLOYER_CONFIRMED_STATUS
+              - CONSENT_VERSION_AND_DIGEST
+        notShared:
+          type: array
+          items:
+            type: string
+            enum:
+              - NAME
+              - EMAIL
+              - PHONE
+              - HOME_ADDRESS
+              - NATIONAL_IDENTIFIER
+              - BANK_OR_MOBILE_MONEY_DESTINATION
+              - FULL_PAYSLIP
+              - HEALTH
+              - LEAVE_DETAIL
+              - ATTENDANCE_DETAIL
+              - PERFORMANCE
+              - DISCIPLINARY
+              - DOCUMENTS
+              - PASSWORD
+              - MFA_DATA
+              - UNRELATED_HR_HISTORY
+        promise:
+          type: string
+          enum: [NO_APPROVAL_OR_PAYOUT_PROMISED]
+        withdrawal:
+          type: string
+          enum: [BEFORE_DURABLE_PARTNER_RECEIPT]
+        retention:
+          type: string
+          enum: [NO_PRODUCTION_RETENTION_SCHEDULE_CLAIMED]
+        lender:
+          type: string
+          enum: [DIVALHR_IS_NOT_THE_LENDER]
+    SalaryAdvanceHandoffPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - requestId
+        - requestVersion
+        - currency
+        - requested
+        - ceiling
+        - partnerCode
+        - consent
+        - blockers
+        - previewDigest
+        - expiresAt
+        - notice
+        - handoffNotice
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        requestVersion:
+          type: integer
+          minimum: 1
+          maximum: 3
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        requested:
+          $ref: "#/components/schemas/CompensationMoney"
+        ceiling:
+          $ref: "#/components/schemas/CompensationMoney"
+        partnerCode:
+          $ref: "#/components/schemas/SalaryAdvancePartnerCode"
+        consent:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffConsentDocument"
+        blockers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceHandoffBlocker"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+        handoffNotice:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffNotice"
+    SalaryAdvanceHandoffConsentAffirmation:
+      type: object
+      additionalProperties: false
+      description: The explicit, never pre-checked affirmation of the handoff disclosure shown.
+      required: [version, language, affirmed]
+      properties:
+        version:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,32}$"
+        language:
+          type: string
+          enum: [en, fr]
+        affirmed:
+          type: boolean
+          description: Must be true.
+    CommitSalaryAdvanceHandoff:
+      type: object
+      additionalProperties: false
+      required: [expectedRequestVersion, previewDigest, expiresAt, consent, understandsSyntheticTest]
+      properties:
+        expectedRequestVersion:
+          type: integer
+          minimum: 1
+          maximum: 3
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        consent:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffConsentAffirmation"
+        understandsSyntheticTest:
+          type: boolean
+          description: Must be true.
+    SalaryAdvanceHandoffWithdraw:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 64
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvanceHandoffReconcile:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 64
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvanceHandoffEvent:
+      type: object
+      additionalProperties: false
+      required: [sequence, fromState, toState, actorRole, occurredAt, outcomeCode]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        fromState:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffState"
+            - type: "null"
+        toState:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffState"
+        actorRole:
+          type: string
+          enum: [EMPLOYEE, TENANT_ADMIN, SYSTEM, PARTNER]
+        occurredAt:
+          type: string
+          format: date-time
+        outcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffOutcome"
+            - type: "null"
+    SalaryAdvanceHandoffReviewEvent:
+      type: object
+      additionalProperties: false
+      required: [sequence, fromState, toState, reasonCode, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        fromState:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewState"
+            - type: "null"
+        toState:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffReviewState"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewReason"
+            - type: "null"
+        occurredAt:
+          type: string
+          format: date-time
+    SalaryAdvanceHandoffAttempt:
+      type: object
+      additionalProperties: false
+      description: Safe delivery diagnostics for administrators, with no payload, header, signature, endpoint or partner response.
+      required: [attempt, startedAt, outcomeCode]
+      properties:
+        attempt:
+          type: integer
+          minimum: 1
+          maximum: 6
+        startedAt:
+          type: string
+          format: date-time
+        outcomeCode:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffOutcome"
+    SalaryAdvanceHandoffSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - handoffId
+        - requestId
+        - state
+        - reviewState
+        - version
+        - currency
+        - requested
+        - createdAt
+        - employeeId
+        - employeeNumber
+        - notice
+        - handoffNotice
+      properties:
+        handoffId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        state:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffState"
+        reviewState:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewState"
+            - type: "null"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 64
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        requested:
+          $ref: "#/components/schemas/CompensationMoney"
+        createdAt:
+          type: string
+          format: date-time
+        employeeId:
+          type: [string, "null"]
+          format: uuid
+          description: Administrators only.
+        employeeNumber:
+          type: [string, "null"]
+          description: Administrators only.
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+        handoffNotice:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffNotice"
+    SalaryAdvanceHandoffPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceHandoffSummary"
+        nextCursor:
+          type: [string, "null"]
+    SalaryAdvanceHandoffView:
+      type: object
+      additionalProperties: false
+      description: >-
+        One handoff with its delivery and bounded review status. No status is a credit decision; no funds move; no deduction is
+        made. The application id, attempt diagnostics and administrator-only fields are null or empty for the employee.
+      required:
+        - handoffId
+        - requestId
+        - state
+        - reviewState
+        - reviewReason
+        - version
+        - currency
+        - requested
+        - ceiling
+        - partnerCode
+        - createdAt
+        - receivedAt
+        - lastOutcomeCode
+        - attemptCount
+        - consent
+        - events
+        - reviewEvents
+        - attempts
+        - applicationId
+        - employeeId
+        - employeeNumber
+        - notice
+        - handoffNotice
+      properties:
+        handoffId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        state:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffState"
+        reviewState:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewState"
+            - type: "null"
+        reviewReason:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewReason"
+            - type: "null"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 64
+        currency:
+          $ref: "#/components/schemas/SalaryAdvanceCurrency"
+        requested:
+          $ref: "#/components/schemas/CompensationMoney"
+        ceiling:
+          $ref: "#/components/schemas/CompensationMoney"
+        partnerCode:
+          $ref: "#/components/schemas/SalaryAdvancePartnerCode"
+        createdAt:
+          type: string
+          format: date-time
+        receivedAt:
+          type: [string, "null"]
+          format: date-time
+        lastOutcomeCode:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffOutcome"
+            - type: "null"
+        attemptCount:
+          type: integer
+          minimum: 0
+          maximum: 6
+        consent:
+          $ref: "#/components/schemas/SalaryAdvanceConsentEvidence"
+        events:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceHandoffEvent"
+        reviewEvents:
+          type: array
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceHandoffReviewEvent"
+        attempts:
+          type: array
+          maxItems: 6
+          description: Administrators only; always empty for the employee.
+          items:
+            $ref: "#/components/schemas/SalaryAdvanceHandoffAttempt"
+        applicationId:
+          type: [string, "null"]
+          format: uuid
+          description: The opaque application id sent to the partner. Administrators only.
+        employeeId:
+          type: [string, "null"]
+          format: uuid
+          description: Administrators only.
+        employeeNumber:
+          type: [string, "null"]
+          description: Administrators only.
+        notice:
+          $ref: "#/components/schemas/SalaryAdvanceNotice"
+        handoffNotice:
+          $ref: "#/components/schemas/SalaryAdvanceHandoffNotice"
+    SyntheticPartnerCallback:
+      type: object
+      additionalProperties: false
+      description: The closed callback body of the controlled synthetic partner. No free-form field exists.
+      required: [applicationId, reviewState, reasonCode, issuedAt]
+      properties:
+        applicationId:
+          type: string
+          format: uuid
+        reviewState:
+          type: string
+          enum: [UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED]
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewReason"
+            - type: "null"
+        issuedAt:
+          type: string
+          format: date-time

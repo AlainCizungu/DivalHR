@@ -43,7 +43,7 @@ final class SalaryAdvanceCommands {
   private static final Pattern DATE = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
   private static final Pattern DIGEST = Pattern.compile("^[0-9a-f]{64}$");
   private static final Pattern CODE = Pattern.compile("^[A-Z][A-Z0-9-]{2,31}$");
-  private static final Pattern VERSION = Pattern.compile("^[A-Za-z0-9._-]{1,32}$");
+  static final Pattern VERSION = Pattern.compile("^[A-Za-z0-9._-]{1,32}$");
   private static final Pattern UUID_SHAPE =
       Pattern.compile(
           "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
@@ -519,7 +519,7 @@ final class SalaryAdvanceCommands {
         consent, partner);
   }
 
-  private static Map<String, Object> object(
+  static Map<String, Object> object(
       Object raw, String field, Set<String> allowed, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
@@ -591,7 +591,7 @@ final class SalaryAdvanceCommands {
     };
   }
 
-  private static String text(Object raw, String field, Pattern pattern, FieldErrors errors) {
+  static String text(Object raw, String field, Pattern pattern, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -603,7 +603,7 @@ final class SalaryAdvanceCommands {
     return value;
   }
 
-  private static String language(Object raw, FieldErrors errors) {
+  static String language(Object raw, FieldErrors errors) {
     if (raw == null) {
       errors.add("consent.language", Constraint.REQUIRED);
       return null;
@@ -639,7 +639,7 @@ final class SalaryAdvanceCommands {
     }
   }
 
-  private static Instant instant(Object raw, String field, FieldErrors errors) {
+  static Instant instant(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -656,7 +656,7 @@ final class SalaryAdvanceCommands {
     return null;
   }
 
-  private static Integer integer(Object raw, String field, int min, int max, FieldErrors errors) {
+  static Integer integer(Object raw, String field, int min, int max, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -673,7 +673,7 @@ final class SalaryAdvanceCommands {
     return null;
   }
 
-  private static Boolean bool(Object raw, String field, FieldErrors errors) {
+  static Boolean bool(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -685,7 +685,7 @@ final class SalaryAdvanceCommands {
     return null;
   }
 
-  private static String digest(Object raw, String field, FieldErrors errors) {
+  static String digest(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
       return null;
@@ -697,7 +697,7 @@ final class SalaryAdvanceCommands {
     return text;
   }
 
-  private static void confirmed(Object raw, String field, FieldErrors errors) {
+  static void confirmed(Object raw, String field, FieldErrors errors) {
     if (raw == null) {
       errors.add(field, Constraint.REQUIRED);
     } else if (!(raw instanceof Boolean value)) {
@@ -728,7 +728,7 @@ final class SalaryAdvanceCommands {
     return text;
   }
 
-  private static void key(String idempotencyKey, FieldErrors errors) {
+  static void key(String idempotencyKey, FieldErrors errors) {
     if (idempotencyKey == null || idempotencyKey.isBlank()) {
       errors.add(IdempotencyKeys.HEADER, Constraint.REQUIRED);
     } else if (!IdempotencyKeys.isWellFormed(idempotencyKey)) {

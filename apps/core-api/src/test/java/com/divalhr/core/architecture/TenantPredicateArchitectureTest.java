@@ -189,6 +189,25 @@ class TenantPredicateArchitectureTest {
           .should(TAKE_TENANT_ID);
 
   /**
+   * MVP-120B: every public method of the partner-handoff repository takes the verified tenant,
+   * except the worker and signed-callback statements explicitly marked {@link CrossTenantAccess}.
+   */
+  @ArchTest
+  static final ArchRule salaryAdvanceHandoffRepositoryRequiresTheVerifiedTenant =
+      methods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.divalhr.core.payroll.internal..")
+          .and()
+          .areDeclaredInClassesThat()
+          .haveSimpleName("JdbcSalaryAdvanceHandoffRepository")
+          .and()
+          .arePublic()
+          .and()
+          .areNotAnnotatedWith(CrossTenantAccess.class)
+          .should(TAKE_TENANT_ID);
+
+  /**
    * MVP-094A: the payroll run repository follows the same rule, with no exception (every statement
    * filters on the tenant and the legal entity or run).
    */

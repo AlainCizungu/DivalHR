@@ -5516,10 +5516,174 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Withdraw my salary-advance request before any external handoff
-         * @description MVP-120A (D120A-7). SUBMITTED or EMPLOYER_CONFIRMED to WITHDRAWN, by the owning employee only. No partner handoff exists in this story, so withdrawal is always possible from those two states; any other state is 409 SALARY_ADVANCE_TRANSITION_NOT_ALLOWED. Requires expectedVersion, confirmed=true and an Idempotency-Key. A withdrawn request is never reopened or edited: a correction is a new request after the policy's waiting period. Audit salary-advance-request.withdraw and event payroll.salary-advance-request.withdrawn.v1 (no amount). At most 10 per subject per hour. Cache-Control private, no-store.
+         * Withdraw my salary-advance request while it has no partner handoff
+         * @description MVP-120A (D120A-7). SUBMITTED or EMPLOYER_CONFIRMED to WITHDRAWN, by the owning employee only. While no MVP-120B handoff exists for the request, withdrawal is possible from those two states; once a handoff exists the request is withdrawn only through the handoff withdrawal (409 SALARY_ADVANCE_HANDOFF_EXISTS here); any other state is 409 SALARY_ADVANCE_TRANSITION_NOT_ALLOWED. Requires expectedVersion, confirmed=true and an Idempotency-Key. A withdrawn request is never reopened or edited: a correction is a new request after the policy's waiting period. Audit salary-advance-request.withdraw and event payroll.salary-advance-request.withdrawn.v1 (no amount). At most 10 per subject per hour. Cache-Control private, no-store.
          */
         post: operations["withdrawMySalaryAdvanceRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-requests/{requestId}/handoff/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview the controlled partner handoff of my employer-confirmed request
+         * @description MVP-120B (D120B-1, D120B-2, D120B-3). Evaluates whether the caller's own EMPLOYER_CONFIRMED request may be handed to the controlled SYNTHETIC-TEST partner adapter and returns the closed handoff disclosure (version SA-HANDOFF-1, the exact categories that would be shared and the categories never shared), blockers, the request version, a previewDigest and its expiry (15 minutes). The digest binds the tenant, employee, request, request version, handoff consent version and the payload digest. Nothing is stored except an audit disclosure (salary-advance-handoff.preview, no amount) and no external call is made. At most 10 previews per subject and 100 per tenant per hour. Cache-Control private, no-store.
+         */
+        post: operations["previewMySalaryAdvanceHandoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-requests/{requestId}/handoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the delivery and review status of my handoff
+         * @description MVP-120B (D120B-7). Only the owning employee. 404 SALARY_ADVANCE_HANDOFF_NOT_FOUND when the request has no handoff and for every unknown, foreign-tenant or other-employee id (the same safe body). No partner internals, attempt diagnostics or application id are returned to the employee. A fail-closed disclosure (audit salary-advance-handoff.read; counts only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+         */
+        get: operations["getMySalaryAdvanceHandoff"];
+        put?: never;
+        /**
+         * Authorize the controlled partner handoff of my request
+         * @description MVP-120B (D120B-2, D120B-5). Requires the previewDigest and expiry of a fresh preview, the request version, the explicit never-pre-checked affirmation of the handoff disclosure (SA-HANDOFF-1), understandsSyntheticTest=true and an Idempotency-Key. One transaction re-evaluates everything, stores the immutable consent evidence (request id, consent version, language, disclosure SHA-256, consented instant, verified employee subject), creates exactly one handoff per request (QUEUED, version 1) with its AUTHORIZED and QUEUED events, writes the audit record (salary-advance-handoff.authorize) and the internal outbox event (payroll.salary-advance-handoff.authorized.v1, no amount) and returns. Delivery is asynchronous. The same key replays the original response; the key stays reusable if the audit or outbox write fails and the command rolls back. At most 10 per subject and 100 per tenant per hour. Cache-Control private, no-store.
+         */
+        post: operations["authorizeMySalaryAdvanceHandoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-requests/{requestId}/handoff/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw my handoff and request before the partner has durably received it
+         * @description MVP-120B (D120B-1, D120B-5). QUEUED to WITHDRAWN, by the owning employee only, and the source request becomes WITHDRAWN in the same transaction. The withdrawal takes the same row lock as the delivery claim and the receiver acknowledgement, so exactly one of WITHDRAWN and RECEIVED wins. After the claim or receipt, or while the outcome is unknown, the withdrawal is 409 SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED: shared data is never pretended erased. Requires expectedVersion, confirmed=true and an Idempotency-Key. Audit salary-advance-handoff.withdraw and event payroll.salary-advance-handoff.withdrawn.v1 (no amount). At most 10 per subject per hour. Cache-Control private, no-store.
+         */
+        post: operations["withdrawMySalaryAdvanceHandoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/salary-advance-handoffs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my handoffs
+         * @description MVP-120B (D120B-7). The caller's own handoffs, newest first, keyset-paginated (default 25, maximum 100; the cursor is opaque, bound to the filter and carries no amount). A fail-closed disclosure (audit salary-advance-handoff.read; counts only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+         */
+        get: operations["listMySalaryAdvanceHandoffs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/salary-advance-handoffs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List controlled partner handoffs of the tenant
+         * @description MVP-120B (D120B-7). Tenant administrator with exact MFA only; managers and platform administrators have no implicit access. Newest first, keyset-paginated (default 25, maximum 100; the cursor is bound to the filter and carries no amount). A fail-closed disclosure (audit salary-advance-handoff.read; counts only). At most 60 reads per subject per hour. Cache-Control private, no-store.
+         */
+        get: operations["listSalaryAdvanceHandoffs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/salary-advance-handoffs/{handoffId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one controlled partner handoff with safe delivery diagnostics
+         * @description MVP-120B (D120B-7). Tenant administrator with exact MFA. Returns the state, the review state, the closed event history and the safe delivery diagnostics (attempt number, instant and allow-listed outcome code per attempt). It never returns a payload, signature, header, endpoint, partner response, consent digest or employee identity beyond employeeId and employeeNumber. Unknown, malformed, foreign-tenant ids give the same 404 SALARY_ADVANCE_HANDOFF_NOT_FOUND. Audit salary-advance-handoff.read. Cache-Control private, no-store.
+         */
+        get: operations["getSalaryAdvanceHandoff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/salary-advance-handoffs/{handoffId}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile or retry a handoff with the controlled synthetic partner
+         * @description MVP-120B (D120B-5, D120B-7). Tenant administrator with exact MFA. For DELIVERY_UNKNOWN, sends a signed status inquiry for the application id: an acknowledgement moves the handoff to RECEIVED without any resend; a signed proof that the partner never received it moves it to QUEUED (the only case in which a resend becomes allowed); any other answer leaves it DELIVERY_UNKNOWN (409 SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN). For FAILED, moves it to QUEUED for a bounded retry. At most 3 reconciliations per handoff. Requires expectedVersion, confirmed=true and an Idempotency-Key. The administrator can never create or alter employee consent. Audit salary-advance-handoff.reconcile and event payroll.salary-advance-handoff.state-changed.v1 (ids, states and outcome code only). At most 20 per subject and 200 per tenant per hour. Cache-Control private, no-store.
+         */
+        post: operations["reconcileSalaryAdvanceHandoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/partners/synthetic-test/callbacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Signed review-status callback from the controlled synthetic partner (anonymous, partner only)
+         * @description MVP-120B (D120B-6). The SYNTHETIC-TEST receiver reports only the bounded review states UNDER_REVIEW, MORE_INFORMATION_REQUIRED and DECLINED with a closed reason code; no free-form note exists. Before any state is read the request is checked in this order: body at most 4 KiB, Content-Type application/json (415), timestamp within 300 seconds, HMAC-SHA256 signature over "v1\n" + timestamp + "\n" + callbackId + "\n" + the exact body bytes with the dedicated callback key in constant time, and the closed schema. One transaction then records the replay evidence (a repeated callback id fails), derives the tenant from the stored application (never from the body) and applies a legal review transition. Unknown application ids, foreign tenants, invalid signatures, stale timestamps, replays and illegal transitions all answer 400 PARTNER_CALLBACK_INVALID with the same generic body and leave no state change. 413 over the limit, 429 over the ceiling, 503 when unconfigured. No credentials, payloads or amounts are logged. Cache-Control no-store.
+         */
+        post: operations["receiveSyntheticPartnerCallback"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8673,7 +8837,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE" | "SALARY_ADVANCE_POLICY_NOT_FOUND" | "SALARY_ADVANCE_POLICY_INVALID" | "SALARY_ADVANCE_POLICY_OVERLAP" | "SALARY_ADVANCE_POLICY_PREVIEW_STALE" | "SALARY_ADVANCE_NOT_ELIGIBLE" | "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING" | "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE" | "SALARY_ADVANCE_CURRENCY_MISMATCH" | "SALARY_ADVANCE_OPEN_LIMIT_REACHED" | "SALARY_ADVANCE_WAITING_PERIOD" | "SALARY_ADVANCE_CONSENT_REQUIRED" | "SALARY_ADVANCE_CONSENT_VERSION_STALE" | "SALARY_ADVANCE_REQUEST_NOT_FOUND" | "SALARY_ADVANCE_VERSION_CONFLICT" | "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE" | "SALARY_ADVANCE_POLICY_NOT_FOUND" | "SALARY_ADVANCE_POLICY_INVALID" | "SALARY_ADVANCE_POLICY_OVERLAP" | "SALARY_ADVANCE_POLICY_PREVIEW_STALE" | "SALARY_ADVANCE_NOT_ELIGIBLE" | "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING" | "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE" | "SALARY_ADVANCE_CURRENCY_MISMATCH" | "SALARY_ADVANCE_OPEN_LIMIT_REACHED" | "SALARY_ADVANCE_WAITING_PERIOD" | "SALARY_ADVANCE_CONSENT_REQUIRED" | "SALARY_ADVANCE_CONSENT_VERSION_STALE" | "SALARY_ADVANCE_REQUEST_NOT_FOUND" | "SALARY_ADVANCE_VERSION_CONFLICT" | "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN" | "SALARY_ADVANCE_HANDOFF_NOT_FOUND" | "SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED" | "SALARY_ADVANCE_REQUEST_TERMINAL" | "SALARY_ADVANCE_HANDOFF_EXISTS" | "SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED" | "SALARY_ADVANCE_HANDOFF_CONSENT_STALE" | "SALARY_ADVANCE_HANDOFF_PREVIEW_STALE" | "SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT" | "SALARY_ADVANCE_PARTNER_UNAVAILABLE" | "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN" | "SALARY_ADVANCE_PARTNER_NOT_ENABLED" | "PARTNER_CALLBACK_INVALID";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -12441,7 +12605,7 @@ export interface components {
          */
         SalaryAdvancePartnerCode: "SYNTHETIC-TEST";
         /**
-         * @description The closed lifecycle. SUBMITTED means received by the employer only. EMPLOYER_CONFIRMED means the employer is prepared to support a later deduction if a regulated partner approves, not credit approval. EMPLOYER_REFUSED is a bounded employer-policy refusal, not a credit decision. No other state exists: the lifecycle ends at the employer's confirmation, refusal or the employee's withdrawal, and nothing is submitted to any partner.
+         * @description The closed lifecycle. SUBMITTED means received by the employer only. EMPLOYER_CONFIRMED means the employer is prepared to support a later deduction if a regulated partner approves, not credit approval. EMPLOYER_REFUSED is a bounded employer-policy refusal, not a credit decision. No other state exists: the lifecycle ends at the employer's confirmation, refusal or the employee's withdrawal. A confirmed request reaches the controlled synthetic partner only through the separate MVP-120B handoff, which has its own consent and its own status.
          * @enum {string}
          */
         SalaryAdvanceRequestStatus: "SUBMITTED" | "EMPLOYER_CONFIRMED" | "EMPLOYER_REFUSED" | "WITHDRAWN";
@@ -12714,6 +12878,196 @@ export interface components {
             /** @description Administrators only. */
             employeeNumber: string | null;
             notice: components["schemas"]["SalaryAdvanceNotice"];
+        };
+        /**
+         * @description MVP-120B (D120B-1). The permanent handoff notice, as a stable code the client translates (en and fr). DIVALHR_HANDOFF_SYNTHETIC means: this is a controlled test handoff; no real financial partner is connected and no funds are sent. It is returned on every handoff response next to the MVP-120A notice, so no screen can omit it.
+         * @enum {string}
+         */
+        SalaryAdvanceHandoffNotice: "DIVALHR_HANDOFF_SYNTHETIC";
+        /**
+         * @description The closed delivery lifecycle. RECEIVED means the controlled synthetic receiver durably acknowledged receipt of the application, never that anything was reviewed, decided or paid out. DELIVERY_UNKNOWN means the outcome of a send is ambiguous: it is never resent automatically. No decision, payout or repayment state exists.
+         * @enum {string}
+         */
+        SalaryAdvanceHandoffState: "AUTHORIZED" | "QUEUED" | "SENDING" | "RECEIVED" | "DELIVERY_UNKNOWN" | "FAILED" | "WITHDRAWN";
+        /**
+         * @description The bounded partner-review status, separate from delivery and present only after RECEIVED. It is a status report of a controlled synthetic partner, not a credit decision of DivalHR.
+         * @enum {string}
+         */
+        SalaryAdvanceHandoffReviewState: "RECEIVED" | "UNDER_REVIEW" | "MORE_INFORMATION_REQUIRED" | "DECLINED";
+        /**
+         * @description Closed reason code reported by the synthetic partner; there is no free-form partner note.
+         * @enum {string}
+         */
+        SalaryAdvanceHandoffReviewReason: "ADDITIONAL_DOCUMENTS" | "CLARIFICATION" | "PARTNER_POLICY" | "SYNTHETIC_TEST_SCENARIO";
+        /**
+         * @description Closed, allow-listed outcome codes. Never a partner response, header, endpoint or signature.
+         * @enum {string}
+         */
+        SalaryAdvanceHandoffOutcome: "RECEIVED_ACKNOWLEDGED" | "REJECTED_BY_PARTNER" | "TRANSIENT_NOT_SENT" | "UNKNOWN_TIMEOUT" | "UNKNOWN_BAD_RESPONSE" | "UNKNOWN_LEASE_EXPIRED" | "RETRIES_EXHAUSTED" | "WITHDRAWN_BEFORE_RECEIPT" | "RECONCILED_RECEIVED" | "RECONCILED_NOT_RECEIVED" | "RECONCILE_INCONCLUSIVE" | "ADMIN_RETRY";
+        /** @enum {string} */
+        SalaryAdvanceHandoffBlocker: "EMPLOYER_CONFIRMATION_REQUIRED" | "REQUEST_TERMINAL" | "HANDOFF_EXISTS" | "PARTNER_NOT_ENABLED" | "PARTNER_UNAVAILABLE";
+        /** @description MVP-120B (D120B-2). The canonical, versioned handoff disclosure as stable codes the client translates into plain English and French. contentSha256 is the SHA-256 of the canonical JSON of {version, purpose, recipient, shared, notShared, promise, withdrawal, retention, lender} (never the rendered text, never the language); the server recomputes it at authorization. */
+        SalaryAdvanceHandoffConsentDocument: {
+            version: string;
+            contentSha256: string;
+            /** @enum {string} */
+            purpose: "SUBMIT_CONFIRMED_REQUEST_FOR_PARTNER_REVIEW";
+            recipient: components["schemas"]["SalaryAdvancePartnerCode"];
+            /** @description The exact categories carried by the closed payload. */
+            shared: ("APPLICATION_ID" | "REQUEST_ID" | "EMPLOYER_LEGAL_ENTITY_REFERENCE" | "EMPLOYMENT_ACTIVE" | "EMPLOYMENT_START_DATE" | "PAYROLL_REFERENCE_MONTH" | "CURRENCY" | "REQUESTED_AMOUNT" | "EMPLOYER_POLICY_CEILING" | "EMPLOYER_CONFIRMED_STATUS" | "CONSENT_VERSION_AND_DIGEST")[];
+            notShared: ("NAME" | "EMAIL" | "PHONE" | "HOME_ADDRESS" | "NATIONAL_IDENTIFIER" | "BANK_OR_MOBILE_MONEY_DESTINATION" | "FULL_PAYSLIP" | "HEALTH" | "LEAVE_DETAIL" | "ATTENDANCE_DETAIL" | "PERFORMANCE" | "DISCIPLINARY" | "DOCUMENTS" | "PASSWORD" | "MFA_DATA" | "UNRELATED_HR_HISTORY")[];
+            /** @enum {string} */
+            promise: "NO_APPROVAL_OR_PAYOUT_PROMISED";
+            /** @enum {string} */
+            withdrawal: "BEFORE_DURABLE_PARTNER_RECEIPT";
+            /** @enum {string} */
+            retention: "NO_PRODUCTION_RETENTION_SCHEDULE_CLAIMED";
+            /** @enum {string} */
+            lender: "DIVALHR_IS_NOT_THE_LENDER";
+        };
+        SalaryAdvanceHandoffPreview: {
+            /** Format: uuid */
+            requestId: string;
+            requestVersion: number;
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            requested: components["schemas"]["CompensationMoney"];
+            ceiling: components["schemas"]["CompensationMoney"];
+            partnerCode: components["schemas"]["SalaryAdvancePartnerCode"];
+            consent: components["schemas"]["SalaryAdvanceHandoffConsentDocument"];
+            blockers: components["schemas"]["SalaryAdvanceHandoffBlocker"][];
+            previewDigest: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+            handoffNotice: components["schemas"]["SalaryAdvanceHandoffNotice"];
+        };
+        /** @description The explicit, never pre-checked affirmation of the handoff disclosure shown. */
+        SalaryAdvanceHandoffConsentAffirmation: {
+            version: string;
+            /** @enum {string} */
+            language: "en" | "fr";
+            /** @description Must be true. */
+            affirmed: boolean;
+        };
+        CommitSalaryAdvanceHandoff: {
+            expectedRequestVersion: number;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            consent: components["schemas"]["SalaryAdvanceHandoffConsentAffirmation"];
+            /** @description Must be true. */
+            understandsSyntheticTest: boolean;
+        };
+        SalaryAdvanceHandoffWithdraw: {
+            expectedVersion: number;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        SalaryAdvanceHandoffReconcile: {
+            expectedVersion: number;
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        SalaryAdvanceHandoffEvent: {
+            sequence: number;
+            fromState: components["schemas"]["SalaryAdvanceHandoffState"] | null;
+            toState: components["schemas"]["SalaryAdvanceHandoffState"];
+            /** @enum {string} */
+            actorRole: "EMPLOYEE" | "TENANT_ADMIN" | "SYSTEM" | "PARTNER";
+            /** Format: date-time */
+            occurredAt: string;
+            outcomeCode: components["schemas"]["SalaryAdvanceHandoffOutcome"] | null;
+        };
+        SalaryAdvanceHandoffReviewEvent: {
+            sequence: number;
+            fromState: components["schemas"]["SalaryAdvanceHandoffReviewState"] | null;
+            toState: components["schemas"]["SalaryAdvanceHandoffReviewState"];
+            reasonCode: components["schemas"]["SalaryAdvanceHandoffReviewReason"] | null;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        /** @description Safe delivery diagnostics for administrators, with no payload, header, signature, endpoint or partner response. */
+        SalaryAdvanceHandoffAttempt: {
+            attempt: number;
+            /** Format: date-time */
+            startedAt: string;
+            outcomeCode: components["schemas"]["SalaryAdvanceHandoffOutcome"];
+        };
+        SalaryAdvanceHandoffSummary: {
+            /** Format: uuid */
+            handoffId: string;
+            /** Format: uuid */
+            requestId: string;
+            state: components["schemas"]["SalaryAdvanceHandoffState"];
+            reviewState: components["schemas"]["SalaryAdvanceHandoffReviewState"] | null;
+            version: number;
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            requested: components["schemas"]["CompensationMoney"];
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: uuid
+             * @description Administrators only.
+             */
+            employeeId: string | null;
+            /** @description Administrators only. */
+            employeeNumber: string | null;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+            handoffNotice: components["schemas"]["SalaryAdvanceHandoffNotice"];
+        };
+        SalaryAdvanceHandoffPage: {
+            items: components["schemas"]["SalaryAdvanceHandoffSummary"][];
+            nextCursor: string | null;
+        };
+        /** @description One handoff with its delivery and bounded review status. No status is a credit decision; no funds move; no deduction is made. The application id, attempt diagnostics and administrator-only fields are null or empty for the employee. */
+        SalaryAdvanceHandoffView: {
+            /** Format: uuid */
+            handoffId: string;
+            /** Format: uuid */
+            requestId: string;
+            state: components["schemas"]["SalaryAdvanceHandoffState"];
+            reviewState: components["schemas"]["SalaryAdvanceHandoffReviewState"] | null;
+            reviewReason: components["schemas"]["SalaryAdvanceHandoffReviewReason"] | null;
+            version: number;
+            currency: components["schemas"]["SalaryAdvanceCurrency"];
+            requested: components["schemas"]["CompensationMoney"];
+            ceiling: components["schemas"]["CompensationMoney"];
+            partnerCode: components["schemas"]["SalaryAdvancePartnerCode"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            receivedAt: string | null;
+            lastOutcomeCode: components["schemas"]["SalaryAdvanceHandoffOutcome"] | null;
+            attemptCount: number;
+            consent: components["schemas"]["SalaryAdvanceConsentEvidence"];
+            events: components["schemas"]["SalaryAdvanceHandoffEvent"][];
+            reviewEvents: components["schemas"]["SalaryAdvanceHandoffReviewEvent"][];
+            /** @description Administrators only; always empty for the employee. */
+            attempts: components["schemas"]["SalaryAdvanceHandoffAttempt"][];
+            /**
+             * Format: uuid
+             * @description The opaque application id sent to the partner. Administrators only.
+             */
+            applicationId: string | null;
+            /**
+             * Format: uuid
+             * @description Administrators only.
+             */
+            employeeId: string | null;
+            /** @description Administrators only. */
+            employeeNumber: string | null;
+            notice: components["schemas"]["SalaryAdvanceNotice"];
+            handoffNotice: components["schemas"]["SalaryAdvanceHandoffNotice"];
+        };
+        /** @description The closed callback body of the controlled synthetic partner. No free-form field exists. */
+        SyntheticPartnerCallback: {
+            /** Format: uuid */
+            applicationId: string;
+            /** @enum {string} */
+            reviewState: "UNDER_REVIEW" | "MORE_INFORMATION_REQUIRED" | "DECLINED";
+            reasonCode: components["schemas"]["SalaryAdvanceHandoffReviewReason"] | null;
+            /** Format: date-time */
+            issuedAt: string;
         };
     };
     responses: {
@@ -13027,6 +13381,10 @@ export interface components {
         SalaryAdvanceCurrencyFilter: "CDF" | "USD";
         /** @description Optional status filter; the cursor is bound to it. */
         SalaryAdvanceStatusFilter: components["schemas"]["SalaryAdvanceRequestStatus"];
+        /** @description An opaque UUID. Malformed, unknown, foreign-tenant and unauthorized IDs give the same 404 SALARY_ADVANCE_HANDOFF_NOT_FOUND. */
+        SalaryAdvanceHandoffId: string;
+        /** @description Optional delivery-state filter; the cursor is bound to it. */
+        SalaryAdvanceHandoffStateFilter: components["schemas"]["SalaryAdvanceHandoffState"];
     };
     requestBodies: never;
     headers: {
@@ -24517,6 +24875,344 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewMySalaryAdvanceHandoff: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffPreview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMySalaryAdvanceHandoff: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The handoff */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    authorizeMySalaryAdvanceHandoff: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitSalaryAdvanceHandoff"];
+            };
+        };
+        responses: {
+            /** @description Authorized and queued, or the original authorization replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    withdrawMySalaryAdvanceHandoff: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant, other-employee and unauthorized IDs give the same 404 SALARY_ADVANCE_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["SalaryAdvanceRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvanceHandoffWithdraw"];
+            };
+        };
+        responses: {
+            /** @description Withdrawn, or the original withdrawal replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listMySalaryAdvanceHandoffs: {
+        parameters: {
+            query?: {
+                /** @description Optional delivery-state filter; the cursor is bound to it. */
+                state?: components["parameters"]["SalaryAdvanceHandoffStateFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the caller's handoffs */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listSalaryAdvanceHandoffs: {
+        parameters: {
+            query?: {
+                /** @description Optional delivery-state filter; the cursor is bound to it. */
+                state?: components["parameters"]["SalaryAdvanceHandoffStateFilter"];
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the tenant's handoffs */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getSalaryAdvanceHandoff: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant and unauthorized IDs give the same 404 SALARY_ADVANCE_HANDOFF_NOT_FOUND. */
+                handoffId: components["parameters"]["SalaryAdvanceHandoffId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The handoff */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    reconcileSalaryAdvanceHandoff: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description An opaque UUID. Malformed, unknown, foreign-tenant and unauthorized IDs give the same 404 SALARY_ADVANCE_HANDOFF_NOT_FOUND. */
+                handoffId: components["parameters"]["SalaryAdvanceHandoffId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalaryAdvanceHandoffReconcile"];
+            };
+        };
+        responses: {
+            /** @description The handoff after reconciliation, or the original result replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryAdvanceHandoffView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    receiveSyntheticPartnerCallback: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Divalhr-Timestamp": string;
+                "X-Divalhr-Callback-Id": string;
+                "X-Divalhr-Signature": string;
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyntheticPartnerCallback"];
+            };
+        };
+        responses: {
+            /** @description Accepted and applied */
+            204: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlNoStore"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description The body exceeds 4 KiB. Empty body. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or other Content-Type. Empty body. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["ServiceUnavailable"];
         };

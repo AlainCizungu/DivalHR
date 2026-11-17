@@ -209,6 +209,15 @@ divalhr:
       salary-advance-self-read: ${DIVALHR_SALARY_ADVANCE_SELF_READ_REQUESTS_PER_MINUTE:60}
       salary-advance-self-preview: ${DIVALHR_SALARY_ADVANCE_SELF_PREVIEW_REQUESTS_PER_MINUTE:10}
       salary-advance-self-write: ${DIVALHR_SALARY_ADVANCE_SELF_WRITE_REQUESTS_PER_MINUTE:5}
+      # MVP-120B: controlled partner handoff (ADR 0042). Per subject per minute: employee and
+      # administrator reads 60, employee previews 10 and commands 5, administrator reconciles 5.
+      # The hourly per-subject quotas (60 reads, 10 previews, 10 commands, 20 reconciles) are
+      # enforced by the services. The shared limiter is per Core API instance.
+      salary-advance-handoff-read: ${DIVALHR_SALARY_ADVANCE_HANDOFF_READ_REQUESTS_PER_MINUTE:60}
+      salary-advance-handoff-admin-read: ${DIVALHR_SALARY_ADVANCE_HANDOFF_ADMIN_READ_REQUESTS_PER_MINUTE:60}
+      salary-advance-handoff-preview: ${DIVALHR_SALARY_ADVANCE_HANDOFF_PREVIEW_REQUESTS_PER_MINUTE:10}
+      salary-advance-handoff-write: ${DIVALHR_SALARY_ADVANCE_HANDOFF_WRITE_REQUESTS_PER_MINUTE:5}
+      salary-advance-handoff-reconcile: ${DIVALHR_SALARY_ADVANCE_HANDOFF_RECONCILE_REQUESTS_PER_MINUTE:5}
       # MVP-095A: payment destinations and payment batches (ADR 0036, D95A-13). Per subject per
       # minute: reads 60, destination previews 10 and commits 5, batch previews 5 and commits
       # (prepare and cancel) 2, register downloads 30.
@@ -350,6 +359,16 @@ divalhr:
       salary-advance-decision-write:
         requests: ${DIVALHR_SALARY_ADVANCE_TENANT_DECISIONS:200}
         window: 1h
+      # MVP-120B: 100 handoff previews, 100 handoff commands and 200 reconciles per tenant per hour.
+      salary-advance-handoff-preview:
+        requests: ${DIVALHR_SALARY_ADVANCE_HANDOFF_TENANT_PREVIEWS:100}
+        window: 1h
+      salary-advance-handoff-write:
+        requests: ${DIVALHR_SALARY_ADVANCE_HANDOFF_TENANT_WRITES:100}
+        window: 1h
+      salary-advance-handoff-reconcile:
+        requests: ${DIVALHR_SALARY_ADVANCE_HANDOFF_TENANT_RECONCILES:200}
+        window: 1h
       # MVP-095A: payment destinations and batches (ADR 0036): 120 destination previews, 60
       # destination commits, 60 batch previews, 20 batch commits and 300 register downloads per
       # tenant per hour.
@@ -434,6 +453,27 @@ divalhr:
         claim-size: ${DIVALHR_PAYMENT_SUBMISSION_WORKER_CLAIM_SIZE:8}
         connect-timeout: ${DIVALHR_PAYMENT_SUBMISSION_CONNECT_TIMEOUT:PT3S}
         request-timeout: ${DIVALHR_PAYMENT_SUBMISSION_REQUEST_TIMEOUT:PT15S}
+    # MVP-120B: controlled partner handoff (ADR 0042). The delivery and callback HMAC keys are two separate
+    # secrets with no default, read from the protected secret directory; without the delivery key a handoff
+    # cannot be authorized (503). The synthetic receiver is the only profile; it is refused outside
+    # development and test, and the worker is on by default only where the receiver is enabled.
+    partner:
+      delivery-signing-key: ${DIVALHR_PARTNER_HANDOFF_SIGNING_KEY:}
+      callback-signing-key: ${DIVALHR_PARTNER_CALLBACK_SIGNING_KEY:}
+      key-version: ${DIVALHR_PARTNER_KEY_VERSION:1}
+      synthetic:
+        enabled: ${DIVALHR_PARTNER_SYNTHETIC_ENABLED:false}
+        host: ${DIVALHR_PARTNER_SYNTHETIC_HOST:}
+        port: ${DIVALHR_PARTNER_SYNTHETIC_PORT:8444}
+        ca-file: ${DIVALHR_PARTNER_SYNTHETIC_CA_FILE:}
+        networks: ${DIVALHR_PARTNER_SYNTHETIC_NETWORKS:10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      worker:
+        enabled: ${DIVALHR_PARTNER_WORKER_ENABLED:true}
+        interval: ${DIVALHR_PARTNER_WORKER_INTERVAL:PT5S}
+        lease: ${DIVALHR_PARTNER_WORKER_LEASE:PT2M}
+        claim-size: ${DIVALHR_PARTNER_WORKER_CLAIM_SIZE:8}
+        connect-timeout: ${DIVALHR_PARTNER_CONNECT_TIMEOUT:PT3S}
+        request-timeout: ${DIVALHR_PARTNER_REQUEST_TIMEOUT:PT15S}
   integrations:
     encryption-key: ${DIVALHR_WEBHOOK_ENCRYPTION_KEY:}
     extra-ports: ${DIVALHR_WEBHOOK_EXTRA_PORTS:}

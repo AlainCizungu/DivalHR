@@ -52,6 +52,13 @@ public class SecurityConfig {
   static final String PUBLIC_MESSAGING_CALLBACK = "/api/v1/public/messaging/whatsapp/callback";
 
   /**
+   * The controlled synthetic partner's signed review-status callback (MVP-120B): POST only. It
+   * authenticates the partner by a dedicated HMAC signature, not a user, and is served by {@link
+   * #publicSecurity}.
+   */
+  static final String PUBLIC_PARTNER_CALLBACK = "/api/v1/public/partners/synthetic-test/callbacks";
+
+  /**
    * Anonymous {@code /api/v1/public/**} endpoints ({@code x-divalhr-scope: public}). This chain has
    * no resource server: access tokens are neither required nor read, so a bearer token can never
    * change what these endpoints return. Everything else under the prefix is denied.
@@ -79,6 +86,8 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, PUBLIC_MESSAGING_CALLBACK)
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, PUBLIC_MESSAGING_CALLBACK)
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, PUBLIC_PARTNER_CALLBACK)
                     .permitAll()
                     .anyRequest()
                     .denyAll())

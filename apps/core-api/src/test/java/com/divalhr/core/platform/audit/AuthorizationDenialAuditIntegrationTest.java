@@ -292,6 +292,10 @@ class AuthorizationDenialAuditIntegrationTest {
           "salary-advance-request.read",
           "salary-advance-request.confirm",
           "salary-advance-request.refuse",
+          // MVP-120B: controlled partner handoff review (administrator).
+          "salary-advance-handoff.list",
+          "salary-advance-handoff.read",
+          "salary-advance-handoff.reconcile",
           // MVP-094B: statutory preview (administrator).
           "statutory-rule-pack.read",
           "statutory-activation.read",
@@ -422,6 +426,12 @@ class AuthorizationDenialAuditIntegrationTest {
           "salary-advance.self-read",
           "salary-advance.self-submit",
           "salary-advance.self-withdraw",
+          // MVP-120B: the employee's own controlled partner handoff.
+          "salary-advance-handoff.self-preview",
+          "salary-advance-handoff.self-authorize",
+          "salary-advance-handoff.self-read",
+          "salary-advance-handoff.self-list",
+          "salary-advance-handoff.self-withdraw",
           // MVP-095A: the employee's own masked payment destination.
           "payment-destination.self-read");
 
@@ -874,7 +884,7 @@ class AuthorizationDenialAuditIntegrationTest {
     // accounting-journal.download).
     // MVP-097A added ten handlers: nine platform operations (list, read and seven commands) and the
     // tenant read.
-    assertThat(handlers).hasSize(238);
+    assertThat(handlers).hasSize(241);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

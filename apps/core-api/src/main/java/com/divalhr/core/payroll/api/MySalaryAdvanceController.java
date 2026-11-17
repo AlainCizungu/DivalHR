@@ -180,7 +180,8 @@ public class MySalaryAdvanceController {
   }
 
   /**
-   * Withdraws one of the caller's own requests before any external handoff (none exists yet).
+   * Withdraws one of the caller's own requests, unless a controlled partner handoff for it is still
+   * live or delivered.
    *
    * @param requestId request
    * @param idempotencyKey required idempotency key

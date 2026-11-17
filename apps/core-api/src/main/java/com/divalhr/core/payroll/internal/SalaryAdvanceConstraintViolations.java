@@ -64,7 +64,47 @@ public final class SalaryAdvanceConstraintViolations {
               ErrorCode.SALARY_ADVANCE_TRANSITION_NOT_ALLOWED),
           Map.entry(
               "payroll_salary_advance_event_transition",
-              ErrorCode.SALARY_ADVANCE_TRANSITION_NOT_ALLOWED));
+              ErrorCode.SALARY_ADVANCE_TRANSITION_NOT_ALLOWED),
+          // MVP-120B (V53): the service checks the source request, the consent and the lifecycle
+          // under the locks,
+          // so a guard that still fires is a lost race (or a defect).
+          Map.entry(
+              "payroll_salary_advance_handoff_request_unique",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_EXISTS),
+          Map.entry(
+              "payroll_salary_advance_handoff_request_withdraw",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_EXISTS),
+          Map.entry(
+              "payroll_salary_advance_handoff_source",
+              ErrorCode.SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED),
+          Map.entry(
+              "payroll_salary_advance_handoff_tenant",
+              ErrorCode.SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED),
+          Map.entry("payroll_salary_advance_handoff_owner", ErrorCode.SALARY_ADVANCE_NOT_ELIGIBLE),
+          Map.entry(
+              "payroll_salary_advance_handoff_actor",
+              ErrorCode.SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN),
+          Map.entry(
+              "payroll_salary_advance_handoff_consent_binding",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_PREVIEW_STALE),
+          Map.entry(
+              "payroll_salary_advance_handoff_transition",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED),
+          Map.entry(
+              "payroll_salary_advance_handoff_event_transition",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED),
+          Map.entry(
+              "payroll_salary_advance_handoff_attempt_state",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED),
+          Map.entry(
+              "payroll_salary_advance_handoff_ack_state",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED),
+          Map.entry(
+              "payroll_salary_advance_handoff_callback_state",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED),
+          Map.entry(
+              "payroll_salary_advance_handoff_review_event_transition",
+              ErrorCode.SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED));
 
   private SalaryAdvanceConstraintViolations() {}
 
