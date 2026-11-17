@@ -420,6 +420,40 @@ credential exists in the repository, seeds or this host.
 - Accepted for processing is not paid. Dev data holds no real person; never paste destinations,
   signatures or provider references into issues or logs.
 
+
+## MVP-120B controlled partner handoff to a synthetic receiver (ADR 0042)
+
+Migration **V53** adds the `payroll.salary_advance_handoff*` tables. Nothing leaves the environment: the
+only partner profile is `SYNTHETIC-TEST`, the `partner-receiver` container (`partners.hooks.test:8444`)
+on the internal `hooks` network (no published port, no route out, throwaway CA published read-only at
+`$HR_DEV_DATA/partner-receiver`). No real lender, bank, bureau or partner endpoint or credential exists
+in the repository, seeds or this host. DivalHR is not the lender; the receiver decides nothing.
+
+- **Signing keys.** `secrets/core/DIVALHR_PARTNER_HANDOFF_SIGNING_KEY` and
+  `secrets/core/DIVALHR_PARTNER_CALLBACK_SIGNING_KEY` (uid 10001, 0400, each >= 32 bytes, different from
+  each other) are created once by `init-secrets.sh`, with copies for the receiver at
+  `secrets/partner/handoff-signing-key` and `secrets/partner/callback-signing-key` (uid 1000).
+  `remote-deploy.sh` adds them to an existing environment and never overwrites them. Never rotate in
+  place, never print, never paste. Back up with the secrets directory. Without the handoff key Core
+  answers `SALARY_ADVANCE_PARTNER_UNAVAILABLE` and creates nothing; without the callback key the callback
+  door answers 503.
+- **Observing the receiver (test data only).** `docker compose exec partner-receiver wget -qO-
+  http://127.0.0.1:8098/control/received` lists metadata only (application id, flags, outcome code); it
+  never holds amounts, consent details or signatures. `POST /control/scenario` (`accept`, `reject`,
+  `silent-stored`, `silent-not-stored`, `server-error-once`, `rate-limit-once`),
+  `POST /control/inquiry-scenario` (`truth`, `inconclusive`, `timeout`), `POST /control/callback`
+  (signed review status) and `POST /control/reset` drive acceptance runs. A requested amount ending in
+  77 or 78 minor units behaves as `silent-stored` or `silent-not-stored`.
+- **Worker.** One scheduler in Core claims at most 8 due handoffs per cycle with `SKIP LOCKED` and a
+  2-minute lease. A crash after claim, a timeout after the write or an unauthenticated answer becomes
+  `DELIVERY_UNKNOWN` and is never resent automatically. Only an administrator's signed inquiry that
+  proves absence re-queues it. Disable with `DIVALHR_PARTNER_WORKER_ENABLED=false` only for diagnosis.
+- **Alerts to wire.** Any handoff in `DELIVERY_UNKNOWN` or `FAILED`; repeated worker failures; a
+  `SENDING` row past its lease; the open-handoff gauge not draining.
+- **Operator actions never authorize a resend.** Do not edit the tables or replay requests with curl.
+  Use the administrator reconcile or retry action. Per-instance limiter and in-memory callback ceilings
+  apply per Core instance.
+
 ## MVP-095C payment reconciliation (ADR 0038; not yet deployed)
 
 Not deployed: hr-dev runs `c93ce0ec…` until MVP-095C is deployed and accepted. This section applies from that point.

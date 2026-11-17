@@ -1229,6 +1229,47 @@ test('MVP-111: messaging secrets are protected files and the synthetic Meta prov
   assert.doesNotMatch(core, /graph\.facebook\.com/);
 });
 
+test('MVP-120B: the partner keys are protected files, the synthetic partner is isolated and existing environments gain the keys', () => {
+  const live = compose
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+  assert.doesNotMatch(live, /DIVALHR_PARTNER_HANDOFF_SIGNING_KEY/);
+  assert.doesNotMatch(live, /DIVALHR_PARTNER_CALLBACK_SIGNING_KEY/);
+  for (const name of ['HANDOFF', 'CALLBACK']) {
+    assert.match(
+      source('init-secrets.sh'),
+      new RegExp(`put "\\$S\\/core\\/DIVALHR_PARTNER_${name}_SIGNING_KEY" 10001 random`),
+    );
+    assert.match(
+      source('remote-deploy.sh'),
+      new RegExp(`secrets\\/core\\/DIVALHR_PARTNER_${name}_SIGNING_KEY" \\]`),
+    );
+    assert.match(
+      read('apps/core-api/src/main/resources/application.yaml'),
+      new RegExp(`\\$\\{DIVALHR_PARTNER_${name}_SIGNING_KEY:\\}`),
+    );
+  }
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/partner\/handoff-signing-key" 1000 same_as "\$S\/core\/DIVALHR_PARTNER_HANDOFF_SIGNING_KEY"/,
+  );
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/partner\/callback-signing-key" 1000 same_as "\$S\/core\/DIVALHR_PARTNER_CALLBACK_SIGNING_KEY"/,
+  );
+  const receiver = compose.slice(
+    compose.indexOf('\n  partner-receiver:'),
+    compose.indexOf('\n  ai-service:'),
+  );
+  assert.match(receiver, /networks:\n {6}hooks:\n {8}aliases: \[partners\.hooks\.test\]/);
+  assert.doesNotMatch(receiver, /ports:/);
+  assert.match(receiver, /PARTNER_SIGNING_KEY_FILE: \/run\/secrets\/partner\/handoff-signing-key/);
+  assert.match(receiver, /PARTNER_CALLBACK_KEY_FILE: \/run\/secrets\/partner\/callback-signing-key/);
+  assert.match(live, /DIVALHR_PARTNER_SYNTHETIC_HOST: partners\.hooks\.test/);
+  assert.match(live, /DIVALHR_PARTNER_SYNTHETIC_PORT: '8444'/);
+});
+
 test('MVP-095B: the signing key is a protected file, the synthetic provider is isolated and existing environments gain the key', () => {
   const live = compose
     .split('\n')
