@@ -523,7 +523,6 @@ interface HandoffItem {
   state: string;
   reviewState: string | null;
   version: number;
-  attemptCount: number;
   applicationId: string | null;
   employeeNumber: string | null;
 }
@@ -875,8 +874,24 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
       clo,
       cloBearer,
       cloRequest,
-      (item) => item.state === 'QUEUED' && item.attemptCount >= 1,
+      (item) => item.state === 'QUEUED',
     );
+    // The list summary carries no attempt count; the administrator's detail does. Wait for the first
+    // delivery attempt (answered 503 by the receiver) to be recorded while the handoff is queued again.
+    await expect
+      .poll(
+        async () => {
+          const response = await admin.request.get(
+            `${CORE_API}/salary-advance-handoffs/${waiting.handoffId}`,
+            { headers: { Authorization: adminBearer() } },
+          );
+          expect(response.status()).toBe(200);
+          const detail = (await response.json()) as { state: string; attemptCount: number };
+          return detail.state === 'QUEUED' && detail.attemptCount >= 1;
+        },
+        { timeout: 60_000, intervals: [500, 1000, 2000] },
+      )
+      .toBe(true);
     await revisit(clo, 'Mes congés', 'Avance sur salaire');
     const waitingRow = clo.getByTestId('handoff-row');
     await expect(waitingRow).toHaveAttribute('data-state', 'QUEUED');
