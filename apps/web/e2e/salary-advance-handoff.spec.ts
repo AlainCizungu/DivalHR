@@ -957,7 +957,10 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     await admin.getByTestId('handoff-reconcile-open').click();
     await expectAccessible(admin);
     await admin.getByTestId('handoff-reconcile').click();
-    await expect(admin.getByTestId('handoff-state')).toHaveAttribute('data-state', 'RECEIVED');
+    await expect(admin.getByTestId('handoff-detail').getByTestId('handoff-state')).toHaveAttribute(
+      'data-state',
+      'RECEIVED',
+    );
     await expectNoLendingClaim(admin);
     await expectNothingLeaks(admin, AMOUNT, applicationId);
     await noOverflow(admin);
