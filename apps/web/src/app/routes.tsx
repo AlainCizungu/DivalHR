@@ -8,6 +8,7 @@ import { CreateOrganizationPage } from '../features/admin/CreateOrganizationPage
 import { FirstAdministratorPage } from '../features/admin/FirstAdministratorPage';
 import { MyCompensationPage } from '../features/compensation/MyCompensationPage';
 import { MySalaryAdvancePage } from '../features/salaryAdvance/MySalaryAdvancePage';
+import { SalaryAdvanceHandoffsPage } from '../features/salaryAdvance/SalaryAdvanceHandoffsPage';
 import { SalaryAdvancePoliciesPage } from '../features/salaryAdvance/SalaryAdvancePoliciesPage';
 import { SalaryAdvanceRequestsPage } from '../features/salaryAdvance/SalaryAdvanceRequestsPage';
 import { ContractExpirationsPage } from '../features/contracts/ContractExpirationsPage';
@@ -331,6 +332,12 @@ export const ROUTES: AppRoute[] = [
     element: <SalaryAdvanceRequestsPage />,
     access: tenantAdmin('salaryAdvance.unauthorized', 'salaryAdvance.signInRequired'),
     crumbs: [HOME, PAYROLL, { key: 'nav.salaryAdvanceRequests' }],
+  },
+  {
+    path: '/admin/salary-advance-handoffs',
+    element: <SalaryAdvanceHandoffsPage />,
+    access: tenantAdmin('salaryAdvance.unauthorized', 'salaryAdvance.signInRequired'),
+    crumbs: [HOME, PAYROLL, { key: 'nav.salaryAdvanceHandoffs' }],
   },
   {
     path: '/admin/payroll-packages',

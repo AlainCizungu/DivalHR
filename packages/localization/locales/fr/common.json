@@ -65,7 +65,8 @@
     "salaryAdvanceRequests": "Demandes d’avance sur salaire",
     "accountingMappings": "Paramètres comptables",
     "myPayslips": "Mes bulletins de paie",
-    "myPaymentDestination": "Ma destination de paiement"
+    "myPaymentDestination": "Ma destination de paiement",
+    "salaryAdvanceHandoffs": "Transmissions au partenaire"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -313,6 +314,10 @@
           "payrollRuns": {
             "title": "Exécutions de paie mensuelles",
             "description": "Créez des exécutions en brouillon pour un mois clos avec le brut contractuel issu de la rémunération mensuelle, et consultez les preuves figées. Un brouillon, pas une paie statutaire."
+          },
+          "salaryAdvanceHandoff": {
+            "title": "Demandes d’avance sur salaire et transmission de test",
+            "description": "Enregistrez les politiques de participation de l’employeur, confirmez ou refusez les demandes des employés et suivez une transmission contrôlée vers un partenaire de test synthétique. DivalHR n’est pas le prêteur, aucun partenaire réel n’est connecté, rien n’est décidé ni versé, et rien n’est retenu."
           }
         }
       }
@@ -333,7 +338,8 @@
         "expenses": "Enregistrez vos dépenses en CDF ou en USD avec un justificatif, soumettez-les à votre responsable et suivez chaque décision. L’approbation n’est pas un paiement.",
         "compensationTitle": "Ma rémunération",
         "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement.",
-        "payslips": "Lisez vos bulletins de paie et téléchargez-les en PDF en français ou en anglais. Un bulletin de paie ne constitue pas une preuve de paiement."
+        "payslips": "Lisez vos bulletins de paie et téléchargez-les en PDF en français ou en anglais. Un bulletin de paie ne constitue pas une preuve de paiement.",
+        "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique. DivalHR n’est pas le prêteur ; rien n’est décidé ni versé."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -772,7 +778,20 @@
     "SALARY_ADVANCE_REQUEST_NOT_FOUND": "Cette demande d’avance sur salaire est introuvable.",
     "SALARY_ADVANCE_VERSION_CONFLICT": "Cette demande a changé depuis son ouverture. Rechargez et réessayez.",
     "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "Cette action n’est pas permise dans le statut actuel.",
-    "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN": "Vous ne pouvez pas examiner une demande que vous avez soumise vous-même."
+    "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN": "Vous ne pouvez pas examiner une demande que vous avez soumise vous-même.",
+    "SALARY_ADVANCE_HANDOFF_NOT_FOUND": "Ce transfert vers le partenaire est introuvable.",
+    "SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED": "Votre employeur doit d’abord confirmer sa participation à cette demande avant son transfert au partenaire de test.",
+    "SALARY_ADVANCE_REQUEST_TERMINAL": "Cette demande a été retirée ou refusée et ne peut plus être transférée.",
+    "SALARY_ADVANCE_HANDOFF_EXISTS": "Cette demande a déjà un transfert vers le partenaire.",
+    "SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED": "Vous devez lire et confirmer le consentement au transfert avant de l’autoriser.",
+    "SALARY_ADVANCE_HANDOFF_CONSENT_STALE": "Le consentement au transfert a changé. Consultez la version actuelle et confirmez-la de nouveau.",
+    "SALARY_ADVANCE_HANDOFF_PREVIEW_STALE": "L’aperçu n’est plus à jour. Faites un nouvel aperçu avant d’autoriser.",
+    "SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED": "Cette action n’est pas permise dans le statut actuel du transfert.",
+    "SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT": "Ce transfert a changé depuis son ouverture. Rechargez et réessayez.",
+    "SALARY_ADVANCE_PARTNER_UNAVAILABLE": "Le partenaire de test n’est pas disponible pour le moment. Réessayez plus tard.",
+    "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN": "Le résultat de l’envoi est encore inconnu. Il n’a pas été renvoyé.",
+    "SALARY_ADVANCE_PARTNER_NOT_ENABLED": "Le partenaire de test contrôlé n’est pas activé dans cet environnement.",
+    "PARTNER_CALLBACK_INVALID": "Le rappel a été refusé."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3069,7 +3088,8 @@
         },
         "loans": {
           "title": "Prêts et avances sur salaire",
-          "description": "Crédit responsable par des partenaires agréés, remboursé via la paie."
+          "description": "Crédit responsable par des partenaires agréés, remboursé via la paie.",
+          "foundation": "Demandes d’avance sur salaire confirmées par l’employeur avec le consentement de l’employé, et une transmission de test contrôlée vers un partenaire synthétique. DivalHR n’est pas le prêteur, aucun partenaire ni aucune institution réelle n’est connecté, rien n’est décidé ni versé, et rien n’est retenu sur la paie."
         },
         "benefits": {
           "title": "Avantages et assurance",
@@ -3162,11 +3182,12 @@
         "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
         "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et comptabilisation directe dans un système comptable",
         "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et confirmation de paiement",
-        "advances": "Avances sur salaire et prêts via des partenaires",
+        "advances": "Avances sur salaire et prêts avec des partenaires réels et agréés (aujourd’hui, il n’existe que des demandes confirmées par l’employeur et une transmission de test contrôlée vers un partenaire synthétique)",
         "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
       },
       "capabilities": "Fonctionnalités disponibles",
-      "remainingLabel": "Pas encore disponible :"
+      "remainingLabel": "Pas encore disponible :",
+      "foundationLabel": "Fondation disponible"
     },
     "payroll": {
       "kicker": "Du temps approuvé à la préparation de la paie",
@@ -3311,6 +3332,33 @@
     "footer": {
       "tagline": "La technologie des effectifs pour l’Afrique.",
       "copyright": "© 2026 DivalHR · Une société Dival AI"
+    },
+    "partners": {
+      "kicker": "Programme partenaires financiers",
+      "title": "Programme partenaires financiers",
+      "body": "DivalHR n’est pas un prêteur. Nous préparons un programme pour les institutions financières agréées qui souhaitent servir les employés par l’intermédiaire de leur employeur, avec leur consentement. Aujourd’hui, aucun partenaire financier réel n’est connecté : la transmission contrôlée ne fonctionne qu’avec un partenaire de test synthétique.",
+      "points": {
+        "consent": {
+          "title": "Le consentement d’abord",
+          "description": "L’employé voit exactement ce qui serait transmis et accepte avant que quoi que ce soit ne quitte DivalHR."
+        },
+        "minimal": {
+          "title": "Données minimales et fermées",
+          "description": "Seul un court ensemble fixe d’informations est transmis. Les noms, coordonnées, numéros d’identité et bulletins de paie n’en font jamais partie."
+        },
+        "employer": {
+          "title": "Confirmé par l’employeur",
+          "description": "Une demande n’est transmise qu’après la confirmation de participation de l’employeur."
+        },
+        "synthetic": {
+          "title": "Synthétique aujourd’hui",
+          "description": "Chaque transmission actuelle va vers un partenaire de test. Aucune décision, aucun versement ni aucune retenue n’en découle."
+        }
+      },
+      "cta": "Devenir partenaire financier",
+      "ctaNote": "Écrivez-nous ; il n’existe encore ni formulaire, ni dépôt de documents, ni portail partenaire.",
+      "mailSubject": "Demande de partenariat financier",
+      "mailBody": "Bonjour DivalHR,\n\nNous souhaitons parler du programme partenaires financiers.\n\nNom de l’institution :\nPays :\nType d’institution :\nAutorité de régulation et statut d’agrément :\nNom et fonction du contact :\nCe que nous souhaitons proposer aux employés :\n\nMerci."
     }
   },
   "leaveSubstitutes": {
@@ -5825,8 +5873,8 @@
       "purpose": "J’accepte que DivalHR partage une seule fois les informations ci-dessous afin qu’un partenaire réglementé approuvé à l’avenir par DivalHR puisse évaluer ma demande. À cette étape, rien n’est partagé avec quiconque en dehors de DivalHR et de votre employeur.",
       "shared": "Ce qui serait partagé",
       "notShared": "Ce qui n’est jamais partagé",
-      "external": "Aucune information ne quitte DivalHR et votre employeur à cette étape.",
-      "withdrawal": "Vous pouvez retirer votre demande avant tout transfert externe.",
+      "external": "L’envoi de cette demande ne partage rien en dehors de DivalHR et de votre employeur. Tout partage avec un partenaire financier est une étape distincte que vous autorisez plus tard, seulement après la confirmation de votre employeur.",
+      "withdrawal": "Vous pouvez retirer votre demande jusqu’à ce qu’un partenaire financier l’ait reçue.",
       "retention": "Aucun calendrier de suppression n’existe encore pour cet enregistrement.",
       "affirm": "J’ai lu ce texte et je suis d’accord.",
       "sharedItem": {
@@ -5953,6 +6001,144 @@
       "back": "Retour",
       "choose": "Choisir un motif",
       "reasonRequired": "Choisissez un motif."
+    },
+    "handoff": {
+      "notice": "Il s’agit d’un test contrôlé avec un partenaire synthétique. Aucun prêteur, aucune banque ni institution réelle n’y participe, rien n’est décidé ni versé, et rien n’est retenu sur votre salaire.",
+      "title": "Transmettre au partenaire (test)",
+      "intro": "Lorsque votre employeur a confirmé une demande, vous pouvez choisir de la transmettre une seule fois au partenaire de test synthétique. C’est vous qui décidez, et vous lisez exactement ce qui est transmis avant d’accepter.",
+      "candidate": "Demande confirmée par l’employeur :",
+      "start": "Vérifier et transmettre au partenaire",
+      "reviewTitle": "Vérifiez avant de transmettre",
+      "affirm": "J’ai lu ce qui est transmis et ce qui ne l’est pas, et j’accepte de transmettre ma demande une seule fois au partenaire de test.",
+      "understand": "Je comprends qu’il s’agit d’un test synthétique : aucune institution réelle ne la reçoit et rien n’est décidé ni versé.",
+      "authorize": "Transmettre ma demande au partenaire",
+      "empty": "Vous n’avez aucune demande prête à transmettre ni aucune demande transmise.",
+      "table": "Tableau de mes transmissions au partenaire",
+      "withdraw": "Retirer avant l’envoi",
+      "withdrawConfirm": "Retirer cette transmission",
+      "col": {
+        "created": "Créée",
+        "delivery": "Livraison",
+        "review": "Examen du partenaire"
+      },
+      "state": {
+        "AUTHORIZED": "Autorisée",
+        "QUEUED": "En attente d’envoi",
+        "SENDING": "Envoi en cours",
+        "RECEIVED": "Reçue par le partenaire",
+        "DELIVERY_UNKNOWN": "Livraison incertaine",
+        "FAILED": "Non livrée",
+        "WITHDRAWN": "Retirée"
+      },
+      "stateHelp": {
+        "AUTHORIZED": "Vous avez autorisé l’envoi de cette demande.",
+        "QUEUED": "Elle n’a pas encore été envoyée. Vous pouvez encore la retirer.",
+        "SENDING": "Elle est en cours d’envoi.",
+        "RECEIVED": "Le partenaire de test a confirmé qu’il détient la demande. Elle ne peut plus être retirée ici et n’est jamais renvoyée.",
+        "DELIVERY_UNKNOWN": "Nous n’avons pas pu confirmer si le partenaire l’a reçue. Elle n’est pas renvoyée automatiquement ; votre administrateur vérifiera.",
+        "FAILED": "Elle n’a pas pu être livrée. Votre administrateur peut la renvoyer.",
+        "WITHDRAWN": "Vous l’avez retirée avant l’envoi. Rien n’a été transmis."
+      },
+      "review": {
+        "RECEIVED": "Reçue",
+        "UNDER_REVIEW": "En cours d’examen",
+        "MORE_INFORMATION_REQUIRED": "Informations complémentaires demandées",
+        "DECLINED": "Refusée par le partenaire"
+      },
+      "reviewReason": {
+        "ADDITIONAL_DOCUMENTS": "Documents complémentaires",
+        "CLARIFICATION": "Précision demandée",
+        "PARTNER_POLICY": "Politique du partenaire",
+        "SYNTHETIC_TEST_SCENARIO": "Scénario de test synthétique"
+      },
+      "outcome": {
+        "RECEIVED_ACKNOWLEDGED": "Réception confirmée",
+        "REJECTED_BY_PARTNER": "Rejetée par le partenaire",
+        "TRANSIENT_NOT_SENT": "Non envoyée, nouvel essai prévu",
+        "UNKNOWN_TIMEOUT": "Aucune réponse à temps",
+        "UNKNOWN_BAD_RESPONSE": "Réponse illisible",
+        "UNKNOWN_LEASE_EXPIRED": "Interrompue pendant l’envoi",
+        "RETRIES_EXHAUSTED": "Essais épuisés",
+        "WITHDRAWN_BEFORE_RECEIPT": "Retirée avant réception",
+        "RECONCILED_RECEIVED": "Reçue, confirmée après vérification",
+        "RECONCILED_NOT_RECEIVED": "Non reçue, confirmée après vérification",
+        "RECONCILE_INCONCLUSIVE": "Vérification non concluante",
+        "ADMIN_RETRY": "Nouvel essai demandé par un administrateur"
+      },
+      "actor": {
+        "EMPLOYEE": "Employé",
+        "TENANT_ADMIN": "Administrateur",
+        "SYSTEM": "Système",
+        "PARTNER": "Partenaire de test"
+      },
+      "blocker": {
+        "EMPLOYER_CONFIRMATION_REQUIRED": "Votre employeur n’a pas encore confirmé cette demande.",
+        "REQUEST_TERMINAL": "Cette demande est clôturée.",
+        "HANDOFF_EXISTS": "Cette demande a déjà été transmise.",
+        "PARTNER_NOT_ENABLED": "Le partenaire de test n’est pas activé pour votre employeur.",
+        "PARTNER_UNAVAILABLE": "Le partenaire de test n’est pas disponible pour le moment."
+      },
+      "disclosure": {
+        "purpose": "J’accepte que DivalHR transmette les informations listées ci-dessous, une seule fois, à un partenaire de test synthétique afin qu’il reçoive ma demande confirmée par l’employeur. Aucune institution réelle n’y participe.",
+        "shared": "Ce qui serait transmis",
+        "notShared": "Ce qui n’est jamais transmis",
+        "promise": "Transmettre cette demande ne promet rien : aucune décision, aucun versement ni aucune retenue n’en découle.",
+        "withdrawal": "Vous pouvez la retirer tant que le partenaire ne l’a pas reçue. Ensuite, elle ne peut plus être reprise ici.",
+        "retention": "Aucun calendrier de conservation de production n’existe pour cet enregistrement synthétique.",
+        "sharedItem": {
+          "APPLICATION_ID": "Une référence de dossier opaque",
+          "REQUEST_ID": "La référence de la demande",
+          "EMPLOYER_LEGAL_ENTITY_REFERENCE": "Une référence à l’entité juridique de votre employeur",
+          "EMPLOYMENT_ACTIVE": "Si votre emploi est actif",
+          "EMPLOYMENT_START_DATE": "Votre date de début d’emploi",
+          "PAYROLL_REFERENCE_MONTH": "Le mois de votre référence de paie",
+          "CURRENCY": "La devise",
+          "REQUESTED_AMOUNT": "Le montant que vous avez demandé",
+          "EMPLOYER_POLICY_CEILING": "Le plafond de la politique de l’employeur",
+          "EMPLOYER_CONFIRMED_STATUS": "Que votre employeur a confirmé la demande",
+          "CONSENT_VERSION_AND_DIGEST": "La version et l’empreinte de cet accord"
+        },
+        "notSharedItem": {
+          "NAME": "Votre nom",
+          "EMAIL": "Votre adresse e-mail",
+          "PHONE": "Votre numéro de téléphone",
+          "HOME_ADDRESS": "Votre adresse personnelle",
+          "NATIONAL_IDENTIFIER": "Votre identifiant national",
+          "BANK_OR_MOBILE_MONEY_DESTINATION": "Tout compte bancaire ou de monnaie mobile",
+          "FULL_PAYSLIP": "Votre bulletin de paie complet",
+          "HEALTH": "Informations de santé",
+          "LEAVE_DETAIL": "Détails des congés",
+          "ATTENDANCE_DETAIL": "Détails de présence",
+          "PERFORMANCE": "Informations de performance",
+          "DISCIPLINARY": "Informations disciplinaires",
+          "DOCUMENTS": "Vos documents",
+          "PASSWORD": "Votre mot de passe",
+          "MFA_DATA": "Vos données de sécurité de connexion",
+          "UNRELATED_HR_HISTORY": "Historique RH sans rapport"
+        }
+      },
+      "admin": {
+        "title": "Transmissions au partenaire",
+        "description": "Suivez la livraison et l’état d’examen par le partenaire des demandes transmises au partenaire de test synthétique, et vérifiez une livraison incertaine.",
+        "filter": "Filtrer par livraison",
+        "empty": "Il n’y a aucune transmission.",
+        "table": "Liste des transmissions au partenaire",
+        "openContext": "Ouvrir la transmission créée le {{date}}",
+        "detailTitle": "Transmission",
+        "applicationId": "Référence de dossier",
+        "consentLine": "Accord de l’employé",
+        "attemptCount": "Tentatives de livraison",
+        "lastOutcome": "Dernier résultat",
+        "history": "Historique de livraison",
+        "reviewHistory": "Historique d’examen du partenaire",
+        "attempts": "Tentatives de livraison",
+        "attemptLine": "Tentative {{number}}",
+        "retry": "Relancer la livraison",
+        "reconcile": "Vérifier auprès du partenaire",
+        "retryStatement": "La demande sera remise en file pour une nouvelle tentative de livraison encadrée. Vous ne pouvez pas modifier l’accord de l’employé.",
+        "reconcileStatement": "Une vérification signée demande au partenaire de test s’il détient cette demande. Rien n’est renvoyé sauf si le partenaire prouve qu’il ne l’a jamais reçue.",
+        "confirmAction": "Confirmer"
+      }
     }
   },
   "payrollPackages": {
@@ -6448,7 +6634,10 @@
     "title": "Vérification de la livraison",
     "description": "Demandez au prestataire ce qu’il est advenu d’une soumission dont la livraison est incertaine. Il s’agit d’une demande de statut ; l’instruction de paiement n’est jamais renvoyée.",
     "notice": "Cette vérification ne renvoie pas l’instruction de paiement. L’acceptation du prestataire ne signifie pas que le paiement est effectué ou réglé.",
-    "status": { "READY": "Prêt pour la vérification", "BLOCKED": "Bloquée" },
+    "status": {
+      "READY": "Prêt pour la vérification",
+      "BLOCKED": "Bloquée"
+    },
     "open": "Vérifier la livraison",
     "reviewHeading": "Vérifier avant d’ouvrir la vérification",
     "previewing": "Vérification en cours…",

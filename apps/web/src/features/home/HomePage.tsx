@@ -224,6 +224,7 @@ const PROGRESS: { id: string; icon: IconName }[] = [
   { id: 'payroll', icon: 'payroll' },
   { id: 'payrollRuns', icon: 'payroll' },
   { id: 'accountingJournal', icon: 'contract' },
+  { id: 'salaryAdvanceHandoff', icon: 'benefits' },
   { id: 'compensation', icon: 'contract' },
   { id: 'briefing', icon: 'pulse' },
   { id: 'integrations', icon: 'network' },
@@ -353,6 +354,13 @@ const EMPLOYEE_CARDS: CardDef[] = [
     titleKey: 'nav.myExpenses',
     descriptionKey: 'home.employee.cards.expenses',
     testId: 'home-card-my-expenses',
+  },
+  {
+    to: '/me/salary-advance',
+    icon: 'benefits',
+    titleKey: 'nav.mySalaryAdvance',
+    descriptionKey: 'home.employee.cards.salaryAdvance',
+    testId: 'home-card-my-salary-advance',
   },
   {
     to: '/me/compensation',

@@ -1,6 +1,9 @@
 import type {
   CompensationMoney,
   Problem,
+  SalaryAdvanceHandoffReviewReason,
+  SalaryAdvanceHandoffReviewState,
+  SalaryAdvanceHandoffState,
   SalaryAdvanceReason,
   SalaryAdvanceRefusalReason,
   SalaryAdvanceRequestStatus,
@@ -48,9 +51,45 @@ export const STATUSES: readonly SalaryAdvanceRequestStatus[] = [
 ];
 export const NOTE_MAX = 500;
 
-/** A request the employee can still withdraw before any external handoff (there is none yet). */
-export const withdrawable = (status: SalaryAdvanceRequestStatus) =>
-  status === 'SUBMITTED' || status === 'EMPLOYER_CONFIRMED';
+/**
+ * A request the employee can still withdraw here. Once a handoff to the partner exists the request
+ * moves only with that handoff (D120B-5): the handoff is withdrawn instead, and only before the
+ * partner has durably received it.
+ */
+export const withdrawable = (status: SalaryAdvanceRequestStatus, hasHandoff = false) =>
+  !hasHandoff && (status === 'SUBMITTED' || status === 'EMPLOYER_CONFIRMED');
+
+/** MVP-120B: the disclosure version the employee affirms before a handoff. */
+export const HANDOFF_CONSENT_VERSION = 'SA-HANDOFF-1';
+export const HANDOFF_STATES: readonly SalaryAdvanceHandoffState[] = [
+  'AUTHORIZED',
+  'QUEUED',
+  'SENDING',
+  'RECEIVED',
+  'DELIVERY_UNKNOWN',
+  'FAILED',
+  'WITHDRAWN',
+];
+export const REVIEW_STATES: readonly SalaryAdvanceHandoffReviewState[] = [
+  'RECEIVED',
+  'UNDER_REVIEW',
+  'MORE_INFORMATION_REQUIRED',
+  'DECLINED',
+];
+export const REVIEW_REASONS: readonly SalaryAdvanceHandoffReviewReason[] = [
+  'ADDITIONAL_DOCUMENTS',
+  'CLARIFICATION',
+  'PARTNER_POLICY',
+  'SYNTHETIC_TEST_SCENARIO',
+];
+
+/** Only a handoff still waiting to be sent can be withdrawn; after receipt nothing is erased. */
+export const handoffWithdrawable = (state: SalaryAdvanceHandoffState) => state === 'QUEUED';
+/** A handoff that still stands (anything but WITHDRAWN) blocks a second one and the request edit. */
+export const handoffLive = (state: SalaryAdvanceHandoffState) => state !== 'WITHDRAWN';
+/** An administrator can act on an ambiguous or failed delivery only. */
+export const handoffReconcilable = (state: SalaryAdvanceHandoffState) =>
+  state === 'DELIVERY_UNKNOWN' || state === 'FAILED';
 
 /** Whole-number field: digits only, within bounds; null when not valid. */
 export function wholeNumber(raw: string, min: number, max: number): number | null {
@@ -82,11 +121,18 @@ export function salaryAdvanceFailureOf(response: Response, error: unknown): Comp
   if (
     code === 'SALARY_ADVANCE_POLICY_PREVIEW_STALE' ||
     code === 'SALARY_ADVANCE_VERSION_CONFLICT' ||
+    code === 'SALARY_ADVANCE_HANDOFF_PREVIEW_STALE' ||
+    code === 'SALARY_ADVANCE_HANDOFF_CONSENT_STALE' ||
+    code === 'SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT' ||
     code === 'IDEMPOTENCY_KEY_REUSED'
   ) {
     return { ...base, code, kind: 'stale', messageKey: `errors.${code}` };
   }
-  if (code === 'SALARY_ADVANCE_POLICY_NOT_FOUND' || code === 'SALARY_ADVANCE_REQUEST_NOT_FOUND') {
+  if (
+    code === 'SALARY_ADVANCE_POLICY_NOT_FOUND' ||
+    code === 'SALARY_ADVANCE_REQUEST_NOT_FOUND' ||
+    code === 'SALARY_ADVANCE_HANDOFF_NOT_FOUND'
+  ) {
     return { ...base, code, kind: 'notFound', messageKey: `errors.${code}` };
   }
   if (code?.startsWith('SALARY_ADVANCE_')) {
