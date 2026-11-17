@@ -550,12 +550,13 @@ async function listHandoffs(page: Page, bearer: () => string, path: string) {
   return ((await response.json()) as { items: HandoffItem[] }).items;
 }
 
-/** The opaque application id of a handoff, as only the administrator's view carries it. */
+/** The opaque application id of a handoff, as only the administrator's detail view carries it. */
 async function applicationOf(page: Page, bearer: () => string, handoffId: string): Promise<string> {
-  const item = (await listHandoffs(page, bearer, '/salary-advance-handoffs')).find(
-    (row) => row.handoffId === handoffId,
-  );
-  const id = item?.applicationId ?? '';
+  const response = await page.request.get(`${CORE_API}/salary-advance-handoffs/${handoffId}`, {
+    headers: { Authorization: bearer() },
+  });
+  expect(response.status()).toBe(200);
+  const id = ((await response.json()) as { applicationId: string | null }).applicationId ?? '';
   expect(id).toMatch(/^[0-9a-f-]{36}$/u);
   return id;
 }

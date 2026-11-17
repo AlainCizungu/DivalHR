@@ -57,6 +57,11 @@
 				request>headers>Content-Digest delete
 				request>headers>Repr-Digest delete
 				request>headers>X-Hub-Signature-256 delete
+				# MVP-120B: the signed partner callback's signature, timestamp and replay identifier are
+				# authentication material and are never logged.
+				request>headers>X-Divalhr-Signature delete
+				request>headers>X-Divalhr-Timestamp delete
+				request>headers>X-Divalhr-Callback-Id delete
 				resp_headers>X-Receipt-File-Name delete
 				resp_headers>Content-Disposition delete
 				resp_headers>Etag delete

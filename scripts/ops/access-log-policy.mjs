@@ -22,6 +22,10 @@ export const CADDY_DELETED = [
   'request>headers>Content-Digest',
   'request>headers>Repr-Digest',
   'request>headers>X-Hub-Signature-256',
+  // MVP-120B: the partner callback door's signature, timestamp and replay identifier.
+  'request>headers>X-Divalhr-Signature',
+  'request>headers>X-Divalhr-Timestamp',
+  'request>headers>X-Divalhr-Callback-Id',
   'resp_headers>X-Receipt-File-Name',
   'resp_headers>Content-Disposition',
   'resp_headers>Etag',
@@ -42,6 +46,10 @@ export const REQUEST_HEADERS_DELETED = [
   'X-Receipt-File-Name',
   // Webhook authentication material (an HMAC of the payload): never logged.
   'X-Hub-Signature-256',
+  // MVP-120B: signed partner callback authentication material (signature, timestamp, replay id).
+  'X-Divalhr-Signature',
+  'X-Divalhr-Timestamp',
+  'X-Divalhr-Callback-Id',
 ];
 export const REQUEST_HEADERS_DIAGNOSTIC = ['X-Correlation-Id', 'X-Expected-Version'];
 

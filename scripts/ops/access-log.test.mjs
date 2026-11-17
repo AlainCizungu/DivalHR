@@ -69,6 +69,9 @@ test('the committed Caddyfile deletes the fields that carry OIDC data and drops 
     'resp_headers>Content-Disposition',
     'resp_headers>Etag',
     'request>headers>X-Hub-Signature-256',
+    'request>headers>X-Divalhr-Signature',
+    'request>headers>X-Divalhr-Timestamp',
+    'request>headers>X-Divalhr-Callback-Id',
   ]) {
     assert.match(snippet, new RegExp(`^\\s*${field} delete$`, 'm'), field);
   }
@@ -106,6 +109,15 @@ test('every removed or weakened Caddy redaction is a violation', () => {
       CADDYFILE,
       'request>headers>X-Hub-Signature-256 delete',
       'request>headers>X-Hub-Signature-256 replace REDACTED',
+    ),
+    'partner callback signature rewritten instead of deleted': replace(
+      CADDYFILE,
+      'request>headers>X-Divalhr-Signature delete',
+      'request>headers>X-Divalhr-Signature replace REDACTED',
+    ),
+    'partner callback replay id kept': without(
+      CADDYFILE,
+      /request>headers>X-Divalhr-Callback-Id delete/,
     ),
     'query kept': without(CADDYFILE, /request>uri regexp/),
     'Location rewritten instead of deleted': replace(
@@ -423,6 +435,9 @@ test('SEC-003: every request header of the API contract is classified, so none i
   // R174-1: exactly these three are deleted, and only these two are diagnostic.
   assert.deepEqual([...REQUEST_HEADERS_DELETED].sort(), [
     'Idempotency-Key',
+    'X-Divalhr-Callback-Id',
+    'X-Divalhr-Signature',
+    'X-Divalhr-Timestamp',
     'X-Hub-Signature-256',
     'X-Receipt-File-Name',
   ]);
