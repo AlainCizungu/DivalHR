@@ -31,6 +31,37 @@ const tmp = () => mkdtempSync(join(tmpdir(), 'hrdev-'));
 // --- realm --------------------------------------------------------------------------------------
 const realm = JSON.parse(read('infrastructure/hr-dev/keycloak/realm-divalhr-test.json'));
 
+test('every script the deployment runs directly is executable in git (a lost mode bit failed the rehearsal)', () => {
+  // remote-deploy.sh runs "$REL/ops/hr-dev/<script>" without an interpreter, and the release is a git
+  // bundle: a script committed as 100644 dies with "Permission denied" only on the instance, never
+  // in CI. The mode in the index is what the bundle carries (a working tree may not reflect it).
+  const direct = new Set(
+    [
+      ...read('ops/hr-dev/remote-deploy.sh').matchAll(
+        /^\s*"\$REL\/ops\/hr-dev\/([A-Za-z0-9_.-]+)"/gmu,
+      ),
+    ].map((match) => match[1]),
+  );
+  assert.ok(direct.has('init-secrets.sh'), 'the scan found the secrets initialisation');
+  const listed = spawnSync('git', ['ls-files', '-s', '--', 'ops/hr-dev'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+  assert.equal(listed.status, 0, 'git ls-files');
+  const modes = new Map(
+    listed.stdout
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [meta, path] = line.split('\t');
+        return [path.replace('ops/hr-dev/', ''), meta.split(' ')[0]];
+      }),
+  );
+  for (const name of direct) {
+    assert.equal(modes.get(name), '100755', `ops/hr-dev/${name} is run directly but is not 100755`);
+  }
+});
+
 test('test realm: TLS required, labelled, synthetic, no users or credentials but the service account', () => {
   assert.equal(realm.realm, 'divalhr-test');
   assert.equal(realm.sslRequired, 'all');
