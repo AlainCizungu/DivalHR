@@ -176,6 +176,12 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'tenant-admin',
       },
       {
+        to: '/admin/salary-advance-handoffs',
+        labelKey: 'nav.salaryAdvanceHandoffs',
+        icon: 'contract',
+        role: 'tenant-admin',
+      },
+      {
         to: '/admin/accounting-mappings',
         labelKey: 'nav.accountingMappings',
         icon: 'payroll',

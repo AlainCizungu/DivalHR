@@ -597,7 +597,7 @@ test.describe.serial('MVP-120A: consented salary-advance requests', () => {
     }
     for (const p of people) await recordProfile(page, bearer, p);
     // The clearly synthetic VERIFIED pack exists in the database only (no API can verify a pack).
-    packId = createSyntheticVerifiedPack(PACK_CODE);
+    packId = await createSyntheticVerifiedPack(PACK_CODE);
     for (const entity of [EN_ENTITY, FR_ENTITY]) await calculate(page, bearer, entity, packId);
     // Both payrolls are approved through the public endpoints: the salary-advance reference is the
     // employee's latest approved payslip.

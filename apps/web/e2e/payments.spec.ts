@@ -551,7 +551,7 @@ test.describe.serial('MVP-095A: payment destinations and payment batches', () =>
     await recordPolicy(page, bearer, ENTITY);
     await createRun(page, bearer, ENTITY);
     for (const p of people) await recordProfile(page, bearer, p);
-    packId = createSyntheticVerifiedPack(PACK_CODE);
+    packId = await createSyntheticVerifiedPack(PACK_CODE);
     await calculate(page, bearer, ENTITY, packId);
     packageId = await approveViaApi(page, bearer, ENTITY);
     await inviteAndLink(browser, page, bearer, ANA);

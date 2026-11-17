@@ -1,7 +1,7 @@
 // DEVX-001A: tests of the browser-suite tooling (SSO state, hygiene check, suite runner). Plain
 // Node test runner, no browser and no stack:  node --test e2e/tooling.test.ts
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   existsSync,
@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { deflateRawSync } from 'node:zlib';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   ARTIFACT_NAME,
   inPage,
@@ -33,6 +33,7 @@ import { TOTP_SEEDS, totp } from './credentials.ts';
 import globalSetup from './global-setup.ts';
 import { check, scanText, seedCodes, textsOf } from './hygiene.ts';
 import { MAX_ATTEMPTS, retryAfterSeconds, retryOn429 } from './rate-limit.ts';
+import { acquireStatutoryPackLock } from './statutory-pack-lock.ts';
 import {
   createSsoDir,
   readState,
@@ -658,5 +659,140 @@ void describe('target-size diagnostics (R150-2)', () => {
     assert.ok(body.includes('info.attach(name, { path: file, contentType })'));
     assert.ok(!body.includes('{ body, contentType }'));
     assert.ok(body.includes('console.log(logLine(body))'));
+  });
+});
+
+// R207-3: the lock shared by the statutory-pack specs. Real processes, because it must hold between
+// the two Playwright workers.
+void describe('statutory pack lock', () => {
+  const LOCK_URL = pathToFileURL(
+    fileURLToPath(new URL('./statutory-pack-lock.ts', import.meta.url)),
+  ).href;
+  const options = (dir: string, timeoutMs: number) => ({ dir, timeoutMs, pollMs: 20 });
+
+  function fresh() {
+    const base = mkdtempSync(join(tmpdir(), 'divalhr-lock-test-'));
+    return { base, dir: join(base, 'lock'), log: join(base, 'log') };
+  }
+
+  /** Runs a script in a separate Node process; resolves with its exit status and output. */
+  function child(
+    script: string,
+    env: Record<string, string>,
+  ): Promise<{ code: number | null; out: string; err: string }> {
+    return new Promise((resolve) => {
+      const proc = spawn(process.execPath, ['--input-type=module', '-e', script], {
+        env: { ...process.env, LOCK_URL, ...env },
+      });
+      let out = '';
+      let err = '';
+      proc.stdout.on('data', (chunk: Buffer) => {
+        out += chunk.toString();
+      });
+      proc.stderr.on('data', (chunk: Buffer) => {
+        err += chunk.toString();
+      });
+      proc.on('close', (code) => {
+        resolve({ code, out, err });
+      });
+    });
+  }
+
+  const CONTENDER = `
+    import { appendFileSync } from 'node:fs';
+    const { acquireStatutoryPackLock } = await import(process.env.LOCK_URL);
+    const release = await acquireStatutoryPackLock({
+      dir: process.env.DIR, pollMs: 20, timeoutMs: 30000,
+    });
+    appendFileSync(process.env.LOG, 'in ' + process.pid + '\\n');
+    await new Promise((resolve) => setTimeout(resolve, Number(process.env.HOLD_MS)));
+    appendFileSync(process.env.LOG, 'out ' + process.pid + '\\n');
+    release();
+  `;
+  const TRY = `
+    const { acquireStatutoryPackLock } = await import(process.env.LOCK_URL);
+    try {
+      const release = await acquireStatutoryPackLock({
+        dir: process.env.DIR, pollMs: 20, timeoutMs: Number(process.env.TIMEOUT_MS),
+      });
+      console.log('acquired');
+      release();
+    } catch (error) {
+      console.error(String(error));
+      process.exit(3);
+    }
+  `;
+  const DIE_HOLDING = `
+    const { acquireStatutoryPackLock } = await import(process.env.LOCK_URL);
+    await acquireStatutoryPackLock({ dir: process.env.DIR });
+    process.kill(process.pid, 'SIGKILL');
+  `;
+
+  void it('never lets two processes hold it at once', async () => {
+    const { dir, log } = fresh();
+    writeFileSync(log, '');
+    const results = await Promise.all(
+      [1, 2, 3, 4, 5].map(() => child(CONTENDER, { DIR: dir, LOG: log, HOLD_MS: '120' })),
+    );
+    for (const result of results) assert.equal(result.code, 0, result.err);
+    const lines = readFileSync(log, 'utf8').trim().split('\n');
+    assert.equal(lines.length, 10);
+    for (let i = 0; i < lines.length; i += 2) {
+      const [enter, pid] = lines[i].split(' ');
+      assert.equal(enter, 'in', `entry ${i / 2} begins while another holder is inside`);
+      assert.equal(lines[i + 1], `out ${pid}`, 'the holder leaves before anyone else enters');
+    }
+    assert.equal(existsSync(dir), false, 'the last holder frees the lock');
+  });
+
+  void it('keeps a live holder and hands the lock over on release', async () => {
+    const { dir } = fresh();
+    const release = await acquireStatutoryPackLock(options(dir, 5_000));
+    const waiting = await child(TRY, { DIR: dir, TIMEOUT_MS: '400' });
+    assert.equal(waiting.code, 3);
+    assert.match(waiting.err, /was not released within 400 ms/u);
+    release();
+    const after = await child(TRY, { DIR: dir, TIMEOUT_MS: '5000' });
+    assert.equal(after.code, 0, after.err);
+    assert.equal(after.out.trim(), 'acquired');
+  });
+
+  void it('is re-entrant in a process and freed by the last release only, whatever a release repeats', async () => {
+    const { dir } = fresh();
+    const first = await acquireStatutoryPackLock(options(dir, 5_000));
+    const second = await acquireStatutoryPackLock(options(dir, 5_000));
+    first();
+    first(); // a repeated release frees nothing more
+    assert.equal((await child(TRY, { DIR: dir, TIMEOUT_MS: '300' })).code, 3);
+    second();
+    assert.equal((await child(TRY, { DIR: dir, TIMEOUT_MS: '5000' })).code, 0);
+  });
+
+  void it('is freed by a holder that died, with no fixed delay', async () => {
+    const { dir } = fresh();
+    await child(DIE_HOLDING, { DIR: dir });
+    assert.equal(existsSync(dir), true, 'the killed holder left its lock behind');
+    const started = Date.now();
+    const release = await acquireStatutoryPackLock(options(dir, 10_000));
+    assert.ok(Date.now() - started < 2_000, 'reclaimed at once, not after a delay');
+    release();
+    assert.equal(existsSync(dir), false);
+  });
+
+  void it('leaves a lock without an owner record alone only while it is being written', async () => {
+    const { dir } = fresh();
+    mkdirSync(dir);
+    await assert.rejects(
+      acquireStatutoryPackLock({ dir, timeoutMs: 300, pollMs: 20, graceMs: 60_000 }),
+      /was not released within 300 ms/u,
+    );
+    const release = await acquireStatutoryPackLock({
+      dir,
+      timeoutMs: 5_000,
+      pollMs: 20,
+      graceMs: 100,
+    });
+    release();
+    assert.equal(existsSync(dir), false);
   });
 });

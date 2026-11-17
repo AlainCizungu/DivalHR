@@ -19,6 +19,11 @@ export interface ModuleEntry {
   status: Availability;
   /** One of the twelve vision modules approved by the owner (UI2-1), in their approved order. */
   vision: boolean;
+  /**
+   * MVP-120B (D120B-10): a module that stays "Coming next" but has a truthful, labelled foundation
+   * (never a claim that the module is available).
+   */
+  foundation?: boolean;
 }
 
 export const MODULES: readonly ModuleEntry[] = [
@@ -34,7 +39,11 @@ export const MODULES: readonly ModuleEntry[] = [
   // calculation stays under "coming next"; payslips and net-pay approval exist on a verified pack only. MVP-095A (Issue #183) adds payment
   // destinations and payment instruction registers; submission to a controlled SYNTHETIC-TEST provider (MVP-095B, Issue #187, R187-1) is active and test-only; reconciliation of an uncertain submission (MVP-095C, Issue #190; deployed and accepted on 2026-11-05; truth refresh Issue #192) is active for the SYNTHETIC-TEST provider only and is described on the payroll card and in the payment line of "Available now", never under "coming next"; no real bank or provider is connected. The accounting journal export (MVP-096, Issue #194, PR #195; deployed and accepted on 2026-11-14; truth refresh TRUTH-003, Issue #198) is active as an accounting-ready manual export (CSV and manifest) for CDF packages and is listed as "accountingExport" in "Available now"; it is never a posting to an accounting system and never proof of payment, and USD, cost-center and site claims are not made.
   { id: 'payroll', icon: 'payroll', status: 'capabilities', vision: true },
-  { id: 'loans', icon: 'bank', status: 'later', vision: true },
+  // MVP-120A (Issue #204, PR #205; deployed and accepted) and MVP-120B (Issue #206): employer-confirmed
+  // salary-advance requests and a controlled test handoff to a synthetic partner. Not a loan product:
+  // no real partner, decision, payout or deduction. The card stays "Coming next" and carries the
+  // labelled "Available foundation" statement.
+  { id: 'loans', icon: 'bank', status: 'later', vision: true, foundation: true },
   { id: 'benefits', icon: 'benefits', status: 'later', vision: true },
   { id: 'performance', icon: 'target', status: 'later', vision: true },
   // Contract templates, issuing, acknowledgement and expiration tracking (MVP-030, MVP-031A);
@@ -168,6 +177,22 @@ export const CONTACT_EMAIL = 'contact@dival.ai';
 export function demoMailto(subject: string): string {
   return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 }
+
+/**
+ * MVP-120B (D120B-12): "Become a financial partner" is a structured email to the same address:
+ * no form, no upload, no portal and no directory. The subject and body come from the locale.
+ */
+export function partnerMailto(subject: string, body: string): string {
+  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/** The four statements of the Financial Partner Program section (D120B-11), in order. */
+export const PARTNER_POINTS: readonly { key: string; icon: IconName }[] = [
+  { key: 'consent', icon: 'shield' },
+  { key: 'minimal', icon: 'contract' },
+  { key: 'employer', icon: 'check' },
+  { key: 'synthetic', icon: 'spark' },
+];
 
 /** In-page sections reachable from the header navigation. */
 export const SECTIONS = ['platform', 'payroll', 'integrations', 'why'] as const;

@@ -856,7 +856,33 @@ public enum ErrorCode {
   /** MVP-120A: consented salary-advance requests (ADR 0041). */
   SALARY_ADVANCE_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT),
   /** MVP-120A: the reviewer is the submitting subject (R205-2). */
-  SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN(HttpStatus.CONFLICT);
+  SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_REQUEST_TERMINAL(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_EXISTS(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_CONSENT_STALE(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_PARTNER_UNAVAILABLE(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  SALARY_ADVANCE_PARTNER_NOT_ENABLED(HttpStatus.CONFLICT),
+  /** MVP-120B: controlled partner handoff (ADR 0042). */
+  PARTNER_CALLBACK_INVALID(HttpStatus.BAD_REQUEST);
 
   private final HttpStatus status;
 

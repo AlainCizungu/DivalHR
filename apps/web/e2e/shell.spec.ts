@@ -65,6 +65,7 @@ test.describe('desktop', () => {
       'Approved payroll',
       'Salary-advance policy',
       'Salary-advance requests',
+      'Partner handoffs',
       'Accounting mappings',
       'Organizational structure',
       'Contract templates',
@@ -216,7 +217,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(27);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(28);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

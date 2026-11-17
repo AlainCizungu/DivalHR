@@ -15,7 +15,7 @@ divalhr_lock "init-secrets" || exit $?
 
 S="$HR_DEV_DATA/secrets"
 umask 077
-mkdir -p "$S/postgres" "$S/core" "$S/keycloak" "$S/ops" "$S/provider"
+mkdir -p "$S/postgres" "$S/core" "$S/keycloak" "$S/ops" "$S/provider" "$S/partner"
 chmod 0711 "$S"
 
 random() { openssl rand -base64 64 | tr -d '/+=\n' | cut -c1-48; }
@@ -67,6 +67,16 @@ put "$S/core/DIVALHR_PAYMENT_ENCRYPTION_KEY" 10001 random
 # holds a copy to verify signatures; a real provider would hold its own agreed credential instead.
 put "$S/core/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY" 10001 random
 put "$S/provider/payment-signing-key" 1000 same_as "$S/core/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY"
+# MVP-120B (ADR 0042): two separate HMAC-SHA256 keys for the controlled partner handoff: one signs
+# deliveries and inquiries to the partner (and verifies its signed answers), the other verifies the
+# partner's signed review-status callbacks (each >= 32 bytes, different from each other). Never
+# rotate them in place: the key version is recorded on each handoff. Backed up with the secrets
+# directory, never printed, logged or returned. The synthetic partner receiver (uid 1000) holds
+# copies; a real partner would hold its own agreed credentials instead.
+put "$S/core/DIVALHR_PARTNER_HANDOFF_SIGNING_KEY" 10001 random
+put "$S/core/DIVALHR_PARTNER_CALLBACK_SIGNING_KEY" 10001 random
+put "$S/partner/handoff-signing-key" 1000 same_as "$S/core/DIVALHR_PARTNER_HANDOFF_SIGNING_KEY"
+put "$S/partner/callback-signing-key" 1000 same_as "$S/core/DIVALHR_PARTNER_CALLBACK_SIGNING_KEY"
 # MVP-111: the Meta app secret (signs callbacks) and the callback verify token. In this test
 # environment they belong to the synthetic provider only, never to a real Meta app; production
 # values come from the real Meta app and are provisioned the same way, by the operator.
@@ -94,7 +104,7 @@ keycloak_conf() {
 put "$S/keycloak/keycloak.conf" 1000 keycloak_conf
 
 # Each directory belongs to the container user that reads it (Spring lists its config tree).
-chown 999 "$S/postgres"; chown 10001 "$S/core"; chown 1000 "$S/keycloak"; chown 1000 "$S/provider"; chown -R root:root "$S/ops"
+chown 999 "$S/postgres"; chown 10001 "$S/core"; chown 1000 "$S/keycloak"; chown 1000 "$S/provider"; chown 1000 "$S/partner"; chown -R root:root "$S/ops"
 chmod 0500 "$S/postgres" "$S/core" "$S/keycloak" "$S/provider"
 chmod 0700 "$S/ops"
 

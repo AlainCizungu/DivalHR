@@ -809,3 +809,30 @@ export type SalaryAdvanceRequestPage = CoreComponents['schemas']['SalaryAdvanceR
 export type SalaryAdvanceRequestView = CoreComponents['schemas']['SalaryAdvanceRequestView'];
 export type CommitSalaryAdvancePolicy = CoreComponents['schemas']['CommitSalaryAdvancePolicy'];
 export type CommitSalaryAdvanceRequest = CoreComponents['schemas']['CommitSalaryAdvanceRequest'];
+
+/** MVP-120B: the controlled synthetic partner handoff. */
+export type SalaryAdvanceHandoffAttempt = CoreComponents['schemas']['SalaryAdvanceHandoffAttempt'];
+export type SalaryAdvanceHandoffBlocker = CoreComponents['schemas']['SalaryAdvanceHandoffBlocker'];
+export type SalaryAdvanceHandoffConsentAffirmation =
+  CoreComponents['schemas']['SalaryAdvanceHandoffConsentAffirmation'];
+export type SalaryAdvanceHandoffConsentDocument =
+  CoreComponents['schemas']['SalaryAdvanceHandoffConsentDocument'];
+export type SalaryAdvanceHandoffEvent = CoreComponents['schemas']['SalaryAdvanceHandoffEvent'];
+export type SalaryAdvanceHandoffNotice = CoreComponents['schemas']['SalaryAdvanceHandoffNotice'];
+export type SalaryAdvanceHandoffOutcome = CoreComponents['schemas']['SalaryAdvanceHandoffOutcome'];
+export type SalaryAdvanceHandoffPage = CoreComponents['schemas']['SalaryAdvanceHandoffPage'];
+export type SalaryAdvanceHandoffPreview = CoreComponents['schemas']['SalaryAdvanceHandoffPreview'];
+export type SalaryAdvanceHandoffReconcile =
+  CoreComponents['schemas']['SalaryAdvanceHandoffReconcile'];
+export type SalaryAdvanceHandoffReviewEvent =
+  CoreComponents['schemas']['SalaryAdvanceHandoffReviewEvent'];
+export type SalaryAdvanceHandoffReviewReason =
+  CoreComponents['schemas']['SalaryAdvanceHandoffReviewReason'];
+export type SalaryAdvanceHandoffReviewState =
+  CoreComponents['schemas']['SalaryAdvanceHandoffReviewState'];
+export type SalaryAdvanceHandoffState = CoreComponents['schemas']['SalaryAdvanceHandoffState'];
+export type SalaryAdvanceHandoffSummary = CoreComponents['schemas']['SalaryAdvanceHandoffSummary'];
+export type SalaryAdvanceHandoffView = CoreComponents['schemas']['SalaryAdvanceHandoffView'];
+export type SalaryAdvanceHandoffWithdraw =
+  CoreComponents['schemas']['SalaryAdvanceHandoffWithdraw'];
+export type CommitSalaryAdvanceHandoff = CoreComponents['schemas']['CommitSalaryAdvanceHandoff'];

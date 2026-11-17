@@ -44,6 +44,12 @@ import org.springframework.test.context.TestExecutionListeners;
       "divalhr.payroll.submission.synthetic.host=payments.test",
       "divalhr.payroll.submission.synthetic.port=8443",
       "divalhr.payroll.submission.worker.enabled=false",
+      "divalhr.payroll.partner.delivery-signing-key=test-only-partner-handoff-signing-key-0001",
+      "divalhr.payroll.partner.callback-signing-key=test-only-partner-callback-signing-key-001",
+      "divalhr.payroll.partner.synthetic.enabled=true",
+      "divalhr.payroll.partner.synthetic.host=partners.test",
+      "divalhr.payroll.partner.synthetic.port=8444",
+      "divalhr.payroll.partner.worker.enabled=false",
       "divalhr.integrations.test-receiver.host=receiver.test",
       "divalhr.integrations.test-receiver.port=8443",
       "divalhr.messaging.jobs.enabled=false",
@@ -57,7 +63,8 @@ import org.springframework.test.context.TestExecutionListeners;
   TestSecurityConfig.class,
   PostgresContainerConfig.class,
   TestInvitationConfig.class,
-  FakePaymentProviderGateway.Config.class
+  FakePaymentProviderGateway.Config.class,
+  FakeSalaryAdvancePartnerGateway.Config.class
 })
 @TestExecutionListeners(
     listeners = Memberships.Binding.class,

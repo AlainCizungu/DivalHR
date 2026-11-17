@@ -78,7 +78,11 @@ function stub(handler: (request: Recorded) => Reply) {
         key: incoming.headers.get('Idempotency-Key'),
       };
       requests.push(recorded);
-      const reply = handler(recorded);
+      // MVP-120B: the page also lists the employee's handoffs; these 120A tests have none.
+      const reply =
+        incoming.method === 'GET' && recorded.path.startsWith('/me/salary-advance-handoffs')
+          ? { status: 200, body: { items: [], nextCursor: null } }
+          : handler(recorded);
       return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {
         status: reply.status,
         headers: {

@@ -139,6 +139,22 @@ public class SalaryAdvanceQuotas {
         now);
   }
 
+  /**
+   * Refuses a partner-handoff command beyond an hourly limit (MVP-120B). The count is the subject's
+   * own committed handoff evidence, so it holds across instances and restarts and never counts a
+   * replay or a refused command.
+   *
+   * @param usage the subject's committed handoff work in the window
+   * @param limit commands per hour
+   * @param now server instant
+   */
+  void requireCommands(
+      com.divalhr.core.payroll.internal.JdbcSalaryAdvanceHandoffRepository.Usage usage,
+      int limit,
+      Instant now) {
+    refuseWhenFull(new Usage(usage.count(), usage.oldest()), limit, now);
+  }
+
   private static void refuseWhenFull(Usage usage, int limit, Instant now) {
     if (usage.count() >= limit) {
       long seconds =

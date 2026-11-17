@@ -9,6 +9,7 @@ import {
   sql,
   subjectLock,
 } from './support';
+import { acquireStatutoryPackLock } from './statutory-pack-lock';
 import { createSyntheticVerifiedPack } from './synthetic-rule-pack';
 
 // MVP-094B (Issue #179): exactly two journeys, with synthetic data only.
@@ -332,6 +333,7 @@ async function openStatutory(page: Page, entity: Site, runs: string) {
 }
 
 let releaseSubject: () => void = () => undefined;
+let releaseStatutory: () => void = () => undefined;
 let packId = '';
 
 test.describe.serial('MVP-094B: source-versioned DRC statutory preview', () => {
@@ -339,6 +341,9 @@ test.describe.serial('MVP-094B: source-versioned DRC statutory preview', () => {
     test.setTimeout(300_000);
     // The other specs writing as tenant A's administrator never run at the same time.
     releaseSubject = await subjectLock(USERS.adminA[0]);
+    // R207-3: this journey reads the pack it activates, and MVP-097A's packs and the other specs'
+    // verified packs retire it; the statutory pack lock keeps them out until both journeys are done.
+    releaseStatutory = await acquireStatutoryPackLock();
     const page = await browser.newPage();
     const bearer = await signIn(page, USERS.adminA, 'fr');
     for (const entity of [EN_ENTITY, FR_ENTITY]) {
@@ -419,6 +424,7 @@ test.describe.serial('MVP-094B: source-versioned DRC statutory preview', () => {
   });
 
   test.afterAll(() => {
+    releaseStatutory();
     releaseSubject();
   });
 
@@ -455,7 +461,7 @@ test.describe.serial('MVP-094B: source-versioned DRC statutory preview', () => {
     await noOverflow(admin);
 
     // 2. A synthetic VERIFIED test pack (database only, never the API or the seed) appears.
-    packId = createSyntheticVerifiedPack(PACK_CODE);
+    packId = await createSyntheticVerifiedPack(PACK_CODE);
     expect(packId).not.toBe('');
     await admin.getByRole('link', { name: 'Back to the payroll run' }).click();
     await admin.getByTestId('payroll-detail-statutory-link').click();

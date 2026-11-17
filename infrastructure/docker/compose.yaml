@@ -130,6 +130,33 @@ services:
     ports:
       - '127.0.0.1:${PAYMENT_PROVIDER_PORT:-8097}:8099'
 
+  # MVP-120B: a controlled SYNTHETIC partner receiver (partner SYNTHETIC-TEST). Development stack
+  # only (the hr-dev counterpart lives in infrastructure/hr-dev). NOT a lender, bank or credit
+  # bureau; no decision and no money exist here. Core reaches it as partners.hooks.test; it calls
+  # Core's signed callback door; the control port is published on 127.0.0.1 only, for the browser
+  # suite.
+  partner-receiver:
+    build:
+      context: ./partner-receiver
+    image: divalhr/partner-receiver:dev
+    environment:
+      PARTNER_HOST: partners.hooks.test
+      PARTNER_SIGNING_KEY: ${DIVALHR_PARTNER_HANDOFF_SIGNING_KEY:?set in .env / .env.example}
+      PARTNER_CALLBACK_KEY: ${DIVALHR_PARTNER_CALLBACK_SIGNING_KEY:?set in .env / .env.example}
+      PARTNER_CALLBACK_URL: http://core-api:8080/api/v1/public/partners/synthetic-test/callbacks
+    volumes:
+      - partner-receiver-ca:/shared
+    networks:
+      default:
+        aliases: [partners.hooks.test]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8098/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - '127.0.0.1:${PARTNER_RECEIVER_PORT:-8096}:8098'
+
   # MVP-111: a controlled SYNTHETIC Meta Graph provider for WhatsApp. Development stack only (the
   # hr-dev counterpart lives in infrastructure/hr-dev). NOT Meta. Core reaches it as
   # graph.meta.test on the internal `meta` network (no route out); the control port is published on
@@ -198,6 +225,17 @@ services:
       # Short dev-only timings so the browser journeys wait seconds, not minutes (never in hr-dev).
       DIVALHR_PAYMENT_SUBMISSION_WORKER_INTERVAL: PT1S
       DIVALHR_PAYMENT_SUBMISSION_REQUEST_TIMEOUT: PT4S
+      # MVP-120B: HMAC keys for the controlled partner handoff (>= 32 bytes, different from each other;
+      # a dev-only value is refused outside development). DEVELOPMENT ONLY synthetic partner; no real
+      # lender, bank or bureau is ever contacted.
+      DIVALHR_PARTNER_HANDOFF_SIGNING_KEY: ${DIVALHR_PARTNER_HANDOFF_SIGNING_KEY:?set in .env / .env.example}
+      DIVALHR_PARTNER_CALLBACK_SIGNING_KEY: ${DIVALHR_PARTNER_CALLBACK_SIGNING_KEY:?set in .env / .env.example}
+      DIVALHR_PARTNER_SYNTHETIC_ENABLED: 'true'
+      DIVALHR_PARTNER_SYNTHETIC_HOST: partners.hooks.test
+      DIVALHR_PARTNER_SYNTHETIC_PORT: '8444'
+      DIVALHR_PARTNER_SYNTHETIC_CA_FILE: /run/partner-receiver-tls/ca.pem
+      DIVALHR_PARTNER_WORKER_INTERVAL: PT1S
+      DIVALHR_PARTNER_REQUEST_TIMEOUT: PT4S
       DIVALHR_WEBHOOK_TEST_RECEIVER_HOST: receiver.hooks.test
       DIVALHR_WEBHOOK_TEST_RECEIVER_PORT: '8443'
       DIVALHR_WEBHOOK_TEST_RECEIVER_CA_FILE: /run/webhook-tls/ca.pem
@@ -249,6 +287,7 @@ services:
       - webhook-receiver-ca:/run/webhook-tls:ro
       - meta-provider-ca:/run/meta-provider-tls:ro
       - payment-provider-ca:/run/payment-provider-tls:ro
+      - partner-receiver-ca:/run/partner-receiver-tls:ro
     networks: [default, meta]
     depends_on:
       postgres:
@@ -262,6 +301,8 @@ services:
       meta-provider:
         condition: service_healthy
       payment-provider:
+        condition: service_healthy
+      partner-receiver:
         condition: service_healthy
     ports:
       - '${CORE_API_PORT:-8080}:8080'
@@ -314,3 +355,4 @@ volumes:
   webhook-receiver-ca:
   meta-provider-ca:
   payment-provider-ca:
+  partner-receiver-ca:

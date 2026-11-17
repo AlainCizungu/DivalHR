@@ -25,10 +25,11 @@ const DEPLOYED = [
   'e8759cc5ca71cb8a54dc22b97aa9b6760fa1969f', // MVP-095C, PR #191: reconciliation of uncertain submissions (synthetic provider only)
   'ce871f48e7be14d824a0800bc7a03be05b72d2ff', // TRUTH-002, PR #193: truth refresh for MVP-095C, preserved as the previous release
   'c368d58b15e1aeddb755997728154a497348c07c', // MVP-096, PR #195: accounting journal export (manual export, never a posting), the latest capability release before MVP-097A
-  '55b130f5bde8eedee4589f5e00b9e17d927457f1', // TRUTH-003, PR #199: presentation and truth release for MVP-096, running
+  '55b130f5bde8eedee4589f5e00b9e17d927457f1', // TRUTH-003, PR #199: presentation and truth release for MVP-096, the previous release
+  '4b947a6cfa2135369cd2e8ac1e2710c84a2bb525', // MVP-120A, PR #205: consented salary-advance requests, running
 ];
-const RUNNING = DEPLOYED[10];
-const PREVIOUS = DEPLOYED[9];
+const RUNNING = DEPLOYED[11];
+const PREVIOUS = DEPLOYED[10];
 const CAPABILITY = DEPLOYED[9];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
@@ -101,7 +102,7 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #184, MVP-095A/u);
   assert.match(header, /PR #188, MVP-095B/u);
   assert.match(header, /PR #189, R187-1/u);
-  assert.match(header, /as of 2026-11-15/u);
+  assert.match(header, /as of 2026-11-16/u);
   assert.match(header, /PR #199, TRUTH-003/u);
   assert.match(
     header,
@@ -296,7 +297,7 @@ const SHA_PATTERN = /\b[0-9a-f]{40}\b/gu;
  * Rule 1: the release the header says hr-dev runs equals the expected one, the migration it names is the expected
  * one, MVP-095C is stated merged, deployed and accepted, and the evidence table agrees.
  */
-export function releaseClaimProblems(text, expected, migration = 'V50') {
+export function releaseClaimProblems(text, expected, migration = 'V52') {
   const header = text.split('## Epic 1')[0];
   const problems = [];
   const running = /runs `main` at `([0-9a-f]{40})`/u.exec(header)?.[1];
@@ -468,8 +469,8 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   assert.notEqual(stale, backlog);
   assert.ok(releaseClaimProblems(stale, RUNNING).length > 0, 'a stale header SHA fails');
   const wrongMigration = backlog.replace(
-    'Issue #198 is closed); migration V50 is applied',
-    'Issue #198 is closed); migration V49 is applied',
+    'Issue #204 is closed); migration V52 is applied',
+    'Issue #204 is closed); migration V51 is applied',
   );
   assert.notEqual(wrongMigration, backlog);
   assert.ok(
@@ -482,7 +483,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   );
   assert.notEqual(inProgress, backlog);
   assert.ok(releaseClaimProblems(inProgress, RUNNING).length > 0, 'an in-progress MVP-095C fails');
-  const staleTable = backlog.replace(/^\| TRUTH-003 .*$/mu, '');
+  const staleTable = backlog.replace(/^\| MVP-120A .*$/mu, '');
   assert.notEqual(staleTable, backlog);
   assert.ok(
     releaseClaimProblems(staleTable, RUNNING).length > 0,
@@ -858,7 +859,7 @@ export function journalBacklogProblems(text) {
   need(
     'MVP-096 entry',
     opening,
-    /hr-dev ran `c368d58b…` when it was accepted, and now runs the presentation release `55b130f5…`/u,
+    /hr-dev ran `c368d58b…` when it was accepted, then ran the presentation release `55b130f5…` \(TRUTH-003\), and now runs the release `4b947a6c…`/u,
   );
   need('MVP-096 entry', opening, /previous release `ce871f48e7be` is preserved/u);
   for (const [label, haystack] of [
@@ -905,7 +906,7 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
       'header SHA',
       (t) =>
         t.replace(
-          'runs `main` at `55b130f5bde8eedee4589f5e00b9e17d927457f1`',
+          'runs `main` at `4b947a6cfa2135369cd2e8ac1e2710c84a2bb525`',
           'runs `main` at `c368d58b15e1aeddb755997728154a497348c07c`',
         ),
       null,
@@ -988,7 +989,7 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
         `${name}: names the problem`,
       );
   }
-  const noTableRow = backlog.replace(/^\| TRUTH-003 .*$/mu, '');
+  const noTableRow = backlog.replace(/^\| MVP-120A .*$/mu, '');
   assert.ok(releaseClaimProblems(noTableRow, RUNNING).length > 0, 'a missing release row fails');
   const wrongPr = backlog.replace('| MVP-096   | #195 |', '| MVP-096   | #196 |');
   assert.notEqual(wrongPr, backlog);
@@ -1160,4 +1161,126 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
   assert.ok(journalParityProblems(extra, fr).length > 0, 'diverging keys fail');
   assert.ok(journalLocaleProblems(en, 'en').length === 0);
   assert.ok(!/accountingExport/u.test(roadmap), 'the roadmap does not list the export');
+});
+
+/**
+ * MVP-120B (D120B-15): the backlog states what Git and the deployment prove about MVP-097A and
+ * MVP-120A, describes MVP-120B only as in review with a controlled synthetic partner, and never
+ * claims a real partner, WhatsApp, bank or payment connection.
+ */
+export function handoffBacklogProblems(text) {
+  const problems = [];
+  const sections = new Map(sectionsOf(text).map((entry) => [entry.id, entry.body]));
+  const opening = (id) => (sections.get(id) ?? '').split('\n').slice(0, 4).join('\n');
+  const need = (label, haystack, pattern) => {
+    if (!pattern.test(haystack)) problems.push(`${label} lacks ${pattern}`);
+  };
+  need(
+    'MVP-120A entry',
+    opening('MVP-120A'),
+    /Merged \(PR #205, merge commit `4b947a6cfa2135369cd2e8ac1e2710c84a2bb525`\)/u,
+  );
+  need(
+    'MVP-120A entry',
+    opening('MVP-120A'),
+    /deployed to hr-dev and accepted on 2026-11-16; Issue #204 is closed/u,
+  );
+  need('MVP-120A entry', opening('MVP-120A'), /Migration V52 is applied/u);
+  if (/not merged|not deployed|In review/u.test(opening('MVP-120A')))
+    problems.push('MVP-120A is still described as in review or not deployed');
+  need(
+    'MVP-097A entry',
+    opening('MVP-097A'),
+    /Merged \(PR #201, merge commit `967c401af358dc9ce0517e094254955c5a3c00e4`/u,
+  );
+  need('MVP-097A entry', opening('MVP-097A'), /PR #202/u);
+  if (/not merged|In review/u.test(opening('MVP-097A')))
+    problems.push('MVP-097A is still described as in review or not merged');
+  const handoff = sections.get('MVP-120B');
+  if (!handoff) return [...problems, 'MVP-120B has no backlog entry'];
+  const head = opening('MVP-120B');
+  need('MVP-120B entry', head, /Issue #206\. In review/u);
+  need('MVP-120B entry', head, /not merged and not deployed/u);
+  need('MVP-120B entry', head, /Migration V53/u);
+  need('MVP-120B entry', handoff, /DivalHR is not the lender/u);
+  need('MVP-120B entry', handoff, /every handoff is synthetic/u);
+  need(
+    'MVP-120B entry',
+    handoff,
+    /no real partner, lender, bank, bureau, WhatsApp number, endpoint or credential exists/u,
+  );
+  need('MVP-120B entry', handoff, /`CD-SALARY-PREVIEW` stays DRAFT/u);
+  need('MVP-120B entry', handoff, /never resent automatically|never resend/u);
+  need('MVP-120B entry', handoff, /the request stays `EMPLOYER_CONFIRMED`/u);
+  if (/\b(approved loan|guaranteed|funded|interest rate|APR|credit score)\b/iu.test(handoff))
+    problems.push('MVP-120B entry uses banned lending wording');
+  if (/Migration V53 is applied|deployed to hr-dev and accepted/u.test(head))
+    problems.push('MVP-120B is claimed deployed before it is');
+  return problems;
+}
+
+test('truth rule 6: 097A and 120A carry their Git facts, 120B is in review with a synthetic partner only (D120B-15)', () => {
+  assert.deepEqual(handoffBacklogProblems(backlog), []);
+  const fixtures = [
+    [
+      '120A in review',
+      (t) =>
+        t.replace(
+          'deployed to hr-dev and accepted on 2026-11-16; Issue #204 is closed',
+          'not deployed',
+        ),
+      /MVP-120A/u,
+    ],
+    [
+      '120A migration',
+      (t) => t.replace('Migration V52 is applied.', 'Migration V52 is pending.'),
+      /V52/u,
+    ],
+    [
+      '097A not merged',
+      (t) => t.replace('Issue #200. Merged (PR #201', 'Issue #200. In review (PR #201'),
+      /MVP-097A/u,
+    ],
+    [
+      '120B deployed',
+      (t) =>
+        t.replace(
+          'Issue #206. In review (branch',
+          'Issue #206. Merged and deployed to hr-dev and accepted (branch',
+        ),
+      /MVP-120B/u,
+    ],
+    [
+      '120B lender',
+      (t) => t.replaceAll('DivalHR is not the lender', 'DivalHR is the lender'),
+      /not the lender/u,
+    ],
+    [
+      '120B real partner',
+      (t) =>
+        t.replace(
+          'no real partner, lender, bank, bureau, WhatsApp number, endpoint or credential exists',
+          'a real partner is connected',
+        ),
+      /real partner/u,
+    ],
+    ['120B drc pack', (t) => t.replace('stays DRAFT and untouched', 'is active'), /DRAFT/u],
+    [
+      '120B banned wording',
+      (t) =>
+        t.replace(
+          'Not included:** a real partner,',
+          'Not included:** guaranteed funded loans, a real partner,',
+        ),
+      /banned/u,
+    ],
+  ];
+  for (const [name, mutate, expected] of fixtures) {
+    const stale = mutate(backlog);
+    assert.notEqual(stale, backlog, `${name}: the fixture changed the backlog`);
+    assert.ok(
+      handoffBacklogProblems(stale).some((problem) => expected.test(problem)),
+      `${name}: names the problem`,
+    );
+  }
 });

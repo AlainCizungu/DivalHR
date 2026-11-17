@@ -14,6 +14,8 @@ import {
   FINANCE_STEPS,
   INTEGRATION_GROUPS,
   OUTCOMES,
+  PARTNER_POINTS,
+  partnerMailto,
   PAYROLL_STEPS,
   PLATFORM_STEPS,
   PREVIEW_ACTIONS,
@@ -268,6 +270,12 @@ export default function LandingContent() {
                 </div>
                 <h3>{t(`landing.modules.items.${module.id}.title`)}</h3>
                 <p>{t(`landing.modules.items.${module.id}.description`)}</p>
+                {module.foundation && (
+                  <p className="landing-modules__remaining" data-testid="landing-foundation">
+                    <b>{t('landing.modules.foundationLabel')}</b>{' '}
+                    {t(`landing.modules.items.${module.id}.foundation`)}
+                  </p>
+                )}
                 {module.status === 'capabilities' && (
                   <p className="landing-modules__remaining" data-testid="landing-remaining">
                     <b>{t('landing.modules.remainingLabel')}</b>{' '}
@@ -472,6 +480,44 @@ export default function LandingContent() {
               </li>
             ))}
           </ul>
+        </div>
+      </section>
+
+      <section
+        className="landing-section landing-section--alt"
+        aria-labelledby="landing-partners-title"
+        data-testid="landing-partners"
+      >
+        <div className="landing-container">
+          <Kicker>{t('landing.partners.kicker')}</Kicker>
+          <h2 id="landing-partners-title">{t('landing.partners.title')}</h2>
+          <p className="landing-lead">{t('landing.partners.body')}</p>
+          <ul className="landing-modules">
+            {PARTNER_POINTS.map((point) => (
+              <li key={point.key} data-partner-point={point.key}>
+                <div className="landing-modules__head">
+                  <span className="landing-tile-icon">
+                    <Icon name={point.icon} />
+                  </span>
+                </div>
+                <h3>{t(`landing.partners.points.${point.key}.title`)}</h3>
+                <p>{t(`landing.partners.points.${point.key}.description`)}</p>
+              </li>
+            ))}
+          </ul>
+          <p>
+            <a
+              className="button"
+              data-testid="landing-partner-cta"
+              href={partnerMailto(
+                t('landing.partners.mailSubject'),
+                t('landing.partners.mailBody'),
+              )}
+            >
+              {t('landing.partners.cta')}
+            </a>
+          </p>
+          <p className="landing-legend">{t('landing.partners.ctaNote')}</p>
         </div>
       </section>
 

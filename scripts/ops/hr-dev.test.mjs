@@ -31,6 +31,37 @@ const tmp = () => mkdtempSync(join(tmpdir(), 'hrdev-'));
 // --- realm --------------------------------------------------------------------------------------
 const realm = JSON.parse(read('infrastructure/hr-dev/keycloak/realm-divalhr-test.json'));
 
+test('every script the deployment runs directly is executable in git (a lost mode bit failed the rehearsal)', () => {
+  // remote-deploy.sh runs "$REL/ops/hr-dev/<script>" without an interpreter, and the release is a git
+  // bundle: a script committed as 100644 dies with "Permission denied" only on the instance, never
+  // in CI. The mode in the index is what the bundle carries (a working tree may not reflect it).
+  const direct = new Set(
+    [
+      ...read('ops/hr-dev/remote-deploy.sh').matchAll(
+        /^\s*"\$REL\/ops\/hr-dev\/([A-Za-z0-9_.-]+)"/gmu,
+      ),
+    ].map((match) => match[1]),
+  );
+  assert.ok(direct.has('init-secrets.sh'), 'the scan found the secrets initialisation');
+  const listed = spawnSync('git', ['ls-files', '-s', '--', 'ops/hr-dev'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+  assert.equal(listed.status, 0, 'git ls-files');
+  const modes = new Map(
+    listed.stdout
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [meta, path] = line.split('\t');
+        return [path.replace('ops/hr-dev/', ''), meta.split(' ')[0]];
+      }),
+  );
+  for (const name of direct) {
+    assert.equal(modes.get(name), '100755', `ops/hr-dev/${name} is run directly but is not 100755`);
+  }
+});
+
 test('test realm: TLS required, labelled, synthetic, no users or credentials but the service account', () => {
   assert.equal(realm.realm, 'divalhr-test');
   assert.equal(realm.sslRequired, 'all');
@@ -1227,6 +1258,50 @@ test('MVP-111: messaging secrets are protected files and the synthetic Meta prov
   assert.match(core, /DIVALHR_MESSAGING_TEST_PROVIDER_PORT: '8443'/);
   assert.match(core, /networks: \[app, core-data, hooks\]/);
   assert.doesNotMatch(core, /graph\.facebook\.com/);
+});
+
+test('MVP-120B: the partner keys are protected files, the synthetic partner is isolated and existing environments gain the keys', () => {
+  const live = compose
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+  assert.doesNotMatch(live, /DIVALHR_PARTNER_HANDOFF_SIGNING_KEY/);
+  assert.doesNotMatch(live, /DIVALHR_PARTNER_CALLBACK_SIGNING_KEY/);
+  for (const name of ['HANDOFF', 'CALLBACK']) {
+    assert.match(
+      source('init-secrets.sh'),
+      new RegExp(`put "\\$S\\/core\\/DIVALHR_PARTNER_${name}_SIGNING_KEY" 10001 random`),
+    );
+    assert.match(
+      source('remote-deploy.sh'),
+      new RegExp(`secrets\\/core\\/DIVALHR_PARTNER_${name}_SIGNING_KEY" \\]`),
+    );
+    assert.match(
+      read('apps/core-api/src/main/resources/application.yaml'),
+      new RegExp(`\\$\\{DIVALHR_PARTNER_${name}_SIGNING_KEY:\\}`),
+    );
+  }
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/partner\/handoff-signing-key" 1000 same_as "\$S\/core\/DIVALHR_PARTNER_HANDOFF_SIGNING_KEY"/,
+  );
+  assert.match(
+    source('init-secrets.sh'),
+    /put "\$S\/partner\/callback-signing-key" 1000 same_as "\$S\/core\/DIVALHR_PARTNER_CALLBACK_SIGNING_KEY"/,
+  );
+  const receiver = compose.slice(
+    compose.indexOf('\n  partner-receiver:'),
+    compose.indexOf('\n  ai-service:'),
+  );
+  assert.match(receiver, /networks:\n {6}hooks:\n {8}aliases: \[partners\.hooks\.test\]/);
+  assert.doesNotMatch(receiver, /ports:/);
+  assert.match(receiver, /PARTNER_SIGNING_KEY_FILE: \/run\/secrets\/partner\/handoff-signing-key/);
+  assert.match(
+    receiver,
+    /PARTNER_CALLBACK_KEY_FILE: \/run\/secrets\/partner\/callback-signing-key/,
+  );
+  assert.match(live, /DIVALHR_PARTNER_SYNTHETIC_HOST: partners\.hooks\.test/);
+  assert.match(live, /DIVALHR_PARTNER_SYNTHETIC_PORT: '8444'/);
 });
 
 test('MVP-095B: the signing key is a protected file, the synthetic provider is isolated and existing environments gain the key', () => {

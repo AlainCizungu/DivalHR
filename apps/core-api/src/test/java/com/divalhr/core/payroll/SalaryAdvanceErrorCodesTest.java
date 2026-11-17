@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
-/** MVP-120A: the fifteen stable salary-advance codes exist, are published and are safe text. */
+/**
+ * MVP-120A: the stable salary-advance codes (MVP-120A and MVP-120B) exist, are published and are
+ * safe text.
+ */
 class SalaryAdvanceErrorCodesTest {
 
   private static final Map<String, HttpStatus> CODES =
@@ -40,7 +43,19 @@ class SalaryAdvanceErrorCodesTest {
           Map.entry("SALARY_ADVANCE_REQUEST_NOT_FOUND", HttpStatus.NOT_FOUND),
           Map.entry("SALARY_ADVANCE_VERSION_CONFLICT", HttpStatus.CONFLICT),
           Map.entry("SALARY_ADVANCE_TRANSITION_NOT_ALLOWED", HttpStatus.CONFLICT),
-          Map.entry("SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN", HttpStatus.CONFLICT));
+          Map.entry("SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_NOT_FOUND", HttpStatus.NOT_FOUND),
+          Map.entry("SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_REQUEST_TERMINAL", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_EXISTS", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED", HttpStatus.UNPROCESSABLE_CONTENT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_CONSENT_STALE", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_PREVIEW_STALE", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_PARTNER_UNAVAILABLE", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_PARTNER_NOT_ENABLED", HttpStatus.CONFLICT));
 
   private static final Path SCHEMA =
       Path.of("../../packages/shared-contracts/schemas/problem.schema.json");
@@ -59,7 +74,7 @@ class SalaryAdvanceErrorCodesTest {
 
   @Test
   void everyCodeExistsWithItsStatus() {
-    assertThat(CODES).hasSize(16);
+    assertThat(CODES).hasSize(28);
     for (Map.Entry<String, HttpStatus> code : CODES.entrySet()) {
       ErrorCode found = ErrorCode.valueOf(code.getKey());
       assertThat(found.status()).as(code.getKey()).isEqualTo(code.getValue());

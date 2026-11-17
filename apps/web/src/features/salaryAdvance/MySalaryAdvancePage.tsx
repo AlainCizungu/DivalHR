@@ -13,8 +13,10 @@ import { formatDate, formatInstant } from '../compensation/compensation';
 import { CompensationAlert, Money } from '../compensation/CompensationBits';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { ScrollRegion } from '../people/ScrollRegion';
+import { MyHandoffs, useMyHandoffs } from './MyHandoffs';
 import { LenderNotice, RequestStatus } from './SalaryAdvanceBits';
 import {
+  handoffLive,
   moneyOf,
   NETWORK_FAILURE,
   PAGE_LIMIT,
@@ -265,7 +267,7 @@ function CurrencyCard({
 }
 
 /** The employee's own requests, newest first, with a two-step withdrawal. */
-function MyRequests({ revision }: { revision: number }) {
+function MyRequests({ revision, handedOff }: { revision: number; handedOff: ReadonlySet<string> }) {
   const { t, i18n } = useTranslation();
   const { core } = useApi();
   const ids = useId();
@@ -403,7 +405,7 @@ function MyRequests({ revision }: { revision: number }) {
                     <RequestStatus status={item.status} />
                   </td>
                   <td>
-                    {withdrawable(item.status) &&
+                    {withdrawable(item.status, handedOff.has(item.requestId)) &&
                       (confirming === item.requestId ? (
                         <span className="dialog-actions">
                           <button
@@ -472,6 +474,26 @@ export function MySalaryAdvancePage() {
   const ids = useId();
   const [load, setLoad] = useState<Load<SalaryAdvanceEligibilityView>>({ kind: 'loading' });
   const [revision, setRevision] = useState(0);
+  const { handoffs } = useMyHandoffs(revision);
+  const [requests, setRequests] = useState<SalaryAdvanceRequestSummary[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void core
+      .GET('/me/salary-advance-requests', {
+        params: { query: { limit: PAGE_LIMIT } },
+        cache: 'no-store',
+      })
+      .then(
+        ({ data }) => {
+          if (active && data) setRequests(data.items);
+        },
+        () => undefined,
+      );
+    return () => {
+      active = false;
+    };
+  }, [core, revision]);
 
   useEffect(() => {
     let active = true;
@@ -519,7 +541,23 @@ export function MySalaryAdvancePage() {
             }}
           />
         ))}
-      <MyRequests revision={revision} />
+      <MyRequests
+        revision={revision}
+        handedOff={
+          new Set(
+            (handoffs ?? [])
+              .filter((item) => handoffLive(item.state))
+              .map((item) => item.requestId),
+          )
+        }
+      />
+      <MyHandoffs
+        requests={requests}
+        handoffs={handoffs ?? []}
+        onChanged={() => {
+          setRevision((value) => value + 1);
+        }}
+      />
     </section>
   );
 }

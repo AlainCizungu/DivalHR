@@ -296,11 +296,21 @@ services:
       DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_HOST: payments.hooks.test
       DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_PORT: '8443'
       DIVALHR_PAYMENT_SYNTHETIC_PROVIDER_CA_FILE: /run/payment-provider-tls/ca.pem
+      # MVP-120B (ADR 0042): the partner handoff and callback signing keys are the files
+      # secrets/core/DIVALHR_PARTNER_HANDOFF_SIGNING_KEY and DIVALHR_PARTNER_CALLBACK_SIGNING_KEY
+      # (configtree), never environment values. TEST ENVIRONMENT ONLY: the synthetic partner
+      # receiver below is the single partner profile (SYNTHETIC-TEST); no real lender, bank or
+      # bureau endpoint exists. Core refuses the synthetic profile outside development and test.
+      DIVALHR_PARTNER_SYNTHETIC_ENABLED: 'true'
+      DIVALHR_PARTNER_SYNTHETIC_HOST: partners.hooks.test
+      DIVALHR_PARTNER_SYNTHETIC_PORT: '8444'
+      DIVALHR_PARTNER_SYNTHETIC_CA_FILE: /run/partner-receiver-tls/ca.pem
     volumes:
       - ${HR_DEV_DATA:?}/secrets/core:/run/secrets/core:ro
       - ${HR_DEV_DATA:?}/webhook-receiver:/run/webhook-tls:ro
       - ${HR_DEV_DATA:?}/meta-provider:/run/meta-provider-tls:ro
       - ${HR_DEV_DATA:?}/payment-provider:/run/payment-provider-tls:ro
+      - ${HR_DEV_DATA:?}/partner-receiver:/run/partner-receiver-tls:ro
     networks: [app, core-data, hooks]
     deploy:
       resources:
@@ -316,6 +326,8 @@ services:
       meta-provider:
         condition: service_healthy
       payment-provider:
+        condition: service_healthy
+      partner-receiver:
         condition: service_healthy
 
   # MVP-110: a CONTROLLED SYNTHETIC HTTPS receiver for live webhook acceptance. It holds in-memory
@@ -401,6 +413,40 @@ services:
         aliases: [payments.hooks.test]
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8099/health']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+  # MVP-120B: a CONTROLLED SYNTHETIC partner receiver (profile SYNTHETIC-TEST). NOT a lender, bank or
+  # credit bureau; no decision and no money exist here. It shares the internal `hooks` network with
+  # Core only (no route out, no published port), verifies handoff signatures with copies of Core's
+  # signing keys (secrets/partner, readable by the container user only), is idempotent by
+  # application id, emits signed review-status callbacks to Core's callback door and keeps
+  # application metadata only (never amounts, consent details or signatures). Operators drive it
+  # with `docker compose exec` (docs/OPS-HR-DEV.md).
+  partner-receiver:
+    <<: *service
+    image: ${HR_DEV_IMAGE_PREFIX:-divalhr-test}/partner-receiver:${HR_DEV_RELEASE:?}
+    build:
+      context: ../docker/partner-receiver
+    environment:
+      PARTNER_HOST: partners.hooks.test
+      PARTNER_SIGNING_KEY_FILE: /run/secrets/partner/handoff-signing-key
+      PARTNER_CALLBACK_KEY_FILE: /run/secrets/partner/callback-signing-key
+      PARTNER_CALLBACK_URL: http://core-api:8080/api/v1/public/partners/synthetic-test/callbacks
+    volumes:
+      - ${HR_DEV_DATA:?}/partner-receiver:/shared
+      - ${HR_DEV_DATA:?}/secrets/partner:/run/secrets/partner:ro
+    networks:
+      hooks:
+        aliases: [partners.hooks.test]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8098/health']
       interval: 10s
       timeout: 3s
       retries: 12

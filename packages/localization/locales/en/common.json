@@ -65,7 +65,8 @@
     "salaryAdvanceRequests": "Salary-advance requests",
     "accountingMappings": "Accounting mappings",
     "myPayslips": "My payslips",
-    "myPaymentDestination": "My payment destination"
+    "myPaymentDestination": "My payment destination",
+    "salaryAdvanceHandoffs": "Partner handoffs"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -313,6 +314,10 @@
           "payrollRuns": {
             "title": "Monthly payroll runs",
             "description": "Create draft runs for a closed month with contractual gross from monthly compensation, and read the frozen evidence. A draft, not statutory payroll."
+          },
+          "salaryAdvanceHandoff": {
+            "title": "Salary-advance requests and a test handoff",
+            "description": "Record employer participation policies, confirm or refuse employee requests, and follow a controlled handoff to a synthetic test partner. DivalHR is not the lender, no real partner is connected, nothing is decided or paid out, and nothing is deducted."
           }
         }
       }
@@ -333,7 +338,8 @@
         "expenses": "Record expenses in CDF or USD with a receipt, submit them to your manager and follow each decision. Approval is not payment.",
         "compensationTitle": "My compensation",
         "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment.",
-        "payslips": "Read your payslips and download them as PDF in English or French. A payslip is not proof of payment."
+        "payslips": "Read your payslips and download them as PDF in English or French. A payslip is not proof of payment.",
+        "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner. DivalHR is not the lender; nothing is decided or paid out."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -772,7 +778,20 @@
     "SALARY_ADVANCE_REQUEST_NOT_FOUND": "This salary-advance request was not found.",
     "SALARY_ADVANCE_VERSION_CONFLICT": "This request changed since you opened it. Reload and try again.",
     "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current status.",
-    "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN": "You cannot review a request that you submitted yourself."
+    "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN": "You cannot review a request that you submitted yourself.",
+    "SALARY_ADVANCE_HANDOFF_NOT_FOUND": "This partner handoff was not found.",
+    "SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED": "Your employer must confirm participation in this request before it can be handed to the test partner.",
+    "SALARY_ADVANCE_REQUEST_TERMINAL": "This request was withdrawn or refused and can no longer be handed over.",
+    "SALARY_ADVANCE_HANDOFF_EXISTS": "This request already has a partner handoff.",
+    "SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED": "You must read and affirm the handoff consent before authorizing.",
+    "SALARY_ADVANCE_HANDOFF_CONSENT_STALE": "The handoff consent has changed. Review the current version and affirm it again.",
+    "SALARY_ADVANCE_HANDOFF_PREVIEW_STALE": "The preview is out of date. Preview again before authorizing.",
+    "SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED": "This action is not allowed in the current handoff status.",
+    "SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT": "This handoff changed since you opened it. Reload and try again.",
+    "SALARY_ADVANCE_PARTNER_UNAVAILABLE": "The test partner is not available right now. Try again later.",
+    "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN": "The delivery outcome is still unknown. It was not sent again.",
+    "SALARY_ADVANCE_PARTNER_NOT_ENABLED": "The controlled test partner is not enabled in this environment.",
+    "PARTNER_CALLBACK_INVALID": "The callback was rejected."
   },
   "notFound": {
     "title": "Page not found",
@@ -3069,7 +3088,8 @@
         },
         "loans": {
           "title": "Loans & Salary Advances",
-          "description": "Responsible employee credit from approved partners, repaid through payroll."
+          "description": "Responsible employee credit from approved partners, repaid through payroll.",
+          "foundation": "Employer-confirmed salary-advance requests with the employee’s consent, and a controlled test handoff to a synthetic partner. DivalHR is not the lender, no real partner or institution is connected, nothing is decided or paid out, and nothing is deducted from pay."
         },
         "benefits": {
           "title": "Benefits & Insurance",
@@ -3162,11 +3182,12 @@
         "statutory": "DRC statutory country pack (awaiting professional verification)",
         "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and direct accounting posting",
         "disbursement": "Sending real payments to banks and mobile-money providers, settlement and payment confirmation",
-        "advances": "Salary advances and partner loans",
+        "advances": "Salary advances and partner loans with real, licensed partners (today only employer-confirmed requests and a controlled test handoff to a synthetic partner exist)",
         "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
       },
       "capabilities": "Capabilities available",
-      "remainingLabel": "Not yet available:"
+      "remainingLabel": "Not yet available:",
+      "foundationLabel": "Available foundation"
     },
     "payroll": {
       "kicker": "From approved time to payroll preparation",
@@ -3311,6 +3332,33 @@
     "footer": {
       "tagline": "Workforce technology for Africa.",
       "copyright": "© 2026 DivalHR · A Dival AI company"
+    },
+    "partners": {
+      "kicker": "Financial Partner Program",
+      "title": "Financial Partner Program",
+      "body": "DivalHR is not a lender. We are shaping a program for licensed financial institutions that want to serve employees through their employer, with the employee’s consent. Today no real financial partner is connected: the controlled handoff runs against a synthetic test partner only.",
+      "points": {
+        "consent": {
+          "title": "Consent first",
+          "description": "An employee sees exactly what would be sent and agrees before anything leaves DivalHR."
+        },
+        "minimal": {
+          "title": "Minimal, closed data",
+          "description": "Only a short, fixed set of facts is sent. Names, contact details, identity numbers and payslips are never part of it."
+        },
+        "employer": {
+          "title": "Employer confirmed",
+          "description": "A request is sent only after the employer has confirmed its participation."
+        },
+        "synthetic": {
+          "title": "Synthetic today",
+          "description": "Every handoff today goes to a test partner. No decision, payout or deduction follows from it."
+        }
+      },
+      "cta": "Become a financial partner",
+      "ctaNote": "Write to us; there is no form, upload or partner portal yet.",
+      "mailSubject": "Financial partner enquiry",
+      "mailBody": "Hello DivalHR,\n\nWe would like to talk about the Financial Partner Program.\n\nInstitution name:\nCountry:\nType of institution:\nRegulator and licence status:\nContact name and role:\nWhat we would like to offer employees:\n\nThank you."
     }
   },
   "leaveSubstitutes": {
@@ -5825,8 +5873,8 @@
       "purpose": "I agree that DivalHR may share the information listed below, once, so that a regulated partner approved by DivalHR in the future can evaluate my request. In this step nothing is shared with anyone outside DivalHR and your employer.",
       "shared": "What would be shared",
       "notShared": "What is never shared",
-      "external": "No information leaves DivalHR and your employer in this step.",
-      "withdrawal": "You can withdraw your request before any external handoff.",
+      "external": "Sending this request shares nothing outside DivalHR and your employer. Sharing anything with a financial partner is a separate step that you authorize later, only after your employer confirms.",
+      "withdrawal": "You can withdraw your request until a financial partner has received it.",
       "retention": "No deletion schedule exists yet for this record.",
       "affirm": "I have read this and I agree.",
       "sharedItem": {
@@ -5953,6 +6001,144 @@
       "back": "Back",
       "choose": "Choose a reason",
       "reasonRequired": "Choose a reason."
+    },
+    "handoff": {
+      "notice": "This is a controlled test with a synthetic partner. No real lender, bank or institution takes part, nothing is decided or paid out, and nothing is deducted from your salary.",
+      "title": "Send to the partner (test)",
+      "intro": "Once your employer has confirmed a request, you can choose to send it once to the synthetic test partner. You decide, and you can read exactly what is sent before you agree.",
+      "candidate": "Employer-confirmed request:",
+      "start": "Review and send to the partner",
+      "reviewTitle": "Review before you send",
+      "affirm": "I have read what is shared and not shared, and I agree to send my request once to the test partner.",
+      "understand": "I understand this is a synthetic test: no real institution receives it and nothing is decided or paid out.",
+      "authorize": "Send my request to the partner",
+      "empty": "You have no request ready to send and no request sent.",
+      "table": "Table of my partner handoffs",
+      "withdraw": "Withdraw before it is sent",
+      "withdrawConfirm": "Withdraw this handoff",
+      "col": {
+        "created": "Created",
+        "delivery": "Delivery",
+        "review": "Partner review"
+      },
+      "state": {
+        "AUTHORIZED": "Authorized",
+        "QUEUED": "Waiting to be sent",
+        "SENDING": "Being sent",
+        "RECEIVED": "Received by the partner",
+        "DELIVERY_UNKNOWN": "Delivery uncertain",
+        "FAILED": "Not delivered",
+        "WITHDRAWN": "Withdrawn"
+      },
+      "stateHelp": {
+        "AUTHORIZED": "You authorized sending this request.",
+        "QUEUED": "It has not been sent yet. You can still withdraw it.",
+        "SENDING": "It is being sent now.",
+        "RECEIVED": "The test partner confirmed it holds the request. It can no longer be withdrawn here and it is never sent again.",
+        "DELIVERY_UNKNOWN": "We could not confirm whether the partner received it. It is not sent again automatically; your administrator will check.",
+        "FAILED": "It could not be delivered. Your administrator can retry it.",
+        "WITHDRAWN": "You withdrew it before it was sent. Nothing was shared."
+      },
+      "review": {
+        "RECEIVED": "Received",
+        "UNDER_REVIEW": "Under review",
+        "MORE_INFORMATION_REQUIRED": "More information required",
+        "DECLINED": "Declined by the partner"
+      },
+      "reviewReason": {
+        "ADDITIONAL_DOCUMENTS": "Additional documents",
+        "CLARIFICATION": "Clarification needed",
+        "PARTNER_POLICY": "Partner policy",
+        "SYNTHETIC_TEST_SCENARIO": "Synthetic test scenario"
+      },
+      "outcome": {
+        "RECEIVED_ACKNOWLEDGED": "Receipt acknowledged",
+        "REJECTED_BY_PARTNER": "Rejected by the partner",
+        "TRANSIENT_NOT_SENT": "Not sent, will retry",
+        "UNKNOWN_TIMEOUT": "No answer in time",
+        "UNKNOWN_BAD_RESPONSE": "Unreadable answer",
+        "UNKNOWN_LEASE_EXPIRED": "Interrupted while sending",
+        "RETRIES_EXHAUSTED": "Retries used up",
+        "WITHDRAWN_BEFORE_RECEIPT": "Withdrawn before receipt",
+        "RECONCILED_RECEIVED": "Confirmed received after a check",
+        "RECONCILED_NOT_RECEIVED": "Confirmed not received after a check",
+        "RECONCILE_INCONCLUSIVE": "Check was inconclusive",
+        "ADMIN_RETRY": "Retry requested by an administrator"
+      },
+      "actor": {
+        "EMPLOYEE": "Employee",
+        "TENANT_ADMIN": "Administrator",
+        "SYSTEM": "System",
+        "PARTNER": "Test partner"
+      },
+      "blocker": {
+        "EMPLOYER_CONFIRMATION_REQUIRED": "Your employer has not confirmed this request yet.",
+        "REQUEST_TERMINAL": "This request is closed.",
+        "HANDOFF_EXISTS": "This request was already handed over.",
+        "PARTNER_NOT_ENABLED": "The test partner is not enabled for your employer.",
+        "PARTNER_UNAVAILABLE": "The test partner is not available right now."
+      },
+      "disclosure": {
+        "purpose": "I agree that DivalHR may send the information listed below, once, to a synthetic test partner so that it can receive my employer-confirmed request. No real institution takes part.",
+        "shared": "What would be sent",
+        "notShared": "What is never sent",
+        "promise": "Sending this request promises nothing: no decision, payout or deduction follows from it.",
+        "withdrawal": "You can withdraw before the partner has received it. After that it cannot be taken back here.",
+        "retention": "No production retention schedule exists for this synthetic record.",
+        "sharedItem": {
+          "APPLICATION_ID": "An opaque application reference",
+          "REQUEST_ID": "The request reference",
+          "EMPLOYER_LEGAL_ENTITY_REFERENCE": "A reference to your employer’s legal entity",
+          "EMPLOYMENT_ACTIVE": "Whether your employment is active",
+          "EMPLOYMENT_START_DATE": "Your employment start date",
+          "PAYROLL_REFERENCE_MONTH": "The month of your payroll reference",
+          "CURRENCY": "The currency",
+          "REQUESTED_AMOUNT": "The amount you requested",
+          "EMPLOYER_POLICY_CEILING": "The employer-policy ceiling",
+          "EMPLOYER_CONFIRMED_STATUS": "That your employer confirmed the request",
+          "CONSENT_VERSION_AND_DIGEST": "The version and fingerprint of this agreement"
+        },
+        "notSharedItem": {
+          "NAME": "Your name",
+          "EMAIL": "Your email address",
+          "PHONE": "Your phone number",
+          "HOME_ADDRESS": "Your home address",
+          "NATIONAL_IDENTIFIER": "Your national identifier",
+          "BANK_OR_MOBILE_MONEY_DESTINATION": "Any bank or mobile-money destination",
+          "FULL_PAYSLIP": "Your full payslip",
+          "HEALTH": "Health information",
+          "LEAVE_DETAIL": "Leave details",
+          "ATTENDANCE_DETAIL": "Attendance details",
+          "PERFORMANCE": "Performance information",
+          "DISCIPLINARY": "Disciplinary information",
+          "DOCUMENTS": "Your documents",
+          "PASSWORD": "Your password",
+          "MFA_DATA": "Your sign-in security data",
+          "UNRELATED_HR_HISTORY": "Unrelated HR history"
+        }
+      },
+      "admin": {
+        "title": "Partner handoffs",
+        "description": "Follow the delivery and the partner’s review status of requests sent to the synthetic test partner, and check an uncertain delivery.",
+        "filter": "Filter by delivery",
+        "empty": "There are no handoffs.",
+        "table": "Partner handoff list",
+        "openContext": "Open the handoff created {{date}}",
+        "detailTitle": "Handoff",
+        "applicationId": "Application reference",
+        "consentLine": "Employee agreement",
+        "attemptCount": "Delivery attempts",
+        "lastOutcome": "Last outcome",
+        "history": "Delivery history",
+        "reviewHistory": "Partner review history",
+        "attempts": "Delivery attempts",
+        "attemptLine": "Attempt {{number}}",
+        "retry": "Retry delivery",
+        "reconcile": "Check with the partner",
+        "retryStatement": "The request will be queued for another bounded delivery attempt. You cannot change the employee’s agreement.",
+        "reconcileStatement": "A signed status check asks the test partner whether it holds this request. Nothing is sent again unless the partner proves it never received it.",
+        "confirmAction": "Confirm"
+      }
     }
   },
   "payrollPackages": {
@@ -6448,7 +6634,10 @@
     "title": "Delivery investigation",
     "description": "Ask the provider what happened to a submission whose delivery is uncertain. This is a status inquiry; the payment instruction is never sent again.",
     "notice": "This inquiry does not resend the payment instruction. Provider acceptance does not mean paid or settled.",
-    "status": { "READY": "Ready to investigate", "BLOCKED": "Blocked" },
+    "status": {
+      "READY": "Ready to investigate",
+      "BLOCKED": "Blocked"
+    },
     "open": "Investigate delivery",
     "reviewHeading": "Review before investigating",
     "previewing": "Reviewing…",

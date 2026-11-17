@@ -93,6 +93,13 @@ elif [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_PAYMENT_SUBMISSION_SIGNING_KEY" ]
   # MVP-095B: an existing environment gains the payment submission signing key (never overwritten).
   hr_log "adding the payment submission signing key"
   "$REL/ops/hr-dev/init-secrets.sh" || hr_die "init-secrets failed"
+elif [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_PARTNER_HANDOFF_SIGNING_KEY" ] \
+  || [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_PARTNER_CALLBACK_SIGNING_KEY" ] \
+  || [ ! -s "$HR_DEV_DATA/secrets/partner/handoff-signing-key" ] \
+  || [ ! -s "$HR_DEV_DATA/secrets/partner/callback-signing-key" ]; then
+  # MVP-120B: an existing environment gains the partner handoff signing keys (never overwritten).
+  hr_log "adding the partner handoff signing keys"
+  "$REL/ops/hr-dev/init-secrets.sh" || hr_die "init-secrets failed"
 elif [ ! -s "$HR_DEV_DATA/secrets/core/DIVALHR_AI_SERVICE_CLIENT_SECRET" ]; then
   # R157-1: an existing environment gains the AI client secret. init-secrets.sh never overwrites
   # a file, so only the missing values are created.
@@ -155,7 +162,7 @@ fi
 # shellcheck disable=SC2010,SC2012
 ls -1t "$HR_DEV_DATA/releases" | grep -E '^[0-9a-f]{40}$' | tail -n +"$((HR_DEV_KEEP_RELEASES + 1))" | while read -r old; do
   if [ "$old" = "$(hr_current_release)" ] || [ "$old" = "$(hr_previous_release)" ]; then continue; fi
-  for svc in keycloak core-api ai-service web webhook-receiver meta-provider payment-provider; do
+  for svc in keycloak core-api ai-service web webhook-receiver meta-provider payment-provider partner-receiver; do
     docker image rm "$HR_DEV_IMAGE_PREFIX/$svc:$old" >/dev/null 2>&1 || true
   done
   rm -rf "${HR_DEV_DATA:?}/releases/$old"
