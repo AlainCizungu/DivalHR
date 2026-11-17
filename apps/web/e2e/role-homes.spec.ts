@@ -154,7 +154,7 @@ test.describe('organization administrator home', () => {
     await expect(page.locator('main a[href^="/me/"]')).toHaveCount(0);
     // U4-3: the progress panel is static text with no control; the roadmap names what comes next.
     const progress = page.getByTestId('home-progress');
-    await expect(progress.getByRole('listitem')).toHaveCount(7);
+    await expect(progress.getByRole('listitem')).toHaveCount(8);
     await expect(progress).toContainText('Monthly compensation records');
     await expect(progress).toContainText('Payroll preparation, locking and export');
     await expect(progress.locator('a, button')).toHaveCount(0);

@@ -157,7 +157,12 @@ public class JdbcSalaryAdvanceHandoffRepository {
       String keyVersion,
       Instant authorizedAt,
       String authorizedBy,
-      Instant nextAttemptAt) {}
+      Instant nextAttemptAt) {
+    /** Keeps an immutable copy of the shared categories. */
+    public NewHandoff {
+      sharedCategories = List.copyOf(sharedCategories);
+    }
+  }
 
   /**
    * The mutable columns after a transition.

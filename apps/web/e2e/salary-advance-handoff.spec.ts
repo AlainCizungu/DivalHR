@@ -550,6 +550,16 @@ async function listHandoffs(page: Page, bearer: () => string, path: string) {
   return ((await response.json()) as { items: HandoffItem[] }).items;
 }
 
+/** The opaque application id of a handoff, as only the administrator's view carries it. */
+async function applicationOf(page: Page, bearer: () => string, handoffId: string): Promise<string> {
+  const item = (await listHandoffs(page, bearer, '/salary-advance-handoffs')).find(
+    (row) => row.handoffId === handoffId,
+  );
+  const id = item?.applicationId ?? '';
+  expect(id).toMatch(/^[0-9a-f-]{36}$/u);
+  return id;
+}
+
 /** The employee's own handoff of a request, polled until a condition holds (no fixed sleep). */
 async function waitForMine(
   page: Page,
@@ -755,7 +765,9 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
       requestId,
       (item) => item.state === 'RECEIVED',
     );
-    const applicationId = mine.applicationId as string;
+    // The opaque application id is administrator-only: the employee's own view never carries it.
+    expect(mine.applicationId ?? null).toBeNull();
+    const applicationId = await applicationOf(admin, adminBearer, mine.handoffId);
     expect(applicationId).toMatch(/^[0-9a-f-]{36}$/u);
     expect(await receivedBy(admin, applicationId)).toBe(1);
 
@@ -876,7 +888,7 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     expect((await listHandoffs(clo, cloBearer, '/me/salary-advance-handoffs'))[0]?.state).toBe(
       'WITHDRAWN',
     );
-    expect(waiting.applicationId).not.toBeNull();
+    expect(waiting.requestId).toBe(cloRequest);
     await expectNoLendingClaim(clo);
     await expectNothingLeaks(clo, AMOUNT);
     await noOverflow(clo);
@@ -908,7 +920,8 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
       denRequest,
       (item) => item.state === 'DELIVERY_UNKNOWN',
     );
-    const applicationId = unknown.applicationId as string;
+    expect(unknown.applicationId ?? null).toBeNull();
+    const applicationId = await applicationOf(admin, adminBearer, unknown.handoffId);
     expect(await receivedBy(admin, applicationId)).toBe(1);
     await revisit(den, 'Mes congés', 'Avance sur salaire');
     const unknownRow = den.getByTestId('handoff-row');

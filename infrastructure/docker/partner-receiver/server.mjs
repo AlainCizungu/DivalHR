@@ -91,7 +91,13 @@ const callbackKey = () => trimmedKey('PARTNER_CALLBACK_KEY', CALLBACK_KEY_FILE);
 function mac(key, domain, id, body, timestamp) {
   const h = createHmac('sha256', key).update(domain + '\n');
   if (timestamp !== undefined) h.update(String(timestamp) + '\n');
-  return 'v1=' + h.update(id + '\n').update(body).digest('hex');
+  return (
+    'v1=' +
+    h
+      .update(id + '\n')
+      .update(body)
+      .digest('hex')
+  );
 }
 
 function equal(expected, presented) {
@@ -208,13 +214,19 @@ async function handleDelivery(request, response) {
     parsed = JSON.parse(body.toString('utf8'));
   } catch {
     record.outcome = 'REJECTED_INVALID_REQUEST';
-    return signedAnswer(response, 400, applicationId, { result: 'REJECTED', code: 'INVALID_REQUEST' });
+    return signedAnswer(response, 400, applicationId, {
+      result: 'REJECTED',
+      code: 'INVALID_REQUEST',
+    });
   }
   const checks = inspect(applicationId, parsed);
   record.schemaOk = checks.schemaOk;
   if (!checks.schemaOk) {
     record.outcome = 'REJECTED_INVALID_REQUEST';
-    return signedAnswer(response, 400, applicationId, { result: 'REJECTED', code: 'INVALID_REQUEST' });
+    return signedAnswer(response, 400, applicationId, {
+      result: 'REJECTED',
+      code: 'INVALID_REQUEST',
+    });
   }
   const digest = createHash('sha256').update(body).digest('hex');
   const known = state.applications.get(applicationId);

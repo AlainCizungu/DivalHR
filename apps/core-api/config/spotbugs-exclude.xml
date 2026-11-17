@@ -281,4 +281,20 @@
       <Class name="com.divalhr.core.payroll.application.PaymentSubmissionProperties$Synthetic"/>
     </Or>
   </Match>
+  <!-- MVP-120B: the partner gateway seams are an immutable record of functional collaborators (tests
+       substitute them), the synthetic networks are an immutable list built in the constructor, and
+       the handoff repository record copies its shared categories to an immutable list. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Or>
+      <Class name="com.divalhr.core.payroll.internal.HttpsSalaryAdvancePartnerGateway$Hooks"/>
+      <Class name="com.divalhr.core.payroll.application.SalaryAdvancePartnerProperties$Synthetic"/>
+      <Class name="com.divalhr.core.payroll.internal.JdbcSalaryAdvanceHandoffRepository$NewHandoff"/>
+    </Or>
+  </Match>
+  <!-- The partner test gateway records the bytes it was asked to send, for assertions. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.support\.FakeSalaryAdvancePartnerGateway\$.*"/>
+  </Match>
 </FindBugsFilter>

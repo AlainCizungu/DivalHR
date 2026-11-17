@@ -1265,7 +1265,10 @@ test('MVP-120B: the partner keys are protected files, the synthetic partner is i
   assert.match(receiver, /networks:\n {6}hooks:\n {8}aliases: \[partners\.hooks\.test\]/);
   assert.doesNotMatch(receiver, /ports:/);
   assert.match(receiver, /PARTNER_SIGNING_KEY_FILE: \/run\/secrets\/partner\/handoff-signing-key/);
-  assert.match(receiver, /PARTNER_CALLBACK_KEY_FILE: \/run\/secrets\/partner\/callback-signing-key/);
+  assert.match(
+    receiver,
+    /PARTNER_CALLBACK_KEY_FILE: \/run\/secrets\/partner\/callback-signing-key/,
+  );
   assert.match(live, /DIVALHR_PARTNER_SYNTHETIC_HOST: partners\.hooks\.test/);
   assert.match(live, /DIVALHR_PARTNER_SYNTHETIC_PORT: '8444'/);
 });
