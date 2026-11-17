@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { CORE_API, USERS, expectAccessible, primaryNav, signIn, subjectLock } from './support';
+import { acquireStatutoryPackLock } from './statutory-pack-lock';
 import { createSyntheticDraftPack } from './synthetic-rule-pack';
 
 // MVP-097A (Issue #200, ADR 0040): exactly two journeys, with synthetic data only. The synthetic
@@ -125,6 +126,7 @@ const state = (page: Page) => page.getByTestId('statutory-pack-state');
 
 let releaseAdmin: () => void = () => undefined;
 let releaseReviewer: () => void = () => undefined;
+let releaseStatutory: () => void = () => undefined;
 let scheduledPack = '';
 
 test.describe.serial('MVP-097A: governed statutory pack lifecycle', () => {
@@ -132,12 +134,16 @@ test.describe.serial('MVP-097A: governed statutory pack lifecycle', () => {
     test.setTimeout(600_000);
     releaseAdmin = await subjectLock(USERS.platformAdmin[0]);
     releaseReviewer = await subjectLock(USERS.platformReviewer[0]);
+    // R207-3: the packs below stay SCHEDULED for both journeys, and creating a verified pack in
+    // another spec retires every scheduled one. Nobody creates one while this describe runs.
+    releaseStatutory = await acquireStatutoryPackLock();
     createSyntheticDraftPack(PACK_A);
     createSyntheticDraftPack(PACK_B);
     createSyntheticDraftPack(PACK_C, false);
   });
 
   test.afterAll(() => {
+    releaseStatutory();
     releaseAdmin();
     releaseReviewer();
   });

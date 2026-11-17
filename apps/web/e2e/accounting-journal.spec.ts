@@ -707,7 +707,7 @@ test.describe.serial('MVP-096: accounting mappings and the accounting journal ex
     for (const entity of [ENTITY_EN, ENTITY_FR]) await recordPolicy(page, bearer, entity);
     for (const entity of [ENTITY_EN, ENTITY_FR]) await createRun(page, bearer, entity);
     for (const p of people) await recordProfile(page, bearer, p);
-    const packId = createSyntheticVerifiedPack(PACK_CODE);
+    const packId = await createSyntheticVerifiedPack(PACK_CODE);
     for (const entity of [ENTITY_EN, ENTITY_FR]) await calculate(page, bearer, entity, packId);
     packageEn = await approveViaApi(page, bearer, ENTITY_EN);
     packageFr = await approveViaApi(page, bearer, ENTITY_FR);

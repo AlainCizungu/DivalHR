@@ -574,7 +574,7 @@ test.describe.serial('MVP-094C: payroll approval and bilingual payslips', () => 
     }
     for (const p of people) await recordProfile(page, bearer, p);
     // The clearly synthetic VERIFIED pack exists in the database only (no API can verify a pack).
-    packId = createSyntheticVerifiedPack(PACK_CODE);
+    packId = await createSyntheticVerifiedPack(PACK_CODE);
     for (const entity of [EN_ENTITY, FR_ENTITY]) await calculate(page, bearer, entity, packId);
     // The French legal entity's payroll is approved here, through the public endpoints, for the
     // employee journey; the English one is approved through the page in journey 1.

@@ -682,7 +682,7 @@ test.describe.serial('MVP-095B: provider submission of a payment batch', () => {
       expect(p.employee).not.toBe('');
       await establish(page, bearer, p, '800000');
     }
-    packId = createSyntheticVerifiedPack(PACK_CODE);
+    packId = await createSyntheticVerifiedPack(PACK_CODE);
     for (const entity of entities) await recordPolicy(page, bearer, entity);
     for (const entity of entities) await createRun(page, bearer, entity);
     for (const p of people) await recordProfile(page, bearer, p);

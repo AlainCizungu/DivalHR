@@ -707,7 +707,7 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     }
     for (const p of people) await recordProfile(page, bearer, p);
     // The clearly synthetic VERIFIED pack exists in the database only (no API can verify a pack).
-    packId = createSyntheticVerifiedPack(PACK_CODE);
+    packId = await createSyntheticVerifiedPack(PACK_CODE);
     for (const entity of [EN_ENTITY, FR_ENTITY]) await calculate(page, bearer, entity, packId);
     await approveViaApi(page, bearer, EN_ENTITY);
     await approveViaApi(page, bearer, FR_ENTITY);
