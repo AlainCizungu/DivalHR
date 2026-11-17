@@ -9,7 +9,10 @@ import java.util.UUID;
  * message, never follows a redirect, never returns arbitrary partner text and keeps the stable
  * application id as the partner idempotency key. Only the closed outcomes {@code
  * RECEIVED_ACKNOWLEDGED}, {@code REJECTED_BY_PARTNER}, {@code TRANSIENT_NOT_SENT}, {@code
- * UNKNOWN_TIMEOUT} and {@code UNKNOWN_BAD_RESPONSE} are ever returned from a delivery.
+ * UNKNOWN_TIMEOUT} and {@code UNKNOWN_BAD_RESPONSE} are ever returned from a delivery. {@code
+ * TRANSIENT_NOT_SENT} means no request byte was written; every response, including an unsigned 429
+ * or 5xx, and every failure after the write is unknown and is never resent without a signed {@code
+ * NOT_RECEIVED} inquiry.
  */
 public interface SalaryAdvancePartnerGateway {
 

@@ -55,12 +55,15 @@ import tools.jackson.databind.json.JsonMapper;
  * most {@link #MAX_BODY_BYTES} of response body. Tenants and employees supply no URL, header or
  * credential.
  *
- * <p>Outcome classification is fail-closed for disclosure: a failure <em>before</em> any request
- * byte was written is {@code TRANSIENT_NOT_SENT} and retryable; a failure after the request was
- * written, a response that cannot be authenticated with the delivery key, an oversized or malformed
- * response, or any 2xx without a valid acknowledgement is {@code UNKNOWN_*} and is never resent.
- * Neither the request body, the signature, a response body nor a reference is logged; the adapter
- * does not log at all.
+ * <p>Outcome classification is fail-closed for disclosure: only a failure <em>before</em> any
+ * request byte was written (refused address, DNS, connect or TLS failure) is {@code
+ * TRANSIENT_NOT_SENT} and retryable. Once the request was written, the partner may have kept the
+ * application whatever it then answered: a 429 or 5xx (which no partner signs), a failure after the
+ * write, a response that cannot be authenticated with the delivery key, an oversized or malformed
+ * response, or any 2xx without a valid acknowledgement is {@code UNKNOWN_*} and is never resent
+ * automatically. A resend is only ever permitted after a signed, application-bound {@code
+ * NOT_RECEIVED} inquiry answer (the administrator's reconcile). Neither the request body, the
+ * signature, a response body nor a reference is logged; the adapter does not log at all.
  */
 @Component
 public final class HttpsSalaryAdvancePartnerGateway implements SalaryAdvancePartnerGateway {
@@ -80,8 +83,6 @@ public final class HttpsSalaryAdvancePartnerGateway implements SalaryAdvancePart
   enum Failure {
     TRANSIENT_CONNECT,
     TRANSIENT_TLS,
-    TRANSIENT_RATE_LIMITED,
-    TRANSIENT_SERVER,
     UNKNOWN_TIMEOUT,
     UNKNOWN_CONNECTION_LOST,
     UNKNOWN_BAD_RESPONSE,
@@ -345,8 +346,7 @@ public final class HttpsSalaryAdvancePartnerGateway implements SalaryAdvancePart
   /** Maps an internal stop to the closed delivery outcome. */
   private static SalaryAdvanceHandoffOutcome delivery(Failure stop) {
     return switch (stop) {
-      case TRANSIENT_CONNECT, TRANSIENT_TLS, TRANSIENT_RATE_LIMITED, TRANSIENT_SERVER ->
-          SalaryAdvanceHandoffOutcome.TRANSIENT_NOT_SENT;
+      case TRANSIENT_CONNECT, TRANSIENT_TLS -> SalaryAdvanceHandoffOutcome.TRANSIENT_NOT_SENT;
       case UNKNOWN_TIMEOUT, UNKNOWN_CONNECTION_LOST -> SalaryAdvanceHandoffOutcome.UNKNOWN_TIMEOUT;
       case UNKNOWN_BAD_RESPONSE, ACKNOWLEDGED, REJECTED ->
           SalaryAdvanceHandoffOutcome.UNKNOWN_BAD_RESPONSE;
@@ -628,9 +628,11 @@ public final class HttpsSalaryAdvancePartnerGateway implements SalaryAdvancePart
    */
   private Result classify(UUID applicationId, Response response) {
     int status = response.status();
-    // 429 and 5xx carry no authenticated decision: the receiver did not accept anything.
+    // 429 and 5xx carry no authenticated decision, and the request was already written: the
+    // partner may have stored the application before it answered. Never TRANSIENT_NOT_SENT, never
+    // resent automatically; only a signed NOT_RECEIVED inquiry permits a resend.
     if (status == 429 || status >= 500) {
-      return new Result(SalaryAdvanceHandoffOutcome.TRANSIENT_NOT_SENT, null);
+      return new Result(SalaryAdvanceHandoffOutcome.UNKNOWN_BAD_RESPONSE, null);
     }
     boolean accepted = status >= 200 && status <= 299;
     boolean rejected = status == 400 || status == 409 || status == 422;

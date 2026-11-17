@@ -826,9 +826,10 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     const adminBearer = await signIn(admin, USERS.adminB, 'fr');
     await control(admin, 'reset');
 
-    // 1. Refusal of consent and withdrawal. One 503 before anything is kept leaves the handoff
-    //    waiting for its retry, which is when the employee may still withdraw it.
-    await control(admin, 'scenario', { scenario: 'server-error-once' });
+    // 1. Refusal of consent and withdrawal. One connection closed before any byte is written is the
+    //    only failure the sender retries by itself: the handoff waits for its retry, which is when
+    //    the employee may still withdraw it. (A 429 or 5xx is never a retry: see part 2.)
+    await control(admin, 'scenario', { scenario: 'refuse-connection-once' });
     const cloContext = await browser.newContext({ locale: 'fr-FR' });
     const clo = await cloContext.newPage();
     const cloBearer = await signIn(clo, [CLO.email, CLO.password], 'fr', undefined);
@@ -915,9 +916,11 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     });
     expect(denied.status()).toBe(403);
 
-    // 2. Uncertain delivery: the partner keeps the application and never answers.
+    // 2. Uncertain delivery: the partner keeps the application and then answers an unsigned 503.
+    //    The request was already written, so the sender cannot tell this from a refusal that kept
+    //    nothing: the handoff is DELIVERY_UNKNOWN and is never resent without a signed proof.
     await control(admin, 'reset');
-    await control(admin, 'scenario', { scenario: 'silent-stored' });
+    await control(admin, 'scenario', { scenario: 'stored-then-503' });
     const denContext = await browser.newContext({ locale: 'fr-FR' });
     const den = await denContext.newPage();
     const denBearer = await signIn(den, [DEN.email, DEN.password], 'fr', undefined);

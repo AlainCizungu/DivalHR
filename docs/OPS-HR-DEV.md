@@ -440,10 +440,12 @@ in the repository, seeds or this host. DivalHR is not the lender; the receiver d
 - **Observing the receiver (test data only).** `docker compose exec partner-receiver wget -qO-
   http://127.0.0.1:8098/control/received` lists metadata only (application id, flags, outcome code); it
   never holds amounts, consent details or signatures. `POST /control/scenario` (`accept`, `reject`,
-  `silent-stored`, `silent-not-stored`, `server-error-once`, `rate-limit-once`),
+  `silent-stored`, `silent-not-stored`, `server-error-once`, `rate-limit-once`, `stored-then-503`),
   `POST /control/inquiry-scenario` (`truth`, `inconclusive`, `timeout`), `POST /control/callback`
   (signed review status) and `POST /control/reset` drive acceptance runs. A requested amount ending in
-  77 or 78 minor units behaves as `silent-stored` or `silent-not-stored`.
+  77 or 78 minor units behaves as `silent-stored` or `silent-not-stored`. A 429 or 5xx is never retried
+  by the sender: the handoff becomes `DELIVERY_UNKNOWN` and only the administrator's reconcile after a signed
+  `NOT_RECEIVED` answer queues it again.
 - **Worker.** One scheduler in Core claims at most 8 due handoffs per cycle with `SKIP LOCKED` and a
   2-minute lease. A crash after claim, a timeout after the write or an unauthenticated answer becomes
   `DELIVERY_UNKNOWN` and is never resent automatically. Only an administrator's signed inquiry that

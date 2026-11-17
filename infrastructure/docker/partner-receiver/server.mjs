@@ -32,8 +32,17 @@ const TIMESTAMP = /^[0-9]{10}$/u;
 //   silent-stored     keep the application and never answer (the ambiguous timeout; an inquiry
 //                     later proves it was received)
 //   silent-not-stored never keep it and never answer (an inquiry later proves it was not received)
-//   server-error-once one 503 before anything is kept, then accept
-//   rate-limit-once   one 429 before anything is kept, then accept
+//   server-error-once one unsigned 503 before anything is kept, then accept
+//   rate-limit-once   one unsigned 429 before anything is kept, then accept
+//   stored-then-503   keep the application, then answer an unsigned 503 (a later inquiry proves it
+//                     was received)
+//   refuse-connection-once
+//                     close the next TCP connection before the TLS handshake, then accept: nothing
+//                     was written, so this is the one failure the sender retries by itself
+// The sender never retries a 429 or 5xx by itself: the request was already written, so the
+// handoff becomes DELIVERY_UNKNOWN. Only an administrator's reconcile may resend it, and only after
+// this receiver answers a signed NOT_RECEIVED for the application (the two "once" scenarios), never
+// after RECEIVED (stored-then-503) or an inconclusive answer.
 // A requested amount whose minor units end in 77 behaves as silent-stored and ending in 78 as
 // silent-not-stored, so one browser journey can exercise the ambiguous path without a control call.
 const SCENARIOS = new Set([
@@ -43,6 +52,8 @@ const SCENARIOS = new Set([
   'silent-not-stored',
   'server-error-once',
   'rate-limit-once',
+  'stored-then-503',
+  'refuse-connection-once',
 ]);
 const INQUIRY_SCENARIOS = new Set(['truth', 'inconclusive', 'timeout']);
 const REVIEW_STATES = new Set(['UNDER_REVIEW', 'MORE_INFORMATION_REQUIRED', 'DECLINED']);
@@ -259,6 +270,17 @@ async function handleDelivery(request, response) {
     record.outcome = 'RATE_LIMITED_ONCE';
     return refuse(response, 429, { 'Retry-After': '1' });
   }
+  if (scenario === 'stored-then-503') {
+    // Kept first, then refused: the sender cannot tell this from server-error-once.
+    state.applications.set(applicationId, {
+      digest,
+      status: 200,
+      value: { result: 'RECEIVED', reference: reference(applicationId) },
+      outcome: 'RECEIVED',
+    });
+    record.outcome = 'STORED_THEN_503';
+    return refuse(response, 503);
+  }
   if (scenario === 'silent-not-stored') {
     record.outcome = 'SILENT_NOT_STORED';
     return; // never kept, never answered: the caller times out
@@ -351,6 +373,14 @@ const receiver = createHttpsServer(
       : handleInquiry(request, response);
   },
 );
+
+// A closed connection before the handshake: the sender wrote nothing, so it may retry by itself.
+receiver.on('connection', (socket) => {
+  if (state.scenario === 'refuse-connection-once' && !state.onceUsed) {
+    state.onceUsed = true;
+    socket.destroy();
+  }
+});
 
 /** Emits one signed review-status callback to Core; returns only the HTTP status. */
 async function emitCallback(parsed) {

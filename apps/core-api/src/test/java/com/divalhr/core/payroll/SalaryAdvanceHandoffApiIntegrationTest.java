@@ -538,6 +538,72 @@ class SalaryAdvanceHandoffApiIntegrationTest {
   }
 
   @Test
+  void aTooManyRequestsOrServerErrorAnswerIsNeverRetriedAndOnlyASignedNotReceivedRequeuesIt()
+      throws Exception {
+    // The adapter reports every 429 and 5xx as UNKNOWN_BAD_RESPONSE (the request was already
+    // written, so the partner may hold the application). The worker must treat it as unknown.
+    String id = confirmed("5000").get("requestId").asText();
+    String handoffId = authorized(id).get("handoffId").asText();
+    partner.then(SalaryAdvanceHandoffOutcome.UNKNOWN_BAD_RESPONSE, null);
+    deliver();
+    for (int day = 0; day < 4; day++) {
+      w.advance(86_400);
+      worker.runOnce();
+    }
+    assertThat(partner.calls()).as("never resent by the worker, however long it waits").hasSize(1);
+    JsonNode unknown = adminHandoff(handoffId);
+    assertThat(unknown.get("state").asText()).isEqualTo("DELIVERY_UNKNOWN");
+    assertThat(unknown.get("lastOutcomeCode").asText()).isEqualTo("UNKNOWN_BAD_RESPONSE");
+    assertThat(myHandoff(id).get("state").asText()).isEqualTo("DELIVERY_UNKNOWN");
+
+    // Neither an inconclusive answer nor a missing one allows a resend.
+    partner.thenInquiry(InquiryOutcome.INCONCLUSIVE, null);
+    w.c.problem(
+        reconcile(handoffId, unknown.get("version").asInt()),
+        409,
+        "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN");
+    w.advance(86_400);
+    worker.runOnce();
+    assertThat(partner.calls()).hasSize(1);
+    assertThat(adminHandoff(handoffId).get("state").asText()).isEqualTo("DELIVERY_UNKNOWN");
+
+    // A signed, application-bound NOT_RECEIVED is the only proof that requeues it, once.
+    partner.thenInquiry(InquiryOutcome.NOT_RECEIVED, null);
+    JsonNode queued = w.c.expect(reconcile(handoffId, unknown.get("version").asInt()), 200);
+    assertThat(queued.get("state").asText()).isEqualTo("QUEUED");
+    assertThat(partner.calls()).as("reconcile itself delivers nothing").hasSize(1);
+    deliver();
+    assertThat(partner.calls()).hasSize(2);
+    assertThat(partner.calls().get(1).applicationId())
+        .as("the same application id is reused")
+        .isEqualTo(partner.calls().get(0).applicationId());
+    assertThat(myHandoff(id).get("state").asText()).isEqualTo("RECEIVED");
+    w.advance(86_400);
+    worker.runOnce();
+    assertThat(partner.calls()).as("no resend after the acknowledgement").hasSize(2);
+  }
+
+  @Test
+  void aReceiverThatStoredTheApplicationBeforeA503IsNeverResentOnceItProvesReceipt()
+      throws Exception {
+    String id = confirmed("5000").get("requestId").asText();
+    String handoffId = authorized(id).get("handoffId").asText();
+    partner.then(SalaryAdvanceHandoffOutcome.UNKNOWN_BAD_RESPONSE, null);
+    deliver();
+    JsonNode unknown = adminHandoff(handoffId);
+    assertThat(unknown.get("state").asText()).isEqualTo("DELIVERY_UNKNOWN");
+    partner.thenInquiry(InquiryOutcome.RECEIVED, "SYNTH-STORED-1");
+    JsonNode received = w.c.expect(reconcile(handoffId, unknown.get("version").asInt()), 200);
+    assertThat(received.get("state").asText()).isEqualTo("RECEIVED");
+    for (int day = 0; day < 3; day++) {
+      w.advance(86_400);
+      worker.runOnce();
+    }
+    assertThat(partner.calls()).as("the partner holds it: exactly one delivery").hasSize(1);
+    assertThat(myHandoff(id).get("state").asText()).isEqualTo("RECEIVED");
+  }
+
+  @Test
   void anAdministratorWhoAuthorizedNothingCannotReconcileAReceivedHandoffAndStatesAreGuarded()
       throws Exception {
     String id = confirmed("5000").get("requestId").asText();

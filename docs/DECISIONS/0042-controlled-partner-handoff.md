@@ -96,10 +96,17 @@ transitions: `RECEIVED -> UNDER_REVIEW`, `UNDER_REVIEW -> MORE_INFORMATION_REQUI
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | 2xx with an authenticated acknowledgement echoing the application id and a valid reference           | `RECEIVED`, review `RECEIVED`                     |
 | 400/409/422 with an allow-listed reject code (nothing accepted)                                      | `FAILED` (retry only through the administrator)   |
-| refused address, DNS, connect or TLS failure before any byte was written; 429/5xx response          | back to `QUEUED` with the retry schedule (bounded) |
-| timeout or connection loss after bytes were written; unparsable or oversized response; 2xx without a valid acknowledgement | `DELIVERY_UNKNOWN` (never resent automatically) |
+| refused address, DNS, connect or TLS failure before any byte was written                            | back to `QUEUED` with the retry schedule (bounded) |
+| any 429 or 5xx response (unsigned: no partner signs one); timeout or connection loss after bytes were written; unparsable or oversized response; 2xx without a valid acknowledgement | `DELIVERY_UNKNOWN` (never resent automatically) |
 | lease expired in `SENDING` (worker crash)                                                           | `DELIVERY_UNKNOWN`                                |
 | attempts exhausted (6) after transient failures                                                      | `FAILED` / `RETRIES_EXHAUSTED`                    |
+
+A 429 or 5xx is deliberately **not** a retry signal. The request has already been written, and a partner that stored the
+application and then failed (or throttled) would answer exactly like one that stored nothing, so the sender cannot tell
+the two apart. Only a failure before any byte was written proves nothing was disclosed. Every other answer that is not a
+signed acknowledgement or a signed, allow-listed rejection is `DELIVERY_UNKNOWN`, and the only way back to `QUEUED` is a
+signed, application-bound `NOT_RECEIVED` inquiry answer (reconcile, below). A `RECEIVED` answer ends the handoff as
+`RECEIVED`; an unsigned, wrong-application, malformed, timed-out or `UNKNOWN` answer changes nothing.
 
 The application id never changes and is reused by every attempt. A duplicate application id at the receiver returns the
 original acknowledgement and never a second receipt. **Reconcile** (administrator, exact MFA, `expectedVersion`,
