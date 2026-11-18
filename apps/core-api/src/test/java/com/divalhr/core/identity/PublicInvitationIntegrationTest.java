@@ -12,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.divalhr.core.identity.application.IdentityProviderUnavailableException;
+import com.divalhr.core.identity.application.InvitationAcceptance;
 import com.divalhr.core.identity.application.InvitationJobs;
 import com.divalhr.core.identity.domain.TenantRole;
 import com.divalhr.core.identity.internal.JdbcInvitationRepository;
@@ -20,10 +22,14 @@ import com.divalhr.core.support.Hierarchy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.RecordingInvitationMailer;
 import com.divalhr.core.support.TestTokens;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -614,6 +621,151 @@ class PublicInvitationIntegrationTest {
         .doesNotContain(invited.token())
         .doesNotContain(invited.email())
         .doesNotContain(directory.identities().get(invited.email()).subject());
+  }
+
+  /** Everything one log event can carry as text: message, structured fields and any throwable. */
+  private static String everything(ILoggingEvent event) {
+    StringBuilder text = new StringBuilder(event.getFormattedMessage());
+    event
+        .getKeyValuePairs()
+        .forEach(pair -> text.append(' ').append(pair.key).append('=').append(pair.value));
+    if (event.getThrowableProxy() != null) {
+      text.append(' ').append(event.getThrowableProxy().getMessage());
+    }
+    return text.toString();
+  }
+
+  private static Map<String, Object> fields(ILoggingEvent event) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    event.getKeyValuePairs().forEach(pair -> fields.put(pair.key, pair.value));
+    return fields;
+  }
+
+  @Test
+  void aProviderFailureLogsOnlyAllowListedFieldsKeepsTheGenericAnswerAndReleasesTheLease(
+      CapturedOutput output) throws Exception {
+    // Issue #173 / PR #208: the unexplained 503 is now explained by stage, class, a closed reason
+    // and the elapsed time; the public answer and the lease handling are exactly as before.
+    Invited invited = invited("employee");
+    Logger logger = (Logger) LoggerFactory.getLogger(InvitationAcceptance.class);
+    ListAppender<ILoggingEvent> events = new ListAppender<>();
+    events.start();
+    logger.addAppender(events);
+    try {
+      directory.beforeProvision(
+          () -> {
+            throw new IdentityProviderUnavailableException("status_5xx");
+          });
+      String body =
+          mvc.perform(anonymous("accept", invited.token()))
+              .andExpect(status().isServiceUnavailable())
+              .andExpect(jsonPath("$.code").value("IDENTITY_PROVIDER_UNAVAILABLE"))
+              .andReturn()
+              .getResponse()
+              .getContentAsString();
+      // The same generic problem as before: nothing about the cause reaches the caller.
+      assertThat(body)
+          .doesNotContain("status_5xx")
+          .doesNotContain("IdentityProviderUnavailableException");
+      assertThat(state(invited.id())).isEqualTo("PENDING");
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT acceptance_lease_owner IS NULL AND acceptance_lease_until IS NULL"
+                      + " FROM identity.invitation WHERE id = ?",
+                  Boolean.class,
+                  invited.id()))
+          .isTrue();
+      List<ILoggingEvent> logged =
+          events.list.stream()
+              .filter(e -> "invitation_accept_provisioning_unavailable".equals(e.getMessage()))
+              .toList();
+      assertThat(logged).hasSize(1);
+      assertThat(logged.get(0).getLevel().toString()).isEqualTo("WARN");
+      Map<String, Object> fields = fields(logged.get(0));
+      assertThat(fields.keySet())
+          .containsExactly("operation", "stage", "exceptionClass", "reason", "elapsedMs");
+      assertThat(fields)
+          .containsEntry("operation", "invitation.accept")
+          .containsEntry("stage", "provision")
+          .containsEntry("exceptionClass", "IdentityProviderUnavailableException")
+          .containsEntry("reason", "status_5xx");
+      assertThat(((Number) fields.get("elapsedMs")).longValue()).isGreaterThanOrEqualTo(0L);
+      assertThat(everything(logged.get(0)))
+          .doesNotContain(invited.token())
+          .doesNotContain(invited.email());
+      assertThat(output.getAll()).doesNotContain(invited.token()).doesNotContain(invited.email());
+      // The released lease makes the very same link retryable at once.
+      directory.beforeProvision(() -> {});
+      mvc.perform(anonymous("accept", invited.token())).andExpect(status().isOk());
+      assertThat(state(invited.id())).isEqualTo("ACCEPTED");
+    } finally {
+      logger.detachAppender(events);
+      directory.beforeProvision(() -> {});
+    }
+  }
+
+  @Test
+  void aHostileFailureMessageNeverEntersTheLogsAndIsLoggedAsOther(CapturedOutput output)
+      throws Exception {
+    String hostile =
+        "Bearer eyJhbGciOiJIUzI1NiJ9.payload.signature secret=hunter2-value"
+            + " someone@evil-address.example /realms/divalhr-test/divalhr-provisioning/v1/x"
+            + " http://idp-internal:8081/identity {\"error\":\"response-body-text\"}";
+    String[] forbidden = {
+      "Bearer",
+      "eyJhbGci",
+      "hunter2-value",
+      "evil-address",
+      "/realms",
+      "divalhr-provisioning",
+      "idp-internal",
+      "response-body-text"
+    };
+    Invited invited = invited("employee");
+    Logger logger = (Logger) LoggerFactory.getLogger(InvitationAcceptance.class);
+    ListAppender<ILoggingEvent> events = new ListAppender<>();
+    events.start();
+    logger.addAppender(events);
+    try {
+      List<RuntimeException> failures =
+          List.of(
+              new IdentityProviderUnavailableException(hostile),
+              new IllegalStateException(hostile));
+      for (RuntimeException failure : failures) {
+        directory.beforeProvision(
+            () -> {
+              throw failure;
+            });
+        mvc.perform(anonymous("accept", invited.token()))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.code").value("IDENTITY_PROVIDER_UNAVAILABLE"));
+      }
+      List<ILoggingEvent> logged =
+          events.list.stream()
+              .filter(e -> "invitation_accept_provisioning_unavailable".equals(e.getMessage()))
+              .toList();
+      assertThat(logged).hasSize(2);
+      assertThat(fields(logged.get(0)))
+          .containsEntry("exceptionClass", "IdentityProviderUnavailableException")
+          .containsEntry("reason", "other");
+      assertThat(fields(logged.get(1)))
+          .containsEntry("exceptionClass", "IllegalStateException")
+          .containsEntry("reason", "other");
+      for (ILoggingEvent event : events.list) {
+        assertThat(everything(event))
+            .doesNotContain(forbidden)
+            .doesNotContain(invited.token())
+            .doesNotContain(invited.email());
+      }
+      assertThat(output.getAll())
+          .doesNotContain(forbidden)
+          .doesNotContain(invited.token())
+          .doesNotContain(invited.email());
+      assertThat(state(invited.id())).isEqualTo("PENDING");
+    } finally {
+      logger.detachAppender(events);
+      directory.beforeProvision(() -> {});
+    }
   }
 
   private JsonNode invalid(String action, String token) throws Exception {

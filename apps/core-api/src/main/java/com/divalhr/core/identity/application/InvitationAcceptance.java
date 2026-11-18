@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -206,9 +207,35 @@ public class InvitationAcceptance {
     }
   }
 
-  /** The safe reason code of an identity-provider failure; anything else is just "other". */
+  /**
+   * The only reason codes an identity-provider failure may put in a log: the closed set the
+   * Keycloak adapter produces. Anything else (another class, an unexpected code, any message) is
+   * "other".
+   */
+  private static final Set<String> LOGGABLE_REASONS =
+      Set.of(
+          "io",
+          "provisioner_unauthorized",
+          "token_missing",
+          "unexpected_id",
+          "unreadable_response",
+          "identity_ambiguous",
+          "conflict_unproven",
+          "status_1xx",
+          "status_2xx",
+          "status_3xx",
+          "status_4xx",
+          "status_5xx");
+
+  /** The reason of an identity-provider failure if it is in the closed set, else "other". */
   private static String safeReason(RuntimeException failure) {
-    return failure instanceof IdentityProviderUnavailableException ? failure.getMessage() : "other";
+    if (failure instanceof IdentityProviderUnavailableException) {
+      String reason = failure.getMessage();
+      if (reason != null && LOGGABLE_REASONS.contains(reason)) {
+        return reason;
+      }
+    }
+    return "other";
   }
 
   private void provisionAndComplete(Invitation invitation, UUID owner, String correlationId) {
