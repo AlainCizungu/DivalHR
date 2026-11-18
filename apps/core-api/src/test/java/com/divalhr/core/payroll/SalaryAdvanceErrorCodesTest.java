@@ -55,7 +55,12 @@ class SalaryAdvanceErrorCodesTest {
           Map.entry("SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT", HttpStatus.CONFLICT),
           Map.entry("SALARY_ADVANCE_PARTNER_UNAVAILABLE", HttpStatus.CONFLICT),
           Map.entry("SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN", HttpStatus.CONFLICT),
-          Map.entry("SALARY_ADVANCE_PARTNER_NOT_ENABLED", HttpStatus.CONFLICT));
+          Map.entry("SALARY_ADVANCE_PARTNER_NOT_ENABLED", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_RETENTION_POLICY_MISSING", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_RETENTION_PERIOD_INVALID", HttpStatus.BAD_REQUEST),
+          Map.entry("SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND", HttpStatus.NOT_FOUND),
+          Map.entry("SALARY_ADVANCE_PURGE_PREVIEW_STALE", HttpStatus.CONFLICT),
+          Map.entry("SALARY_ADVANCE_PURGE_ALREADY_COMPLETED", HttpStatus.CONFLICT));
 
   private static final Path SCHEMA =
       Path.of("../../packages/shared-contracts/schemas/problem.schema.json");

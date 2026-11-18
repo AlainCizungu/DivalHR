@@ -882,6 +882,16 @@ public enum ErrorCode {
   /** MVP-120B: controlled partner handoff (ADR 0042). */
   SALARY_ADVANCE_PARTNER_NOT_ENABLED(HttpStatus.CONFLICT),
   /** MVP-120B: controlled partner handoff (ADR 0042). */
+  /** MVP-120C: evidence retention and controlled purge (ADR 0042 amendment). */
+  SALARY_ADVANCE_RETENTION_POLICY_MISSING(HttpStatus.CONFLICT),
+  /** MVP-120C: evidence retention and controlled purge (ADR 0042 amendment). */
+  SALARY_ADVANCE_RETENTION_PERIOD_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-120C: evidence retention and controlled purge (ADR 0042 amendment). */
+  SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-120C: evidence retention and controlled purge (ADR 0042 amendment). */
+  SALARY_ADVANCE_PURGE_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-120C: evidence retention and controlled purge (ADR 0042 amendment). */
+  SALARY_ADVANCE_PURGE_ALREADY_COMPLETED(HttpStatus.CONFLICT),
   PARTNER_CALLBACK_INVALID(HttpStatus.BAD_REQUEST);
 
   private final HttpStatus status;

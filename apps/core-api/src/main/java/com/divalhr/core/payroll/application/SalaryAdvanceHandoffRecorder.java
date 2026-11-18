@@ -41,6 +41,8 @@ public class SalaryAdvanceHandoffRecorder {
   public static final String RECONCILE = "salary-advance-handoff.reconcile";
   public static final String DELIVERY = "salary-advance-handoff.delivery";
   public static final String PARTNER_STATUS = "salary-advance-handoff.partner-status";
+  public static final String PARTNER_STATUS_REFUSED =
+      "salary-advance-handoff.partner-status-refused";
 
   /** Internal event types. */
   public static final String AUTHORIZED_EVENT = "payroll.salary-advance-handoff.authorized.v1";
@@ -229,6 +231,76 @@ public class SalaryAdvanceHandoffRecorder {
   @Transactional(propagation = Propagation.MANDATORY)
   public void partnerStatus(TenantId tenant, String correlationId, Change change) {
     write(PARTNER_ACTOR, PARTNER_STATUS, tenant, correlationId, STATE_CHANGED_EVENT, change);
+  }
+
+  /**
+   * The audit record of a retention operation by the tenant administrator: counts and safe
+   * identifiers only.
+   *
+   * @param caller verified caller (the administrator)
+   * @param action audit action
+   * @param resourceId the policy owner (tenant) or the preview
+   * @param counts closed numeric or view values (never an identity, amount or digest)
+   * @param at server instant
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void retention(
+      PayrollCaller caller, String action, UUID resourceId, Map<String, Object> counts, Instant at) {
+    Map<String, Object> metadata = new LinkedHashMap<>();
+    metadata.put("schemaVersion", SCHEMA_VERSION);
+    metadata.putAll(counts);
+    audit.record(
+        new AuditEvent(
+            UUID.randomUUID(),
+            at,
+            caller.subject(),
+            action,
+            "salary-advance-retention",
+            resourceId,
+            caller.tenant().value(),
+            "SUCCESS",
+            caller.correlationId(),
+            metadata,
+            Fingerprints.sha256(
+                "DIVALHR-SALARY-ADVANCE-RETENTION\nversion=1\naction="
+                    + action
+                    + "\nresource="
+                    + resourceId
+                    + "\nat="
+                    + at
+                    + "\nby="
+                    + caller.subject()
+                    + "\n")));
+  }
+
+  /**
+   * Records a refused signed partner status (illegal, stale, terminal or conflicting): an audit
+   * record with identifiers and closed codes only, never the request content, and no event.
+   *
+   * @param tenant the tenant of the handoff
+   * @param correlationId the callback's correlation id
+   * @param change the handoff and the closed status the partner attempted
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void partnerStatusRefused(TenantId tenant, String correlationId, Change change) {
+    audit.record(
+        new AuditEvent(
+            UUID.randomUUID(),
+            change.at(),
+            PARTNER_ACTOR,
+            PARTNER_STATUS_REFUSED,
+            "salary-advance-handoff",
+            change.handoffId(),
+            tenant.value(),
+            "DENIED",
+            correlationId,
+            data(change),
+            Fingerprints.sha256(
+                "DIVALHR-SALARY-ADVANCE-HANDOFF-REFUSED\nversion=1\nhandoff="
+                    + change.handoffId()
+                    + "\nrowVersion="
+                    + change.version()
+                    + "\n")));
   }
 
   private void write(

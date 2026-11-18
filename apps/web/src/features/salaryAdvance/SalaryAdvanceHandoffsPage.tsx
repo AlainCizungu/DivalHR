@@ -1,4 +1,5 @@
 import type {
+  SalaryAdvanceHandoffReviewState,
   SalaryAdvanceHandoffState,
   SalaryAdvanceHandoffSummary,
   SalaryAdvanceHandoffView,
@@ -12,12 +13,14 @@ import { CompensationAlert, Money } from '../compensation/CompensationBits';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { HandoffNotice, HandoffReview, HandoffState } from './HandoffBits';
+import { RetentionPanel } from './RetentionPanel';
 import { LenderNotice } from './SalaryAdvanceBits';
 import {
   HANDOFF_STATES,
   handoffReconcilable,
   NETWORK_FAILURE,
   PAGE_LIMIT,
+  REVIEW_STATES,
   salaryAdvanceFailureOf,
   type SalaryAdvanceFailure,
 } from './salaryAdvance';
@@ -252,6 +255,7 @@ export function SalaryAdvanceHandoffsPage() {
   const { core } = useApi();
   const ids = useId();
   const [state, setState] = useState<SalaryAdvanceHandoffState | ''>('');
+  const [review, setReview] = useState<SalaryAdvanceHandoffReviewState | ''>('');
   const [page, setPage] = useState<Page | null>(null);
   const [failure, setFailure] = useState<SalaryAdvanceFailure | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -267,6 +271,7 @@ export function SalaryAdvanceHandoffsPage() {
               limit: PAGE_LIMIT,
               ...(cursor ? { cursor } : {}),
               ...(state ? { state } : {}),
+              ...(review ? { reviewState: review } : {}),
             },
           },
           cache: 'no-store',
@@ -276,7 +281,7 @@ export function SalaryAdvanceHandoffsPage() {
         return { failure: NETWORK_FAILURE };
       }
     },
-    [core, state],
+    [core, state, review],
   );
 
   useEffect(() => {
@@ -336,6 +341,25 @@ export function SalaryAdvanceHandoffsPage() {
             {HANDOFF_STATES.map((code) => (
               <option key={code} value={code}>
                 {t(`salaryAdvance.handoff.state.${code}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor={`${ids}-review`}>{t('salaryAdvance.handoff.admin.filterReview')}</label>
+          <select
+            id={`${ids}-review`}
+            value={review}
+            data-testid="handoffs-review-filter"
+            onChange={(event) => {
+              setReview(event.target.value as SalaryAdvanceHandoffReviewState | '');
+              setSelected(null);
+            }}
+          >
+            <option value="">{t('salaryAdvance.requests.allStatuses')}</option>
+            {REVIEW_STATES.map((code) => (
+              <option key={code} value={code}>
+                {t(`salaryAdvance.handoff.review.${code}`)}
               </option>
             ))}
           </select>
@@ -408,6 +432,7 @@ export function SalaryAdvanceHandoffsPage() {
           </div>
         )}
       </section>
+      <RetentionPanel />
       {selected && (
         <HandoffDetail
           key={selected + String(revision)}

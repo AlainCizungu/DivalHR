@@ -1,6 +1,7 @@
 package com.divalhr.core.payroll.application;
 
 import com.divalhr.core.payroll.api.SalaryAdvanceHandoffResponses.View;
+import com.divalhr.core.payroll.domain.SalaryAdvanceHandoffReviewState;
 import com.divalhr.core.payroll.internal.JdbcSalaryAdvanceHandoffRepository;
 import com.divalhr.core.payroll.internal.JdbcSalaryAdvanceHandoffRepository.ConsentRow;
 import com.divalhr.core.payroll.internal.JdbcSalaryAdvanceHandoffRepository.HandoffRow;
@@ -21,6 +22,24 @@ final class SalaryAdvanceHandoffReads {
       Set.of("QUEUED", "SENDING", "RECEIVED", "DELIVERY_UNKNOWN", "FAILED", "WITHDRAWN");
 
   private SalaryAdvanceHandoffReads() {}
+
+  /**
+   * Validates a partner-review status filter against the closed catalogue.
+   *
+   * @param raw raw value, or {@code null}
+   * @param errors collector
+   * @return the status, or {@code null}
+   */
+  static String reviewFilter(String raw, FieldErrors errors) {
+    if (raw == null) {
+      return null;
+    }
+    if (SalaryAdvanceHandoffReviewState.parse(raw).isPresent()) {
+      return raw;
+    }
+    errors.add("reviewState", Constraint.FORMAT);
+    return null;
+  }
 
   /**
    * Validates a delivery-state filter.

@@ -980,4 +980,160 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     await cloContext.close();
     await denContext.close();
   });
+  test('English employee follows the partner review to a cancellation with its history, never as a loan decision', async ({
+    browser,
+  }) => {
+    // MVP-120C journey 1. The 120B journey above left Anna's handoff under review. The controlled
+    // partner now asks for more information and then cancels its own review: the employee sees
+    // each status and the ordered history, may not withdraw, and nothing claims a lending decision.
+    test.setTimeout(240_000);
+    const adminContext = await browser.newContext();
+    const admin = await adminContext.newPage();
+    const adminBearer = await signIn(admin, USERS.adminB, 'en');
+    const annaContext = await browser.newContext({ locale: 'en-US' });
+    const anna = await annaContext.newPage();
+    const annaBearer = await signIn(anna, [ANA.email, ANA.password], 'en', undefined);
+    const mine = (await listHandoffs(anna, annaBearer, '/me/salary-advance-handoffs')).find(
+      (item) => item.state === 'RECEIVED',
+    );
+    expect(mine, 'the handoff of the previous journey').toBeDefined();
+    const handoffId = (mine as HandoffItem).handoffId;
+    const applicationId = await applicationOf(admin, adminBearer, handoffId);
+
+    for (const [reviewState, reasonCode] of [
+      ['MORE_INFORMATION_REQUIRED', 'CLARIFICATION'],
+      ['CANCELLED_BY_PARTNER', 'PARTNER_POLICY'],
+    ] as const) {
+      const reported = await control(admin, 'callback', { applicationId, reviewState, reasonCode });
+      expect(reported.status).toBe(204);
+      await waitForMine(anna, annaBearer, (mine as HandoffItem).requestId, (item) => {
+        return item.reviewState === reviewState;
+      });
+    }
+
+    await primaryNav(anna).getByRole('link', { name: 'Salary advance', exact: true }).click();
+    const row = anna.getByTestId('handoff-row');
+    await expect(row.getByTestId('handoff-review')).toHaveAttribute(
+      'data-review',
+      'CANCELLED_BY_PARTNER',
+    );
+    await expect(row.getByTestId('handoff-review')).toContainText(
+      'Review cancelled by the partner',
+    );
+    const timeline = row.getByTestId('review-timeline');
+    await expect(timeline.getByTestId('review-no-approval')).toBeVisible();
+    await expect(timeline.getByTestId('review-help')).toContainText('not your withdrawal');
+    await expect(row.getByTestId('handoff-withdraw')).toHaveCount(0);
+    await timeline.getByTestId('review-timeline-toggle').click();
+    const events = timeline.getByTestId('review-events').getByRole('listitem');
+    await expect(events).toHaveCount(3);
+    await expect(events.nth(0)).toHaveAttribute('data-status', 'UNDER_REVIEW');
+    await expect(events.nth(1)).toHaveAttribute('data-status', 'MORE_INFORMATION_REQUIRED');
+    await expect(events.nth(2)).toHaveAttribute('data-status', 'CANCELLED_BY_PARTNER');
+    await expectAccessible(anna);
+    await expectNoLendingClaim(anna);
+    await expectNothingLeaks(anna, AMOUNT, applicationId);
+    await noOverflow(anna);
+    await adminContext.close();
+    await annaContext.close();
+  });
+
+  test('French administrator reviews the lifecycle, sets retention, and previews then confirms the exact purge', async ({
+    browser,
+  }) => {
+    // MVP-120C journey 2. Denise's handoff (received in the 120B journey) is declined by the
+    // controlled partner. Retention is configured through the page; the only database step is the
+    // fixture's, which moves that one handoff's stamped date into the past (the policy minimum is
+    // 30 days and a journey cannot wait that long). The purge is previewed, confirmed once, and
+    // removes only the delivery diagnostics.
+    test.setTimeout(240_000);
+    const adminContext = await browser.newContext({ locale: 'fr-FR' });
+    const admin = await adminContext.newPage();
+    const adminBearer = await signIn(admin, USERS.adminB, 'fr');
+    const denContext = await browser.newContext({ locale: 'fr-FR' });
+    const den = await denContext.newPage();
+    const denBearer = await signIn(den, [DEN.email, DEN.password], 'fr', undefined);
+    const mine = (await listHandoffs(den, denBearer, '/me/salary-advance-handoffs')).find(
+      (item) => item.state === 'RECEIVED',
+    );
+    expect(mine, 'the handoff of the previous journey').toBeDefined();
+    const handoffId = (mine as HandoffItem).handoffId;
+    const applicationId = await applicationOf(admin, adminBearer, handoffId);
+
+    // 1. The administrator chooses a retention period (disabled until then).
+    await primaryNav(admin)
+      .getByRole('link', { name: 'Transmissions au partenaire', exact: true })
+      .click();
+    const panel = admin.getByTestId('retention-panel');
+    await expect(panel.getByTestId('purge-preview')).toBeDisabled();
+    await panel.getByTestId('retention-days').fill('29');
+    await panel.getByTestId('retention-save').click();
+    await expect(panel.getByTestId('retention-error')).toBeVisible();
+    await panel.getByTestId('retention-days').fill('30');
+    await panel.getByTestId('retention-save').click();
+    await expect(panel.getByTestId('retention-saved')).toBeVisible();
+    await expect(panel.getByTestId('purge-preview')).toBeEnabled();
+
+    // 2. The partner declines; the administrator filters by the closed review catalogue.
+    const declined = await control(admin, 'callback', {
+      applicationId,
+      reviewState: 'DECLINED',
+      reasonCode: 'PARTNER_POLICY',
+    });
+    expect(declined.status).toBe(204);
+    await revisit(admin, 'Organisation', 'Transmissions au partenaire');
+    await admin.getByTestId('handoffs-review-filter').selectOption('DECLINED');
+    const row = admin.getByTestId('handoff-admin-row').filter({ hasText: DEN.number });
+    await expect(row.getByTestId('handoff-review')).toHaveAttribute('data-review', 'DECLINED');
+    await row.getByTestId('handoff-open').click();
+    await expect(admin.getByTestId('handoff-review-events')).toBeVisible();
+    await expectAccessible(admin);
+
+    // 3. Fixture only: the stamped date of this one handoff is moved into the past.
+    sql(
+      `SET session_replication_role = replica;
+       UPDATE payroll.salary_advance_handoff_retention
+          SET terminal_at = now() - interval '40 days', retention_until = now() - interval '1 day'
+        WHERE handoff_id = '${handoffId}'`,
+    );
+    expect(
+      sql(
+        `SELECT count(*) FROM payroll.salary_advance_handoff_attempt WHERE handoff_id = '${handoffId}'`,
+      ),
+    ).not.toBe('0');
+
+    // 4. Preview, then one explicit confirmation of exactly that preview.
+    await revisit(admin, 'Organisation', 'Transmissions au partenaire');
+    const retention = admin.getByTestId('retention-panel');
+    await retention.getByTestId('purge-preview').click();
+    await expect(retention.getByTestId('purge-preview-result')).toBeVisible();
+    await retention.getByTestId('purge-open').click();
+    await expectAccessible(admin);
+    await retention.getByTestId('purge-confirm').click();
+    await expect(retention.getByTestId('purge-done')).toBeVisible();
+    expect(
+      sql(
+        `SELECT count(*) FROM payroll.salary_advance_handoff_attempt WHERE handoff_id = '${handoffId}'`,
+      ),
+    ).toBe('0');
+
+    // 5. Everything that is not a delivery diagnostic is still there; nothing is left to purge.
+    await retention.getByTestId('purge-preview').click();
+    await expect(retention.getByTestId('purge-none')).toBeVisible();
+    await revisit(admin, 'Organisation', 'Transmissions au partenaire');
+    await admin.getByTestId('handoffs-review-filter').selectOption('DECLINED');
+    await expect(
+      admin.getByTestId('handoff-admin-row').filter({ hasText: DEN.number }),
+    ).toBeVisible();
+    await revisit(den, 'Mes congés', 'Avance sur salaire');
+    await expect(den.getByTestId('handoff-row').getByTestId('handoff-review')).toHaveAttribute(
+      'data-review',
+      'DECLINED',
+    );
+    await expectNoLendingClaim(admin);
+    await expectNothingLeaks(admin, AMOUNT, applicationId);
+    await noOverflow(admin);
+    await adminContext.close();
+    await denContext.close();
+  });
 });

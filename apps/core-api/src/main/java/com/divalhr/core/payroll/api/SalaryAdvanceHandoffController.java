@@ -63,6 +63,7 @@ public class SalaryAdvanceHandoffController {
    * The tenant's handoffs, newest first.
    *
    * @param state optional delivery-state filter
+   * @param reviewState optional partner-review status filter
    * @param cursor opaque cursor, or {@code null}
    * @param limit page size, or {@code null}
    * @param authentication verified tenant administrator
@@ -75,11 +76,12 @@ public class SalaryAdvanceHandoffController {
   @SubjectRateLimited(bucket = SalaryAdvanceHandoffReviewService.SUBJECT_READ_BUCKET)
   public ResponseEntity<Page> list(
       @RequestParam(name = "state", required = false) String state,
+      @RequestParam(name = "reviewState", required = false) String reviewState,
       @RequestParam(name = "cursor", required = false) String cursor,
       @RequestParam(name = "limit", required = false) String limit,
       @Parameter(hidden = true) JwtAuthenticationToken authentication,
       @Parameter(hidden = true) HttpServletRequest request) {
-    return ok(reviews.list(caller(authentication, request), state, cursor, limit));
+    return ok(reviews.list(caller(authentication, request), state, reviewState, cursor, limit));
   }
 
   /**

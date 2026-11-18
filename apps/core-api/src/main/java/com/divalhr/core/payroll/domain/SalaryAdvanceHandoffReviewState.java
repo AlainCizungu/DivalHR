@@ -15,7 +15,9 @@ public enum SalaryAdvanceHandoffReviewState {
   /** The partner reports that more information is needed. */
   MORE_INFORMATION_REQUIRED,
   /** The partner reports that it declined (terminal). */
-  DECLINED;
+  DECLINED,
+  /** The partner reports that it cancelled its own review (terminal; not an employee withdrawal). */
+  CANCELLED_BY_PARTNER;
 
   /**
    * Parses a state exactly.
@@ -40,10 +42,25 @@ public enum SalaryAdvanceHandoffReviewState {
    */
   public boolean mayMoveTo(SalaryAdvanceHandoffReviewState to) {
     return switch (this) {
-      case RECEIVED -> to == UNDER_REVIEW;
-      case UNDER_REVIEW -> to == MORE_INFORMATION_REQUIRED || to == DECLINED;
-      case MORE_INFORMATION_REQUIRED -> to == UNDER_REVIEW || to == DECLINED;
-      case DECLINED -> false;
+      case RECEIVED ->
+          to == UNDER_REVIEW
+              || to == MORE_INFORMATION_REQUIRED
+              || to == DECLINED
+              || to == CANCELLED_BY_PARTNER;
+      case UNDER_REVIEW ->
+          to == MORE_INFORMATION_REQUIRED || to == DECLINED || to == CANCELLED_BY_PARTNER;
+      case MORE_INFORMATION_REQUIRED ->
+          to == UNDER_REVIEW || to == DECLINED || to == CANCELLED_BY_PARTNER;
+      case DECLINED, CANCELLED_BY_PARTNER -> false;
     };
+  }
+
+  /**
+   * Whether no further partner status can follow.
+   *
+   * @return {@code true} for the two terminal statuses
+   */
+  public boolean terminal() {
+    return this == DECLINED || this == CANCELLED_BY_PARTNER;
   }
 }

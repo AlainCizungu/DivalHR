@@ -14759,6 +14759,7 @@ paths:
       tags: [payroll]
       parameters:
         - $ref: "#/components/parameters/SalaryAdvanceHandoffStateFilter"
+        - $ref: "#/components/parameters/SalaryAdvanceHandoffReviewStateFilter"
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/CorrelationId"
@@ -14876,6 +14877,170 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-retention-policy:
+    get:
+      operationId: getSalaryAdvanceRetentionPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read the organization's evidence-retention policy
+      description: >-
+        MVP-120C (D120C-9). Tenant administrator with exact MFA only; managers and employees have no access. Retention of
+        partner-handoff delivery diagnostics is disabled until a policy exists (configured=false). Audit
+        salary-advance-retention.read. At most 60 reads per subject per minute. Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The policy
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRetentionPolicy"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    put:
+      operationId: configureSalaryAdvanceRetentionPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Configure the evidence-retention period
+      description: >-
+        MVP-120C (D120C-9, D120C-10). Tenant administrator with exact MFA. Records a new immutable policy version of 30 to 3,650
+        days (an operator choice, not a legal recommendation; DivalHR makes no claim about a statutory period). The policy
+        applies only to handoffs that become terminal afterwards: a stamped retention date is never shortened or lengthened.
+        The same period as the latest version changes nothing. A period outside the range is 400
+        SALARY_ADVANCE_RETENTION_PERIOD_INVALID. Audit salary-advance-retention.configure (policy version and days only).
+        Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvanceRetentionPolicyConfigure"
+      responses:
+        "200":
+          description: The policy after the change
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvanceRetentionPolicy"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-evidence-purge/preview:
+    post:
+      operationId: previewSalaryAdvanceEvidencePurge
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview the delivery diagnostics a purge would delete
+      description: >-
+        MVP-120C (D120C-8, D120C-11). Tenant administrator with exact MFA. Without a policy: 409
+        SALARY_ADVANCE_RETENTION_POLICY_MISSING. Otherwise stores a short-lived (15 minutes) preview of exactly the
+        eligible delivery diagnostics (per-attempt instants and outcome codes of a terminal handoff whose retention date
+        passed and whose history has no DELIVERY_UNKNOWN) and returns counts and a server-generated digest. Nothing is
+        deleted. Requests, employer confirmations, consent receipts, statuses, history, audit and idempotency evidence are never
+        eligible. Audit salary-advance-retention.purge-preview (counts only). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvancePurgePreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /salary-advance-evidence-purge/{previewId}/confirm:
+    post:
+      operationId: confirmSalaryAdvanceEvidencePurge
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: tenant-admin
+      x-divalhr-required-assurance: mfa
+      summary: Confirm exactly one previewed purge
+      description: >-
+        MVP-120C (D120C-11, D120C-12). Tenant administrator with exact MFA. Requires the preview digest and confirmed=true.
+        Under the preview lock every previewed handoff is re-verified; any change of eligibility or policy, an expired
+        preview or a wrong digest is 409 SALARY_ADVANCE_PURGE_PREVIEW_STALE and nothing is deleted. Only the previewed
+        diagnostics are deleted, and the database refuses any other deletion. Repeating a completed confirmation replays the
+        stored result (replayed=true, nothing deleted); a completed preview with another digest is 409
+        SALARY_ADVANCE_PURGE_ALREADY_COMPLETED. Unknown or foreign previews are 404 SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND.
+        Audit salary-advance-retention.purge-confirm (counts only). Cache-Control private, no-store.
+      tags: [payroll]
+      parameters:
+        - $ref: "#/components/parameters/SalaryAdvancePurgePreviewId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryAdvancePurgeConfirm"
+      responses:
+        "200":
+          description: The purge result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryAdvancePurgeResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /public/partners/synthetic-test/callbacks:
     post:
       operationId: receiveSyntheticPartnerCallback
@@ -14883,13 +15048,16 @@ paths:
       x-divalhr-scope: public
       summary: Signed review-status callback from the controlled synthetic partner (anonymous, partner only)
       description: >-
-        MVP-120B (D120B-6). The SYNTHETIC-TEST receiver reports only the bounded review states UNDER_REVIEW,
-        MORE_INFORMATION_REQUIRED and DECLINED with a closed reason code; no free-form note exists. Before any state is read the
+        MVP-120B (D120B-6), MVP-120C (D120C-1 to D120C-6). The SYNTHETIC-TEST receiver reports only the bounded review states
+        UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED and CANCELLED_BY_PARTNER with a closed reason code; no free-form note
+        exists. The callback id is the partner event id: an exact repeat (same application, status, reason and instant) is
+        acknowledged with 204 and changes nothing. Before any state is read the
         request is checked in this order: body at most 4 KiB, Content-Type application/json (415), timestamp within 300 seconds,
         HMAC-SHA256 signature over "v1\n" + timestamp + "\n" + callbackId + "\n" + the exact body bytes with the dedicated
         callback key in constant time, and the closed schema. One transaction then records the replay evidence (a repeated
-        callback id fails), derives the tenant from the stored application (never from the body) and applies a legal review
-        transition. Unknown application ids, foreign tenants, invalid signatures, stale timestamps, replays and illegal transitions
+        callback id with other content fails), derives the tenant from the stored application (never from the body) and applies a
+        legal review transition (DECLINED and CANCELLED_BY_PARTNER are terminal; ordering is the server receive sequence, the
+        partner instant is stored but never trusted). Unknown application ids, foreign tenants, invalid signatures, stale timestamps, replays and illegal transitions
         all answer 400 PARTNER_CALLBACK_INVALID with the same generic body and leave no state change. 413 over the limit, 429
         over the ceiling, 503 when unconfigured. No credentials, payloads or amounts are logged. Cache-Control no-store.
       tags: [payroll]
@@ -15977,6 +16145,21 @@ components:
       description: Optional delivery-state filter; the cursor is bound to it.
       schema:
         $ref: "#/components/schemas/SalaryAdvanceHandoffState"
+    SalaryAdvanceHandoffReviewStateFilter:
+      name: reviewState
+      in: query
+      required: false
+      description: MVP-120C. Optional partner-review status filter over the closed catalogue; the cursor is bound to it.
+      schema:
+        $ref: "#/components/schemas/SalaryAdvanceHandoffReviewState"
+    SalaryAdvancePurgePreviewId:
+      name: previewId
+      in: path
+      required: true
+      description: >-
+        An opaque UUID. Malformed, unknown and foreign-tenant IDs give the same 404 SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND.
+      schema:
+        type: string
   schemas:
     AccessReviewLookup:
       type: object
@@ -22880,6 +23063,11 @@ components:
         - SALARY_ADVANCE_PARTNER_UNAVAILABLE
         - SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN
         - SALARY_ADVANCE_PARTNER_NOT_ENABLED
+        - SALARY_ADVANCE_RETENTION_POLICY_MISSING
+        - SALARY_ADVANCE_RETENTION_PERIOD_INVALID
+        - SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND
+        - SALARY_ADVANCE_PURGE_PREVIEW_STALE
+        - SALARY_ADVANCE_PURGE_ALREADY_COMPLETED
         - PARTNER_CALLBACK_INVALID
     WhatsAppNotificationType:
       type: string
@@ -31136,8 +31324,10 @@ components:
       type: string
       description: >-
         The bounded partner-review status, separate from delivery and present only after RECEIVED. It is a status report of a
-        controlled synthetic partner, not a credit decision of DivalHR.
-      enum: [RECEIVED, UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED]
+        controlled synthetic partner, not a credit decision of DivalHR. MVP-120C: DECLINED and CANCELLED_BY_PARTNER are
+        terminal; CANCELLED_BY_PARTNER means the partner stopped its own review and is not an employee withdrawal. No
+        approved, funded or disbursed status exists.
+      enum: [RECEIVED, UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED, CANCELLED_BY_PARTNER]
     SalaryAdvanceHandoffReviewReason:
       type: string
       description: Closed reason code reported by the synthetic partner; there is no free-form partner note.
@@ -31573,6 +31763,100 @@ components:
           $ref: "#/components/schemas/SalaryAdvanceNotice"
         handoffNotice:
           $ref: "#/components/schemas/SalaryAdvanceHandoffNotice"
+    SalaryAdvanceRetentionPolicy:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120C. The organization's retention period for partner-handoff delivery diagnostics. configured=false means retention
+        is disabled and nothing is ever eligible. The period is an operator choice, not a legal recommendation.
+      required: [configured, version, retentionDays, effectiveAt, minimumDays, maximumDays]
+      properties:
+        configured:
+          type: boolean
+        version:
+          type: [integer, "null"]
+          minimum: 1
+        retentionDays:
+          type: [integer, "null"]
+          minimum: 30
+          maximum: 3650
+        effectiveAt:
+          type: [string, "null"]
+          format: date-time
+        minimumDays:
+          type: integer
+          enum: [30]
+        maximumDays:
+          type: integer
+          enum: [3650]
+    SalaryAdvanceRetentionPolicyConfigure:
+      type: object
+      additionalProperties: false
+      required: [retentionDays]
+      properties:
+        retentionDays:
+          type: integer
+          minimum: 30
+          maximum: 3650
+    SalaryAdvancePurgePreview:
+      type: object
+      additionalProperties: false
+      description: Counts only. It never names a handoff, an employee, an amount or an attempt.
+      required: [previewId, policyVersion, handoffCount, attemptCount, digest, createdAt, expiresAt]
+      properties:
+        previewId:
+          type: string
+          format: uuid
+        policyVersion:
+          type: integer
+          minimum: 1
+        handoffCount:
+          type: integer
+          minimum: 0
+          maximum: 500
+        attemptCount:
+          type: integer
+          minimum: 0
+        digest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    SalaryAdvancePurgeConfirm:
+      type: object
+      additionalProperties: false
+      required: [previewDigest, confirmed]
+      properties:
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        confirmed:
+          type: boolean
+          description: Must be true.
+    SalaryAdvancePurgeResult:
+      type: object
+      additionalProperties: false
+      required: [previewId, handoffCount, attemptCount, completedAt, replayed]
+      properties:
+        previewId:
+          type: string
+          format: uuid
+        handoffCount:
+          type: integer
+          minimum: 0
+        attemptCount:
+          type: integer
+          minimum: 0
+        completedAt:
+          type: string
+          format: date-time
+        replayed:
+          type: boolean
+          description: True when this answer repeats an earlier confirmation; nothing was deleted by this call.
     SyntheticPartnerCallback:
       type: object
       additionalProperties: false
@@ -31584,7 +31868,7 @@ components:
           format: uuid
         reviewState:
           type: string
-          enum: [UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED]
+          enum: [UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED, CANCELLED_BY_PARTNER]
         reasonCode:
           oneOf:
             - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewReason"

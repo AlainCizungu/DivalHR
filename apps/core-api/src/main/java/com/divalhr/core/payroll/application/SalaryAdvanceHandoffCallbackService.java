@@ -62,6 +62,7 @@ public class SalaryAdvanceHandoffCallbackService {
   private static final Duration WINDOW = Duration.ofSeconds(300);
   private static final Pattern TIMESTAMP = Pattern.compile("^[0-9]{10}$");
   private static final Pattern SIGNATURE = Pattern.compile("^v1=[0-9a-f]{64}$");
+  private static final Pattern CORRELATION = Pattern.compile("^[A-Za-z0-9._-]{1,64}$");
   private static final JsonMapper JSON = JsonMapper.builder().build();
   private static final int PRUNE_ABOVE = 10_000;
 
@@ -105,9 +106,11 @@ public class SalaryAdvanceHandoffCallbackService {
    * @param timestamp the {@code X-Divalhr-Timestamp} header
    * @param callbackId the {@code X-Divalhr-Callback-Id} header
    * @param signature the {@code X-Divalhr-Signature} header
+   * @param correlationId the request correlation id (stored only when it is a safe bounded token)
    * @return the outcome
    */
-  public Outcome receive(byte[] raw, String timestamp, String callbackId, String signature) {
+  public Outcome receive(
+      byte[] raw, String timestamp, String callbackId, String signature, String correlationId) {
     if (!secrets.callbackAvailable()) {
       return count(Outcome.UNAVAILABLE);
     }
@@ -148,8 +151,8 @@ public class SalaryAdvanceHandoffCallbackService {
       return count(Outcome.RATE_LIMITED);
     }
     try {
-      boolean applied = apply(callback, replayId, now);
-      return count(applied ? Outcome.ACCEPTED : Outcome.INVALID);
+      Applied applied = apply(callback, replayId, now, safeCorrelation(correlationId));
+      return count(applied == Applied.REFUSED ? Outcome.INVALID : Outcome.ACCEPTED);
     } catch (DataIntegrityViolationException replayOrGuard) {
       // A repeated callback id, or a guard that fired: the same generic answer, nothing was
       // written.
@@ -157,20 +160,54 @@ public class SalaryAdvanceHandoffCallbackService {
     }
   }
 
-  private boolean apply(Callback callback, UUID replayId, Instant now) {
+  /** What one verified callback did. */
+  private enum Applied {
+    /** A new, legal transition was recorded. */
+    APPLIED,
+    /** The same event (id and content) was already accepted: acknowledged, nothing changed. */
+    REPLAYED,
+    /** Unknown, conflicting, stale, invalid or terminal: nothing changed. */
+    REFUSED
+  }
+
+  private static String safeCorrelation(String correlationId) {
+    return correlationId != null && CORRELATION.matcher(correlationId).matches()
+        ? correlationId
+        : null;
+  }
+
+  private Applied apply(Callback callback, UUID replayId, Instant now, String correlationId) {
     TransactionTemplate template = new TransactionTemplate(transactions);
     template.setTimeout(15);
-    Boolean applied =
+    Applied applied =
         template.execute(
             status -> {
               HandoffRow row = handoffs.lockByApplication(callback.applicationId()).orElse(null);
               if (row == null || !"RECEIVED".equals(row.state()) || row.reviewState() == null) {
-                return Boolean.FALSE;
+                return Applied.REFUSED;
+              }
+              // The same partner event id: an exact repeat is acknowledged and changes nothing; the
+              // same id with other content (or for another application) is refused.
+              JdbcSalaryAdvanceHandoffRepository.CallbackRow seen =
+                  handoffs.callback(replayId).orElse(null);
+              if (seen != null) {
+                boolean same =
+                    seen.tenant().equals(row.tenantId())
+                        && seen.handoffId().equals(row.id())
+                        && seen.reviewState().equals(callback.reviewState().name())
+                        && java.util.Objects.equals(seen.reasonCode(), callback.reasonCode())
+                        && seen.issuedAt().equals(callback.issuedAt().truncatedTo(ChronoUnit.MICROS));
+                if (!same) {
+                  refused(row, callback, correlationId, replayId, now);
+                }
+                return same ? Applied.REPLAYED : Applied.REFUSED;
               }
               SalaryAdvanceHandoffReviewState from =
                   SalaryAdvanceHandoffReviewState.parse(row.reviewState()).orElse(null);
               if (from == null || !from.mayMoveTo(callback.reviewState())) {
-                return Boolean.FALSE;
+                // Terminal, already reached, stale or illegal: no history changes; the refusal is audited.
+                refused(row, callback, correlationId, replayId, now);
+                return Applied.REFUSED;
               }
               int sequence = handoffs.nextReviewSequence(row.tenantId(), row.id());
               handoffs.insertCallback(
@@ -180,7 +217,8 @@ public class SalaryAdvanceHandoffCallbackService {
                   callback.reviewState().name(),
                   callback.reasonCode(),
                   callback.issuedAt(),
-                  now);
+                  now,
+                  correlationId);
               handoffs.insertReviewEvent(
                   row.tenantId(),
                   row.id(),
@@ -207,28 +245,41 @@ public class SalaryAdvanceHandoffCallbackService {
                           now))
                   != 1) {
                 status.setRollbackOnly();
-                return Boolean.FALSE;
+                return Applied.REFUSED;
               }
               handoffs.checkDeferred(row.tenantId());
               recorder.partnerStatus(
                   row.tenantId(),
-                  "cb-" + replayId,
-                  new SalaryAdvanceHandoffRecorder.Change(
-                      row.id(),
-                      row.requestId(),
-                      row.legalEntityId(),
-                      row.currency(),
-                      "RECEIVED",
-                      callback.reviewState().name(),
-                      row.version() + 1,
-                      null,
-                      callback.reasonCode(),
-                      0,
-                      "PARTNER",
-                      now));
-              return Boolean.TRUE;
+                  correlationId == null ? "cb-" + replayId : correlationId,
+                  change(row, callback, row.version() + 1, now));
+              return Applied.APPLIED;
             });
-    return Boolean.TRUE.equals(applied);
+    return applied == null ? Applied.REFUSED : applied;
+  }
+
+  private void refused(
+      HandoffRow row, Callback callback, String correlationId, UUID replayId, Instant now) {
+    recorder.partnerStatusRefused(
+        row.tenantId(),
+        correlationId == null ? "cb-" + replayId : correlationId,
+        change(row, callback, row.version(), now));
+  }
+
+  private static SalaryAdvanceHandoffRecorder.Change change(
+      HandoffRow row, Callback callback, int version, Instant now) {
+    return new SalaryAdvanceHandoffRecorder.Change(
+        row.id(),
+        row.requestId(),
+        row.legalEntityId(),
+        row.currency(),
+        "RECEIVED",
+        callback.reviewState().name(),
+        version,
+        null,
+        callback.reasonCode(),
+        0,
+        "PARTNER",
+        now);
   }
 
   /** Binds the bytes to the closed body; any failure is the one generic answer. */

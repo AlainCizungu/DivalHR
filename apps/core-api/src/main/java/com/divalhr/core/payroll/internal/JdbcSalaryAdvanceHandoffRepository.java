@@ -396,12 +396,18 @@ public class JdbcSalaryAdvanceHandoffRepository {
    * @param tenant verified tenant
    * @param employeeId the caller's own employee, or {@code null} for administrators
    * @param state state filter, or {@code null}
+   * @param reviewState partner-review status filter, or {@code null}
    * @param after the last row of the previous page, or {@code null}
    * @param limit rows to read (page size plus one)
    * @return the rows
    */
   public List<HandoffRow> page(
-      TenantId tenant, UUID employeeId, String state, Position after, int limit) {
+      TenantId tenant,
+      UUID employeeId,
+      String state,
+      String reviewState,
+      Position after,
+      int limit) {
     StringBuilder sql =
         new StringBuilder("SELECT ")
             .append(COLUMNS)
@@ -413,6 +419,9 @@ public class JdbcSalaryAdvanceHandoffRepository {
     if (state != null) {
       sql.append(" AND h.state = :state");
     }
+    if (reviewState != null) {
+      sql.append(" AND h.review_state = :reviewState");
+    }
     if (after != null) {
       sql.append(" AND (h.authorized_at, h.id) < (:afterAt, CAST(:afterId AS uuid))");
     }
@@ -423,6 +432,9 @@ public class JdbcSalaryAdvanceHandoffRepository {
     }
     if (state != null) {
       spec = spec.param("state", state);
+    }
+    if (reviewState != null) {
+      spec = spec.param("reviewState", reviewState);
     }
     if (after != null) {
       spec =
@@ -799,6 +811,7 @@ public class JdbcSalaryAdvanceHandoffRepository {
    * @param reasonCode closed reason, or {@code null}
    * @param issuedAt the partner's issue instant
    * @param receivedAt server instant
+   * @param correlationId the correlation id of the callback request (a safe, bounded token)
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void insertCallback(
@@ -808,12 +821,14 @@ public class JdbcSalaryAdvanceHandoffRepository {
       String reviewState,
       String reasonCode,
       Instant issuedAt,
-      Instant receivedAt) {
+      Instant receivedAt,
+      String correlationId) {
     jdbc.sql(
             "INSERT INTO payroll.salary_advance_handoff_callback (callback_id, tenant_id,"
-                + " handoff_id, review_state, reason_code, issued_at, received_at) VALUES"
-                + " (:callback, :tenant, :handoff, :state, CAST(:reason AS text), :issued,"
-                + " :received)")
+                + " handoff_id, review_state, reason_code, issued_at, received_at, correlation_id)"
+                + " VALUES (:callback, :tenant, :handoff, :state, CAST(:reason AS text), :issued,"
+                + " :received, CAST(:correlation AS text))")
+        .param("correlation", correlationId)
         .param("callback", callbackId)
         .param("tenant", tenant.value())
         .param("handoff", handoffId)
@@ -822,6 +837,42 @@ public class JdbcSalaryAdvanceHandoffRepository {
         .param("issued", Timestamp.from(issuedAt))
         .param("received", Timestamp.from(receivedAt))
         .update();
+  }
+
+  /**
+   * A stored callback (replay evidence), looked up by its platform-unique id.
+   *
+   * @param tenant the tenant
+   * @param handoffId the handoff
+   * @param reviewState the reported state
+   * @param reasonCode closed reason, or {@code null}
+   * @param issuedAt the partner's issue instant
+   */
+  public record CallbackRow(
+      TenantId tenant, UUID handoffId, String reviewState, String reasonCode, Instant issuedAt) {}
+
+  /**
+   * The stored callback with this id, if any (evidence of an earlier accepted event).
+   *
+   * @param callbackId the partner event id
+   * @return the stored evidence
+   */
+  @CrossTenantAccess("a signed partner callback id is unique across the platform")
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional<CallbackRow> callback(UUID callbackId) {
+    return jdbc.sql(
+            "SELECT tenant_id, handoff_id, review_state, reason_code, issued_at FROM"
+                + " payroll.salary_advance_handoff_callback WHERE callback_id = :id")
+        .param("id", callbackId)
+        .query(
+            (rs, n) ->
+                new CallbackRow(
+                    new TenantId(rs.getObject("tenant_id", UUID.class)),
+                    rs.getObject("handoff_id", UUID.class),
+                    rs.getString("review_state"),
+                    rs.getString("reason_code"),
+                    rs.getTimestamp("issued_at").toInstant()))
+        .optional();
   }
 
   /**

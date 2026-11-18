@@ -137,11 +137,13 @@ public class SalaryAdvanceHandoffReviewService {
    *
    * @param caller verified tenant administrator
    * @param state raw state filter, or {@code null}
+   * @param reviewState raw partner-review status filter, or {@code null}
    * @param cursor opaque cursor, or {@code null}
    * @param limit raw page size, or {@code null}
    * @return the page, after its disclosure audit committed
    */
-  public Page list(PayrollCaller caller, String state, String cursor, String limit) {
+  public Page list(
+      PayrollCaller caller, String state, String reviewState, String cursor, String limit) {
     return plumbing.observed(
         LOG,
         "salary_advance_handoff_list",
@@ -150,6 +152,7 @@ public class SalaryAdvanceHandoffReviewService {
           FieldErrors errors = new FieldErrors();
           int size = SalaryAdvanceCommands.limit(limit, errors);
           String filter = SalaryAdvanceHandoffReads.stateFilter(state, errors);
+          String reviewFilter = SalaryAdvanceHandoffReads.reviewFilter(reviewState, errors);
           errors.throwIfAny();
           return plumbing.inReadTransaction(
               caller.tenant(),
@@ -163,7 +166,7 @@ public class SalaryAdvanceHandoffReviewService {
                     tenant,
                     caller.subject(),
                     now);
-                CursorScope scope = scope(caller, filter, size);
+                CursorScope scope = scope(caller, filter, reviewFilter, size);
                 Position after = null;
                 if (cursor != null) {
                   KeysetPosition position = cursors.decode(cursor, scope);
@@ -174,7 +177,7 @@ public class SalaryAdvanceHandoffReviewService {
                           .orElseThrow(() -> new ApiException(ErrorCode.CURSOR_INVALID, Map.of()));
                   after = new Position(at.authorizedAt(), at.id());
                 }
-                List<HandoffRow> rows = handoffs.page(tenant, null, filter, after, size + 1);
+                List<HandoffRow> rows = handoffs.page(tenant, null, filter, reviewFilter, after, size + 1);
                 List<HandoffRow> shown = rows.subList(0, Math.min(rows.size(), size));
                 String next = null;
                 if (rows.size() > size) {
@@ -452,12 +455,16 @@ public class SalaryAdvanceHandoffReviewService {
     return reference;
   }
 
-  private static CursorScope scope(PayrollCaller caller, String state, int size) {
+  private static CursorScope scope(
+      PayrollCaller caller, String state, String reviewState, int size) {
     Map<String, String> filters = new TreeMap<>();
     filters.put("view", "tenant-handoffs");
     filters.put("limit", Integer.toString(size));
     if (state != null) {
       filters.put("state", state);
+    }
+    if (reviewState != null) {
+      filters.put("reviewState", reviewState);
     }
     return new CursorScope(LIST, caller.tenant(), filters);
   }

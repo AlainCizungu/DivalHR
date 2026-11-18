@@ -11,6 +11,7 @@ import { CompensationAlert, Money } from '../compensation/CompensationBits';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { ScrollRegion } from '../people/ScrollRegion';
 import { HandoffNotice, HandoffReview, HandoffState } from './HandoffBits';
+import { ReviewTimeline } from './ReviewTimeline';
 import {
   handoffLive,
   handoffWithdrawable,
@@ -306,6 +307,9 @@ export function MyHandoffs({
                   </td>
                   <td>
                     <HandoffReview review={item.reviewState} />
+                    {item.reviewState !== null && (
+                      <ReviewTimeline requestId={item.requestId} review={item.reviewState} />
+                    )}
                   </td>
                   <td>
                     {handoffWithdrawable(item.state) &&

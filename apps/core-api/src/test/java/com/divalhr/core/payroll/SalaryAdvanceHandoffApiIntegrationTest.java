@@ -3,6 +3,7 @@ package com.divalhr.core.payroll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.divalhr.core.identity.application.EmailLookup;
 import com.divalhr.core.payroll.application.SalaryAdvanceHandoffWorker;
@@ -16,6 +17,8 @@ import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
 import com.divalhr.core.support.TestTokens;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -959,6 +963,342 @@ class SalaryAdvanceHandoffApiIntegrationTest {
             jdbc.queryForList(
                 "SELECT DISTINCT partner_code FROM payroll.salary_advance_handoff", String.class))
         .allMatch("SYNTHETIC-TEST"::equals);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // MVP-120C: partner lifecycle completion (ADR 0042 amendment)
+  // ------------------------------------------------------------------------------------------
+
+  private static final String RETENTION_POLICY = "/api/v1/salary-advance-retention-policy";
+  private static final String PURGE = "/api/v1/salary-advance-evidence-purge";
+
+  /** A delivered handoff whose partner declined it: terminal, with one delivery diagnostic. */
+  private String declinedHandoff() throws Exception {
+    String id = confirmed("5000").get("requestId").asText();
+    JsonNode handoff = authorized(id);
+    deliver();
+    String handoffId = handoff.get("handoffId").asText();
+    UUID application =
+        UUID.fromString(adminHandoff(handoffId).get("applicationId").asText());
+    assertThat(status(callback(application, "DECLINED", "PARTNER_POLICY"))).isEqualTo(204);
+    return handoffId;
+  }
+
+  private MockHttpServletRequestBuilder putPolicy(String bearer, Object body) throws Exception {
+    return put(RETENTION_POLICY)
+        .header("Authorization", bearer)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(body instanceof String text ? text : CompensationWorld.JSON.writeValueAsString(body));
+  }
+
+  private MockHttpServletRequestBuilder putDays(int days) throws Exception {
+    return putPolicy(w.admin, Map.of("retentionDays", days));
+  }
+
+  private MockHttpServletRequestBuilder previewPurge() {
+    return post(PURGE + "/preview").header("Authorization", w.admin);
+  }
+
+  private MockHttpServletRequestBuilder confirmPurge(String previewId, String digest)
+      throws Exception {
+    return CompensationWorld.json(
+        PURGE + "/" + previewId + "/confirm",
+        w.admin,
+        null,
+        Map.of("previewDigest", digest, "confirmed", true));
+  }
+
+  private int attemptRows(String handoffId) {
+    return w.c.count(
+        "SELECT count(*) FROM payroll.salary_advance_handoff_attempt"
+            + " WHERE tenant_id = ? AND handoff_id = ?",
+        w.tenant,
+        UUID.fromString(handoffId));
+  }
+
+  @Test
+  void aPartnerCancellationIsTerminalKeepsTheRequestConfirmedAndLeavesOrderedHistory()
+      throws Exception {
+    String id = confirmed("5000").get("requestId").asText();
+    JsonNode handoff = authorized(id);
+    deliver();
+    String handoffId = handoff.get("handoffId").asText();
+    UUID application = UUID.fromString(adminHandoff(handoffId).get("applicationId").asText());
+    assertThat(status(callback(application, "UNDER_REVIEW", null))).isEqualTo(204);
+    assertThat(status(callback(application, "MORE_INFORMATION_REQUIRED", "CLARIFICATION")))
+        .isEqualTo(204);
+    assertThat(status(callback(application, "CANCELLED_BY_PARTNER", "PARTNER_POLICY")))
+        .isEqualTo(204);
+
+    JsonNode view = myHandoff(id);
+    assertThat(view.get("reviewState").asText()).isEqualTo("CANCELLED_BY_PARTNER");
+    assertThat(view.get("state").asText()).isEqualTo("RECEIVED");
+    // The partner stopping its review is not the employee's withdrawal.
+    assertThat(requestStatus(id)).isEqualTo("EMPLOYER_CONFIRMED");
+    assertThat(status(withdrawHandoff(id, view.get("version").asInt()))).isEqualTo(409);
+    assertThat(requestStatus(id)).isEqualTo("EMPLOYER_CONFIRMED");
+    // Terminal: no further status is accepted, and the history is unchanged.
+    for (String next : List.of("UNDER_REVIEW", "MORE_INFORMATION_REQUIRED", "DECLINED")) {
+      assertThat(status(callback(application, next, "PARTNER_POLICY"))).isEqualTo(400);
+    }
+    List<String> steps = new ArrayList<>();
+    for (JsonNode event : myHandoff(id).get("reviewEvents")) {
+      steps.add(event.get("toState").asText());
+    }
+    assertThat(steps)
+        .containsExactly("UNDER_REVIEW", "MORE_INFORMATION_REQUIRED", "CANCELLED_BY_PARTNER");
+    // The safe history read model carries a digest of the event id, never the raw id, and an order
+    // the server controls.
+    List<Map<String, Object>> history =
+        jdbc.queryForList(
+            "SELECT receive_sequence, previous_status, new_status, event_digest, correlation_id,"
+                + " partner_code FROM payroll.salary_advance_handoff_status_history"
+                + " WHERE tenant_id = ? AND handoff_id = ? ORDER BY receive_sequence",
+            w.tenant,
+            UUID.fromString(handoffId));
+    assertThat(history).hasSize(3);
+    assertThat(history.get(0).get("previous_status")).isEqualTo("RECEIVED");
+    assertThat(history.get(2).get("new_status")).isEqualTo("CANCELLED_BY_PARTNER");
+    assertThat(history).allSatisfy(row -> {
+      assertThat(row.get("event_digest").toString()).matches("[0-9a-f]{64}");
+      assertThat(row.get("partner_code")).isEqualTo("SYNTHETIC-TEST");
+    });
+    // The refused steps after the terminal status were audited without their content.
+    assertThat(audits("salary-advance-handoff.partner-status-refused")).isEqualTo(3);
+    assertThat(audits("salary-advance-handoff.partner-status")).isEqualTo(3);
+  }
+
+  @Test
+  void anExactRepeatOfAnAcceptedPartnerEventIsAcknowledgedAndChangesNothing() throws Exception {
+    String id = confirmed("5000").get("requestId").asText();
+    JsonNode handoff = authorized(id);
+    deliver();
+    UUID application =
+        UUID.fromString(adminHandoff(handoff.get("handoffId").asText()).get("applicationId").asText());
+    long now = clock.instant().getEpochSecond();
+    UUID event = UUID.randomUUID();
+    assertThat(status(callback(application, "UNDER_REVIEW", null, now, event, CALLBACK_KEY)))
+        .isEqualTo(204);
+    int version = myHandoff(id).get("version").asInt();
+    // The identical event again: acknowledged, nothing written, no second audit.
+    assertThat(status(callback(application, "UNDER_REVIEW", null, now, event, CALLBACK_KEY)))
+        .isEqualTo(204);
+    assertThat(myHandoff(id).get("version").asInt()).isEqualTo(version);
+    assertThat(myHandoff(id).get("reviewEvents")).hasSize(1);
+    assertThat(audits("salary-advance-handoff.partner-status")).isEqualTo(1);
+    assertThat(audits("salary-advance-handoff.partner-status-refused")).isZero();
+    // The same event id with other content is a conflict: refused, audited, nothing changes.
+    assertThat(
+            status(callback(application, "MORE_INFORMATION_REQUIRED", "CLARIFICATION", now, event, CALLBACK_KEY)))
+        .isEqualTo(400);
+    assertThat(myHandoff(id).get("version").asInt()).isEqualTo(version);
+    assertThat(myHandoff(id).get("reviewEvents")).hasSize(1);
+    assertThat(audits("salary-advance-handoff.partner-status-refused")).isEqualTo(1);
+    // A status already reached under a new event id is refused too (no silent duplicate history).
+    assertThat(status(callback(application, "UNDER_REVIEW", null))).isEqualTo(400);
+    assertThat(myHandoff(id).get("reviewEvents")).hasSize(1);
+    // An unsupported signature version and an unsigned request change nothing and are not audited.
+    int refusedAudits = audits("salary-advance-handoff.partner-status-refused");
+    MockHttpServletRequestBuilder unsupported =
+        callback(application, "DECLINED", "PARTNER_POLICY", now, UUID.randomUUID(), CALLBACK_KEY);
+    unsupported.header("X-Divalhr-Signature", "v2=" + "a".repeat(64));
+    assertThat(status(unsupported)).isEqualTo(400);
+    assertThat(audits("salary-advance-handoff.partner-status-refused")).isEqualTo(refusedAudits);
+  }
+
+  @Test
+  void theAdministratorListFiltersByTheClosedReviewCatalogue() throws Exception {
+    String handoffId = declinedHandoff();
+    JsonNode declined =
+        w.c.expect(
+            get(ADMIN_HANDOFFS + "?reviewState=DECLINED").header("Authorization", w.admin), 200);
+    List<String> ids = new ArrayList<>();
+    for (JsonNode item : declined.get("items")) {
+      ids.add(item.get("handoffId").asText());
+      assertThat(item.get("reviewState").asText()).isEqualTo("DECLINED");
+    }
+    assertThat(ids).contains(handoffId);
+    JsonNode cancelled =
+        w.c.expect(
+            get(ADMIN_HANDOFFS + "?reviewState=CANCELLED_BY_PARTNER")
+                .header("Authorization", w.admin),
+            200);
+    for (JsonNode item : cancelled.get("items")) {
+      assertThat(item.get("handoffId").asText()).isNotEqualTo(handoffId);
+    }
+    for (String bad : List.of("APPROVED", "declined", "PAID")) {
+      assertThat(
+              status(get(ADMIN_HANDOFFS + "?reviewState=" + bad).header("Authorization", w.admin)))
+          .isEqualTo(400);
+    }
+  }
+
+  @Test
+  void retentionIsDisabledUntilConfiguredBoundedAndOnlyForTheTenantAdministrator()
+      throws Exception {
+    JsonNode none = w.c.expect(get(RETENTION_POLICY).header("Authorization", w.admin), 200);
+    assertThat(none.get("configured").asBoolean()).isFalse();
+    assertThat(none.get("retentionDays").isNull()).isTrue();
+    w.c.problem(previewPurge(), 409, "SALARY_ADVANCE_RETENTION_POLICY_MISSING");
+    for (int days : new int[] {0, 29, 3651}) {
+      w.c.problem(putDays(days), 400, "SALARY_ADVANCE_RETENTION_PERIOD_INVALID");
+    }
+    w.c.problem(putPolicy(w.admin, "{\"retentionDays\":\"30\"}"), 400, "VALIDATION_FAILED");
+    w.c.problem(
+        putPolicy(w.admin, "{\"retentionDays\":30,\"tenantId\":\"x\"}"), 400, "VALIDATION_FAILED");
+    assertThat(status(get(RETENTION_POLICY).header("Authorization", employee))).isEqualTo(403);
+    assertThat(status(putPolicy(employee, Map.of("retentionDays", 30)))).isEqualTo(403);
+    assertThat(status(post(PURGE + "/preview").header("Authorization", employee))).isEqualTo(403);
+    assertThat(
+            status(
+                CompensationWorld.json(
+                    PURGE + "/" + UUID.randomUUID() + "/confirm",
+                    employee,
+                    null,
+                    Map.of("previewDigest", "0".repeat(64), "confirmed", true))))
+        .isEqualTo(403);
+    JsonNode first = w.c.expect(putDays(30), 200);
+    assertThat(first.get("version").asInt()).isEqualTo(1);
+    assertThat(first.get("retentionDays").asInt()).isEqualTo(30);
+    // The same period changes nothing; another period is a new immutable version.
+    assertThat(w.c.expect(putDays(30), 200).get("version").asInt()).isEqualTo(1);
+    assertThat(w.c.expect(putDays(45), 200).get("version").asInt()).isEqualTo(2);
+    assertThat(audits("salary-advance-retention.configure")).isEqualTo(2);
+    assertThat(
+            w.c.count(
+                "SELECT count(*) FROM payroll.salary_advance_evidence_retention_policy"
+                    + " WHERE tenant_id = ?",
+                w.tenant))
+        .isEqualTo(2);
+  }
+
+  @Test
+  void aPurgeDeletesOnlyThePreviewedDeliveryDiagnosticsAfterOneExplicitConfirmation()
+      throws Exception {
+    w.c.expect(putDays(30), 200);
+    String handoffId = declinedHandoff();
+    UUID handoff = UUID.fromString(handoffId);
+    Timestamp stamped =
+        jdbc.queryForObject(
+            "SELECT retention_until FROM payroll.salary_advance_handoff_retention"
+                + " WHERE tenant_id = ? AND handoff_id = ?",
+            Timestamp.class,
+            w.tenant,
+            handoff);
+    // A later, longer policy never moves a stamped date.
+    assertThat(w.c.expect(putDays(3650), 200).get("version").asInt()).isEqualTo(2);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT retention_until FROM payroll.salary_advance_handoff_retention"
+                    + " WHERE tenant_id = ? AND handoff_id = ?",
+                Timestamp.class,
+                w.tenant,
+                handoff))
+        .isEqualTo(stamped);
+    // Before the date nothing is eligible.
+    JsonNode early = w.c.expect(previewPurge(), 200);
+    assertThat(early.get("handoffCount").asInt()).isZero();
+    assertThat(early.get("attemptCount").asInt()).isZero();
+    assertThat(attemptRows(handoffId)).isEqualTo(1);
+    try {
+      clock.set(clock.instant().plus(Duration.ofDays(31)));
+      JsonNode preview = w.c.expect(previewPurge(), 200);
+      assertThat(preview.get("handoffCount").asInt()).isEqualTo(1);
+      assertThat(preview.get("attemptCount").asInt()).isEqualTo(1);
+      assertThat(preview.get("digest").asText()).matches("[0-9a-f]{64}");
+      assertThat(preview.toString()).doesNotContain(handoffId);
+      String previewId = preview.get("previewId").asText();
+      // A wrong digest and a changed policy both leave the preview unusable; nothing is deleted.
+      w.c.problem(
+          confirmPurge(previewId, "0".repeat(64)), 409, "SALARY_ADVANCE_PURGE_PREVIEW_STALE");
+      w.c.expect(putDays(60), 200);
+      w.c.problem(
+          confirmPurge(previewId, preview.get("digest").asText()),
+          409,
+          "SALARY_ADVANCE_PURGE_PREVIEW_STALE");
+      assertThat(attemptRows(handoffId)).isEqualTo(1);
+      // An expired preview is stale too.
+      JsonNode second = w.c.expect(previewPurge(), 200);
+      clock.set(clock.instant().plus(Duration.ofMinutes(16)));
+      w.c.problem(
+          confirmPurge(second.get("previewId").asText(), second.get("digest").asText()),
+          409,
+          "SALARY_ADVANCE_PURGE_PREVIEW_STALE");
+      assertThat(attemptRows(handoffId)).isEqualTo(1);
+      // The database refuses any deletion that is not covered by a confirmed purge.
+      assertRefused(
+          "DELETE FROM payroll.salary_advance_handoff_attempt WHERE handoff_id = ?", handoff);
+
+      JsonNode third = w.c.expect(previewPurge(), 200);
+      String thirdId = third.get("previewId").asText();
+      String digest = third.get("digest").asText();
+      // Two simultaneous confirmations of the same preview delete once and replay once.
+      ExecutorService pool = Executors.newFixedThreadPool(2);
+      List<JsonNode> results = new ArrayList<>();
+      try {
+        List<Callable<String>> tasks = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+          tasks.add(() -> w.c.call(confirmPurge(thirdId, digest)).getContentAsString());
+        }
+        for (Future<String> future : pool.invokeAll(tasks)) {
+          results.add(CompensationWorld.JSON.readTree(future.get()));
+        }
+      } finally {
+        pool.shutdownNow();
+      }
+      assertThat(results).allSatisfy(done -> {
+        assertThat(done.get("handoffCount").asInt()).isEqualTo(1);
+        assertThat(done.get("attemptCount").asInt()).isEqualTo(1);
+      });
+      assertThat(results.stream().filter(done -> done.get("replayed").asBoolean()).count())
+          .isEqualTo(1);
+      assertThat(attemptRows(handoffId)).isZero();
+      // Everything that is not delivery diagnostics is still there.
+      assertThat(adminHandoff(handoffId).get("reviewState").asText()).isEqualTo("DECLINED");
+      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_event WHERE handoff_id = ?", handoff))
+          .isGreaterThanOrEqualTo(2);
+      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_consent WHERE handoff_id = ?", handoff))
+          .isEqualTo(1);
+      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_ack WHERE handoff_id = ?", handoff))
+          .isEqualTo(1);
+      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_review_event WHERE handoff_id = ?", handoff))
+          .isEqualTo(1);
+      assertThat(requestStatus(myHandoff(handoffId2request(handoff)).get("requestId").asText()))
+          .isEqualTo("EMPLOYER_CONFIRMED");
+      // A repeat replays; another digest on a completed preview is its own answer; unknown ids are
+      // the same not-found.
+      JsonNode replay = w.c.expect(confirmPurge(thirdId, digest), 200);
+      assertThat(replay.get("replayed").asBoolean()).isTrue();
+      w.c.problem(
+          confirmPurge(thirdId, "1".repeat(64)), 409, "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED");
+      w.c.problem(
+          confirmPurge(UUID.randomUUID().toString(), digest),
+          404,
+          "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND");
+      w.c.problem(
+          confirmPurge("not-a-uuid", digest), 404, "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND");
+      assertThat(w.c.expect(previewPurge(), 200).get("attemptCount").asInt()).isZero();
+    } finally {
+      clock.reset();
+    }
+    assertThat(audits("salary-advance-retention.purge-confirm")).isEqualTo(1);
+    // Retention audit carries counts only: no digest, handoff or employee.
+    String audit =
+        String.join(
+            "\n",
+            jdbc.queryForList(
+                "SELECT metadata::text FROM platform.audit_event WHERE tenant_id = ?"
+                    + " AND action LIKE 'salary-advance-retention.%'",
+                String.class,
+                w.tenant));
+    assertThat(audit).isNotEmpty().doesNotContain(handoffId).doesNotContain("digest");
+  }
+
+  private String handoffId2request(UUID handoff) {
+    return jdbc.queryForObject(
+        "SELECT request_id::text FROM payroll.salary_advance_handoff WHERE id = ?",
+        String.class,
+        handoff);
   }
 
   private int handoffCount() {

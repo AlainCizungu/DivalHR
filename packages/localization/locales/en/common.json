@@ -317,7 +317,7 @@
           },
           "salaryAdvanceHandoff": {
             "title": "Salary-advance requests and a test handoff",
-            "description": "Record employer participation policies, confirm or refuse employee requests, and follow a controlled handoff to a synthetic test partner. DivalHR is not the lender, no real partner is connected, nothing is decided or paid out, and nothing is deducted."
+            "description": "Record employer participation policies, confirm or refuse employee requests, follow a controlled handoff to a synthetic test partner with its review status and history, and manage evidence retention. DivalHR is not the lender, no real partner is connected, no loan is approved, no funds are disbursed, and nothing is deducted."
           }
         }
       }
@@ -339,7 +339,7 @@
         "compensationTitle": "My compensation",
         "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment.",
         "payslips": "Read your payslips and download them as PDF in English or French. A payslip is not proof of payment.",
-        "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner. DivalHR is not the lender; nothing is decided or paid out."
+        "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner and follow that partner’s review status. DivalHR is not the lender; no loan is approved and no funds are disbursed."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -791,6 +791,11 @@
     "SALARY_ADVANCE_PARTNER_UNAVAILABLE": "The test partner is not available right now. Try again later.",
     "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN": "The delivery outcome is still unknown. It was not sent again.",
     "SALARY_ADVANCE_PARTNER_NOT_ENABLED": "The controlled test partner is not enabled in this environment.",
+    "SALARY_ADVANCE_RETENTION_POLICY_MISSING": "Set an evidence retention period before previewing a purge.",
+    "SALARY_ADVANCE_RETENTION_PERIOD_INVALID": "The retention period must be between 30 and 3,650 days.",
+    "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND": "This purge preview does not exist.",
+    "SALARY_ADVANCE_PURGE_PREVIEW_STALE": "The preview is out of date. Nothing was deleted. Preview again.",
+    "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED": "This purge was already completed.",
     "PARTNER_CALLBACK_INVALID": "The callback was rejected."
   },
   "notFound": {
@@ -3089,7 +3094,7 @@
         "loans": {
           "title": "Loans & Salary Advances",
           "description": "Responsible employee credit from approved partners, repaid through payroll.",
-          "foundation": "Employer-confirmed salary-advance requests with the employee’s consent, and a controlled test handoff to a synthetic partner. DivalHR is not the lender, no real partner or institution is connected, nothing is decided or paid out, and nothing is deducted from pay."
+          "foundation": "Employer-confirmed salary-advance requests with the employee’s consent, a controlled test handoff to a synthetic partner, and a transparent record of that partner’s review status and history. DivalHR is not the lender and no real partner or institution is connected. Not available: a real lender, an eligibility or credit decision, pricing or interest, approval, disbursement, repayment, or payroll deduction."
         },
         "benefits": {
           "title": "Benefits & Insurance",
@@ -6043,7 +6048,8 @@
         "RECEIVED": "Received",
         "UNDER_REVIEW": "Under review",
         "MORE_INFORMATION_REQUIRED": "More information required",
-        "DECLINED": "Declined by the partner"
+        "DECLINED": "Declined",
+        "CANCELLED_BY_PARTNER": "Review cancelled by the partner"
       },
       "reviewReason": {
         "ADDITIONAL_DOCUMENTS": "Additional documents",
@@ -6117,10 +6123,43 @@
           "UNRELATED_HR_HISTORY": "Unrelated HR history"
         }
       },
+      "lifecycle": {
+        "title": "Partner review",
+        "show": "Show review history",
+        "hide": "Hide review history",
+        "empty": "The partner has not reported any review step yet.",
+        "noApproval": "No loan has been approved and no funds have been disbursed.",
+        "timeline": "Partner review history",
+        "help": {
+          "RECEIVED": "The partner confirmed it holds your request. Nothing has been reviewed yet.",
+          "UNDER_REVIEW": "The partner reports that it is reviewing your request.",
+          "MORE_INFORMATION_REQUIRED": "The partner reports that it needs more information. This is a status only: you cannot reply or upload anything here.",
+          "DECLINED": "The partner reports that it declined your request. This is the partner’s status, not a decision of DivalHR.",
+          "CANCELLED_BY_PARTNER": "The partner stopped its review. This is not your withdrawal: your request stays confirmed by your employer, and you still cannot withdraw it here."
+        }
+      },
+      "retention": {
+        "title": "Evidence retention",
+        "intro": "Choose how long the delivery diagnostics of finished partner handoffs are kept. The period is your organization’s choice, not legal advice. Requests, employer confirmations, consent receipts, statuses, history and audit records are never deleted.",
+        "disabled": "Retention is not configured. Nothing is ever deleted.",
+        "current": "Current period: {{days}} days (version {{version}}). It applies only to handoffs that finish after it was set.",
+        "daysLabel": "Retention period in days (30 to 3,650)",
+        "save": "Save period",
+        "saved": "Retention period saved.",
+        "preview": "Preview eligible evidence",
+        "previewResult": "{{attempts}} delivery diagnostic records of {{handoffs}} handoffs are eligible. This preview expires at {{at}}.",
+        "previewNone": "No evidence is eligible for deletion.",
+        "delete": "Delete eligible evidence",
+        "deleteStatement": "This permanently deletes only the {{attempts}} previewed records. It cannot be undone.",
+        "confirm": "Confirm deletion",
+        "done": "Deleted {{attempts}} delivery diagnostic records of {{handoffs}} handoffs.",
+        "doneReplay": "This deletion was already completed. Nothing more was deleted."
+      },
       "admin": {
         "title": "Partner handoffs",
         "description": "Follow the delivery and the partner’s review status of requests sent to the synthetic test partner, and check an uncertain delivery.",
         "filter": "Filter by delivery",
+        "filterReview": "Filter by partner review",
         "empty": "There are no handoffs.",
         "table": "Partner handoff list",
         "openContext": "Open the handoff created {{date}}",
