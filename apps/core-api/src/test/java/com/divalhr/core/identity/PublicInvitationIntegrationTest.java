@@ -12,6 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.divalhr.core.identity.application.IdentityProviderUnavailableException;
 import com.divalhr.core.identity.application.InvitationAcceptance;
 import com.divalhr.core.identity.application.InvitationJobs;
@@ -22,9 +25,6 @@ import com.divalhr.core.support.Hierarchy;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.RecordingInvitationMailer;
 import com.divalhr.core.support.TestTokens;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
