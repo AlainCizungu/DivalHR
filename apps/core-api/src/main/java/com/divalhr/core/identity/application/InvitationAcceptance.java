@@ -206,11 +206,17 @@ public class InvitationAcceptance {
     }
   }
 
+  /** The safe reason code of an identity-provider failure; anything else is just "other". */
+  private static String safeReason(RuntimeException failure) {
+    return failure instanceof IdentityProviderUnavailableException ? failure.getMessage() : "other";
+  }
+
   private void provisionAndComplete(Invitation invitation, UUID owner, String correlationId) {
     if (bootstrap(invitation) && supersededBeforeProvisioning(invitation, owner, correlationId)) {
       throw new ApiException(ErrorCode.INVITATION_INVALID, Map.of());
     }
     ProvisioningResult result;
+    long provisioningStarted = System.nanoTime();
     try {
       result =
           directory.provision(
@@ -221,6 +227,15 @@ public class InvitationAcceptance {
                   invitation.role(),
                   invitation.locale()));
     } catch (RuntimeException unavailable) {
+      // Issue #173: the answer was unexplained. Only the stage, the exception class, the safe
+      // reason code and the elapsed time are logged: never a message, address or response body.
+      LOG.atWarn()
+          .addKeyValue("operation", OPERATION)
+          .addKeyValue("stage", "provision")
+          .addKeyValue("exceptionClass", unavailable.getClass().getSimpleName())
+          .addKeyValue("reason", safeReason(unavailable))
+          .addKeyValue("elapsedMs", (System.nanoTime() - provisioningStarted) / 1_000_000)
+          .log("invitation_accept_provisioning_unavailable");
       invitations.releaseAcceptance(invitation.id(), owner);
       throw new ApiException(ErrorCode.IDENTITY_PROVIDER_UNAVAILABLE, Map.of());
     }

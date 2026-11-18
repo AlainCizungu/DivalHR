@@ -187,6 +187,7 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
 
   private Reply call(String method, String path, String body, UUID revocationId) {
     String correlationId = MDC.get(CorrelationId.MDC_KEY);
+    long started = System.nanoTime();
     try {
       RestClient.RequestBodySpec spec =
           http.method(org.springframework.http.HttpMethod.valueOf(method))
@@ -217,6 +218,7 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
     } catch (IdentityProviderUnavailableException unavailable) {
       throw unavailable;
     } catch (ResourceAccessException io) {
+      logIo("provision-call", method, io, started);
       throw new IdentityProviderUnavailableException("io");
     } catch (RestClientResponseException rejected) {
       throw unavailable(rejected.getStatusCode());
@@ -248,6 +250,21 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
     return new IdentityProviderUnavailableException(reason);
   }
 
+  /** Issue #173: stage, method, cause class and elapsed time only; never a path or a body. */
+  private static void logIo(
+      String stage, String method, ResourceAccessException io, long startedNanos) {
+    Throwable root = io;
+    while (root.getCause() != null && root.getCause() != root) {
+      root = root.getCause();
+    }
+    LOG.atWarn()
+        .addKeyValue("stage", stage)
+        .addKeyValue("method", method)
+        .addKeyValue("causeClass", root.getClass().getSimpleName())
+        .addKeyValue("elapsedMs", (System.nanoTime() - startedNanos) / 1_000_000)
+        .log("identity_provider_io_failure");
+  }
+
   private String token() {
     synchronized (tokenLock) {
       Instant now = Instant.now(clock);
@@ -259,6 +276,7 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
       form.add("client_id", properties.clientId());
       form.add("client_secret", properties.clientSecret());
       String body;
+      long started = System.nanoTime();
       try {
         body =
             http.post()
@@ -270,6 +288,7 @@ public class KeycloakIdentityDirectory implements IdentityDirectory {
       } catch (RestClientResponseException rejected) {
         throw unavailable(rejected.getStatusCode());
       } catch (ResourceAccessException io) {
+        logIo("token", "POST", io, started);
         throw new IdentityProviderUnavailableException("io");
       }
       JsonNode node = json.readTree(body == null ? "{}" : body);
