@@ -3,6 +3,9 @@ package com.divalhr.core.identity.internal.keycloak;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.divalhr.core.identity.application.IdentityDirectory.CredentialSetupOutcome;
 import com.divalhr.core.identity.application.IdentityDirectory.IdentityConflict;
 import com.divalhr.core.identity.application.IdentityDirectory.Provisioned;
@@ -15,14 +18,20 @@ import com.divalhr.core.platform.tenancy.TenantId;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -41,6 +50,7 @@ class KeycloakIdentityDirectoryTest {
   private final AtomicReference<String> lastMethod = new AtomicReference<>();
   private final AtomicReference<Integer> lastBodyBytes = new AtomicReference<>();
   private final AtomicReference<String> lastContentType = new AtomicReference<>();
+  private final AtomicLong delayMillis = new AtomicLong();
 
   @BeforeEach
   void start() throws IOException {
@@ -57,6 +67,11 @@ class KeycloakIdentityDirectoryTest {
           lastMethod.set(exchange.getRequestMethod());
           lastBodyBytes.set(exchange.getRequestBody().readAllBytes().length);
           lastContentType.set(exchange.getRequestHeaders().getFirst("Content-Type"));
+          try {
+            Thread.sleep(delayMillis.get());
+          } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+          }
           respond(exchange, status.get(), answer.get());
         });
     server.start();
@@ -101,6 +116,94 @@ class KeycloakIdentityDirectoryTest {
         new EmailAddress("ada@example.test"),
         TenantRole.EMPLOYEE,
         InvitationLocale.EN);
+  }
+
+  private static KeycloakIdentityDirectory directoryAt(int port, Duration readTimeout) {
+    return new KeycloakIdentityDirectory(
+        new KeycloakProperties(
+            "http://127.0.0.1:" + port,
+            "divalhr-test",
+            "divalhr-core-provisioner",
+            "stub-secret-0123456789",
+            Duration.ofSeconds(2),
+            readTimeout),
+        "test",
+        JsonMapper.builder().build());
+  }
+
+  private static Map<String, Object> fields(ILoggingEvent event) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    event.getKeyValuePairs().forEach(pair -> fields.put(pair.key, pair.value));
+    return fields;
+  }
+
+  private void assertOnlyStageMethodCauseAndElapsed(
+      ListAppender<ILoggingEvent> events, String stage, String method, ProvisioningRequest asked) {
+    assertThat(events.list).hasSize(1);
+    ILoggingEvent event = events.list.get(0);
+    assertThat(event.getFormattedMessage()).isEqualTo("identity_provider_io_failure");
+    assertThat(event.getLevel().toString()).isEqualTo("WARN");
+    Map<String, Object> fields = fields(event);
+    assertThat(fields.keySet()).containsExactly("stage", "method", "causeClass", "elapsedMs");
+    assertThat(fields).containsEntry("stage", stage).containsEntry("method", method);
+    assertThat(String.valueOf(fields.get("causeClass"))).matches("[A-Za-z0-9_$]+");
+    assertThat(((Number) fields.get("elapsedMs")).longValue()).isGreaterThanOrEqualTo(0L);
+    StringBuilder everything = new StringBuilder(event.getFormattedMessage());
+    fields.forEach((key, value) -> everything.append(' ').append(key).append('=').append(value));
+    assertThat(event.getThrowableProxy()).isNull();
+    assertThat(everything.toString())
+        .doesNotContain("stub-secret-0123456789")
+        .doesNotContain("127.0.0.1")
+        .doesNotContain("/realms")
+        .doesNotContain("divalhr-provisioning")
+        .doesNotContain("access_token")
+        .doesNotContain("ada@example.test")
+        .doesNotContain(asked.invitationId().toString());
+  }
+
+  @Test
+  void aSlowProvisioningCallLogsOnlyTheStageMethodCauseClassAndElapsedTime() {
+    delayMillis.set(1_500);
+    KeycloakIdentityDirectory slow =
+        directoryAt(server.getAddress().getPort(), Duration.ofMillis(300));
+    ProvisioningRequest asked = request();
+    Logger logger = (Logger) LoggerFactory.getLogger(KeycloakIdentityDirectory.class);
+    ListAppender<ILoggingEvent> events = new ListAppender<>();
+    events.start();
+    logger.addAppender(events);
+    try {
+      assertThatThrownBy(() -> slow.provision(asked))
+          .isInstanceOf(IdentityProviderUnavailableException.class)
+          .hasMessage("io");
+    } finally {
+      logger.detachAppender(events);
+    }
+    assertOnlyStageMethodCauseAndElapsed(events, "provision-call", "PUT", asked);
+    assertThat(((Number) fields(events.list.get(0)).get("elapsedMs")).longValue())
+        .isGreaterThanOrEqualTo(250L);
+  }
+
+  @Test
+  void anUnreachableTokenEndpointLogsOnlyTheStageMethodCauseClassAndElapsedTime()
+      throws IOException {
+    int closedPort;
+    try (ServerSocket probe = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) {
+      closedPort = probe.getLocalPort();
+    }
+    KeycloakIdentityDirectory unreachable = directoryAt(closedPort, Duration.ofSeconds(2));
+    ProvisioningRequest asked = request();
+    Logger logger = (Logger) LoggerFactory.getLogger(KeycloakIdentityDirectory.class);
+    ListAppender<ILoggingEvent> events = new ListAppender<>();
+    events.start();
+    logger.addAppender(events);
+    try {
+      assertThatThrownBy(() -> unreachable.provision(asked))
+          .isInstanceOf(IdentityProviderUnavailableException.class)
+          .hasMessage("io");
+    } finally {
+      logger.detachAppender(events);
+    }
+    assertOnlyStageMethodCauseAndElapsed(events, "token", "POST", asked);
   }
 
   @Test
