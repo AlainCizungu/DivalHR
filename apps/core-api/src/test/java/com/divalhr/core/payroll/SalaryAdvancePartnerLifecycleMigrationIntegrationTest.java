@@ -260,6 +260,7 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
           assertThat(legacy).isZero();
         });
   }
+
   // ------------------------------------------------------------------------------------------
   // Populated V53 (R210-1): every legacy row survives V54 unchanged and the database stays usable
   // ------------------------------------------------------------------------------------------
@@ -452,8 +453,7 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
 
   private static void handoffEvent(
       StringBuilder sql, int n, int sequence, String from, String to, String outcome) {
-    String role =
-        sequence <= 2 || "WITHDRAWN".equals(to) ? "EMPLOYEE" : "SYSTEM";
+    String role = sequence <= 2 || "WITHDRAWN".equals(to) ? "EMPLOYEE" : "SYSTEM";
     String subject = "EMPLOYEE".equals(role) ? "emp-sub-" + n : "system";
     sql.append(
         "INSERT INTO payroll.salary_advance_handoff_event (tenant_id, handoff_id, sequence,"
@@ -538,8 +538,8 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
   }
 
   /**
-   * One handoff in its final V53 state with the evidence that explains it: row_version is the
-   * event rows plus the review rows minus one, every counter equals its rows.
+   * One handoff in its final V53 state with the evidence that explains it: row_version is the event
+   * rows plus the review rows minus one, every counter equals its rows.
    */
   private static void handoff(
       StringBuilder sql,
@@ -629,12 +629,13 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
   }
 
   /**
-   * Valid representative V53 data: the V53 data-shape rules (CHECK and unique constraints) apply
-   * to every row. Only the unrelated parents (legal entity, employee, payslip) and the
-   * insert-time lifecycle triggers are skipped, for this one disposable transaction.
+   * Valid representative V53 data: the V53 data-shape rules (CHECK and unique constraints) apply to
+   * every row. Only the unrelated parents (legal entity, employee, payslip) and the insert-time
+   * lifecycle triggers are skipped, for this one disposable transaction.
    */
   private static String legacySeed() {
-    StringBuilder sql = new StringBuilder("BEGIN;\nSET LOCAL session_replication_role = replica;\n");
+    StringBuilder sql =
+        new StringBuilder("BEGIN;\nSET LOCAL session_replication_role = replica;\n");
     sql.append(
         "INSERT INTO payroll.salary_advance_policy (tenant_id, legal_entity_id, id, currency,"
             + " sequence, code, effective_from, enabled, min_tenure_months, max_percent,"
@@ -731,8 +732,7 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
             assertThat(entry.getValue()).as(entry.getKey()).doesNotStartWith("0:");
           }
           assertThat(count(db, INCOMPLETE_HANDOFFS)).isZero();
-          assertThat(count(db, "SELECT count(*) FROM payroll.salary_advance_handoff"))
-              .isEqualTo(9);
+          assertThat(count(db, "SELECT count(*) FROM payroll.salary_advance_handoff")).isEqualTo(9);
           assertThat(
                   db.jdbc()
                       .queryForList(
@@ -817,11 +817,11 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
           // The safe history read model only mirrors the real callbacks (one row each).
           assertThat(
                   count(db, "SELECT count(*) FROM payroll.salary_advance_handoff_status_history"))
-              .isEqualTo(
-                  count(db, "SELECT count(*) FROM payroll.salary_advance_handoff_callback"));
+              .isEqualTo(count(db, "SELECT count(*) FROM payroll.salary_advance_handoff_callback"));
 
           // The migrated database is usable: a retention policy, then a legal partner lifecycle
-          // (UNDER_REVIEW, then the new CANCELLED_BY_PARTNER) on a legacy RECEIVED handoff, with the
+          // (UNDER_REVIEW, then the new CANCELLED_BY_PARTNER) on a legacy RECEIVED handoff, with
+          // the
           // prospective retention stamp written for that handoff alone.
           db.jdbc().update(POLICY, TENANT, 1, 30);
           script(
@@ -903,5 +903,4 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
           }
         });
   }
-
 }
