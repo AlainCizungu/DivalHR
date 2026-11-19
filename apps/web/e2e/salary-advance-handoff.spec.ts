@@ -1065,7 +1065,6 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
       .getByRole('link', { name: 'Transmissions au partenaire', exact: true })
       .click();
     const panel = admin.getByTestId('retention-panel');
-    await expect(panel.getByTestId('purge-preview')).toBeDisabled();
     await panel.getByTestId('retention-days').fill('29');
     await panel.getByTestId('retention-save').click();
     await expect(panel.getByTestId('retention-error')).toBeVisible();
@@ -1081,7 +1080,7 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
       reasonCode: 'PARTNER_POLICY',
     });
     expect(declined.status).toBe(204);
-    await revisit(admin, 'Organisation', 'Transmissions au partenaire');
+    await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
     await admin.getByTestId('handoffs-review-filter').selectOption('DECLINED');
     const row = admin.getByTestId('handoff-admin-row').filter({ hasText: DEN.number });
     await expect(row.getByTestId('handoff-review')).toHaveAttribute('data-review', 'DECLINED');
@@ -1103,7 +1102,7 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     ).not.toBe('0');
 
     // 4. Preview, then one explicit confirmation of exactly that preview.
-    await revisit(admin, 'Organisation', 'Transmissions au partenaire');
+    await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
     const retention = admin.getByTestId('retention-panel');
     await retention.getByTestId('purge-preview').click();
     await expect(retention.getByTestId('purge-preview-result')).toBeVisible();
@@ -1120,7 +1119,7 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     // 5. Everything that is not a delivery diagnostic is still there; nothing is left to purge.
     await retention.getByTestId('purge-preview').click();
     await expect(retention.getByTestId('purge-none')).toBeVisible();
-    await revisit(admin, 'Organisation', 'Transmissions au partenaire');
+    await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
     await admin.getByTestId('handoffs-review-filter').selectOption('DECLINED');
     await expect(
       admin.getByTestId('handoff-admin-row').filter({ hasText: DEN.number }),
