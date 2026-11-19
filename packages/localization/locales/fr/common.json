@@ -792,7 +792,7 @@
     "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN": "Le résultat de l’envoi est encore inconnu. Il n’a pas été renvoyé.",
     "SALARY_ADVANCE_PARTNER_NOT_ENABLED": "Le partenaire de test contrôlé n’est pas activé dans cet environnement.",
     "SALARY_ADVANCE_RETENTION_POLICY_MISSING": "Définissez une durée de conservation des preuves avant de prévisualiser une suppression.",
-    "SALARY_ADVANCE_RETENTION_PERIOD_INVALID": "La durée de conservation doit être comprise entre 30 et 3 650 jours.",
+    "SALARY_ADVANCE_RETENTION_PERIOD_INVALID": "La durée de conservation est hors de la plage autorisée.",
     "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND": "Cette prévisualisation de suppression n'existe pas.",
     "SALARY_ADVANCE_PURGE_PREVIEW_STALE": "La prévisualisation n'est plus à jour. Rien n'a été supprimé. Prévisualisez à nouveau.",
     "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED": "Cette suppression a déjà été effectuée.",

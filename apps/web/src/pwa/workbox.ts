@@ -12,6 +12,8 @@
 export const workboxOptions = {
   globPatterns: ['**/*.{js,css,html,svg}'],
   globIgnores: ['config.js'],
+  // The application shell is one chunk of about 2 MiB; Workbox refuses larger files by default.
+  maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
   // Workbox tests each expression against pathname + search, so every namespace is matched at a
   // boundary: the bare prefix, a child path or a query string (/identity, /identity?x=1,
   // /identity/...), never a longer application path (/identity-card, /apiary, /air, /author).

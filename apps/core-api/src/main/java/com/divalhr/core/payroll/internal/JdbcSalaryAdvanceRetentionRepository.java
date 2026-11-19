@@ -109,9 +109,11 @@ public class JdbcSalaryAdvanceRetentionRepository {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void lockPolicies(TenantId tenant) {
-    jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended(CAST(:tenant AS text), 120))")
+    jdbc.sql(
+            "SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtextextended(CAST(:tenant AS text),"
+                + " 120))) AS locked")
         .param("tenant", tenant.value().toString())
-        .query(Long.class)
+        .query(Integer.class)
         .single();
   }
 

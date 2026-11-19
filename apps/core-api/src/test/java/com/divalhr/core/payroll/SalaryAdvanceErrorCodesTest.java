@@ -79,7 +79,7 @@ class SalaryAdvanceErrorCodesTest {
 
   @Test
   void everyCodeExistsWithItsStatus() {
-    assertThat(CODES).hasSize(28);
+    assertThat(CODES).hasSize(33);
     for (Map.Entry<String, HttpStatus> code : CODES.entrySet()) {
       ErrorCode found = ErrorCode.valueOf(code.getKey());
       assertThat(found.status()).as(code.getKey()).isEqualTo(code.getValue());
@@ -206,7 +206,7 @@ class SalaryAdvanceErrorCodesTest {
           switch (code.getValue()) {
             case NOT_FOUND -> Outcome.NOT_FOUND;
             case SERVICE_UNAVAILABLE -> Outcome.FAILURE;
-            case UNPROCESSABLE_CONTENT -> Outcome.VALIDATION_FAILED;
+            case UNPROCESSABLE_CONTENT, BAD_REQUEST -> Outcome.VALIDATION_FAILED;
             default -> Outcome.STATE_CONFLICT;
           };
       assertThat(outcome).as(code.getKey()).isEqualTo(expected);

@@ -836,6 +836,7 @@ export type SalaryAdvanceHandoffView = CoreComponents['schemas']['SalaryAdvanceH
 export type SalaryAdvanceHandoffWithdraw =
   CoreComponents['schemas']['SalaryAdvanceHandoffWithdraw'];
 export type CommitSalaryAdvanceHandoff = CoreComponents['schemas']['CommitSalaryAdvanceHandoff'];
-export type SalaryAdvanceRetentionPolicy = CoreComponents['schemas']['SalaryAdvanceRetentionPolicy'];
+export type SalaryAdvanceRetentionPolicy =
+  CoreComponents['schemas']['SalaryAdvanceRetentionPolicy'];
 export type SalaryAdvancePurgePreview = CoreComponents['schemas']['SalaryAdvancePurgePreview'];
 export type SalaryAdvancePurgeResult = CoreComponents['schemas']['SalaryAdvancePurgeResult'];

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.divalhr.core.support.IntegrationTest;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.flywaydb.core.Flyway;
@@ -130,7 +131,9 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
               .contains("salary_advance_purge_record")
               .contains("salary_advance_handoff_status_history");
           int recorded =
-              db.jdbc().queryForObject("SELECT count(*) FROM flyway_schema_history", Integer.class);
+              Objects.requireNonNull(
+                  db.jdbc()
+                      .queryForObject("SELECT count(*) FROM flyway_schema_history", Integer.class));
           script(db, resource("db/rollback/V54__rollback.sql"));
           assertThat(db.jdbc().queryForObject(SIGNATURE, String.class)).isEqualTo(v53);
           assertThat(

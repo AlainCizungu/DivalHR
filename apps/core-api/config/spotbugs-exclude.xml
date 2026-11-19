@@ -261,6 +261,11 @@
     <Bug pattern="HSC_HUGE_SHARED_STRING_CONSTANT"/>
     <Class name="com.divalhr.core.payroll.PayrollRunMigrationIntegrationTest"/>
   </Match>
+  <!-- MVP-120C: the same shared schema-signature query text as the other migration tests. -->
+  <Match>
+    <Bug pattern="HSC_HUGE_SHARED_STRING_CONSTANT"/>
+    <Class name="com.divalhr.core.payroll.SalaryAdvancePartnerLifecycleMigrationIntegrationTest"/>
+  </Match>
   <!-- MVP-095A: the batch evaluation is an immutable result; its lists are copied unmodifiable in the
        record's constructor. -->
   <Match>

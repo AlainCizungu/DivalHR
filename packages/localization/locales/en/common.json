@@ -792,7 +792,7 @@
     "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN": "The delivery outcome is still unknown. It was not sent again.",
     "SALARY_ADVANCE_PARTNER_NOT_ENABLED": "The controlled test partner is not enabled in this environment.",
     "SALARY_ADVANCE_RETENTION_POLICY_MISSING": "Set an evidence retention period before previewing a purge.",
-    "SALARY_ADVANCE_RETENTION_PERIOD_INVALID": "The retention period must be between 30 and 3,650 days.",
+    "SALARY_ADVANCE_RETENTION_PERIOD_INVALID": "The retention period is outside the allowed range.",
     "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND": "This purge preview does not exist.",
     "SALARY_ADVANCE_PURGE_PREVIEW_STALE": "The preview is out of date. Nothing was deleted. Preview again.",
     "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED": "This purge was already completed.",
