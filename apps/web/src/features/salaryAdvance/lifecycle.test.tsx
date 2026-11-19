@@ -140,9 +140,11 @@ describe('lifecycle catalogue and wording', () => {
     }
   });
 
-  it('never claims an approval or a payout in any lifecycle or retention string', () => {
+  it('never claims an approval or a payout, except in the statement that none happened', () => {
     for (const locale of ['en', 'fr'] as const) {
-      const text = JSON.stringify(resources[locale].common.salaryAdvance.handoff.lifecycle);
+      const { noApproval, ...rest } = resources[locale].common.salaryAdvance.handoff.lifecycle;
+      expect(noApproval.length).toBeGreaterThan(0);
+      const text = JSON.stringify(rest);
       expect(text).not.toMatch(/\bapproved\b|\bfunded\b|\bdisbursed\b|\bapprouvé|\bversé\b/iu);
     }
   });
