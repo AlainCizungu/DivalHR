@@ -12954,7 +12954,7 @@ export interface components {
          */
         SalaryAdvanceHandoffState: "AUTHORIZED" | "QUEUED" | "SENDING" | "RECEIVED" | "DELIVERY_UNKNOWN" | "FAILED" | "WITHDRAWN";
         /**
-         * @description The bounded partner-review status, separate from delivery and present only after RECEIVED. It is a status report of a controlled synthetic partner, not a credit decision of DivalHR. MVP-120C: DECLINED and CANCELLED_BY_PARTNER are terminal; CANCELLED_BY_PARTNER means the partner stopped its own review and is not an employee withdrawal. No approved, funded or disbursed status exists.
+         * @description The bounded partner-review status, separate from delivery and present only after RECEIVED. It is a status report of a controlled synthetic partner, not a credit decision of DivalHR. MVP-120C: DECLINED and CANCELLED_BY_PARTNER are terminal; CANCELLED_BY_PARTNER means the partner stopped its own review and is not an employee withdrawal. No approval, payout or disbursement status exists.
          * @enum {string}
          */
         SalaryAdvanceHandoffReviewState: "RECEIVED" | "UNDER_REVIEW" | "MORE_INFORMATION_REQUIRED" | "DECLINED" | "CANCELLED_BY_PARTNER";

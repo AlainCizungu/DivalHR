@@ -1039,7 +1039,8 @@ class SalaryAdvanceHandoffApiIntegrationTest {
     assertThat(requestStatus(id)).isEqualTo("EMPLOYER_CONFIRMED");
     // Terminal: no further status is accepted, and the history is unchanged.
     for (String next : List.of("UNDER_REVIEW", "MORE_INFORMATION_REQUIRED", "DECLINED")) {
-      assertThat(status(callback(application, next, "PARTNER_POLICY"))).isEqualTo(400);
+      String reason = "UNDER_REVIEW".equals(next) ? null : "PARTNER_POLICY";
+      assertThat(status(callback(application, next, reason))).isEqualTo(400);
     }
     List<String> steps = new ArrayList<>();
     for (JsonNode event : myHandoff(id).get("reviewEvents")) {

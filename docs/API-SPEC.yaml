@@ -31326,7 +31326,7 @@ components:
         The bounded partner-review status, separate from delivery and present only after RECEIVED. It is a status report of a
         controlled synthetic partner, not a credit decision of DivalHR. MVP-120C: DECLINED and CANCELLED_BY_PARTNER are
         terminal; CANCELLED_BY_PARTNER means the partner stopped its own review and is not an employee withdrawal. No
-        approved, funded or disbursed status exists.
+        approval, payout or disbursement status exists.
       enum: [RECEIVED, UNDER_REVIEW, MORE_INFORMATION_REQUIRED, DECLINED, CANCELLED_BY_PARTNER]
     SalaryAdvanceHandoffReviewReason:
       type: string
