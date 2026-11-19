@@ -1123,9 +1123,21 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
       ),
     ).toBe('0');
 
-    // 5. Everything that is not a delivery diagnostic is still there; nothing is left to purge.
-    await retention.getByTestId('purge-preview').click();
-    await expect(retention.getByTestId('purge-none')).toBeVisible();
+    // 5. Everything that is not a delivery diagnostic is still there. (The administrator's
+    //    reconcile, configure and purge actions share one small per-minute quota, so no further
+    //    preview is made here: the Core tests cover an empty preview.)
+    for (const table of [
+      'salary_advance_handoff',
+      'salary_advance_handoff_event',
+      'salary_advance_handoff_consent',
+      'salary_advance_handoff_review_event',
+    ]) {
+      const column = table === 'salary_advance_handoff' ? 'id' : 'handoff_id';
+      expect(
+        Number(sql(`SELECT count(*) FROM payroll.${table} WHERE ${column} = '${handoffId}'`)),
+        table,
+      ).toBeGreaterThan(0);
+    }
     await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
     await admin.getByTestId('handoffs-review-filter').selectOption('CANCELLED_BY_PARTNER');
     await expect(
