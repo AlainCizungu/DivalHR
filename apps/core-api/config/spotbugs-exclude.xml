@@ -261,6 +261,12 @@
     <Bug pattern="HSC_HUGE_SHARED_STRING_CONSTANT"/>
     <Class name="com.divalhr.core.payroll.PayrollRunMigrationIntegrationTest"/>
   </Match>
+  <!-- MVP-120C: the populated-V53 migration test builds its fixture SQL from its own constants
+       (fixed identifiers and literals); no external value reaches it. -->
+  <Match>
+    <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING,SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE"/>
+    <Class name="com.divalhr.core.payroll.SalaryAdvancePartnerLifecycleMigrationIntegrationTest"/>
+  </Match>
   <!-- MVP-120C: the same shared schema-signature query text as the other migration tests. -->
   <Match>
     <Bug pattern="HSC_HUGE_SHARED_STRING_CONSTANT"/>

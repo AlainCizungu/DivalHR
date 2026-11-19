@@ -1090,12 +1090,15 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     await expect(panel.getByTestId('retention-saved')).toBeVisible();
     await expect(panel.getByTestId('purge-preview')).toBeEnabled();
 
-    // 3. Fixture only: the stamped date of this one handoff is moved into the past.
+    // 3. Fixture only: the stamped date of this one handoff is moved into the past. SET LOCAL
+    // ends with the transaction, so the replica role cannot reach another session or statement.
     sql(
-      `SET session_replication_role = replica;
+      `BEGIN;
+       SET LOCAL session_replication_role = replica;
        UPDATE payroll.salary_advance_handoff_retention
           SET terminal_at = now() - interval '40 days', retention_until = now() - interval '1 day'
-        WHERE handoff_id = '${handoffId}'`,
+        WHERE handoff_id = '${handoffId}';
+       COMMIT;`,
     );
     expect(
       sql(
