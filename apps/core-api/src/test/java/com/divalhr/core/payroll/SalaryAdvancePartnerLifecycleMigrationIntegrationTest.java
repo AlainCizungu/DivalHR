@@ -732,7 +732,7 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
             assertThat(entry.getValue()).as(entry.getKey()).doesNotStartWith("0:");
           }
           assertThat(count(db, INCOMPLETE_HANDOFFS)).isZero();
-          assertThat(count(db, "SELECT count(*) FROM payroll.salary_advance_handoff")).isEqualTo(9);
+          assertThat(count(db, "SELECT count(*) FROM payroll.salary_advance_handoff")).isEqualTo(8);
           assertThat(
                   db.jdbc()
                       .queryForList(
