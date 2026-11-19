@@ -1000,6 +1000,14 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     const handoffId = (mine as HandoffItem).handoffId;
     const applicationId = await applicationOf(admin, adminBearer, handoffId);
 
+    // Setup: a retention policy is in force before the handoff becomes terminal, so that the
+    // cancellation is stamped with its retention date (the policy is prospective only).
+    const policy = await admin.request.put(`${CORE_API}/salary-advance-retention-policy`, {
+      headers: { Authorization: adminBearer() },
+      data: { retentionDays: 30 },
+    });
+    expect(policy.status()).toBe(200);
+
     for (const [reviewState, reasonCode] of [
       ['MORE_INFORMATION_REQUIRED', 'CLARIFICATION'],
       ['CANCELLED_BY_PARTNER', 'PARTNER_POLICY'],
@@ -1041,8 +1049,9 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
   test('French administrator reviews the lifecycle, sets retention, and previews then confirms the exact purge', async ({
     browser,
   }) => {
-    // MVP-120C journey 2. Denise's handoff (received in the 120B journey) is declined by the
-    // controlled partner. Retention is configured through the page; the only database step is the
+    // MVP-120C journey 2. Anna's handoff, cancelled by the controlled partner in the previous
+    // journey while a retention policy was in force, carries a retention date. The administrator
+    // reviews it in French and configures retention through the page; the only database step is the
     // fixture's, which moves that one handoff's stamped date into the past (the policy minimum is
     // 30 days and a journey cannot wait that long). The purge is previewed, confirmed once, and
     // removes only the delivery diagnostics.
@@ -1050,20 +1059,28 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     const adminContext = await browser.newContext({ locale: 'fr-FR' });
     const admin = await adminContext.newPage();
     const adminBearer = await signIn(admin, USERS.adminB, 'fr');
-    const denContext = await browser.newContext({ locale: 'fr-FR' });
-    const den = await denContext.newPage();
-    const denBearer = await signIn(den, [DEN.email, DEN.password], 'fr', undefined);
-    const mine = (await listHandoffs(den, denBearer, '/me/salary-advance-handoffs')).find(
-      (item) => item.state === 'RECEIVED',
+    const mine = (await listHandoffs(admin, adminBearer, '/salary-advance-handoffs')).find(
+      (item) => item.reviewState === 'CANCELLED_BY_PARTNER',
     );
-    expect(mine, 'the handoff of the previous journey').toBeDefined();
+    expect(mine, 'the handoff cancelled in the previous journey').toBeDefined();
     const handoffId = (mine as HandoffItem).handoffId;
     const applicationId = await applicationOf(admin, adminBearer, handoffId);
 
-    // 1. The administrator chooses a retention period (disabled until then).
+    // 1. The administrator reviews the lifecycle through the closed review catalogue.
     await primaryNav(admin)
       .getByRole('link', { name: 'Transmissions au partenaire', exact: true })
       .click();
+    await admin.getByTestId('handoffs-review-filter').selectOption('CANCELLED_BY_PARTNER');
+    const row = admin.getByTestId('handoff-admin-row').filter({ hasText: ANA.number });
+    await expect(row.getByTestId('handoff-review')).toHaveAttribute(
+      'data-review',
+      'CANCELLED_BY_PARTNER',
+    );
+    await row.getByTestId('handoff-open').click();
+    await expect(admin.getByTestId('handoff-review-events')).toBeVisible();
+    await expectAccessible(admin);
+
+    // 2. The retention period is configured through the page (bounded; the same value is a no-op).
     const panel = admin.getByTestId('retention-panel');
     await panel.getByTestId('retention-days').fill('29');
     await panel.getByTestId('retention-save').click();
@@ -1073,21 +1090,6 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     await expect(panel.getByTestId('retention-saved')).toBeVisible();
     await expect(panel.getByTestId('purge-preview')).toBeEnabled();
 
-    // 2. The partner declines; the administrator filters by the closed review catalogue.
-    const declined = await control(admin, 'callback', {
-      applicationId,
-      reviewState: 'DECLINED',
-      reasonCode: 'PARTNER_POLICY',
-    });
-    expect(declined.status).toBe(204);
-    await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
-    await admin.getByTestId('handoffs-review-filter').selectOption('DECLINED');
-    const row = admin.getByTestId('handoff-admin-row').filter({ hasText: DEN.number });
-    await expect(row.getByTestId('handoff-review')).toHaveAttribute('data-review', 'DECLINED');
-    await row.getByTestId('handoff-open').click();
-    await expect(admin.getByTestId('handoff-review-events')).toBeVisible();
-    await expectAccessible(admin);
-
     // 3. Fixture only: the stamped date of this one handoff is moved into the past.
     sql(
       `SET session_replication_role = replica;
@@ -1095,6 +1097,11 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
           SET terminal_at = now() - interval '40 days', retention_until = now() - interval '1 day'
         WHERE handoff_id = '${handoffId}'`,
     );
+    expect(
+      sql(
+        `SELECT count(*) FROM payroll.salary_advance_handoff_retention WHERE handoff_id = '${handoffId}'`,
+      ),
+    ).toBe('1');
     expect(
       sql(
         `SELECT count(*) FROM payroll.salary_advance_handoff_attempt WHERE handoff_id = '${handoffId}'`,
@@ -1120,19 +1127,13 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     await retention.getByTestId('purge-preview').click();
     await expect(retention.getByTestId('purge-none')).toBeVisible();
     await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
-    await admin.getByTestId('handoffs-review-filter').selectOption('DECLINED');
+    await admin.getByTestId('handoffs-review-filter').selectOption('CANCELLED_BY_PARTNER');
     await expect(
-      admin.getByTestId('handoff-admin-row').filter({ hasText: DEN.number }),
+      admin.getByTestId('handoff-admin-row').filter({ hasText: ANA.number }),
     ).toBeVisible();
-    await revisit(den, 'Mes congés', 'Avance sur salaire');
-    await expect(den.getByTestId('handoff-row').getByTestId('handoff-review')).toHaveAttribute(
-      'data-review',
-      'DECLINED',
-    );
     await expectNoLendingClaim(admin);
     await expectNothingLeaks(admin, AMOUNT, applicationId);
     await noOverflow(admin);
     await adminContext.close();
-    await denContext.close();
   });
 });
