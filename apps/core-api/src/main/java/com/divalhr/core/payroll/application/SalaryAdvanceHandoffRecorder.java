@@ -245,7 +245,11 @@ public class SalaryAdvanceHandoffRecorder {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void retention(
-      PayrollCaller caller, String action, UUID resourceId, Map<String, Object> counts, Instant at) {
+      PayrollCaller caller,
+      String action,
+      UUID resourceId,
+      Map<String, Object> counts,
+      Instant at) {
     Map<String, Object> metadata = new LinkedHashMap<>();
     metadata.put("schemaVersion", SCHEMA_VERSION);
     metadata.putAll(counts);

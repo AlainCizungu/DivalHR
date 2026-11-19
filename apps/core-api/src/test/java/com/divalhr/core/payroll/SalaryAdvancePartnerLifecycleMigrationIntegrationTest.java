@@ -231,7 +231,8 @@ class SalaryAdvancePartnerLifecycleMigrationIntegrationTest {
     withDatabase(
         db -> {
           migrate(db.url(), "54");
-          // Even with the purge marker set, nothing is deletable without a confirmed record that names
+          // Even with the purge marker set, nothing is deletable without a confirmed record that
+          // names
           // the handoff; with no rows at all the statement is a no-op, and the guard is installed.
           Integer guards =
               db.jdbc()

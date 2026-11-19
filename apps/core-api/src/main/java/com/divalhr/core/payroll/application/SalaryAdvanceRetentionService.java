@@ -174,8 +174,7 @@ public class SalaryAdvanceRetentionService {
                           .orElseThrow(
                               () ->
                                   new ApiException(
-                                      ErrorCode.SALARY_ADVANCE_RETENTION_POLICY_MISSING,
-                                      Map.of()));
+                                      ErrorCode.SALARY_ADVANCE_RETENTION_POLICY_MISSING, Map.of()));
                   List<Eligible> eligible =
                       retention.eligible(
                           tenant, now, JdbcSalaryAdvanceRetentionRepository.MAX_PREVIEW_HANDOFFS);
@@ -247,7 +246,8 @@ public class SalaryAdvanceRetentionService {
       if (!preview.digest().equals(digest)) {
         throw new ApiException(ErrorCode.SALARY_ADVANCE_PURGE_ALREADY_COMPLETED, Map.of());
       }
-      return new PurgeResult(id, done.handoffCount(), done.attemptCount(), done.confirmedAt(), true);
+      return new PurgeResult(
+          id, done.handoffCount(), done.attemptCount(), done.confirmedAt(), true);
     }
     if (!preview.digest().equals(digest) || !now.isBefore(preview.expiresAt())) {
       throw new ApiException(ErrorCode.SALARY_ADVANCE_PURGE_PREVIEW_STALE, Map.of());
@@ -267,7 +267,8 @@ public class SalaryAdvanceRetentionService {
     try {
       retention.insertRecord(tenant, id, caller.subject(), previewed.size(), attempts, now);
       deleted =
-          retention.deleteAttempts(tenant, id, previewed.stream().map(Eligible::handoffId).toList());
+          retention.deleteAttempts(
+              tenant, id, previewed.stream().map(Eligible::handoffId).toList());
     } catch (DataIntegrityViolationException refused) {
       // The database guard or a concurrent confirmation: nothing is deleted (the transaction rolls
       // back).

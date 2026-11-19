@@ -196,7 +196,8 @@ public class SalaryAdvanceHandoffCallbackService {
                         && seen.handoffId().equals(row.id())
                         && seen.reviewState().equals(callback.reviewState().name())
                         && java.util.Objects.equals(seen.reasonCode(), callback.reasonCode())
-                        && seen.issuedAt().equals(callback.issuedAt().truncatedTo(ChronoUnit.MICROS));
+                        && seen.issuedAt()
+                            .equals(callback.issuedAt().truncatedTo(ChronoUnit.MICROS));
                 if (!same) {
                   refused(row, callback, correlationId, replayId, now);
                 }
@@ -205,7 +206,8 @@ public class SalaryAdvanceHandoffCallbackService {
               SalaryAdvanceHandoffReviewState from =
                   SalaryAdvanceHandoffReviewState.parse(row.reviewState()).orElse(null);
               if (from == null || !from.mayMoveTo(callback.reviewState())) {
-                // Terminal, already reached, stale or illegal: no history changes; the refusal is audited.
+                // Terminal, already reached, stale or illegal: no history changes; the refusal is
+                // audited.
                 refused(row, callback, correlationId, replayId, now);
                 return Applied.REFUSED;
               }

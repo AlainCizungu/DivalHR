@@ -177,7 +177,8 @@ public class SalaryAdvanceHandoffReviewService {
                           .orElseThrow(() -> new ApiException(ErrorCode.CURSOR_INVALID, Map.of()));
                   after = new Position(at.authorizedAt(), at.id());
                 }
-                List<HandoffRow> rows = handoffs.page(tenant, null, filter, reviewFilter, after, size + 1);
+                List<HandoffRow> rows =
+                    handoffs.page(tenant, null, filter, reviewFilter, after, size + 1);
                 List<HandoffRow> shown = rows.subList(0, Math.min(rows.size(), size));
                 String next = null;
                 if (rows.size() > size) {

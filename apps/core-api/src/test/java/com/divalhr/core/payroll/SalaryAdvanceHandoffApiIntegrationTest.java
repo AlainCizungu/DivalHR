@@ -978,8 +978,7 @@ class SalaryAdvanceHandoffApiIntegrationTest {
     JsonNode handoff = authorized(id);
     deliver();
     String handoffId = handoff.get("handoffId").asText();
-    UUID application =
-        UUID.fromString(adminHandoff(handoffId).get("applicationId").asText());
+    UUID application = UUID.fromString(adminHandoff(handoffId).get("applicationId").asText());
     assertThat(status(callback(application, "DECLINED", "PARTNER_POLICY"))).isEqualTo(204);
     return handoffId;
   }
@@ -988,7 +987,8 @@ class SalaryAdvanceHandoffApiIntegrationTest {
     return put(RETENTION_POLICY)
         .header("Authorization", bearer)
         .contentType(MediaType.APPLICATION_JSON)
-        .content(body instanceof String text ? text : CompensationWorld.JSON.writeValueAsString(body));
+        .content(
+            body instanceof String text ? text : CompensationWorld.JSON.writeValueAsString(body));
   }
 
   private MockHttpServletRequestBuilder putDays(int days) throws Exception {
@@ -1059,10 +1059,12 @@ class SalaryAdvanceHandoffApiIntegrationTest {
     assertThat(history).hasSize(3);
     assertThat(history.get(0).get("previous_status")).isEqualTo("RECEIVED");
     assertThat(history.get(2).get("new_status")).isEqualTo("CANCELLED_BY_PARTNER");
-    assertThat(history).allSatisfy(row -> {
-      assertThat(row.get("event_digest").toString()).matches("[0-9a-f]{64}");
-      assertThat(row.get("partner_code")).isEqualTo("SYNTHETIC-TEST");
-    });
+    assertThat(history)
+        .allSatisfy(
+            row -> {
+              assertThat(row.get("event_digest").toString()).matches("[0-9a-f]{64}");
+              assertThat(row.get("partner_code")).isEqualTo("SYNTHETIC-TEST");
+            });
     // The refused steps after the terminal status were audited without their content.
     assertThat(audits("salary-advance-handoff.partner-status-refused")).isEqualTo(3);
     assertThat(audits("salary-advance-handoff.partner-status")).isEqualTo(3);
@@ -1074,7 +1076,8 @@ class SalaryAdvanceHandoffApiIntegrationTest {
     JsonNode handoff = authorized(id);
     deliver();
     UUID application =
-        UUID.fromString(adminHandoff(handoff.get("handoffId").asText()).get("applicationId").asText());
+        UUID.fromString(
+            adminHandoff(handoff.get("handoffId").asText()).get("applicationId").asText());
     long now = clock.instant().getEpochSecond();
     UUID event = UUID.randomUUID();
     assertThat(status(callback(application, "UNDER_REVIEW", null, now, event, CALLBACK_KEY)))
@@ -1089,7 +1092,14 @@ class SalaryAdvanceHandoffApiIntegrationTest {
     assertThat(audits("salary-advance-handoff.partner-status-refused")).isZero();
     // The same event id with other content is a conflict: refused, audited, nothing changes.
     assertThat(
-            status(callback(application, "MORE_INFORMATION_REQUIRED", "CLARIFICATION", now, event, CALLBACK_KEY)))
+            status(
+                callback(
+                    application,
+                    "MORE_INFORMATION_REQUIRED",
+                    "CLARIFICATION",
+                    now,
+                    event,
+                    CALLBACK_KEY)))
         .isEqualTo(400);
     assertThat(myHandoff(id).get("version").asInt()).isEqualTo(version);
     assertThat(myHandoff(id).get("reviewEvents")).hasSize(1);
@@ -1246,22 +1256,36 @@ class SalaryAdvanceHandoffApiIntegrationTest {
       } finally {
         pool.shutdownNow();
       }
-      assertThat(results).allSatisfy(done -> {
-        assertThat(done.get("handoffCount").asInt()).isEqualTo(1);
-        assertThat(done.get("attemptCount").asInt()).isEqualTo(1);
-      });
+      assertThat(results)
+          .allSatisfy(
+              done -> {
+                assertThat(done.get("handoffCount").asInt()).isEqualTo(1);
+                assertThat(done.get("attemptCount").asInt()).isEqualTo(1);
+              });
       assertThat(results.stream().filter(done -> done.get("replayed").asBoolean()).count())
           .isEqualTo(1);
       assertThat(attemptRows(handoffId)).isZero();
       // Everything that is not delivery diagnostics is still there.
       assertThat(adminHandoff(handoffId).get("reviewState").asText()).isEqualTo("DECLINED");
-      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_event WHERE handoff_id = ?", handoff))
+      assertThat(
+              w.c.count(
+                  "SELECT count(*) FROM payroll.salary_advance_handoff_event WHERE handoff_id = ?",
+                  handoff))
           .isGreaterThanOrEqualTo(2);
-      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_consent WHERE handoff_id = ?", handoff))
+      assertThat(
+              w.c.count(
+                  "SELECT count(*) FROM payroll.salary_advance_handoff_consent WHERE handoff_id = ?",
+                  handoff))
           .isEqualTo(1);
-      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_ack WHERE handoff_id = ?", handoff))
+      assertThat(
+              w.c.count(
+                  "SELECT count(*) FROM payroll.salary_advance_handoff_ack WHERE handoff_id = ?",
+                  handoff))
           .isEqualTo(1);
-      assertThat(w.c.count("SELECT count(*) FROM payroll.salary_advance_handoff_review_event WHERE handoff_id = ?", handoff))
+      assertThat(
+              w.c.count(
+                  "SELECT count(*) FROM payroll.salary_advance_handoff_review_event WHERE handoff_id = ?",
+                  handoff))
           .isEqualTo(1);
       assertThat(requestStatus(myHandoff(handoffId2request(handoff)).get("requestId").asText()))
           .isEqualTo("EMPLOYER_CONFIRMED");
@@ -1289,8 +1313,7 @@ class SalaryAdvanceHandoffApiIntegrationTest {
             jdbc.queryForList(
                 "SELECT metadata::text FROM platform.audit_event WHERE tenant_id = ?"
                     + " AND action LIKE 'salary-advance-retention.%'",
-                String.class,
-                w.tenant));
+                String.class, w.tenant));
     assertThat(audit).isNotEmpty().doesNotContain(handoffId).doesNotContain("digest");
   }
 

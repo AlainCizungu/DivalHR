@@ -82,8 +82,7 @@ public class JdbcSalaryAdvanceRetentionRepository {
   public record RecordRow(int handoffCount, int attemptCount, Instant confirmedAt) {}
 
   /**
-   * The latest policy of the tenant, if one was ever configured (none means retention is
-   * disabled).
+   * The latest policy of the tenant, if one was ever configured (none means retention is disabled).
    *
    * @param tenant verified tenant
    * @return the latest version

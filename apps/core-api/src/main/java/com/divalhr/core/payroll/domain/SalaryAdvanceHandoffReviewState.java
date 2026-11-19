@@ -16,7 +16,9 @@ public enum SalaryAdvanceHandoffReviewState {
   MORE_INFORMATION_REQUIRED,
   /** The partner reports that it declined (terminal). */
   DECLINED,
-  /** The partner reports that it cancelled its own review (terminal; not an employee withdrawal). */
+  /**
+   * The partner reports that it cancelled its own review (terminal; not an employee withdrawal).
+   */
   CANCELLED_BY_PARTNER;
 
   /**

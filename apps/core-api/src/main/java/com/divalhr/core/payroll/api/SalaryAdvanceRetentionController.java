@@ -33,8 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * MVP-120C: the tenant administrator's evidence-retention policy and controlled purge of delivery
  * diagnostics (ADR 0042 amendment), exact MFA only. The tenant comes from the verified JWT; every
- * response is {@code Cache-Control: private, no-store}. There is no automatic purge, no bulk
- * export and no endpoint that deletes anything that was not previewed and explicitly confirmed.
+ * response is {@code Cache-Control: private, no-store}. There is no automatic purge, no bulk export
+ * and no endpoint that deletes anything that was not previewed and explicitly confirmed.
  */
 @RestController
 public class SalaryAdvanceRetentionController {

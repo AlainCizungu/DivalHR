@@ -38,7 +38,9 @@ class SalaryAdvanceHandoffReviewStateTest {
             SalaryAdvanceHandoffReviewState.UNDER_REVIEW,
             SalaryAdvanceHandoffReviewState.DECLINED,
             SalaryAdvanceHandoffReviewState.CANCELLED_BY_PARTNER));
-    ALLOWED.put(SalaryAdvanceHandoffReviewState.DECLINED, EnumSet.noneOf(SalaryAdvanceHandoffReviewState.class));
+    ALLOWED.put(
+        SalaryAdvanceHandoffReviewState.DECLINED,
+        EnumSet.noneOf(SalaryAdvanceHandoffReviewState.class));
     ALLOWED.put(
         SalaryAdvanceHandoffReviewState.CANCELLED_BY_PARTNER,
         EnumSet.noneOf(SalaryAdvanceHandoffReviewState.class));
