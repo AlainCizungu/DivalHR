@@ -65,8 +65,9 @@ the application. Email content is never stored.
   registration and registration reference, normalized) are stored. A submission that matches an existing fingerprint is
   **accepted as an ordinary new application with an identical receipt**: the response never reveals that an application,
   email or registration reference exists. Administrators see the possible-duplicate count by fingerprint in the detail.
-  `PARTNER_APPLICATION_DUPLICATE` is therefore never returned to the public; it is reserved for the in-flight
-  same-key race (a second request with the key of a submission still being committed), answered with a retryable 409.
+  `PARTNER_APPLICATION_DUPLICATE` is therefore never returned by the public route; it is reserved for internal and
+  protected administration use. A public request racing a submission with the same key waits on the unique key and
+  replays that receipt.
 - Public rate limits (existing in-process `PublicRateLimiter`): one bucket per client address pseudonym and one bucket
   keyed by the normalized business-email digest; both reduce the identifier to an HMAC under a per-window ephemeral key.
   Raw addresses and emails are not stored in business tables, audit metadata or logs.

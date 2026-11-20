@@ -15109,7 +15109,7 @@ paths:
   /public/partner-applications:
     post:
       operationId: submitPartnerApplication
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: public
       summary: Submit a partner application (anonymous)
       description: >-
@@ -15123,9 +15123,9 @@ paths:
         applicant-supplied and unverified, and so are the requested capabilities. Missing acknowledgment or consent is
         PARTNER_APPLICATION_CONSENT_REQUIRED.
         An Idempotency-Key is required. The same key with the same request replays the original receipt (Idempotent-Replayed:
-        true); the same key with a changed request is refused with 409 PARTNER_APPLICATION_IDEMPOTENCY_REUSED; a second request
-        with the key of a submission that is still being committed is 409 PARTNER_APPLICATION_DUPLICATE (retry with the same
-        key). A submission that matches an application already on record (same normalized business email and organization) is
+        true); the same key with a changed request is refused with 409 PARTNER_APPLICATION_IDEMPOTENCY_REUSED; a request that races
+        a submission with the same key waits for it and replays its receipt. PARTNER_APPLICATION_DUPLICATE is never returned
+        by this route. A submission that matches an application already on record (same normalized business email and organization) is
         accepted exactly like a new one: the status, headers and body are indistinguishable, so the response never reveals
         whether an email address, registration reference or organization already exists. The receipt carries only an opaque
         reference, the server submission time, the status SUBMITTED and the next-step code; no internal identifier and no
@@ -15168,7 +15168,7 @@ paths:
   /platform/partner-applications:
     get:
       operationId: listPartnerApplications
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa
@@ -15216,7 +15216,7 @@ paths:
   /platform/partner-applications/{reference}:
     get:
       operationId: getPartnerApplication
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa
@@ -15259,7 +15259,7 @@ paths:
   /platform/partner-applications/{reference}/history:
     get:
       operationId: getPartnerApplicationHistory
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa
@@ -15301,7 +15301,7 @@ paths:
   /platform/partner-applications/{reference}/checklist/{checkCode}:
     put:
       operationId: updatePartnerApplicationCheck
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa
@@ -15358,7 +15358,7 @@ paths:
   /platform/partner-applications/{reference}:transition:
     post:
       operationId: transitionPartnerApplication
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa

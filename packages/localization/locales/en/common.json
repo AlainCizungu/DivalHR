@@ -796,7 +796,16 @@
     "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND": "This purge preview does not exist.",
     "SALARY_ADVANCE_PURGE_PREVIEW_STALE": "The preview is out of date. Nothing was deleted. Preview again.",
     "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED": "This purge was already completed.",
-    "PARTNER_CALLBACK_INVALID": "The callback was rejected."
+    "PARTNER_CALLBACK_INVALID": "The callback was rejected.",
+    "PARTNER_APPLICATION_INVALID": "Some application details are missing or not valid. Please check the form and try again.",
+    "PARTNER_APPLICATION_RATE_LIMITED": "Too many applications were received. Please wait and try again later.",
+    "PARTNER_APPLICATION_IDEMPOTENCY_REUSED": "This submission was already used for different details. Reload the form and try again.",
+    "PARTNER_APPLICATION_NOT_FOUND": "This partner application was not found.",
+    "PARTNER_APPLICATION_TRANSITION_INVALID": "This status change is not allowed, or the application changed. Reload and try again.",
+    "PARTNER_APPLICATION_TERMINAL": "This partner application is closed and can no longer be changed.",
+    "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE": "Every applicable mandatory due-diligence check must be satisfied before approval.",
+    "PARTNER_APPLICATION_DUPLICATE": "This submission is already being processed. Please wait a moment.",
+    "PARTNER_APPLICATION_CONSENT_REQUIRED": "Please confirm the acknowledgment before submitting your application."
   },
   "notFound": {
     "title": "Page not found",

@@ -190,6 +190,10 @@ divalhr:
       # subject, 50 validations per platform) are enforced by the governance service.
       statutory-pack-read: ${DIVALHR_STATUTORY_PACK_READ_REQUESTS_PER_MINUTE:60}
       statutory-pack-command: ${DIVALHR_STATUTORY_PACK_COMMAND_REQUESTS_PER_MINUTE:5}
+      # MVP-120D: partner-application review by platform administrators (ADR 0043). Per subject
+      # per minute: reads 60 and commands 20.
+      partner-application-read: ${DIVALHR_PARTNER_APPLICATION_READ_REQUESTS_PER_MINUTE:60}
+      partner-application-command: ${DIVALHR_PARTNER_APPLICATION_COMMAND_REQUESTS_PER_MINUTE:20}
       # MVP-094C: payroll approval and payslips (ADR 0035, D94C-16). Per subject per minute: reads
       # 60, previews (approval and void) 5, commits (approval and void) 2, PDF downloads 30.
       payroll-package-read: ${DIVALHR_PAYROLL_PACKAGE_READ_REQUESTS_PER_MINUTE:60}

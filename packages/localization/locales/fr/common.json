@@ -796,7 +796,16 @@
     "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND": "Cette prévisualisation de suppression n'existe pas.",
     "SALARY_ADVANCE_PURGE_PREVIEW_STALE": "La prévisualisation n'est plus à jour. Rien n'a été supprimé. Prévisualisez à nouveau.",
     "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED": "Cette suppression a déjà été effectuée.",
-    "PARTNER_CALLBACK_INVALID": "Le rappel a été refusé."
+    "PARTNER_CALLBACK_INVALID": "Le rappel a été refusé.",
+    "PARTNER_APPLICATION_INVALID": "Certaines informations de la candidature sont manquantes ou invalides. Vérifiez le formulaire et réessayez.",
+    "PARTNER_APPLICATION_RATE_LIMITED": "Trop de candidatures ont été reçues. Veuillez patienter et réessayer plus tard.",
+    "PARTNER_APPLICATION_IDEMPOTENCY_REUSED": "Cette soumission a déjà été utilisée pour d’autres informations. Rechargez le formulaire et réessayez.",
+    "PARTNER_APPLICATION_NOT_FOUND": "Cette candidature de partenaire est introuvable.",
+    "PARTNER_APPLICATION_TRANSITION_INVALID": "Ce changement de statut n’est pas autorisé, ou la candidature a changé. Rechargez et réessayez.",
+    "PARTNER_APPLICATION_TERMINAL": "Cette candidature de partenaire est clôturée et ne peut plus être modifiée.",
+    "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE": "Chaque vérification préalable obligatoire applicable doit être satisfaite avant l’approbation.",
+    "PARTNER_APPLICATION_DUPLICATE": "Cette soumission est déjà en cours de traitement. Veuillez patienter un instant.",
+    "PARTNER_APPLICATION_CONSENT_REQUIRED": "Veuillez confirmer la déclaration avant de soumettre votre candidature."
   },
   "notFound": {
     "title": "Page introuvable",
