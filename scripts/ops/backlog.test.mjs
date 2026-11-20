@@ -28,10 +28,11 @@ const DEPLOYED = [
   '55b130f5bde8eedee4589f5e00b9e17d927457f1', // TRUTH-003, PR #199: presentation and truth release for MVP-096, the previous release
   '4b947a6cfa2135369cd2e8ac1e2710c84a2bb525', // MVP-120A, PR #205: consented salary-advance requests
   'd0f6dd1ed9c8c26a4d9055f9c225a12b30eef0b4', // MVP-120B, PR #207: controlled synthetic partner handoff
-  '769fa601e058f6f1ee390d206215113b4ca66963', // Issue #173 observability logging, PR #208, running
+  '769fa601e058f6f1ee390d206215113b4ca66963', // Issue #173 observability logging, PR #208, the previous release
+  '46b9969b26838a72dda48a6840d6e9bd4d9db458', // MVP-120C, PR #210: controlled synthetic partner lifecycle, running
 ];
-const RUNNING = DEPLOYED[13];
-const PREVIOUS = DEPLOYED[12];
+const RUNNING = DEPLOYED[14];
+const PREVIOUS = DEPLOYED[13];
 const CAPABILITY = DEPLOYED[9];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
@@ -104,7 +105,7 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #184, MVP-095A/u);
   assert.match(header, /PR #188, MVP-095B/u);
   assert.match(header, /PR #189, R187-1/u);
-  assert.match(header, /as of 2026-11-18/u);
+  assert.match(header, /as of 2026-11-20/u);
   assert.match(header, /PR #199, TRUTH-003/u);
   assert.match(
     header,
@@ -299,7 +300,7 @@ const SHA_PATTERN = /\b[0-9a-f]{40}\b/gu;
  * Rule 1: the release the header says hr-dev runs equals the expected one, the migration it names is the expected
  * one, MVP-095C is stated merged, deployed and accepted, and the evidence table agrees.
  */
-export function releaseClaimProblems(text, expected, migration = 'V53') {
+export function releaseClaimProblems(text, expected, migration = 'V54') {
   const header = text.split('## Epic 1')[0];
   const problems = [];
   const running = /runs `main` at `([0-9a-f]{40})`/u.exec(header)?.[1];
@@ -471,8 +472,8 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   assert.notEqual(stale, backlog);
   assert.ok(releaseClaimProblems(stale, RUNNING).length > 0, 'a stale header SHA fails');
   const wrongMigration = backlog.replace(
+    'Issue #206 is closed); migration V54 is applied',
     'Issue #206 is closed); migration V53 is applied',
-    'Issue #206 is closed); migration V52 is applied',
   );
   assert.notEqual(wrongMigration, backlog);
   assert.ok(
@@ -485,7 +486,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   );
   assert.notEqual(inProgress, backlog);
   assert.ok(releaseClaimProblems(inProgress, RUNNING).length > 0, 'an in-progress MVP-095C fails');
-  const staleTable = backlog.replace(/^\| OBS-173 .*$/mu, '');
+  const staleTable = backlog.replace(/^\| MVP-120C .*$/mu, '');
   assert.notEqual(staleTable, backlog);
   assert.ok(
     releaseClaimProblems(staleTable, RUNNING).length > 0,
@@ -861,7 +862,7 @@ export function journalBacklogProblems(text) {
   need(
     'MVP-096 entry',
     opening,
-    /hr-dev ran `c368d58b…` when it was accepted, then ran the presentation release `55b130f5…` \(TRUTH-003\), then `4b947a6c…` \(MVP-120A\), and now runs the release `769fa601…`/u,
+    /hr-dev ran `c368d58b…` when it was accepted, then ran the presentation release `55b130f5…` \(TRUTH-003\), then `4b947a6c…` \(MVP-120A\), then `769fa601…` \(PR #208, which contains MVP-120B\), and now runs the release `46b9969b…`/u,
   );
   need('MVP-096 entry', opening, /previous release `ce871f48e7be` is preserved/u);
   for (const [label, haystack] of [
@@ -991,7 +992,7 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
         `${name}: names the problem`,
       );
   }
-  const noTableRow = backlog.replace(/^\| OBS-173 .*$/mu, '');
+  const noTableRow = backlog.replace(/^\| MVP-120C .*$/mu, '');
   assert.ok(releaseClaimProblems(noTableRow, RUNNING).length > 0, 'a missing release row fails');
   const wrongPr = backlog.replace('| MVP-096   | #195 |', '| MVP-096   | #196 |');
   assert.notEqual(wrongPr, backlog);
@@ -1221,20 +1222,37 @@ export function handoffBacklogProblems(text) {
   need('MVP-120B entry', handoff, /the request stays `EMPLOYER_CONFIRMED`/u);
   if (/\b(approved loan|guaranteed|funded|interest rate|APR|credit score)\b/iu.test(handoff))
     problems.push('MVP-120B entry uses banned lending wording');
-  // MVP-120C is in review until it is merged and deployed: never claimed earlier.
+  // MVP-120C is merged, deployed and accepted (PR #210, V54): the facts of the truth refresh are pinned.
   const lifecycle = sections.get('MVP-120C');
   if (!lifecycle) return [...problems, 'MVP-120C has no backlog entry'];
   const lifecycleHead = opening('MVP-120C');
-  need('MVP-120C entry', lifecycleHead, /Issue #209\. In review/u);
-  need('MVP-120C entry', lifecycleHead, /not merged and not deployed/u);
-  need('MVP-120C entry', lifecycleHead, /Migration V54/u);
+  need(
+    'MVP-120C entry',
+    lifecycleHead,
+    /Issue #209\. Merged \(PR #210, merge commit `46b9969b26838a72dda48a6840d6e9bd4d9db458`\), deployed to hr-dev and accepted on 2026-11-20; Issue #209 is closed as completed/u,
+  );
+  need('MVP-120C entry', lifecycleHead, /Migration V54 is applied/u);
+  if (/In review|not merged|not deployed|not applied/u.test(lifecycleHead))
+    problems.push('MVP-120C is still described as in review or not deployed');
   need('MVP-120C entry', lifecycle, /synthetic partner/u);
-  if (/Migration V54 is applied|deployed to hr-dev and accepted/u.test(lifecycleHead))
-    problems.push('MVP-120C is claimed deployed before it is');
+  need('MVP-120C entry', lifecycle, /existing linked synthetic accounts, without invitations/u);
+  need('MVP-120C entry', lifecycle, /existing 121 salary-advance rows/u);
+  need('MVP-120C entry', lifecycle, /genuine `DELIVERY_UNKNOWN` evidence remained unchanged/u);
+  need('MVP-120C entry', lifecycle, /retention preview and exact confirmed purge passed/u);
+  need('MVP-120C entry', lifecycle, /30-day organization retention policy remains configured/u);
+  need('MVP-120C entry', lifecycle, /deletion is manual only/u);
+  need(
+    'MVP-120C entry',
+    lifecycle,
+    /No real lender, credit decision, disbursement, repayment or payroll deduction exists/u,
+  );
+  const maintenance = text.split('## Open maintenance')[1] ?? '';
+  need('open maintenance', maintenance, /Issue #211 \(open, nonblocking\)/u);
+  need('open maintenance', maintenance, /Issue #212 \(open, nonblocking\)/u);
   return problems;
 }
 
-test('truth rule 6: 097A and 120A carry their Git facts, 120B is in review with a synthetic partner only (D120B-15)', () => {
+test('truth rule 6: 097A, 120A, 120B and 120C carry their Git and deployment facts, with a synthetic partner only (D120B-15, D120C)', () => {
   assert.deepEqual(handoffBacklogProblems(backlog), []);
   const fixtures = [
     [
@@ -1262,13 +1280,34 @@ test('truth rule 6: 097A and 120A carry their Git facts, 120B is in review with 
       /MVP-120B/u,
     ],
     [
-      '120C deployed',
-      (t) =>
-        t.replace(
-          'Issue #209. In review (branch',
-          'Issue #209. Merged and deployed to hr-dev and accepted (branch',
-        ),
+      '120C in review',
+      (t) => t.replace('Issue #209. Merged (PR #210', 'Issue #209. In review (PR #210'),
       /MVP-120C/u,
+    ],
+    [
+      '120C V54 not applied',
+      (t) => t.replace('Migration V54 is applied.', 'Migration V54 is pending.'),
+      /V54/u,
+    ],
+    [
+      '120C evidence rows changed',
+      (t) => t.replaceAll('existing 121 salary-advance rows', 'existing salary-advance rows'),
+      /121/u,
+    ],
+    [
+      '120C deletion automatic',
+      (t) => t.replaceAll('deletion is manual only', 'deletion is automatic'),
+      /manual only/u,
+    ],
+    [
+      '#211 closed',
+      (t) => t.replace('Issue #211 (open, nonblocking)', 'Issue #211 (closed)'),
+      /#211/u,
+    ],
+    [
+      '#212 closed',
+      (t) => t.replace('Issue #212 (open, nonblocking)', 'Issue #212 (closed)'),
+      /#212/u,
     ],
     [
       '120B lender',
