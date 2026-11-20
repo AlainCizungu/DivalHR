@@ -45,6 +45,7 @@ const REVIEW_TONES: Record<SalaryAdvanceHandoffReviewState, StatusTone> = {
   UNDER_REVIEW: 'info',
   MORE_INFORMATION_REQUIRED: 'warning',
   DECLINED: 'neutral',
+  CANCELLED_BY_PARTNER: 'neutral',
 };
 
 /** The partner's bounded review status; a status report, never a decision of DivalHR. */

@@ -56,7 +56,12 @@ const SCENARIOS = new Set([
   'refuse-connection-once',
 ]);
 const INQUIRY_SCENARIOS = new Set(['truth', 'inconclusive', 'timeout']);
-const REVIEW_STATES = new Set(['UNDER_REVIEW', 'MORE_INFORMATION_REQUIRED', 'DECLINED']);
+const REVIEW_STATES = new Set([
+  'UNDER_REVIEW',
+  'MORE_INFORMATION_REQUIRED',
+  'DECLINED',
+  'CANCELLED_BY_PARTNER',
+]);
 const REASONS = new Set([
   'ADDITIONAL_DOCUMENTS',
   'CLARIFICATION',

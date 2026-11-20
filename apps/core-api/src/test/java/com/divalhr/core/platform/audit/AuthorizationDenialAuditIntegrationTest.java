@@ -296,6 +296,11 @@ class AuthorizationDenialAuditIntegrationTest {
           "salary-advance-handoff.list",
           "salary-advance-handoff.read",
           "salary-advance-handoff.reconcile",
+          // MVP-120C: evidence retention and controlled purge (administrator).
+          "salary-advance-retention.read",
+          "salary-advance-retention.configure",
+          "salary-advance-retention.purge-preview",
+          "salary-advance-retention.purge-confirm",
           // MVP-094B: statutory preview (administrator).
           "statutory-rule-pack.read",
           "statutory-activation.read",
@@ -884,7 +889,9 @@ class AuthorizationDenialAuditIntegrationTest {
     // accounting-journal.download).
     // MVP-097A added ten handlers: nine platform operations (list, read and seven commands) and the
     // tenant read.
-    assertThat(handlers).hasSize(241);
+    // MVP-120C added four handlers: the retention policy read and configure, the purge preview and
+    // the purge confirmation.
+    assertThat(handlers).hasSize(245);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

@@ -317,7 +317,7 @@
           },
           "salaryAdvanceHandoff": {
             "title": "Demandes d’avance sur salaire et transmission de test",
-            "description": "Enregistrez les politiques de participation de l’employeur, confirmez ou refusez les demandes des employés et suivez une transmission contrôlée vers un partenaire de test synthétique. DivalHR n’est pas le prêteur, aucun partenaire réel n’est connecté, rien n’est décidé ni versé, et rien n’est retenu."
+            "description": "Enregistrez les politiques de participation de l’employeur, confirmez ou refusez les demandes des employés, suivez une transmission contrôlée vers un partenaire de test synthétique avec son état d’examen et son historique, et gérez la conservation des preuves. DivalHR n’est pas le prêteur, aucun partenaire réel n’est connecté, aucun prêt n’est approuvé, aucun fonds n’est décaissé et rien n’est retenu."
           }
         }
       }
@@ -339,7 +339,7 @@
         "compensationTitle": "Ma rémunération",
         "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement.",
         "payslips": "Lisez vos bulletins de paie et téléchargez-les en PDF en français ou en anglais. Un bulletin de paie ne constitue pas une preuve de paiement.",
-        "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique. DivalHR n’est pas le prêteur ; rien n’est décidé ni versé."
+        "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique et suivez l’état de son examen. DivalHR n’est pas le prêteur ; aucun prêt n’est approuvé et aucun fonds n’est décaissé."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -791,6 +791,11 @@
     "SALARY_ADVANCE_PARTNER_UNAVAILABLE": "Le partenaire de test n’est pas disponible pour le moment. Réessayez plus tard.",
     "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN": "Le résultat de l’envoi est encore inconnu. Il n’a pas été renvoyé.",
     "SALARY_ADVANCE_PARTNER_NOT_ENABLED": "Le partenaire de test contrôlé n’est pas activé dans cet environnement.",
+    "SALARY_ADVANCE_RETENTION_POLICY_MISSING": "Définissez une durée de conservation des preuves avant de prévisualiser une suppression.",
+    "SALARY_ADVANCE_RETENTION_PERIOD_INVALID": "La durée de conservation est hors de la plage autorisée.",
+    "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND": "Cette prévisualisation de suppression n'existe pas.",
+    "SALARY_ADVANCE_PURGE_PREVIEW_STALE": "La prévisualisation n'est plus à jour. Rien n'a été supprimé. Prévisualisez à nouveau.",
+    "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED": "Cette suppression a déjà été effectuée.",
     "PARTNER_CALLBACK_INVALID": "Le rappel a été refusé."
   },
   "notFound": {
@@ -3089,7 +3094,7 @@
         "loans": {
           "title": "Prêts et avances sur salaire",
           "description": "Crédit responsable par des partenaires agréés, remboursé via la paie.",
-          "foundation": "Demandes d’avance sur salaire confirmées par l’employeur avec le consentement de l’employé, et une transmission de test contrôlée vers un partenaire synthétique. DivalHR n’est pas le prêteur, aucun partenaire ni aucune institution réelle n’est connecté, rien n’est décidé ni versé, et rien n’est retenu sur la paie."
+          "foundation": "Demandes d’avance sur salaire confirmées par l’employeur avec le consentement de l’employé, transmission de test contrôlée vers un partenaire synthétique, et suivi transparent de l’état d’examen et de l’historique de ce partenaire. DivalHR n’est pas le prêteur et aucun partenaire ni aucune institution réelle n’est connecté. Non disponible : un prêteur réel, une décision d’éligibilité ou de crédit, une tarification ou des intérêts, une approbation, un décaissement, un remboursement ou une retenue sur la paie."
         },
         "benefits": {
           "title": "Avantages et assurance",
@@ -6019,7 +6024,7 @@
       "col": {
         "created": "Créée",
         "delivery": "Livraison",
-        "review": "Examen du partenaire"
+        "review": "Examen par le partenaire"
       },
       "state": {
         "AUTHORIZED": "Autorisée",
@@ -6042,8 +6047,9 @@
       "review": {
         "RECEIVED": "Reçue",
         "UNDER_REVIEW": "En cours d’examen",
-        "MORE_INFORMATION_REQUIRED": "Informations complémentaires demandées",
-        "DECLINED": "Refusée par le partenaire"
+        "MORE_INFORMATION_REQUIRED": "Informations supplémentaires requises",
+        "DECLINED": "Refusée",
+        "CANCELLED_BY_PARTNER": "Examen annulé par le partenaire"
       },
       "reviewReason": {
         "ADDITIONAL_DOCUMENTS": "Documents complémentaires",
@@ -6117,10 +6123,43 @@
           "UNRELATED_HR_HISTORY": "Historique RH sans rapport"
         }
       },
+      "lifecycle": {
+        "title": "Examen par le partenaire",
+        "show": "Afficher l’historique de l’examen",
+        "hide": "Masquer l’historique de l’examen",
+        "empty": "Le partenaire n’a signalé aucune étape d’examen pour le moment.",
+        "noApproval": "Aucun prêt n’a été approuvé et aucun fonds n’a été décaissé.",
+        "timeline": "Historique de l’examen par le partenaire",
+        "help": {
+          "RECEIVED": "Le partenaire confirme détenir votre demande. Rien n’a encore été examiné.",
+          "UNDER_REVIEW": "Le partenaire indique qu’il examine votre demande.",
+          "MORE_INFORMATION_REQUIRED": "Le partenaire indique qu’il a besoin d’informations supplémentaires. Il s’agit d’un simple statut : vous ne pouvez ni répondre ni téléverser quoi que ce soit ici.",
+          "DECLINED": "Le partenaire indique qu’il a refusé votre demande. Il s’agit du statut du partenaire, pas d’une décision de DivalHR.",
+          "CANCELLED_BY_PARTNER": "Le partenaire a interrompu son examen. Ce n’est pas un retrait de votre part : votre demande reste confirmée par votre employeur et vous ne pouvez toujours pas la retirer ici."
+        }
+      },
+      "retention": {
+        "title": "Conservation des preuves",
+        "intro": "Choisissez combien de temps les diagnostics de livraison des transmissions terminées au partenaire sont conservés. Cette durée est le choix de votre organisation, pas un avis juridique. Les demandes, confirmations de l’employeur, reçus de consentement, statuts, historiques et journaux d’audit ne sont jamais supprimés.",
+        "disabled": "La conservation n’est pas configurée. Rien n’est jamais supprimé.",
+        "current": "Durée actuelle : {{days}} jours (version {{version}}). Elle ne s’applique qu’aux transmissions qui se terminent après sa définition.",
+        "daysLabel": "Durée de conservation en jours (de 30 à 3 650)",
+        "save": "Enregistrer la durée",
+        "saved": "Durée de conservation enregistrée.",
+        "preview": "Prévisualiser les preuves admissibles",
+        "previewResult": "{{attempts}} enregistrements de diagnostic de livraison de {{handoffs}} transmissions sont admissibles. Cette prévisualisation expire à {{at}}.",
+        "previewNone": "Aucune preuve n’est admissible à la suppression.",
+        "delete": "Supprimer les preuves admissibles",
+        "deleteStatement": "Cela supprime définitivement uniquement les {{attempts}} enregistrements prévisualisés. Cette action est irréversible.",
+        "confirm": "Confirmer la suppression",
+        "done": "{{attempts}} enregistrements de diagnostic de livraison de {{handoffs}} transmissions supprimés.",
+        "doneReplay": "Cette suppression était déjà effectuée. Rien de plus n’a été supprimé."
+      },
       "admin": {
         "title": "Transmissions au partenaire",
         "description": "Suivez la livraison et l’état d’examen par le partenaire des demandes transmises au partenaire de test synthétique, et vérifiez une livraison incertaine.",
         "filter": "Filtrer par livraison",
+        "filterReview": "Filtrer par examen du partenaire",
         "empty": "Il n’y a aucune transmission.",
         "table": "Liste des transmissions au partenaire",
         "openContext": "Ouvrir la transmission créée le {{date}}",

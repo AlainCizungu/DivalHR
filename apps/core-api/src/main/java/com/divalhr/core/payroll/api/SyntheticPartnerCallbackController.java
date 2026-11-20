@@ -5,6 +5,7 @@ import com.divalhr.core.platform.error.ApiException;
 import com.divalhr.core.platform.error.ErrorCode;
 import com.divalhr.core.platform.ratelimit.RateLimitedException;
 import com.divalhr.core.platform.security.PublicOperation;
+import com.divalhr.core.platform.web.CorrelationId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -94,7 +95,12 @@ public class SyntheticPartnerCallbackController {
     if (raw.length > MAX_BYTES) {
       return answer(HttpStatus.CONTENT_TOO_LARGE);
     }
-    return switch (callbacks.receive(raw, timestamp, callbackId, signature)) {
+    return switch (callbacks.receive(
+        raw,
+        timestamp,
+        callbackId,
+        signature,
+        String.valueOf(servletRequest.getAttribute(CorrelationId.REQUEST_ATTRIBUTE)))) {
       case ACCEPTED -> answer(HttpStatus.NO_CONTENT);
       case INVALID -> throw new ApiException(ErrorCode.PARTNER_CALLBACK_INVALID, Map.of());
       case RATE_LIMITED -> throw new RateLimitedException(ErrorCode.RATE_LIMITED, 60);

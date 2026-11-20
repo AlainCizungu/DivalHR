@@ -75,6 +75,7 @@ export const REVIEW_STATES: readonly SalaryAdvanceHandoffReviewState[] = [
   'UNDER_REVIEW',
   'MORE_INFORMATION_REQUIRED',
   'DECLINED',
+  'CANCELLED_BY_PARTNER',
 ];
 export const REVIEW_REASONS: readonly SalaryAdvanceHandoffReviewReason[] = [
   'ADDITIONAL_DOCUMENTS',
@@ -124,6 +125,7 @@ export function salaryAdvanceFailureOf(response: Response, error: unknown): Comp
     code === 'SALARY_ADVANCE_HANDOFF_PREVIEW_STALE' ||
     code === 'SALARY_ADVANCE_HANDOFF_CONSENT_STALE' ||
     code === 'SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT' ||
+    code === 'SALARY_ADVANCE_PURGE_PREVIEW_STALE' ||
     code === 'IDEMPOTENCY_KEY_REUSED'
   ) {
     return { ...base, code, kind: 'stale', messageKey: `errors.${code}` };
@@ -131,7 +133,8 @@ export function salaryAdvanceFailureOf(response: Response, error: unknown): Comp
   if (
     code === 'SALARY_ADVANCE_POLICY_NOT_FOUND' ||
     code === 'SALARY_ADVANCE_REQUEST_NOT_FOUND' ||
-    code === 'SALARY_ADVANCE_HANDOFF_NOT_FOUND'
+    code === 'SALARY_ADVANCE_HANDOFF_NOT_FOUND' ||
+    code === 'SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND'
   ) {
     return { ...base, code, kind: 'notFound', messageKey: `errors.${code}` };
   }

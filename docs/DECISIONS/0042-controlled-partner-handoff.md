@@ -189,3 +189,85 @@ Real partners, endpoints, credentials or logos; underwriting, affordability, sco
 APR, fees, terms, offers; KYC/AML; approved loan, binding offer, employee acceptance; disbursement; deduction, repayment,
 collections, bureau reporting; a public application database, upload or portal; production enablement; real DRC statutory
 rules.
+
+---
+
+# Amendment — MVP-120C (Issue #209): controlled partner lifecycle completion
+
+Status: proposed with the MVP-120C pull request. Scope is unchanged: **SYNTHETIC-TEST partner only**, no real lender,
+bank, endpoint, credential, bureau, price, approval, disbursement, repayment or payroll deduction. Everything below is
+additive to sections 1–12 above (migration **V54**, rollback `db/rollback/V54__rollback.sql`).
+
+## 13. Decisions D120C-1 to D120C-16
+
+- **D120C-1 Closed partner-review catalogue.** `RECEIVED`, `UNDER_REVIEW`, `MORE_INFORMATION_REQUIRED`, `DECLINED`,
+  `CANCELLED_BY_PARTNER`. No approved, funded, paid or disbursed status exists in the type, the schema or the contract.
+- **D120C-2 Closed transitions.** `RECEIVED` → `UNDER_REVIEW`, `MORE_INFORMATION_REQUIRED`, `DECLINED`,
+  `CANCELLED_BY_PARTNER`; `UNDER_REVIEW` → `MORE_INFORMATION_REQUIRED`, `DECLINED`, `CANCELLED_BY_PARTNER`;
+  `MORE_INFORMATION_REQUIRED` → `UNDER_REVIEW`, `DECLINED`, `CANCELLED_BY_PARTNER`. `DECLINED` and
+  `CANCELLED_BY_PARTNER` are terminal. Enforced by the domain enum, the handoff guard trigger and the review-event check.
+- **D120C-3 Replay safety.** The partner event id is the callback id (`X-Divalhr-Callback-Id`). A callback whose id was
+  already accepted for the same application and the same content is acknowledged (204) and changes nothing. The same id
+  with different content, a transition already reached (new id, same status), a stale transition, an invalid transition
+  and any step out of a terminal status are refused with the one generic `PARTNER_CALLBACK_INVALID` and change nothing.
+  The generic answer is deliberate: the callback door never becomes an oracle for foreign or unknown applications.
+- **D120C-4 Ordering.** The order of history is the server-controlled review sequence assigned under the handoff row lock.
+  The partner timestamp (`issuedAt`) is stored, bounded by the 300 s window, and never trusted for ordering.
+- **D120C-5 Signature first.** Unchanged from section 7: the timestamp format, the signature version (`v1` only; any
+  other version is refused as invalid) and the HMAC are checked over the exact bytes before any business field is read.
+  Nothing from the request (signature, body, identifiers) is logged. A callback never triggers an outbound request or a
+  redirect.
+- **D120C-6 Immutable status history.** One append-only `salary_advance_handoff_review_event` row per accepted transition,
+  now also carrying the safe digest of the event id (SHA-256 of the lower-case id; the raw id stays only in the replay
+  evidence), the server received timestamp and the correlation id. No personal data, amount, free text, consent,
+  signature, payload or bank detail. Read through the view `payroll.salary_advance_handoff_status_history`.
+- **D120C-7 Partner cancellation is not employee withdrawal.** The request stays `EMPLOYER_CONFIRMED`; the employee still
+  cannot withdraw after receipt; the UI states that the review stopped and that no loan was approved and no funds were
+  disbursed. `MORE_INFORMATION_REQUIRED` is informational only (no upload, reply or notification).
+- **D120C-8 Evidence retention scope.** The only purgeable evidence is *delivery diagnostics*: the per-attempt rows
+  (`salary_advance_handoff_attempt`: instant, closed outcome code, optional HTTP status) of a handoff that is **terminal**
+  (`WITHDRAWN`, or review `DECLINED`/`CANCELLED_BY_PARTNER`) and whose history contains no `DELIVERY_UNKNOWN` (that history
+  is the proof that an ambiguous delivery was not resent and is kept forever). Never purged: the request, the employer
+  confirmation, the consent receipt, the current status, the status history, delivery events, acknowledgement, replay
+  evidence, audit, security events, idempotency evidence.
+- **D120C-9 Policy.** Disabled by default (no policy row, nothing is ever eligible). An exact-MFA tenant administrator
+  configures a bounded organization policy of 30 to 3,650 days. Policies are versioned and immutable
+  (`salary_advance_evidence_retention_policy`: days, effective instant, version, actor subject, created instant). The
+  number is an operator choice, not a legal recommendation, and the product makes no claim about a DRC legal period.
+- **D120C-10 Prospective only.** When a handoff becomes terminal, a database trigger stamps one immutable
+  `salary_advance_handoff_retention` row with `retention_until` = terminal instant + days of the policy version then in
+  force. A later policy change never shortens or lengthens a stamped date; handoffs that became terminal before any policy
+  exist are never eligible.
+- **D120C-11 Controlled purge, never automatic.** Preview lists eligible evidence (counts only), stores a short-lived
+  (15 minutes) server-generated preview with a digest over the exact sorted handoff set, attempt counts and policy
+  version. Confirm names the preview id and digest, re-verifies eligibility of every previewed row under row locks, and
+  deletes only those previewed attempt rows. Any eligibility or policy change makes the preview stale
+  (`SALARY_ADVANCE_PURGE_PREVIEW_STALE`, nothing deleted). The database refuses an attempt deletion that is not covered by
+  a confirmed purge record, a previewed handoff and a stamped, elapsed `retention_until`.
+- **D120C-12 Idempotent purge.** Re-confirming a completed preview replays the stored result (200, same counts, nothing
+  deleted); confirming a completed preview with a different digest is `SALARY_ADVANCE_PURGE_ALREADY_COMPLETED`.
+- **D120C-13 Audit.** Operations `salary-advance-handoff.partner-status` (accepted), `salary-advance-handoff.partner-status-refused`,
+  `salary-advance-retention.configure`, `.purge-preview`, `.purge-confirm`, each with counts and safe identifiers only
+  (never an amount, identity, consent, signature or secret). The refused-transition audit carries no request content.
+- **D120C-14 Authorization.** Employee: own status and history only. Tenant administrator with exact MFA: tenant status
+  and history, retention policy read/configure, purge preview and confirm. Manager: none. Callback: signed partner
+  endpoint only. Unknown, foreign and unauthorized ids answer the same 404. All responses `Cache-Control: private, no-store`.
+- **D120C-15 Truth.** Landing page, employee home, administrator home, capability catalogue and `docs/BACKLOG.md` state
+  the "Available foundation" (employee request, employer confirmation, consented synthetic partner handoff, transparent
+  partner-review status and history) and the "Not available" list (real lender, eligibility or credit decision, pricing or
+  interest, approval, disbursement, repayment, payroll deduction). Loans & Salary Advances is not presented as launched;
+  the Financial Partner Program stays an invitation to discuss (the application form is MVP-120D).
+- **D120C-16 Rollback.** `db/rollback/V54__rollback.sql` refuses while any 120C business or policy row exists
+  (`CANCELLED_BY_PARTNER` history, policy, retention stamp, preview, purge record) and otherwise restores V53 exactly.
+  120A/120B rows and any genuine `DELIVERY_UNKNOWN` evidence are preserved by V54.
+
+## 14. API additions
+
+- `GET /salary-advance-handoffs?reviewState=` closed-catalogue filter (tenant administrator, exact MFA).
+- `GET /salary-advance-retention-policy`, `PUT /salary-advance-retention-policy` (idempotent by `Idempotency-Key`).
+- `POST /salary-advance-evidence-purge/preview`, `POST /salary-advance-evidence-purge/{previewId}/confirm`.
+- Callback body `reviewState` gains `CANCELLED_BY_PARTNER`; no other callback change.
+- Stable errors (bilingual on the client): `SALARY_ADVANCE_RETENTION_POLICY_MISSING`,
+  `SALARY_ADVANCE_RETENTION_PERIOD_INVALID` (a 400 field error), `SALARY_ADVANCE_PURGE_PREVIEW_STALE`,
+  `SALARY_ADVANCE_PURGE_ALREADY_COMPLETED`, `SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND`. The partner-facing refusals share
+  `PARTNER_CALLBACK_INVALID` by design (D120C-3).

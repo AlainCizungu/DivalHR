@@ -980,4 +980,175 @@ test.describe.serial('MVP-120B: controlled partner handoff', () => {
     await cloContext.close();
     await denContext.close();
   });
+  test('English employee follows the partner review to a cancellation with its history, never as a loan decision', async ({
+    browser,
+  }) => {
+    // MVP-120C journey 1. The 120B journey above left Anna's handoff under review. The controlled
+    // partner now asks for more information and then cancels its own review: the employee sees
+    // each status and the ordered history, may not withdraw, and nothing claims a lending decision.
+    test.setTimeout(240_000);
+    const adminContext = await browser.newContext();
+    const admin = await adminContext.newPage();
+    const adminBearer = await signIn(admin, USERS.adminB, 'en');
+    const annaContext = await browser.newContext({ locale: 'en-US' });
+    const anna = await annaContext.newPage();
+    const annaBearer = await signIn(anna, [ANA.email, ANA.password], 'en', undefined);
+    const mine = (await listHandoffs(anna, annaBearer, '/me/salary-advance-handoffs')).find(
+      (item) => item.state === 'RECEIVED',
+    );
+    expect(mine, 'the handoff of the previous journey').toBeDefined();
+    const handoffId = (mine as HandoffItem).handoffId;
+    const applicationId = await applicationOf(admin, adminBearer, handoffId);
+
+    // Setup: a retention policy is in force before the handoff becomes terminal, so that the
+    // cancellation is stamped with its retention date (the policy is prospective only).
+    const policy = await admin.request.put(`${CORE_API}/salary-advance-retention-policy`, {
+      headers: { Authorization: adminBearer() },
+      data: { retentionDays: 30 },
+    });
+    expect(policy.status()).toBe(200);
+
+    for (const [reviewState, reasonCode] of [
+      ['MORE_INFORMATION_REQUIRED', 'CLARIFICATION'],
+      ['CANCELLED_BY_PARTNER', 'PARTNER_POLICY'],
+    ] as const) {
+      const reported = await control(admin, 'callback', { applicationId, reviewState, reasonCode });
+      expect(reported.status).toBe(204);
+      await waitForMine(anna, annaBearer, (mine as HandoffItem).requestId, (item) => {
+        return item.reviewState === reviewState;
+      });
+    }
+
+    await primaryNav(anna).getByRole('link', { name: 'Salary advance', exact: true }).click();
+    const row = anna.getByTestId('handoff-row');
+    await expect(row.getByTestId('handoff-review')).toHaveAttribute(
+      'data-review',
+      'CANCELLED_BY_PARTNER',
+    );
+    await expect(row.getByTestId('handoff-review')).toContainText(
+      'Review cancelled by the partner',
+    );
+    const timeline = row.getByTestId('review-timeline');
+    await expect(timeline.getByTestId('review-no-approval')).toBeVisible();
+    await expect(timeline.getByTestId('review-help')).toContainText('not your withdrawal');
+    await expect(row.getByTestId('handoff-withdraw')).toHaveCount(0);
+    await timeline.getByTestId('review-timeline-toggle').click();
+    const events = timeline.getByTestId('review-events').getByRole('listitem');
+    await expect(events).toHaveCount(3);
+    await expect(events.nth(0)).toHaveAttribute('data-status', 'UNDER_REVIEW');
+    await expect(events.nth(1)).toHaveAttribute('data-status', 'MORE_INFORMATION_REQUIRED');
+    await expect(events.nth(2)).toHaveAttribute('data-status', 'CANCELLED_BY_PARTNER');
+    await expectAccessible(anna);
+    await expectNoLendingClaim(anna);
+    await expectNothingLeaks(anna, AMOUNT, applicationId);
+    await noOverflow(anna);
+    await adminContext.close();
+    await annaContext.close();
+  });
+
+  test('French administrator reviews the lifecycle, sets retention, and previews then confirms the exact purge', async ({
+    browser,
+  }) => {
+    // MVP-120C journey 2. Anna's handoff, cancelled by the controlled partner in the previous
+    // journey while a retention policy was in force, carries a retention date. The administrator
+    // reviews it in French and configures retention through the page; the only database step is the
+    // fixture's, which moves that one handoff's stamped date into the past (the policy minimum is
+    // 30 days and a journey cannot wait that long). The purge is previewed, confirmed once, and
+    // removes only the delivery diagnostics.
+    test.setTimeout(240_000);
+    const adminContext = await browser.newContext({ locale: 'fr-FR' });
+    const admin = await adminContext.newPage();
+    const adminBearer = await signIn(admin, USERS.adminB, 'fr');
+    const mine = (await listHandoffs(admin, adminBearer, '/salary-advance-handoffs')).find(
+      (item) => item.reviewState === 'CANCELLED_BY_PARTNER',
+    );
+    expect(mine, 'the handoff cancelled in the previous journey').toBeDefined();
+    const handoffId = (mine as HandoffItem).handoffId;
+    const applicationId = await applicationOf(admin, adminBearer, handoffId);
+
+    // 1. The administrator reviews the lifecycle through the closed review catalogue.
+    await primaryNav(admin)
+      .getByRole('link', { name: 'Transmissions au partenaire', exact: true })
+      .click();
+    await admin.getByTestId('handoffs-review-filter').selectOption('CANCELLED_BY_PARTNER');
+    const row = admin.getByTestId('handoff-admin-row').filter({ hasText: ANA.number });
+    await expect(row.getByTestId('handoff-review')).toHaveAttribute(
+      'data-review',
+      'CANCELLED_BY_PARTNER',
+    );
+    await row.getByTestId('handoff-open').click();
+    await expect(admin.getByTestId('handoff-review-events')).toBeVisible();
+    await expectAccessible(admin);
+
+    // 2. The retention period is configured through the page (bounded; the same value is a no-op).
+    const panel = admin.getByTestId('retention-panel');
+    await panel.getByTestId('retention-days').fill('29');
+    await panel.getByTestId('retention-save').click();
+    await expect(panel.getByTestId('retention-error')).toBeVisible();
+    await panel.getByTestId('retention-days').fill('30');
+    await panel.getByTestId('retention-save').click();
+    await expect(panel.getByTestId('retention-saved')).toBeVisible();
+    await expect(panel.getByTestId('purge-preview')).toBeEnabled();
+
+    // 3. Fixture only: the stamped date of this one handoff is moved into the past. SET LOCAL
+    // ends with the transaction, so the replica role cannot reach another session or statement.
+    sql(
+      `BEGIN;
+       SET LOCAL session_replication_role = replica;
+       UPDATE payroll.salary_advance_handoff_retention
+          SET terminal_at = now() - interval '40 days', retention_until = now() - interval '1 day'
+        WHERE handoff_id = '${handoffId}';
+       COMMIT;`,
+    );
+    expect(
+      sql(
+        `SELECT count(*) FROM payroll.salary_advance_handoff_retention WHERE handoff_id = '${handoffId}'`,
+      ),
+    ).toBe('1');
+    expect(
+      sql(
+        `SELECT count(*) FROM payroll.salary_advance_handoff_attempt WHERE handoff_id = '${handoffId}'`,
+      ),
+    ).not.toBe('0');
+
+    // 4. Preview, then one explicit confirmation of exactly that preview.
+    await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
+    const retention = admin.getByTestId('retention-panel');
+    await retention.getByTestId('purge-preview').click();
+    await expect(retention.getByTestId('purge-preview-result')).toBeVisible();
+    await retention.getByTestId('purge-open').click();
+    await expectAccessible(admin);
+    await retention.getByTestId('purge-confirm').click();
+    await expect(retention.getByTestId('purge-done')).toBeVisible();
+    expect(
+      sql(
+        `SELECT count(*) FROM payroll.salary_advance_handoff_attempt WHERE handoff_id = '${handoffId}'`,
+      ),
+    ).toBe('0');
+
+    // 5. Everything that is not a delivery diagnostic is still there. (The administrator's
+    //    reconcile, configure and purge actions share one small per-minute quota, so no further
+    //    preview is made here: the Core tests cover an empty preview.)
+    for (const table of [
+      'salary_advance_handoff',
+      'salary_advance_handoff_event',
+      'salary_advance_handoff_consent',
+      'salary_advance_handoff_review_event',
+    ]) {
+      const column = table === 'salary_advance_handoff' ? 'id' : 'handoff_id';
+      expect(
+        Number(sql(`SELECT count(*) FROM payroll.${table} WHERE ${column} = '${handoffId}'`)),
+        table,
+      ).toBeGreaterThan(0);
+    }
+    await revisit(admin, 'Demandes d’avance sur salaire', 'Transmissions au partenaire');
+    await admin.getByTestId('handoffs-review-filter').selectOption('CANCELLED_BY_PARTNER');
+    await expect(
+      admin.getByTestId('handoff-admin-row').filter({ hasText: ANA.number }),
+    ).toBeVisible();
+    await expectNoLendingClaim(admin);
+    await expectNothingLeaks(admin, AMOUNT, applicationId);
+    await noOverflow(admin);
+    await adminContext.close();
+  });
 });
