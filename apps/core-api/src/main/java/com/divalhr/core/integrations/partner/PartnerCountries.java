@@ -38,10 +38,10 @@ public final class PartnerCountries {
   /**
    * All codes in order.
    *
-   * @return an immutable sorted set
+   * @return a sorted copy, so callers cannot reach the catalogue itself
    */
   public static Set<String> codes() {
-    return CODES;
+    return new TreeSet<>(CODES);
   }
 
   private static Set<String> load() {
