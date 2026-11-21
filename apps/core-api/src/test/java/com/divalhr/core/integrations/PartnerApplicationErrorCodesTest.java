@@ -60,7 +60,8 @@ class PartnerApplicationErrorCodesTest {
       }
     }
     assertThat(found).containsExactlyInAnyOrderElementsOf(CODES.keySet());
-    CODES.forEach((name, status) -> assertThat(ErrorCode.valueOf(name).status()).as(name).isEqualTo(status));
+    CODES.forEach(
+        (name, status) -> assertThat(ErrorCode.valueOf(name).status()).as(name).isEqualTo(status));
   }
 
   @Test
@@ -68,7 +69,8 @@ class PartnerApplicationErrorCodesTest {
     String schema = read(SCHEMA);
     String en = read(EN);
     String fr = read(FR);
-    Pattern unsafe = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}|@|\\{|\\}|https?:|/api/|[A-Z]{3,}_[A-Z_]+");
+    Pattern unsafe =
+        Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}|@|\\{|\\}|https?:|/api/|[A-Z]{3,}_[A-Z_]+");
     for (String code : CODES.keySet()) {
       assertThat(schema).contains("\"" + code + "\"");
       assertThat(message(en, code)).isNotBlank();

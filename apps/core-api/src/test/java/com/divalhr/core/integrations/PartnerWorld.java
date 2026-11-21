@@ -194,7 +194,8 @@ final class PartnerWorld {
       throws Exception {
     String reference = body(submit(mvc, application)).path("reference").asText();
     MockHttpServletResponse started =
-        transition(mvc, bearer, reference, "UNDER_REVIEW", version(mvc, bearer, reference), null, false);
+        transition(
+            mvc, bearer, reference, "UNDER_REVIEW", version(mvc, bearer, reference), null, false);
     if (started.getStatus() != 200) {
       throw new IllegalStateException("review did not start: " + started.getStatus());
     }
@@ -217,7 +218,13 @@ final class PartnerWorld {
     for (String code : mandatory()) {
       MockHttpServletResponse response =
           setCheck(
-              mvc, bearer, reference, code, "SATISFIED", checkVersion(mvc, bearer, reference, code), null);
+              mvc,
+              bearer,
+              reference,
+              code,
+              "SATISFIED",
+              checkVersion(mvc, bearer, reference, code),
+              null);
       if (response.getStatus() != 200) {
         throw new IllegalStateException("check not recorded: " + code + " " + response.getStatus());
       }

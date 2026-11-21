@@ -58,9 +58,9 @@ import tools.jackson.databind.json.JsonMapper;
  * authorized before it gets here (platform-admin with exact MFA, never a tenant claim). Reads
  * disclose confidential contact data only after their audit entry commits in the same transaction;
  * audit entries carry the opaque reference, statuses, codes and counts, never contact data, notes,
- * licence references or the service summary. Approval re-reads and locks the whole checklist in
- * the same transaction as the status change, so no concurrent request can bypass the gate. A
- * decision creates no credential, membership, tenant access, integration or listing.
+ * licence references or the service summary. Approval re-reads and locks the whole checklist in the
+ * same transaction as the status change, so no concurrent request can bypass the gate. A decision
+ * creates no credential, membership, tenant access, integration or listing.
  */
 @Service
 public class PartnerReviewService {
@@ -367,8 +367,7 @@ public class PartnerReviewService {
             spec,
             () -> {
               key(idempotencyKey);
-              return new Parsed(
-                  reference(reference), check(checkCode), CheckCommand.parse(body));
+              return new Parsed(reference(reference), check(checkCode), CheckCommand.parse(body));
             });
     Map<String, Object> canonical = new TreeMap<>();
     canonical.put("reference", parsed.reference());
@@ -376,7 +375,8 @@ public class PartnerReviewService {
     canonical.put("result", parsed.command().result().name());
     canonical.put("expectedVersion", parsed.command().expectedVersion());
     canonical.put(
-        "note", parsed.command().note() == null ? "" : crypto.digest("note", parsed.command().note()));
+        "note",
+        parsed.command().note() == null ? "" : crypto.digest("note", parsed.command().note()));
     IdempotentOperation.Result<Check> result =
         operations.execute(
             spec,
@@ -486,7 +486,8 @@ public class PartnerReviewService {
     canonical.put("reference", parsed.reference());
     canonical.put("toStatus", parsed.command().to().name());
     canonical.put("expectedVersion", parsed.command().expectedVersion());
-    canonical.put("reason", parsed.command().reason() == null ? "" : parsed.command().reason().name());
+    canonical.put(
+        "reason", parsed.command().reason() == null ? "" : parsed.command().reason().name());
     return operations.execute(
         spec,
         caller.subject(),
@@ -549,7 +550,8 @@ public class PartnerReviewService {
     }
     audited(caller, TRANSITION_AUDIT, row.id(), metadata, at);
     return new IdempotentOperation.Completed<>(
-        new TransitionReceipt(row.reference(), command.to().name(), row.version() + 1, sequence, at),
+        new TransitionReceipt(
+            row.reference(), command.to().name(), row.version() + 1, sequence, at),
         row.id(),
         Outcome.UPDATED);
   }
@@ -577,7 +579,8 @@ public class PartnerReviewService {
       if (!code.mandatory()) {
         continue;
       }
-      CheckRow row = checks.stream().filter(c -> c.code().equals(code.name())).findFirst().orElse(null);
+      CheckRow row =
+          checks.stream().filter(c -> c.code().equals(code.name())).findFirst().orElse(null);
       CheckResult result = row == null ? CheckResult.PENDING : CheckResult.valueOf(row.result());
       if (!result.clears()) {
         blocked.add(code.name());
@@ -602,7 +605,8 @@ public class PartnerReviewService {
     String note =
         stored.note() == null || !includeNote
             ? null
-            : new String(crypto.open(stored.note(), noteContext(row.id(), code)), StandardCharsets.UTF_8);
+            : new String(
+                crypto.open(stored.note(), noteContext(row.id(), code)), StandardCharsets.UTF_8);
     return new Check(
         stored.code(),
         code.mandatory(),
@@ -812,7 +816,8 @@ public class PartnerReviewService {
         if (text.length() > NOTE_MAX) {
           throw invalid("note", "LENGTH");
         }
-        if (text.chars().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t')) {
+        if (text.chars()
+            .anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t')) {
           throw invalid("note", "FORMAT");
         }
         note = text.isEmpty() ? null : text;
@@ -840,7 +845,8 @@ public class PartnerReviewService {
       if (confirmedNode != null && !confirmedNode.isNull() && !confirmedNode.isBoolean()) {
         throw invalid("confirmed", "FORMAT");
       }
-      boolean confirmed = confirmedNode != null && confirmedNode.isBoolean() && confirmedNode.booleanValue();
+      boolean confirmed =
+          confirmedNode != null && confirmedNode.isBoolean() && confirmedNode.booleanValue();
       switch (to) {
         case UNDER_REVIEW, SUBMITTED -> {
           if (reason != null) {

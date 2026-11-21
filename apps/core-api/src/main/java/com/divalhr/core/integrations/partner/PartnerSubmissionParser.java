@@ -91,8 +91,7 @@ final class PartnerSubmissionParser {
     List<String> operation = strings(root, "countriesOfOperation", 1, 30, COUNTRY, true);
     String registration = text(root, "registrationReference", 2, 100, true, false);
     Category primary = enumValue(root, "primaryCategory", Category.class, true);
-    List<Category> additional =
-        enums(root, "additionalCategories", Category.class, 0, 3, false);
+    List<Category> additional = enums(root, "additionalCategories", Category.class, 0, 3, false);
     List<Capability> capabilities =
         enums(root, "requestedCapabilities", Capability.class, 1, 12, true);
     if (primary != null && additional.contains(primary)) {
@@ -189,8 +188,7 @@ final class PartnerSubmissionParser {
         .chars()
         .anyMatch(
             c ->
-                Character.isISOControl(c)
-                    && !(multiline && (c == '\n' || c == '\r' || c == '\t')));
+                Character.isISOControl(c) && !(multiline && (c == '\n' || c == '\r' || c == '\t')));
   }
 
   private String pattern(JsonNode root, String name, Pattern pattern, boolean required) {

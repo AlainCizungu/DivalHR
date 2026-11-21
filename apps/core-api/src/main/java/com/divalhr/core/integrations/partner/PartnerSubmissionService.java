@@ -147,7 +147,9 @@ public class PartnerSubmissionService {
                       "field",
                       IdempotencyKeys.HEADER,
                       "constraint",
-                      idempotencyKey == null || idempotencyKey.isBlank() ? "REQUIRED" : "FORMAT"))));
+                      idempotencyKey == null || idempotencyKey.isBlank()
+                          ? "REQUIRED"
+                          : "FORMAT"))));
     }
     if (isHoneypot(body)) {
       // Same receipt shape and status as an ordinary submission; nothing is stored, audited or
@@ -236,13 +238,7 @@ public class PartnerSubmissionService {
           UUID id = UUID.randomUUID();
           String reference = newReference();
           repository.insertApplication(
-              id,
-              reference,
-              s,
-              sealContact(id, s),
-              emailDigest,
-              organizationFingerprint,
-              at);
+              id, reference, s, sealContact(id, s), emailDigest, organizationFingerprint, at);
           repository.insertDetails(id, s, at);
           repository.appendEvent(
               id, EventType.SUBMITTED, null, "SUBMITTED", null, null, null, "APPLICANT", null, at);

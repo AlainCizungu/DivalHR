@@ -32,12 +32,12 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Review of partner applications by platform administrators with exact MFA ({@link
- * PlatformScoped}, MVP-120D, ADR 0043). Subject, platform role and assurance are checked before the
- * path or body is bound; the caller's tenant claim is never read, so a tenant administrator,
- * manager or employee is refused. Every response is {@code Cache-Control: private, no-store}. An
- * unknown or malformed reference is the same 404. No operation here creates a credential,
- * membership, tenant access, integration configuration or listing.
+ * Review of partner applications by platform administrators with exact MFA ({@link PlatformScoped},
+ * MVP-120D, ADR 0043). Subject, platform role and assurance are checked before the path or body is
+ * bound; the caller's tenant claim is never read, so a tenant administrator, manager or employee is
+ * refused. Every response is {@code Cache-Control: private, no-store}. An unknown or malformed
+ * reference is the same 404. No operation here creates a credential, membership, tenant access,
+ * integration configuration or listing.
  */
 @RestController
 public class PartnerApplicationReviewController {
@@ -204,8 +204,7 @@ public class PartnerApplicationReviewController {
                       mediaType = "application/json",
                       schema =
                           @io.swagger.v3.oas.annotations.media.Schema(
-                              implementation =
-                                  PartnerApplicationBodies.TransitionCommand.class))))
+                              implementation = PartnerApplicationBodies.TransitionCommand.class))))
   @PostMapping(ONE + ":transition")
   @PlatformScoped(operation = "partner-application.transition")
   @SubjectRateLimited(bucket = COMMAND_BUCKET)

@@ -84,7 +84,9 @@ class PartnerApplicationSubmissionIntegrationTest {
             receipt.path("reference").asText());
     assertThat(row.get("status")).isEqualTo("SUBMITTED");
     assertThat(row.get("row_version")).isEqualTo(0);
-    assertThat(String.valueOf(row.get("email_digest"))).matches("^[0-9a-f]{64}$").doesNotContain(email);
+    assertThat(String.valueOf(row.get("email_digest")))
+        .matches("^[0-9a-f]{64}$")
+        .doesNotContain(email);
     assertThat(String.valueOf(row.get("cipher")))
         .doesNotContain(email)
         .doesNotContain(String.valueOf(application.get("registrationReference")))
@@ -278,7 +280,8 @@ class PartnerApplicationSubmissionIntegrationTest {
     assertThat(missing.getStatus()).isEqualTo(400);
     assertThat(code(missing)).isEqualTo("PARTNER_APPLICATION_INVALID");
 
-    Map<String, Object> large = PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail());
+    Map<String, Object> large =
+        PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail());
     large.put("serviceSummary", "x".repeat(20_000));
     MockHttpServletResponse tooLarge = PartnerWorld.submit(mvc, large);
     assertThat(tooLarge.getStatus()).isEqualTo(400);
@@ -327,8 +330,7 @@ class PartnerApplicationSubmissionIntegrationTest {
 
   @Test
   void onlyTheExactSubmissionRouteIsPublic() throws Exception {
-    assertThat(mvc.perform(get(PUBLIC)).andReturn().getResponse().getStatus())
-        .isIn(401, 403, 405);
+    assertThat(mvc.perform(get(PUBLIC)).andReturn().getResponse().getStatus()).isIn(401, 403, 405);
     assertThat(
             mvc.perform(
                     post(PUBLIC + "/PA-ABCDEFGHJKMN")
@@ -339,11 +341,10 @@ class PartnerApplicationSubmissionIntegrationTest {
                 .getStatus())
         .isIn(401, 403, 404);
     for (String path :
-        List.of(
-            PLATFORM,
-            PLATFORM + "/PA-ABCDEFGHJKMN",
-            PLATFORM + "/PA-ABCDEFGHJKMN/history")) {
-      assertThat(mvc.perform(get(path)).andReturn().getResponse().getStatus()).as(path).isEqualTo(401);
+        List.of(PLATFORM, PLATFORM + "/PA-ABCDEFGHJKMN", PLATFORM + "/PA-ABCDEFGHJKMN/history")) {
+      assertThat(mvc.perform(get(path)).andReturn().getResponse().getStatus())
+          .as(path)
+          .isEqualTo(401);
     }
     assertThat(
             mvc.perform(
@@ -359,9 +360,8 @@ class PartnerApplicationSubmissionIntegrationTest {
   @Test
   void onlyAPlatformAdministratorWithExactMfaReachesTheReviewRoutes() throws Exception {
     String reference =
-        body(
-                PartnerWorld.submit(
-                    mvc, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail())))
+        body(PartnerWorld.submit(
+                mvc, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail())))
             .path("reference")
             .asText();
     String tenantAdmin = bearer("sub-tenant-admin", List.of("tenant-admin"), true);

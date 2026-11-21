@@ -24,11 +24,14 @@ class PartnerCryptoTest {
     byte[] sealed = crypto.seal("synthetic contact".getBytes(StandardCharsets.UTF_8), "ctx-a");
     assertThat(new String(crypto.open(sealed, "ctx-a"), StandardCharsets.UTF_8))
         .isEqualTo("synthetic contact");
-    assertThatThrownBy(() -> crypto.open(sealed, "ctx-b")).isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(() -> crypto.open(sealed, "ctx-b"))
+        .isInstanceOf(IllegalStateException.class);
     byte[] tampered = sealed.clone();
     tampered[tampered.length - 1] ^= 1;
-    assertThatThrownBy(() -> crypto.open(tampered, "ctx-a")).isInstanceOf(IllegalStateException.class);
-    assertThat(sealed).isNotEqualTo(crypto.seal("synthetic contact".getBytes(StandardCharsets.UTF_8), "ctx-a"));
+    assertThatThrownBy(() -> crypto.open(tampered, "ctx-a"))
+        .isInstanceOf(IllegalStateException.class);
+    assertThat(sealed)
+        .isNotEqualTo(crypto.seal("synthetic contact".getBytes(StandardCharsets.UTF_8), "ctx-a"));
     assertThat(new String(sealed, StandardCharsets.ISO_8859_1)).doesNotContain("synthetic contact");
   }
 
@@ -36,9 +39,12 @@ class PartnerCryptoTest {
   void digestsAreDeterministicKeyedAndDomainSeparated() {
     PartnerCrypto crypto = crypto(KEY);
     String value = "synthetic@example.test";
-    assertThat(crypto.digest("email", value)).matches("^[0-9a-f]{64}$").isEqualTo(crypto.digest("email", value));
+    assertThat(crypto.digest("email", value))
+        .matches("^[0-9a-f]{64}$")
+        .isEqualTo(crypto.digest("email", value));
     assertThat(crypto.digest("email", value)).isNotEqualTo(crypto.digest("organization", value));
-    assertThat(crypto.digest("email", value)).isNotEqualTo(crypto("another-test-only-key-00000000000000002").digest("email", value));
+    assertThat(crypto.digest("email", value))
+        .isNotEqualTo(crypto("another-test-only-key-00000000000000002").digest("email", value));
     assertThat(crypto.digest("email", value)).doesNotContain(value);
   }
 
@@ -46,7 +52,8 @@ class PartnerCryptoTest {
   void withoutAKeyItIsUnavailableAndFailsClosed() {
     PartnerCrypto crypto = crypto(null);
     assertThat(crypto.available()).isFalse();
-    assertThatThrownBy(() -> crypto.seal(new byte[] {1}, "ctx")).isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(() -> crypto.seal(new byte[] {1}, "ctx"))
+        .isInstanceOf(IllegalStateException.class);
     assertThatThrownBy(() -> crypto.digest("email", UUID.randomUUID().toString()))
         .isInstanceOf(IllegalStateException.class);
   }

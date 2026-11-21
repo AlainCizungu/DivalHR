@@ -60,7 +60,8 @@ class PartnerApplicationReviewIntegrationTest {
   void theQueueListsFiltersAndPagesWithoutConfidentialData() throws Exception {
     String email = PartnerWorld.uniqueEmail();
     Map<String, Object> first = PartnerWorld.bank(PartnerWorld.uniqueName(), email);
-    Map<String, Object> second = PartnerWorld.insurer(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail());
+    Map<String, Object> second =
+        PartnerWorld.insurer(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail());
     String one = submitted(first);
     String two = submitted(second);
 
@@ -77,8 +78,11 @@ class PartnerApplicationReviewIntegrationTest {
         .doesNotContain(String.valueOf(first.get("licenceReference")))
         .doesNotContain("serviceSummary");
     String cursor = list.path("nextCursor").asText();
-    String payload = new String(Base64.getUrlDecoder().decode(cursor.substring(0, cursor.indexOf('.'))));
-    assertThat(payload).doesNotContain(email).doesNotContain(String.valueOf(first.get("legalName")));
+    String payload =
+        new String(Base64.getUrlDecoder().decode(cursor.substring(0, cursor.indexOf('.'))));
+    assertThat(payload)
+        .doesNotContain(email)
+        .doesNotContain(String.valueOf(first.get("legalName")));
 
     // The newest comes first; the second page differs and a changed filter refuses the cursor.
     assertThat(list.path("items").get(0).path("reference").asText()).isEqualTo(two);
@@ -89,12 +93,14 @@ class PartnerApplicationReviewIntegrationTest {
     assertThat(rebound.getStatus()).isEqualTo(400);
     assertThat(code(rebound)).isEqualTo("CURSOR_INVALID");
 
-    JsonNode insurance = body(PartnerWorld.read(mvc, admin, PLATFORM + "?category=INSURANCE&limit=50"));
+    JsonNode insurance =
+        body(PartnerWorld.read(mvc, admin, PLATFORM + "?category=INSURANCE&limit=50"));
     assertThat(references(insurance)).contains(two).doesNotContain(one);
     JsonNode capability =
         body(PartnerWorld.read(mvc, admin, PLATFORM + "?capability=HEALTH_INSURANCE&limit=50"));
     assertThat(references(capability)).contains(two).doesNotContain(one);
-    JsonNode additional = body(PartnerWorld.read(mvc, admin, PLATFORM + "?category=TELECOM&limit=50"));
+    JsonNode additional =
+        body(PartnerWorld.read(mvc, admin, PLATFORM + "?category=TELECOM&limit=50"));
     assertThat(references(additional)).contains(two).doesNotContain(one);
     JsonNode country = body(PartnerWorld.read(mvc, admin, PLATFORM + "?country=CD&limit=50"));
     assertThat(references(country)).contains(one, two);
@@ -141,14 +147,16 @@ class PartnerApplicationReviewIntegrationTest {
 
   @Test
   void unknownMalformedAndMisspelledTargetsAreTheSameNotFound() throws Exception {
-    String reference = submitted(PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+    String reference =
+        submitted(PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
     List<MockHttpServletResponse> answers =
         List.of(
             PartnerWorld.read(mvc, admin, PLATFORM + "/PA-AAAAAAAAAAAA"),
             PartnerWorld.read(mvc, admin, PLATFORM + "/not-a-reference"),
             PartnerWorld.read(mvc, admin, PLATFORM + "/PA-AAAAAAAAAAAA/history"),
             PartnerWorld.setCheck(mvc, admin, reference, "NO_SUCH_CHECK", "SATISFIED", 0, null),
-            PartnerWorld.setCheck(mvc, admin, "PA-AAAAAAAAAAAA", "BUSINESS_IDENTITY", "SATISFIED", 0, null),
+            PartnerWorld.setCheck(
+                mvc, admin, "PA-AAAAAAAAAAAA", "BUSINESS_IDENTITY", "SATISFIED", 0, null),
             PartnerWorld.transition(mvc, admin, "PA-AAAAAAAAAAAA", "UNDER_REVIEW", 0, null, false));
     for (MockHttpServletResponse answer : answers) {
       assertThat(answer.getStatus()).isEqualTo(404);
@@ -158,44 +166,89 @@ class PartnerApplicationReviewIntegrationTest {
 
   @Test
   void theStatusMachineIsClosedAndEveryDecisionIsRecorded() throws Exception {
-    String reference = submitted(PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+    String reference =
+        submitted(PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
     int version = PartnerWorld.version(mvc, admin, reference);
 
     // SUBMITTED cannot be approved, declined or moved to more-information-required.
-    assertThat(code(PartnerWorld.transition(mvc, admin, reference, "APPROVED_FOR_ONBOARDING", version, null, true)))
+    assertThat(
+            code(
+                PartnerWorld.transition(
+                    mvc, admin, reference, "APPROVED_FOR_ONBOARDING", version, null, true)))
         .isEqualTo("PARTNER_APPLICATION_TRANSITION_INVALID");
-    assertThat(code(PartnerWorld.transition(mvc, admin, reference, "DECLINED", version, "OUT_OF_SCOPE", true)))
+    assertThat(
+            code(
+                PartnerWorld.transition(
+                    mvc, admin, reference, "DECLINED", version, "OUT_OF_SCOPE", true)))
         .isEqualTo("PARTNER_APPLICATION_TRANSITION_INVALID");
     // A stale version is refused.
-    assertThat(code(PartnerWorld.transition(mvc, admin, reference, "UNDER_REVIEW", version + 5, null, false)))
+    assertThat(
+            code(
+                PartnerWorld.transition(
+                    mvc, admin, reference, "UNDER_REVIEW", version + 5, null, false)))
         .isEqualTo("PARTNER_APPLICATION_TRANSITION_INVALID");
 
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "UNDER_REVIEW", version, null, false).getStatus())
+    assertThat(
+            PartnerWorld.transition(mvc, admin, reference, "UNDER_REVIEW", version, null, false)
+                .getStatus())
         .isEqualTo(200);
     version = PartnerWorld.version(mvc, admin, reference);
     // A reason is required to request information and must be a clarification reason.
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "MORE_INFORMATION_REQUIRED", version, null, false).getStatus())
+    assertThat(
+            PartnerWorld.transition(
+                    mvc, admin, reference, "MORE_INFORMATION_REQUIRED", version, null, false)
+                .getStatus())
         .isEqualTo(400);
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "MORE_INFORMATION_REQUIRED", version, "OUT_OF_SCOPE", false).getStatus())
+    assertThat(
+            PartnerWorld.transition(
+                    mvc,
+                    admin,
+                    reference,
+                    "MORE_INFORMATION_REQUIRED",
+                    version,
+                    "OUT_OF_SCOPE",
+                    false)
+                .getStatus())
         .isEqualTo(400);
     MockHttpServletResponse info =
-        PartnerWorld.transition(mvc, admin, reference, "MORE_INFORMATION_REQUIRED", version, "CLARIFY_SERVICE_SCOPE", false);
+        PartnerWorld.transition(
+            mvc,
+            admin,
+            reference,
+            "MORE_INFORMATION_REQUIRED",
+            version,
+            "CLARIFY_SERVICE_SCOPE",
+            false);
     assertThat(info.getStatus()).isEqualTo(200);
     assertThat(body(info).path("status").asText()).isEqualTo("MORE_INFORMATION_REQUIRED");
     assertThat(body(info).path("version").asInt()).isEqualTo(version + 1);
     version = PartnerWorld.version(mvc, admin, reference);
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "UNDER_REVIEW", version, null, false).getStatus())
+    assertThat(
+            PartnerWorld.transition(mvc, admin, reference, "UNDER_REVIEW", version, null, false)
+                .getStatus())
         .isEqualTo(200);
     version = PartnerWorld.version(mvc, admin, reference);
 
     // A terminal decision needs confirmation and a closed reason.
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "DECLINED", version, "OUT_OF_SCOPE", false).getStatus())
+    assertThat(
+            PartnerWorld.transition(
+                    mvc, admin, reference, "DECLINED", version, "OUT_OF_SCOPE", false)
+                .getStatus())
         .isEqualTo(400);
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "DECLINED", version, "APPLICANT_REQUEST", true).getStatus())
+    assertThat(
+            PartnerWorld.transition(
+                    mvc, admin, reference, "DECLINED", version, "APPLICANT_REQUEST", true)
+                .getStatus())
         .isEqualTo(400);
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "WITHDRAWN", version, "OUT_OF_SCOPE", true).getStatus())
+    assertThat(
+            PartnerWorld.transition(
+                    mvc, admin, reference, "WITHDRAWN", version, "OUT_OF_SCOPE", true)
+                .getStatus())
         .isEqualTo(400);
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "DECLINED", version, "OUT_OF_SCOPE", true).getStatus())
+    assertThat(
+            PartnerWorld.transition(
+                    mvc, admin, reference, "DECLINED", version, "OUT_OF_SCOPE", true)
+                .getStatus())
         .isEqualTo(200);
     assertThat(status(reference)).isEqualTo("DECLINED");
 
@@ -204,15 +257,23 @@ class PartnerApplicationReviewIntegrationTest {
     List<MockHttpServletResponse> closed =
         List.of(
             PartnerWorld.transition(mvc, admin, reference, "UNDER_REVIEW", version, null, false),
-            PartnerWorld.transition(mvc, admin, reference, "APPROVED_FOR_ONBOARDING", version, null, true),
-            PartnerWorld.transition(mvc, admin, reference, "WITHDRAWN", version, "APPLICANT_REQUEST", true));
+            PartnerWorld.transition(
+                mvc, admin, reference, "APPROVED_FOR_ONBOARDING", version, null, true),
+            PartnerWorld.transition(
+                mvc, admin, reference, "WITHDRAWN", version, "APPLICANT_REQUEST", true));
     for (MockHttpServletResponse refused : closed) {
       assertThat(refused.getStatus()).isEqualTo(409);
       assertThat(code(refused)).isEqualTo("PARTNER_APPLICATION_TERMINAL");
     }
     MockHttpServletResponse check =
-        PartnerWorld.setCheck(mvc, admin, reference, "BUSINESS_IDENTITY", "SATISFIED",
-            PartnerWorld.checkVersion(mvc, admin, reference, "BUSINESS_IDENTITY"), null);
+        PartnerWorld.setCheck(
+            mvc,
+            admin,
+            reference,
+            "BUSINESS_IDENTITY",
+            "SATISFIED",
+            PartnerWorld.checkVersion(mvc, admin, reference, "BUSINESS_IDENTITY"),
+            null);
     assertThat(code(check)).isEqualTo("PARTNER_APPLICATION_TERMINAL");
 
     List<String> events =
@@ -233,18 +294,26 @@ class PartnerApplicationReviewIntegrationTest {
 
   @Test
   void aWithdrawalIsRecordedOnlyWithTheApplicantRequestReason() throws Exception {
-    String reference = submitted(PartnerWorld.insurer(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+    String reference =
+        submitted(PartnerWorld.insurer(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
     int version = PartnerWorld.version(mvc, admin, reference);
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "WITHDRAWN", version, "OTHER", true).getStatus())
+    assertThat(
+            PartnerWorld.transition(mvc, admin, reference, "WITHDRAWN", version, "OTHER", true)
+                .getStatus())
         .isEqualTo(400);
-    assertThat(PartnerWorld.transition(mvc, admin, reference, "WITHDRAWN", version, "APPLICANT_REQUEST", true).getStatus())
+    assertThat(
+            PartnerWorld.transition(
+                    mvc, admin, reference, "WITHDRAWN", version, "APPLICANT_REQUEST", true)
+                .getStatus())
         .isEqualTo(200);
     assertThat(status(reference)).isEqualTo("WITHDRAWN");
   }
 
   @Test
   void approvalIsImpossibleUntilEveryApplicableMandatoryCheckIsSatisfied() throws Exception {
-    String reference = PartnerWorld.underReview(mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+    String reference =
+        PartnerWorld.underReview(
+            mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
 
     MockHttpServletResponse blocked = approve(reference);
     assertThat(blocked.getStatus()).isEqualTo(409);
@@ -253,15 +322,27 @@ class PartnerApplicationReviewIntegrationTest {
 
     // Regulatory information can never be "not applicable" for a regulated primary category.
     MockHttpServletResponse notApplicable =
-        PartnerWorld.setCheck(mvc, admin, reference, "REGULATORY_INFORMATION", "NOT_APPLICABLE",
-            PartnerWorld.checkVersion(mvc, admin, reference, "REGULATORY_INFORMATION"), null);
+        PartnerWorld.setCheck(
+            mvc,
+            admin,
+            reference,
+            "REGULATORY_INFORMATION",
+            "NOT_APPLICABLE",
+            PartnerWorld.checkVersion(mvc, admin, reference, "REGULATORY_INFORMATION"),
+            null);
     assertThat(notApplicable.getStatus()).isEqualTo(400);
 
     List<String> codes = PartnerWorld.mandatory();
     for (int i = 0; i < codes.size() - 1; i++) {
       MockHttpServletResponse set =
-          PartnerWorld.setCheck(mvc, admin, reference, codes.get(i), "SATISFIED",
-              PartnerWorld.checkVersion(mvc, admin, reference, codes.get(i)), "synthetic note " + i);
+          PartnerWorld.setCheck(
+              mvc,
+              admin,
+              reference,
+              codes.get(i),
+              "SATISFIED",
+              PartnerWorld.checkVersion(mvc, admin, reference, codes.get(i)),
+              "synthetic note " + i);
       assertThat(set.getStatus()).isEqualTo(200);
       assertThat(body(set).path("result").asText()).isEqualTo("SATISFIED");
       assertThat(body(set).path("performedByCaller").asBoolean()).isTrue();
@@ -270,15 +351,29 @@ class PartnerApplicationReviewIntegrationTest {
     // One concern keeps it blocked; the advisory commercial check never gates approval.
     String last = codes.get(codes.size() - 1);
     MockHttpServletResponse concern =
-        PartnerWorld.setCheck(mvc, admin, reference, last, "CONCERN",
-            PartnerWorld.checkVersion(mvc, admin, reference, last), null);
+        PartnerWorld.setCheck(
+            mvc,
+            admin,
+            reference,
+            last,
+            "CONCERN",
+            PartnerWorld.checkVersion(mvc, admin, reference, last),
+            null);
     assertThat(concern.getStatus()).isEqualTo(200);
     JsonNode blockedDetail = body(PartnerWorld.read(mvc, admin, PLATFORM + "/" + reference));
-    assertThat(blockedDetail.path("approvalBlockedBy")).extracting(JsonNode::asText).containsExactly(last);
+    assertThat(blockedDetail.path("approvalBlockedBy"))
+        .extracting(JsonNode::asText)
+        .containsExactly(last);
     assertThat(approve(reference).getStatus()).isEqualTo(409);
     assertThat(
-            PartnerWorld.setCheck(mvc, admin, reference, last, "SATISFIED",
-                    PartnerWorld.checkVersion(mvc, admin, reference, last), null)
+            PartnerWorld.setCheck(
+                    mvc,
+                    admin,
+                    reference,
+                    last,
+                    "SATISFIED",
+                    PartnerWorld.checkVersion(mvc, admin, reference, last),
+                    null)
                 .getStatus())
         .isEqualTo(200);
 
@@ -290,7 +385,9 @@ class PartnerApplicationReviewIntegrationTest {
     // Approval opens onboarding discussions only: no login, membership, tenant access,
     // integration configuration or listing of any kind is created.
     assertThat(PartnerWorld.accessFootprint(jdbc)).isEqualTo(footprint);
-    assertThat(approved.getContentAsString()).doesNotContain("credential").doesNotContain("password");
+    assertThat(approved.getContentAsString())
+        .doesNotContain("credential")
+        .doesNotContain("password");
     JsonNode detail = body(PartnerWorld.read(mvc, admin, PLATFORM + "/" + reference));
     assertThat(detail.path("allowedTransitions")).isEmpty();
     assertThat(detail.path("approvalBlockedBy")).isEmpty();
@@ -298,11 +395,19 @@ class PartnerApplicationReviewIntegrationTest {
 
   @Test
   void aCheckNoteIsEncryptedAtRestAndReturnedOnlyToTheAdministrator() throws Exception {
-    String reference = PartnerWorld.underReview(mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+    String reference =
+        PartnerWorld.underReview(
+            mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
     String note = "synthetic-confidential-note-" + PartnerWorld.token();
     MockHttpServletResponse set =
-        PartnerWorld.setCheck(mvc, admin, reference, "SERVICE_SCOPE", "SATISFIED",
-            PartnerWorld.checkVersion(mvc, admin, reference, "SERVICE_SCOPE"), note);
+        PartnerWorld.setCheck(
+            mvc,
+            admin,
+            reference,
+            "SERVICE_SCOPE",
+            "SATISFIED",
+            PartnerWorld.checkVersion(mvc, admin, reference, "SERVICE_SCOPE"),
+            note);
     assertThat(set.getStatus()).isEqualTo(200);
     assertThat(body(set).path("note").asText()).isEqualTo(note);
 
@@ -326,20 +431,24 @@ class PartnerApplicationReviewIntegrationTest {
     // The note never reaches the audit trail, the history, the idempotency store or the outbox.
     String everything =
         jdbc.queryForObject(
-            "SELECT coalesce(string_agg(metadata::text, ' '), '') FROM platform.audit_event", String.class)
+                "SELECT coalesce(string_agg(metadata::text, ' '), '') FROM platform.audit_event",
+                String.class)
             + jdbc.queryForObject(
                 "SELECT coalesce(string_agg(response_body::text, ' '), '') FROM platform.idempotency_record",
                 String.class)
             + jdbc.queryForObject(
                 "SELECT coalesce(string_agg(envelope::text, ' '), '') FROM platform.outbox_event",
                 String.class)
-            + body(PartnerWorld.read(mvc, admin, PLATFORM + "/" + reference + "/history")).toString();
+            + body(PartnerWorld.read(mvc, admin, PLATFORM + "/" + reference + "/history"))
+                .toString();
     assertThat(everything).doesNotContain(note);
   }
 
   @Test
   void anIdenticalCheckRequestIsReplayedAndAStaleOneIsRefused() throws Exception {
-    String reference = PartnerWorld.underReview(mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+    String reference =
+        PartnerWorld.underReview(
+            mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
     int version = PartnerWorld.checkVersion(mvc, admin, reference, "BUSINESS_IDENTITY");
     String key = "synthetic-check-" + UUID.randomUUID();
     String payload = "{\"result\":\"SATISFIED\",\"expectedVersion\":" + version + "}";
@@ -357,11 +466,15 @@ class PartnerApplicationReviewIntegrationTest {
             Integer.class,
             reference);
     assertThat(events).isEqualTo(1);
-    MockHttpServletResponse stale = putCheck(reference, "synthetic-check-" + UUID.randomUUID(), payload);
+    MockHttpServletResponse stale =
+        putCheck(reference, "synthetic-check-" + UUID.randomUUID(), payload);
     assertThat(stale.getStatus()).isEqualTo(409);
     assertThat(code(stale)).isEqualTo("PARTNER_APPLICATION_TRANSITION_INVALID");
     MockHttpServletResponse strict =
-        putCheck(reference, "synthetic-check-" + UUID.randomUUID(), "{\"result\":\"SATISFIED\",\"expectedVersion\":0,\"actor\":\"x\"}");
+        putCheck(
+            reference,
+            "synthetic-check-" + UUID.randomUUID(),
+            "{\"result\":\"SATISFIED\",\"expectedVersion\":0,\"actor\":\"x\"}");
     assertThat(strict.getStatus()).isEqualTo(400);
     assertThat(code(strict)).isEqualTo("PARTNER_APPLICATION_INVALID");
   }
@@ -369,23 +482,40 @@ class PartnerApplicationReviewIntegrationTest {
   @Test
   void aConcurrentCheckChangeAndApprovalCanNeverBypassTheGate() throws Exception {
     for (int round = 0; round < 6; round++) {
-      String reference = PartnerWorld.underReview(mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+      String reference =
+          PartnerWorld.underReview(
+              mvc, admin, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
       PartnerWorld.satisfyAll(mvc, admin, reference);
       int applicationVersion = PartnerWorld.version(mvc, admin, reference);
-      int checkVersion = PartnerWorld.checkVersion(mvc, admin, reference, "TECHNICAL_API_READINESS");
+      int checkVersion =
+          PartnerWorld.checkVersion(mvc, admin, reference, "TECHNICAL_API_READINESS");
       ExecutorService pool = Executors.newFixedThreadPool(2);
       CountDownLatch start = new CountDownLatch(1);
       Future<MockHttpServletResponse> concern =
           pool.submit(
               () -> {
                 start.await();
-                return PartnerWorld.setCheck(mvc, admin, reference, "TECHNICAL_API_READINESS", "CONCERN", checkVersion, null);
+                return PartnerWorld.setCheck(
+                    mvc,
+                    admin,
+                    reference,
+                    "TECHNICAL_API_READINESS",
+                    "CONCERN",
+                    checkVersion,
+                    null);
               });
       Future<MockHttpServletResponse> approval =
           pool.submit(
               () -> {
                 start.await();
-                return PartnerWorld.transition(mvc, admin, reference, "APPROVED_FOR_ONBOARDING", applicationVersion, null, true);
+                return PartnerWorld.transition(
+                    mvc,
+                    admin,
+                    reference,
+                    "APPROVED_FOR_ONBOARDING",
+                    applicationVersion,
+                    null,
+                    true);
               });
       start.countDown();
       MockHttpServletResponse concernResponse = concern.get();
@@ -421,21 +551,32 @@ class PartnerApplicationReviewIntegrationTest {
   void aReadWritesADisclosureAuditWithoutConfidentialData() throws Exception {
     String email = PartnerWorld.uniqueEmail();
     String reference = submitted(PartnerWorld.bank(PartnerWorld.uniqueName(), email));
-    assertThat(PartnerWorld.read(mvc, admin, PLATFORM + "/" + reference).getStatus()).isEqualTo(200);
+    assertThat(PartnerWorld.read(mvc, admin, PLATFORM + "/" + reference).getStatus())
+        .isEqualTo(200);
     String audit =
         jdbc.queryForObject(
             "SELECT string_agg(action || ' ' || metadata::text, ' ') FROM platform.audit_event"
                 + " WHERE action IN ('partner.application-view', 'partner.application-list')",
             String.class);
-    assertThat(audit).contains("partner.application-view").contains(reference).doesNotContain(email);
+    assertThat(audit)
+        .contains("partner.application-view")
+        .contains(reference)
+        .doesNotContain(email);
   }
 
   private MockHttpServletResponse approve(String reference) throws Exception {
-    return PartnerWorld.transition(mvc, admin, reference, "APPROVED_FOR_ONBOARDING",
-        PartnerWorld.version(mvc, admin, reference), null, true);
+    return PartnerWorld.transition(
+        mvc,
+        admin,
+        reference,
+        "APPROVED_FOR_ONBOARDING",
+        PartnerWorld.version(mvc, admin, reference),
+        null,
+        true);
   }
 
-  private MockHttpServletResponse putCheck(String reference, String key, String payload) throws Exception {
+  private MockHttpServletResponse putCheck(String reference, String key, String payload)
+      throws Exception {
     return mvc.perform(
             put(PLATFORM + "/" + reference + "/checklist/BUSINESS_IDENTITY")
                 .header("Authorization", admin)

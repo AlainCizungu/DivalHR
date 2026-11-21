@@ -15,10 +15,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * Encryption of confidential partner-application data and keyed digests (MVP-120D, ADR 0043). Two
- * independent subkeys are derived by HKDF-SHA256 from the configured integrations key with
- * distinct info strings: an AES-256-GCM key for contact data and notes (the application and check
- * are bound as associated data) and an HMAC key for the deduplication and rate-limit digests. The
- * key never reaches the database; nothing here logs or returns plaintext.
+ * independent subkeys are derived by HKDF-SHA256 from the configured integrations key with distinct
+ * info strings: an AES-256-GCM key for contact data and notes (the application and check are bound
+ * as associated data) and an HMAC key for the deduplication and rate-limit digests. The key never
+ * reaches the database; nothing here logs or returns plaintext.
  */
 @Component
 public class PartnerCrypto {

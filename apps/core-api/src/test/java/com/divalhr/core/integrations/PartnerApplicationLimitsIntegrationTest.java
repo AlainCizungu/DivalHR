@@ -38,7 +38,9 @@ class PartnerApplicationLimitsIntegrationTest {
     Map<String, Object> first = PartnerWorld.bank(PartnerWorld.uniqueName(), email);
 
     assertThat(PartnerWorld.submit(mvc, first, replayKey).getStatus()).isEqualTo(201);
-    assertThat(PartnerWorld.submit(mvc, PartnerWorld.bank(PartnerWorld.uniqueName(), email)).getStatus())
+    assertThat(
+            PartnerWorld.submit(mvc, PartnerWorld.bank(PartnerWorld.uniqueName(), email))
+                .getStatus())
         .isEqualTo(201);
 
     // Third attempt with the same business email: refused, nothing stored.
@@ -59,7 +61,9 @@ class PartnerApplicationLimitsIntegrationTest {
     int sent = 4;
     MockHttpServletResponse last = null;
     while (sent < 8) {
-      last = PartnerWorld.submit(mvc, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
+      last =
+          PartnerWorld.submit(
+              mvc, PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail()));
       sent++;
       if (last.getStatus() == 429) {
         break;

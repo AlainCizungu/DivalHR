@@ -129,7 +129,8 @@ public class PartnerApplicationRepository {
         .query(
             (rs, n) ->
                 new SubmissionRow(
-                    rs.getString("request_fingerprint"), rs.getObject("application_id", UUID.class)))
+                    rs.getString("request_fingerprint"),
+                    rs.getObject("application_id", UUID.class)))
         .optional();
   }
 
@@ -250,8 +251,7 @@ public class PartnerApplicationRepository {
    * @param id application id
    * @param at server time
    */
-  public void insertSubmission(
-      String keyDigest, String requestFingerprint, UUID id, Instant at) {
+  public void insertSubmission(String keyDigest, String requestFingerprint, UUID id, Instant at) {
     jdbc.sql(
             """
             INSERT INTO integrations.partner_application_submission
@@ -274,7 +274,8 @@ public class PartnerApplicationRepository {
    * @return the row
    */
   public Optional<Row> findById(UUID id) {
-    return jdbc.sql("SELECT " + COLUMNS + " FROM integrations.partner_application a WHERE a.id = :id")
+    return jdbc.sql(
+            "SELECT " + COLUMNS + " FROM integrations.partner_application a WHERE a.id = :id")
         .param("id", id)
         .query(PartnerApplicationRepository::row)
         .optional();
@@ -414,14 +415,14 @@ public class PartnerApplicationRepository {
     if (ids.isEmpty()) {
       return result;
     }
-    String literal =
-        "{" + String.join(",", ids.stream().map(UUID::toString).toList()) + "}";
+    String literal = "{" + String.join(",", ids.stream().map(UUID::toString).toList()) + "}";
     jdbc.sql(sql)
         .param("ids", literal)
         .query(
             (rs, n) -> {
               result
-                  .computeIfAbsent(rs.getObject("application_id", UUID.class), k -> new ArrayList<>())
+                  .computeIfAbsent(
+                      rs.getObject("application_id", UUID.class), k -> new ArrayList<>())
                   .add(rs.getString("value"));
               return null;
             })
