@@ -10,9 +10,13 @@ A **partner application** is a prospective partner's expression of interest. **A
 onboarding discussions"** (`APPROVED_FOR_ONBOARDING`). It never publishes the applicant as a DivalHR partner, creates a
 login or API credential, activates an integration, exposes employer or employee data, permits lending, underwriting or
 payment processing, represents regulatory verification or represents endorsement. The statement is shown in English and
-French on the form, the confirmation and the administrator detail ("This approval does not activate an integration." /
-« Cette approbation n’active aucune intégration. », "No employee data is shared during this application." / « Aucune
-donnée d’employé n’est partagée pendant cette candidature. »). Capabilities, regulator names and licence references are
+French on the application form ("Applying opens a conversation only. It does not create a listing, credentials, an
+integration or access to any employee data" / « Candidater ouvre seulement une conversation. Cela ne crée ni
+référencement, ni identifiants, ni intégration, ni accès aux données des employés »), on the landing section, and on the
+administrator queue and detail of an approved application ("No listing, credentials, integration or access to employee
+data was created, and none is implied." / « Aucun référencement, aucun identifiant, aucune intégration et aucun accès
+aux données des employés n’a été créé, et aucun n’est sous-entendu. »). The confirmation page shows only the opaque
+reference, the submission time and the next-step message (D120D-16). Capabilities, regulator names and licence references are
 applicant assertions: recorded as supplied and **unverified**; the checklist is an internal workflow, not legal
 verification.
 
@@ -71,8 +75,9 @@ the application. Email content is never stored.
 - Public rate limits (existing in-process `PublicRateLimiter`): one bucket per client address pseudonym and one bucket
   keyed by the normalized business-email digest; both reduce the identifier to an HMAC under a per-window ephemeral key.
   Raw addresses and emails are not stored in business tables, audit metadata or logs.
-- The request body is capped (16 KiB), a hidden honeypot property that must stay empty is refused with the same generic
-  invalid answer (`PARTNER_APPLICATION_INVALID`), and no external CAPTCHA service is used.
+- The request body is capped (16 KiB), a hidden honeypot property that must stay empty is answered with the same
+  receipt shape as a success (a decoy that stores nothing, so it never reveals the trap), and no external CAPTCHA service
+  is used.
 
 **D120D-11 Administration boundary.** Every administration route is `@PlatformScoped` (verified `platform-admin` with
 exact MFA), `Cache-Control: private, no-store`, rate limited per subject, with opaque cursors and capped page sizes. A
@@ -140,7 +145,35 @@ capability, country, submission period; opaque cursor, capped page), `GET …/{r
 `PARTNER_APPLICATION_INVALID`, `_RATE_LIMITED`, `_IDEMPOTENCY_REUSED`, `_NOT_FOUND`, `_TRANSITION_INVALID`, `_TERMINAL`,
 `_CHECKLIST_INCOMPLETE`, `_DUPLICATE`, `_CONSENT_REQUIRED`.
 
-## 5. Deliberately not decided here
+## 5. Web (implementation notes)
+
+Routes: the public bilingual form at `/partners/apply` (public frame, language switcher; reached from the landing
+section "Partner with DivalHR" / « Devenir partenaire de DivalHR »); the platform queue at `/admin/partner-applications`
+and detail at `/admin/partner-applications/:reference`, both behind the platform-admin route guard and a navigation
+item that only a platform administrator sees (tenant administrators, managers and employees get neither the item nor the
+page, and no request is made). The Core API stays the authority on every call.
+
+The form uses the generated client only. It holds values in component state, so an ordinary validation error (client or
+server) keeps what was typed; nothing is written to browser storage or the address bar, and the confirmation is in-memory
+(a reload loses the reference, which is the stated limitation of having no status lookup). One `Idempotency-Key` is minted
+per distinct payload: a retry of the same payload reuses it, any edit or a reused-key refusal mints a new one. The honeypot
+`faxNumber` is an off-screen, `inert`, `aria-hidden`, `tabindex="-1"`, `autocomplete="off"` input that is not part of the
+form state: it is read from the DOM only when submitting (so a bot that fills it is sent to the server's identical decoy
+success) and is never redisplayed or persisted. Regulatory fields are shown, and required, only when the primary category
+is regulated. Applicant countries are a curated list of 22 countries (an open item below), named through `Intl.DisplayNames`
+in the interface language. The privacy-notice and consent versions sent are the constants `2026-10`.
+
+Review notes are typed into a form and sent in the request body only: never in a URL, analytics event, browser storage or log,
+and the idempotent response body never carries one (Core). Approval is offered only when `allowedTransitions` contains it
+and `approvalBlockedBy` is empty, behind an explicit confirmation that repeats what approval does not create. All
+`PARTNER_APPLICATION_*` and shared platform codes render as finished EN/FR sentences; English and French parity is checked
+by the localization parity test and by tests that every enum value and error code has a message in both languages.
+
+Open items for review: the curated country list (no "other country"); the version constants are not yet driven by a
+published privacy notice; the form has no CAPTCHA by decision D120D-10 and relies on the honeypot, per-IP and per-email
+limits; and the queue keeps filters in memory, so a reload resets them.
+
+## 6. Deliberately not decided here
 
 Notification of the applicant, applicant status lookup, a partner portal, document upload, contracts, credentials,
 a public directory, the legal retention period, and any connection of an approved partner to a product. Each is a later
