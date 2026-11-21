@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../../app/App';
 import { initI18n } from '../../i18n';
 import { fakeUserManager, testConfig } from '../../test/renderApp';
-import { AVAILABLE_NOW, CONTACT_EMAIL, MODULES, PARTNER_POINTS, partnerMailto } from './catalogue';
+import { AVAILABLE_NOW, MODULES, PARTNER_POINTS } from './catalogue';
 
 /** MVP-120B (D120B-10 to D120B-12): the truthful landing refresh and the partner program. */
 const BANNED =
@@ -47,11 +47,11 @@ describe.each(['en', 'fr'] as const)('landing partner program (%s)', (locale) =>
     );
   });
 
-  it('shows the Financial Partner Program with a structured email and no form', async () => {
+  it('shows the Partner with DivalHR section linking to the public application', async () => {
     await renderLanding(locale);
     const section = screen.getByTestId('landing-partners');
     expect(within(section).getByRole('heading', { level: 2 })).toHaveTextContent(
-      strings.landing.partners.title,
+      locale === 'en' ? 'Partner with DivalHR' : 'Devenir partenaire de DivalHR',
     );
     for (const point of PARTNER_POINTS) {
       const item = section.querySelector(`li[data-partner-point="${point.key}"]`);
@@ -60,20 +60,17 @@ describe.each(['en', 'fr'] as const)('landing partner program (%s)', (locale) =>
     }
     const cta = within(section).getByTestId('landing-partner-cta');
     expect(cta).toHaveTextContent(strings.landing.partners.cta);
-    expect(cta.getAttribute('href')).toBe(
-      partnerMailto(strings.landing.partners.mailSubject, strings.landing.partners.mailBody),
-    );
-    const url = new URL(cta.getAttribute('href') as string);
-    expect(url.protocol).toBe('mailto:');
-    expect(decodeURIComponent(url.pathname)).toBe(CONTACT_EMAIL);
-    expect(url.searchParams.get('subject')).toBe(strings.landing.partners.mailSubject);
-    expect(url.searchParams.get('body')).toBe(strings.landing.partners.mailBody);
-    // Email only: no form, upload, portal or directory.
+    // An internal link to the application: no mailto, no form, upload or portal on the landing page.
+    expect(cta.getAttribute('href')).toBe('/partners/apply');
     expect(section.querySelectorAll('form, input, textarea, select, [type="file"]')).toHaveLength(
       0,
     );
     expect(section.querySelectorAll('a')).toHaveLength(1);
     expect(section).toHaveTextContent(strings.landing.partners.ctaNote);
+    // D120D-16: no claim that a real partner is connected, listed or integrated.
+    expect(strings.landing.partners.body).toMatch(
+      locale === 'en' ? /no real partner is connected/u : /aucun partenaire réel n’est connecté/u,
+    );
   });
 
   it('states that DivalHR is not a lender and that every handoff is synthetic today', () => {

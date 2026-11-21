@@ -8,6 +8,7 @@ const visiblePaths = (roles: Role[]) =>
 const PLATFORM = [
   '/admin/organizations/new',
   '/admin/organizations/first-admin',
+  '/admin/partner-applications',
   '/admin/statutory-packs',
 ];
 const TENANT = [
@@ -118,6 +119,8 @@ describe('navigation and route registry consistency', () => {
         '/status',
         '/admin/organizations/new',
         '/admin/organizations/first-admin',
+        '/admin/partner-applications',
+        '/admin/partner-applications/:reference',
         '/admin/statutory-packs',
         '/admin/statutory-packs/:packCode/:version',
         '/admin/hierarchy',
@@ -177,14 +180,16 @@ describe('navigation and route registry consistency', () => {
         '/me/expense-approvals',
         '/me/contracts/:contractId',
         '/invitation',
+        '/partners/apply',
         '/auth/callback',
       ].sort(),
     );
   });
 
-  it('marks only the invitation and sign-in callback as public flows', () => {
+  it('marks only the invitation, the partner application and the sign-in callback as public flows', () => {
     expect(ROUTES.filter((route) => route.frame === 'public').map((route) => route.path)).toEqual([
       '/invitation',
+      '/partners/apply',
       '/auth/callback',
     ]);
   });

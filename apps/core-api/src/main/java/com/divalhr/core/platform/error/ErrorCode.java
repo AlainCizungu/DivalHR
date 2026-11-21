@@ -892,7 +892,29 @@ public enum ErrorCode {
   SALARY_ADVANCE_PURGE_PREVIEW_STALE(HttpStatus.CONFLICT),
   /** MVP-120C: evidence retention and controlled purge (ADR 0042 amendment). */
   SALARY_ADVANCE_PURGE_ALREADY_COMPLETED(HttpStatus.CONFLICT),
-  PARTNER_CALLBACK_INVALID(HttpStatus.BAD_REQUEST);
+  PARTNER_CALLBACK_INVALID(HttpStatus.BAD_REQUEST),
+  /**
+   * MVP-120D: the partner application is malformed, incomplete or outside the closed catalogues.
+   */
+  PARTNER_APPLICATION_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-120D: too many partner applications from this client or business email. */
+  PARTNER_APPLICATION_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+  /** MVP-120D: the idempotency key was already used with different input. */
+  PARTNER_APPLICATION_IDEMPOTENCY_REUSED(HttpStatus.CONFLICT),
+  /** MVP-120D: the application does not exist (malformed and unknown look alike). */
+  PARTNER_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * MVP-120D: the status change is not allowed from the current status, or the version is stale.
+   */
+  PARTNER_APPLICATION_TRANSITION_INVALID(HttpStatus.CONFLICT),
+  /** MVP-120D: the application is in a terminal status and is never changed. */
+  PARTNER_APPLICATION_TERMINAL(HttpStatus.CONFLICT),
+  /** MVP-120D: an applicable mandatory due-diligence check is not satisfied. */
+  PARTNER_APPLICATION_CHECKLIST_INCOMPLETE(HttpStatus.CONFLICT),
+  /** MVP-120D: reserved for internal and protected use; the public route never returns it. */
+  PARTNER_APPLICATION_DUPLICATE(HttpStatus.CONFLICT),
+  /** MVP-120D: the applicant did not acknowledge the submission and consent statement. */
+  PARTNER_APPLICATION_CONSENT_REQUIRED(HttpStatus.BAD_REQUEST);
 
   private final HttpStatus status;
 
