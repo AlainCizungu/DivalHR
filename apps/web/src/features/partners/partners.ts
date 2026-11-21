@@ -78,13 +78,22 @@ export interface CountryOption {
   label: string;
 }
 
-/** Country options named by Intl.DisplayNames in the interface language, sorted for that language. */
-export function countryOptions(locale: string): CountryOption[] {
+const OPTIONS_BY_LOCALE = new Map<string, readonly CountryOption[]>();
+
+/**
+ * Country options named by Intl.DisplayNames in the interface language, sorted for that language.
+ * Built once per language: the list has 249 entries and the form re-renders on every keystroke.
+ */
+export function countryOptions(locale: string): readonly CountryOption[] {
+  const cached = OPTIONS_BY_LOCALE.get(locale);
+  if (cached) return cached;
   const names = new Intl.DisplayNames([locale], { type: 'region', fallback: 'code' });
   const collator = new Intl.Collator(locale);
-  return COUNTRIES.map((value) => ({ value, label: names.of(value) ?? value })).sort((a, b) =>
-    collator.compare(a.label, b.label),
+  const built = COUNTRIES.map((value) => ({ value, label: names.of(value) ?? value })).sort(
+    (a, b) => collator.compare(a.label, b.label),
   );
+  OPTIONS_BY_LOCALE.set(locale, built);
+  return built;
 }
 
 /** Whether a value is one of the offered ISO country codes. */

@@ -50,10 +50,10 @@ export function loadReceipt(): PartnerApplicationReceipt | null {
     if (raw === null) return null;
     const parsed: unknown = JSON.parse(raw);
     if (isReceipt(parsed)) return parsed;
-    sessionStorage.removeItem(RECEIPT_STORAGE_KEY);
   } catch {
-    // unreadable storage or malformed JSON
+    // unreadable storage or malformed JSON: discarded below
   }
+  clearReceipt();
   return null;
 }
 

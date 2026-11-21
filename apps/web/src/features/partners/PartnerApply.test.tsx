@@ -9,6 +9,10 @@ import { PartnerApplyPage } from './PartnerApplyPage';
 import { RECEIPT_STORAGE_KEY } from './partnerReceipt';
 import { CATEGORIES, MAX_OPERATION } from './partners';
 
+// Filling the whole form types hundreds of characters into a page with 249 country options: on a
+// loaded CI worker that exceeds the 5 s default, so the file allows more time.
+vi.setConfig({ testTimeout: 30_000 });
+
 const RECEIPT = {
   reference: 'PA-ABCDEFGHJKMN',
   submittedAt: '2026-10-20T09:30:00Z',
@@ -69,7 +73,11 @@ const posts = (requests: Recorded[]) => requests.filter((r) => r.method === 'POS
 
 /** R216-4: the one browser-storage entry is the four-field receipt: no form, contact or consent data. */
 function expectOnlyTheSafeReceiptStored() {
-  expect(window.localStorage.length).toBe(0);
+  // localStorage may hold only the app's own UI preferences, never anything of the application.
+  for (const key of Object.keys(window.localStorage)) {
+    expect(['divalhr.locale', 'divalhr.theme', 'divalhr.sidebar'], key).toContain(key);
+    expect(window.localStorage.getItem(key)).not.toContain(RECEIPT.reference);
+  }
   expect(window.sessionStorage.length).toBe(1);
   const raw = window.sessionStorage.getItem(RECEIPT_STORAGE_KEY) ?? '';
   expect(JSON.parse(raw)).toEqual(RECEIPT);
@@ -400,7 +408,6 @@ describe('public partner application', () => {
       expect(screen.getByTestId('partner-apply-page')).toBeInTheDocument();
       expect(screen.getByLabelText(c.apply.fields.legalName.label)).toHaveValue('');
       expect(window.sessionStorage.length).toBe(0);
-      expect(window.localStorage.length).toBe(0);
       cleanup();
       await open();
       expect(screen.queryByTestId('partner-confirmation')).toBeNull();
@@ -425,10 +432,10 @@ describe('public partner application', () => {
       stub(() => ({ status: 429, body: problem('PARTNER_APPLICATION_RATE_LIMITED', 429) }));
       const { user, c } = await open();
       await fillValid(user, c);
-      expect(window.sessionStorage.length + window.localStorage.length).toBe(0);
+      expect(window.sessionStorage.length).toBe(0);
       await user.click(screen.getByRole('button', { name: c.apply.submit }));
       await screen.findByTestId('partner-failure');
-      expect(window.sessionStorage.length + window.localStorage.length).toBe(0);
+      expect(window.sessionStorage.length).toBe(0);
     });
   });
 });

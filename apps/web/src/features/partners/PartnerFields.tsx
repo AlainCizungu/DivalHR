@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -53,7 +53,7 @@ export interface Option {
 }
 
 /** A group of checkboxes in a fieldset; the legend names the group. */
-export function CheckGroup({
+export const CheckGroup = memo(function CheckGroup({
   id,
   legend,
   help,
@@ -122,7 +122,7 @@ export function CheckGroup({
       )}
     </fieldset>
   );
-}
+});
 
 /** A group of radio buttons in a fieldset. */
 export function RadioGroup({

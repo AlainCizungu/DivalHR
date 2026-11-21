@@ -1,5 +1,5 @@
 import type { PartnerApplicationReceipt, PartnerLanguage } from '@divalhr/api-client';
-import { useId, useRef, useState, type SyntheticEvent } from 'react';
+import { useCallback, useId, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApi } from '../../app/ApiProvider';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
@@ -76,10 +76,24 @@ export function PartnerApplyPage() {
   };
 
   const countryOptions = buildCountryOptions(locale);
-  const operationOptions = countryOptions.map((option) => ({
-    ...option,
-    disabled: values.countriesOfOperation.length >= MAX_OPERATION,
-  }));
+  const operationFull = values.countriesOfOperation.length >= MAX_OPERATION;
+  // 249 options: keep the lists and the registration <option> elements stable between keystrokes.
+  const operationOptions = useMemo(
+    () => countryOptions.map((option) => ({ ...option, disabled: operationFull })),
+    [countryOptions, operationFull],
+  );
+  const registrationOptions = useMemo(
+    () =>
+      countryOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      )),
+    [countryOptions],
+  );
+  const setOperation = useCallback((next: string[]) => {
+    setValues((current) => ({ ...current, countriesOfOperation: next }));
+  }, []);
   const regulated = isRegulated(values.primaryCategory, values.additionalCategories);
 
   const onSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
@@ -317,11 +331,7 @@ export function PartnerApplyPage() {
               }}
             >
               <option value="">{t('partners.apply.select')}</option>
-              {countryOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              {registrationOptions}
             </select>
           )}
         </Field>
@@ -333,9 +343,7 @@ export function PartnerApplyPage() {
           scroll
           options={operationOptions}
           selected={values.countriesOfOperation}
-          onChange={(next) => {
-            update({ countriesOfOperation: next });
-          }}
+          onChange={setOperation}
         />
         {text('registrationReference', { maxLength: 100 })}
 
