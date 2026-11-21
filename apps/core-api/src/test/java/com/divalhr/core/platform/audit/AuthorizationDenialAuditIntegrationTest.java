@@ -102,7 +102,12 @@ class AuthorizationDenialAuditIntegrationTest {
           "statutory-pack.reject",
           "statutory-pack.schedule",
           "statutory-pack.activate",
-          "statutory-pack.retire");
+          "statutory-pack.retire",
+          "partner-application.list",
+          "partner-application.view",
+          "partner-application.history",
+          "partner-application.check",
+          "partner-application.transition");
 
   private static final Set<String> TENANT_OPERATIONS =
       Set.of(

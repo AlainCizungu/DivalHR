@@ -108,7 +108,7 @@ function CheckRow({
         </p>
       )}
       {!closed && (
-        <form onSubmit={(event) => void save(event)} aria-busy={busy}>
+        <form noValidate onSubmit={(event) => void save(event)} aria-busy={busy}>
           <div className="field">
             <label htmlFor={`${ids}-result`}>{t('partners.review.result')}</label>
             <select
@@ -297,6 +297,7 @@ export function TransitionPanel({
       </div>
       {target && (
         <form
+          noValidate
           onSubmit={(event) => void submit(event)}
           aria-busy={busy}
           data-testid="partner-transition-form"

@@ -58,6 +58,11 @@
       <Class name="com.divalhr.core.identity.application.MembershipAuthorityAdapter"/>
       <Class name="com.divalhr.core.identity.application.AccessReviewService"/>
       <Class name="com.divalhr.core.tenant.application.OrganizationUnitDirectoryAdapter"/>
+      <!-- MVP-120D: the partner-application services and controllers hold injected singletons. -->
+      <Class name="com.divalhr.core.integrations.partner.PartnerSubmissionService"/>
+      <Class name="com.divalhr.core.integrations.partner.PartnerReviewService"/>
+      <Class name="com.divalhr.core.integrations.partner.PartnerApplicationPublicController"/>
+      <Class name="com.divalhr.core.integrations.partner.PartnerApplicationReviewController"/>
       <Class name="com.divalhr.core.identity.application.DevelopmentMembershipSeeder"/>
       <Class name="com.divalhr.core.identity.api.InvitationController"/>
       <Class name="com.divalhr.core.identity.application.InvitationDelivery"/>

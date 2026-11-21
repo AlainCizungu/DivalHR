@@ -122,11 +122,12 @@ async function noOverflow(page: Page) {
 
 /** WCAG 1.4.12: with the author's spacing overridden, nothing is clipped or pushed off screen. */
 async function textSpacing(page: Page) {
-  await page.addStyleTag({
-    content:
-      '* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; }' +
-      ' p { margin-bottom: 2em !important; }',
-  });
+  // A constructed stylesheet: the page's CSP (style-src 'self') refuses an injected <style> element.
+  await page.evaluate((css) => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(css);
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  }, '* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }');
   for (const width of [320, 390, 640]) {
     await page.setViewportSize({ width, height: 800 });
     const problems = await page.evaluate(() => {
