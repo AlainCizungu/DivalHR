@@ -98,6 +98,42 @@ async function storage(page: Page): Promise<string> {
   });
 }
 
+async function sessionKeys(page: Page): Promise<string[]> {
+  return page.evaluate(() => Object.keys(window.sessionStorage));
+}
+
+/**
+ * R216-4: the only browser-storage entry is the four-field receipt (reference, time, status and
+ * next-step code). No form field, contact data, regulatory value, consent datum, honeypot or
+ * internal note is ever stored, in sessionStorage or localStorage.
+ */
+async function expectOnlyTheSafeReceiptStored(page: Page, reference: string, a: Applicant) {
+  expect(await sessionKeys(page)).toEqual(['divalhr.partner.receipt']);
+  const raw = await page.evaluate(() => window.sessionStorage.getItem('divalhr.partner.receipt'));
+  const receipt = JSON.parse(raw ?? '{}') as Record<string, string>;
+  expect(Object.keys(receipt).sort()).toEqual(['nextStep', 'reference', 'status', 'submittedAt']);
+  expect(receipt.reference).toBe(reference);
+  expect(receipt.status).toBe('SUBMITTED');
+  expect(receipt.nextStep).toBe('DIVALHR_WILL_CONTACT_BUSINESS_EMAIL');
+  const everything = await storage(page);
+  for (const forbidden of [
+    a.name,
+    a.email,
+    a.privacyEmail,
+    'SYN-E2E-0001',
+    'Synthetic Regulator',
+    'LIC-E2E-0001',
+    'PARTNER-PRIVACY',
+    'PARTNER-APPLICATION-CONSENT',
+    'faxNumber',
+    NOTE,
+  ]) {
+    expect(everything).not.toContain(forbidden);
+  }
+  const local = await page.evaluate(() => JSON.stringify(Object.entries(window.localStorage)));
+  expect(local).not.toContain(reference);
+}
+
 /** Reflow at 390, 320 and 640 px (200 % zoom of a 1280 px window), then back to desktop. */
 async function noOverflow(page: Page) {
   for (const viewport of [
@@ -279,8 +315,31 @@ async function apply(page: Page, a: Applicant, fromLanding: boolean): Promise<st
   await expect(confirmation.getByRole('link')).toHaveCount(0);
   await expect(confirmation).not.toContainText(a.name);
   expect(page.url()).not.toContain(reference);
-  expect(await storage(page)).not.toMatch(new RegExp(`${reference}|${a.name}|${a.email}`, 'u'));
+  await expectOnlyTheSafeReceiptStored(page, reference, a);
   await expectAccessible(page);
+
+  // R216-4: a reload in the same tab session restores the confirmation from the safe receipt.
+  await page.reload();
+  const restored = page.getByTestId('partner-confirmation');
+  await expect(restored).toBeVisible();
+  await expect(restored.getByTestId('partner-reference')).toHaveText(reference);
+  await expect(restored.getByTestId('partner-submitted-at')).toBeVisible();
+  await expect(restored.getByTestId('partner-next-step')).toBeVisible();
+  await expect(page.getByTestId('partner-apply-page')).toHaveCount(0);
+  await expectOnlyTheSafeReceiptStored(page, reference, a);
+
+  // "Copy reference" answers with a visible status; the clipboard itself may be denied headless.
+  await restored.getByTestId('partner-copy-reference').click();
+  await expect(restored.getByTestId('partner-copy-status')).not.toHaveText('');
+
+  // "Start another application" clears the stored receipt and shows an empty form.
+  await restored.getByTestId('partner-start-another').click();
+  await expect(page.getByTestId('partner-apply-page')).toBeVisible();
+  await expect(field(page, t.legalName)).toHaveValue('');
+  expect(await sessionKeys(page)).toEqual([]);
+  await page.reload();
+  await expect(page.getByTestId('partner-apply-page')).toBeVisible();
+  await expect(page.getByTestId('partner-confirmation')).toHaveCount(0);
   return reference;
 }
 

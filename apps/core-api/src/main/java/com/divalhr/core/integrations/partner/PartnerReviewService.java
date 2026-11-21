@@ -92,7 +92,6 @@ public class PartnerReviewService {
   static final int MAX_LIMIT = 50;
 
   private static final Pattern REFERENCE = Pattern.compile("^PA-[0-9A-HJKMNP-TV-Z]{12}$");
-  private static final Pattern COUNTRY = Pattern.compile("^[A-Z]{2}$");
   private static final Pattern DIGITS = Pattern.compile("^[0-9]{1,3}$");
   private static final int NOTE_MAX = 500;
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
@@ -419,7 +418,7 @@ public class PartnerReviewService {
     }
     if (code == CheckCode.REGULATORY_INFORMATION
         && command.result() == CheckResult.NOT_APPLICABLE
-        && PartnerDomain.parse(PartnerDomain.Category.class, row.primaryCategory()).regulated()) {
+        && regulated(row)) {
       throw invalid("result", "FORMAT");
     }
     byte[] note =
@@ -630,6 +629,18 @@ public class PartnerReviewService {
         text(node, "privacyContactEmail"));
   }
 
+  /** R216-2: any selected category, primary or additional, makes the application regulated. */
+  private boolean regulated(Row row) {
+    List<String> stored =
+        repository.additionalCategories(List.of(row.id())).getOrDefault(row.id(), List.of());
+    List<PartnerDomain.Category> additional = new ArrayList<>();
+    for (String value : stored) {
+      additional.add(PartnerDomain.parse(PartnerDomain.Category.class, value));
+    }
+    return PartnerDomain.anyRegulated(
+        PartnerDomain.parse(PartnerDomain.Category.class, row.primaryCategory()), additional);
+  }
+
   private Consent consent(Row row) {
     PartnerApplicationRepository.ConsentRow stored = repository.consent(row.id());
     return new Consent(
@@ -753,7 +764,7 @@ public class PartnerReviewService {
     }
     String country = null;
     if (q.country() != null) {
-      country = COUNTRY.matcher(q.country()).matches() ? q.country() : bad("country");
+      country = PartnerCountries.contains(q.country()) ? q.country() : bad("country");
     }
     Instant from = date(q.submittedFrom(), "submittedFrom", 0);
     Instant before = date(q.submittedTo(), "submittedTo", 1);

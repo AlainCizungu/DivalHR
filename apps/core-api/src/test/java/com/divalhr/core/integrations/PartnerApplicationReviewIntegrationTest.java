@@ -126,7 +126,7 @@ class PartnerApplicationReviewIntegrationTest {
     assertThat(detail.path("contact").path("businessEmail").asText()).isEqualTo(email);
     assertThat(detail.path("contact").path("registrationReference").asText())
         .isEqualTo(application.get("registrationReference"));
-    assertThat(detail.path("consent").path("consentVersion").asText()).isEqualTo("2026-10");
+    assertThat(detail.path("consent").path("consentVersion").asText()).isEqualTo("PARTNER-APPLICATION-CONSENT-1");
     assertThat(detail.path("checklist")).hasSize(7);
     assertThat(detail.path("allowedTransitions"))
         .extracting(JsonNode::asText)

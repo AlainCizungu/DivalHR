@@ -62,8 +62,8 @@ function detail(status: Status, allowed: Status[], blocked: string[] = []) {
       privacyContactEmail: 'privacy@example.test',
     },
     consent: {
-      privacyNoticeVersion: '2026-10',
-      consentVersion: '2026-10',
+      privacyNoticeVersion: 'PARTNER-PRIVACY-1',
+      consentVersion: 'PARTNER-APPLICATION-CONSENT-1',
       locale: 'fr',
       acceptedAt: '2026-10-20T09:30:00Z',
     },
@@ -221,7 +221,9 @@ describe('partner application review', () => {
       detail('UNDER_REVIEW', ['MORE_INFORMATION_REQUIRED', 'DECLINED', 'WITHDRAWN']),
     );
     expect(screen.getByTestId('partner-contact')).toHaveTextContent('contact@example.test');
-    expect(screen.getByTestId('partner-consent')).toHaveTextContent('2026-10');
+    expect(screen.getByTestId('partner-consent')).toHaveTextContent(
+      'PARTNER-APPLICATION-CONSENT-1',
+    );
     expect(screen.getAllByTestId('partner-check')).toHaveLength(7);
     expect(screen.getAllByTestId('partner-history-row')).toHaveLength(1);
     expect(screen.getByTestId('partner-status')).toHaveTextContent(en.partners.status.UNDER_REVIEW);

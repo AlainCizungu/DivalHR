@@ -15,7 +15,7 @@ import { PartnerAlert, PartnerStatus } from './PartnerBits';
 import {
   CAPABILITIES,
   CATEGORIES,
-  COUNTRIES,
+  countryOptions,
   NETWORK_FAILURE,
   STATUSES,
   partnerFailureOf,
@@ -209,10 +209,7 @@ export function PartnerApplicationsPage() {
           'capability',
           CAPABILITIES.map((c) => ({ value: c, label: t(`partners.capability.${c}`) })),
         )}
-        {select(
-          'country',
-          COUNTRIES.map((c) => ({ value: c, label: regionNames.of(c) ?? c })),
-        )}
+        {select('country', countryOptions(i18n.language))}
         <div className="field">
           <label htmlFor={`${ids}-from`}>{t('partners.review.filters.submittedFrom')}</label>
           <input

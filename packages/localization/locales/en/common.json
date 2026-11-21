@@ -7128,7 +7128,7 @@
         },
         "countriesOfOperation": {
           "label": "Countries of operation",
-          "help": "Select every country where you operate."
+          "help": "Select every country where you operate (up to {{max}})."
         },
         "registrationReference": {
           "label": "Registration reference",
@@ -7211,7 +7211,12 @@
       "submittedAt": "Submitted",
       "nextStep": {
         "DIVALHR_WILL_CONTACT_BUSINESS_EMAIL": "Keep this reference. DivalHR will contact you at the business email you provided. There is no status page: please do not submit the application again."
-      }
+      },
+      "copy": "Copy reference",
+      "copied": "Reference copied.",
+      "copyFailed": "The reference could not be copied. Select it and copy it manually.",
+      "startAnother": "Start another application",
+      "sessionNote": "This confirmation stays available in this browser tab until you close it or start another application. Nothing else you entered is kept."
     },
     "category": {
       "BANK": "Bank",
@@ -7383,6 +7388,10 @@
       "historyDetail": "Detail",
       "unauthorized": "Only platform administrators can review partner applications.",
       "signInRequired": "Sign in as a platform administrator to review partner applications."
+    },
+    "notice": {
+      "title": "Privacy notice",
+      "body": "DivalHR uses the information you enter only to review your partnership application. Confidential contact details are stored encrypted and are visible only to authorized DivalHR platform administrators. This form sends no email and creates no account, credential or integration, and DivalHR does not verify the information at this stage."
     }
   }
 }

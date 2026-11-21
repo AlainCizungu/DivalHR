@@ -13329,10 +13329,14 @@ export interface components {
         PartnerReasonCode: "APPLICANT_REQUEST" | "OUT_OF_SCOPE" | "INCOMPLETE_INFORMATION" | "REGULATORY_CONCERN" | "DUE_DILIGENCE_CONCERN" | "NOT_PURSUING" | "CLARIFY_REGULATORY_INFORMATION" | "CLARIFY_SERVICE_SCOPE" | "CLARIFY_TECHNICAL_READINESS" | "OTHER";
         /** @enum {string} */
         PartnerApplicationEventType: "SUBMITTED" | "REVIEW_STARTED" | "INFORMATION_REQUESTED" | "CHECKLIST_UPDATED" | "APPROVED_FOR_ONBOARDING" | "DECLINED" | "WITHDRAWAL_RECORDED";
-        /** @description MVP-120D (D120D-6, D120D-7). The only fields collected. Strict: any other property is refused. Nothing here is verified. regulatorName and licenceReference are required when primaryCategory is BANK, MICROFINANCE, INSURANCE, TELECOM, MOBILE_MONEY_PAYMENT or PENSION_SAVINGS. acknowledgment must be true. faxNumber is a hidden honeypot and must be empty. */
+        /** @description MVP-120D (D120D-6, D120D-7). The only fields collected. Strict: any other property is refused. Nothing here is verified. regulatorName and licenceReference are required when primaryCategory OR ANY of additionalCategories is BANK, MICROFINANCE, INSURANCE, TELECOM, MOBILE_MONEY_PAYMENT or PENSION_SAVINGS (R216-2); Core enforces this independently of any client. Countries are the assigned ISO 3166-1 alpha-2 codes only (R216-1): any other value, including an OTHER placeholder, is refused with 400 PARTNER_APPLICATION_INVALID. privacyNoticeVersion and consentVersion must be the current identifiers of the bilingual notice shown to the applicant (R216-3); any other value is refused. acknowledgment must be true. faxNumber is a hidden honeypot and must be empty. */
         PartnerApplicationSubmission: {
             legalName: string;
             tradingName?: string | null;
+            /**
+             * @description An assigned ISO 3166-1 alpha-2 code from the single Core catalogue (249 codes, no OTHER value). Names are shown by each client with Intl.DisplayNames, never stored.
+             * @example CD
+             */
             countryOfRegistration: string;
             countriesOfOperation: string[];
             registrationReference: string;
@@ -13355,8 +13359,18 @@ export interface components {
             privacyContactEmail: string;
             /** @description Must be true. The information is submitted for partnership review. */
             acknowledgment: boolean;
-            privacyNoticeVersion: string;
-            consentVersion: string;
+            /**
+             * @description The identifier of the bilingual privacy notice displayed to the applicant.
+             * @example PARTNER-PRIVACY-1
+             * @enum {string}
+             */
+            privacyNoticeVersion: "PARTNER-PRIVACY-1";
+            /**
+             * @description The identifier of the bilingual acknowledgment text displayed to the applicant.
+             * @example PARTNER-APPLICATION-CONSENT-1
+             * @enum {string}
+             */
+            consentVersion: "PARTNER-APPLICATION-CONSENT-1";
             locale: components["schemas"]["PartnerLanguage"];
             /** @description Hidden honeypot. Always empty. */
             faxNumber?: string | null;

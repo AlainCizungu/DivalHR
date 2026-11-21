@@ -241,6 +241,27 @@ class PartnerApplicationSubmissionIntegrationTest {
     Map<String, Object> mail = PartnerWorld.bank(name, email);
     mail.put("businessEmail", "not-an-email");
     bad.add(mail);
+    // R216-2: a crafted request cannot skip the regulatory fields through an additional category.
+    Map<String, Object> additionalRegulated = PartnerWorld.bank(name, email);
+    additionalRegulated.put("primaryCategory", "HEALTH_BENEFITS");
+    additionalRegulated.put("additionalCategories", List.of("TELECOM"));
+    additionalRegulated.remove("regulatorName");
+    additionalRegulated.remove("licenceReference");
+    bad.add(additionalRegulated);
+    // R216-1: only assigned ISO 3166-1 alpha-2 countries, never an OTHER value.
+    Map<String, Object> country = PartnerWorld.bank(name, email);
+    country.put("countryOfRegistration", "ZZ");
+    bad.add(country);
+    Map<String, Object> operation = PartnerWorld.bank(name, email);
+    operation.put("countriesOfOperation", List.of("CD", "OTHER"));
+    bad.add(operation);
+    // R216-3: only the current consent identifiers are recorded.
+    Map<String, Object> notice = PartnerWorld.bank(name, email);
+    notice.put("privacyNoticeVersion", "2026-10");
+    bad.add(notice);
+    Map<String, Object> consentVersion = PartnerWorld.bank(name, email);
+    consentVersion.put("consentVersion", "ARBITRARY-CLIENT-VERSION");
+    bad.add(consentVersion);
     for (Map<String, Object> application : bad) {
       MockHttpServletResponse response = PartnerWorld.submit(mvc, application);
       assertThat(response.getStatus()).isEqualTo(400);
@@ -250,9 +271,25 @@ class PartnerApplicationSubmissionIntegrationTest {
           .doesNotContain(name)
           .doesNotContain("synthetic-secret-value")
           .doesNotContain("CRYPTO_EXCHANGE")
-          .doesNotContain("insecure.example.test");
+          .doesNotContain("insecure.example.test")
+          .doesNotContain("ARBITRARY-CLIENT-VERSION");
     }
     assertThat(count("legal_name = ?", name)).isZero();
+  }
+
+  @Test
+  void aNonRegulatedPrimaryWithARegulatedAdditionalCategoryIsAcceptedWithRegulatoryFields()
+      throws Exception {
+    Map<String, Object> application =
+        PartnerWorld.bank(PartnerWorld.uniqueName(), PartnerWorld.uniqueEmail());
+    application.put("primaryCategory", "HEALTH_BENEFITS");
+    application.put("additionalCategories", List.of("INSURANCE"));
+    application.put("countryOfRegistration", "SN");
+    application.put("countriesOfOperation", List.of("SN", "CI", "FR"));
+    MockHttpServletResponse response = PartnerWorld.submit(mvc, application);
+    assertThat(response.getStatus()).isEqualTo(201);
+    Object legalName = application.get("legalName");
+    assertThat(count("legal_name = ? AND country_of_registration = 'SN'", legalName)).isEqualTo(1);
   }
 
   @Test

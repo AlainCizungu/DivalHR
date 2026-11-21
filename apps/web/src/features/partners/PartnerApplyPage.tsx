@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useApi } from '../../app/ApiProvider';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { CheckGroup, Field, RadioGroup } from './PartnerFields';
+import { clearReceipt, loadReceipt, saveReceipt } from './partnerReceipt';
 import {
   API_AVAILABILITY,
   AUTOCOMPLETE,
   CAPABILITIES,
   CATEGORIES,
-  COUNTRIES,
+  MAX_OPERATION,
+  countryOptions as buildCountryOptions,
   FIELD_ORDER,
   LANGUAGES,
   MAX_ADDITIONAL,
@@ -39,8 +41,8 @@ function localeOf(language: string): PartnerLanguage {
 /**
  * MVP-120D: the public partner application. It collects the fixed contract fields, keeps what was
  * typed across ordinary validation errors, and ends on a confirmation that shows only the opaque
- * reference, the submission time and the next step. Nothing is stored in the browser, and the
- * hidden honeypot is read from the DOM at submit time only: it is never state and never shown.
+ * reference, the submission time and the next step. Only the safe receipt is kept in
+ * sessionStorage (R216-4), and the hidden honeypot is read from the DOM at submit time only: it is never state and never shown.
  */
 export function PartnerApplyPage() {
   const { t, i18n } = useTranslation();
@@ -49,7 +51,11 @@ export function PartnerApplyPage() {
   const locale = localeOf(i18n.resolvedLanguage ?? i18n.language);
   const [values, setValues] = useState<ApplyValues>(() => emptyValues(locale));
   const [errors, setErrors] = useState<ApplyErrors>({});
-  const [phase, setPhase] = useState<Phase>({ kind: 'editing' });
+  const [phase, setPhase] = useState<Phase>(() => {
+    const stored = loadReceipt();
+    return stored ? { kind: 'done', receipt: stored } : { kind: 'editing' };
+  });
+  const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
   const summaryRef = useRef<HTMLDivElement>(null);
   const doneRef = useRef<HTMLHeadingElement>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
@@ -69,12 +75,12 @@ export function PartnerApplyPage() {
     requestAnimationFrame(() => summaryRef.current?.focus());
   };
 
-  const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
-  const countryOptions = COUNTRIES.map((code) => ({
-    value: code,
-    label: regionNames.of(code) ?? code,
-  })).sort((a, b) => a.label.localeCompare(b.label, locale));
-  const regulated = isRegulated(values.primaryCategory);
+  const countryOptions = buildCountryOptions(locale);
+  const operationOptions = countryOptions.map((option) => ({
+    ...option,
+    disabled: values.countriesOfOperation.length >= MAX_OPERATION,
+  }));
+  const regulated = isRegulated(values.primaryCategory, values.additionalCategories);
 
   const onSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -96,6 +102,7 @@ export function PartnerApplyPage() {
       if (data) {
         idempotency.reset();
         setValues(emptyValues(locale));
+        saveReceipt(data);
         setPhase({ kind: 'done', receipt: data });
         requestAnimationFrame(() => doneRef.current?.focus());
         return;
@@ -114,6 +121,25 @@ export function PartnerApplyPage() {
     } finally {
       submitting.current = false;
     }
+  };
+
+  const copyReference = async (reference: string) => {
+    try {
+      await navigator.clipboard.writeText(reference);
+      setCopy('copied');
+    } catch {
+      setCopy('failed');
+    }
+  };
+
+  const startAnother = () => {
+    clearReceipt();
+    idempotency.reset();
+    setValues(emptyValues(locale));
+    setErrors({});
+    setCopy('idle');
+    setPhase({ kind: 'editing' });
+    requestAnimationFrame(() => summaryRef.current?.focus());
   };
 
   if (phase.kind === 'done') {
@@ -138,6 +164,29 @@ export function PartnerApplyPage() {
         </dl>
         <p data-testid="partner-next-step">
           {t(`partners.confirmation.nextStep.${phase.receipt.nextStep}`)}
+        </p>
+        <p className="muted">{t('partners.confirmation.sessionNote')}</p>
+        <div className="button-row">
+          <button
+            type="button"
+            className="button"
+            data-testid="partner-copy-reference"
+            onClick={() => void copyReference(phase.receipt.reference)}
+          >
+            {t('partners.confirmation.copy')}
+          </button>
+          <button
+            type="button"
+            className="button button--secondary"
+            data-testid="partner-start-another"
+            onClick={startAnother}
+          >
+            {t('partners.confirmation.startAnother')}
+          </button>
+        </div>
+        <p role="status" data-testid="partner-copy-status">
+          {copy === 'copied' && t('partners.confirmation.copied')}
+          {copy === 'failed' && t('partners.confirmation.copyFailed')}
         </p>
       </section>
     );
@@ -279,9 +328,10 @@ export function PartnerApplyPage() {
         <CheckGroup
           id={fid('countriesOfOperation')}
           legend={label('countriesOfOperation')}
-          help={help('countriesOfOperation')}
+          help={t('partners.apply.fields.countriesOfOperation.help', { max: MAX_OPERATION })}
           error={message('countriesOfOperation')}
-          options={countryOptions}
+          scroll
+          options={operationOptions}
           selected={values.countriesOfOperation}
           onChange={(next) => {
             update({ countriesOfOperation: next });
@@ -426,6 +476,14 @@ export function PartnerApplyPage() {
         {text('privacyContactEmail', { type: 'email', inputMode: 'email', maxLength: 254 })}
 
         <h2>{t('partners.apply.sections.acknowledgment')}</h2>
+        <section
+          className="card"
+          aria-labelledby={fid('notice-title')}
+          data-testid="partner-notice"
+        >
+          <h3 id={fid('notice-title')}>{t('partners.notice.title')}</h3>
+          <p>{t('partners.notice.body')}</p>
+        </section>
         <fieldset
           className="field"
           aria-describedby={errors.acknowledgment ? fid('acknowledgment-error') : undefined}

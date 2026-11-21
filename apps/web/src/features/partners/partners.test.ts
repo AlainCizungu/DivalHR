@@ -7,12 +7,18 @@ import {
   CATEGORIES,
   CHECK_CODES,
   CHECK_RESULTS,
+  CONSENT_VERSION,
+  COUNTRIES,
+  MAX_OPERATION,
+  PRIVACY_NOTICE_VERSION,
   PARTNER_ERROR_CODES,
   REASONS,
   REGULATED,
   STATUSES,
+  countryOptions,
   emptyValues,
   fieldErrorsFromProblem,
+  isCountryCode,
   isRegulated,
   partnerFailureOf,
   toSubmission,
@@ -69,10 +75,11 @@ describe('partner application model', () => {
     expect(body.regulatorName).toBeNull();
     expect(body.licenceReference).toBeNull();
     expect(body.businessPhone).toBeNull();
-    expect(body.privacyNoticeVersion).toMatch(/^[A-Za-z0-9._-]{1,40}$/u);
+    expect(body.privacyNoticeVersion).toBe('PARTNER-PRIVACY-1');
+    expect(body.consentVersion).toBe('PARTNER-APPLICATION-CONSENT-1');
   });
 
-  it('requires the regulatory fields only for regulated primary categories', () => {
+  it('requires the regulatory fields only when a selected category is regulated', () => {
     const missing = validate(valid({ regulatorName: '', licenceReference: '' }));
     expect(missing.regulatorName).toBe('REQUIRED');
     expect(missing.licenceReference).toBe('REQUIRED');
@@ -191,5 +198,158 @@ describe.each(['en', 'fr'] as const)('partner copy (%s)', (locale) => {
         : /Aucun référencement, aucun identifiant, aucune intégration et aucun accès aux données des employés/u,
     );
     expect(c.partners.apply.boundary).not.toMatch(/connected|connecté/iu);
+  });
+});
+
+describe('R216-2: regulatory fields apply to every selected category', () => {
+  const REGULATED_CATEGORIES = [
+    'BANK',
+    'MICROFINANCE',
+    'INSURANCE',
+    'TELECOM',
+    'MOBILE_MONEY_PAYMENT',
+    'PENSION_SAVINGS',
+  ] as const;
+
+  it.each(REGULATED_CATEGORIES)(
+    'requires them when %s is an additional category of a nonregulated primary',
+    (category) => {
+      const values = valid({
+        primaryCategory: 'HEALTH_BENEFITS',
+        additionalCategories: [category],
+        regulatorName: '',
+        licenceReference: '',
+      });
+      expect(isRegulated('HEALTH_BENEFITS', [category])).toBe(true);
+      expect(validate(values)).toMatchObject({
+        regulatorName: 'REQUIRED',
+        licenceReference: 'REQUIRED',
+      });
+      const filled = valid({
+        primaryCategory: 'HEALTH_BENEFITS',
+        additionalCategories: [category],
+      });
+      expect(validate(filled)).toEqual({});
+      const body = toSubmission(filled, 'en');
+      expect(body.regulatorName).toBe('Synthetic Regulator');
+      expect(body.licenceReference).toBe('LIC-0001');
+    },
+  );
+
+  it('does not require them for nonregulated selections only', () => {
+    const values = valid({
+      primaryCategory: 'HEALTH_BENEFITS',
+      additionalCategories: ['OTHER_REGULATED_PROVIDER'],
+      regulatorName: '',
+      licenceReference: '',
+    });
+    expect(isRegulated('HEALTH_BENEFITS', ['OTHER_REGULATED_PROVIDER'])).toBe(false);
+    expect(validate(values)).toEqual({});
+    expect(toSubmission(values, 'en').regulatorName).toBeNull();
+  });
+});
+
+describe('R216-1: the ISO country catalogue', () => {
+  it('lists the 249 assigned codes with no OTHER value', () => {
+    expect(COUNTRIES).toHaveLength(249);
+    expect(new Set(COUNTRIES).size).toBe(249);
+    for (const absent of ['OTHER', 'XK', 'EU', 'UN', 'ZZ', 'AN', 'UK']) {
+      expect(isCountryCode(absent)).toBe(false);
+    }
+  });
+
+  it('covers DRC, Francophone and Anglophone African and international countries', () => {
+    for (const code of [
+      'CD',
+      'CG',
+      'CI',
+      'SN',
+      'CM',
+      'GA',
+      'BF',
+      'ML',
+      'RW',
+      'KE',
+      'NG',
+      'ZA',
+      'FR',
+      'US',
+      'JP',
+    ]) {
+      expect(isCountryCode(code)).toBe(true);
+    }
+  });
+
+  it('names every country in English and French with Intl.DisplayNames, never the code', () => {
+    const en = countryOptions('en');
+    const fr = countryOptions('fr');
+    expect(en).toHaveLength(249);
+    for (const option of [...en, ...fr]) expect(option.label).not.toBe(option.value);
+    expect(en.find((o) => o.value === 'CD')?.label).toContain('Kinshasa');
+    expect(fr.find((o) => o.value === 'CD')?.label).toContain('Kinshasa');
+    expect(fr.find((o) => o.value === 'CI')?.label).toContain('Ivoire');
+    expect(en.find((o) => o.value === 'SN')?.label).toBe('Senegal');
+    expect(fr.find((o) => o.value === 'SN')?.label).toBe('Sénégal');
+  });
+
+  it('sorts the names for the interface language', () => {
+    const labels = countryOptions('fr').map((o) => o.label);
+    expect(labels).toEqual([...labels].sort(new Intl.Collator('fr').compare));
+  });
+
+  it('rejects unknown countries and too many countries of operation', () => {
+    expect(validate(valid({ countryOfRegistration: 'ZZ' })).countryOfRegistration).toBe('FORMAT');
+    expect(validate(valid({ countriesOfOperation: ['CD', 'OTHER'] })).countriesOfOperation).toBe(
+      'FORMAT',
+    );
+    expect(
+      validate(valid({ countriesOfOperation: COUNTRIES.slice(0, MAX_OPERATION + 1) }))
+        .countriesOfOperation,
+    ).toBe('LENGTH');
+    expect(
+      validate(valid({ countryOfRegistration: 'SN', countriesOfOperation: ['SN', 'CI'] })),
+    ).toEqual({});
+  });
+});
+
+describe('R216-3: consent provenance', () => {
+  it('sends the stable semantic identifiers, not a date', () => {
+    expect(PRIVACY_NOTICE_VERSION).toBe('PARTNER-PRIVACY-1');
+    expect(CONSENT_VERSION).toBe('PARTNER-APPLICATION-CONSENT-1');
+    const body = toSubmission(valid(), 'fr');
+    expect(body.privacyNoticeVersion).toBe(PRIVACY_NOTICE_VERSION);
+    expect(body.consentVersion).toBe(CONSENT_VERSION);
+  });
+
+  // The exact bilingual wording shown to the applicant is pinned to its identifier: editing the
+  // wording changes the digest, and the test fails until the identifier (here, in Core, in the
+  // contract and in ADR 0043) and the digest below are deliberately updated together.
+  const digest = async (parts: string[]) => {
+    const bytes = new TextEncoder().encode(JSON.stringify(parts));
+    const hash = await crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  };
+  const text = (locale: 'en' | 'fr') => resources[locale].common.partners;
+
+  it('pins PARTNER-PRIVACY-1 to the displayed privacy notice in both languages', async () => {
+    expect(PRIVACY_NOTICE_VERSION).toBe('PARTNER-PRIVACY-1');
+    const parts = (['en', 'fr'] as const).flatMap((l) => [
+      text(l).notice.title,
+      text(l).notice.body,
+    ]);
+    expect(await digest(parts)).toBe(
+      '3d30bb5994cf20a87c0accf4a963c5713ccc650d4532d874a09b711ec547d6d9',
+    );
+  });
+
+  it('pins PARTNER-APPLICATION-CONSENT-1 to the displayed acknowledgment in both languages', async () => {
+    expect(CONSENT_VERSION).toBe('PARTNER-APPLICATION-CONSENT-1');
+    const parts = (['en', 'fr'] as const).flatMap((l) => [
+      text(l).apply.fields.acknowledgment.label,
+      text(l).apply.fields.acknowledgment.help,
+    ]);
+    expect(await digest(parts)).toBe(
+      '3aaa5caa7a5fb0b8a374ba9a34584122a2f6323c762f2dadad07eba57f109145',
+    );
   });
 });

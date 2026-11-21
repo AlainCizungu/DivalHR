@@ -1,5 +1,6 @@
 package com.divalhr.core.integrations.partner;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -30,13 +31,27 @@ public final class PartnerDomain {
     }
 
     /**
-     * Whether regulatory information is required when this is the primary category.
+     * Whether regulatory information is required when this category is selected, as primary or
+     * additional.
      *
      * @return true for the regulated categories
      */
     public boolean regulated() {
       return regulated;
     }
+  }
+
+  /**
+   * Whether regulatory information is required: when the primary category or any additional
+   * category is regulated (R216-2).
+   *
+   * @param primary primary category, or null when it was refused earlier
+   * @param additional additional categories
+   * @return true when any selected category is regulated
+   */
+  public static boolean anyRegulated(Category primary, Collection<Category> additional) {
+    return (primary != null && primary.regulated())
+        || additional.stream().anyMatch(Category::regulated);
   }
 
   /** Capabilities, applicant assertions only (D120D-3). */

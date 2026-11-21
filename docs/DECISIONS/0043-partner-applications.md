@@ -46,10 +46,13 @@ since nothing downstream consumes partner applications.
 **D120D-6 and D120D-7 Fields and conditional fields.** Only the fields of the issue are accepted; the request body is
 strict (unknown properties refused) and no field can carry a password, key, account number, employee data, customer
 list, credit file, identity document, contract or attachment. The regulator name and licence/reference number are
-required when the **primary** category is `BANK`, `MICROFINANCE`, `INSURANCE`, `TELECOM`, `MOBILE_MONEY_PAYMENT` or
-`PENSION_SAVINGS`; the regulator name is also enforced by a database constraint (the licence number is inside the
-ciphertext, so the service enforces it). Interpretation: additional categories do not make the regulatory fields
-mandatory; they stay optional and are recorded as supplied when present.
+required when the **primary category or any additional category** is `BANK`, `MICROFINANCE`, `INSURANCE`, `TELECOM`,
+`MOBILE_MONEY_PAYMENT` or `PENSION_SAVINGS` (amendment R216-2; the first implementation looked at the primary category
+only). Core enforces this independently of the web form, so a crafted request with a nonregulated primary and a
+regulated additional category is refused with `400 PARTNER_APPLICATION_INVALID` (`regulatorName` and `licenceReference`
+`REQUIRED`). The database constraint on the regulator name covers the primary category only (the additional categories
+live in another table and the licence number is inside the ciphertext), so the service is the enforcement point for the
+additional ones.
 
 **D120D-8 Receipt.** The response carries only an opaque reference (`PA-` plus twelve Crockford base-32 characters from a
 cryptographic random source), the server submission time, the status `SUBMITTED` and a bilingual next-step message
@@ -90,7 +93,7 @@ same safe 404 (`PARTNER_APPLICATION_NOT_FOUND`) as a malformed one. There is no 
 commercial discussion is required, and does not gate approval; this is an interpretation recorded for review).
 Results are `PENDING`, `SATISFIED`, `NOT_APPLICABLE`, `CONCERN`. `APPROVED_FOR_ONBOARDING` requires every mandatory
 check `SATISFIED` or `NOT_APPLICABLE`, enforced in the database; `REGULATORY_INFORMATION` can never be
-`NOT_APPLICABLE` for a regulated primary category. Each update records the actor, the server time, an optional
+`NOT_APPLICABLE` when any selected category, primary or additional, is regulated. Each update records the actor, the server time, an optional
 bounded internal note and an optimistic row version (`If-Match`-style `expectedVersion`); a stale version is refused,
 which makes concurrent checklist updates safe. The per-check internal note is the "internal review note" of D120D-11.
 
@@ -154,14 +157,21 @@ item that only a platform administrator sees (tenant administrators, managers an
 page, and no request is made). The Core API stays the authority on every call.
 
 The form uses the generated client only. It holds values in component state, so an ordinary validation error (client or
-server) keeps what was typed; nothing is written to browser storage or the address bar, and the confirmation is in-memory
-(a reload loses the reference, which is the stated limitation of having no status lookup). One `Idempotency-Key` is minted
-per distinct payload: a retry of the same payload reuses it, any edit or a reused-key refusal mints a new one. The honeypot
-`faxNumber` is an off-screen, `inert`, `aria-hidden`, `tabindex="-1"`, `autocomplete="off"` input that is not part of the
-form state: it is read from the DOM only when submitting (so a bot that fills it is sent to the server's identical decoy
-success) and is never redisplayed or persisted. Regulatory fields are shown, and required, only when the primary category
-is regulated. Applicant countries are a curated list of 22 countries (an open item below), named through `Intl.DisplayNames`
-in the interface language. The privacy-notice and consent versions sent are the constants `2026-10`.
+server) keeps what was typed; nothing is written to the address bar. Browser storage holds exactly one thing: the **safe
+receipt** (amendment R216-4), in `sessionStorage` under `divalhr.partner.receipt`, with four fields only (opaque
+reference, submission time, status, next-step code). Because the story sends no email and has no status lookup, a reload
+of the same tab session restores the confirmation from it. Form fields, contact data, regulatory values, consent data,
+the honeypot and internal review notes are never stored, in either storage area; every read is validated and anything
+that is not a four-field receipt is discarded. The confirmation offers "Copy reference" and "Start another application"
+(which clears the stored receipt and shows an empty form). One `Idempotency-Key` is minted per distinct payload: a retry
+of the same payload reuses it, any edit or a reused-key refusal mints a new one. The honeypot `faxNumber` is an
+off-screen, `inert`, `aria-hidden`, `tabindex="-1"`, `autocomplete="off"` input that is not part of the form state: it is
+read from the DOM only when submitting (so a bot that fills it is sent to the server's identical decoy success) and is
+never redisplayed or persisted. Regulatory fields are shown, and required, when the primary category or any additional
+category is regulated. Countries are the assigned ISO 3166-1 alpha-2 codes (amendment R216-1), named through
+`Intl.DisplayNames` in the interface language; up to 30 countries of operation may be selected (the contract limit). The
+privacy-notice and consent identifiers sent are `PARTNER-PRIVACY-1` and `PARTNER-APPLICATION-CONSENT-1` (amendment
+R216-3).
 
 Review notes are typed into a form and sent in the request body only: never in a URL, analytics event, browser storage or log,
 and the idempotent response body never carries one (Core). Approval is offered only when `allowedTransitions` contains it
@@ -169,8 +179,7 @@ and `approvalBlockedBy` is empty, behind an explicit confirmation that repeats w
 `PARTNER_APPLICATION_*` and shared platform codes render as finished EN/FR sentences; English and French parity is checked
 by the localization parity test and by tests that every enum value and error code has a message in both languages.
 
-Open items for review: the curated country list (no "other country"); the version constants are not yet driven by a
-published privacy notice; the form has no CAPTCHA by decision D120D-10 and relies on the honeypot, per-IP and per-email
+Open items for review: the form has no CAPTCHA by decision D120D-10 and relies on the honeypot, per-IP and per-email
 limits; and the queue keeps filters in memory, so a reload resets them.
 
 ## 6. Deliberately not decided here
@@ -178,3 +187,38 @@ limits; and the queue keeps filters in memory, so a reload resets them.
 Notification of the applicant, applicant status lookup, a partner portal, document upload, contracts, credentials,
 a public directory, the legal retention period, and any connection of an approved partner to a product. Each is a later
 story with its own decision.
+
+## 7. Amendments after architecture review (PR #216)
+
+**R216-1 Country catalogue.** The curated 22-country list is replaced by one authoritative Core catalogue: the 249
+assigned ISO 3166-1 alpha-2 codes in `apps/core-api/src/main/resources/catalogues/iso-3166-1-alpha-2.txt`, read by
+`PartnerCountries`. Core refuses any other value (unknown, lower case, `OTHER`, user-assigned or exceptionally reserved
+codes such as `XK`, `EU`, `UN`) with `400 PARTNER_APPLICATION_INVALID` and the constraint `FORMAT` on the field; the
+value is never echoed. There is no `OTHER` country. The web catalogue
+(`apps/web/src/features/partners/countryCodes.generated.ts`) is generated from the same file by
+`scripts/ops/partner-countries.mjs` and `scripts/ops/partner-countries.test.mjs` fails when it drifts, when the file is not
+the 249 sorted unique codes, or when a code has no English or French name in `Intl.DisplayNames`. No country name is
+stored or hand-translated: each client derives names with `Intl.DisplayNames`. A Core test checks the catalogue against
+the JDK's `Locale.getISOCountries()`.
+
+**R216-2 Regulatory fields.** See D120D-6 and D120D-7 above: the primary category or any additional category makes the
+regulator name and licence reference mandatory, in Core and in the web form, and the `REGULATORY_INFORMATION` check can
+never be `NOT_APPLICABLE` in that case.
+
+**R216-3 Consent provenance.** `2026-10` is not an identifier of any published notice and is no longer recorded. The
+identifiers are stable semantic constants: `PARTNER-PRIVACY-1` (the privacy notice shown above the acknowledgment,
+`partners.notice.*`) and `PARTNER-APPLICATION-CONSENT-1` (the acknowledgment text, `partners.apply.fields.acknowledgment.*`),
+in English and French. Core accepts exactly these two values (`PartnerConsentVersions`); any other client-supplied value
+is refused with `400 PARTNER_APPLICATION_INVALID` (`FORMAT`) and is not recorded; the contract restricts both properties
+to a one-value enumeration. A web test pins each identifier to a digest of the exact bilingual wording, so editing the
+wording fails the test until a new identifier is introduced in Core, the contract, the web constants and this ADR. The
+wording of the notice is product copy that the founder should confirm before any production use.
+
+**R216-4 Safe receipt.** Described in section 5.
+
+**Accepted disclosed decisions (architecture review).** Reusing the integrations encryption key is accepted because
+partner data uses a domain-specific authenticated context and the crypto tests prove that ciphertext cannot be moved
+between contexts. `COMMERCIAL_DISCUSSION` stays advisory. A possible duplicate is accepted as a new application (the
+public behaviour stays non-enumerating and rate-limited). The signed cursor may contain the internal UUID and clients
+treat it as opaque. `PARTNER_APPLICATION_DUPLICATE` stays reserved and unused publicly. The honeypot receipt stays
+database-free. No screenshots are a merge gate.

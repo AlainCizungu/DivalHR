@@ -49,7 +49,8 @@ function CheckRow({
   const alertRef = useRef<HTMLDivElement>(null);
   const closed = ['APPROVED_FOR_ONBOARDING', 'DECLINED', 'WITHDRAWN'].includes(application.status);
   const regulatedLocked =
-    check.checkCode === 'REGULATORY_INFORMATION' && isRegulated(application.primaryCategory);
+    check.checkCode === 'REGULATORY_INFORMATION' &&
+    isRegulated(application.primaryCategory, application.additionalCategories);
 
   const save = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();

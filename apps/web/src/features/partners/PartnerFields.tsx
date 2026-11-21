@@ -62,6 +62,7 @@ export function CheckGroup({
   selected,
   onChange,
   grid = true,
+  scroll = false,
 }: {
   id: string;
   legend: string;
@@ -71,6 +72,7 @@ export function CheckGroup({
   selected: readonly string[];
   onChange: (next: string[]) => void;
   grid?: boolean;
+  scroll?: boolean;
 }) {
   const describedBy = [help ? `${id}-help` : null, error ? `${id}-error` : null]
     .filter(Boolean)
@@ -88,7 +90,12 @@ export function CheckGroup({
           {help}
         </p>
       )}
-      <div className={grid ? 'partner-grid' : undefined}>
+      <div
+        className={
+          [grid ? 'partner-grid' : '', scroll ? 'partner-scroll' : ''].filter(Boolean).join(' ') ||
+          undefined
+        }
+      >
         {options.map((option) => (
           <label key={option.value} className="choice">
             <input

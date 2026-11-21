@@ -58,8 +58,8 @@ final class PartnerWorld {
         "serviceSummary", "Synthetic institution offering salary advances to partner employees.");
     body.put("privacyContactEmail", "privacy-" + token + "@example.test");
     body.put("acknowledgment", true);
-    body.put("privacyNoticeVersion", "2026-10");
-    body.put("consentVersion", "2026-10");
+    body.put("privacyNoticeVersion", "PARTNER-PRIVACY-1");
+    body.put("consentVersion", "PARTNER-APPLICATION-CONSENT-1");
     body.put("locale", "en");
     return body;
   }

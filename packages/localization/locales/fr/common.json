@@ -7128,7 +7128,7 @@
         },
         "countriesOfOperation": {
           "label": "Pays d’activité",
-          "help": "Sélectionnez chaque pays où vous opérez."
+          "help": "Sélectionnez chaque pays où vous opérez (jusqu’à {{max}})."
         },
         "registrationReference": {
           "label": "Référence d’immatriculation",
@@ -7211,7 +7211,12 @@
       "submittedAt": "Envoyée le",
       "nextStep": {
         "DIVALHR_WILL_CONTACT_BUSINESS_EMAIL": "Conservez cette référence. DivalHR vous contactera au courriel professionnel indiqué. Il n’existe pas de page de suivi : merci de ne pas renvoyer la candidature."
-      }
+      },
+      "copy": "Copier la référence",
+      "copied": "Référence copiée.",
+      "copyFailed": "La référence n’a pas pu être copiée. Sélectionnez-la et copiez-la manuellement.",
+      "startAnother": "Commencer une autre candidature",
+      "sessionNote": "Cette confirmation reste disponible dans cet onglet du navigateur jusqu’à sa fermeture ou jusqu’à une nouvelle candidature. Rien d’autre de ce que vous avez saisi n’est conservé."
     },
     "category": {
       "BANK": "Banque",
@@ -7383,6 +7388,10 @@
       "historyDetail": "Détail",
       "unauthorized": "Seuls les administrateurs de la plateforme peuvent examiner les candidatures de partenaires.",
       "signInRequired": "Connectez-vous en tant qu’administrateur de la plateforme pour examiner les candidatures de partenaires."
+    },
+    "notice": {
+      "title": "Avis de confidentialité",
+      "body": "DivalHR utilise les informations saisies uniquement pour examiner votre candidature de partenariat. Les coordonnées confidentielles sont stockées chiffrées et ne sont visibles que des administrateurs de la plateforme DivalHR autorisés. Ce formulaire n’envoie aucun courriel et ne crée ni compte, ni identifiants, ni intégration, et DivalHR ne vérifie pas ces informations à ce stade."
     }
   }
 }

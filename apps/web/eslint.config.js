@@ -51,11 +51,13 @@ export default tseslint.config(
     },
   },
   {
-    // Reviewed exceptions: UI preferences (localStorage) and the transient PKCE state store
-    // (sessionStorage). Tests may inspect storage to prove tokens are absent.
+    // Reviewed exceptions: UI preferences (localStorage), the transient PKCE state store
+    // (sessionStorage) and the safe partner-application receipt (sessionStorage, R216-4: four
+    // opaque fields, never form data or notes). Tests may inspect storage to prove tokens are absent.
     files: [
       'src/app/preferences.ts',
       'src/auth/oidc.ts',
+      'src/features/partners/partnerReceipt.ts',
       '**/*.test.{ts,tsx}',
       'src/test/**',
       'e2e/**',

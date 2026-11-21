@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import tools.jackson.databind.JsonNode;
 
@@ -51,8 +52,6 @@ final class PartnerSubmissionParser {
           "locale",
           "faxNumber");
 
-  private static final Pattern COUNTRY = Pattern.compile("^[A-Z]{2}$");
-  private static final Pattern VERSION = Pattern.compile("^[A-Za-z0-9._-]{1,40}$");
   private static final Pattern PHONE = Pattern.compile("^\\+[1-9][0-9]{6,14}$");
   private static final Pattern EMAIL =
       Pattern.compile("^[A-Za-z0-9._%+'-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$");
@@ -87,8 +86,9 @@ final class PartnerSubmissionParser {
     }
     String legalName = text(root, "legalName", 2, 200, true, false);
     String tradingName = text(root, "tradingName", 2, 200, false, false);
-    String country = pattern(root, "countryOfRegistration", COUNTRY, true);
-    List<String> operation = strings(root, "countriesOfOperation", 1, 30, COUNTRY, true);
+    String country = member(root, "countryOfRegistration", PartnerCountries::contains, true);
+    List<String> operation =
+        strings(root, "countriesOfOperation", 1, 30, PartnerCountries::contains, true);
     String registration = text(root, "registrationReference", 2, 100, true, false);
     Category primary = enumValue(root, "primaryCategory", Category.class, true);
     List<Category> additional = enums(root, "additionalCategories", Category.class, 0, 3, false);
@@ -104,13 +104,15 @@ final class PartnerSubmissionParser {
     String phone = phone(root);
     List<String> languages = languages(root);
     ApiAvailability api = enumValue(root, "apiAvailability", ApiAvailability.class, true);
-    boolean regulated = primary != null && primary.regulated();
+    // R216-2: regulatory information applies when ANY selected category is regulated.
+    boolean regulated = PartnerDomain.anyRegulated(primary, additional);
     String regulator = text(root, "regulatorName", 2, 200, regulated, false);
     String licence = text(root, "licenceReference", 2, 100, regulated, false);
     String summary = text(root, "serviceSummary", 20, 1000, true, true);
     String privacyEmail = email(root, "privacyContactEmail", true);
-    String notice = pattern(root, "privacyNoticeVersion", VERSION, true);
-    String consent = pattern(root, "consentVersion", VERSION, true);
+    String notice =
+        member(root, "privacyNoticeVersion", PartnerConsentVersions.PRIVACY_NOTICE::equals, true);
+    String consent = member(root, "consentVersion", PartnerConsentVersions.CONSENT::equals, true);
     String locale = language(root, "locale");
     acknowledgment(root);
     if (!fields.isEmpty()) {
@@ -191,7 +193,7 @@ final class PartnerSubmissionParser {
                 Character.isISOControl(c) && !(multiline && (c == '\n' || c == '\r' || c == '\t')));
   }
 
-  private String pattern(JsonNode root, String name, Pattern pattern, boolean required) {
+  private String member(JsonNode root, String name, Predicate<String> accepted, boolean required) {
     JsonNode node = root.get(name);
     if (node == null || node.isNull()) {
       if (required) {
@@ -199,7 +201,7 @@ final class PartnerSubmissionParser {
       }
       return null;
     }
-    if (!node.isString() || !pattern.matcher(node.asString()).matches()) {
+    if (!node.isString() || !accepted.test(node.asString())) {
       add(name, Constraint.FORMAT);
       return null;
     }
@@ -207,7 +209,7 @@ final class PartnerSubmissionParser {
   }
 
   private List<String> strings(
-      JsonNode root, String name, int min, int max, Pattern pattern, boolean required) {
+      JsonNode root, String name, int min, int max, Predicate<String> accepted, boolean required) {
     JsonNode node = root.get(name);
     if (node == null || node.isNull()) {
       if (required) {
@@ -221,7 +223,7 @@ final class PartnerSubmissionParser {
     }
     Set<String> values = new LinkedHashSet<>();
     for (JsonNode item : node) {
-      if (!item.isString() || !pattern.matcher(item.asString()).matches()) {
+      if (!item.isString() || !accepted.test(item.asString())) {
         add(name, Constraint.FORMAT);
         return List.of();
       }

@@ -10,6 +10,7 @@ import type {
   PartnerReasonCode,
   Problem,
 } from '@divalhr/api-client';
+import { COUNTRY_CODES } from './countryCodes.generated';
 
 /**
  * MVP-120D (Issue #215, ADR 0043): the partner application and its platform review. The browser
@@ -30,7 +31,10 @@ export const CATEGORIES: readonly PartnerCategory[] = [
   'OTHER_REGULATED_PROVIDER',
 ];
 
-/** Regulatory fields are required when the primary category is one of these (D120D-7). */
+/**
+ * Regulatory fields are required when the primary category OR ANY additional category is one of
+ * these (D120D-7, R216-2). Core enforces the same rule independently.
+ */
 export const REGULATED: ReadonlySet<PartnerCategory> = new Set<PartnerCategory>([
   'BANK',
   'MICROFINANCE',
@@ -58,17 +62,38 @@ export const CAPABILITIES: readonly PartnerCapability[] = [
 export const LANGUAGES: readonly PartnerLanguage[] = ['en', 'fr'];
 export const API_AVAILABILITY: readonly PartnerApiAvailability[] = ['YES', 'PLANNED', 'NO'];
 
-/** Countries offered for registration and operation (ISO 3166-1 alpha-2). */
-export const COUNTRIES: readonly string[] = [
-  'AO', 'BE', 'BI', 'CD', 'CG', 'CI', 'CM', 'EG', 'ET', 'FR', 'GA', 'GH', 'KE', 'MA', 'NG',
-  'RW', 'SN', 'TN', 'TZ', 'UG', 'ZA', 'ZM',
-]; // prettier-ignore
+/** Countries offered for registration and operation: the assigned ISO 3166-1 alpha-2 codes. */
+export const COUNTRIES: readonly string[] = COUNTRY_CODES;
 
-/** Versions recorded with the applicant's acknowledgment (ADR 0043). */
-export const PRIVACY_NOTICE_VERSION = '2026-10';
-export const CONSENT_VERSION = '2026-10';
+/**
+ * The identifiers of the exact bilingual notice and acknowledgment displayed to the applicant
+ * (R216-3, ADR 0043). Changing the displayed wording requires new identifiers here, in Core, in
+ * the contract and in the ADR; the notice digest test fails until that is done.
+ */
+export const PRIVACY_NOTICE_VERSION = 'PARTNER-PRIVACY-1';
+export const CONSENT_VERSION = 'PARTNER-APPLICATION-CONSENT-1';
+
+export interface CountryOption {
+  value: string;
+  label: string;
+}
+
+/** Country options named by Intl.DisplayNames in the interface language, sorted for that language. */
+export function countryOptions(locale: string): CountryOption[] {
+  const names = new Intl.DisplayNames([locale], { type: 'region', fallback: 'code' });
+  const collator = new Intl.Collator(locale);
+  return COUNTRIES.map((value) => ({ value, label: names.of(value) ?? value })).sort((a, b) =>
+    collator.compare(a.label, b.label),
+  );
+}
+
+/** Whether a value is one of the offered ISO country codes. */
+export function isCountryCode(value: string): boolean {
+  return COUNTRIES.includes(value);
+}
 
 export const MAX_ADDITIONAL = 3;
+export const MAX_OPERATION = 30;
 
 export interface ApplyValues {
   legalName: string;
@@ -143,8 +168,12 @@ export const emptyValues = (locale: PartnerLanguage): ApplyValues => ({
   acknowledgment: false,
 });
 
-export function isRegulated(category: PartnerCategory | ''): boolean {
-  return category !== '' && REGULATED.has(category);
+/** True when the primary category or any additional category is regulated. */
+export function isRegulated(
+  primary: PartnerCategory | '',
+  additional: readonly PartnerCategory[] = [],
+): boolean {
+  return (primary !== '' && REGULATED.has(primary)) || additional.some((c) => REGULATED.has(c));
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
@@ -165,12 +194,22 @@ export function validate(values: ApplyValues): ApplyErrors {
   };
   set('legalName', between(values.legalName, 2, 200));
   if (values.tradingName.trim()) set('tradingName', between(values.tradingName, 2, 200));
-  set('countryOfRegistration', values.countryOfRegistration ? null : 'REQUIRED');
-  set('countriesOfOperation', values.countriesOfOperation.length > 0 ? null : 'REQUIRED');
+  set(
+    'countryOfRegistration',
+    values.countryOfRegistration
+      ? isCountryCode(values.countryOfRegistration)
+        ? null
+        : 'FORMAT'
+      : 'REQUIRED',
+  );
+  if (values.countriesOfOperation.length === 0) set('countriesOfOperation', 'REQUIRED');
+  else if (values.countriesOfOperation.length > MAX_OPERATION)
+    set('countriesOfOperation', 'LENGTH');
+  else if (!values.countriesOfOperation.every(isCountryCode)) set('countriesOfOperation', 'FORMAT');
   set('registrationReference', between(values.registrationReference, 2, 100));
   set('primaryCategory', values.primaryCategory ? null : 'REQUIRED');
   if (values.additionalCategories.length > MAX_ADDITIONAL) set('additionalCategories', 'LENGTH');
-  if (isRegulated(values.primaryCategory)) {
+  if (isRegulated(values.primaryCategory, values.additionalCategories)) {
     set('regulatorName', between(values.regulatorName, 2, 200));
     set('licenceReference', between(values.licenceReference, 2, 100));
   }
@@ -208,7 +247,10 @@ export function toSubmission(
   values: ApplyValues,
   locale: PartnerLanguage,
 ): PartnerApplicationSubmission {
-  const regulated = isRegulated(values.primaryCategory);
+  const additional = values.additionalCategories.filter(
+    (category) => category !== values.primaryCategory,
+  );
+  const regulated = isRegulated(values.primaryCategory, additional);
   const optional = (value: string) => (value.trim() === '' ? null : value.trim());
   return {
     legalName: values.legalName.trim(),
@@ -217,9 +259,7 @@ export function toSubmission(
     countriesOfOperation: values.countriesOfOperation,
     registrationReference: values.registrationReference.trim(),
     primaryCategory: values.primaryCategory as PartnerCategory,
-    additionalCategories: values.additionalCategories.filter(
-      (category) => category !== values.primaryCategory,
-    ),
+    additionalCategories: additional,
     requestedCapabilities: values.requestedCapabilities,
     website: values.website.trim(),
     contactName: values.contactName.trim(),
