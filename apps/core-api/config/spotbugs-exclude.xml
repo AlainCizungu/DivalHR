@@ -318,4 +318,10 @@
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     <Class name="~com\.divalhr\.core\.support\.FakeSalaryAdvancePartnerGateway\$.*"/>
   </Match>
+  <!-- Partner services validate configuration in the constructor and fail closed at startup; the
+       classes are Spring singletons that nothing can subclass or finalize into use. -->
+  <Match>
+    <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    <Class name="~com\.divalhr\.core\.integrations\.partner\.Partner(EmailLimiter|Crypto)"/>
+  </Match>
 </FindBugsFilter>
