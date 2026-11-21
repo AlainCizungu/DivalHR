@@ -896,7 +896,9 @@ class AuthorizationDenialAuditIntegrationTest {
     // tenant read.
     // MVP-120C added four handlers: the retention policy read and configure, the purge preview and
     // the purge confirmation.
-    assertThat(handlers).hasSize(245);
+    // MVP-120D added five platform handlers: the partner-application list, view, history, check
+    // update and transition.
+    assertThat(handlers).hasSize(250);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

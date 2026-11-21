@@ -13,6 +13,11 @@
     <Class name="com.divalhr.core.payroll.application.SalaryAdvanceCommands"/>
     <Method name="bool"/>
   </Match>
+  <!-- MVP-120D: the partner-application request and response carriers are immutable data holders built from fresh lists, maps and arrays for one call. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.integrations\.partner\.PartnerApplication(Bodies|Repository)\$.*"/>
+  </Match>
   <!-- Spring beans intentionally hold injected collaborators (constructor injection). -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP2"/>

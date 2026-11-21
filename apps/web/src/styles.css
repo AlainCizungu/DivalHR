@@ -879,3 +879,14 @@ fieldset.field {
 .partner-check {
   margin-bottom: var(--dv-space-4);
 }
+
+/* MVP-120D: long emails, references and URLs wrap instead of widening the page (WCAG 1.4.10, 1.4.12). */
+.summary dd,
+.summary dt,
+.partner-check,
+.page-header__title,
+.page-header__description,
+.error-summary,
+.card {
+  overflow-wrap: anywhere;
+}
