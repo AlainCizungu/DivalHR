@@ -1343,3 +1343,85 @@ test('truth rule 6: 097A, 120A, 120B and 120C carry their Git and deployment fac
     );
   }
 });
+
+// MVP-120D (Issue #215) is in review: its entry must never claim a merge, a deployment, an AWS
+// verification or an applied V55, and must keep the approval boundary and the no-notification facts.
+function partnerApplicationBacklogProblems(text) {
+  const problems = [];
+  const section = text.split(/^### MVP-120D /mu)[1]?.split(/^#{2,3} /mu)[0];
+  if (!section) return ['MVP-120D has no backlog entry'];
+  const opening = section.split('\n').slice(0, 4).join('\n');
+  const need = (pattern, label) => {
+    if (!pattern.test(section)) problems.push(`MVP-120D entry lacks ${label}`);
+  };
+  if (!/Issue #215\. In review on branch `feature\/215-mvp-120d-partner-onboarding`/u.test(opening))
+    problems.push('MVP-120D is not described as in review on its branch');
+  if (/\b(Merged|deployed to hr-dev and accepted)\b/u.test(opening))
+    problems.push('MVP-120D claims a merge or a deployment');
+  need(/not merged, not deployed and not verified in AWS/u, 'the not merged, not deployed status');
+  need(/Migration V55 is not applied to hr-dev/u, 'the V55 status');
+  need(/ADR 0043/u, 'ADR 0043');
+  need(
+    /No listing, credentials, integration or access to employee data is created/u,
+    'the approval boundary',
+  );
+  need(/no partner is connected/u, 'the no connected partner statement');
+  need(/no email, WhatsApp or SMS is sent/u, 'the no notification statement');
+  need(/there is no status lookup/u, 'the no status lookup statement');
+  need(/Partner with DivalHR/u, 'the landing rename');
+  if (/\b(approved loan|guaranteed|funded|interest rate|APR|credit score)\b/iu.test(section))
+    problems.push('MVP-120D entry uses banned lending wording');
+  return problems;
+}
+
+test('truth rule 7: MVP-120D is in review, with the approval boundary and without any merge or deployment claim (D120D)', () => {
+  assert.deepEqual(partnerApplicationBacklogProblems(backlog), []);
+  const fixtures = [
+    [
+      'merged',
+      (t) => t.replace('Issue #215. In review on branch', 'Issue #215. Merged on branch'),
+      /in review/u,
+    ],
+    [
+      'deployed',
+      (t) =>
+        t.replace(
+          'not merged, not deployed and not verified in AWS',
+          'merged, deployed to hr-dev and accepted',
+        ),
+      /merge or a deployment|not merged/u,
+    ],
+    [
+      'V55 applied',
+      (t) => t.replace('Migration V55 is not applied to hr-dev.', 'Migration V55 is applied.'),
+      /V55/u,
+    ],
+    [
+      'boundary removed',
+      (t) =>
+        t.replace(
+          'No listing, credentials, integration or access to employee data is created',
+          'A listing is created',
+        ),
+      /approval boundary/u,
+    ],
+    [
+      'notification',
+      (t) => t.replace('no email, WhatsApp or SMS is sent', 'an email is sent'),
+      /notification/u,
+    ],
+    [
+      'partner connected',
+      (t) => t.replace('no partner is connected', 'a partner is connected'),
+      /connected partner/u,
+    ],
+  ];
+  for (const [name, mutate, expected] of fixtures) {
+    const stale = mutate(backlog);
+    assert.notEqual(stale, backlog, `${name}: the fixture changed the backlog`);
+    assert.ok(
+      partnerApplicationBacklogProblems(stale).some((problem) => expected.test(problem)),
+      `${name}: names the problem`,
+    );
+  }
+});

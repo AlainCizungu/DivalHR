@@ -54,6 +54,12 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'platform-admin',
       },
       {
+        to: '/admin/partner-applications',
+        labelKey: 'nav.partnerApplications',
+        icon: 'contract',
+        role: 'platform-admin',
+      },
+      {
         to: '/admin/statutory-packs',
         labelKey: 'nav.statutoryPacks',
         icon: 'payroll',

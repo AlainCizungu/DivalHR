@@ -384,7 +384,12 @@ describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
       },
       {
         roles: ['platform-admin'],
-        expected: ['/admin/organizations/new', '/admin/organizations/first-admin', '/status'],
+        expected: [
+          '/admin/organizations/new',
+          '/admin/organizations/first-admin',
+          '/admin/partner-applications',
+          '/status',
+        ],
       },
     ];
     for (const { roles, expected } of cases) {
@@ -462,6 +467,7 @@ describe('role homes', () => {
     expect(cardLinks()).toEqual([
       [en.home.platform.createOrganization.title, '/admin/organizations/new'],
       [en.home.platform.firstAdmin.title, '/admin/organizations/first-admin'],
+      [en.home.platform.partnerApplications.title, '/admin/partner-applications'],
       [en.nav.status, '/status'],
     ]);
     expect(screen.queryByTestId('roadmap')).toBeNull();

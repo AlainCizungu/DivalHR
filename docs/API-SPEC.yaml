@@ -20,6 +20,8 @@ tags:
     description: Operational tasks assigned to employees (MVP-080)
   - name: integrations
     description: Signed outbound webhooks (MVP-110) and WhatsApp Business notifications (MVP-111)
+  - name: partners
+    description: Partner applications and controlled onboarding (MVP-120D)
 servers:
   - url: https://api.divalhr.com/api/v1
 security:
@@ -15104,6 +15106,315 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /public/partner-applications:
+    post:
+      operationId: submitPartnerApplication
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: public
+      summary: Submit a partner application (anonymous)
+      description: >-
+        MVP-120D (ADR 0043). A prospective partner (bank, microfinance institution, insurer, health-benefit provider, telecom
+        operator, mobile-money or payment provider, pension provider or similar organization) applies to begin partnership
+        discussions with DivalHR. Anonymous, with no account. The body is strict: unknown properties, passwords, keys, account
+        numbers, employee or customer data, identity documents and attachments are not part of the contract and are refused
+        (PARTNER_APPLICATION_INVALID, params.fields lists field and constraint only, never a value). A hidden honeypot field
+        (faxNumber) must be empty. The regulator name and the licence or reference number are required when the primary
+        category is BANK, MICROFINANCE, INSURANCE, TELECOM, MOBILE_MONEY_PAYMENT or PENSION_SAVINGS; they are recorded as
+        applicant-supplied and unverified, and so are the requested capabilities. Missing acknowledgment or consent is
+        PARTNER_APPLICATION_CONSENT_REQUIRED.
+        An Idempotency-Key is required. The same key with the same request replays the original receipt (Idempotent-Replayed:
+        true); the same key with a changed request is refused with 409 PARTNER_APPLICATION_IDEMPOTENCY_REUSED; a request that races
+        a submission with the same key waits for it and replays its receipt. PARTNER_APPLICATION_DUPLICATE is never returned
+        by this route. A submission that matches an application already on record (same normalized business email and organization) is
+        accepted exactly like a new one: the status, headers and body are indistinguishable, so the response never reveals
+        whether an email address, registration reference or organization already exists. The receipt carries only an opaque
+        reference, the server submission time, the status SUBMITTED and the next-step code; no internal identifier and no
+        status lookup exists. Submitting does not approve, list, integrate or give access to anything and shares no employee
+        data. DivalHR sends no email, WhatsApp or SMS in this story; it contacts the submitted business email after review.
+        Anonymous rate limits per client address and per normalized business-email digest (429
+        PARTNER_APPLICATION_RATE_LIMITED, Retry-After); the request body is capped at 16 KiB. Raw addresses, emails, phone
+        numbers and reference numbers are never logged, audited or stored for rate limiting. Cache-Control no-store.
+      tags: [partners]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PartnerIdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerApplicationSubmission"
+      responses:
+        "201":
+          description: The application was received (new, duplicate-matching or replayed alike)
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerApplicationReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-applications:
+    get:
+      operationId: listPartnerApplications
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the partner applications
+      description: >-
+        MVP-120D (ADR 0043). Platform administrators with exact MFA only; tenant administrators, managers and employees are
+        refused and there is no tenant context. Applications newest first (submission time, then reference), as a keyset page
+        (default 25, maximum 50; the cursor is opaque and signed, bound to the operation, subject, role, filters and page
+        size, and never carries a business value). Filters: status, category (primary or additional), capability, country
+        (of registration or operation) and a submission period (submittedFrom and submittedTo, inclusive UTC dates). The
+        response also carries the number of applications per status for the same filters except status. Confidential
+        contact data is never returned by the list. No bulk export. At most 60 reads per subject per minute. Cache-Control
+        private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerApplicationLimit"
+        - $ref: "#/components/parameters/PartnerApplicationStatusFilter"
+        - $ref: "#/components/parameters/PartnerApplicationCategoryFilter"
+        - $ref: "#/components/parameters/PartnerApplicationCapabilityFilter"
+        - $ref: "#/components/parameters/PartnerApplicationCountryFilter"
+        - $ref: "#/components/parameters/PartnerApplicationSubmittedFrom"
+        - $ref: "#/components/parameters/PartnerApplicationSubmittedTo"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerApplicationPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-applications/{reference}:
+    get:
+      operationId: getPartnerApplication
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read one partner application
+      description: >-
+        MVP-120D. The submitted application as supplied (every value is applicant-supplied and unverified), its confidential
+        business-contact data (decrypted for this platform administrator only), the privacy-notice and consent versions, the
+        due-diligence checklist with each check's result and bounded internal note, the statuses the application may move to
+        now, the mandatory checks that currently block approval, and the number of other applications that match its
+        organization fingerprint. A malformed, unknown or unauthorized reference is the same 404 PARTNER_APPLICATION_NOT_FOUND.
+        A fail-closed disclosure (audit partner-application.read; counts only). Cache-Control private, no-store. Approval
+        means only that onboarding discussions may begin: it activates no integration, creates no login or credential,
+        publishes no listing and shares no employee data.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerApplicationReference"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerApplicationDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-applications/{reference}/history:
+    get:
+      operationId: getPartnerApplicationHistory
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Read the immutable history of a partner application
+      description: >-
+        MVP-120D. The append-only status and checklist history in sequence order, as a keyset page (default 25, maximum 50;
+        opaque signed cursor bound to the application). Entries carry only event type, statuses, checklist code and result,
+        bounded reason code, actor type, whether the caller performed it, and the server time: no contact data, note, licence
+        reference or service summary. Unknown or malformed references are the same 404 PARTNER_APPLICATION_NOT_FOUND.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerApplicationReference"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerApplicationLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerApplicationHistoryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-applications/{reference}/checklist/{checkCode}:
+    put:
+      operationId: updatePartnerApplicationCheck
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Record one due-diligence check
+      description: >-
+        MVP-120D. Sets the result of one check (PENDING, SATISFIED, NOT_APPLICABLE or CONCERN) with the expectedVersion the read
+        returned and an optional bounded internal note (stored encrypted, never in audit or history). The six mandatory checks
+        are BUSINESS_IDENTITY, REGISTRATION_REFERENCE, REGULATORY_INFORMATION, SERVICE_SCOPE, PRIVACY_SECURITY_CONTACT and
+        TECHNICAL_API_READINESS; COMMERCIAL_DISCUSSION is advisory. REGULATORY_INFORMATION cannot be NOT_APPLICABLE for a
+        regulated primary category (PARTNER_APPLICATION_INVALID). A stale expectedVersion is 409
+        PARTNER_APPLICATION_TRANSITION_INVALID and nothing changes, so concurrent updates are safe; the checklist of a
+        terminal application is 409 PARTNER_APPLICATION_TERMINAL. Records one CHECKLIST_UPDATED history event and one audit
+        row with the check code and result code only. This internal workflow asserts no legal verification. Requires an
+        Idempotency-Key; the same key and payload replays the original response. At most 20 commands per subject per minute.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerApplicationReference"
+        - $ref: "#/components/parameters/PartnerCheckCode"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerApplicationCheckCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerApplicationCheck"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-applications/{reference}:transition:
+    post:
+      operationId: transitionPartnerApplication
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Move a partner application to its next status
+      description: >-
+        MVP-120D. The only transitions are SUBMITTED to UNDER_REVIEW or WITHDRAWN; UNDER_REVIEW to MORE_INFORMATION_REQUIRED,
+        APPROVED_FOR_ONBOARDING, DECLINED or WITHDRAWN; MORE_INFORMATION_REQUIRED to UNDER_REVIEW, DECLINED or WITHDRAWN.
+        APPROVED_FOR_ONBOARDING, DECLINED and WITHDRAWN are terminal (409 PARTNER_APPLICATION_TERMINAL on any later command).
+        Any other move, or a stale expectedVersion, is 409 PARTNER_APPLICATION_TRANSITION_INVALID before any change. Approval
+        is 409 PARTNER_APPLICATION_CHECKLIST_INCOMPLETE until every mandatory check is SATISFIED or NOT_APPLICABLE; the same rule
+        is enforced by the database. The terminal decisions need confirmed=true. A reasonCode from the closed catalogue is
+        required for INFORMATION_REQUESTED (MORE_INFORMATION_REQUIRED), DECLINED and WITHDRAWN; WITHDRAWN is recorded only after
+        the platform administrator verified the applicant's request outside the application and its reason is
+        APPLICANT_REQUEST. Approval means only that onboarding discussions may begin: it creates no login, credential,
+        membership, tenant access, integration configuration or partner listing, exposes no employer or employee data and
+        represents neither regulatory verification nor endorsement. Writes one history event and one audit row (reference,
+        category codes, old and new status, actor type, timestamps); no outbox event and no email, WhatsApp or SMS. Requires an
+        Idempotency-Key; the same key and payload replays the original response. At most 10 commands per subject per minute.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerApplicationReference"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerApplicationTransitionCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerApplicationTransitionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -16160,6 +16471,83 @@ components:
         An opaque UUID. Malformed, unknown and foreign-tenant IDs give the same 404 SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND.
       schema:
         type: string
+    PartnerIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Client-generated key for an anonymous submission (16 to 128 characters; a random UUID works). Only a keyed one-way
+        digest of the key is stored, never the key. The same key with the same request replays the original receipt.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+        pattern: "^[A-Za-z0-9._:-]{16,128}$"
+    PartnerApplicationReference:
+      name: reference
+      in: path
+      required: true
+      description: >-
+        The opaque application reference (PA- and twelve characters). Malformed, unknown and unauthorized references give the
+        same 404 PARTNER_APPLICATION_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 32
+    PartnerCheckCode:
+      name: checkCode
+      in: path
+      required: true
+      description: A due-diligence check code. An unknown code is the same 404 PARTNER_APPLICATION_NOT_FOUND.
+      schema:
+        $ref: "#/components/schemas/PartnerCheckCode"
+    PartnerApplicationLimit:
+      name: limit
+      in: query
+      description: Items per page (1-50, default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 25
+    PartnerApplicationStatusFilter:
+      name: status
+      in: query
+      description: Only applications in this status. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerApplicationStatus"
+    PartnerApplicationCategoryFilter:
+      name: category
+      in: query
+      description: Only applications whose primary or additional category is this one. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerCategory"
+    PartnerApplicationCapabilityFilter:
+      name: capability
+      in: query
+      description: Only applications requesting this capability. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerCapability"
+    PartnerApplicationCountryFilter:
+      name: country
+      in: query
+      description: Only applications registered or operating in this ISO 3166-1 alpha-2 country. Part of the cursor binding.
+      schema:
+        type: string
+        pattern: "^[A-Z]{2}$"
+    PartnerApplicationSubmittedFrom:
+      name: submittedFrom
+      in: query
+      description: Only applications submitted on or after this UTC date. Part of the cursor binding.
+      schema:
+        type: string
+        format: date
+    PartnerApplicationSubmittedTo:
+      name: submittedTo
+      in: query
+      description: Only applications submitted on or before this UTC date. Part of the cursor binding.
+      schema:
+        type: string
+        format: date
   schemas:
     AccessReviewLookup:
       type: object
@@ -23069,6 +23457,15 @@ components:
         - SALARY_ADVANCE_PURGE_PREVIEW_STALE
         - SALARY_ADVANCE_PURGE_ALREADY_COMPLETED
         - PARTNER_CALLBACK_INVALID
+        - PARTNER_APPLICATION_INVALID
+        - PARTNER_APPLICATION_RATE_LIMITED
+        - PARTNER_APPLICATION_IDEMPOTENCY_REUSED
+        - PARTNER_APPLICATION_NOT_FOUND
+        - PARTNER_APPLICATION_TRANSITION_INVALID
+        - PARTNER_APPLICATION_TERMINAL
+        - PARTNER_APPLICATION_CHECKLIST_INCOMPLETE
+        - PARTNER_APPLICATION_DUPLICATE
+        - PARTNER_APPLICATION_CONSENT_REQUIRED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -31874,5 +32271,637 @@ components:
             - $ref: "#/components/schemas/SalaryAdvanceHandoffReviewReason"
             - type: "null"
         issuedAt:
+          type: string
+          format: date-time
+    PartnerCategory:
+      type: string
+      description: >-
+        MVP-120D (D120D-2). The closed catalogue of partner categories. An application has one primary category and up to three
+        additional ones.
+      enum:
+        - BANK
+        - MICROFINANCE
+        - INSURANCE
+        - HEALTH_BENEFITS
+        - TELECOM
+        - MOBILE_MONEY_PAYMENT
+        - PENSION_SAVINGS
+        - OTHER_REGULATED_PROVIDER
+    PartnerCapability:
+      type: string
+      description: >-
+        MVP-120D (D120D-3). The closed catalogue of capabilities. Capabilities are applicant assertions only: they are not
+        verified or endorsed by DivalHR.
+      enum:
+        - SALARY_ADVANCE
+        - EMPLOYEE_LOANS
+        - HEALTH_INSURANCE
+        - LIFE_INSURANCE
+        - ACCIDENT_INSURANCE
+        - HEALTHCARE_BENEFITS
+        - AIRTIME_DATA_BENEFITS
+        - SMS_USSD_SERVICES
+        - MOBILE_MONEY_DISBURSEMENT
+        - PAYMENT_COLLECTION
+        - PENSION_SAVINGS
+        - OTHER_EMPLOYEE_SERVICE
+    PartnerApplicationStatus:
+      type: string
+      description: >-
+        MVP-120D (D120D-4). SUBMITTED, UNDER_REVIEW, MORE_INFORMATION_REQUIRED, APPROVED_FOR_ONBOARDING, DECLINED or WITHDRAWN.
+        APPROVED_FOR_ONBOARDING means only that DivalHR may begin contractual, security and technical discussions: it activates
+        no integration, creates no login or credential, publishes no listing and shares no employee data. The last three are
+        terminal.
+      enum:
+        - SUBMITTED
+        - UNDER_REVIEW
+        - MORE_INFORMATION_REQUIRED
+        - APPROVED_FOR_ONBOARDING
+        - DECLINED
+        - WITHDRAWN
+    PartnerApiAvailability:
+      type: string
+      enum: [YES, NO, PLANNED]
+    PartnerLanguage:
+      type: string
+      enum: [en, fr]
+    PartnerCheckCode:
+      type: string
+      description: >-
+        MVP-120D (D120D-12). The six mandatory checks gate approval; COMMERCIAL_DISCUSSION records whether a commercial
+        discussion is required and does not gate approval.
+      enum:
+        - BUSINESS_IDENTITY
+        - REGISTRATION_REFERENCE
+        - REGULATORY_INFORMATION
+        - SERVICE_SCOPE
+        - PRIVACY_SECURITY_CONTACT
+        - TECHNICAL_API_READINESS
+        - COMMERCIAL_DISCUSSION
+    PartnerCheckResult:
+      type: string
+      enum: [PENDING, SATISFIED, NOT_APPLICABLE, CONCERN]
+    PartnerReasonCode:
+      type: string
+      description: >-
+        MVP-120D (D120D-14). A closed, bounded reason; free text is never stored. APPLICANT_REQUEST is the only reason of a
+        withdrawal.
+      enum:
+        - APPLICANT_REQUEST
+        - OUT_OF_SCOPE
+        - INCOMPLETE_INFORMATION
+        - REGULATORY_CONCERN
+        - DUE_DILIGENCE_CONCERN
+        - NOT_PURSUING
+        - CLARIFY_REGULATORY_INFORMATION
+        - CLARIFY_SERVICE_SCOPE
+        - CLARIFY_TECHNICAL_READINESS
+        - OTHER
+    PartnerApplicationEventType:
+      type: string
+      enum:
+        - SUBMITTED
+        - REVIEW_STARTED
+        - INFORMATION_REQUESTED
+        - CHECKLIST_UPDATED
+        - APPROVED_FOR_ONBOARDING
+        - DECLINED
+        - WITHDRAWAL_RECORDED
+    PartnerApplicationSubmission:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D (D120D-6, D120D-7). The only fields collected. Strict: any other property is refused. Nothing here is verified.
+        regulatorName and licenceReference are required when primaryCategory OR ANY of additionalCategories is BANK,
+        MICROFINANCE, INSURANCE, TELECOM, MOBILE_MONEY_PAYMENT or PENSION_SAVINGS (R216-2); Core enforces this independently
+        of any client. Countries are the assigned ISO 3166-1 alpha-2 codes only (R216-1): any other value, including an
+        OTHER placeholder, is refused with 400 PARTNER_APPLICATION_INVALID. privacyNoticeVersion and consentVersion must be
+        the current identifiers of the bilingual notice shown to the applicant (R216-3); any other value is refused.
+        acknowledgment must be true. faxNumber is a hidden honeypot and must be empty.
+      required:
+        - legalName
+        - countryOfRegistration
+        - countriesOfOperation
+        - registrationReference
+        - primaryCategory
+        - requestedCapabilities
+        - website
+        - contactName
+        - contactRole
+        - businessEmail
+        - supportedLanguages
+        - apiAvailability
+        - serviceSummary
+        - privacyContactEmail
+        - acknowledgment
+        - privacyNoticeVersion
+        - consentVersion
+        - locale
+      properties:
+        legalName:
+          type: string
+          minLength: 2
+          maxLength: 200
+        tradingName:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 200
+        countryOfRegistration:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: >-
+            An assigned ISO 3166-1 alpha-2 code from the single Core catalogue (249 codes, no OTHER value). Names are shown by
+            each client with Intl.DisplayNames, never stored.
+          example: CD
+        countriesOfOperation:
+          type: array
+          minItems: 1
+          maxItems: 30
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^[A-Z]{2}$"
+            description: An assigned ISO 3166-1 alpha-2 code from the single Core catalogue.
+            example: SN
+        registrationReference:
+          type: string
+          minLength: 2
+          maxLength: 100
+        primaryCategory:
+          $ref: "#/components/schemas/PartnerCategory"
+        additionalCategories:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        requestedCapabilities:
+          type: array
+          minItems: 1
+          maxItems: 12
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/PartnerCapability"
+        website:
+          type: string
+          format: uri
+          pattern: "^https://[^\\s]+$"
+          minLength: 10
+          maxLength: 300
+        contactName:
+          type: string
+          minLength: 2
+          maxLength: 150
+        contactRole:
+          type: string
+          minLength: 2
+          maxLength: 120
+        businessEmail:
+          type: string
+          format: email
+          maxLength: 254
+        businessPhone:
+          type: [string, "null"]
+          pattern: "^\\+[1-9][0-9]{6,14}$"
+        supportedLanguages:
+          type: array
+          minItems: 1
+          maxItems: 2
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/PartnerLanguage"
+        apiAvailability:
+          $ref: "#/components/schemas/PartnerApiAvailability"
+        regulatorName:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 200
+        licenceReference:
+          type: [string, "null"]
+          minLength: 2
+          maxLength: 100
+        serviceSummary:
+          type: string
+          minLength: 20
+          maxLength: 1000
+        privacyContactEmail:
+          type: string
+          format: email
+          maxLength: 254
+        acknowledgment:
+          type: boolean
+          description: "Must be true. The information is submitted for partnership review."
+        privacyNoticeVersion:
+          type: string
+          enum: [PARTNER-PRIVACY-1]
+          description: The identifier of the bilingual privacy notice displayed to the applicant.
+          example: PARTNER-PRIVACY-1
+        consentVersion:
+          type: string
+          enum: [PARTNER-APPLICATION-CONSENT-1]
+          description: The identifier of the bilingual acknowledgment text displayed to the applicant.
+          example: PARTNER-APPLICATION-CONSENT-1
+        locale:
+          $ref: "#/components/schemas/PartnerLanguage"
+        faxNumber:
+          type: [string, "null"]
+          maxLength: 0
+          description: Hidden honeypot. Always empty.
+    PartnerApplicationReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D (D120D-8). The safe receipt: an opaque reference, the server time, the status SUBMITTED and the next-step code
+        (DivalHR will contact the submitted business email after review). No internal identifier, no status lookup.
+      required: [reference, submittedAt, status, nextStep]
+      properties:
+        reference:
+          type: string
+          pattern: "^PA-[0-9A-HJKMNP-TV-Z]{12}$"
+        submittedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [SUBMITTED]
+        nextStep:
+          type: string
+          enum: [DIVALHR_WILL_CONTACT_BUSINESS_EMAIL]
+    PartnerApplicationSummary:
+      type: object
+      additionalProperties: false
+      description: MVP-120D. One row of the review queue; no confidential contact data.
+      required:
+        - reference
+        - status
+        - version
+        - primaryCategory
+        - additionalCategories
+        - requestedCapabilities
+        - legalName
+        - countryOfRegistration
+        - submittedAt
+        - updatedAt
+      properties:
+        reference:
+          type: string
+        status:
+          $ref: "#/components/schemas/PartnerApplicationStatus"
+        version:
+          type: integer
+          minimum: 0
+        primaryCategory:
+          $ref: "#/components/schemas/PartnerCategory"
+        additionalCategories:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        requestedCapabilities:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/PartnerCapability"
+        legalName:
+          type: string
+        countryOfRegistration:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PartnerApplicationPage:
+      type: object
+      additionalProperties: false
+      description: MVP-120D. A page of applications with the per-status counts for the same filters except status.
+      required: [items, nextCursor, statusCounts]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerApplicationSummary"
+        nextCursor:
+          type: [string, "null"]
+        statusCounts:
+          type: object
+          additionalProperties: false
+          required:
+            - SUBMITTED
+            - UNDER_REVIEW
+            - MORE_INFORMATION_REQUIRED
+            - APPROVED_FOR_ONBOARDING
+            - DECLINED
+            - WITHDRAWN
+          properties:
+            SUBMITTED:
+              type: integer
+              minimum: 0
+            UNDER_REVIEW:
+              type: integer
+              minimum: 0
+            MORE_INFORMATION_REQUIRED:
+              type: integer
+              minimum: 0
+            APPROVED_FOR_ONBOARDING:
+              type: integer
+              minimum: 0
+            DECLINED:
+              type: integer
+              minimum: 0
+            WITHDRAWN:
+              type: integer
+              minimum: 0
+    PartnerApplicationContact:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D (D120D-13). Confidential business-contact data, decrypted for the platform administrator only, applicant-supplied
+        and unverified. Never in a list, history, audit entry, URL, cursor or log.
+      required:
+        - contactName
+        - businessEmail
+        - businessPhone
+        - registrationReference
+        - licenceReference
+        - privacyContactEmail
+      properties:
+        contactName:
+          type: string
+        businessEmail:
+          type: string
+        businessPhone:
+          type: [string, "null"]
+        registrationReference:
+          type: string
+        licenceReference:
+          type: [string, "null"]
+        privacyContactEmail:
+          type: string
+    PartnerApplicationCheck:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D (D120D-12). One due-diligence check: an internal workflow state, not legal verification. The note is an
+        optional bounded internal note (stored encrypted).
+      required: [checkCode, mandatory, result, version, performedByCaller, updatedAt, note]
+      properties:
+        checkCode:
+          $ref: "#/components/schemas/PartnerCheckCode"
+        mandatory:
+          type: boolean
+        result:
+          $ref: "#/components/schemas/PartnerCheckResult"
+        version:
+          type: integer
+          minimum: 0
+        performedByCaller:
+          type: [boolean, "null"]
+          description: Whether the calling platform administrator recorded the result; null while PENDING. No subject is named.
+        updatedAt:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    PartnerApplicationConsent:
+      type: object
+      additionalProperties: false
+      required: [privacyNoticeVersion, consentVersion, locale, acceptedAt]
+      properties:
+        privacyNoticeVersion:
+          type: string
+        consentVersion:
+          type: string
+        locale:
+          $ref: "#/components/schemas/PartnerLanguage"
+        acceptedAt:
+          type: string
+          format: date-time
+    PartnerApplicationDetail:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D. One application as supplied (unverified), its confidential contact data, consent versions and checklist, the
+        statuses it may move to now, the mandatory checks blocking approval, and the number of other applications with the same
+        organization fingerprint. Approval activates no integration and creates no access.
+      required:
+        - reference
+        - status
+        - version
+        - primaryCategory
+        - additionalCategories
+        - requestedCapabilities
+        - legalName
+        - tradingName
+        - countryOfRegistration
+        - countriesOfOperation
+        - website
+        - contactRole
+        - supportedLanguages
+        - apiAvailability
+        - regulatorName
+        - serviceSummary
+        - submissionLocale
+        - submittedAt
+        - updatedAt
+        - contact
+        - consent
+        - checklist
+        - allowedTransitions
+        - approvalBlockedBy
+        - possibleDuplicates
+      properties:
+        reference:
+          type: string
+        status:
+          $ref: "#/components/schemas/PartnerApplicationStatus"
+        version:
+          type: integer
+          minimum: 0
+        primaryCategory:
+          $ref: "#/components/schemas/PartnerCategory"
+        additionalCategories:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        requestedCapabilities:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/PartnerCapability"
+        legalName:
+          type: string
+        tradingName:
+          type: [string, "null"]
+        countryOfRegistration:
+          type: string
+        countriesOfOperation:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+        website:
+          type: string
+        contactRole:
+          type: string
+        supportedLanguages:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/PartnerLanguage"
+        apiAvailability:
+          $ref: "#/components/schemas/PartnerApiAvailability"
+        regulatorName:
+          type: [string, "null"]
+        serviceSummary:
+          type: string
+        submissionLocale:
+          $ref: "#/components/schemas/PartnerLanguage"
+        submittedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        contact:
+          $ref: "#/components/schemas/PartnerApplicationContact"
+        consent:
+          $ref: "#/components/schemas/PartnerApplicationConsent"
+        checklist:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/PartnerApplicationCheck"
+        allowedTransitions:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/PartnerApplicationStatus"
+        approvalBlockedBy:
+          type: array
+          maxItems: 6
+          description: The mandatory checks that currently block approval (empty when approval is not blocked by the checklist).
+          items:
+            $ref: "#/components/schemas/PartnerCheckCode"
+        possibleDuplicates:
+          type: integer
+          minimum: 0
+    PartnerApplicationHistoryEntry:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D (D120D-14). One immutable history entry. No contact data, note, licence reference or service summary; no
+        subject is named.
+      required:
+        - sequence
+        - eventType
+        - fromStatus
+        - toStatus
+        - checkCode
+        - checkResult
+        - reasonCode
+        - actorType
+        - performedByCaller
+        - occurredAt
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        eventType:
+          $ref: "#/components/schemas/PartnerApplicationEventType"
+        fromStatus:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerApplicationStatus"
+            - type: "null"
+        toStatus:
+          $ref: "#/components/schemas/PartnerApplicationStatus"
+        checkCode:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerCheckCode"
+            - type: "null"
+        checkResult:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerCheckResult"
+            - type: "null"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerReasonCode"
+            - type: "null"
+        actorType:
+          type: string
+          enum: [APPLICANT, PLATFORM_ADMIN]
+        performedByCaller:
+          type: [boolean, "null"]
+        occurredAt:
+          type: string
+          format: date-time
+    PartnerApplicationHistoryPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerApplicationHistoryEntry"
+        nextCursor:
+          type: [string, "null"]
+    PartnerApplicationCheckCommand:
+      type: object
+      additionalProperties: false
+      description: MVP-120D. The result of one check, with the version the read returned and an optional bounded internal note.
+      required: [result, expectedVersion]
+      properties:
+        result:
+          $ref: "#/components/schemas/PartnerCheckResult"
+        expectedVersion:
+          type: integer
+          minimum: 0
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    PartnerApplicationTransitionCommand:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D. The next status, the application version the read returned, the closed reason where one is required, and
+        confirmed=true for the terminal decisions (approval for onboarding discussions, decline, withdrawal).
+      required: [toStatus, expectedVersion]
+      properties:
+        toStatus:
+          $ref: "#/components/schemas/PartnerApplicationStatus"
+        expectedVersion:
+          type: integer
+          minimum: 0
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerReasonCode"
+            - type: "null"
+        confirmed:
+          type: boolean
+    PartnerApplicationTransitionReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120D. The new status and version. Nothing else changed: no login, credential, membership, tenant access,
+        integration configuration or listing exists as a consequence.
+      required: [reference, status, version, eventSequence, occurredAt]
+      properties:
+        reference:
+          type: string
+        status:
+          $ref: "#/components/schemas/PartnerApplicationStatus"
+        version:
+          type: integer
+          minimum: 0
+        eventSequence:
+          type: integer
+          minimum: 1
+        occurredAt:
           type: string
           format: date-time

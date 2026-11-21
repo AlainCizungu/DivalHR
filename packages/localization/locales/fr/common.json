@@ -66,7 +66,8 @@
     "accountingMappings": "Paramètres comptables",
     "myPayslips": "Mes bulletins de paie",
     "myPaymentDestination": "Ma destination de paiement",
-    "salaryAdvanceHandoffs": "Transmissions au partenaire"
+    "salaryAdvanceHandoffs": "Transmissions au partenaire",
+    "partnerApplications": "Candidatures de partenaires"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -159,6 +160,10 @@
       },
       "status": {
         "description": "Vérifiez que les services DivalHR répondent."
+      },
+      "partnerApplications": {
+        "title": "Examiner les candidatures de partenaires",
+        "description": "Examinez les candidatures de prestataires qui souhaitent entamer des discussions d’intégration. L’approbation ne crée ni référencement, ni identifiants, ni intégration."
       }
     },
     "tenant": {
@@ -339,7 +344,7 @@
         "compensationTitle": "Ma rémunération",
         "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement.",
         "payslips": "Lisez vos bulletins de paie et téléchargez-les en PDF en français ou en anglais. Un bulletin de paie ne constitue pas une preuve de paiement.",
-        "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique et suivez l’état de son examen. DivalHR n’est pas le prêteur ; aucun prêt n’est approuvé et aucun fonds n’est décaissé."
+        "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique et suivez l’état de son examen. DivalHR n’est pas le prêteur ; aucun partenaire réel n’est connecté, aucun prêt n’est approuvé et aucun fonds n’est décaissé."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -796,7 +801,16 @@
     "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND": "Cette prévisualisation de suppression n'existe pas.",
     "SALARY_ADVANCE_PURGE_PREVIEW_STALE": "La prévisualisation n'est plus à jour. Rien n'a été supprimé. Prévisualisez à nouveau.",
     "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED": "Cette suppression a déjà été effectuée.",
-    "PARTNER_CALLBACK_INVALID": "Le rappel a été refusé."
+    "PARTNER_CALLBACK_INVALID": "Le rappel a été refusé.",
+    "PARTNER_APPLICATION_INVALID": "Certaines informations de la candidature sont manquantes ou invalides. Vérifiez le formulaire et réessayez.",
+    "PARTNER_APPLICATION_RATE_LIMITED": "Trop de candidatures ont été reçues. Veuillez patienter et réessayer plus tard.",
+    "PARTNER_APPLICATION_IDEMPOTENCY_REUSED": "Cette soumission a déjà été utilisée pour d’autres informations. Rechargez le formulaire et réessayez.",
+    "PARTNER_APPLICATION_NOT_FOUND": "Cette candidature de partenaire est introuvable.",
+    "PARTNER_APPLICATION_TRANSITION_INVALID": "Ce changement de statut n’est pas autorisé, ou la candidature a changé. Rechargez et réessayez.",
+    "PARTNER_APPLICATION_TERMINAL": "Cette candidature de partenaire est clôturée et ne peut plus être modifiée.",
+    "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE": "Chaque vérification préalable obligatoire applicable doit être satisfaite avant l’approbation.",
+    "PARTNER_APPLICATION_DUPLICATE": "Cette soumission est déjà en cours de traitement. Veuillez patienter un instant.",
+    "PARTNER_APPLICATION_CONSENT_REQUIRED": "Veuillez confirmer la déclaration avant de soumettre votre candidature."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3339,9 +3353,9 @@
       "copyright": "© 2026 DivalHR · Une société Dival AI"
     },
     "partners": {
-      "kicker": "Programme partenaires financiers",
-      "title": "Programme partenaires financiers",
-      "body": "DivalHR n’est pas un prêteur. Nous préparons un programme pour les institutions financières agréées qui souhaitent servir les employés par l’intermédiaire de leur employeur, avec leur consentement. Aujourd’hui, aucun partenaire financier réel n’est connecté : la transmission contrôlée ne fonctionne qu’avec un partenaire de test synthétique.",
+      "kicker": "Partenaires",
+      "title": "Devenir partenaire de DivalHR",
+      "body": "DivalHR n’est pas un prêteur. Nous ouvrons des discussions d’intégration contrôlées avec des prestataires réglementés et agréés — banques, institutions de microfinance, assureurs, prestataires d’avantages santé, opérateurs télécom, prestataires de monnaie mobile et de paiement, prestataires de retraite et d’épargne — qui souhaitent servir les employés par l’intermédiaire de leur employeur, avec leur consentement. Aujourd’hui, aucun partenaire réel n’est connecté : la transmission contrôlée ne fonctionne qu’avec un partenaire de test synthétique.",
       "points": {
         "consent": {
           "title": "Le consentement d’abord",
@@ -3360,10 +3374,8 @@
           "description": "Chaque transmission actuelle va vers un partenaire de test. Aucune décision, aucun versement ni aucune retenue n’en découle."
         }
       },
-      "cta": "Devenir partenaire financier",
-      "ctaNote": "Écrivez-nous ; il n’existe encore ni formulaire, ni dépôt de documents, ni portail partenaire.",
-      "mailSubject": "Demande de partenariat financier",
-      "mailBody": "Bonjour DivalHR,\n\nNous souhaitons parler du programme partenaires financiers.\n\nNom de l’institution :\nPays :\nType d’institution :\nAutorité de régulation et statut d’agrément :\nNom et fonction du contact :\nCe que nous souhaitons proposer aux employés :\n\nMerci."
+      "cta": "Candidater pour devenir partenaire de DivalHR",
+      "ctaNote": "Une candidature ouvre seulement une conversation. Elle ne crée ni référencement, ni identifiants, ni intégration, ni accès aux données des employés, et il n’existe encore ni portail partenaire, ni suivi de statut, ni dépôt de documents."
     }
   },
   "leaveSubstitutes": {
@@ -7081,6 +7093,305 @@
       "downloadManifest": "Télécharger le manifeste",
       "downloaded": "Le fichier a été téléchargé.",
       "back": "Retour à l’historique des journaux"
+    }
+  },
+  "partners": {
+    "apply": {
+      "title": "Devenir partenaire de DivalHR",
+      "description": "Les prestataires réglementés et agréés peuvent demander à entamer des discussions d’intégration avec DivalHR. Ce formulaire s’adresse aux organisations, pas aux employés.",
+      "boundary": "Candidater ouvre seulement une conversation. Cela ne crée ni référencement, ni identifiants, ni intégration, ni accès aux données des employés, et DivalHR ne vérifie pas à ce stade ce que vous saisissez.",
+      "requiredNote": "Les champs sont obligatoires sauf mention « facultatif ».",
+      "optional": "(facultatif)",
+      "select": "Sélectionner…",
+      "submit": "Envoyer la candidature",
+      "submitting": "Envoi en cours…",
+      "errorSummary": "Veuillez corriger les points suivants :",
+      "regulatoryNote": "Pour cette catégorie, nous demandons votre autorité de régulation et votre référence d’agrément. DivalHR ne les vérifie pas ici.",
+      "sections": {
+        "organization": "Votre organisation",
+        "activity": "Ce que vous proposez",
+        "contact": "Contact professionnel",
+        "acknowledgment": "Attestation"
+      },
+      "fields": {
+        "legalName": {
+          "label": "Dénomination légale",
+          "help": "Le nom enregistré de l’organisation."
+        },
+        "tradingName": {
+          "label": "Nom commercial",
+          "help": "Le nom connu des clients, s’il est différent."
+        },
+        "countryOfRegistration": {
+          "label": "Pays d’immatriculation",
+          "help": "Le pays où l’organisation est légalement enregistrée."
+        },
+        "countriesOfOperation": {
+          "label": "Pays d’activité",
+          "help": "Sélectionnez chaque pays où vous opérez (jusqu’à {{max}})."
+        },
+        "registrationReference": {
+          "label": "Référence d’immatriculation",
+          "help": "Votre numéro d’immatriculation ou équivalent."
+        },
+        "primaryCategory": {
+          "label": "Catégorie principale",
+          "help": "La catégorie qui décrit le mieux votre organisation."
+        },
+        "additionalCategories": {
+          "label": "Catégories supplémentaires",
+          "help": "Facultatif. Jusqu’à {{max}} de plus."
+        },
+        "regulatorName": {
+          "label": "Autorité de régulation",
+          "help": "L’autorité qui réglemente votre activité."
+        },
+        "licenceReference": {
+          "label": "Référence d’agrément",
+          "help": "Votre numéro d’agrément ou d’autorisation."
+        },
+        "requestedCapabilities": {
+          "label": "Services dont vous souhaitez discuter",
+          "help": "Ce sont vos propres déclarations sur ce que vous souhaitez proposer aux employés. Elles ne sont ni vérifiées ni approuvées."
+        },
+        "serviceSummary": {
+          "label": "Résumé de votre service",
+          "help": "De 20 à 1000 caractères. N’incluez aucune donnée personnelle sur des individus."
+        },
+        "website": {
+          "label": "Site web",
+          "help": "Une adresse commençant par https://."
+        },
+        "apiAvailability": {
+          "label": "Proposez-vous une API ?",
+          "help": "Indiquez si une intégration par API est possible."
+        },
+        "supportedLanguages": {
+          "label": "Langues prises en charge",
+          "help": "Sélectionnez-en au moins une."
+        },
+        "contactName": {
+          "label": "Nom du contact",
+          "help": "La personne à qui DivalHR doit écrire."
+        },
+        "contactRole": {
+          "label": "Fonction du contact",
+          "help": "Son poste dans l’organisation."
+        },
+        "businessEmail": {
+          "label": "Courriel professionnel",
+          "help": "DivalHR vous contactera à cette adresse."
+        },
+        "businessPhone": {
+          "label": "Téléphone professionnel",
+          "help": "Format international, par exemple +243900000000."
+        },
+        "privacyContactEmail": {
+          "label": "Courriel du contact vie privée",
+          "help": "L’adresse pour les questions de vie privée et de sécurité."
+        },
+        "acknowledgment": {
+          "label": "Je confirme être autorisé(e) à soumettre ces informations pour examen de partenariat.",
+          "help": "Les informations sont transmises uniquement à DivalHR pour examen de partenariat."
+        }
+      },
+      "validation": {
+        "REQUIRED": "Ce champ est obligatoire.",
+        "LENGTH": "La longueur n’est pas valide. Vérifiez le nombre de caractères ou de choix autorisé.",
+        "FORMAT": "Le format n’est pas valide. Consultez l’aide et réessayez.",
+        "RANGE": "La valeur est hors de la plage autorisée.",
+        "DUPLICATE": "Une valeur est répétée. Supprimez le doublon.",
+        "UNKNOWN_PROPERTY": "Le formulaire n’a pas pu être lu. Rechargez la page et réessayez."
+      }
+    },
+    "confirmation": {
+      "title": "Candidature reçue",
+      "body": "Merci. Votre candidature a été transmise pour examen.",
+      "reference": "Référence",
+      "submittedAt": "Envoyée le",
+      "nextStep": {
+        "DIVALHR_WILL_CONTACT_BUSINESS_EMAIL": "Conservez cette référence. DivalHR vous contactera au courriel professionnel indiqué. Il n’existe pas de page de suivi : merci de ne pas renvoyer la candidature."
+      },
+      "copy": "Copier la référence",
+      "copied": "Référence copiée.",
+      "copyFailed": "La référence n’a pas pu être copiée. Sélectionnez-la et copiez-la manuellement.",
+      "startAnother": "Commencer une autre candidature",
+      "sessionNote": "Cette confirmation reste disponible dans cet onglet du navigateur jusqu’à sa fermeture ou jusqu’à une nouvelle candidature. Rien d’autre de ce que vous avez saisi n’est conservé."
+    },
+    "category": {
+      "BANK": "Banque",
+      "MICROFINANCE": "Institution de microfinance",
+      "INSURANCE": "Assurance",
+      "HEALTH_BENEFITS": "Avantages santé",
+      "TELECOM": "Opérateur télécom",
+      "MOBILE_MONEY_PAYMENT": "Monnaie mobile et paiements",
+      "PENSION_SAVINGS": "Retraite et épargne",
+      "OTHER_REGULATED_PROVIDER": "Autre prestataire réglementé"
+    },
+    "capability": {
+      "SALARY_ADVANCE": "Avance sur salaire",
+      "EMPLOYEE_LOANS": "Prêts aux employés",
+      "HEALTH_INSURANCE": "Assurance santé",
+      "LIFE_INSURANCE": "Assurance vie",
+      "ACCIDENT_INSURANCE": "Assurance accidents",
+      "HEALTHCARE_BENEFITS": "Prestations de soins",
+      "AIRTIME_DATA_BENEFITS": "Avantages crédit d’appel et données",
+      "SMS_USSD_SERVICES": "Services SMS et USSD",
+      "MOBILE_MONEY_DISBURSEMENT": "Versement par monnaie mobile",
+      "PAYMENT_COLLECTION": "Encaissement de paiements",
+      "PENSION_SAVINGS": "Retraite et épargne",
+      "OTHER_EMPLOYEE_SERVICE": "Autre service aux employés"
+    },
+    "api": {
+      "YES": "Oui, une API est disponible",
+      "PLANNED": "Prévue",
+      "NO": "Non"
+    },
+    "status": {
+      "SUBMITTED": "Soumise",
+      "UNDER_REVIEW": "En cours d’examen",
+      "MORE_INFORMATION_REQUIRED": "Informations complémentaires requises",
+      "APPROVED_FOR_ONBOARDING": "Approuvée pour l’intégration",
+      "DECLINED": "Refusée",
+      "WITHDRAWN": "Retirée"
+    },
+    "transition": {
+      "UNDER_REVIEW": "Commencer l’examen",
+      "MORE_INFORMATION_REQUIRED": "Demander des informations",
+      "APPROVED_FOR_ONBOARDING": "Approuver pour l’intégration",
+      "DECLINED": "Refuser",
+      "WITHDRAWN": "Enregistrer le retrait",
+      "SUBMITTED": "Soumise"
+    },
+    "reason": {
+      "APPLICANT_REQUEST": "Le candidat a demandé le retrait",
+      "OUT_OF_SCOPE": "Hors périmètre",
+      "INCOMPLETE_INFORMATION": "Informations incomplètes",
+      "REGULATORY_CONCERN": "Préoccupation réglementaire",
+      "DUE_DILIGENCE_CONCERN": "Préoccupation de diligence",
+      "NOT_PURSUING": "Pas de suite donnée",
+      "CLARIFY_REGULATORY_INFORMATION": "Préciser les informations réglementaires",
+      "CLARIFY_SERVICE_SCOPE": "Préciser le périmètre du service",
+      "CLARIFY_TECHNICAL_READINESS": "Préciser la maturité technique",
+      "OTHER": "Autre"
+    },
+    "result": {
+      "PENDING": "En attente",
+      "SATISFIED": "Satisfait",
+      "NOT_APPLICABLE": "Sans objet",
+      "CONCERN": "Préoccupation"
+    },
+    "check": {
+      "BUSINESS_IDENTITY": {
+        "title": "Identité de l’entreprise",
+        "help": "L’organisation et son contact paraissent authentiques."
+      },
+      "REGISTRATION_REFERENCE": {
+        "title": "Référence d’immatriculation",
+        "help": "La référence d’immatriculation est plausible et cohérente."
+      },
+      "REGULATORY_INFORMATION": {
+        "title": "Informations réglementaires",
+        "help": "L’autorité et l’agrément sont cohérents avec la catégorie."
+      },
+      "SERVICE_SCOPE": {
+        "title": "Périmètre du service",
+        "help": "Les services demandés relèvent de ce dont DivalHR peut discuter."
+      },
+      "PRIVACY_SECURITY_CONTACT": {
+        "title": "Contact vie privée et sécurité",
+        "help": "Un contact vie privée et sécurité est fourni."
+      },
+      "TECHNICAL_API_READINESS": {
+        "title": "Maturité technique",
+        "help": "La déclaration de maturité technique est comprise."
+      },
+      "COMMERCIAL_DISCUSSION": {
+        "title": "Discussion commerciale",
+        "help": "À titre indicatif : elle ne bloque jamais l’approbation."
+      }
+    },
+    "event": {
+      "SUBMITTED": "Soumise",
+      "REVIEW_STARTED": "Examen commencé",
+      "INFORMATION_REQUESTED": "Informations demandées",
+      "CHECKLIST_UPDATED": "Liste de contrôle mise à jour",
+      "APPROVED_FOR_ONBOARDING": "Approuvée pour l’intégration",
+      "DECLINED": "Refusée",
+      "WITHDRAWAL_RECORDED": "Retrait enregistré"
+    },
+    "review": {
+      "title": "Candidatures de partenaires",
+      "description": "Examinez les candidatures de prestataires qui souhaitent entamer des discussions d’intégration avec DivalHR.",
+      "queueNotice": "Les candidatures sont des déclarations non vérifiées du candidat. L’approbation permet seulement d’entamer les discussions d’intégration.",
+      "approvalBoundary": "« Approuvée pour l’intégration » signifie que les discussions peuvent commencer. Aucun référencement, aucun identifiant, aucune intégration et aucun accès aux données des employés n’a été créé, et aucun n’est sous-entendu.",
+      "counts": "Candidatures par état",
+      "loading": "Chargement des candidatures de partenaires…",
+      "empty": "Aucune candidature de partenaire ne correspond.",
+      "tableLabel": "Candidatures de partenaires",
+      "more": "Charger plus",
+      "back": "Retour aux candidatures de partenaires",
+      "filters": {
+        "label": "Filtrer les candidatures de partenaires",
+        "status": "État",
+        "category": "Catégorie",
+        "capability": "Service",
+        "country": "Pays",
+        "submittedFrom": "Soumise à partir du",
+        "submittedTo": "Soumise jusqu’au",
+        "any": "Tous",
+        "apply": "Appliquer les filtres",
+        "clear": "Effacer les filtres"
+      },
+      "columns": {
+        "reference": "Référence",
+        "organization": "Organisation",
+        "category": "Catégorie",
+        "status": "État",
+        "submitted": "Soumise le"
+      },
+      "detailDescription": "Référence {{reference}}",
+      "application": "Candidature",
+      "contact": "Contact",
+      "contactNotice": "Les coordonnées ne sont visibles que des administrateurs de la plateforme.",
+      "consent": "Attestation",
+      "privacyNoticeVersion": "Version de l’avis de confidentialité",
+      "consentVersion": "Version du consentement",
+      "consentLocale": "Langue",
+      "acceptedAt": "Acceptée le",
+      "possibleDuplicates_one": "{{count}} autre candidature est peut-être un doublon.",
+      "possibleDuplicates_other": "{{count}} autres candidatures sont peut-être des doublons.",
+      "checklist": "Liste de contrôle de diligence",
+      "checklistHelp": "Six contrôles doivent être satisfaits ou sans objet avant l’approbation. La discussion commerciale est indicative.",
+      "mandatory": "obligatoire",
+      "advisory": "indicatif",
+      "currentResult": "Résultat actuel :",
+      "currentNote": "Note interne :",
+      "result": "Résultat",
+      "note": "Note interne",
+      "noteHelp": "Facultatif, jusqu’à {{max}} caractères. Visible des seuls administrateurs de la plateforme ; jamais envoyée au candidat.",
+      "saveCheck": "Enregistrer le contrôle",
+      "transitions": "État",
+      "approvalBlocked": "L’approbation est bloquée tant que ces contrôles ne sont pas satisfaits :",
+      "reason": "Motif",
+      "reasonRequired": "Choisissez un motif.",
+      "confirmRequired": "Confirmez l’action pour continuer.",
+      "confirm": {
+        "APPROVED_FOR_ONBOARDING": "Je confirme l’approbation pour les seules discussions d’intégration.",
+        "DECLINED": "Je confirme le refus de cette candidature.",
+        "WITHDRAWN": "Je confirme l’enregistrement de ce retrait."
+      },
+      "apply": "Appliquer",
+      "history": "Historique",
+      "historyWhen": "Quand",
+      "historyEvent": "Événement",
+      "historyDetail": "Détail",
+      "unauthorized": "Seuls les administrateurs de la plateforme peuvent examiner les candidatures de partenaires.",
+      "signInRequired": "Connectez-vous en tant qu’administrateur de la plateforme pour examiner les candidatures de partenaires."
+    },
+    "notice": {
+      "title": "Avis de confidentialité",
+      "body": "DivalHR utilise les informations saisies uniquement pour examiner votre candidature de partenariat. Les coordonnées confidentielles sont stockées chiffrées et ne sont visibles que des administrateurs de la plateforme DivalHR autorisés. Ce formulaire n’envoie aucun courriel et ne crée ni compte, ni identifiants, ni intégration, et DivalHR ne vérifie pas ces informations à ce stade."
     }
   }
 }

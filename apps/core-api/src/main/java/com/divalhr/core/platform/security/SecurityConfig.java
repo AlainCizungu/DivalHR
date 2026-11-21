@@ -59,6 +59,12 @@ public class SecurityConfig {
   static final String PUBLIC_PARTNER_CALLBACK = "/api/v1/public/partners/synthetic-test/callbacks";
 
   /**
+   * MVP-120D: the one exact anonymous partner-application submission route (POST only). The
+   * platform review routes under {@code /api/v1/platform/partner-applications} are never public.
+   */
+  static final String PUBLIC_PARTNER_APPLICATION = "/api/v1/public/partner-applications";
+
+  /**
    * Anonymous {@code /api/v1/public/**} endpoints ({@code x-divalhr-scope: public}). This chain has
    * no resource server: access tokens are neither required nor read, so a bearer token can never
    * change what these endpoints return. Everything else under the prefix is denied.
@@ -88,6 +94,8 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, PUBLIC_MESSAGING_CALLBACK)
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, PUBLIC_PARTNER_CALLBACK)
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, PUBLIC_PARTNER_APPLICATION)
                     .permitAll()
                     .anyRequest()
                     .denyAll())

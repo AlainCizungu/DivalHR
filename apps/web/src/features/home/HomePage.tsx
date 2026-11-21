@@ -98,6 +98,13 @@ const PLATFORM_CARDS: CardDef[] = [
     testId: 'home-card-first-admin',
   },
   {
+    to: '/admin/partner-applications',
+    icon: 'contract',
+    titleKey: 'home.platform.partnerApplications.title',
+    descriptionKey: 'home.platform.partnerApplications.description',
+    testId: 'home-card-partner-applications',
+  },
+  {
     to: '/status',
     icon: 'pulse',
     titleKey: 'nav.status',
