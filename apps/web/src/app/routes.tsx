@@ -68,6 +68,9 @@ import { AcceptInvitationPage } from '../features/invitation/AcceptInvitationPag
 import { EmployeeDirectoryPage } from '../features/people/EmployeeDirectoryPage';
 import { EmployeeImportPage } from '../features/people/EmployeeImportPage';
 import { EmployeeProfilePage } from '../features/people/EmployeeProfilePage';
+import { PartnerApplicationDetailPage } from '../features/partners/PartnerApplicationDetailPage';
+import { PartnerApplicationsPage } from '../features/partners/PartnerApplicationsPage';
+import { PartnerApplyPage } from '../features/partners/PartnerApplyPage';
 import { StatusPage } from '../features/status/StatusPage';
 import { UsersPage } from '../features/users/UsersPage';
 
@@ -131,6 +134,26 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'firstAdmin.signInRequired',
     },
     crumbs: [HOME, PLATFORM, { key: 'nav.firstAdmin' }],
+  },
+  {
+    path: '/admin/partner-applications',
+    element: <PartnerApplicationsPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'partners.review.unauthorized',
+      signInKey: 'partners.review.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.partnerApplications' }],
+  },
+  {
+    path: '/admin/partner-applications/:reference',
+    element: <PartnerApplicationDetailPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'partners.review.unauthorized',
+      signInKey: 'partners.review.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.partnerApplications', to: '/admin/partner-applications' }],
   },
   {
     path: '/admin/statutory-packs',
@@ -630,5 +653,6 @@ export const ROUTES: AppRoute[] = [
     crumbs: [HOME, MY_SPACE, { key: 'nav.expenseApprovals' }],
   },
   { path: '/invitation', element: <AcceptInvitationPage />, frame: 'public' },
+  { path: '/partners/apply', element: <PartnerApplyPage />, frame: 'public' },
   { path: '/auth/callback', element: <CallbackPage />, frame: 'public' },
 ];

@@ -175,6 +175,7 @@ test.describe('desktop', () => {
       'Home',
       'Create organization',
       'First administrator',
+      'Partner applications',
       'Statutory packs',
     ]);
     await expect(platform.getByTestId('home-card-status')).toBeVisible();

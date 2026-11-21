@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { BrandMark, Wordmark } from '../../shell/controls';
 import { Icon } from '../../ui/Icon';
@@ -15,7 +16,6 @@ import {
   INTEGRATION_GROUPS,
   OUTCOMES,
   PARTNER_POINTS,
-  partnerMailto,
   PAYROLL_STEPS,
   PLATFORM_STEPS,
   PREVIEW_ACTIONS,
@@ -506,16 +506,9 @@ export default function LandingContent() {
             ))}
           </ul>
           <p>
-            <a
-              className="button"
-              data-testid="landing-partner-cta"
-              href={partnerMailto(
-                t('landing.partners.mailSubject'),
-                t('landing.partners.mailBody'),
-              )}
-            >
+            <Link className="button" data-testid="landing-partner-cta" to="/partners/apply">
               {t('landing.partners.cta')}
-            </a>
+            </Link>
           </p>
           <p className="landing-legend">{t('landing.partners.ctaNote')}</p>
         </div>

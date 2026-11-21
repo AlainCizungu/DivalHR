@@ -66,7 +66,8 @@
     "accountingMappings": "Accounting mappings",
     "myPayslips": "My payslips",
     "myPaymentDestination": "My payment destination",
-    "salaryAdvanceHandoffs": "Partner handoffs"
+    "salaryAdvanceHandoffs": "Partner handoffs",
+    "partnerApplications": "Partner applications"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -159,6 +160,10 @@
       },
       "status": {
         "description": "Check that DivalHR services respond."
+      },
+      "partnerApplications": {
+        "title": "Review partner applications",
+        "description": "Review applications from providers who want to start onboarding discussions. Approval creates no listing, credentials or integration."
       }
     },
     "tenant": {
@@ -339,7 +344,7 @@
         "compensationTitle": "My compensation",
         "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment.",
         "payslips": "Read your payslips and download them as PDF in English or French. A payslip is not proof of payment.",
-        "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner and follow that partner’s review status. DivalHR is not the lender; no loan is approved and no funds are disbursed."
+        "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner and follow that partner’s review status. DivalHR is not the lender; no real partner is connected, no loan is approved and no funds are disbursed."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -3348,9 +3353,9 @@
       "copyright": "© 2026 DivalHR · A Dival AI company"
     },
     "partners": {
-      "kicker": "Financial Partner Program",
-      "title": "Financial Partner Program",
-      "body": "DivalHR is not a lender. We are shaping a program for licensed financial institutions that want to serve employees through their employer, with the employee’s consent. Today no real financial partner is connected: the controlled handoff runs against a synthetic test partner only.",
+      "kicker": "Partners",
+      "title": "Partner with DivalHR",
+      "body": "DivalHR is not a lender. We open controlled onboarding discussions with regulated and licensed providers — banks, microfinance institutions, insurers, health-benefit providers, telecom operators, mobile-money and payment providers, and pension and savings providers — that want to serve employees through their employer, with the employee’s consent. Today no real partner is connected: the controlled handoff runs against a synthetic test partner only.",
       "points": {
         "consent": {
           "title": "Consent first",
@@ -3369,10 +3374,8 @@
           "description": "Every handoff today goes to a test partner. No decision, payout or deduction follows from it."
         }
       },
-      "cta": "Become a financial partner",
-      "ctaNote": "Write to us; there is no form, upload or partner portal yet.",
-      "mailSubject": "Financial partner enquiry",
-      "mailBody": "Hello DivalHR,\n\nWe would like to talk about the Financial Partner Program.\n\nInstitution name:\nCountry:\nType of institution:\nRegulator and licence status:\nContact name and role:\nWhat we would like to offer employees:\n\nThank you."
+      "cta": "Apply to partner with DivalHR",
+      "ctaNote": "An application opens a conversation only. It creates no listing, credentials, integration or access to employee data, and there is no partner portal, status lookup or document upload yet."
     }
   },
   "leaveSubstitutes": {
@@ -7090,6 +7093,296 @@
       "downloadManifest": "Download manifest",
       "downloaded": "The file was downloaded.",
       "back": "Back to the journal history"
+    }
+  },
+  "partners": {
+    "apply": {
+      "title": "Partner with DivalHR",
+      "description": "Regulated and licensed providers can apply to start onboarding discussions with DivalHR. This form is for organizations; it is not for employees.",
+      "boundary": "Applying opens a conversation only. It does not create a listing, credentials, an integration or access to any employee data, and DivalHR does not verify what you enter at this stage.",
+      "requiredNote": "Fields are required unless marked optional.",
+      "optional": "(optional)",
+      "select": "Select…",
+      "submit": "Submit application",
+      "submitting": "Submitting…",
+      "errorSummary": "Please correct the following:",
+      "regulatoryNote": "For this category we ask for your regulator and licence reference. DivalHR does not verify them here.",
+      "sections": {
+        "organization": "Your organization",
+        "activity": "What you offer",
+        "contact": "Business contact",
+        "acknowledgment": "Acknowledgment"
+      },
+      "fields": {
+        "legalName": {
+          "label": "Legal name",
+          "help": "The registered name of the organization."
+        },
+        "tradingName": {
+          "label": "Trading name",
+          "help": "The name customers know, if different."
+        },
+        "countryOfRegistration": {
+          "label": "Country of registration",
+          "help": "Where the organization is legally registered."
+        },
+        "countriesOfOperation": {
+          "label": "Countries of operation",
+          "help": "Select every country where you operate."
+        },
+        "registrationReference": {
+          "label": "Registration reference",
+          "help": "Your company registration number or equivalent."
+        },
+        "primaryCategory": {
+          "label": "Primary category",
+          "help": "The category that best describes your organization."
+        },
+        "additionalCategories": {
+          "label": "Additional categories",
+          "help": "Optional. Up to {{max}} more."
+        },
+        "regulatorName": {
+          "label": "Regulator",
+          "help": "The authority that regulates your activity."
+        },
+        "licenceReference": {
+          "label": "Licence reference",
+          "help": "Your licence or authorization number."
+        },
+        "requestedCapabilities": {
+          "label": "Services you would like to discuss",
+          "help": "These are your own statements about what you would like to offer employees. They are not verified or approved."
+        },
+        "serviceSummary": {
+          "label": "Summary of your service",
+          "help": "20 to 1000 characters. Do not include personal data about individuals."
+        },
+        "website": {
+          "label": "Website",
+          "help": "An address starting with https://."
+        },
+        "apiAvailability": {
+          "label": "Do you offer an API?",
+          "help": "Tell us whether integration through an API is possible."
+        },
+        "supportedLanguages": {
+          "label": "Languages you support",
+          "help": "Select at least one."
+        },
+        "contactName": {
+          "label": "Contact name",
+          "help": "The person DivalHR should write to."
+        },
+        "contactRole": {
+          "label": "Contact role",
+          "help": "Their position in the organization."
+        },
+        "businessEmail": {
+          "label": "Business email",
+          "help": "DivalHR will contact you at this address."
+        },
+        "businessPhone": {
+          "label": "Business phone",
+          "help": "International format, for example +243900000000."
+        },
+        "privacyContactEmail": {
+          "label": "Privacy contact email",
+          "help": "The address for privacy and security matters."
+        },
+        "acknowledgment": {
+          "label": "I confirm that I am authorized to submit this information for partnership review.",
+          "help": "The information is submitted for partnership review by DivalHR only."
+        }
+      },
+      "validation": {
+        "REQUIRED": "This field is required.",
+        "LENGTH": "The length is not valid. Check the allowed number of characters or choices.",
+        "FORMAT": "The format is not valid. Check the help text and try again.",
+        "RANGE": "The value is outside the allowed range.",
+        "DUPLICATE": "A value is repeated. Remove the duplicate.",
+        "UNKNOWN_PROPERTY": "The form could not be read. Reload the page and try again."
+      }
+    },
+    "confirmation": {
+      "title": "Application received",
+      "body": "Thank you. Your application has been submitted for review.",
+      "reference": "Reference",
+      "submittedAt": "Submitted",
+      "nextStep": {
+        "DIVALHR_WILL_CONTACT_BUSINESS_EMAIL": "Keep this reference. DivalHR will contact you at the business email you provided. There is no status page: please do not submit the application again."
+      }
+    },
+    "category": {
+      "BANK": "Bank",
+      "MICROFINANCE": "Microfinance institution",
+      "INSURANCE": "Insurance",
+      "HEALTH_BENEFITS": "Health benefits",
+      "TELECOM": "Telecom operator",
+      "MOBILE_MONEY_PAYMENT": "Mobile money and payments",
+      "PENSION_SAVINGS": "Pension and savings",
+      "OTHER_REGULATED_PROVIDER": "Other regulated provider"
+    },
+    "capability": {
+      "SALARY_ADVANCE": "Salary advance",
+      "EMPLOYEE_LOANS": "Employee loans",
+      "HEALTH_INSURANCE": "Health insurance",
+      "LIFE_INSURANCE": "Life insurance",
+      "ACCIDENT_INSURANCE": "Accident insurance",
+      "HEALTHCARE_BENEFITS": "Healthcare benefits",
+      "AIRTIME_DATA_BENEFITS": "Airtime and data benefits",
+      "SMS_USSD_SERVICES": "SMS and USSD services",
+      "MOBILE_MONEY_DISBURSEMENT": "Mobile money disbursement",
+      "PAYMENT_COLLECTION": "Payment collection",
+      "PENSION_SAVINGS": "Pension and savings",
+      "OTHER_EMPLOYEE_SERVICE": "Other employee service"
+    },
+    "api": {
+      "YES": "Yes, an API is available",
+      "PLANNED": "Planned",
+      "NO": "No"
+    },
+    "status": {
+      "SUBMITTED": "Submitted",
+      "UNDER_REVIEW": "Under review",
+      "MORE_INFORMATION_REQUIRED": "More information required",
+      "APPROVED_FOR_ONBOARDING": "Approved for onboarding",
+      "DECLINED": "Declined",
+      "WITHDRAWN": "Withdrawn"
+    },
+    "transition": {
+      "UNDER_REVIEW": "Start review",
+      "MORE_INFORMATION_REQUIRED": "Ask for more information",
+      "APPROVED_FOR_ONBOARDING": "Approve for onboarding",
+      "DECLINED": "Decline",
+      "WITHDRAWN": "Record withdrawal",
+      "SUBMITTED": "Submitted"
+    },
+    "reason": {
+      "APPLICANT_REQUEST": "The applicant asked to withdraw",
+      "OUT_OF_SCOPE": "Out of scope",
+      "INCOMPLETE_INFORMATION": "Incomplete information",
+      "REGULATORY_CONCERN": "Regulatory concern",
+      "DUE_DILIGENCE_CONCERN": "Due-diligence concern",
+      "NOT_PURSUING": "Not pursuing",
+      "CLARIFY_REGULATORY_INFORMATION": "Clarify regulatory information",
+      "CLARIFY_SERVICE_SCOPE": "Clarify service scope",
+      "CLARIFY_TECHNICAL_READINESS": "Clarify technical readiness",
+      "OTHER": "Other"
+    },
+    "result": {
+      "PENDING": "Pending",
+      "SATISFIED": "Satisfied",
+      "NOT_APPLICABLE": "Not applicable",
+      "CONCERN": "Concern"
+    },
+    "check": {
+      "BUSINESS_IDENTITY": {
+        "title": "Business identity",
+        "help": "The organization and its contact appear genuine."
+      },
+      "REGISTRATION_REFERENCE": {
+        "title": "Registration reference",
+        "help": "The registration reference is plausible and consistent."
+      },
+      "REGULATORY_INFORMATION": {
+        "title": "Regulatory information",
+        "help": "Regulator and licence are consistent with the category."
+      },
+      "SERVICE_SCOPE": {
+        "title": "Service scope",
+        "help": "The requested services are within what DivalHR can discuss."
+      },
+      "PRIVACY_SECURITY_CONTACT": {
+        "title": "Privacy and security contact",
+        "help": "A privacy and security contact is provided."
+      },
+      "TECHNICAL_API_READINESS": {
+        "title": "Technical readiness",
+        "help": "The technical readiness statement is understood."
+      },
+      "COMMERCIAL_DISCUSSION": {
+        "title": "Commercial discussion",
+        "help": "Advisory only: it never blocks approval."
+      }
+    },
+    "event": {
+      "SUBMITTED": "Submitted",
+      "REVIEW_STARTED": "Review started",
+      "INFORMATION_REQUESTED": "Information requested",
+      "CHECKLIST_UPDATED": "Checklist updated",
+      "APPROVED_FOR_ONBOARDING": "Approved for onboarding",
+      "DECLINED": "Declined",
+      "WITHDRAWAL_RECORDED": "Withdrawal recorded"
+    },
+    "review": {
+      "title": "Partner applications",
+      "description": "Review applications from providers who want to start onboarding discussions with DivalHR.",
+      "queueNotice": "Applications are unverified statements by the applicant. Approval only allows onboarding discussions to begin.",
+      "approvalBoundary": "Approved for onboarding means discussions may begin. No listing, credentials, integration or access to employee data was created, and none is implied.",
+      "counts": "Applications by status",
+      "loading": "Loading partner applications…",
+      "empty": "No partner applications match.",
+      "tableLabel": "Partner applications",
+      "more": "Load more",
+      "back": "Back to partner applications",
+      "filters": {
+        "label": "Filter partner applications",
+        "status": "Status",
+        "category": "Category",
+        "capability": "Service",
+        "country": "Country",
+        "submittedFrom": "Submitted from",
+        "submittedTo": "Submitted to",
+        "any": "Any",
+        "apply": "Apply filters",
+        "clear": "Clear filters"
+      },
+      "columns": {
+        "reference": "Reference",
+        "organization": "Organization",
+        "category": "Category",
+        "status": "Status",
+        "submitted": "Submitted"
+      },
+      "detailDescription": "Reference {{reference}}",
+      "application": "Application",
+      "contact": "Contact",
+      "contactNotice": "Contact details are shown to platform administrators only.",
+      "consent": "Acknowledgment",
+      "privacyNoticeVersion": "Privacy notice version",
+      "consentVersion": "Consent version",
+      "consentLocale": "Language",
+      "acceptedAt": "Accepted",
+      "possibleDuplicates_one": "{{count}} other application may be a duplicate.",
+      "possibleDuplicates_other": "{{count}} other applications may be duplicates.",
+      "checklist": "Due-diligence checklist",
+      "checklistHelp": "Six checks must be satisfied or not applicable before approval. The commercial discussion is advisory.",
+      "mandatory": "mandatory",
+      "advisory": "advisory",
+      "currentResult": "Current result:",
+      "currentNote": "Internal note:",
+      "result": "Result",
+      "note": "Internal note",
+      "noteHelp": "Optional, up to {{max}} characters. Visible to platform administrators only; never sent to the applicant.",
+      "saveCheck": "Save check",
+      "transitions": "Status",
+      "approvalBlocked": "Approval is blocked until these checks are satisfied:",
+      "reason": "Reason",
+      "reasonRequired": "Choose a reason.",
+      "confirmRequired": "Confirm the action to continue.",
+      "confirm": {
+        "APPROVED_FOR_ONBOARDING": "I confirm approval for onboarding discussions only.",
+        "DECLINED": "I confirm declining this application.",
+        "WITHDRAWN": "I confirm recording this withdrawal."
+      },
+      "apply": "Apply",
+      "history": "History",
+      "historyWhen": "When",
+      "historyEvent": "Event",
+      "historyDetail": "Detail",
+      "unauthorized": "Only platform administrators can review partner applications.",
+      "signInRequired": "Sign in as a platform administrator to review partner applications."
     }
   }
 }

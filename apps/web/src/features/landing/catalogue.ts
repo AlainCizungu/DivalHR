@@ -178,15 +178,7 @@ export function demoMailto(subject: string): string {
   return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 }
 
-/**
- * MVP-120B (D120B-12): "Become a financial partner" is a structured email to the same address:
- * no form, no upload, no portal and no directory. The subject and body come from the locale.
- */
-export function partnerMailto(subject: string, body: string): string {
-  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
-/** The four statements of the Financial Partner Program section (D120B-11), in order. */
+/** The four statements of the "Partner with DivalHR" section (D120B-11, D120D-16), in order. */
 export const PARTNER_POINTS: readonly { key: string; icon: IconName }[] = [
   { key: 'consent', icon: 'shield' },
   { key: 'minimal', icon: 'contract' },

@@ -5,6 +5,35 @@ import type { components as CoreComponents, paths as CorePaths } from './generat
 export type SystemStatus = CoreComponents['schemas']['SystemStatus'];
 export type CurrentSession = CoreComponents['schemas']['CurrentSession'];
 export type Problem = CoreComponents['schemas']['Problem'];
+/** MVP-120D: partner applications (public submission and platform review). */
+export type PartnerCategory = CoreComponents['schemas']['PartnerCategory'];
+export type PartnerCapability = CoreComponents['schemas']['PartnerCapability'];
+export type PartnerApplicationStatus = CoreComponents['schemas']['PartnerApplicationStatus'];
+export type PartnerApiAvailability = CoreComponents['schemas']['PartnerApiAvailability'];
+export type PartnerLanguage = CoreComponents['schemas']['PartnerLanguage'];
+export type PartnerCheckCode = CoreComponents['schemas']['PartnerCheckCode'];
+export type PartnerCheckResult = CoreComponents['schemas']['PartnerCheckResult'];
+export type PartnerReasonCode = CoreComponents['schemas']['PartnerReasonCode'];
+export type PartnerApplicationEventType = CoreComponents['schemas']['PartnerApplicationEventType'];
+export type PartnerApplicationSubmission =
+  CoreComponents['schemas']['PartnerApplicationSubmission'];
+export type PartnerApplicationReceipt = CoreComponents['schemas']['PartnerApplicationReceipt'];
+export type PartnerApplicationSummary = CoreComponents['schemas']['PartnerApplicationSummary'];
+export type PartnerApplicationPage = CoreComponents['schemas']['PartnerApplicationPage'];
+export type PartnerApplicationContact = CoreComponents['schemas']['PartnerApplicationContact'];
+export type PartnerApplicationCheck = CoreComponents['schemas']['PartnerApplicationCheck'];
+export type PartnerApplicationConsent = CoreComponents['schemas']['PartnerApplicationConsent'];
+export type PartnerApplicationDetail = CoreComponents['schemas']['PartnerApplicationDetail'];
+export type PartnerApplicationHistoryEntry =
+  CoreComponents['schemas']['PartnerApplicationHistoryEntry'];
+export type PartnerApplicationHistoryPage =
+  CoreComponents['schemas']['PartnerApplicationHistoryPage'];
+export type PartnerApplicationCheckCommand =
+  CoreComponents['schemas']['PartnerApplicationCheckCommand'];
+export type PartnerApplicationTransitionCommand =
+  CoreComponents['schemas']['PartnerApplicationTransitionCommand'];
+export type PartnerApplicationTransitionReceipt =
+  CoreComponents['schemas']['PartnerApplicationTransitionReceipt'];
 export type ErrorCode = CoreComponents['schemas']['ErrorCode'];
 export type Organization = CoreComponents['schemas']['Organization'];
 export type AccessReviewPage = CoreComponents['schemas']['AccessReviewPage'];
