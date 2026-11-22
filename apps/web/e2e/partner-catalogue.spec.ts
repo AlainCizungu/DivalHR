@@ -49,6 +49,9 @@ const COPY = {
     confirmCreate: 'I confirm that this approved application should become a partner record.',
     boundary: 'It creates no credentials, no connection to the partner',
     informationOnly: 'Information only',
+    landingAvailable: 'Approved partner catalogue available.',
+    landingLater: 'Enrollment, applications and provider connections are coming later.',
+    comingNext: 'Coming next',
     noApplication: 'No application has been submitted.',
     providerDetermines: 'Availability and final terms are determined by the provider.',
     productName: 'Salary advance',
@@ -73,6 +76,10 @@ const COPY = {
     confirmCreate: 'Je confirme que cette candidature approuvée doit devenir une fiche partenaire.',
     boundary: 'Elle ne crée ni identifiants, ni connexion avec le partenaire',
     informationOnly: 'Information uniquement',
+    landingAvailable: 'Catalogue de partenaires approuvés disponible.',
+    landingLater:
+      'L’adhésion, les demandes et les connexions aux fournisseurs viendront ultérieurement.',
+    comingNext: 'Prochainement',
     noApplication: 'Aucune demande n’a été soumise.',
     providerDetermines:
       'La disponibilité et les conditions définitives sont déterminées par le prestataire.',
@@ -487,11 +494,14 @@ test('MVP-120E journey 1: an approved application becomes a partner whose publis
   expect(refused.status()).toBe(403);
   await employeeContext.close();
 
-  // The public landing page names the catalogue as information only, without listing a partner.
+  // The public landing page says the catalogue is available and what is not, without listing a partner.
   const visitor = await (await browser.newContext()).newPage();
   await visitor.goto('/');
   const benefits = visitor.locator('li[data-module="benefits"]');
-  await expect(benefits.getByTestId('landing-foundation')).toContainText(t.informationOnly);
+  await expect(benefits).toHaveAttribute('data-status', 'capabilities');
+  await expect(benefits).toContainText(t.landingAvailable);
+  await expect(benefits).toContainText(t.landingLater);
+  await expect(benefits).not.toContainText(t.comingNext);
   await expect(visitor.locator('body')).not.toContainText(name);
   await visitor.context().close();
 });
@@ -514,7 +524,7 @@ test('MVP-120E journey 2: suspension, pause and closure take the product away, a
     page,
     bearer,
     'POST',
-    `/platform/partners/from-application/${application}`,
+    `/platform/partner-activations/from-application/${application}`,
     { data: { confirmed: true }, key: `create-${application}` },
   );
   const reference = created.partner.reference;

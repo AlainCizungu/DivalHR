@@ -51,6 +51,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class PartnerAccountIntegrationTest {
 
   private static final String PARTNERS = "/api/v1/platform/partners";
+  private static final String ACTIVATIONS = "/api/v1/platform/partner-activations";
   private static final String CATALOGUE = "/api/v1/catalogue";
 
   @Autowired private MockMvc mvc;
@@ -96,7 +97,7 @@ class PartnerAccountIntegrationTest {
     return send(
         "POST",
         admin,
-        PARTNERS + "/from-application/" + applicationReference,
+        ACTIVATIONS + "/from-application/" + applicationReference,
         Map.of("confirmed", true),
         Organizations.newKey());
   }
@@ -287,10 +288,18 @@ class PartnerAccountIntegrationTest {
     String other = approvedApplication();
     MockHttpServletResponse first =
         send(
-            "POST", admin, PARTNERS + "/from-application/" + other, Map.of("confirmed", true), key);
+            "POST",
+            admin,
+            ACTIVATIONS + "/from-application/" + other,
+            Map.of("confirmed", true),
+            key);
     MockHttpServletResponse replay =
         send(
-            "POST", admin, PARTNERS + "/from-application/" + other, Map.of("confirmed", true), key);
+            "POST",
+            admin,
+            ACTIVATIONS + "/from-application/" + other,
+            Map.of("confirmed", true),
+            key);
     assertThat(replay.getHeader("Idempotent-Replayed")).isEqualTo("true");
     assertThat(replay.getContentAsString()).isEqualTo(first.getContentAsString());
     // Confirmation is required.
@@ -298,7 +307,7 @@ class PartnerAccountIntegrationTest {
             send(
                     "POST",
                     admin,
-                    PARTNERS + "/from-application/" + other,
+                    ACTIVATIONS + "/from-application/" + other,
                     Map.of("confirmed", false),
                     Organizations.newKey())
                 .getStatus())
@@ -606,13 +615,13 @@ class PartnerAccountIntegrationTest {
     String employee = member(tenant, "employee");
     for (String bearer : List.of(tenantAdmin, employee)) {
       assertThat(PartnerWorld.read(mvc, bearer, PARTNERS).getStatus()).isEqualTo(403);
-      assertThat(PartnerWorld.read(mvc, bearer, PARTNERS + "/ready-applications").getStatus())
+      assertThat(PartnerWorld.read(mvc, bearer, ACTIVATIONS + "/ready-applications").getStatus())
           .isEqualTo(403);
       assertThat(
               send(
                       "POST",
                       bearer,
-                      PARTNERS + "/from-application/PA-AAAAAAAAAAAA",
+                      ACTIVATIONS + "/from-application/PA-AAAAAAAAAAAA",
                       Map.of("confirmed", true),
                       Organizations.newKey())
                   .getStatus())
@@ -633,8 +642,86 @@ class PartnerAccountIntegrationTest {
     assertThat(list.getHeader("Cache-Control")).isEqualTo("private, no-store");
     assertThat(body(list).path("statusCounts").has("ACTIVE")).isTrue();
     assertThat(PartnerWorld.read(mvc, admin, PARTNERS + "?status=NOPE").getStatus()).isEqualTo(400);
-    assertThat(PartnerWorld.read(mvc, admin, PARTNERS + "/ready-applications").getStatus())
+    assertThat(PartnerWorld.read(mvc, admin, ACTIVATIONS + "/ready-applications").getStatus())
         .isEqualTo(200);
+  }
+
+  /**
+   * R218-1: activation lives under its own path space, so a request that merely looks like an
+   * activation can never be read as a command on a partner, nor the reverse. None of these paths
+   * invokes either command, changes anything, or fails with a server error.
+   */
+  @Test
+  void malformedActivationAndTransitionPathsInvokeNoCommandAndNeverFail() throws Exception {
+    String approved = approvedApplication();
+    String[] tables = {
+      "integrations.partner",
+      "integrations.partner_event",
+      "integrations.partner_product",
+      "integrations.partner_product_event",
+    };
+    long[] before = new long[tables.length];
+    for (int i = 0; i < tables.length; i++) {
+      before[i] = count("SELECT count(*) FROM " + tables[i]);
+    }
+    Map<String, Object> transition = new LinkedHashMap<>();
+    transition.put("action", "ACTIVATE");
+    transition.put("expectedVersion", 1);
+    transition.put("confirmed", true);
+    Map<String, Object> activation = Map.of("confirmed", true);
+
+    // A partner whose "reference" is the literal word of another path is simply an unknown partner.
+    for (String path :
+        List.of(
+            PARTNERS + "/from-application/transitions",
+            PARTNERS + "/ready-applications/transitions",
+            PARTNERS + "/partner-activations/transitions")) {
+      MockHttpServletResponse answer =
+          send("POST", admin, path, transition, Organizations.newKey());
+      assertThat(answer.getStatus()).as(path).isEqualTo(404);
+      assertThat(code(answer)).as(path).isEqualTo("PARTNER_NOT_FOUND");
+    }
+    // The activation endpoint treats a literal word as an unknown application, never as a partner.
+    for (String path :
+        List.of(
+            ACTIVATIONS + "/from-application/transitions",
+            ACTIVATIONS + "/from-application/ready-applications",
+            ACTIVATIONS + "/from-application/PA-aaaaaaaaaaaa")) {
+      MockHttpServletResponse answer =
+          send("POST", admin, path, activation, Organizations.newKey());
+      assertThat(answer.getStatus()).as(path).isEqualTo(404);
+      assertThat(code(answer)).as(path).isEqualTo("PARTNER_APPLICATION_NOT_FOUND");
+    }
+    // Paths that exist in neither space, and the old activation path, reach no handler: always a
+    // client error, never a success and never a 500.
+    for (String path :
+        List.of(
+            PARTNERS + "/from-application/" + approved,
+            PARTNERS + "/from-application",
+            ACTIVATIONS,
+            ACTIVATIONS + "/transitions",
+            ACTIVATIONS + "/from-application",
+            ACTIVATIONS + "/from-application/" + approved + "/transitions",
+            ACTIVATIONS + "/ready-applications/transitions")) {
+      for (Object command : List.of(transition, activation)) {
+        MockHttpServletResponse answer = send("POST", admin, path, command, Organizations.newKey());
+        assertThat(answer.getStatus()).as(path).isBetween(400, 499);
+      }
+    }
+    // The same words as reads.
+    for (String path :
+        List.of(
+            PARTNERS + "/from-application",
+            PARTNERS + "/ready-applications",
+            ACTIVATIONS + "/from-application",
+            ACTIVATIONS + "/transitions")) {
+      assertThat(PartnerWorld.read(mvc, admin, path).getStatus()).as(path).isBetween(400, 499);
+    }
+    for (int i = 0; i < tables.length; i++) {
+      assertThat(count("SELECT count(*) FROM " + tables[i])).as(tables[i]).isEqualTo(before[i]);
+    }
+    // The real activation endpoint still works for the same application.
+    assertThat(create(approved).getStatus()).isEqualTo(200);
   }
 
   @Test

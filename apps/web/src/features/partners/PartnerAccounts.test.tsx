@@ -195,7 +195,7 @@ describe('catalogue behaviour', () => {
 describe('platform partner accounts', () => {
   it('creates a partner only after an explicit confirmation, with one idempotency key', async () => {
     const requests = stub((r) => {
-      if (r.path.startsWith('/platform/partners/ready-applications')) {
+      if (r.path.startsWith('/platform/partner-activations/ready-applications')) {
         return {
           status: 200,
           body: {
@@ -242,7 +242,7 @@ describe('platform partner accounts', () => {
     });
     await user.click(screen.getByTestId('ready-create'));
     const posts = requests.filter((r) => r.method === 'POST');
-    expect(posts[0]?.path).toBe(`/platform/partners/from-application/${APPLICATION}`);
+    expect(posts[0]?.path).toBe(`/platform/partner-activations/from-application/${APPLICATION}`);
     expect(JSON.parse(posts[0]?.body ?? '{}')).toEqual({ confirmed: true });
     expect(posts[0]?.key).toMatch(/^web-/u);
     // A retry of the same payload reuses the key.
@@ -252,7 +252,7 @@ describe('platform partner accounts', () => {
 
   it('links an application that already has a partner instead of offering to create another', async () => {
     stub((r) =>
-      r.path.startsWith('/platform/partners/ready-applications')
+      r.path.startsWith('/platform/partner-activations/ready-applications')
         ? {
             status: 200,
             body: {

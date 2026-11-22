@@ -15415,7 +15415,7 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
-  /platform/partners/ready-applications:
+  /platform/partner-activations/ready-applications:
     get:
       operationId: listPartnerApplicationsReadyForActivation
       x-divalhr-lifecycle: implemented
@@ -15454,7 +15454,7 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
-  /platform/partners/from-application/{applicationReference}:
+  /platform/partner-activations/from-application/{applicationReference}:
     post:
       operationId: createPartnerFromApplication
       x-divalhr-lifecycle: implemented

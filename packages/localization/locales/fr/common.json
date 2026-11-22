@@ -285,7 +285,7 @@
         },
         "catalogue": {
           "title": "Catalogue partenaires",
-          "description": "Informations en lecture seule sur les produits des partenaires approuvés qui correspondent au pays de votre organisation. Information uniquement : rien n’est demandé ni envoyé."
+          "description": "Informations en lecture seule sur les produits des partenaires approuvés qui correspondent au pays de votre organisation. Information uniquement : rien n’est demandé ni envoyé. L’adhésion, les demandes et les connexions aux fournisseurs viendront ultérieurement."
         }
       },
       "attention": {
@@ -356,7 +356,7 @@
         "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement.",
         "payslips": "Lisez vos bulletins de paie et téléchargez-les en PDF en français ou en anglais. Un bulletin de paie ne constitue pas une preuve de paiement.",
         "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique et suivez l’état de son examen. DivalHR n’est pas le prêteur ; aucun partenaire réel n’est connecté, aucun prêt n’est approuvé et aucun fonds n’est décaissé.",
-        "catalogue": "Informations sur les avantages et offres des partenaires approuvés qui correspondent au pays de votre employeur. Information uniquement : aucune demande n’est faite et rien n’est envoyé à un partenaire."
+        "catalogue": "Informations sur les avantages et offres des partenaires approuvés qui correspondent au pays de votre employeur. Information uniquement : aucune demande n’est faite et rien n’est envoyé à un partenaire. L’adhésion, les demandes et les connexions aux fournisseurs viendront ultérieurement."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -3136,8 +3136,8 @@
         },
         "benefits": {
           "title": "Avantages et assurance",
-          "description": "Santé, assurance et produits partenaires accessibles aux employés.",
-          "foundation": "Un catalogue contrôlé, en lecture seule, des produits publiés par des partenaires approuvés, présenté aux membres connectés dont le pays de l’organisation correspond. Information uniquement : aucune demande, inscription, décision d’éligibilité, engagement tarifaire ni donnée transmise à un partenaire. La disponibilité et les conditions définitives sont déterminées par le prestataire."
+          "description": "Catalogue de partenaires approuvés disponible. Les employés peuvent consulter des offres informatives. L’adhésion, les demandes et les connexions aux fournisseurs viendront ultérieurement.",
+          "remaining": "Adhésion des employés, demandes d’avantages, connexions aux partenaires, décisions de financement, retenues sur salaire et mouvements d’argent."
         },
         "performance": {
           "title": "Performance",
@@ -3215,6 +3215,7 @@
         "compensation": "Rémunérations mensuelles enregistrées",
         "operations": "État opérationnel du jour et synthèse quotidienne sourcée",
         "integrations": "Webhooks signés et connecteur WhatsApp Business",
+        "partnerCatalogue": "Candidatures de partenaires avec revue contrôlée, et catalogue d’information des partenaires approuvés et de leurs produits publiés (aucune adhésion, demande ni connexion à un fournisseur)",
         "tasks": "Tâches opérationnelles",
         "expenses": "Notes de frais des employés et approbation par le responsable",
         "languages": "Anglais et français",
@@ -3227,7 +3228,7 @@
         "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et comptabilisation directe dans un système comptable",
         "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et confirmation de paiement",
         "advances": "Avances sur salaire et prêts avec des partenaires réels et agréés (aujourd’hui, il n’existe que des demandes confirmées par l’employeur et une transmission de test contrôlée vers un partenaire synthétique)",
-        "platform": "Avantages sociaux, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
+        "platform": "Adhésion aux avantages et demandes, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
       },
       "capabilities": "Fonctionnalités disponibles",
       "remainingLabel": "Pas encore disponible :",

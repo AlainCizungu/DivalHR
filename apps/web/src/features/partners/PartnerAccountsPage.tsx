@@ -54,7 +54,7 @@ function ReadyRow({ item, onCreated }: { item: PartnerReadyApplication; onCreate
     const body = { confirmed: true };
     try {
       const { data, error, response } = await core.POST(
-        '/platform/partners/from-application/{applicationReference}',
+        '/platform/partner-activations/from-application/{applicationReference}',
         {
           params: {
             path: { applicationReference: item.applicationReference },
@@ -185,7 +185,7 @@ export function PartnerAccountsPage() {
   useEffect(() => {
     let active = true;
     core
-      .GET('/platform/partners/ready-applications', {
+      .GET('/platform/partner-activations/ready-applications', {
         params: { query: { limit: 25 } },
         cache: 'no-store',
       })

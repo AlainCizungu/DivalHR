@@ -26,7 +26,7 @@ call an external API, send an email, WhatsApp or SMS, or make anything purchasab
   checklist notes or the encrypted application payload. `application_id` is a private platform-audit link and is never
   returned to tenants or employees (nor, in this story, to anyone: platform detail links to the application by its
   `PA-` reference, which is not a database identifier).
-- **D120E-3 Idempotent activation.** `POST /platform/partners/from-application/{applicationReference}` requires an
+- **D120E-3 Idempotent activation.** `POST /platform/partner-activations/from-application/{applicationReference}` requires an
   `Idempotency-Key`. Same key and same request replays the original response; same key with a different request is
   `IDEMPOTENCY_KEY_REUSED`; a different key after the partner exists returns the existing partner (`created: false`)
   and creates nothing. Creation yields `DRAFT`; the later `ACTIVATE` transition is a second, explicit, confirmed action.
@@ -123,8 +123,25 @@ final terms are determined by the provider". There is no apply, request, enrol o
 information link opens with `rel="noopener noreferrer"`. The single-product read (`getCatalogueProduct`) exists in the
 contract for later use; the list already carries every field the page shows.
 
-Landing page and role homes: Benefits & Insurance stays "Coming next" with a labelled, information-only foundation, the
-landing page lists no partner or product, and each role home links only to routes that role can open.
+Landing page and role homes: Benefits & Insurance is marked "Capabilities available" (R218-2), because a real, read-only
+catalogue is delivered. Its text says what is available (the approved partner catalogue; employees can review
+informational offers) and what is not (employee enrollment, benefit applications, partner connections, financing
+decisions, payroll deductions and money movement, "coming later"). "Available now" names the catalogue as information
+only and "Coming next" keeps enrollment and applications. The landing page lists no partner or product, the tenant and
+employee home cards are active links to their catalogue pages with the information-only boundary and the "coming later"
+sentence visible, and each role home links only to routes that role can open.
+
+### Amendments after architecture review
+
+- **R218-1 Activation lives outside the partner-resource path space.** The first design kept the brief's
+  `POST /platform/partners/from-application/{applicationReference}` and suppressed Redocly's `no-ambiguous-paths`. That
+  was wrong: valid `PT-` references cannot collide with the literal segment, but a malformed or hostile request such as
+  `POST /platform/partners/from-application/transitions` is still resolvable two ways. Activation is now
+  `POST /platform/partner-activations/from-application/{applicationReference}` and the list of approved applications is
+  `GET /platform/partner-activations/ready-applications`. The contract has no `no-ambiguous-paths` exception for this
+  story, and a routing test proves that malformed activation and transition paths invoke neither command, change nothing
+  and never fail with a server error.
+- **R218-2 Truth surfaces** as described above.
 
 ## 7. Deliberately not decided here
 

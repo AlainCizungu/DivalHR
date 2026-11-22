@@ -139,6 +139,26 @@ const groupLinks = (testId: string) =>
 describe.each(['en', 'fr'] as const)('role homes (%s)', (locale) => {
   const c = resources[locale].common;
 
+  it('links the delivered partner catalogue from the tenant and employee homes with the information-only boundary visible (R218-2)', async () => {
+    const boundary =
+      locale === 'en'
+        ? /Information only.*Enrollment, applications and provider connections are coming later\./u
+        : /Information uniquement.*L’adhésion, les demandes et les connexions aux fournisseurs viendront ultérieurement\./u;
+    for (const [roles, testId, href] of [
+      [['tenant-admin'], 'home-card-catalogue', '/admin/catalogue'],
+      [['employee'], 'home-card-my-catalogue', '/me/catalogue'],
+    ] as const) {
+      const { unmount } = await renderHome(sessionWithRoles([...roles]), locale);
+      const card = screen.getByTestId(testId);
+      const link = card.tagName === 'A' ? card : within(card).getByRole('link');
+      expect(link).toHaveAttribute('href', href);
+      expect(card).toHaveTextContent(boundary);
+      // Never an apply, request or enrol control.
+      expect(within(card).queryByRole('button')).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
   it('gives an organization administrator quick actions, three groups, the progress panel and the roadmap', async () => {
     const { container } = await renderHome(sessionWithRoles(['tenant-admin']), locale);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(c.home.tenant.title);

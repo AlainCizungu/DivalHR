@@ -5874,7 +5874,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/partners/ready-applications": {
+    "/platform/partner-activations/ready-applications": {
         parameters: {
             query?: never;
             header?: never;
@@ -5894,7 +5894,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/partners/from-application/{applicationReference}": {
+    "/platform/partner-activations/from-application/{applicationReference}": {
         parameters: {
             query?: never;
             header?: never;

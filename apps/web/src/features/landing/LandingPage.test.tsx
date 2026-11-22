@@ -74,7 +74,7 @@ const MODULE_TRUTH: Record<string, Availability> = {
   leave: 'available',
   payroll: 'capabilities',
   loans: 'later',
-  benefits: 'later',
+  benefits: 'capabilities',
   performance: 'later',
   documents: 'capabilities',
   analytics: 'capabilities',
@@ -128,6 +128,7 @@ describe('catalogue (UI2-1, UI2-2, D93-14)', () => {
       'accountingExport',
       'operations',
       'integrations',
+      'partnerCatalogue',
       'tasks',
       'expenses',
       'languages',
@@ -290,7 +291,7 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
         strings.landing.modules.next[id],
       );
     }
-    for (const id of ['loans', 'benefits', 'performance', 'mobile']) {
+    for (const id of ['loans', 'performance', 'mobile']) {
       const card = screen
         .getByTestId('landing-modules')
         .querySelector(`li[data-module="${id}"]`) as HTMLElement;
@@ -471,7 +472,7 @@ describe.each(['en', 'fr'] as const)('landing page (%s)', (locale) => {
     const card = (id: string) => modules.querySelector(`li[data-module="${id}"]`) as HTMLElement;
     expect(within(card('leave')).getByText(strings.landing.modules.available)).toBeInTheDocument();
     expect(card('leave')).toHaveTextContent(strings.landing.modules.items.leave.description);
-    for (const id of ['loans', 'benefits', 'performance', 'mobile']) {
+    for (const id of ['loans', 'performance', 'mobile']) {
       expect(within(card(id)).getByText(strings.landing.modules.later)).toBeInTheDocument();
     }
     // Scheduling, attendance, time, tasks and expenses are shipped capabilities, never among the

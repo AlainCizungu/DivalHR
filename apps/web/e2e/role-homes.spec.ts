@@ -88,8 +88,8 @@ for (const locale of ['en', 'fr'] as const) {
     // D93-14: the exact module truth table, one state label per module.
     const truth = {
       available: ['employees', 'leave', 'ai'],
-      capabilities: ['payroll', 'documents', 'analytics', 'workflow', 'integrations'],
-      later: ['loans', 'benefits', 'performance', 'mobile'],
+      capabilities: ['payroll', 'benefits', 'documents', 'analytics', 'workflow', 'integrations'],
+      later: ['loans', 'performance', 'mobile'],
     } as const;
     for (const [state, ids] of Object.entries(truth)) {
       for (const id of ids) {

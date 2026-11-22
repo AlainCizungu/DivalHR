@@ -285,7 +285,7 @@
         },
         "catalogue": {
           "title": "Partner catalogue",
-          "description": "Read-only information about products from approved partners that match your organization’s country. Information only: nothing is applied for or sent."
+          "description": "Read-only information about products from approved partners that match your organization’s country. Information only: nothing is applied for or sent. Enrollment, applications and provider connections are coming later."
         }
       },
       "attention": {
@@ -356,7 +356,7 @@
         "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment.",
         "payslips": "Read your payslips and download them as PDF in English or French. A payslip is not proof of payment.",
         "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner and follow that partner’s review status. DivalHR is not the lender; no real partner is connected, no loan is approved and no funds are disbursed.",
-        "catalogue": "Information about benefits and offers from approved partners that match your employer’s country. Information only: no application is made and nothing is sent to a partner."
+        "catalogue": "Information about benefits and offers from approved partners that match your employer’s country. Information only: no application is made and nothing is sent to a partner. Enrollment, applications and provider connections are coming later."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -3136,8 +3136,8 @@
         },
         "benefits": {
           "title": "Benefits & Insurance",
-          "description": "Health, insurance and partner products employees can enroll in.",
-          "foundation": "A controlled, read-only catalogue of products published by approved partners, shown to signed-in members whose organization’s country matches. Information only: no application, enrolment, eligibility decision, pricing commitment or data sent to a partner. Availability and final terms are determined by the provider."
+          "description": "Approved partner catalogue available. Employees can review informational offers. Enrollment, applications and provider connections are coming later.",
+          "remaining": "Employee enrollment, benefit applications, partner connections, financing decisions, payroll deductions and money movement."
         },
         "performance": {
           "title": "Performance",
@@ -3215,6 +3215,7 @@
         "compensation": "Monthly compensation records",
         "operations": "Daily operational status and a grounded daily briefing",
         "integrations": "Signed webhooks and a WhatsApp Business connector",
+        "partnerCatalogue": "Partner applications with controlled review, and an information-only catalogue of approved partners and their published products (no enrolment, application or provider connection)",
         "tasks": "Operational tasks",
         "expenses": "Employee expenses and manager approval",
         "languages": "English and French",
@@ -3227,7 +3228,7 @@
         "payslips": "Operational DRC payslips and net-pay approval (needs a verified statutory pack), then filing and direct accounting posting",
         "disbursement": "Sending real payments to banks and mobile-money providers, settlement and payment confirmation",
         "advances": "Salary advances and partner loans with real, licensed partners (today only employer-confirmed requests and a controlled test handoff to a synthetic partner exist)",
-        "platform": "Benefits, performance, general documents and e-signature, configurable automation and native mobile apps"
+        "platform": "Benefit enrollment and applications, performance, general documents and e-signature, configurable automation and native mobile apps"
       },
       "capabilities": "Capabilities available",
       "remainingLabel": "Not yet available:",

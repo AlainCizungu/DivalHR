@@ -52,6 +52,12 @@ public class PartnerAccountController {
   /** Base path of the platform routes. */
   public static final String PATH = "/api/v1/platform/partners";
 
+  /**
+   * Activation lives outside the partner-resource path space, so no request can be read both as an
+   * activation and as a command on a partner whose reference is a literal path segment.
+   */
+  public static final String ACTIVATIONS = "/api/v1/platform/partner-activations";
+
   /** Rate-limit bucket of reads. */
   public static final String READ_BUCKET = "partner-account-read";
 
@@ -86,7 +92,7 @@ public class PartnerAccountController {
    * @return the result
    */
   @Operation(operationId = "listPartnerApplicationsReadyForActivation")
-  @GetMapping(PATH + "/ready-applications")
+  @GetMapping(ACTIVATIONS + "/ready-applications")
   @PlatformScoped(operation = "partner-account.ready")
   @SubjectRateLimited(bucket = READ_BUCKET)
   public ResponseEntity<ReadyApplicationPage> listPartnerApplicationsReadyForActivation(
@@ -114,7 +120,7 @@ public class PartnerAccountController {
                   @Content(
                       mediaType = "application/json",
                       schema = @Schema(implementation = PartnerAccountBodies.CreateCommand.class))))
-  @PostMapping(PATH + "/from-application/{applicationReference}")
+  @PostMapping(ACTIVATIONS + "/from-application/{applicationReference}")
   @PlatformScoped(operation = "partner-account.create")
   @SubjectRateLimited(bucket = COMMAND_BUCKET)
   public ResponseEntity<CreateReceipt> createPartnerFromApplication(
