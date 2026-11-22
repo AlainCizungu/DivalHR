@@ -38,6 +38,17 @@ public interface OrganizationDirectory {
   Optional<OrganizationSummary> lockForTenantAdministration(TenantId tenant, Duration timeout);
 
   /**
+   * The organization's ISO 3166-1 alpha-2 country, the only organization attribute the partner
+   * catalogue uses to decide eligibility (MVP-120E, ADR 0044 D120E-9).
+   *
+   * @param tenant verified tenant
+   * @return the country code, or empty when it is unknown
+   */
+  default Optional<String> countryCode(TenantId tenant) {
+    return Optional.empty();
+  }
+
+  /**
    * Display data of an organization.
    *
    * @param tenant tenant (the organization id)

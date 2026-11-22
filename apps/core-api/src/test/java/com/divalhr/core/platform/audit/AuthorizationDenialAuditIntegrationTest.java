@@ -107,7 +107,20 @@ class AuthorizationDenialAuditIntegrationTest {
           "partner-application.view",
           "partner-application.history",
           "partner-application.check",
-          "partner-application.transition");
+          "partner-application.transition",
+          // MVP-120E: partner account and catalogue administration.
+          "partner-account.ready",
+          "partner-account.create",
+          "partner-account.list",
+          "partner-account.view",
+          "partner-account.history",
+          "partner-account.transition",
+          "partner-account.products",
+          "partner-account.product-create",
+          "partner-account.product",
+          "partner-account.product-save",
+          "partner-account.product-transition",
+          "partner-account.product-history");
 
   private static final Set<String> TENANT_OPERATIONS =
       Set.of(
@@ -898,7 +911,10 @@ class AuthorizationDenialAuditIntegrationTest {
     // the purge confirmation.
     // MVP-120D added five platform handlers: the partner-application list, view, history, check
     // update and transition.
-    assertThat(handlers).hasSize(250);
+    // MVP-120E added twelve platform handlers over twelve operations: the ready applications, the
+    // partner creation, list, read, history and transition, and the product list, creation, read,
+    // save, transition and history. The three catalogue reads are role-less and so not counted.
+    assertThat(handlers).hasSize(262);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

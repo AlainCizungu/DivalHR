@@ -62,6 +62,21 @@ public class JdbcOrganizationRepository {
   }
 
   /**
+   * The organization's country code.
+   *
+   * @param tenant tenant (the organization id)
+   * @return the code, or empty when the organization does not exist or has no valid code
+   */
+  public Optional<String> countryCode(TenantId tenant) {
+    return jdbc.sql("SELECT country_code FROM tenant.organization WHERE id = :tenant")
+        .param("tenant", tenant.value())
+        .query(String.class)
+        .optional()
+        .map(String::strip)
+        .filter(code -> code.matches("^[A-Z]{2}$"));
+  }
+
+  /**
    * Locks an active organization for tenant administration (MVP-014, the shared lock of every
    * tenant-admin creation path; see {@code OrganizationDirectory#lockForTenantAdministration}).
    * {@code FOR NO KEY UPDATE} serializes these paths without blocking foreign-key checks of
