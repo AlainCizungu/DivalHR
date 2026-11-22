@@ -72,6 +72,7 @@ test.describe('desktop', () => {
       'Contract expirations',
       'Users and invitations',
       'Access review',
+      'Partner catalogue',
       'Webhooks',
       'WhatsApp Business',
     ]);
@@ -152,6 +153,7 @@ test.describe('desktop', () => {
       'Opérations de l’équipe',
       'Présence de l’équipe',
       'Remplacements d’horaire',
+      'Avantages et offres',
       'Mes congés',
       'Approbations de congé',
       'Mes tâches',
@@ -176,6 +178,7 @@ test.describe('desktop', () => {
       'Create organization',
       'First administrator',
       'Partner applications',
+      'Partners',
       'Statutory packs',
     ]);
     await expect(platform.getByTestId('home-card-status')).toBeVisible();

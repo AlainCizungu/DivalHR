@@ -329,7 +329,47 @@ export const PARTNER_ERROR_CODES = [
   'AUTHENTICATION_REQUIRED',
   'ACCESS_DENIED',
   'IDEMPOTENCY_KEY_REUSED',
+  // MVP-120E: partner accounts and the product catalogue.
+  'PARTNER_SOURCE_APPLICATION_NOT_APPROVED',
+  'PARTNER_ALREADY_CREATED',
+  'PARTNER_NOT_FOUND',
+  'PARTNER_TRANSITION_INVALID',
+  'PARTNER_HAS_ACTIVE_PRODUCTS',
+  'PARTNER_PRODUCT_NOT_FOUND',
+  'PARTNER_PRODUCT_INVALID',
+  'PARTNER_PRODUCT_SCOPE_INVALID',
+  'PARTNER_PRODUCT_TRANSITION_INVALID',
+  'PARTNER_PRODUCT_PARTNER_INACTIVE',
+  'PARTNER_PRODUCT_VERSION_STALE',
+  'PARTNER_PRODUCT_NOT_AVAILABLE',
+  'VALIDATION_FAILED',
 ] as const;
+const INVALID_CODES: ReadonlySet<string> = new Set([
+  'PARTNER_APPLICATION_INVALID',
+  'PARTNER_APPLICATION_CONSENT_REQUIRED',
+  'PARTNER_PRODUCT_INVALID',
+  'PARTNER_PRODUCT_SCOPE_INVALID',
+  'VALIDATION_FAILED',
+]);
+const NOT_FOUND_CODES: ReadonlySet<string> = new Set([
+  'PARTNER_APPLICATION_NOT_FOUND',
+  'PARTNER_NOT_FOUND',
+  'PARTNER_PRODUCT_NOT_FOUND',
+  'PARTNER_PRODUCT_NOT_AVAILABLE',
+]);
+const STALE_CODES: ReadonlySet<string> = new Set([
+  'PARTNER_APPLICATION_TRANSITION_INVALID',
+  'PARTNER_APPLICATION_TERMINAL',
+  'PARTNER_APPLICATION_IDEMPOTENCY_REUSED',
+  'IDEMPOTENCY_KEY_REUSED',
+  'PARTNER_SOURCE_APPLICATION_NOT_APPROVED',
+  'PARTNER_ALREADY_CREATED',
+  'PARTNER_TRANSITION_INVALID',
+  'PARTNER_HAS_ACTIVE_PRODUCTS',
+  'PARTNER_PRODUCT_TRANSITION_INVALID',
+  'PARTNER_PRODUCT_PARTNER_INACTIVE',
+  'PARTNER_PRODUCT_VERSION_STALE',
+]);
 const CODE_SET: ReadonlySet<string> = new Set(PARTNER_ERROR_CODES);
 
 export interface PartnerFailure {
@@ -353,21 +393,17 @@ export function partnerFailureOf(response: Response, error: unknown): PartnerFai
     retryAfter: Number.isFinite(retry) && retry > 0 ? retry : undefined,
   };
   if (code && CODE_SET.has(code)) {
-    const kind: PartnerFailure['kind'] =
-      code === 'PARTNER_APPLICATION_INVALID' || code === 'PARTNER_APPLICATION_CONSENT_REQUIRED'
-        ? 'invalid'
-        : code.endsWith('RATE_LIMITED')
-          ? 'rateLimited'
-          : code === 'PARTNER_APPLICATION_NOT_FOUND'
-            ? 'notFound'
-            : code === 'MFA_REQUIRED' || code === 'ACCESS_DENIED' || response.status === 403
-              ? 'forbidden'
-              : code === 'PARTNER_APPLICATION_TRANSITION_INVALID' ||
-                  code === 'PARTNER_APPLICATION_TERMINAL' ||
-                  code === 'PARTNER_APPLICATION_IDEMPOTENCY_REUSED' ||
-                  code === 'IDEMPOTENCY_KEY_REUSED'
-                ? 'stale'
-                : 'general';
+    const kind: PartnerFailure['kind'] = INVALID_CODES.has(code)
+      ? 'invalid'
+      : code.endsWith('RATE_LIMITED')
+        ? 'rateLimited'
+        : NOT_FOUND_CODES.has(code)
+          ? 'notFound'
+          : code === 'MFA_REQUIRED' || code === 'ACCESS_DENIED' || response.status === 403
+            ? 'forbidden'
+            : STALE_CODES.has(code)
+              ? 'stale'
+              : 'general';
     return { ...base, kind, code, messageKey: `errors.${code}` };
   }
   if (response.status === 429) {

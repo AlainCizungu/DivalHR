@@ -194,8 +194,8 @@ describe.each(['en', 'fr'] as const)('partner copy (%s)', (locale) => {
   it('states the approval boundary and never claims a connected partner', () => {
     expect(c.partners.review.approvalBoundary).toMatch(
       locale === 'en'
-        ? /No listing, credentials, integration or access to employee data/u
-        : /Aucun référencement, aucun identifiant, aucune intégration et aucun accès aux données des employés/u,
+        ? /No credentials, integration or access to employee data/u
+        : /Aucun identifiant, aucune intégration et aucun accès aux données des employés/u,
     );
     expect(c.partners.apply.boundary).not.toMatch(/connected|connecté/iu);
   });

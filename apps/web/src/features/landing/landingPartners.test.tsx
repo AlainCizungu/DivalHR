@@ -36,8 +36,19 @@ describe.each(['en', 'fr'] as const)('landing partner program (%s)', (locale) =>
     const foundation = within(card).getByTestId('landing-foundation');
     expect(foundation).toHaveTextContent(strings.landing.modules.foundationLabel);
     expect(foundation).toHaveTextContent(strings.landing.modules.items.loans.foundation);
-    // No other card claims a foundation, and the plain "Available now" list never names it.
-    expect(screen.getAllByTestId('landing-foundation')).toHaveLength(1);
+    // MVP-120E: Benefits & Insurance also stays "Coming next" with a labelled, information-only
+    // foundation. No other card claims one, and the plain "Available now" list never names them.
+    expect(screen.getAllByTestId('landing-foundation')).toHaveLength(2);
+    const benefits = screen
+      .getByTestId('landing-modules')
+      .querySelector('li[data-module="benefits"]') as HTMLElement;
+    expect(benefits).toHaveAttribute('data-status', 'later');
+    expect(within(benefits).getByTestId('landing-foundation')).toHaveTextContent(
+      strings.landing.modules.items.benefits.foundation,
+    );
+    expect(strings.landing.modules.items.benefits.foundation).toMatch(
+      locale === 'en' ? /Information only/u : /Information uniquement/u,
+    );
     expect(AVAILABLE_NOW.join(' ')).not.toMatch(/advance|loan/iu);
     expect(screen.getByTestId('landing-today')).not.toHaveTextContent(
       strings.landing.modules.items.loans.foundation,

@@ -67,7 +67,10 @@
     "myPayslips": "My payslips",
     "myPaymentDestination": "My payment destination",
     "salaryAdvanceHandoffs": "Partner handoffs",
-    "partnerApplications": "Partner applications"
+    "partnerApplications": "Partner applications",
+    "partnerAccounts": "Partners",
+    "catalogue": "Partner catalogue",
+    "myCatalogue": "Benefits & offers"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -163,7 +166,11 @@
       },
       "partnerApplications": {
         "title": "Review partner applications",
-        "description": "Review applications from providers who want to start onboarding discussions. Approval creates no listing, credentials or integration."
+        "description": "Review applications from providers who want to start onboarding discussions. Approval alone creates no partner record, credentials or integration."
+      },
+      "partnerAccounts": {
+        "title": "Partners and catalogue",
+        "description": "Create inactive partner records from approved applications, activate them, and publish a controlled product catalogue. No connection or employee data is involved."
       }
     },
     "tenant": {
@@ -192,7 +199,7 @@
         },
         "integrations": {
           "title": "Integrations",
-          "description": "Signed webhooks and the WhatsApp Business connector."
+          "description": "Partner catalogue, signed webhooks and the WhatsApp Business connector."
         }
       },
       "cards": {
@@ -275,6 +282,10 @@
         "accountingMappings": {
           "title": "Accounting mappings",
           "description": "Set the account codes of your accounting system per legal entity and currency, effective-dated and versioned. Journals are generated from an approved payroll package as a manual export, never posted to an accounting system."
+        },
+        "catalogue": {
+          "title": "Partner catalogue",
+          "description": "Read-only information about products from approved partners that match your organization’s country. Information only: nothing is applied for or sent."
         }
       },
       "attention": {
@@ -344,7 +355,8 @@
         "compensationTitle": "My compensation",
         "compensation": "Read your current monthly base compensation and its dated history, privately. Reading it initiates no payment.",
         "payslips": "Read your payslips and download them as PDF in English or French. A payslip is not proof of payment.",
-        "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner and follow that partner’s review status. DivalHR is not the lender; no real partner is connected, no loan is approved and no funds are disbursed."
+        "salaryAdvance": "Ask your employer about a salary-advance request and, once it is confirmed, choose whether to send it to a synthetic test partner and follow that partner’s review status. DivalHR is not the lender; no real partner is connected, no loan is approved and no funds are disbursed.",
+        "catalogue": "Information about benefits and offers from approved partners that match your employer’s country. Information only: no application is made and nothing is sent to a partner."
       },
       "approvals": {
         "title": "Leave approvals assigned to you",
@@ -810,7 +822,19 @@
     "PARTNER_APPLICATION_TERMINAL": "This partner application is closed and can no longer be changed.",
     "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE": "Every applicable mandatory due-diligence check must be satisfied before approval.",
     "PARTNER_APPLICATION_DUPLICATE": "This submission is already being processed. Please wait a moment.",
-    "PARTNER_APPLICATION_CONSENT_REQUIRED": "Please confirm the acknowledgment before submitting your application."
+    "PARTNER_APPLICATION_CONSENT_REQUIRED": "Please confirm the acknowledgment before submitting your application.",
+    "PARTNER_SOURCE_APPLICATION_NOT_APPROVED": "Only an application approved for onboarding can become a partner account.",
+    "PARTNER_ALREADY_CREATED": "A partner account already exists for this application.",
+    "PARTNER_NOT_FOUND": "This partner could not be found.",
+    "PARTNER_TRANSITION_INVALID": "This change is not allowed for the partner in its current state. Reload and try again.",
+    "PARTNER_HAS_ACTIVE_PRODUCTS": "Retire or pause every active product before closing this partner.",
+    "PARTNER_PRODUCT_NOT_FOUND": "This product could not be found.",
+    "PARTNER_PRODUCT_INVALID": "The product details are not valid. Check the highlighted fields.",
+    "PARTNER_PRODUCT_SCOPE_INVALID": "The product is offered in a country or currency outside the partner’s approved scope.",
+    "PARTNER_PRODUCT_TRANSITION_INVALID": "This change is not allowed for the product version in its current state.",
+    "PARTNER_PRODUCT_PARTNER_INACTIVE": "The partner must be active for this product action.",
+    "PARTNER_PRODUCT_VERSION_STALE": "This product changed since you opened it. Reload and try again.",
+    "PARTNER_PRODUCT_NOT_AVAILABLE": "This product is not available."
   },
   "notFound": {
     "title": "Page not found",
@@ -3112,7 +3136,8 @@
         },
         "benefits": {
           "title": "Benefits & Insurance",
-          "description": "Health, insurance and partner products employees can enroll in."
+          "description": "Health, insurance and partner products employees can enroll in.",
+          "foundation": "A controlled, read-only catalogue of products published by approved partners, shown to signed-in members whose organization’s country matches. Information only: no application, enrolment, eligibility decision, pricing commitment or data sent to a partner. Availability and final terms are determined by the provider."
         },
         "performance": {
           "title": "Performance",
@@ -3375,7 +3400,7 @@
         }
       },
       "cta": "Apply to partner with DivalHR",
-      "ctaNote": "An application opens a conversation only. It creates no listing, credentials, integration or access to employee data, and there is no partner portal, status lookup or document upload yet."
+      "ctaNote": "An application opens a conversation only. It creates no credentials, integration or access to employee data. Once DivalHR activates a partner, signed-in members may read information about its published products; the public site lists no partner or product, and there is no partner portal, status lookup or document upload yet."
     }
   },
   "leaveSubstitutes": {
@@ -7324,7 +7349,7 @@
       "title": "Partner applications",
       "description": "Review applications from providers who want to start onboarding discussions with DivalHR.",
       "queueNotice": "Applications are unverified statements by the applicant. Approval only allows onboarding discussions to begin.",
-      "approvalBoundary": "Approved for onboarding means discussions may begin. No listing, credentials, integration or access to employee data was created, and none is implied.",
+      "approvalBoundary": "Approved for onboarding means discussions may begin. A separate platform action can create an inactive partner record. No credentials, integration or access to employee data was created, and none is implied.",
       "counts": "Applications by status",
       "loading": "Loading partner applications…",
       "empty": "No partner applications match.",
@@ -7393,5 +7418,266 @@
       "title": "Privacy notice",
       "body": "DivalHR uses the information you enter only to review your partnership application. Confidential contact details are stored encrypted and are visible only to authorized DivalHR platform administrators. This form sends no email and creates no account, credential or integration, and DivalHR does not verify the information at this stage."
     }
+  },
+  "accounts": {
+    "unauthorized": "Only a platform administrator signed in with multi-factor authentication can manage partners.",
+    "signInRequired": "Sign in with multi-factor authentication to manage partners.",
+    "title": "Partners and catalogue",
+    "description": "Create partner records from approved applications, manage their lifecycle and publish products to the controlled catalogue.",
+    "boundary": "A partner record holds an identity only. It creates no credentials, no connection to the partner and no access to employee data, and it does not apply for anything on an employee’s behalf.",
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "optional": "optional",
+    "back": "Back to partners",
+    "backToPartner": "Back to partner",
+    "ready": {
+      "title": "Approved applications ready for activation",
+      "help": "Only applications approved for onboarding appear here.",
+      "empty": "No approved application is waiting.",
+      "open": "Open partner {{reference}}",
+      "copyRule": "Only the approved identity is copied: legal and trading name, country, categories, capabilities, website, languages and countries of operation. Contacts, registration and licence references, privacy contacts, checklist notes and the original submission are never copied.",
+      "confirm": "I confirm that this approved application should become a partner record.",
+      "create": "Create partner",
+      "start": "Create partner from this application"
+    },
+    "list": {
+      "title": "Partners",
+      "counts": "Partners by status",
+      "filter": "Filter partners",
+      "status": "Status",
+      "any": "Any status",
+      "apply": "Apply filter",
+      "empty": "No partner matches.",
+      "tableLabel": "Partners table",
+      "partner": "Partner",
+      "category": "Category",
+      "statusColumn": "Status",
+      "products": "Products",
+      "updated": "Updated",
+      "more": "Load more",
+      "productCounts": "{{active}} active of {{total}}"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "CLOSED": "Closed"
+    },
+    "productStatus": {
+      "DRAFT": "Draft",
+      "UNDER_REVIEW": "Under review",
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "RETIRED": "Retired"
+    },
+    "detail": {
+      "noActions": "No lifecycle action is available.",
+      "action": "Action",
+      "chooseAction": "Choose an action",
+      "reason": "Reason",
+      "chooseReason": "Choose a reason",
+      "note": "Internal note",
+      "noteHelp": "Required for “Other”. Up to {{max}} characters. Never shown to employees.",
+      "addCountry": "Add a country of operation",
+      "chooseCountry": "Choose a country",
+      "add": "Add",
+      "toAdd": "Countries to add",
+      "remove": "Remove",
+      "apply": "Apply",
+      "lifecycle": "Lifecycle",
+      "description": "Partner {{reference}}",
+      "reference": "Reference",
+      "status": "Status",
+      "legalName": "Legal name",
+      "country": "Country of registration",
+      "categories": "Categories",
+      "scope": "Countries of operation",
+      "application": "Source application",
+      "updated": "Last updated",
+      "history": "History",
+      "historyLabel": "Partner event history",
+      "when": "When",
+      "event": "Event",
+      "countries_one": "{{count}} country",
+      "countries_other": "{{count}} countries",
+      "noteRecorded": "note recorded"
+    },
+    "action": {
+      "ACTIVATE": "Activate",
+      "SUSPEND": "Suspend",
+      "REACTIVATE": "Reactivate",
+      "CLOSE": "Close",
+      "AMEND_SCOPE": "Add countries of operation"
+    },
+    "actionHelp": {
+      "ACTIVATE": "Activation allows products to be published. It does not connect to the partner.",
+      "SUSPEND": "While suspended, none of this partner’s products is shown to anyone.",
+      "REACTIVATE": "Reactivation shows the partner’s active products again.",
+      "CLOSE": "Closure is final. It is blocked while any product is active.",
+      "AMEND_SCOPE": "Countries can only be added. Existing countries are never removed."
+    },
+    "confirm": {
+      "ACTIVATE": "I confirm that this partner should be activated.",
+      "REACTIVATE": "I confirm that this partner should be reactivated.",
+      "CLOSE": "I confirm that this partner should be closed permanently."
+    },
+    "reason": {
+      "COMPLIANCE_REVIEW": "Compliance review",
+      "COMMERCIAL_HOLD": "Commercial hold",
+      "PARTNER_REQUEST": "Partner request",
+      "REGULATORY_RESTRICTION": "Regulatory restriction",
+      "SECURITY_CONCERN": "Security concern",
+      "PROGRAM_ENDED": "Programme ended",
+      "OTHER": "Other"
+    },
+    "event": {
+      "CREATED": "Created",
+      "ACTIVATED": "Activated",
+      "SUSPENDED": "Suspended",
+      "REACTIVATED": "Reactivated",
+      "CLOSED": "Closed",
+      "SCOPE_AMENDED": "Countries added"
+    },
+    "productType": {
+      "SALARY_ADVANCE": "Salary advance",
+      "EMPLOYEE_LOAN": "Employee loan",
+      "HEALTH_INSURANCE": "Health insurance",
+      "LIFE_INSURANCE": "Life insurance",
+      "OTHER_INSURANCE": "Other insurance",
+      "TELECOM_VOICE_DATA": "Voice and data",
+      "DEVICE_FINANCING": "Device financing",
+      "HEALTHCARE": "Healthcare",
+      "WELLNESS": "Wellness",
+      "TRAINING": "Training",
+      "OTHER_BENEFIT": "Other benefit"
+    },
+    "productEvent": {
+      "VERSION_CREATED": "Version created",
+      "SUBMITTED": "Submitted for review",
+      "RETURNED": "Returned to draft",
+      "PUBLISHED": "Published",
+      "PAUSED": "Paused",
+      "RESUMED": "Resumed",
+      "RETIRED": "Retired",
+      "SUPERSEDED": "Superseded by a newer version"
+    },
+    "productAction": {
+      "SUBMIT": "Submit for review",
+      "RETURN": "Return to draft",
+      "PUBLISH": "Publish",
+      "PAUSE": "Pause",
+      "RESUME": "Resume",
+      "RETIRE": "Retire"
+    },
+    "productActionHelp": {
+      "SUBMIT": "The server checks that both languages, scope, dates and any limits are complete.",
+      "RETURN": "The version goes back to draft so it can be edited.",
+      "PUBLISH": "Employees in matching countries will see this version as information only.",
+      "PAUSE": "The product is hidden from employees until it is resumed.",
+      "RESUME": "The product is shown to employees again.",
+      "RETIRE": "Retirement is final for this version."
+    },
+    "productConfirm": {
+      "PUBLISH": "I confirm that this version should be published.",
+      "RESUME": "I confirm that this version should be resumed.",
+      "RETIRE": "I confirm that this version should be retired permanently."
+    },
+    "currency": {
+      "CDF": "Congolese franc (CDF)",
+      "USD": "US dollar (USD)"
+    },
+    "products": {
+      "closed": "This partner is closed. No product can be added.",
+      "code": "Product code",
+      "codeHelp": "Capital letters, digits, hyphen and underscore, 2 to 40 characters. It cannot be changed.",
+      "codeInvalid": "Use 2 to 40 capital letters, digits, hyphens or underscores, starting with a letter or digit.",
+      "type": "Product type",
+      "chooseType": "Choose a type",
+      "create": "Create draft product",
+      "title": "Products",
+      "empty": "This partner has no product yet.",
+      "tableLabel": "Products table",
+      "product": "Product",
+      "latest": "Latest version",
+      "live": "Live version",
+      "noneLive": "None",
+      "new": "New product"
+    },
+    "editor": {
+      "title": "Edit the product",
+      "newVersion": "Saving creates a new draft version. What employees see does not change until it is submitted and published.",
+      "draft": "This draft can be saved while incomplete. Both languages are required before it can be submitted.",
+      "name": "Name",
+      "summary": "Summary",
+      "eligibility": "Eligibility",
+      "disclosure": "Disclosure",
+      "english": "English",
+      "french": "French",
+      "infoUrl": "Information address",
+      "infoUrlHelp": "An https address with more information from the provider. Optional.",
+      "effectiveDate": "Effective from",
+      "endDate": "Ends on (optional)",
+      "minMonths": "Minimum duration (months)",
+      "maxMonths": "Maximum duration (months)",
+      "limitsRequired": "Credit-like products need amount limits and a duration before they can be submitted.",
+      "countries": "Countries where it is offered",
+      "countriesHelp": "Limited to the partner’s countries of operation.",
+      "currencies": "Currencies and limits",
+      "minAmount": "Minimum amount ({{currency}})",
+      "maxAmount": "Maximum amount ({{currency}})",
+      "save": "Save draft",
+      "saveNew": "Save as new version",
+      "saved": "Saved.",
+      "constraint": {
+        "REQUIRED": "This field is required.",
+        "LENGTH": "This text has the wrong length.",
+        "FORMAT": "This value has an invalid format.",
+        "RANGE": "These values are not in a valid range.",
+        "LIMIT": "A limit was exceeded.",
+        "DUPLICATE": "This value is repeated.",
+        "UNKNOWN_PROPERTY": "This field is not accepted."
+      }
+    },
+    "product": {
+      "description": "Product {{code}} · {{type}}",
+      "publicReference": "Public reference",
+      "versions": "Versions",
+      "version": "Version {{version}}",
+      "historyLabel": "Product history",
+      "versionColumn": "Version",
+      "versionShort": "v{{version}}"
+    }
+  },
+  "catalogue": {
+    "unauthorized": "Only members of this organization can read the partner catalogue.",
+    "signInRequired": "Sign in to read the partner catalogue.",
+    "tenant": {
+      "title": "Partner catalogue",
+      "description": "Products from approved partners that match your organization’s country."
+    },
+    "employee": {
+      "title": "Benefits & offers",
+      "description": "Products from approved partners that match your employer’s country."
+    },
+    "informationOnly": "Information only",
+    "noApplication": "No application has been submitted.",
+    "providerDetermines": "Availability and final terms are determined by the provider.",
+    "partners": "Partners shown: {{names}}.",
+    "filter": "Filter the catalogue",
+    "type": "Product type",
+    "anyType": "Any type",
+    "apply": "Apply filter",
+    "loading": "Loading the catalogue…",
+    "countryUnknown": "Your organization’s country is not recorded, so no offer can be matched. Ask your administrator to record it.",
+    "empty": "No product is available for your country right now.",
+    "eligibility": "Eligibility",
+    "disclosure": "Important information",
+    "effective": "Available",
+    "duration": "Duration",
+    "months": "{{min}} to {{max}} months",
+    "amounts": "Amounts",
+    "moreInformation": "More information from the provider",
+    "opensNewTab": "(opens in a new tab)",
+    "more": "Load more"
   }
 }

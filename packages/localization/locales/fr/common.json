@@ -67,7 +67,10 @@
     "myPayslips": "Mes bulletins de paie",
     "myPaymentDestination": "Ma destination de paiement",
     "salaryAdvanceHandoffs": "Transmissions au partenaire",
-    "partnerApplications": "Candidatures de partenaires"
+    "partnerApplications": "Candidatures de partenaires",
+    "partnerAccounts": "Partenaires",
+    "catalogue": "Catalogue partenaires",
+    "myCatalogue": "Avantages et offres"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -163,7 +166,11 @@
       },
       "partnerApplications": {
         "title": "Examiner les candidatures de partenaires",
-        "description": "Examinez les candidatures de prestataires qui souhaitent entamer des discussions d’intégration. L’approbation ne crée ni référencement, ni identifiants, ni intégration."
+        "description": "Examinez les candidatures de prestataires qui souhaitent entamer des discussions d’intégration. L’approbation seule ne crée ni fiche partenaire, ni identifiants, ni intégration."
+      },
+      "partnerAccounts": {
+        "title": "Partenaires et catalogue",
+        "description": "Créez des fiches partenaires inactives à partir des candidatures approuvées, activez-les et publiez un catalogue de produits contrôlé. Aucune connexion ni donnée d’employé n’est concernée."
       }
     },
     "tenant": {
@@ -192,7 +199,7 @@
         },
         "integrations": {
           "title": "Intégrations",
-          "description": "Webhooks signés et connecteur WhatsApp Business."
+          "description": "Catalogue partenaires, webhooks signés et connecteur WhatsApp Business."
         }
       },
       "cards": {
@@ -275,6 +282,10 @@
         "accountingMappings": {
           "title": "Correspondances comptables",
           "description": "Définissez les codes de compte de votre comptabilité par entité juridique et par devise, datés et versionnés. Les journaux sont générés à partir d’un dossier de paie approuvé comme export manuel, jamais comptabilisés dans un système comptable."
+        },
+        "catalogue": {
+          "title": "Catalogue partenaires",
+          "description": "Informations en lecture seule sur les produits des partenaires approuvés qui correspondent au pays de votre organisation. Information uniquement : rien n’est demandé ni envoyé."
         }
       },
       "attention": {
@@ -344,7 +355,8 @@
         "compensationTitle": "Ma rémunération",
         "compensation": "Consultez en privé votre rémunération mensuelle de base actuelle et son historique daté. La consulter ne déclenche aucun paiement.",
         "payslips": "Lisez vos bulletins de paie et téléchargez-les en PDF en français ou en anglais. Un bulletin de paie ne constitue pas une preuve de paiement.",
-        "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique et suivez l’état de son examen. DivalHR n’est pas le prêteur ; aucun partenaire réel n’est connecté, aucun prêt n’est approuvé et aucun fonds n’est décaissé."
+        "salaryAdvance": "Interrogez votre employeur sur une demande d’avance sur salaire et, une fois confirmée, choisissez de la transmettre ou non à un partenaire de test synthétique et suivez l’état de son examen. DivalHR n’est pas le prêteur ; aucun partenaire réel n’est connecté, aucun prêt n’est approuvé et aucun fonds n’est décaissé.",
+        "catalogue": "Informations sur les avantages et offres des partenaires approuvés qui correspondent au pays de votre employeur. Information uniquement : aucune demande n’est faite et rien n’est envoyé à un partenaire."
       },
       "approvals": {
         "title": "Approbations de congé qui vous sont confiées",
@@ -810,7 +822,19 @@
     "PARTNER_APPLICATION_TERMINAL": "Cette candidature de partenaire est clôturée et ne peut plus être modifiée.",
     "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE": "Chaque vérification préalable obligatoire applicable doit être satisfaite avant l’approbation.",
     "PARTNER_APPLICATION_DUPLICATE": "Cette soumission est déjà en cours de traitement. Veuillez patienter un instant.",
-    "PARTNER_APPLICATION_CONSENT_REQUIRED": "Veuillez confirmer la déclaration avant de soumettre votre candidature."
+    "PARTNER_APPLICATION_CONSENT_REQUIRED": "Veuillez confirmer la déclaration avant de soumettre votre candidature.",
+    "PARTNER_SOURCE_APPLICATION_NOT_APPROVED": "Seule une candidature approuvée pour l’intégration peut devenir un compte partenaire.",
+    "PARTNER_ALREADY_CREATED": "Un compte partenaire existe déjà pour cette candidature.",
+    "PARTNER_NOT_FOUND": "Ce partenaire est introuvable.",
+    "PARTNER_TRANSITION_INVALID": "Ce changement n’est pas autorisé dans l’état actuel du partenaire. Rechargez la page et réessayez.",
+    "PARTNER_HAS_ACTIVE_PRODUCTS": "Retirez ou suspendez tous les produits actifs avant de fermer ce partenaire.",
+    "PARTNER_PRODUCT_NOT_FOUND": "Ce produit est introuvable.",
+    "PARTNER_PRODUCT_INVALID": "Les informations du produit ne sont pas valides. Vérifiez les champs signalés.",
+    "PARTNER_PRODUCT_SCOPE_INVALID": "Le produit est proposé dans un pays ou une devise hors du périmètre approuvé du partenaire.",
+    "PARTNER_PRODUCT_TRANSITION_INVALID": "Ce changement n’est pas autorisé pour cette version du produit dans son état actuel.",
+    "PARTNER_PRODUCT_PARTNER_INACTIVE": "Le partenaire doit être actif pour cette action sur le produit.",
+    "PARTNER_PRODUCT_VERSION_STALE": "Ce produit a été modifié depuis son ouverture. Rechargez la page et réessayez.",
+    "PARTNER_PRODUCT_NOT_AVAILABLE": "Ce produit n’est pas disponible."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -3112,7 +3136,8 @@
         },
         "benefits": {
           "title": "Avantages et assurance",
-          "description": "Santé, assurance et produits partenaires accessibles aux employés."
+          "description": "Santé, assurance et produits partenaires accessibles aux employés.",
+          "foundation": "Un catalogue contrôlé, en lecture seule, des produits publiés par des partenaires approuvés, présenté aux membres connectés dont le pays de l’organisation correspond. Information uniquement : aucune demande, inscription, décision d’éligibilité, engagement tarifaire ni donnée transmise à un partenaire. La disponibilité et les conditions définitives sont déterminées par le prestataire."
         },
         "performance": {
           "title": "Performance",
@@ -3375,7 +3400,7 @@
         }
       },
       "cta": "Candidater pour devenir partenaire de DivalHR",
-      "ctaNote": "Une candidature ouvre seulement une conversation. Elle ne crée ni référencement, ni identifiants, ni intégration, ni accès aux données des employés, et il n’existe encore ni portail partenaire, ni suivi de statut, ni dépôt de documents."
+      "ctaNote": "Une candidature ouvre seulement une conversation. Elle ne crée ni identifiants, ni intégration, ni accès aux données des employés. Lorsque DivalHR active un partenaire, les membres connectés peuvent consulter des informations sur ses produits publiés ; le site public ne référence aucun partenaire ni produit, et il n’existe encore ni portail partenaire, ni suivi de statut, ni dépôt de documents."
     }
   },
   "leaveSubstitutes": {
@@ -7324,7 +7349,7 @@
       "title": "Candidatures de partenaires",
       "description": "Examinez les candidatures de prestataires qui souhaitent entamer des discussions d’intégration avec DivalHR.",
       "queueNotice": "Les candidatures sont des déclarations non vérifiées du candidat. L’approbation permet seulement d’entamer les discussions d’intégration.",
-      "approvalBoundary": "« Approuvée pour l’intégration » signifie que les discussions peuvent commencer. Aucun référencement, aucun identifiant, aucune intégration et aucun accès aux données des employés n’a été créé, et aucun n’est sous-entendu.",
+      "approvalBoundary": "« Approuvée pour l’intégration » signifie que les discussions peuvent commencer. Une action distincte de la plateforme peut créer une fiche partenaire inactive. Aucun identifiant, aucune intégration et aucun accès aux données des employés n’a été créé, et aucun n’est sous-entendu.",
       "counts": "Candidatures par état",
       "loading": "Chargement des candidatures de partenaires…",
       "empty": "Aucune candidature de partenaire ne correspond.",
@@ -7393,5 +7418,266 @@
       "title": "Avis de confidentialité",
       "body": "DivalHR utilise les informations saisies uniquement pour examiner votre candidature de partenariat. Les coordonnées confidentielles sont stockées chiffrées et ne sont visibles que des administrateurs de la plateforme DivalHR autorisés. Ce formulaire n’envoie aucun courriel et ne crée ni compte, ni identifiants, ni intégration, et DivalHR ne vérifie pas ces informations à ce stade."
     }
+  },
+  "accounts": {
+    "unauthorized": "Seul un administrateur de la plateforme connecté avec une authentification multifacteur peut gérer les partenaires.",
+    "signInRequired": "Connectez-vous avec une authentification multifacteur pour gérer les partenaires.",
+    "title": "Partenaires et catalogue",
+    "description": "Créez des fiches partenaires à partir des candidatures approuvées, gérez leur cycle de vie et publiez des produits dans le catalogue contrôlé.",
+    "boundary": "Une fiche partenaire ne contient qu’une identité. Elle ne crée ni identifiants, ni connexion avec le partenaire, ni accès aux données des employés, et ne demande rien au nom d’un employé.",
+    "loading": "Chargement…",
+    "cancel": "Annuler",
+    "optional": "facultatif",
+    "back": "Retour aux partenaires",
+    "backToPartner": "Retour au partenaire",
+    "ready": {
+      "title": "Candidatures approuvées prêtes pour l’activation",
+      "help": "Seules les candidatures approuvées pour l’intégration apparaissent ici.",
+      "empty": "Aucune candidature approuvée n’est en attente.",
+      "open": "Ouvrir le partenaire {{reference}}",
+      "copyRule": "Seule l’identité approuvée est copiée : raison sociale et nom commercial, pays, catégories, capacités, site web, langues et pays d’activité. Les contacts, références d’immatriculation et d’agrément, contacts vie privée, notes de contrôle et la soumission d’origine ne sont jamais copiés.",
+      "confirm": "Je confirme que cette candidature approuvée doit devenir une fiche partenaire.",
+      "create": "Créer le partenaire",
+      "start": "Créer un partenaire à partir de cette candidature"
+    },
+    "list": {
+      "title": "Partenaires",
+      "counts": "Partenaires par statut",
+      "filter": "Filtrer les partenaires",
+      "status": "Statut",
+      "any": "Tous les statuts",
+      "apply": "Appliquer le filtre",
+      "empty": "Aucun partenaire ne correspond.",
+      "tableLabel": "Tableau des partenaires",
+      "partner": "Partenaire",
+      "category": "Catégorie",
+      "statusColumn": "Statut",
+      "products": "Produits",
+      "updated": "Mis à jour",
+      "more": "Charger plus",
+      "productCounts": "{{active}} actif(s) sur {{total}}"
+    },
+    "status": {
+      "DRAFT": "Brouillon",
+      "ACTIVE": "Actif",
+      "SUSPENDED": "Suspendu",
+      "CLOSED": "Clôturé"
+    },
+    "productStatus": {
+      "DRAFT": "Brouillon",
+      "UNDER_REVIEW": "En revue",
+      "ACTIVE": "Actif",
+      "PAUSED": "En pause",
+      "RETIRED": "Retiré"
+    },
+    "detail": {
+      "noActions": "Aucune action de cycle de vie n’est disponible.",
+      "action": "Action",
+      "chooseAction": "Choisissez une action",
+      "reason": "Motif",
+      "chooseReason": "Choisissez un motif",
+      "note": "Note interne",
+      "noteHelp": "Obligatoire pour « Autre ». Jusqu’à {{max}} caractères. Jamais affichée aux employés.",
+      "addCountry": "Ajouter un pays d’activité",
+      "chooseCountry": "Choisissez un pays",
+      "add": "Ajouter",
+      "toAdd": "Pays à ajouter",
+      "remove": "Retirer",
+      "apply": "Appliquer",
+      "lifecycle": "Cycle de vie",
+      "description": "Partenaire {{reference}}",
+      "reference": "Référence",
+      "status": "Statut",
+      "legalName": "Raison sociale",
+      "country": "Pays d’immatriculation",
+      "categories": "Catégories",
+      "scope": "Pays d’activité",
+      "application": "Candidature d’origine",
+      "updated": "Dernière mise à jour",
+      "history": "Historique",
+      "historyLabel": "Journal des événements du partenaire",
+      "when": "Quand",
+      "event": "Événement",
+      "countries_one": "{{count}} pays",
+      "countries_other": "{{count}} pays",
+      "noteRecorded": "note enregistrée"
+    },
+    "action": {
+      "ACTIVATE": "Activer",
+      "SUSPEND": "Suspendre",
+      "REACTIVATE": "Réactiver",
+      "CLOSE": "Clôturer",
+      "AMEND_SCOPE": "Ajouter des pays d’activité"
+    },
+    "actionHelp": {
+      "ACTIVATE": "L’activation permet de publier des produits. Elle ne crée aucune connexion avec le partenaire.",
+      "SUSPEND": "Tant qu’il est suspendu, aucun produit de ce partenaire n’est montré à personne.",
+      "REACTIVATE": "La réactivation montre de nouveau les produits actifs du partenaire.",
+      "CLOSE": "La clôture est définitive. Elle est bloquée tant qu’un produit est actif.",
+      "AMEND_SCOPE": "Des pays peuvent seulement être ajoutés. Les pays existants ne sont jamais retirés."
+    },
+    "confirm": {
+      "ACTIVATE": "Je confirme que ce partenaire doit être activé.",
+      "REACTIVATE": "Je confirme que ce partenaire doit être réactivé.",
+      "CLOSE": "Je confirme que ce partenaire doit être clôturé définitivement."
+    },
+    "reason": {
+      "COMPLIANCE_REVIEW": "Revue de conformité",
+      "COMMERCIAL_HOLD": "Suspension commerciale",
+      "PARTNER_REQUEST": "Demande du partenaire",
+      "REGULATORY_RESTRICTION": "Restriction réglementaire",
+      "SECURITY_CONCERN": "Préoccupation de sécurité",
+      "PROGRAM_ENDED": "Programme terminé",
+      "OTHER": "Autre"
+    },
+    "event": {
+      "CREATED": "Créé",
+      "ACTIVATED": "Activé",
+      "SUSPENDED": "Suspendu",
+      "REACTIVATED": "Réactivé",
+      "CLOSED": "Clôturé",
+      "SCOPE_AMENDED": "Pays ajoutés"
+    },
+    "productType": {
+      "SALARY_ADVANCE": "Avance sur salaire",
+      "EMPLOYEE_LOAN": "Prêt aux employés",
+      "HEALTH_INSURANCE": "Assurance santé",
+      "LIFE_INSURANCE": "Assurance vie",
+      "OTHER_INSURANCE": "Autre assurance",
+      "TELECOM_VOICE_DATA": "Voix et données",
+      "DEVICE_FINANCING": "Financement d’appareil",
+      "HEALTHCARE": "Soins de santé",
+      "WELLNESS": "Bien-être",
+      "TRAINING": "Formation",
+      "OTHER_BENEFIT": "Autre avantage"
+    },
+    "productEvent": {
+      "VERSION_CREATED": "Version créée",
+      "SUBMITTED": "Soumise à la revue",
+      "RETURNED": "Renvoyée en brouillon",
+      "PUBLISHED": "Publiée",
+      "PAUSED": "Mise en pause",
+      "RESUMED": "Reprise",
+      "RETIRED": "Retirée",
+      "SUPERSEDED": "Remplacée par une version plus récente"
+    },
+    "productAction": {
+      "SUBMIT": "Soumettre à la revue",
+      "RETURN": "Renvoyer en brouillon",
+      "PUBLISH": "Publier",
+      "PAUSE": "Mettre en pause",
+      "RESUME": "Reprendre",
+      "RETIRE": "Retirer"
+    },
+    "productActionHelp": {
+      "SUBMIT": "Le serveur vérifie que les deux langues, le périmètre, les dates et les éventuelles limites sont complets.",
+      "RETURN": "La version repasse en brouillon pour pouvoir être modifiée.",
+      "PUBLISH": "Les employés des pays concernés verront cette version à titre d’information uniquement.",
+      "PAUSE": "Le produit est masqué aux employés jusqu’à sa reprise.",
+      "RESUME": "Le produit est de nouveau montré aux employés.",
+      "RETIRE": "Le retrait est définitif pour cette version."
+    },
+    "productConfirm": {
+      "PUBLISH": "Je confirme que cette version doit être publiée.",
+      "RESUME": "Je confirme que cette version doit être reprise.",
+      "RETIRE": "Je confirme que cette version doit être retirée définitivement."
+    },
+    "currency": {
+      "CDF": "Franc congolais (CDF)",
+      "USD": "Dollar américain (USD)"
+    },
+    "products": {
+      "closed": "Ce partenaire est clôturé. Aucun produit ne peut être ajouté.",
+      "code": "Code du produit",
+      "codeHelp": "Majuscules, chiffres, trait d’union et tiret bas, de 2 à 40 caractères. Il ne peut pas être modifié.",
+      "codeInvalid": "Utilisez de 2 à 40 majuscules, chiffres, traits d’union ou tirets bas, en commençant par une lettre ou un chiffre.",
+      "type": "Type de produit",
+      "chooseType": "Choisissez un type",
+      "create": "Créer le produit en brouillon",
+      "title": "Produits",
+      "empty": "Ce partenaire n’a pas encore de produit.",
+      "tableLabel": "Tableau des produits",
+      "product": "Produit",
+      "latest": "Dernière version",
+      "live": "Version en ligne",
+      "noneLive": "Aucune",
+      "new": "Nouveau produit"
+    },
+    "editor": {
+      "title": "Modifier le produit",
+      "newVersion": "L’enregistrement crée une nouvelle version en brouillon. Ce que voient les employés ne change qu’une fois la version soumise et publiée.",
+      "draft": "Ce brouillon peut être enregistré incomplet. Les deux langues sont requises avant de pouvoir le soumettre.",
+      "name": "Nom",
+      "summary": "Résumé",
+      "eligibility": "Éligibilité",
+      "disclosure": "Informations importantes",
+      "english": "Anglais",
+      "french": "Français",
+      "infoUrl": "Adresse d’information",
+      "infoUrlHelp": "Une adresse https avec plus d’informations du prestataire. Facultatif.",
+      "effectiveDate": "En vigueur à partir du",
+      "endDate": "Se termine le (facultatif)",
+      "minMonths": "Durée minimale (mois)",
+      "maxMonths": "Durée maximale (mois)",
+      "limitsRequired": "Les produits de type crédit exigent des plafonds de montant et une durée avant de pouvoir être soumis.",
+      "countries": "Pays où il est proposé",
+      "countriesHelp": "Limité aux pays d’activité du partenaire.",
+      "currencies": "Devises et plafonds",
+      "minAmount": "Montant minimal ({{currency}})",
+      "maxAmount": "Montant maximal ({{currency}})",
+      "save": "Enregistrer le brouillon",
+      "saveNew": "Enregistrer comme nouvelle version",
+      "saved": "Enregistré.",
+      "constraint": {
+        "REQUIRED": "Ce champ est obligatoire.",
+        "LENGTH": "Ce texte n’a pas la bonne longueur.",
+        "FORMAT": "Cette valeur a un format invalide.",
+        "RANGE": "Ces valeurs ne sont pas dans une plage valide.",
+        "LIMIT": "Une limite a été dépassée.",
+        "DUPLICATE": "Cette valeur est répétée.",
+        "UNKNOWN_PROPERTY": "Ce champ n’est pas accepté."
+      }
+    },
+    "product": {
+      "description": "Produit {{code}} · {{type}}",
+      "publicReference": "Référence publique",
+      "versions": "Versions",
+      "version": "Version {{version}}",
+      "historyLabel": "Historique du produit",
+      "versionColumn": "Version",
+      "versionShort": "v{{version}}"
+    }
+  },
+  "catalogue": {
+    "unauthorized": "Seuls les membres de cette organisation peuvent consulter le catalogue partenaires.",
+    "signInRequired": "Connectez-vous pour consulter le catalogue partenaires.",
+    "tenant": {
+      "title": "Catalogue partenaires",
+      "description": "Produits des partenaires approuvés qui correspondent au pays de votre organisation."
+    },
+    "employee": {
+      "title": "Avantages et offres",
+      "description": "Produits des partenaires approuvés qui correspondent au pays de votre employeur."
+    },
+    "informationOnly": "Information uniquement",
+    "noApplication": "Aucune demande n’a été soumise.",
+    "providerDetermines": "La disponibilité et les conditions définitives sont déterminées par le prestataire.",
+    "partners": "Partenaires affichés : {{names}}.",
+    "filter": "Filtrer le catalogue",
+    "type": "Type de produit",
+    "anyType": "Tous les types",
+    "apply": "Appliquer le filtre",
+    "loading": "Chargement du catalogue…",
+    "countryUnknown": "Le pays de votre organisation n’est pas renseigné : aucune offre ne peut être associée. Demandez à votre administrateur de le renseigner.",
+    "empty": "Aucun produit n’est disponible pour votre pays pour le moment.",
+    "eligibility": "Éligibilité",
+    "disclosure": "Informations importantes",
+    "effective": "Disponible",
+    "duration": "Durée",
+    "months": "de {{min}} à {{max}} mois",
+    "amounts": "Montants",
+    "moreInformation": "Plus d’informations du prestataire",
+    "opensNewTab": "(s’ouvre dans un nouvel onglet)",
+    "more": "Charger plus"
   }
 }

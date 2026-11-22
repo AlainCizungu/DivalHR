@@ -44,7 +44,7 @@ export const MODULES: readonly ModuleEntry[] = [
   // no real partner, decision, payout or deduction. The card stays "Coming next" and carries the
   // labelled "Available foundation" statement.
   { id: 'loans', icon: 'bank', status: 'later', vision: true, foundation: true },
-  { id: 'benefits', icon: 'benefits', status: 'later', vision: true },
+  { id: 'benefits', icon: 'benefits', status: 'later', vision: true, foundation: true },
   { id: 'performance', icon: 'target', status: 'later', vision: true },
   // Contract templates, issuing, acknowledgement and expiration tracking (MVP-030, MVP-031A);
   // general document storage and e-signature are not built.
