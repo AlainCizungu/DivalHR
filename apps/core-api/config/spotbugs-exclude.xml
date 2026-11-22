@@ -68,6 +68,11 @@
       <Class name="com.divalhr.core.integrations.partner.PartnerReviewService"/>
       <Class name="com.divalhr.core.integrations.partner.PartnerApplicationPublicController"/>
       <Class name="com.divalhr.core.integrations.partner.PartnerApplicationReviewController"/>
+      <!-- MVP-120E: the partner-account and catalogue services and controllers hold injected singletons. -->
+      <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerAccountService"/>
+      <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerCatalogueService"/>
+      <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerAccountController"/>
+      <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerCatalogueController"/>
       <Class name="com.divalhr.core.identity.application.DevelopmentMembershipSeeder"/>
       <Class name="com.divalhr.core.identity.api.InvitationController"/>
       <Class name="com.divalhr.core.identity.application.InvitationDelivery"/>
@@ -323,5 +328,15 @@
   <Match>
     <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     <Class name="~com\.divalhr\.core\.integrations\.partner\.Partner(EmailLimiter|Crypto)"/>
+  </Match>
+  <!-- MVP-120E: the partner account and catalogue bodies and the repository row are immutable records
+       built for one response (or one transaction) and never shared, cached or mutated; their lists and
+       maps are not copied, which is the same shape as the other response bodies. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Or>
+      <Class name="~com\.divalhr\.core\.integrations\.partner\.catalogue\.PartnerAccountBodies\$.*"/>
+      <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerAccountRepository$PartnerRow"/>
+    </Or>
   </Match>
 </FindBugsFilter>

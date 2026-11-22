@@ -91,6 +91,8 @@ type Locale = keyof typeof COPY;
 
 let releaseSubject: (() => void) | undefined;
 test.beforeAll(async () => {
+  // Other specs hold this subject for minutes: waiting for it must not count against the hook.
+  test.setTimeout(600_000);
   releaseSubject = await subjectLock(USERS.platformAdmin[0]);
 });
 test.afterAll(() => {

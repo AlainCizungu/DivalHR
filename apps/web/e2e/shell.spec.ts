@@ -221,7 +221,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(28);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(29);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

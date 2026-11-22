@@ -191,6 +191,11 @@ class PartnerAccountIntegrationTest {
    * Creates, activates and publishes one product; returns {partner reference, product public
    * reference}.
    */
+  private long count(String sql) {
+    Long value = jdbc.queryForObject(sql, Long.class);
+    return value == null ? -1L : value;
+  }
+
   private String[] published(String code, LocalDate effective) throws Exception {
     JsonNode partner = partnerOf(approvedApplication());
     String ref = partner.path("reference").asText();
@@ -242,15 +247,12 @@ class PartnerAccountIntegrationTest {
     assertThat(refused.getStatus()).isEqualTo(409);
     assertThat(code(refused)).isEqualTo("PARTNER_SOURCE_APPLICATION_NOT_APPROVED");
     assertThat(code(create("PA-AAAAAAAAAAAA"))).isEqualTo("PARTNER_APPLICATION_NOT_FOUND");
-    int partnersBefore =
-        jdbc.queryForObject("SELECT count(*) FROM integrations.partner", Integer.class);
+    long partnersBefore = count("SELECT count(*) FROM integrations.partner");
 
     String approved = approvedApplication();
-    long invitations = jdbc.queryForObject("SELECT count(*) FROM identity.invitation", Long.class);
-    long memberships =
-        jdbc.queryForObject("SELECT count(*) FROM identity.tenant_membership", Long.class);
-    long organizations =
-        jdbc.queryForObject("SELECT count(*) FROM tenant.organization", Long.class);
+    long invitations = count("SELECT count(*) FROM identity.invitation");
+    long memberships = count("SELECT count(*) FROM identity.tenant_membership");
+    long organizations = count("SELECT count(*) FROM tenant.organization");
     MockHttpServletResponse response = create(approved);
     assertThat(response.getStatus()).isEqualTo(200);
     assertThat(response.getHeader("Cache-Control")).isEqualTo("private, no-store");
@@ -279,8 +281,7 @@ class PartnerAccountIntegrationTest {
     assertThat(again.path("created").asBoolean()).isFalse();
     assertThat(again.path("partner").path("reference").asText())
         .isEqualTo(partner.path("reference").asText());
-    assertThat(jdbc.queryForObject("SELECT count(*) FROM integrations.partner", Integer.class))
-        .isEqualTo(partnersBefore + 1);
+    assertThat(count("SELECT count(*) FROM integrations.partner")).isEqualTo(partnersBefore + 1);
     // The same key replays the original response.
     String key = Organizations.newKey();
     String other = approvedApplication();

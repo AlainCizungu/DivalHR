@@ -54,8 +54,10 @@ export type PartnerProductCreateCommand = CoreComponents['schemas']['PartnerProd
 export type PartnerProductDraftCommand = CoreComponents['schemas']['PartnerProductDraftCommand'];
 export type PartnerProductVersion = CoreComponents['schemas']['PartnerProductVersion'];
 export type PartnerProductDetail = CoreComponents['schemas']['PartnerProductDetail'];
-export type PartnerProductTransitionCommand = CoreComponents['schemas']['PartnerProductTransitionCommand'];
-export type PartnerProductTransitionReceipt = CoreComponents['schemas']['PartnerProductTransitionReceipt'];
+export type PartnerProductTransitionCommand =
+  CoreComponents['schemas']['PartnerProductTransitionCommand'];
+export type PartnerProductTransitionReceipt =
+  CoreComponents['schemas']['PartnerProductTransitionReceipt'];
 export type PartnerProductHistoryEntry = CoreComponents['schemas']['PartnerProductHistoryEntry'];
 export type PartnerProductHistoryPage = CoreComponents['schemas']['PartnerProductHistoryPage'];
 export type CatalogueAvailability = CoreComponents['schemas']['CatalogueAvailability'];

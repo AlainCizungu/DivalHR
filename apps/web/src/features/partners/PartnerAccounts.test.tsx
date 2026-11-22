@@ -9,6 +9,8 @@ import { stub, type Recorded, type Reply } from '../payslips/stub';
 import { CataloguePage } from './CataloguePage';
 import { PartnerAccountDetailPage } from './PartnerAccountDetailPage';
 import { PartnerAccountsPage } from './PartnerAccountsPage';
+import { PartnerProductPage } from './PartnerProductPage';
+import { contentFromForm, emptyForm } from './accounts';
 
 const PARTNER = 'PT-ABCDEFGHJKMN';
 const APPLICATION = 'PA-ABCDEFGHJKMN';
@@ -25,9 +27,18 @@ const product = {
   partnerDisplayName: 'Synthetic Test Bank',
   productType: 'SALARY_ADVANCE',
   name: { en: 'Salary advance', fr: 'Avance sur salaire' },
-  summary: { en: 'A short synthetic summary.', fr: 'Un court résumé synthétique.' },
-  eligibility: { en: 'Open to permanent staff.', fr: 'Ouvert au personnel permanent.' },
-  disclosure: { en: 'Synthetic disclosure text here.', fr: 'Texte de mention synthétique.' },
+  summary: {
+    en: 'A short synthetic summary.',
+    fr: 'Un court résumé synthétique.',
+  },
+  eligibility: {
+    en: 'Open to permanent staff.',
+    fr: 'Ouvert au personnel permanent.',
+  },
+  disclosure: {
+    en: 'Synthetic disclosure text here.',
+    fr: 'Texte de mention synthétique.',
+  },
   infoUrl: 'https://example.test/info',
   effectiveDate: '2026-11-01',
   endDate: null,
@@ -44,7 +55,13 @@ const catalogue =
       return {
         status: 200,
         body: {
-          items: [{ displayName: 'Synthetic Test Bank', categories: ['BANK'], productCount: 1 }],
+          items: [
+            {
+              displayName: 'Synthetic Test Bank',
+              categories: ['BANK'],
+              productCount: 1,
+            },
+          ],
           availability: 'AVAILABLE',
           informationOnly: true,
         },
@@ -159,7 +176,10 @@ describe('catalogue behaviour', () => {
   });
 
   it('shows a finished sentence, not a code, when the catalogue cannot be read', async () => {
-    stub(() => ({ status: 403, body: { code: 'ACCESS_DENIED', correlationId: 'c-1' } }));
+    stub(() => ({
+      status: 403,
+      body: { code: 'ACCESS_DENIED', correlationId: 'c-1' },
+    }));
     await renderWithSession(
       <CataloguePage audience="employee" />,
       sessionWithRoles(['employee']),
@@ -404,5 +424,59 @@ describe('partner account detail', () => {
     await openPartner('DRAFT', ['ACTIVATE'], 'fr');
     const results = await axe.run(document.body);
     expect(results.violations).toEqual([]);
+  });
+});
+
+describe('product editor', () => {
+  it('keeps the “Saved.” confirmation when the save changes the row version and remounts the editor', async () => {
+    let rowVersion = 1;
+    const version = () => ({
+      version: 1,
+      status: 'DRAFT',
+      rowVersion,
+      content: contentFromForm(emptyForm()),
+      allowedActions: ['SUBMIT'],
+      createdAt: '2026-11-20T09:00:00Z',
+      updatedAt: '2026-11-20T09:00:00Z',
+    });
+    const productDetail = () => ({
+      partnerReference: PARTNER,
+      partnerStatus: 'ACTIVE',
+      productCode: 'ADVANCE-1',
+      productType: 'SALARY_ADVANCE',
+      publicReference: 'PP-ABCDEFGHJKMN',
+      versions: [version()],
+    });
+    const requests = stub((r) => {
+      if (r.method === 'PUT') {
+        rowVersion += 1;
+        return { status: 200, body: productDetail() };
+      }
+      if (r.path.includes('/history'))
+        return { status: 200, body: { items: [], nextCursor: null } };
+      if (r.path.includes('/products/')) return { status: 200, body: productDetail() };
+      return { status: 200, body: detail('ACTIVE', []) };
+    });
+    await renderWithSession(
+      <Routes>
+        <Route path="/admin/partners/:reference/products/:code" element={<PartnerProductPage />} />
+      </Routes>,
+      sessionWithRoles(['platform-admin']),
+      'en',
+      `/admin/partners/${PARTNER}/products/ADVANCE-1`,
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('editor-save'));
+    expect(await screen.findByTestId('editor-saved')).toHaveTextContent(en.accounts.editor.saved);
+    // The reload after the save has run and the editor was rebuilt for the new row version.
+    await waitFor(() => {
+      expect(
+        requests.filter((q) => q.method === 'GET' && q.path.includes('/products/')).length,
+      ).toBeGreaterThanOrEqual(2);
+    });
+    expect(screen.getByTestId('editor-saved')).toBeInTheDocument();
+    // Editing again clears it.
+    await user.type(screen.getAllByRole('textbox')[0] as HTMLElement, 'x');
+    expect(screen.queryByTestId('editor-saved')).not.toBeInTheDocument();
   });
 });

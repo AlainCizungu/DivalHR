@@ -68,11 +68,16 @@ function ContentEditor({
   product,
   partner,
   version,
+  saved,
+  onSavedChange,
   onSaved,
 }: {
   product: PartnerProductDetail;
   partner: PartnerDetail;
   version: PartnerProductVersion;
+  /** Held by the page: a save changes the row version, which remounts this editor. */
+  saved: boolean;
+  onSavedChange: (saved: boolean) => void;
   onSaved: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -82,7 +87,6 @@ function ContentEditor({
   const [form, setForm] = useState<ContentForm>(() => formFromContent(version.content));
   const [errors, setErrors] = useState<ContentErrors>({});
   const [failure, setFailure] = useState<PartnerFailure | null>(null);
-  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -91,7 +95,7 @@ function ContentEditor({
   const scope = countryOptions(i18n.language).filter((o) => partner.countries.includes(o.value));
 
   const set = <K extends keyof ContentForm>(key: K, value: ContentForm[K]) => {
-    setSaved(false);
+    onSavedChange(false);
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -125,7 +129,7 @@ function ContentEditor({
       );
       if (data) {
         idempotency.reset();
-        setSaved(true);
+        onSavedChange(true);
         onSaved();
         return;
       }
@@ -588,6 +592,7 @@ export function PartnerProductPage() {
   const { reference = '', code = '' } = useParams();
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [reloads, setReloads] = useState(0);
+  const [saved, setSaved] = useState(false);
   const reload = useCallback(() => {
     setReloads((n) => n + 1);
   }, []);
@@ -690,6 +695,8 @@ export function PartnerProductPage() {
             product={product}
             partner={partner}
             version={latest}
+            saved={saved}
+            onSavedChange={setSaved}
             onSaved={reload}
           />
         </section>
@@ -718,7 +725,10 @@ export function PartnerProductPage() {
                 key={`${v.version}-${v.rowVersion}`}
                 product={product}
                 version={v}
-                onChanged={reload}
+                onChanged={() => {
+                  setSaved(false);
+                  reload();
+                }}
               />
             </li>
           ))}
