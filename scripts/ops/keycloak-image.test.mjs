@@ -121,3 +121,17 @@ test('--verify accepts the recorded JAR and refuses a changed one', () => {
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /does not match its recorded SHA-256/u);
 });
+
+test('the scripts that are executed directly are tracked as executable', () => {
+  // A checkout (CI, a release unpacked on hr-dev) runs these without `bash`; mode 100644 fails with
+  // "Permission denied" (found in CI on the first DEVX-005 run).
+  const modes = spawnSync(
+    'git',
+    ['ls-files', '-s', 'ops/build/keycloak-provisioning-jar.sh', 'ops/hr-dev/secret-needles.sh'],
+    { cwd: root.pathname, encoding: 'utf8' },
+  )
+    .stdout.trim()
+    .split('\n')
+    .map((line) => line.split(' ')[0]);
+  assert.deepEqual(modes, ['100755', '100755']);
+});
