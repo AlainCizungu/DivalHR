@@ -111,6 +111,19 @@ hr_export_tls
 
 # --- build, back up, start ---------------------------------------------------------------------
 PREVIOUS="$(hr_current_release)"
+# DEVX-005 (#214): the Keycloak provisioning extension is built from this release's own sources
+# first, as its own step with its SHA-256 recorded; the image build only installs that verified JAR.
+hr_log "building the Keycloak provisioning extension of $SHA"
+jar_line="$("$REL/ops/build/keycloak-provisioning-jar.sh" | tail -n 1)" \
+  || hr_die "the provisioning extension build failed"
+case "$jar_line" in
+  KEYCLOAK_PROVISIONING_JAR_SHA256=*) KEYCLOAK_PROVISIONING_JAR_SHA256="${jar_line#*=}" ;;
+  *) hr_die "the provisioning extension build recorded no SHA-256" ;;
+esac
+printf '%s' "$KEYCLOAK_PROVISIONING_JAR_SHA256" | grep -Eq '^[0-9a-f]{64}$' \
+  || hr_die "the recorded provisioning extension SHA-256 is malformed"
+export KEYCLOAK_PROVISIONING_JAR_SHA256
+hr_log "provisioning extension SHA-256 $KEYCLOAK_PROVISIONING_JAR_SHA256"
 hr_log "building images ${HR_DEV_IMAGE_PREFIX}/*:$SHA"
 hr_compose "$SHA" build --pull || hr_die "image build failed"
 

@@ -102,7 +102,17 @@ only**. The `divalhr-dev` realm therefore sets `"sslRequired": "none"`.
 ### The extension and the image (Issue #31)
 
 Compose builds `divalhr/keycloak:dev` from `Dockerfile` (repository root as context): the pinned
-Keycloak image plus `apps/keycloak-provisioning`, built with the Core API's Gradle wrapper.
+Keycloak image plus the `apps/keycloak-provisioning` JAR. Since DEVX-005 (Issue #214) the image build
+runs no Gradle and resolves nothing: build the JAR first, from the same commit, with its SHA-256
+recorded, and let the image verify that digest:
+
+    eval "$(ops/build/keycloak-provisioning-jar.sh --export)"   # sets KEYCLOAK_PROVISIONING_JAR_SHA256
+    docker compose -f infrastructure/docker/compose.yaml --env-file .env.example up -d --build
+
+`ops/build/keycloak-provisioning-jar.sh --verify` recomputes the digest of
+`infrastructure/docker/keycloak/build/divalhr-provisioning.jar` and compares it to its record. The
+JAR and the record are untracked build output. The hr-dev deployment, the host verification and CI
+run this step before every Keycloak image build.
 
 | Option (environment variable) | Meaning |
 |---|---|

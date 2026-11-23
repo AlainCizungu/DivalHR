@@ -272,6 +272,11 @@ stage_core() {
 stage_stack() {
   env_report
   local compose="docker compose -f $ROOT/infrastructure/docker/compose.yaml --env-file $ROOT/.env.example"
+  # DEVX-005 (#214): the Keycloak provisioning JAR is built first; the image build verifies its digest.
+  run keycloak-jar "$ROOT/ops/build/keycloak-provisioning-jar.sh"
+  run keycloak-jar-verify "$ROOT/ops/build/keycloak-provisioning-jar.sh" --verify
+  KEYCLOAK_PROVISIONING_JAR_SHA256="$("$ROOT/ops/build/keycloak-provisioning-jar.sh" --verify | sed 's/^KEYCLOAK_PROVISIONING_JAR_SHA256=//')"
+  export KEYCLOAK_PROVISIONING_JAR_SHA256
   run compose-build $compose build
   run compose-up $compose up -d --wait --wait-timeout 300
   run status-core curl -fsS -H 'X-Correlation-Id: host-verify-0001' http://localhost:8080/api/v1/system/status

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROUTES, type Role } from '../app/routes';
-import { activeItemPath, NAVIGATION, navigationRoles, visibleGroups } from './navigation';
+import { activeItemPath, NAVIGATION, navigationRoles, visibleGroups } from './navigationModel';
 
 const visiblePaths = (roles: Role[]) =>
   visibleGroups(roles).flatMap((group) => group.items.map((item) => item.to));

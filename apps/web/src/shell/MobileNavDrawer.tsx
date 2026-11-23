@@ -1,8 +1,8 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../ui/Icon';
-import { Brand, NavigationList } from './Navigation';
-import type { NavGroupDef } from './navigation';
+import { Brand, NavigationList } from './NavigationView';
+import type { NavGroupDef } from './navigationModel';
 
 /**
  * UI-001 mobile navigation: a native modal dialog. showModal() makes the page behind it inert and

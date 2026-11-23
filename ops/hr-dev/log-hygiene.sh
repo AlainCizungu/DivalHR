@@ -30,19 +30,12 @@ W=$(mktemp -d) || hr_die "mktemp failed"
 chmod 700 "$W"
 trap 'rm -rf "$W"' EXIT
 
-# The secret values, one per line, from the root-only secrets directory (never printed).
+# The secret values, one per line, from the root-only secrets directory (never printed). Each file
+# is read on its own in a fixed order (DEVX-005, Issue #153): secret-needles.sh.
 S="$HR_DEV_DATA/secrets"
 if [ -d "$S" ]; then
-  # Not secrets: identifiers kept beside the accounts (organization.txt).
-  find "$S" -type f ! -name '*.txt' -print0 | while IFS= read -r -d '' f; do
-    if grep -q '=' "$f"; then
-      # KEY=VALUE files (keycloak.conf, kc-admin.env, acceptance accounts): secret-named keys only.
-      grep -iE '^[A-Za-z0-9_.-]*(password|secret|key)[A-Za-z0-9_.-]*=' "$f" | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//"
-    else
-      # A file without a final newline must not run into the next file's first line.
-      { head -1 "$f"; echo; }
-    fi
-  done | awk 'length($0) >= 8' | sort -u > "$W/needles"
+  "$(dirname "$0")/secret-needles.sh" "$S" "$W/needles" > "$W/needles.count" \
+    || hr_die "the secret values could not be read from $S"
 else
   : > "$W/needles"
 fi

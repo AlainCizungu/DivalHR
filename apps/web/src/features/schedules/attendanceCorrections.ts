@@ -4,7 +4,7 @@ import type {
   Problem,
 } from '@divalhr/api-client';
 import { codePoints } from '../leave/leaveApprovals';
-import type { ExceptionRow } from './attendanceExceptions';
+import type { ExceptionRow } from './attendanceExceptionsModel';
 
 /**
  * MVP-062: a tenant administrator's correction of factual attendance evidence. The browser only

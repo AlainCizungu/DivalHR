@@ -20,6 +20,7 @@ import com.divalhr.core.platform.ai.OperationalSummaryContract.Request;
 import com.divalhr.core.platform.ai.OperationalSummaryPort;
 import com.divalhr.core.platform.audit.AuditEvent;
 import com.divalhr.core.platform.audit.AuditRecorder;
+import com.divalhr.core.platform.ratelimit.SettableClockRateLimiterConfig;
 import com.divalhr.core.support.Employees;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.SettableClock;
@@ -62,7 +63,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  */
 @IntegrationTest
 @TestPropertySource(properties = "divalhr.request-limits.subject.operational-summary=30")
-@Import(SettableClock.Config.class)
+@Import({SettableClock.Config.class, SettableClockRateLimiterConfig.class})
 @ExtendWith(OutputCaptureExtension.class)
 class OperationalSummaryIntegrationTest {
 
@@ -486,6 +487,10 @@ class OperationalSummaryIntegrationTest {
   void aSubjectIsRateLimitedAndTheRefusalCallsNothing() throws Exception {
     Day t = day();
     ScheduleWorld w = t.w();
+    // DEVX-005: the production limiter runs on the settable clock, so the 31 requests all fall in
+    // one exact one-minute window, whatever the wall clock does while they run.
+    Instant windowStart = Instant.now().truncatedTo(ChronoUnit.MINUTES);
+    clock.set(windowStart.plusSeconds(1));
     for (int i = 0; i < 30; i++) {
       ok(w, generate(w.admin, ADMIN, EN));
     }
@@ -495,7 +500,17 @@ class OperationalSummaryIntegrationTest {
     assertThat(
             JSON.readTree(limited.getContentAsString(StandardCharsets.UTF_8)).get("code").asText())
         .isEqualTo("RATE_LIMITED");
-    assertThat(limited.getHeader("Retry-After")).isNotBlank();
+    assertThat(limited.getHeader("Retry-After")).isEqualTo("59");
     assertThat(sent).hasSize(calls);
+
+    // The last millisecond of the window still refuses; the first instant of the next one admits.
+    clock.set(windowStart.plusMillis(59_999));
+    MockHttpServletResponse stillLimited = w.call(generate(w.admin, ADMIN, EN));
+    assertThat(stillLimited.getStatus()).isEqualTo(429);
+    assertThat(stillLimited.getHeader("Retry-After")).isEqualTo("1");
+    assertThat(sent).hasSize(calls);
+    clock.set(windowStart.plusSeconds(60));
+    ok(w, generate(w.admin, ADMIN, EN));
+    assertThat(sent).hasSize(calls + 1);
   }
 }

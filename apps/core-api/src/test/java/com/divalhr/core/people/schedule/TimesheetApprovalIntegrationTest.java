@@ -76,6 +76,28 @@ class TimesheetApprovalIntegrationTest {
   private static final ZoneId KINSHASA = ZoneId.of("Africa/Kinshasa");
   private static final String REASON = "Le lundi doit être corrigé avec la pause déclarée.";
 
+  /** The exact sensitive value this test seeds: two rows that total 948 worked minutes. */
+  private static final String SEEDED_WORKED_MINUTES = "948";
+
+  private static final java.util.regex.Pattern GENERATED_IDENTIFIER =
+      java.util.regex.Pattern.compile(
+          "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+  private static final java.util.regex.Pattern GENERATED_TIME =
+      java.util.regex.Pattern.compile("\\d{4}-\\d{2}-\\d{2}(T[0-9:.]+(Z|[+-]\\d{2}:\\d{2})?)?");
+
+  /**
+   * The seeded worked-minutes value never reaches the text as a number of its own. Generated
+   * identifiers and timestamps are removed first (DEVX-005, Issue #212): their random digits can
+   * legitimately contain "948" and are not the seeded value; the text is otherwise unchanged and
+   * the value is matched at its digit boundaries.
+   */
+  private static void assertNoWorkedMinutes(String text) {
+    String stripped =
+        GENERATED_TIME.matcher(GENERATED_IDENTIFIER.matcher(text).replaceAll("")).replaceAll("");
+    assertThat(stripped)
+        .doesNotContainPattern("(?<![0-9A-Za-z])" + SEEDED_WORKED_MINUTES + "(?![0-9A-Za-z])");
+  }
+
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private EmailLookup lookups;
@@ -395,7 +417,8 @@ class TimesheetApprovalIntegrationTest {
               "schemaVersion",
               "workedMinuteBand");
       assertThat(metadata.get("workedMinuteBand").asText()).isEqualTo("481-2400");
-      assertThat(metadata.toString()).doesNotContain(id).doesNotContain("948");
+      assertThat(metadata.toString()).doesNotContain(id);
+      assertNoWorkedMinutes(metadata.toString());
     }
     String event =
         jdbc.queryForObject(
@@ -745,8 +768,8 @@ class TimesheetApprovalIntegrationTest {
                     + " AND envelope ->> 'eventType' LIKE 'people.timesheet.%'",
                 String.class, w.tenant().toString()));
     for (String text : List.of(audit, stale.toString())) {
+      assertNoWorkedMinutes(text);
       assertThat(text)
-          .doesNotContain("948")
           .doesNotContain(id)
           .doesNotContain(receipt.get("actionId").asText())
           .doesNotContain(t.ana().employee().toString())

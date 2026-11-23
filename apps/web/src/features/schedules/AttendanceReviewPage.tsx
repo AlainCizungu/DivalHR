@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../ui/primitives';
-import { AttendanceExceptions } from './AttendanceExceptions';
+import { AttendanceExceptions } from './AttendanceExceptionsPage';
 
 /**
  * MVP-060C: « Suivi de la présence » / "Attendance review" under Operations: the organization's

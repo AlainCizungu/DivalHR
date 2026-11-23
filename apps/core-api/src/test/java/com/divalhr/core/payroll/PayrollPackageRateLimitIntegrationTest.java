@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.divalhr.core.identity.application.EmailLookup;
 import com.divalhr.core.payroll.PayrollPackageWorld.Chain;
 import com.divalhr.core.payroll.PayrollPackageWorld.Linked;
+import com.divalhr.core.platform.ratelimit.SettableClockRateLimiterConfig;
 import com.divalhr.core.support.IntegrationTest;
 import com.divalhr.core.support.Organizations;
 import com.divalhr.core.support.SettableClock;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -27,7 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * independent of each other and of the other subjects. Synthetic data only.
  */
 @IntegrationTest
-@Import(SettableClock.Config.class)
+@Import({SettableClock.Config.class, SettableClockRateLimiterConfig.class})
 class PayrollPackageRateLimitIntegrationTest {
 
   private static final String EXPLANATION = "The statutory profile was entered for the wrong month";
@@ -149,11 +152,21 @@ class PayrollPackageRateLimitIntegrationTest {
     Linked linked = w.readyLinked();
     w.approve(linked.chain());
     String mine = linked.person().bearer();
+    // DEVX-005 (Issue #222, A222-1): the limiter's one-minute window follows the test clock, which
+    // is
+    // pinned one second into a window, so the 61 requests can never straddle a minute boundary.
+    Instant windowStart =
+        clock.instant().truncatedTo(ChronoUnit.MINUTES).plus(1, ChronoUnit.MINUTES);
+    clock.set(windowStart.plusSeconds(1));
     for (int i = 0; i < 60; i++) {
       w.c.expect(PayrollRunWorld.get(mine, PayrollPackageWorld.ME + "?limit=1"), 200);
     }
+    // Request 61 is refused inside the window.
     limited(w.c.call(PayrollRunWorld.get(mine, PayrollPackageWorld.ME + "?limit=1")));
     // The administrator, another subject of the same tenant, is not affected.
     w.c.expect(PayrollRunWorld.get(w.admin, w.packagesPath()), 200);
+    // One minute later the next window admits the subject again.
+    clock.set(windowStart.plusSeconds(61));
+    w.c.expect(PayrollRunWorld.get(mine, PayrollPackageWorld.ME + "?limit=1"), 200);
   }
 }

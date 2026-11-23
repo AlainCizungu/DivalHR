@@ -2,6 +2,7 @@
 node_modules/
 dist/
 build/
+!/ops/build/
 coverage/
 .gradle/
 .venv/
