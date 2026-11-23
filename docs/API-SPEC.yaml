@@ -16079,7 +16079,7 @@ paths:
   /me/partner-products:
     get:
       operationId: listMyPartnerProducts
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Partner products I can ask to be referred to
@@ -16121,7 +16121,7 @@ paths:
   /me/partner-products/{productId}:
     get:
       operationId: getMyPartnerProduct
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: One partner product I can ask to be referred to
@@ -16157,7 +16157,7 @@ paths:
   /me/partner-referrals/preview:
     post:
       operationId: previewMyPartnerReferral
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Preview exactly what a referral would disclose
