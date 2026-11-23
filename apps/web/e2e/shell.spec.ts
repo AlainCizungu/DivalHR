@@ -72,6 +72,7 @@ test.describe('desktop', () => {
       'Contract expirations',
       'Users and invitations',
       'Access review',
+      'Partner catalogue',
       'Webhooks',
       'WhatsApp Business',
     ]);
@@ -152,6 +153,7 @@ test.describe('desktop', () => {
       'Opérations de l’équipe',
       'Présence de l’équipe',
       'Remplacements d’horaire',
+      'Avantages et offres',
       'Mes congés',
       'Approbations de congé',
       'Mes tâches',
@@ -176,6 +178,7 @@ test.describe('desktop', () => {
       'Create organization',
       'First administrator',
       'Partner applications',
+      'Partners',
       'Statutory packs',
     ]);
     await expect(platform.getByTestId('home-card-status')).toBeVisible();
@@ -218,7 +221,7 @@ test.describe('desktop', () => {
       await page.waitForURL((url) => url.pathname === '/admin/people');
       await expect(nav(page).locator('.nav-link__label')).toHaveText(['Home']);
       release();
-      await expect(nav(page).locator('.nav-link__label')).toHaveCount(28);
+      await expect(nav(page).locator('.nav-link__label')).toHaveCount(29);
       await expect(page.getByTestId('directory-table')).toBeVisible();
     },
   );

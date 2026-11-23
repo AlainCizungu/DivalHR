@@ -194,6 +194,11 @@ divalhr:
       # per minute: reads 60 and commands 20.
       partner-application-read: ${DIVALHR_PARTNER_APPLICATION_READ_REQUESTS_PER_MINUTE:60}
       partner-application-command: ${DIVALHR_PARTNER_APPLICATION_COMMAND_REQUESTS_PER_MINUTE:20}
+      # MVP-120E: partner accounts and the controlled product catalogue (ADR 0044). Per subject
+      # per minute: platform reads 60, platform commands 10, catalogue reads 60.
+      partner-account-read: ${DIVALHR_PARTNER_ACCOUNT_READ_REQUESTS_PER_MINUTE:60}
+      partner-account-command: ${DIVALHR_PARTNER_ACCOUNT_COMMAND_REQUESTS_PER_MINUTE:10}
+      catalogue-read: ${DIVALHR_CATALOGUE_READ_REQUESTS_PER_MINUTE:60}
       # MVP-094C: payroll approval and payslips (ADR 0035, D94C-16). Per subject per minute: reads
       # 60, previews (approval and void) 5, commits (approval and void) 2, PDF downloads 30.
       payroll-package-read: ${DIVALHR_PAYROLL_PACKAGE_READ_REQUESTS_PER_MINUTE:60}

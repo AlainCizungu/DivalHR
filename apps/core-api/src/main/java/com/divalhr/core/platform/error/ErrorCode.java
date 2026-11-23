@@ -914,7 +914,34 @@ public enum ErrorCode {
   /** MVP-120D: reserved for internal and protected use; the public route never returns it. */
   PARTNER_APPLICATION_DUPLICATE(HttpStatus.CONFLICT),
   /** MVP-120D: the applicant did not acknowledge the submission and consent statement. */
-  PARTNER_APPLICATION_CONSENT_REQUIRED(HttpStatus.BAD_REQUEST);
+  PARTNER_APPLICATION_CONSENT_REQUIRED(HttpStatus.BAD_REQUEST),
+  /** MVP-120E: the application is not exactly approved for onboarding. */
+  PARTNER_SOURCE_APPLICATION_NOT_APPROVED(HttpStatus.CONFLICT),
+  /**
+   * MVP-120E: reserved: a partner already exists for the application (activation is idempotent and
+   * returns it).
+   */
+  PARTNER_ALREADY_CREATED(HttpStatus.CONFLICT),
+  /** MVP-120E: unknown or malformed partner reference. */
+  PARTNER_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-120E: invalid partner move, stale version or duplicate product code. */
+  PARTNER_TRANSITION_INVALID(HttpStatus.CONFLICT),
+  /** MVP-120E: closure blocked by an active product. */
+  PARTNER_HAS_ACTIVE_PRODUCTS(HttpStatus.CONFLICT),
+  /** MVP-120E: unknown or malformed product code. */
+  PARTNER_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-120E: malformed or incomplete product content. */
+  PARTNER_PRODUCT_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-120E: country outside the partner scope or unsupported currency. */
+  PARTNER_PRODUCT_SCOPE_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-120E: invalid product move. */
+  PARTNER_PRODUCT_TRANSITION_INVALID(HttpStatus.CONFLICT),
+  /** MVP-120E: partner not ACTIVE (or CLOSED) for the product action. */
+  PARTNER_PRODUCT_PARTNER_INACTIVE(HttpStatus.CONFLICT),
+  /** MVP-120E: stale expected version or row version. */
+  PARTNER_PRODUCT_VERSION_STALE(HttpStatus.CONFLICT),
+  /** MVP-120E: uniform catalogue 404. */
+  PARTNER_PRODUCT_NOT_AVAILABLE(HttpStatus.NOT_FOUND);
 
   private final HttpStatus status;
 

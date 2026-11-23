@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { expectAccessible, primaryNav, signIn, sql, USERS } from './support';
+import { expectAccessible, primaryNav, signIn, sql, subjectLock, USERS } from './support';
 
 // MVP-120D (Issue #215, ADR 0043): exactly two journeys, run without retries and with the seeded
 // platform administrator. Each submits a synthetic partner application as an anonymous visitor,
@@ -14,6 +14,17 @@ import { expectAccessible, primaryNav, signIn, sql, USERS } from './support';
 // "approved for onboarding".
 
 test.describe.configure({ retries: 0 });
+
+// MVP-120E: the partner-account journeys use the same platform administrator and the same
+// per-subject command budget, so the two specs take turns.
+let releaseSubject: (() => void) | undefined;
+test.beforeAll(async () => {
+  test.setTimeout(600_000);
+  releaseSubject = await subjectLock(USERS.platformAdmin[0]);
+});
+test.afterAll(() => {
+  releaseSubject?.();
+});
 
 const MAILPIT = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:8025';
 const REFERENCE = /^PA-[0-9A-HJKMNP-TV-Z]{12}$/u;
@@ -45,7 +56,7 @@ const COPY = {
     summaryTitle: 'Please correct the following:',
     confirmation: 'Application received',
     nav: 'Partner applications',
-    boundary: 'No listing, credentials, integration or access to employee data was created',
+    boundary: 'No credentials, integration or access to employee data was created',
     confirmApprove: 'I confirm approval for onboarding discussions only.',
     apply: 'Apply',
     approved: 'Approved for onboarding',
@@ -76,7 +87,7 @@ const COPY = {
     summaryTitle: 'Veuillez corriger les points suivants :',
     confirmation: 'Candidature reçue',
     nav: 'Candidatures de partenaires',
-    boundary: 'Aucun référencement, aucun identifiant, aucune intégration et aucun accès',
+    boundary: 'Aucun identifiant, aucune intégration et aucun accès',
     confirmApprove: 'Je confirme l’approbation pour les seules discussions d’intégration.',
     apply: 'Appliquer',
     approved: 'Approuvée pour l’intégration',

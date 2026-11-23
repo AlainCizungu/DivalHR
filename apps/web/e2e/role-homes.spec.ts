@@ -88,8 +88,8 @@ for (const locale of ['en', 'fr'] as const) {
     // D93-14: the exact module truth table, one state label per module.
     const truth = {
       available: ['employees', 'leave', 'ai'],
-      capabilities: ['payroll', 'documents', 'analytics', 'workflow', 'integrations'],
-      later: ['loans', 'benefits', 'performance', 'mobile'],
+      capabilities: ['payroll', 'benefits', 'documents', 'analytics', 'workflow', 'integrations'],
+      later: ['loans', 'performance', 'mobile'],
     } as const;
     for (const [state, ids] of Object.entries(truth)) {
       for (const id of ids) {
@@ -98,10 +98,10 @@ for (const locale of ['en', 'fr'] as const) {
         await expect(card).toContainText(LANDING[locale][state as keyof typeof truth]);
       }
     }
-    await expect(modules.locator('[data-testid="landing-remaining"]')).toHaveCount(5);
+    await expect(modules.locator('[data-testid="landing-remaining"]')).toHaveCount(6);
     // The two plain lists (no link, button or figure): Available now grouped, Coming next.
     const today = page.getByTestId('landing-today');
-    await expect(today.getByRole('listitem')).toHaveCount(15);
+    await expect(today.getByRole('listitem')).toHaveCount(16);
     await expect(today.locator('li[data-module="compensation"]')).toHaveText(
       LANDING[locale].compensation,
     );

@@ -70,6 +70,10 @@ import { EmployeeImportPage } from '../features/people/EmployeeImportPage';
 import { EmployeeProfilePage } from '../features/people/EmployeeProfilePage';
 import { PartnerApplicationDetailPage } from '../features/partners/PartnerApplicationDetailPage';
 import { PartnerApplicationsPage } from '../features/partners/PartnerApplicationsPage';
+import { CataloguePage } from '../features/partners/CataloguePage';
+import { PartnerAccountDetailPage } from '../features/partners/PartnerAccountDetailPage';
+import { PartnerAccountsPage } from '../features/partners/PartnerAccountsPage';
+import { PartnerProductPage } from '../features/partners/PartnerProductPage';
 import { PartnerApplyPage } from '../features/partners/PartnerApplyPage';
 import { StatusPage } from '../features/status/StatusPage';
 import { UsersPage } from '../features/users/UsersPage';
@@ -154,6 +158,52 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'partners.review.signInRequired',
     },
     crumbs: [HOME, PLATFORM, { key: 'nav.partnerApplications', to: '/admin/partner-applications' }],
+  },
+  {
+    path: '/admin/partners',
+    element: <PartnerAccountsPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'accounts.unauthorized',
+      signInKey: 'accounts.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.partnerAccounts' }],
+  },
+  {
+    path: '/admin/partners/:reference',
+    element: <PartnerAccountDetailPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'accounts.unauthorized',
+      signInKey: 'accounts.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.partnerAccounts', to: '/admin/partners' }],
+  },
+  {
+    path: '/admin/partners/:reference/products/:code',
+    element: <PartnerProductPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'accounts.unauthorized',
+      signInKey: 'accounts.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.partnerAccounts', to: '/admin/partners' }],
+  },
+  {
+    path: '/admin/catalogue',
+    element: <CataloguePage audience="tenant" />,
+    access: tenantAdmin('catalogue.unauthorized', 'catalogue.signInRequired'),
+    crumbs: [HOME, ORGANIZATION, { key: 'nav.catalogue' }],
+  },
+  {
+    path: '/me/catalogue',
+    element: <CataloguePage audience="employee" />,
+    access: {
+      role: 'employee',
+      deniedKey: 'catalogue.unauthorized',
+      signInKey: 'catalogue.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myCatalogue' }],
   },
   {
     path: '/admin/statutory-packs',

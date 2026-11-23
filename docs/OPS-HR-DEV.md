@@ -486,3 +486,9 @@ Not deployed: hr-dev runs `c93ce0ec…` until MVP-095C is deployed and accepted.
   administrator, `dev-platform-reviewer` (published development seed), so the four-eyes journey uses two subjects.
 - **Rollback.** `db/rollback/V51__rollback.sql` refuses once any evidence, case, validation run, review or transition
   exists or any governance row was touched. After that, restore the pre-deploy backup (section 9).
+
+## MVP-120E partner accounts and controlled catalogue (ADR 0044, Issue #217, V56)
+
+- **Migration.** V56 adds the partner account, partner history, product, product version and product history tables, with triggers for immutability and the transition matrices. No configuration, secret or external dependency; nothing is sent to any partner and no notification is produced. It is not applied to hr-dev until the story is approved and deployed.
+- **Rollback.** `db/rollback/V56__rollback.sql` refuses while any partner account, product or version exists. Once partners exist, roll back the application only (V56 changed no earlier object) or restore the pre-deploy database backup (section 9). Removing the V56 row from `flyway_schema_history` is a separate, controlled operator step taken only together with the application rollback.
+- **Acceptance.** Synthetic data only. Partner creation, lifecycle and product publication need a platform administrator with exact MFA; hr-dev has no such acceptance account, and none is created without an explicit decision.

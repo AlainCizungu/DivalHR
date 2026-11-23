@@ -32,4 +32,9 @@ public class OrganizationDirectoryAdapter implements OrganizationDirectory {
       TenantId tenant, Duration timeout) {
     return organizations.lockActiveForTenantAdministration(tenant, timeout);
   }
+
+  @Override
+  public Optional<String> countryCode(TenantId tenant) {
+    return organizations.countryCode(tenant);
+  }
 }

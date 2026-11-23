@@ -36,7 +36,7 @@ describe.each(['en', 'fr'] as const)('landing partner program (%s)', (locale) =>
     const foundation = within(card).getByTestId('landing-foundation');
     expect(foundation).toHaveTextContent(strings.landing.modules.foundationLabel);
     expect(foundation).toHaveTextContent(strings.landing.modules.items.loans.foundation);
-    // No other card claims a foundation, and the plain "Available now" list never names it.
+    // Only Loans & Salary Advances carries a foundation; the plain "Available now" list never names it.
     expect(screen.getAllByTestId('landing-foundation')).toHaveLength(1);
     expect(AVAILABLE_NOW.join(' ')).not.toMatch(/advance|loan/iu);
     expect(screen.getByTestId('landing-today')).not.toHaveTextContent(
@@ -71,6 +71,43 @@ describe.each(['en', 'fr'] as const)('landing partner program (%s)', (locale) =>
     expect(strings.landing.partners.body).toMatch(
       locale === 'en' ? /no real partner is connected/u : /aucun partenaire réel n’est connecté/u,
     );
+  });
+
+  it('says plainly what the delivered partner catalogue is and what is still not available (R218-2)', async () => {
+    await renderLanding(locale);
+    const benefits = screen
+      .getByTestId('landing-modules')
+      .querySelector('li[data-module="benefits"]') as HTMLElement;
+    expect(MODULES.find((module) => module.id === 'benefits')?.status).toBe('capabilities');
+    expect(benefits).toHaveAttribute('data-status', 'capabilities');
+    // Not "Coming next": the card says what is available and what is not.
+    expect(within(benefits).getByText(strings.landing.modules.capabilities)).toBeInTheDocument();
+    expect(within(benefits).queryByText(strings.landing.modules.later)).not.toBeInTheDocument();
+    const item = strings.landing.modules.items.benefits;
+    expect(benefits).toHaveTextContent(item.description);
+    expect(benefits).toHaveTextContent(strings.landing.modules.remainingLabel);
+    expect(benefits).toHaveTextContent(item.remaining);
+    expect(within(benefits).queryByTestId('landing-foundation')).not.toBeInTheDocument();
+    expect(item.description).toMatch(
+      locale === 'en'
+        ? /Approved partner catalogue available\. Employees can review informational offers\./u
+        : /Catalogue de partenaires approuvés disponible\. Les employés peuvent consulter des offres informatives\./u,
+    );
+    expect(item.remaining).toMatch(
+      locale === 'en'
+        ? /enrollment.*applications.*connections.*financing decisions.*payroll deductions.*money movement/iu
+        : /adhésion.*demandes.*connexions.*décisions de financement.*retenues sur salaire.*mouvements d’argent/iu,
+    );
+    // The plain "Available now" list names the catalogue as information only and "Coming next"
+    // keeps enrollment and applications.
+    expect(screen.getByTestId('landing-today')).toHaveTextContent(
+      strings.landing.modules.now.partnerCatalogue,
+    );
+    expect(screen.getByTestId('landing-next')).toHaveTextContent(
+      strings.landing.modules.next.platform,
+    );
+    // The benefits card names no partner, product or internal reference.
+    expect(benefits).not.toHaveTextContent(/\bP[TP]-[0-9A-Z]{12,16}\b/u);
   });
 
   it('states that DivalHR is not a lender and that every handoff is synthetic today', () => {

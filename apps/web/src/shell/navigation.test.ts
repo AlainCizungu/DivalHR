@@ -9,6 +9,7 @@ const PLATFORM = [
   '/admin/organizations/new',
   '/admin/organizations/first-admin',
   '/admin/partner-applications',
+  '/admin/partners',
   '/admin/statutory-packs',
 ];
 const TENANT = [
@@ -37,6 +38,7 @@ const TENANT = [
   '/admin/contract-expirations',
   '/admin/users',
   '/admin/access',
+  '/admin/catalogue',
   '/admin/webhooks',
   '/admin/integrations/whatsapp',
 ];
@@ -49,6 +51,7 @@ const EMPLOYEE = [
   '/me/team-operations',
   '/me/team-attendance',
   '/me/schedule/substitutions',
+  '/me/catalogue',
   '/me/leave',
   '/me/leave/approvals',
   '/me/tasks',
@@ -121,6 +124,11 @@ describe('navigation and route registry consistency', () => {
         '/admin/organizations/first-admin',
         '/admin/partner-applications',
         '/admin/partner-applications/:reference',
+        '/admin/partners',
+        '/admin/partners/:reference',
+        '/admin/partners/:reference/products/:code',
+        '/admin/catalogue',
+        '/me/catalogue',
         '/admin/statutory-packs',
         '/admin/statutory-packs/:packCode/:version',
         '/admin/hierarchy',

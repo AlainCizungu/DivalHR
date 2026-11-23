@@ -29,10 +29,11 @@ const DEPLOYED = [
   '4b947a6cfa2135369cd2e8ac1e2710c84a2bb525', // MVP-120A, PR #205: consented salary-advance requests
   'd0f6dd1ed9c8c26a4d9055f9c225a12b30eef0b4', // MVP-120B, PR #207: controlled synthetic partner handoff
   '769fa601e058f6f1ee390d206215113b4ca66963', // Issue #173 observability logging, PR #208, the previous release
-  '46b9969b26838a72dda48a6840d6e9bd4d9db458', // MVP-120C, PR #210: controlled synthetic partner lifecycle, running
+  '46b9969b26838a72dda48a6840d6e9bd4d9db458', // MVP-120C, PR #210: controlled synthetic partner lifecycle, the previous release
+  '27c9ccf52eafa175b9135aa6b82e78b5491a6360', // MVP-120D, PR #216: partner application and controlled onboarding, running
 ];
-const RUNNING = DEPLOYED[14];
-const PREVIOUS = DEPLOYED[13];
+const RUNNING = DEPLOYED[15];
+const PREVIOUS = DEPLOYED[14];
 const CAPABILITY = DEPLOYED[9];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
@@ -105,7 +106,7 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #184, MVP-095A/u);
   assert.match(header, /PR #188, MVP-095B/u);
   assert.match(header, /PR #189, R187-1/u);
-  assert.match(header, /as of 2026-11-20/u);
+  assert.match(header, /as of 2026-11-21/u);
   assert.match(header, /PR #199, TRUTH-003/u);
   assert.match(
     header,
@@ -300,7 +301,7 @@ const SHA_PATTERN = /\b[0-9a-f]{40}\b/gu;
  * Rule 1: the release the header says hr-dev runs equals the expected one, the migration it names is the expected
  * one, MVP-095C is stated merged, deployed and accepted, and the evidence table agrees.
  */
-export function releaseClaimProblems(text, expected, migration = 'V54') {
+export function releaseClaimProblems(text, expected, migration = 'V55') {
   const header = text.split('## Epic 1')[0];
   const problems = [];
   const running = /runs `main` at `([0-9a-f]{40})`/u.exec(header)?.[1];
@@ -472,8 +473,8 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   assert.notEqual(stale, backlog);
   assert.ok(releaseClaimProblems(stale, RUNNING).length > 0, 'a stale header SHA fails');
   const wrongMigration = backlog.replace(
-    'Issue #206 is closed); migration V54 is applied',
-    'Issue #206 is closed); migration V53 is applied',
+    'Issue #206 is closed)); migration V55 is applied',
+    'Issue #206 is closed)); migration V54 is applied',
   );
   assert.notEqual(wrongMigration, backlog);
   assert.ok(
@@ -486,7 +487,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   );
   assert.notEqual(inProgress, backlog);
   assert.ok(releaseClaimProblems(inProgress, RUNNING).length > 0, 'an in-progress MVP-095C fails');
-  const staleTable = backlog.replace(/^\| MVP-120C .*$/mu, '');
+  const staleTable = backlog.replace(/^\| MVP-120D .*$/mu, '');
   assert.notEqual(staleTable, backlog);
   assert.ok(
     releaseClaimProblems(staleTable, RUNNING).length > 0,
@@ -992,7 +993,7 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
         `${name}: names the problem`,
       );
   }
-  const noTableRow = backlog.replace(/^\| MVP-120C .*$/mu, '');
+  const noTableRow = backlog.replace(/^\| MVP-120D .*$/mu, '');
   assert.ok(releaseClaimProblems(noTableRow, RUNNING).length > 0, 'a missing release row fails');
   const wrongPr = backlog.replace('| MVP-096   | #195 |', '| MVP-096   | #196 |');
   assert.notEqual(wrongPr, backlog);
@@ -1344,8 +1345,9 @@ test('truth rule 6: 097A, 120A, 120B and 120C carry their Git and deployment fac
   }
 });
 
-// MVP-120D (Issue #215) is in review: its entry must never claim a merge, a deployment, an AWS
-// verification or an applied V55, and must keep the approval boundary and the no-notification facts.
+// MVP-120D (Issue #215, PR #216) is merged and deployed with a partial live acceptance: its entry must
+// say so, must not claim the platform-administrator flows were exercised live, and must keep the
+// approval boundary and the no-notification facts.
 function partnerApplicationBacklogProblems(text) {
   const problems = [];
   const section = text.split(/^### MVP-120D /mu)[1]?.split(/^#{2,3} /mu)[0];
@@ -1354,47 +1356,43 @@ function partnerApplicationBacklogProblems(text) {
   const need = (pattern, label) => {
     if (!pattern.test(section)) problems.push(`MVP-120D entry lacks ${label}`);
   };
-  if (!/Issue #215\. In review on branch `feature\/215-mvp-120d-partner-onboarding`/u.test(opening))
-    problems.push('MVP-120D is not described as in review on its branch');
-  if (/\b(Merged|deployed to hr-dev and accepted)\b/u.test(opening))
-    problems.push('MVP-120D claims a merge or a deployment');
-  need(/not merged, not deployed and not verified in AWS/u, 'the not merged, not deployed status');
-  need(/Migration V55 is not applied to hr-dev/u, 'the V55 status');
+  if (
+    !/Issue #215\. Merged \(PR #216, merge commit `27c9ccf52eafa175b9135aa6b82e78b5491a6360`\), deployed to hr-dev on 2026-11-21/u.test(
+      opening,
+    )
+  )
+    problems.push('MVP-120D is not described as merged and deployed');
+  if (/In review|not merged/u.test(opening))
+    problems.push('MVP-120D is still described as in review');
+  need(/migration V55 applied/u, 'the V55 status');
   need(/ADR 0043/u, 'ADR 0043');
+  need(/Live acceptance passed for the public flows only/u, 'the partial live acceptance');
+  need(/were not exercised live/u, 'the platform-administrator gap');
   need(
     /No listing, credentials, integration or access to employee data is created/u,
     'the approval boundary',
   );
   need(/no partner is connected/u, 'the no connected partner statement');
   need(/no email, WhatsApp or SMS is sent/u, 'the no notification statement');
-  need(/there is no status lookup/u, 'the no status lookup statement');
   need(/Partner with DivalHR/u, 'the landing rename');
   if (/\b(approved loan|guaranteed|funded|interest rate|APR|credit score)\b/iu.test(section))
     problems.push('MVP-120D entry uses banned lending wording');
   return problems;
 }
 
-test('truth rule 7: MVP-120D is in review, with the approval boundary and without any merge or deployment claim (D120D)', () => {
+test('truth rule 7: MVP-120D is merged and deployed with partial live acceptance, with the approval boundary (D120D)', () => {
   assert.deepEqual(partnerApplicationBacklogProblems(backlog), []);
   const fixtures = [
     [
-      'merged',
-      (t) => t.replace('Issue #215. In review on branch', 'Issue #215. Merged on branch'),
-      /in review/u,
+      'in review',
+      (t) => t.replace('Issue #215. Merged (PR #216', 'Issue #215. In review (PR #216'),
+      /merged and deployed|in review/u,
     ],
     [
-      'deployed',
+      'full acceptance claimed',
       (t) =>
-        t.replace(
-          'not merged, not deployed and not verified in AWS',
-          'merged, deployed to hr-dev and accepted',
-        ),
-      /merge or a deployment|not merged/u,
-    ],
-    [
-      'V55 applied',
-      (t) => t.replace('Migration V55 is not applied to hr-dev.', 'Migration V55 is applied.'),
-      /V55/u,
+        t.replace('Live acceptance passed for the public flows only', 'Live acceptance passed'),
+      /partial live acceptance/u,
     ],
     [
       'boundary removed',
@@ -1421,6 +1419,78 @@ test('truth rule 7: MVP-120D is in review, with the approval boundary and withou
     assert.notEqual(stale, backlog, `${name}: the fixture changed the backlog`);
     assert.ok(
       partnerApplicationBacklogProblems(stale).some((problem) => expected.test(problem)),
+      `${name}: names the problem`,
+    );
+  }
+});
+
+// MVP-120E (Issue #217) is in review: its entry must never claim a merge, a deployment, an AWS
+// verification or an applied V56, and must keep the information-only boundary.
+function partnerCatalogueBacklogProblems(text) {
+  const problems = [];
+  const section = text.split(/^### MVP-120E /mu)[1]?.split(/^#{2,3} /mu)[0];
+  if (!section) return ['MVP-120E has no backlog entry'];
+  const opening = section.split('\n').slice(0, 4).join('\n');
+  const need = (pattern, label) => {
+    if (!pattern.test(section)) problems.push(`MVP-120E entry lacks ${label}`);
+  };
+  if (!/Issue #217\. In review on branch `feature\/217-mvp-120e-partner-catalogue`/u.test(opening))
+    problems.push('MVP-120E is not described as in review on its branch');
+  if (/\b(Merged|deployed to hr-dev and accepted)\b/u.test(opening))
+    problems.push('MVP-120E claims a merge or a deployment');
+  need(/not merged, not deployed and not verified in AWS/u, 'the not merged, not deployed status');
+  need(/Migration V56 is not applied to hr-dev/u, 'the V56 status');
+  need(/ADR 0044/u, 'ADR 0044');
+  need(/Information only/u, 'the information-only sentence');
+  need(/No application has been submitted/u, 'the no-application sentence');
+  need(
+    /Availability and final terms are determined by the provider/u,
+    'the provider-determines sentence',
+  );
+  need(/there is no apply, request, enrol or contact control/u, 'the no apply control statement');
+  need(/Contacts, emails, phones/u, 'the copy-only-identity statement');
+  if (/\b(approved loan|guaranteed|funded|interest rate|APR|credit score)\b/iu.test(section))
+    problems.push('MVP-120E entry uses banned lending wording');
+  return problems;
+}
+
+test('truth rule 8: MVP-120E is in review, information only, without any merge or deployment claim (D120E)', () => {
+  assert.deepEqual(partnerCatalogueBacklogProblems(backlog), []);
+  const fixtures = [
+    [
+      'merged',
+      (t) => t.replace('Issue #217. In review on branch', 'Issue #217. Merged on branch'),
+      /in review/u,
+    ],
+    [
+      'deployed',
+      (t) =>
+        t.replace(
+          'not merged, not deployed and not verified in AWS',
+          'merged, deployed to hr-dev and accepted',
+        ),
+      /merge or a deployment|not merged/u,
+    ],
+    [
+      'V56 applied',
+      (t) => t.replace('Migration V56 is not applied to hr-dev.', 'Migration V56 is applied.'),
+      /V56/u,
+    ],
+    [
+      'apply control',
+      (t) =>
+        t.replace(
+          'there is no apply, request, enrol or contact control',
+          'there is an apply control',
+        ),
+      /apply control/u,
+    ],
+  ];
+  for (const [name, mutate, expected] of fixtures) {
+    const stale = mutate(backlog);
+    assert.notEqual(stale, backlog, `${name}: the fixture changed the backlog`);
+    assert.ok(
+      partnerCatalogueBacklogProblems(stale).some((problem) => expected.test(problem)),
       `${name}: names the problem`,
     );
   }

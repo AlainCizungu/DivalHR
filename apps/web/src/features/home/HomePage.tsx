@@ -105,6 +105,13 @@ const PLATFORM_CARDS: CardDef[] = [
     testId: 'home-card-partner-applications',
   },
   {
+    to: '/admin/partners',
+    icon: 'bank',
+    titleKey: 'home.platform.partnerAccounts.title',
+    descriptionKey: 'home.platform.partnerAccounts.description',
+    testId: 'home-card-partner-accounts',
+  },
+  {
     to: '/status',
     icon: 'pulse',
     titleKey: 'nav.status',
@@ -217,6 +224,7 @@ const TENANT_GROUPS: {
   {
     id: 'integrations',
     cards: [
+      tenantCard('catalogue', '/admin/catalogue', 'benefits', 'home-card-catalogue'),
       tenantCard('webhooks', '/admin/webhooks', 'network', 'home-card-webhooks'),
       tenantCard('whatsapp', '/admin/integrations/whatsapp', 'phone', 'home-card-whatsapp'),
     ],
@@ -361,6 +369,13 @@ const EMPLOYEE_CARDS: CardDef[] = [
     titleKey: 'nav.myExpenses',
     descriptionKey: 'home.employee.cards.expenses',
     testId: 'home-card-my-expenses',
+  },
+  {
+    to: '/me/catalogue',
+    icon: 'benefits',
+    titleKey: 'nav.myCatalogue',
+    descriptionKey: 'home.employee.cards.catalogue',
+    testId: 'home-card-my-catalogue',
   },
   {
     to: '/me/salary-advance',

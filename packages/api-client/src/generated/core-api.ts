@@ -5874,6 +5874,290 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/partner-activations/ready-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the applications approved for onboarding and their activation state
+         * @description MVP-120E (ADR 0044). Platform administrators with exact MFA only. Every application whose status is exactly APPROVED_FOR_ONBOARDING, newest approval first, as a keyset page (default 25, maximum 50), each with the reference of the partner already created from it (null when none exists). Only business identity and the application reference are returned: no contact data, note, licence or registration reference. Reading this list creates nothing. At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["listPartnerApplicationsReadyForActivation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partner-activations/from-application/{applicationReference}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the controlled partner account of an approved application
+         * @description MVP-120E (ADR 0044, D120E-1 to D120E-3). Platform administrators with exact MFA only. The application must be exactly APPROVED_FOR_ONBOARDING (409 PARTNER_SOURCE_APPLICATION_NOT_APPROVED otherwise; an unknown or malformed reference is 404 PARTNER_APPLICATION_NOT_FOUND). The partner is created as DRAFT: it is not active, lists nothing and is visible to no tenant or employee until it is explicitly activated. Only the approved business identity is copied (legal name, trading name, registration country, categories, capabilities, website, languages, approved operating countries); no contact, email, phone, licence or registration reference, privacy contact, note or encrypted payload. The application and its history are not modified. confirmed=true is required. An Idempotency-Key is required: the same key with the same request replays the original response (Idempotent-Replayed: true); the same key with a different request is 409 IDEMPOTENCY_KEY_REUSED; a different key after the partner exists returns the existing partner with created=false and creates nothing. Concurrent first requests produce exactly one partner. Writes one history event and one audit row (references and statuses only); no outbox event, credential, invitation, notification or connection. At most 10 commands per subject per minute. Cache-Control private, no-store.
+         */
+        post: operations["createPartnerFromApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the partners
+         * @description MVP-120E. Platform administrators with exact MFA only. Partners newest first as a keyset page (default 25, maximum 50; the cursor is opaque and signed, bound to the operation, subject, role, filters and page size). Filters: status and category (primary or additional). The response also carries the number of partners per status for the category filter. Only business identity, status and product counts are returned. At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["listPartners"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One partner in detail
+         * @description MVP-120E. Platform administrators with exact MFA only. The approved business identity, status, version, approved operating scope, the reference of the source application (a PA- reference, never a database identifier) and the transitions allowed now. An unknown or malformed reference is 404 PARTNER_NOT_FOUND. The read is audited by reference. Cache-Control private, no-store.
+         */
+        get: operations["getPartner"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The immutable history of a partner
+         * @description MVP-120E. Platform administrators with exact MFA only. Events oldest first as a keyset page (default 25, maximum 50). Each event names its type, statuses, reason code and whether a private note was recorded; no note text, no subject and no application data is returned. Cache-Control private, no-store.
+         */
+        get: operations["getPartnerHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate, suspend, reactivate or close a partner, or amend its approved scope
+         * @description MVP-120E (D120E-4, D120E-7). Platform administrators with exact MFA only. ACTIVATE (DRAFT to ACTIVE), SUSPEND (ACTIVE to SUSPENDED, reasonCode required), REACTIVATE (SUSPENDED to ACTIVE), CLOSE (DRAFT, ACTIVE or SUSPENDED to CLOSED, terminal; 409 PARTNER_HAS_ACTIVE_PRODUCTS while a product version is ACTIVE) and AMEND_SCOPE (adds approved operating countries; it never removes one). ACTIVATE, REACTIVATE and CLOSE need confirmed=true. reasonCode OTHER requires a private note (1 to 500 characters) that is encrypted and never returned, audited or logged. Any other move, a closed partner or a stale expectedVersion is 409 PARTNER_TRANSITION_INVALID before any change. Suspending a partner hides its products from tenants and employees immediately. Activation creates no connection, credential, invitation, notification or employee-data access. Writes one history event and one audit row (reference, statuses, reason code). Requires an Idempotency-Key. At most 10 commands per subject per minute. Cache-Control private, no-store.
+         */
+        post: operations["transitionPartner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the products of a partner
+         * @description MVP-120E. Platform administrators with exact MFA only. Every product of the partner by product code with its latest and live version numbers and statuses (at most 200 products per partner). Cache-Control private, no-store.
+         */
+        get: operations["listPartnerProducts"];
+        put?: never;
+        /**
+         * Create a product with its first draft version
+         * @description MVP-120E (D120E-5, D120E-6). Platform administrators with exact MFA only. Creates the product identity (stable productCode unique within the partner, opaque public reference, product type) and version 1 as a DRAFT with the supplied content; a draft may be incomplete. Refused with 409 PARTNER_PRODUCT_PARTNER_INACTIVE under a CLOSED partner, 409 PARTNER_TRANSITION_INVALID when the productCode already exists, and 400 PARTNER_PRODUCT_INVALID for malformed content (params.fields lists field and constraint only, never a value) or 400 PARTNER_PRODUCT_SCOPE_INVALID for a country outside the partner's approved operating scope or a currency that is not offered. Creating a product makes nothing visible. Requires an Idempotency-Key. At most 10 commands per subject per minute. Cache-Control private, no-store.
+         */
+        post: operations["createPartnerProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}/products/{productCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One product with every version
+         * @description MVP-120E. Platform administrators with exact MFA only. The product identity and all of its versions, newest first, with full content, status, row version and the actions allowed now. Historical versions stay readable. An unknown product is 404 PARTNER_PRODUCT_NOT_FOUND. Cache-Control private, no-store.
+         */
+        get: operations["getPartnerProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}/products/{productCode}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the draft of a product (creates a new version when only a published one exists)
+         * @description MVP-120E (D120E-5). Platform administrators with exact MFA only. Replaces every editable field of the working draft. When the product has a DRAFT version it is updated; expectedVersion and expectedRowVersion must be the version and row version the editor loaded (409 PARTNER_PRODUCT_VERSION_STALE otherwise). When the product has no working version, a new DRAFT version (the next number) is created and the published version is never changed; expectedVersion must be the latest version number. A version that is UNDER_REVIEW must be returned first (409 PARTNER_PRODUCT_TRANSITION_INVALID). Validation is by product type: salary advances and employee loans need monetary limits per currency and duration limits at submission; minimum never exceeds maximum; the end date never precedes the effective date; countries must lie within the partner's approved operating scope (400 PARTNER_PRODUCT_SCOPE_INVALID); only offered currencies are accepted. A draft may be incomplete. Requires an Idempotency-Key. At most 10 commands per subject per minute. Cache-Control private, no-store.
+         */
+        put: operations["savePartnerProductDraft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}/products/{productCode}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit, return, publish, pause, resume or retire a product version
+         * @description MVP-120E (D120E-8). Platform administrators with exact MFA only. SUBMIT (DRAFT to UNDER_REVIEW; the version must be complete in both languages, dated and, for a salary advance or employee loan, carry monetary and duration limits), RETURN (UNDER_REVIEW to DRAFT), PUBLISH (UNDER_REVIEW to ACTIVE; 409 PARTNER_PRODUCT_PARTNER_INACTIVE unless the partner is ACTIVE; the previous live version is retired in the same transaction), PAUSE (ACTIVE to PAUSED, reasonCode required), RESUME (PAUSED to ACTIVE, partner must be ACTIVE) and RETIRE (any non-terminal version, reasonCode required; terminal). PUBLISH, RESUME and RETIRE need confirmed=true. reasonCode OTHER requires a private note that is encrypted and never returned, audited or logged. An invalid move is 409 PARTNER_PRODUCT_TRANSITION_INVALID and a stale expectedRowVersion is 409 PARTNER_PRODUCT_VERSION_STALE, both before any change. A published version's content is never changed. No connection, credential, invitation, notification, enrollment or employee-data access results. Requires an Idempotency-Key. At most 10 commands per subject per minute. Cache-Control private, no-store.
+         */
+        post: operations["transitionPartnerProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/partners/{partnerReference}/products/{productCode}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The immutable history of a product across all of its versions
+         * @description MVP-120E. Platform administrators with exact MFA only. Events oldest first as a keyset page (default 25, maximum 50), each naming its version, type, statuses, reason code and whether a private note was recorded; no note text, subject, monetary value or description is returned. Cache-Control private, no-store.
+         */
+        get: operations["getPartnerProductHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/catalogue/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Partners that currently offer products to my organization
+         * @description MVP-120E (D120E-9, D120E-10). Tenant administrators and employees of an active membership. Only partners whose status is ACTIVE and that have at least one currently eligible ACTIVE product for the caller's organization country, with display name, categories and the number of eligible products. No reference, identifier, contact, licence, note or platform data is returned, and nothing about the employee is read or shared. When the organization has no reliable country the list is empty and availability is ORGANIZATION_COUNTRY_UNKNOWN. Information only: no application or enrollment exists. Cache-Control private, no-store.
+         */
+        get: operations["listCataloguePartners"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/catalogue/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Products currently available to my organization
+         * @description MVP-120E (D120E-9, D120E-10). Tenant administrators and employees of an active membership. Only the latest ACTIVE version of products of an ACTIVE partner, available in the caller's organization country, whose effective range contains today (UTC). Optional filter by product type. A keyset page (default 25, maximum 50). Safe commercial information only, with the opaque PP- reference: no partner or version identifier, history, note, administrator or application data. When the organization has no reliable country the list is empty and availability is ORGANIZATION_COUNTRY_UNKNOWN. Information only: no application or enrollment exists. Cache-Control private, no-store.
+         */
+        get: operations["listCatalogueProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/catalogue/products/{publicReference}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One product available to my organization
+         * @description MVP-120E (D120E-10). Tenant administrators and employees of an active membership. The same safe shape as the list. An unknown, malformed, ineligible, not yet effective, expired, paused, retired, unpublished or cross-tenant reference is the same 404 PARTNER_PRODUCT_NOT_AVAILABLE, so the response reveals nothing about a product that is not available. Cache-Control private, no-store.
+         */
+        get: operations["getCatalogueProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -9021,7 +9305,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE" | "SALARY_ADVANCE_POLICY_NOT_FOUND" | "SALARY_ADVANCE_POLICY_INVALID" | "SALARY_ADVANCE_POLICY_OVERLAP" | "SALARY_ADVANCE_POLICY_PREVIEW_STALE" | "SALARY_ADVANCE_NOT_ELIGIBLE" | "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING" | "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE" | "SALARY_ADVANCE_CURRENCY_MISMATCH" | "SALARY_ADVANCE_OPEN_LIMIT_REACHED" | "SALARY_ADVANCE_WAITING_PERIOD" | "SALARY_ADVANCE_CONSENT_REQUIRED" | "SALARY_ADVANCE_CONSENT_VERSION_STALE" | "SALARY_ADVANCE_REQUEST_NOT_FOUND" | "SALARY_ADVANCE_VERSION_CONFLICT" | "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN" | "SALARY_ADVANCE_HANDOFF_NOT_FOUND" | "SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED" | "SALARY_ADVANCE_REQUEST_TERMINAL" | "SALARY_ADVANCE_HANDOFF_EXISTS" | "SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED" | "SALARY_ADVANCE_HANDOFF_CONSENT_STALE" | "SALARY_ADVANCE_HANDOFF_PREVIEW_STALE" | "SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT" | "SALARY_ADVANCE_PARTNER_UNAVAILABLE" | "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN" | "SALARY_ADVANCE_PARTNER_NOT_ENABLED" | "SALARY_ADVANCE_RETENTION_POLICY_MISSING" | "SALARY_ADVANCE_RETENTION_PERIOD_INVALID" | "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND" | "SALARY_ADVANCE_PURGE_PREVIEW_STALE" | "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED" | "PARTNER_CALLBACK_INVALID" | "PARTNER_APPLICATION_INVALID" | "PARTNER_APPLICATION_RATE_LIMITED" | "PARTNER_APPLICATION_IDEMPOTENCY_REUSED" | "PARTNER_APPLICATION_NOT_FOUND" | "PARTNER_APPLICATION_TRANSITION_INVALID" | "PARTNER_APPLICATION_TERMINAL" | "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE" | "PARTNER_APPLICATION_DUPLICATE" | "PARTNER_APPLICATION_CONSENT_REQUIRED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE" | "SALARY_ADVANCE_POLICY_NOT_FOUND" | "SALARY_ADVANCE_POLICY_INVALID" | "SALARY_ADVANCE_POLICY_OVERLAP" | "SALARY_ADVANCE_POLICY_PREVIEW_STALE" | "SALARY_ADVANCE_NOT_ELIGIBLE" | "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING" | "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE" | "SALARY_ADVANCE_CURRENCY_MISMATCH" | "SALARY_ADVANCE_OPEN_LIMIT_REACHED" | "SALARY_ADVANCE_WAITING_PERIOD" | "SALARY_ADVANCE_CONSENT_REQUIRED" | "SALARY_ADVANCE_CONSENT_VERSION_STALE" | "SALARY_ADVANCE_REQUEST_NOT_FOUND" | "SALARY_ADVANCE_VERSION_CONFLICT" | "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN" | "SALARY_ADVANCE_HANDOFF_NOT_FOUND" | "SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED" | "SALARY_ADVANCE_REQUEST_TERMINAL" | "SALARY_ADVANCE_HANDOFF_EXISTS" | "SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED" | "SALARY_ADVANCE_HANDOFF_CONSENT_STALE" | "SALARY_ADVANCE_HANDOFF_PREVIEW_STALE" | "SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT" | "SALARY_ADVANCE_PARTNER_UNAVAILABLE" | "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN" | "SALARY_ADVANCE_PARTNER_NOT_ENABLED" | "SALARY_ADVANCE_RETENTION_POLICY_MISSING" | "SALARY_ADVANCE_RETENTION_PERIOD_INVALID" | "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND" | "SALARY_ADVANCE_PURGE_PREVIEW_STALE" | "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED" | "PARTNER_CALLBACK_INVALID" | "PARTNER_APPLICATION_INVALID" | "PARTNER_APPLICATION_RATE_LIMITED" | "PARTNER_APPLICATION_IDEMPOTENCY_REUSED" | "PARTNER_APPLICATION_NOT_FOUND" | "PARTNER_APPLICATION_TRANSITION_INVALID" | "PARTNER_APPLICATION_TERMINAL" | "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE" | "PARTNER_APPLICATION_DUPLICATE" | "PARTNER_APPLICATION_CONSENT_REQUIRED" | "PARTNER_SOURCE_APPLICATION_NOT_APPROVED" | "PARTNER_ALREADY_CREATED" | "PARTNER_NOT_FOUND" | "PARTNER_TRANSITION_INVALID" | "PARTNER_HAS_ACTIVE_PRODUCTS" | "PARTNER_PRODUCT_NOT_FOUND" | "PARTNER_PRODUCT_INVALID" | "PARTNER_PRODUCT_SCOPE_INVALID" | "PARTNER_PRODUCT_TRANSITION_INVALID" | "PARTNER_PRODUCT_PARTNER_INACTIVE" | "PARTNER_PRODUCT_VERSION_STALE" | "PARTNER_PRODUCT_NOT_AVAILABLE";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -13513,6 +13797,288 @@ export interface components {
             /** Format: date-time */
             occurredAt: string;
         };
+        /**
+         * @description MVP-120E (D120E-4). DRAFT is created and inactive; CLOSED is terminal.
+         * @enum {string}
+         */
+        PartnerAccountStatus: "DRAFT" | "ACTIVE" | "SUSPENDED" | "CLOSED";
+        /**
+         * @description MVP-120E (D120E-4, D120E-7). AMEND_SCOPE only adds approved operating countries and never removes one.
+         * @enum {string}
+         */
+        PartnerAccountAction: "ACTIVATE" | "SUSPEND" | "REACTIVATE" | "CLOSE" | "AMEND_SCOPE";
+        /**
+         * @description MVP-120E (D120E-4). A closed, bounded reason for suspension, closure, product pause and product retirement. OTHER requires a private note that is encrypted and never returned, audited or logged.
+         * @enum {string}
+         */
+        PartnerAccountReasonCode: "COMPLIANCE_REVIEW" | "COMMERCIAL_HOLD" | "PARTNER_REQUEST" | "REGULATORY_RESTRICTION" | "SECURITY_CONCERN" | "PROGRAM_ENDED" | "OTHER";
+        /** @enum {string} */
+        PartnerAccountEventType: "CREATED" | "ACTIVATED" | "SUSPENDED" | "REACTIVATED" | "CLOSED" | "SCOPE_AMENDED";
+        /**
+         * @description MVP-120E (D120E-5). The closed catalogue of product types.
+         * @enum {string}
+         */
+        PartnerProductType: "SALARY_ADVANCE" | "EMPLOYEE_LOAN" | "HEALTH_INSURANCE" | "LIFE_INSURANCE" | "OTHER_INSURANCE" | "TELECOM_VOICE_DATA" | "DEVICE_FINANCING" | "HEALTHCARE" | "WELLNESS" | "TRAINING" | "OTHER_BENEFIT";
+        /** @enum {string} */
+        PartnerProductStatus: "DRAFT" | "UNDER_REVIEW" | "ACTIVE" | "PAUSED" | "RETIRED";
+        /** @enum {string} */
+        PartnerProductAction: "SUBMIT" | "RETURN" | "PUBLISH" | "PAUSE" | "RESUME" | "RETIRE";
+        /** @enum {string} */
+        PartnerProductEventType: "VERSION_CREATED" | "SUBMITTED" | "RETURNED" | "PUBLISHED" | "PAUSED" | "RESUMED" | "RETIRED" | "SUPERSEDED";
+        /** @description MVP-120E. An ISO 4217 code. CDF and USD are the only currencies offered now; adding one is a configuration change. */
+        PartnerCurrency: string;
+        /** @description A non-negative decimal amount with at most two decimals, as a string so no precision is lost. */
+        PartnerMoneyAmount: string;
+        /** @description A text in English and French. Both are required before a version can be submitted. */
+        PartnerBilingualText: {
+            en: string | null;
+            fr: string | null;
+        };
+        PartnerProductCurrencyLimit: {
+            currency: components["schemas"]["PartnerCurrency"];
+            minAmount: components["schemas"]["PartnerMoneyAmount"] | null;
+            maxAmount: components["schemas"]["PartnerMoneyAmount"] | null;
+        };
+        /** @description MVP-120E (D120E-5, D120E-6). The editable content of one product version. A draft may be incomplete; a submitted version is complete in both languages and dated. */
+        PartnerProductContent: {
+            name: components["schemas"]["PartnerBilingualText"];
+            summary: components["schemas"]["PartnerBilingualText"];
+            eligibility: components["schemas"]["PartnerBilingualText"];
+            disclosure: components["schemas"]["PartnerBilingualText"];
+            /** @description An https information link, or null. */
+            infoUrl: string | null;
+            /** Format: date */
+            effectiveDate: string | null;
+            /** Format: date */
+            endDate: string | null;
+            minMonths: number | null;
+            maxMonths: number | null;
+            countries: string[];
+            currencies: components["schemas"]["PartnerProductCurrencyLimit"][];
+        };
+        PartnerReadyApplication: {
+            applicationReference: string;
+            legalName: string;
+            tradingName: string | null;
+            countryOfRegistration: string;
+            primaryCategory: components["schemas"]["PartnerCategory"];
+            /** Format: date-time */
+            approvedAt: string;
+            /** @description The partner already created from this application, or null. */
+            partnerReference: string | null;
+        };
+        PartnerReadyApplicationPage: {
+            items: components["schemas"]["PartnerReadyApplication"][];
+            nextCursor: string | null;
+        };
+        PartnerCreateCommand: {
+            /** @description Must be true. */
+            confirmed: boolean;
+        };
+        PartnerSummary: {
+            reference: string;
+            status: components["schemas"]["PartnerAccountStatus"];
+            legalName: string;
+            tradingName: string | null;
+            countryOfRegistration: string;
+            primaryCategory: components["schemas"]["PartnerCategory"];
+            productCount: number;
+            activeProductCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PartnerStatusCounts: {
+            DRAFT: number;
+            ACTIVE: number;
+            SUSPENDED: number;
+            CLOSED: number;
+        };
+        PartnerPage: {
+            items: components["schemas"]["PartnerSummary"][];
+            nextCursor: string | null;
+            statusCounts: components["schemas"]["PartnerStatusCounts"];
+        };
+        /** @description MVP-120E. The approved business identity copied from the application, the lifecycle state, the approved operating scope and the transitions allowed now. No contact, licence or registration reference, note or payload is ever part of it. An active partner has no connection, credential or employee-data access. */
+        PartnerDetail: {
+            reference: string;
+            applicationReference: string;
+            status: components["schemas"]["PartnerAccountStatus"];
+            version: number;
+            legalName: string;
+            tradingName: string | null;
+            countryOfRegistration: string;
+            primaryCategory: components["schemas"]["PartnerCategory"];
+            additionalCategories: components["schemas"]["PartnerCategory"][];
+            capabilities: components["schemas"]["PartnerCapability"][];
+            website: string;
+            supportedLanguages: components["schemas"]["PartnerLanguage"][];
+            countries: string[];
+            allowedActions: components["schemas"]["PartnerAccountAction"][];
+            productCount: number;
+            activeProductCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PartnerCreateReceipt: {
+            /** @description false when the partner already existed and nothing was created. */
+            created: boolean;
+            partner: components["schemas"]["PartnerDetail"];
+        };
+        PartnerTransitionCommand: {
+            action: components["schemas"]["PartnerAccountAction"];
+            expectedVersion: number;
+            reasonCode?: components["schemas"]["PartnerAccountReasonCode"] | null;
+            /** @description Only with reasonCode OTHER. Encrypted, never returned. */
+            note?: string | null;
+            confirmed?: boolean | null;
+            /** @description Only with AMEND_SCOPE. The countries to add. */
+            countries?: string[] | null;
+        };
+        PartnerTransitionReceipt: {
+            partner: components["schemas"]["PartnerDetail"];
+            eventSequence: number;
+        };
+        PartnerHistoryEntry: {
+            sequence: number;
+            eventType: components["schemas"]["PartnerAccountEventType"];
+            fromStatus: components["schemas"]["PartnerAccountStatus"] | null;
+            toStatus: components["schemas"]["PartnerAccountStatus"];
+            reasonCode: components["schemas"]["PartnerAccountReasonCode"] | null;
+            noteRecorded: boolean;
+            /** @description The number of countries added by a SCOPE_AMENDED event. */
+            itemCount: number | null;
+            /** @enum {string} */
+            actorType: "PLATFORM_ADMIN";
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        PartnerHistoryPage: {
+            items: components["schemas"]["PartnerHistoryEntry"][];
+            nextCursor: string | null;
+        };
+        PartnerProductSummary: {
+            productCode: string;
+            productType: components["schemas"]["PartnerProductType"];
+            publicReference: string;
+            latestVersion: number;
+            latestStatus: components["schemas"]["PartnerProductStatus"];
+            liveVersion: number | null;
+            liveStatus: components["schemas"]["PartnerProductStatus"] | null;
+            name: components["schemas"]["PartnerBilingualText"];
+        };
+        PartnerProductList: {
+            items: components["schemas"]["PartnerProductSummary"][];
+        };
+        PartnerProductCreateCommand: {
+            productCode: string;
+            productType: components["schemas"]["PartnerProductType"];
+            content: components["schemas"]["PartnerProductContent"];
+        };
+        PartnerProductDraftCommand: {
+            /** @description The version number the editor loaded. */
+            expectedVersion: number;
+            /** @description The row version of that version as loaded (0 when a new version will be created). */
+            expectedRowVersion: number;
+            content: components["schemas"]["PartnerProductContent"];
+        };
+        PartnerProductVersion: {
+            version: number;
+            status: components["schemas"]["PartnerProductStatus"];
+            rowVersion: number;
+            content: components["schemas"]["PartnerProductContent"];
+            allowedActions: components["schemas"]["PartnerProductAction"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PartnerProductDetail: {
+            partnerReference: string;
+            partnerStatus: components["schemas"]["PartnerAccountStatus"];
+            productCode: string;
+            productType: components["schemas"]["PartnerProductType"];
+            publicReference: string;
+            /** @description Newest first. */
+            versions: components["schemas"]["PartnerProductVersion"][];
+        };
+        PartnerProductTransitionCommand: {
+            action: components["schemas"]["PartnerProductAction"];
+            version: number;
+            expectedRowVersion: number;
+            reasonCode?: components["schemas"]["PartnerAccountReasonCode"] | null;
+            /** @description Only with reasonCode OTHER. Encrypted, never returned. */
+            note?: string | null;
+            confirmed?: boolean | null;
+        };
+        PartnerProductTransitionReceipt: {
+            product: components["schemas"]["PartnerProductDetail"];
+            /** @description The previously live version retired by a PUBLISH, or null. */
+            supersededVersion: number | null;
+        };
+        PartnerProductHistoryEntry: {
+            sequence: number;
+            version: number;
+            eventType: components["schemas"]["PartnerProductEventType"];
+            fromStatus: components["schemas"]["PartnerProductStatus"] | null;
+            toStatus: components["schemas"]["PartnerProductStatus"];
+            reasonCode: components["schemas"]["PartnerAccountReasonCode"] | null;
+            noteRecorded: boolean;
+            /** @enum {string} */
+            actorType: "PLATFORM_ADMIN" | "SYSTEM";
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        PartnerProductHistoryPage: {
+            items: components["schemas"]["PartnerProductHistoryEntry"][];
+            nextCursor: string | null;
+        };
+        /**
+         * @description ORGANIZATION_COUNTRY_UNKNOWN means the organization has no reliable country, so nothing can be matched.
+         * @enum {string}
+         */
+        CatalogueAvailability: "AVAILABLE" | "ORGANIZATION_COUNTRY_UNKNOWN";
+        /** @description MVP-120E (D120E-10). Safe partner information. No reference, identifier, contact or platform data. */
+        CataloguePartner: {
+            displayName: string;
+            categories: components["schemas"]["PartnerCategory"][];
+            productCount: number;
+        };
+        CataloguePartnerList: {
+            items: components["schemas"]["CataloguePartner"][];
+            availability: components["schemas"]["CatalogueAvailability"];
+            /** @description Always true. No application or enrollment exists. */
+            informationOnly: boolean;
+        };
+        /** @description MVP-120E (D120E-10). Safe commercial information of one eligible product in the language requested by the client. No partner or version identifier, history, note, administrator or application data. */
+        CatalogueProduct: {
+            publicReference: string;
+            partnerDisplayName: string;
+            productType: components["schemas"]["PartnerProductType"];
+            name: components["schemas"]["PartnerBilingualText"];
+            summary: components["schemas"]["PartnerBilingualText"];
+            eligibility: components["schemas"]["PartnerBilingualText"];
+            disclosure: components["schemas"]["PartnerBilingualText"];
+            infoUrl: string | null;
+            /** Format: date */
+            effectiveDate: string;
+            /** Format: date */
+            endDate: string | null;
+            minMonths: number | null;
+            maxMonths: number | null;
+            currencies: components["schemas"]["PartnerProductCurrencyLimit"][];
+            /** @description Always true. Availability and final terms are determined by the provider. */
+            informationOnly: boolean;
+        };
+        CatalogueProductPage: {
+            items: components["schemas"]["CatalogueProduct"][];
+            nextCursor: string | null;
+            availability: components["schemas"]["CatalogueAvailability"];
+            informationOnly: boolean;
+        };
     };
     responses: {
         /** @description Missing, invalid or expired access token */
@@ -13853,6 +14419,22 @@ export interface components {
         PartnerApplicationSubmittedFrom: string;
         /** @description Only applications submitted on or before this UTC date. Part of the cursor binding. */
         PartnerApplicationSubmittedTo: string;
+        /** @description Items per page (1-50, default 25). */
+        PartnerPageLimit: number;
+        /** @description Only partners in this status. Part of the cursor binding. */
+        PartnerStatusFilter: components["schemas"]["PartnerAccountStatus"];
+        /** @description Only partners whose primary or additional category is this one. Part of the cursor binding. */
+        PartnerAccountCategoryFilter: components["schemas"]["PartnerCategory"];
+        /** @description The opaque reference of the application to activate (PA- and twelve characters). Malformed and unknown references give the same 404 PARTNER_APPLICATION_NOT_FOUND. */
+        PartnerSourceApplicationReference: string;
+        /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+        PartnerReference: string;
+        /** @description The product code, unique within the partner (upper-case letters, digits, hyphen and underscore, 2 to 40 characters). Malformed and unknown codes give the same 404 PARTNER_PRODUCT_NOT_FOUND. */
+        PartnerProductCode: string;
+        /** @description Only products of this type. Part of the cursor binding. */
+        CatalogueProductTypeFilter: components["schemas"]["PartnerProductType"];
+        /** @description The opaque public product reference (PP- and sixteen characters). Malformed, unknown and unavailable references give the same 404 PARTNER_PRODUCT_NOT_AVAILABLE. */
+        CataloguePublicReference: string;
     };
     requestBodies: never;
     headers: {
@@ -26047,6 +26629,562 @@ export interface operations {
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPartnerApplicationsReadyForActivation: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerReadyApplicationPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createPartnerFromApplication: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque reference of the application to activate (PA- and twelve characters). Malformed and unknown references give the same 404 PARTNER_APPLICATION_NOT_FOUND. */
+                applicationReference: components["parameters"]["PartnerSourceApplicationReference"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCreateCommand"];
+            };
+        };
+        responses: {
+            /** @description The partner (new, existing or replayed alike) */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCreateReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPartners: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+                /** @description Only partners in this status. Part of the cursor binding. */
+                status?: components["parameters"]["PartnerStatusFilter"];
+                /** @description Only partners whose primary or additional category is this one. Part of the cursor binding. */
+                category?: components["parameters"]["PartnerAccountCategoryFilter"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPartner: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPartnerHistory: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerHistoryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    transitionPartner: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerTransitionCommand"];
+            };
+        };
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerTransitionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPartnerProducts: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The products */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerProductList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createPartnerProduct: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerProductCreateCommand"];
+            };
+        };
+        responses: {
+            /** @description The product */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerProductDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPartnerProduct: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+                /** @description The product code, unique within the partner (upper-case letters, digits, hyphen and underscore, 2 to 40 characters). Malformed and unknown codes give the same 404 PARTNER_PRODUCT_NOT_FOUND. */
+                productCode: components["parameters"]["PartnerProductCode"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The product */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerProductDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    savePartnerProductDraft: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+                /** @description The product code, unique within the partner (upper-case letters, digits, hyphen and underscore, 2 to 40 characters). Malformed and unknown codes give the same 404 PARTNER_PRODUCT_NOT_FOUND. */
+                productCode: components["parameters"]["PartnerProductCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerProductDraftCommand"];
+            };
+        };
+        responses: {
+            /** @description The product */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerProductDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    transitionPartnerProduct: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+                /** @description The product code, unique within the partner (upper-case letters, digits, hyphen and underscore, 2 to 40 characters). Malformed and unknown codes give the same 404 PARTNER_PRODUCT_NOT_FOUND. */
+                productCode: components["parameters"]["PartnerProductCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerProductTransitionCommand"];
+            };
+        };
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerProductTransitionReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPartnerProductHistory: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404 PARTNER_NOT_FOUND. */
+                partnerReference: components["parameters"]["PartnerReference"];
+                /** @description The product code, unique within the partner (upper-case letters, digits, hyphen and underscore, 2 to 40 characters). Malformed and unknown codes give the same 404 PARTNER_PRODUCT_NOT_FOUND. */
+                productCode: components["parameters"]["PartnerProductCode"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerProductHistoryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listCataloguePartners: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CataloguePartnerList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listCatalogueProducts: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+                /** @description Only products of this type. Part of the cursor binding. */
+                productType?: components["parameters"]["CatalogueProductTypeFilter"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueProductPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getCatalogueProduct: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description The opaque public product reference (PP- and sixteen characters). Malformed, unknown and unavailable references give the same 404 PARTNER_PRODUCT_NOT_AVAILABLE. */
+                publicReference: components["parameters"]["CataloguePublicReference"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The product */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueProduct"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["ServiceUnavailable"];
         };

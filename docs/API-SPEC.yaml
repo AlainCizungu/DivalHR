@@ -15415,6 +15415,667 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-activations/ready-applications:
+    get:
+      operationId: listPartnerApplicationsReadyForActivation
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the applications approved for onboarding and their activation state
+      description: >-
+        MVP-120E (ADR 0044). Platform administrators with exact MFA only. Every application whose status is exactly
+        APPROVED_FOR_ONBOARDING, newest approval first, as a keyset page (default 25, maximum 50), each with the reference of
+        the partner already created from it (null when none exists). Only business identity and the application reference
+        are returned: no contact data, note, licence or registration reference. Reading this list creates nothing. At most 60
+        reads per subject per minute. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReadyApplicationPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-activations/from-application/{applicationReference}:
+    post:
+      operationId: createPartnerFromApplication
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create the controlled partner account of an approved application
+      description: >-
+        MVP-120E (ADR 0044, D120E-1 to D120E-3). Platform administrators with exact MFA only. The application must be exactly
+        APPROVED_FOR_ONBOARDING (409 PARTNER_SOURCE_APPLICATION_NOT_APPROVED otherwise; an unknown or malformed reference is
+        404 PARTNER_APPLICATION_NOT_FOUND). The partner is created as DRAFT: it is not active, lists nothing and is visible to no
+        tenant or employee until it is explicitly activated. Only the approved business identity is copied (legal name,
+        trading name, registration country, categories, capabilities, website, languages, approved operating countries); no
+        contact, email, phone, licence or registration reference, privacy contact, note or encrypted payload. The application
+        and its history are not modified. confirmed=true is required. An Idempotency-Key is required: the same key with the same
+        request replays the original response (Idempotent-Replayed: true); the same key with a different request is 409
+        IDEMPOTENCY_KEY_REUSED; a different key after the partner exists returns the existing partner with created=false and
+        creates nothing. Concurrent first requests produce exactly one partner. Writes one history event and one audit row
+        (references and statuses only); no outbox event, credential, invitation, notification or connection. At most 10
+        commands per subject per minute. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerSourceApplicationReference"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerCreateCommand"
+      responses:
+        "200":
+          description: The partner (new, existing or replayed alike)
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerCreateReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners:
+    get:
+      operationId: listPartners
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the partners
+      description: >-
+        MVP-120E. Platform administrators with exact MFA only. Partners newest first as a keyset page (default 25, maximum 50;
+        the cursor is opaque and signed, bound to the operation, subject, role, filters and page size). Filters: status and
+        category (primary or additional). The response also carries the number of partners per status for the category
+        filter. Only business identity, status and product counts are returned. At most 60 reads per subject per minute.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/PartnerStatusFilter"
+        - $ref: "#/components/parameters/PartnerAccountCategoryFilter"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}:
+    get:
+      operationId: getPartner
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: One partner in detail
+      description: >-
+        MVP-120E. Platform administrators with exact MFA only. The approved business identity, status, version, approved
+        operating scope, the reference of the source application (a PA- reference, never a database identifier) and the
+        transitions allowed now. An unknown or malformed reference is 404 PARTNER_NOT_FOUND. The read is audited by reference.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The partner
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}/history:
+    get:
+      operationId: getPartnerHistory
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: The immutable history of a partner
+      description: >-
+        MVP-120E. Platform administrators with exact MFA only. Events oldest first as a keyset page (default 25, maximum 50).
+        Each event names its type, statuses, reason code and whether a private note was recorded; no note text, no
+        subject and no application data is returned. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerHistoryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}/transitions:
+    post:
+      operationId: transitionPartner
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Activate, suspend, reactivate or close a partner, or amend its approved scope
+      description: >-
+        MVP-120E (D120E-4, D120E-7). Platform administrators with exact MFA only. ACTIVATE (DRAFT to ACTIVE), SUSPEND (ACTIVE to
+        SUSPENDED, reasonCode required), REACTIVATE (SUSPENDED to ACTIVE), CLOSE (DRAFT, ACTIVE or SUSPENDED to CLOSED, terminal;
+        409 PARTNER_HAS_ACTIVE_PRODUCTS while a product version is ACTIVE) and AMEND_SCOPE (adds approved operating countries; it
+        never removes one). ACTIVATE, REACTIVATE and CLOSE need confirmed=true. reasonCode OTHER requires a private note (1 to
+        500 characters) that is encrypted and never returned, audited or logged. Any other move, a closed partner or a stale
+        expectedVersion is 409 PARTNER_TRANSITION_INVALID before any change. Suspending a partner hides its products from
+        tenants and employees immediately. Activation creates no connection, credential, invitation, notification or
+        employee-data access. Writes one history event and one audit row (reference, statuses, reason code). Requires an
+        Idempotency-Key. At most 10 commands per subject per minute. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerTransitionCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTransitionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}/products:
+    get:
+      operationId: listPartnerProducts
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: List the products of a partner
+      description: >-
+        MVP-120E. Platform administrators with exact MFA only. Every product of the partner by product code with its latest
+        and live version numbers and statuses (at most 200 products per partner). Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The products
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerProductList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: createPartnerProduct
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a product with its first draft version
+      description: >-
+        MVP-120E (D120E-5, D120E-6). Platform administrators with exact MFA only. Creates the product identity (stable
+        productCode unique within the partner, opaque public reference, product type) and version 1 as a DRAFT with the
+        supplied content; a draft may be incomplete. Refused with 409 PARTNER_PRODUCT_PARTNER_INACTIVE under a CLOSED partner,
+        409 PARTNER_TRANSITION_INVALID when the productCode already exists, and 400 PARTNER_PRODUCT_INVALID for malformed
+        content (params.fields lists field and constraint only, never a value) or 400 PARTNER_PRODUCT_SCOPE_INVALID for a
+        country outside the partner's approved operating scope or a currency that is not offered. Creating a product makes
+        nothing visible. Requires an Idempotency-Key. At most 10 commands per subject per minute. Cache-Control private,
+        no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerProductCreateCommand"
+      responses:
+        "200":
+          description: The product
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerProductDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}/products/{productCode}:
+    get:
+      operationId: getPartnerProduct
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: One product with every version
+      description: >-
+        MVP-120E. Platform administrators with exact MFA only. The product identity and all of its versions, newest first,
+        with full content, status, row version and the actions allowed now. Historical versions stay readable. An unknown
+        product is 404 PARTNER_PRODUCT_NOT_FOUND. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/PartnerProductCode"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The product
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerProductDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}/products/{productCode}/draft:
+    put:
+      operationId: savePartnerProductDraft
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Save the draft of a product (creates a new version when only a published one exists)
+      description: >-
+        MVP-120E (D120E-5). Platform administrators with exact MFA only. Replaces every editable field of the working draft.
+        When the product has a DRAFT version it is updated; expectedVersion and expectedRowVersion must be the version and row
+        version the editor loaded (409 PARTNER_PRODUCT_VERSION_STALE otherwise). When the product has no working version, a new
+        DRAFT version (the next number) is created and the published version is never changed; expectedVersion must be the
+        latest version number. A version that is UNDER_REVIEW must be returned first (409 PARTNER_PRODUCT_TRANSITION_INVALID).
+        Validation is by product type: salary advances and employee loans need monetary limits per currency and duration limits at
+        submission; minimum never exceeds maximum; the end date never precedes the effective date; countries must lie within
+        the partner's approved operating scope (400 PARTNER_PRODUCT_SCOPE_INVALID); only offered currencies are accepted. A
+        draft may be incomplete. Requires an Idempotency-Key. At most 10 commands per subject per minute. Cache-Control
+        private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/PartnerProductCode"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerProductDraftCommand"
+      responses:
+        "200":
+          description: The product
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerProductDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}/products/{productCode}/transitions:
+    post:
+      operationId: transitionPartnerProduct
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Submit, return, publish, pause, resume or retire a product version
+      description: >-
+        MVP-120E (D120E-8). Platform administrators with exact MFA only. SUBMIT (DRAFT to UNDER_REVIEW; the version must be
+        complete in both languages, dated and, for a salary advance or employee loan, carry monetary and duration limits),
+        RETURN (UNDER_REVIEW to DRAFT), PUBLISH (UNDER_REVIEW to ACTIVE; 409 PARTNER_PRODUCT_PARTNER_INACTIVE unless the partner is
+        ACTIVE; the previous live version is retired in the same transaction), PAUSE (ACTIVE to PAUSED, reasonCode required),
+        RESUME (PAUSED to ACTIVE, partner must be ACTIVE) and RETIRE (any non-terminal version, reasonCode required; terminal).
+        PUBLISH, RESUME and RETIRE need confirmed=true. reasonCode OTHER requires a private note that is encrypted and never
+        returned, audited or logged. An invalid move is 409 PARTNER_PRODUCT_TRANSITION_INVALID and a stale expectedRowVersion is
+        409 PARTNER_PRODUCT_VERSION_STALE, both before any change. A published version's content is never changed. No
+        connection, credential, invitation, notification, enrollment or employee-data access results. Requires an
+        Idempotency-Key. At most 10 commands per subject per minute. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/PartnerProductCode"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerProductTransitionCommand"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerProductTransitionReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partners/{partnerReference}/products/{productCode}/history:
+    get:
+      operationId: getPartnerProductHistory
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: The immutable history of a product across all of its versions
+      description: >-
+        MVP-120E. Platform administrators with exact MFA only. Events oldest first as a keyset page (default 25, maximum 50),
+        each naming its version, type, statuses, reason code and whether a private note was recorded; no note text, subject,
+        monetary value or description is returned. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReference"
+        - $ref: "#/components/parameters/PartnerProductCode"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerProductHistoryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /catalogue/partners:
+    get:
+      operationId: listCataloguePartners
+      x-divalhr-lifecycle: implemented
+      summary: Partners that currently offer products to my organization
+      description: >-
+        MVP-120E (D120E-9, D120E-10). Tenant administrators and employees of an active membership. Only partners whose status is
+        ACTIVE and that have at least one currently eligible ACTIVE product for the caller's organization country, with
+        display name, categories and the number of eligible products. No reference, identifier, contact, licence, note or
+        platform data is returned, and nothing about the employee is read or shared. When the organization has no reliable
+        country the list is empty and availability is ORGANIZATION_COUNTRY_UNKNOWN. Information only: no application or
+        enrollment exists. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CataloguePartnerList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /catalogue/products:
+    get:
+      operationId: listCatalogueProducts
+      x-divalhr-lifecycle: implemented
+      summary: Products currently available to my organization
+      description: >-
+        MVP-120E (D120E-9, D120E-10). Tenant administrators and employees of an active membership. Only the latest ACTIVE
+        version of products of an ACTIVE partner, available in the caller's organization country, whose effective range
+        contains today (UTC). Optional filter by product type. A keyset page (default 25, maximum 50). Safe commercial
+        information only, with the opaque PP- reference: no partner or version identifier, history, note, administrator or
+        application data. When the organization has no reliable country the list is empty and availability is
+        ORGANIZATION_COUNTRY_UNKNOWN. Information only: no application or enrollment exists. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CatalogueProductTypeFilter"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogueProductPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /catalogue/products/{publicReference}:
+    get:
+      operationId: getCatalogueProduct
+      x-divalhr-lifecycle: implemented
+      summary: One product available to my organization
+      description: >-
+        MVP-120E (D120E-10). Tenant administrators and employees of an active membership. The same safe shape as the list. An
+        unknown, malformed, ineligible, not yet effective, expired, paused, retired, unpublished or cross-tenant reference is
+        the same 404 PARTNER_PRODUCT_NOT_AVAILABLE, so the response reveals nothing about a product that is not available.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/CataloguePublicReference"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The product
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogueProduct"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -16548,6 +17209,73 @@ components:
       schema:
         type: string
         format: date
+    PartnerPageLimit:
+      name: limit
+      in: query
+      description: Items per page (1-50, default 25).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 25
+    PartnerStatusFilter:
+      name: status
+      in: query
+      description: Only partners in this status. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerAccountStatus"
+    PartnerAccountCategoryFilter:
+      name: category
+      in: query
+      description: Only partners whose primary or additional category is this one. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerCategory"
+    PartnerSourceApplicationReference:
+      name: applicationReference
+      in: path
+      required: true
+      description: >-
+        The opaque reference of the application to activate (PA- and twelve characters). Malformed and unknown references
+        give the same 404 PARTNER_APPLICATION_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 32
+    PartnerReference:
+      name: partnerReference
+      in: path
+      required: true
+      description: >-
+        The opaque partner reference (PT- and sixteen characters). Malformed and unknown references give the same 404
+        PARTNER_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 32
+    PartnerProductCode:
+      name: productCode
+      in: path
+      required: true
+      description: >-
+        The product code, unique within the partner (upper-case letters, digits, hyphen and underscore, 2 to 40 characters).
+        Malformed and unknown codes give the same 404 PARTNER_PRODUCT_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 40
+    CatalogueProductTypeFilter:
+      name: productType
+      in: query
+      description: Only products of this type. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerProductType"
+    CataloguePublicReference:
+      name: publicReference
+      in: path
+      required: true
+      description: >-
+        The opaque public product reference (PP- and sixteen characters). Malformed, unknown and unavailable references give
+        the same 404 PARTNER_PRODUCT_NOT_AVAILABLE.
+      schema:
+        type: string
+        maxLength: 32
   schemas:
     AccessReviewLookup:
       type: object
@@ -23466,6 +24194,18 @@ components:
         - PARTNER_APPLICATION_CHECKLIST_INCOMPLETE
         - PARTNER_APPLICATION_DUPLICATE
         - PARTNER_APPLICATION_CONSENT_REQUIRED
+        - PARTNER_SOURCE_APPLICATION_NOT_APPROVED
+        - PARTNER_ALREADY_CREATED
+        - PARTNER_NOT_FOUND
+        - PARTNER_TRANSITION_INVALID
+        - PARTNER_HAS_ACTIVE_PRODUCTS
+        - PARTNER_PRODUCT_NOT_FOUND
+        - PARTNER_PRODUCT_INVALID
+        - PARTNER_PRODUCT_SCOPE_INVALID
+        - PARTNER_PRODUCT_TRANSITION_INVALID
+        - PARTNER_PRODUCT_PARTNER_INACTIVE
+        - PARTNER_PRODUCT_VERSION_STALE
+        - PARTNER_PRODUCT_NOT_AVAILABLE
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -32905,3 +33645,715 @@ components:
         occurredAt:
           type: string
           format: date-time
+
+    PartnerAccountStatus:
+      type: string
+      description: MVP-120E (D120E-4). DRAFT is created and inactive; CLOSED is terminal.
+      enum: [DRAFT, ACTIVE, SUSPENDED, CLOSED]
+    PartnerAccountAction:
+      type: string
+      description: >-
+        MVP-120E (D120E-4, D120E-7). AMEND_SCOPE only adds approved operating countries and never removes one.
+      enum: [ACTIVATE, SUSPEND, REACTIVATE, CLOSE, AMEND_SCOPE]
+    PartnerAccountReasonCode:
+      type: string
+      description: >-
+        MVP-120E (D120E-4). A closed, bounded reason for suspension, closure, product pause and product retirement. OTHER
+        requires a private note that is encrypted and never returned, audited or logged.
+      enum:
+        - COMPLIANCE_REVIEW
+        - COMMERCIAL_HOLD
+        - PARTNER_REQUEST
+        - REGULATORY_RESTRICTION
+        - SECURITY_CONCERN
+        - PROGRAM_ENDED
+        - OTHER
+    PartnerAccountEventType:
+      type: string
+      enum: [CREATED, ACTIVATED, SUSPENDED, REACTIVATED, CLOSED, SCOPE_AMENDED]
+    PartnerProductType:
+      type: string
+      description: MVP-120E (D120E-5). The closed catalogue of product types.
+      enum:
+        - SALARY_ADVANCE
+        - EMPLOYEE_LOAN
+        - HEALTH_INSURANCE
+        - LIFE_INSURANCE
+        - OTHER_INSURANCE
+        - TELECOM_VOICE_DATA
+        - DEVICE_FINANCING
+        - HEALTHCARE
+        - WELLNESS
+        - TRAINING
+        - OTHER_BENEFIT
+    PartnerProductStatus:
+      type: string
+      enum: [DRAFT, UNDER_REVIEW, ACTIVE, PAUSED, RETIRED]
+    PartnerProductAction:
+      type: string
+      enum: [SUBMIT, RETURN, PUBLISH, PAUSE, RESUME, RETIRE]
+    PartnerProductEventType:
+      type: string
+      enum: [VERSION_CREATED, SUBMITTED, RETURNED, PUBLISHED, PAUSED, RESUMED, RETIRED, SUPERSEDED]
+    PartnerCurrency:
+      type: string
+      description: >-
+        MVP-120E. An ISO 4217 code. CDF and USD are the only currencies offered now; adding one is a configuration change.
+      pattern: "^[A-Z]{3}$"
+      maxLength: 3
+    PartnerMoneyAmount:
+      type: string
+      description: A non-negative decimal amount with at most two decimals, as a string so no precision is lost.
+      pattern: "^[0-9]{1,16}(\\.[0-9]{1,2})?$"
+      maxLength: 19
+    PartnerBilingualText:
+      type: object
+      additionalProperties: false
+      description: A text in English and French. Both are required before a version can be submitted.
+      required: [en, fr]
+      properties:
+        en:
+          type: [string, "null"]
+          maxLength: 2000
+        fr:
+          type: [string, "null"]
+          maxLength: 2000
+    PartnerProductCurrencyLimit:
+      type: object
+      additionalProperties: false
+      required: [currency, minAmount, maxAmount]
+      properties:
+        currency:
+          $ref: "#/components/schemas/PartnerCurrency"
+        minAmount:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerMoneyAmount"
+            - type: "null"
+        maxAmount:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerMoneyAmount"
+            - type: "null"
+    PartnerProductContent:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120E (D120E-5, D120E-6). The editable content of one product version. A draft may be incomplete; a submitted
+        version is complete in both languages and dated.
+      required:
+        - name
+        - summary
+        - eligibility
+        - disclosure
+        - infoUrl
+        - effectiveDate
+        - endDate
+        - minMonths
+        - maxMonths
+        - countries
+        - currencies
+      properties:
+        name:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        summary:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        eligibility:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        disclosure:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        infoUrl:
+          type: [string, "null"]
+          maxLength: 300
+          description: An https information link, or null.
+        effectiveDate:
+          type: [string, "null"]
+          format: date
+        endDate:
+          type: [string, "null"]
+          format: date
+        minMonths:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 600
+        maxMonths:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 600
+        countries:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            pattern: "^[A-Z]{2}$"
+        currencies:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/PartnerProductCurrencyLimit"
+    PartnerReadyApplication:
+      type: object
+      additionalProperties: false
+      required: [applicationReference, legalName, tradingName, countryOfRegistration, primaryCategory, approvedAt, partnerReference]
+      properties:
+        applicationReference:
+          type: string
+        legalName:
+          type: string
+        tradingName:
+          type: [string, "null"]
+        countryOfRegistration:
+          type: string
+        primaryCategory:
+          $ref: "#/components/schemas/PartnerCategory"
+        approvedAt:
+          type: string
+          format: date-time
+        partnerReference:
+          type: [string, "null"]
+          description: The partner already created from this application, or null.
+    PartnerReadyApplicationPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerReadyApplication"
+        nextCursor:
+          type: [string, "null"]
+    PartnerCreateCommand:
+      type: object
+      additionalProperties: false
+      required: [confirmed]
+      properties:
+        confirmed:
+          type: boolean
+          description: Must be true.
+    PartnerSummary:
+      type: object
+      additionalProperties: false
+      required: [reference, status, legalName, tradingName, countryOfRegistration, primaryCategory, productCount, activeProductCount, createdAt, updatedAt]
+      properties:
+        reference:
+          type: string
+        status:
+          $ref: "#/components/schemas/PartnerAccountStatus"
+        legalName:
+          type: string
+        tradingName:
+          type: [string, "null"]
+        countryOfRegistration:
+          type: string
+        primaryCategory:
+          $ref: "#/components/schemas/PartnerCategory"
+        productCount:
+          type: integer
+          minimum: 0
+        activeProductCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PartnerStatusCounts:
+      type: object
+      additionalProperties: false
+      required: [DRAFT, ACTIVE, SUSPENDED, CLOSED]
+      properties:
+        DRAFT:
+          type: integer
+          minimum: 0
+        ACTIVE:
+          type: integer
+          minimum: 0
+        SUSPENDED:
+          type: integer
+          minimum: 0
+        CLOSED:
+          type: integer
+          minimum: 0
+    PartnerPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor, statusCounts]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerSummary"
+        nextCursor:
+          type: [string, "null"]
+        statusCounts:
+          $ref: "#/components/schemas/PartnerStatusCounts"
+    PartnerDetail:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120E. The approved business identity copied from the application, the lifecycle state, the approved operating
+        scope and the transitions allowed now. No contact, licence or registration reference, note or payload is ever
+        part of it. An active partner has no connection, credential or employee-data access.
+      required:
+        - reference
+        - applicationReference
+        - status
+        - version
+        - legalName
+        - tradingName
+        - countryOfRegistration
+        - primaryCategory
+        - additionalCategories
+        - capabilities
+        - website
+        - supportedLanguages
+        - countries
+        - allowedActions
+        - productCount
+        - activeProductCount
+        - createdAt
+        - updatedAt
+      properties:
+        reference:
+          type: string
+        applicationReference:
+          type: string
+        status:
+          $ref: "#/components/schemas/PartnerAccountStatus"
+        version:
+          type: integer
+          minimum: 0
+        legalName:
+          type: string
+        tradingName:
+          type: [string, "null"]
+        countryOfRegistration:
+          type: string
+        primaryCategory:
+          $ref: "#/components/schemas/PartnerCategory"
+        additionalCategories:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        capabilities:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/PartnerCapability"
+        website:
+          type: string
+        supportedLanguages:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/PartnerLanguage"
+        countries:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+        allowedActions:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/PartnerAccountAction"
+        productCount:
+          type: integer
+          minimum: 0
+        activeProductCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PartnerCreateReceipt:
+      type: object
+      additionalProperties: false
+      required: [created, partner]
+      properties:
+        created:
+          type: boolean
+          description: false when the partner already existed and nothing was created.
+        partner:
+          $ref: "#/components/schemas/PartnerDetail"
+    PartnerTransitionCommand:
+      type: object
+      additionalProperties: false
+      required: [action, expectedVersion]
+      properties:
+        action:
+          $ref: "#/components/schemas/PartnerAccountAction"
+        expectedVersion:
+          type: integer
+          minimum: 0
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerAccountReasonCode"
+            - type: "null"
+        note:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 500
+          description: Only with reasonCode OTHER. Encrypted, never returned.
+        confirmed:
+          type: [boolean, "null"]
+        countries:
+          type: [array, "null"]
+          maxItems: 30
+          description: Only with AMEND_SCOPE. The countries to add.
+          items:
+            type: string
+            pattern: "^[A-Z]{2}$"
+    PartnerTransitionReceipt:
+      type: object
+      additionalProperties: false
+      required: [partner, eventSequence]
+      properties:
+        partner:
+          $ref: "#/components/schemas/PartnerDetail"
+        eventSequence:
+          type: integer
+          minimum: 1
+    PartnerHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [sequence, eventType, fromStatus, toStatus, reasonCode, noteRecorded, itemCount, actorType, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        eventType:
+          $ref: "#/components/schemas/PartnerAccountEventType"
+        fromStatus:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerAccountStatus"
+            - type: "null"
+        toStatus:
+          $ref: "#/components/schemas/PartnerAccountStatus"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerAccountReasonCode"
+            - type: "null"
+        noteRecorded:
+          type: boolean
+        itemCount:
+          type: [integer, "null"]
+          description: The number of countries added by a SCOPE_AMENDED event.
+        actorType:
+          type: string
+          enum: [PLATFORM_ADMIN]
+        occurredAt:
+          type: string
+          format: date-time
+    PartnerHistoryPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerHistoryEntry"
+        nextCursor:
+          type: [string, "null"]
+    PartnerProductSummary:
+      type: object
+      additionalProperties: false
+      required: [productCode, productType, publicReference, latestVersion, latestStatus, liveVersion, liveStatus, name]
+      properties:
+        productCode:
+          type: string
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        publicReference:
+          type: string
+        latestVersion:
+          type: integer
+          minimum: 1
+        latestStatus:
+          $ref: "#/components/schemas/PartnerProductStatus"
+        liveVersion:
+          type: [integer, "null"]
+        liveStatus:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerProductStatus"
+            - type: "null"
+        name:
+          $ref: "#/components/schemas/PartnerBilingualText"
+    PartnerProductList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PartnerProductSummary"
+    PartnerProductCreateCommand:
+      type: object
+      additionalProperties: false
+      required: [productCode, productType, content]
+      properties:
+        productCode:
+          type: string
+          pattern: "^[A-Z0-9][A-Z0-9_-]{1,39}$"
+          maxLength: 40
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        content:
+          $ref: "#/components/schemas/PartnerProductContent"
+    PartnerProductDraftCommand:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, expectedRowVersion, content]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          description: The version number the editor loaded.
+        expectedRowVersion:
+          type: integer
+          minimum: 0
+          description: The row version of that version as loaded (0 when a new version will be created).
+        content:
+          $ref: "#/components/schemas/PartnerProductContent"
+    PartnerProductVersion:
+      type: object
+      additionalProperties: false
+      required: [version, status, rowVersion, content, allowedActions, createdAt, updatedAt]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        status:
+          $ref: "#/components/schemas/PartnerProductStatus"
+        rowVersion:
+          type: integer
+          minimum: 0
+        content:
+          $ref: "#/components/schemas/PartnerProductContent"
+        allowedActions:
+          type: array
+          maxItems: 6
+          items:
+            $ref: "#/components/schemas/PartnerProductAction"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PartnerProductDetail:
+      type: object
+      additionalProperties: false
+      required: [partnerReference, partnerStatus, productCode, productType, publicReference, versions]
+      properties:
+        partnerReference:
+          type: string
+        partnerStatus:
+          $ref: "#/components/schemas/PartnerAccountStatus"
+        productCode:
+          type: string
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        publicReference:
+          type: string
+        versions:
+          type: array
+          maxItems: 1000
+          description: Newest first.
+          items:
+            $ref: "#/components/schemas/PartnerProductVersion"
+    PartnerProductTransitionCommand:
+      type: object
+      additionalProperties: false
+      required: [action, version, expectedRowVersion]
+      properties:
+        action:
+          $ref: "#/components/schemas/PartnerProductAction"
+        version:
+          type: integer
+          minimum: 1
+        expectedRowVersion:
+          type: integer
+          minimum: 0
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerAccountReasonCode"
+            - type: "null"
+        note:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 500
+          description: Only with reasonCode OTHER. Encrypted, never returned.
+        confirmed:
+          type: [boolean, "null"]
+    PartnerProductTransitionReceipt:
+      type: object
+      additionalProperties: false
+      required: [product, supersededVersion]
+      properties:
+        product:
+          $ref: "#/components/schemas/PartnerProductDetail"
+        supersededVersion:
+          type: [integer, "null"]
+          description: The previously live version retired by a PUBLISH, or null.
+    PartnerProductHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [sequence, version, eventType, fromStatus, toStatus, reasonCode, noteRecorded, actorType, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+        eventType:
+          $ref: "#/components/schemas/PartnerProductEventType"
+        fromStatus:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerProductStatus"
+            - type: "null"
+        toStatus:
+          $ref: "#/components/schemas/PartnerProductStatus"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerAccountReasonCode"
+            - type: "null"
+        noteRecorded:
+          type: boolean
+        actorType:
+          type: string
+          enum: [PLATFORM_ADMIN, SYSTEM]
+        occurredAt:
+          type: string
+          format: date-time
+    PartnerProductHistoryPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerProductHistoryEntry"
+        nextCursor:
+          type: [string, "null"]
+    CatalogueAvailability:
+      type: string
+      description: ORGANIZATION_COUNTRY_UNKNOWN means the organization has no reliable country, so nothing can be matched.
+      enum: [AVAILABLE, ORGANIZATION_COUNTRY_UNKNOWN]
+    CataloguePartner:
+      type: object
+      additionalProperties: false
+      description: MVP-120E (D120E-10). Safe partner information. No reference, identifier, contact or platform data.
+      required: [displayName, categories, productCount]
+      properties:
+        displayName:
+          type: string
+        categories:
+          type: array
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        productCount:
+          type: integer
+          minimum: 1
+    CataloguePartnerList:
+      type: object
+      additionalProperties: false
+      required: [items, availability, informationOnly]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/CataloguePartner"
+        availability:
+          $ref: "#/components/schemas/CatalogueAvailability"
+        informationOnly:
+          type: boolean
+          description: Always true. No application or enrollment exists.
+    CatalogueProduct:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120E (D120E-10). Safe commercial information of one eligible product in the language requested by the client.
+        No partner or version identifier, history, note, administrator or application data.
+      required:
+        - publicReference
+        - partnerDisplayName
+        - productType
+        - name
+        - summary
+        - eligibility
+        - disclosure
+        - infoUrl
+        - effectiveDate
+        - endDate
+        - minMonths
+        - maxMonths
+        - currencies
+        - informationOnly
+      properties:
+        publicReference:
+          type: string
+        partnerDisplayName:
+          type: string
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        name:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        summary:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        eligibility:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        disclosure:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        infoUrl:
+          type: [string, "null"]
+        effectiveDate:
+          type: string
+          format: date
+        endDate:
+          type: [string, "null"]
+          format: date
+        minMonths:
+          type: [integer, "null"]
+        maxMonths:
+          type: [integer, "null"]
+        currencies:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/PartnerProductCurrencyLimit"
+        informationOnly:
+          type: boolean
+          description: Always true. Availability and final terms are determined by the provider.
+    CatalogueProductPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor, availability, informationOnly]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/CatalogueProduct"
+        nextCursor:
+          type: [string, "null"]
+        availability:
+          $ref: "#/components/schemas/CatalogueAvailability"
+        informationOnly:
+          type: boolean

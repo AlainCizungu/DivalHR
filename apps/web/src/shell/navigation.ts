@@ -60,6 +60,12 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'platform-admin',
       },
       {
+        to: '/admin/partners',
+        labelKey: 'nav.partnerAccounts',
+        icon: 'bank',
+        role: 'platform-admin',
+      },
+      {
         to: '/admin/statutory-packs',
         labelKey: 'nav.statutoryPacks',
         icon: 'payroll',
@@ -237,6 +243,7 @@ export const NAVIGATION: NavGroupDef[] = [
     id: 'integrations',
     labelKey: 'nav.groups.integrations',
     items: [
+      { to: '/admin/catalogue', labelKey: 'nav.catalogue', icon: 'benefits', role: 'tenant-admin' },
       { to: '/admin/webhooks', labelKey: 'nav.webhooks', icon: 'webhook', role: 'tenant-admin' },
       {
         to: '/admin/integrations/whatsapp',
@@ -278,6 +285,7 @@ export const NAVIGATION: NavGroupDef[] = [
         icon: 'rotation',
         role: 'employee',
       },
+      { to: '/me/catalogue', labelKey: 'nav.myCatalogue', icon: 'benefits', role: 'employee' },
       { to: '/me/leave', labelKey: 'nav.myLeave', icon: 'calendar', role: 'employee' },
       {
         to: '/me/leave/approvals',
