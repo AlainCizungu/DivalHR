@@ -68,7 +68,9 @@ class PartnerAccountErrorCodesTest {
       assertThat(all[index].status()).as(entry.getKey()).isEqualTo(entry.getValue());
       index++;
     }
-    assertThat(index).as("the twelve codes are the last in the registry").isEqualTo(all.length);
+    assertThat(index)
+        .as("the twelve codes are followed by the MVP-120F referral codes")
+        .isEqualTo(ErrorCode.PARTNER_REFERRAL_PRODUCT_UNAVAILABLE.ordinal());
   }
 
   @Test

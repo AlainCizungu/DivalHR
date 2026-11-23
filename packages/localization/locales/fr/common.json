@@ -834,7 +834,18 @@
     "PARTNER_PRODUCT_TRANSITION_INVALID": "Ce changement n’est pas autorisé pour cette version du produit dans son état actuel.",
     "PARTNER_PRODUCT_PARTNER_INACTIVE": "Le partenaire doit être actif pour cette action sur le produit.",
     "PARTNER_PRODUCT_VERSION_STALE": "Ce produit a été modifié depuis son ouverture. Rechargez la page et réessayez.",
-    "PARTNER_PRODUCT_NOT_AVAILABLE": "Ce produit n’est pas disponible."
+    "PARTNER_PRODUCT_NOT_AVAILABLE": "Ce produit n’est pas disponible.",
+    "PARTNER_REFERRAL_PRODUCT_UNAVAILABLE": "Ce produit n’est pas disponible pour une recommandation.",
+    "PARTNER_REFERRAL_NOT_FOUND": "Cette demande auprès d’un partenaire est introuvable.",
+    "PARTNER_REFERRAL_PREVIEW_EXPIRED": "L’aperçu a expiré. Vérifiez à nouveau les informations avant de les envoyer.",
+    "PARTNER_REFERRAL_PREVIEW_STALE": "Un élément a changé depuis l’aperçu. Vérifiez les informations à jour avant de les envoyer.",
+    "PARTNER_REFERRAL_PREVIEW_ALREADY_USED": "Cet aperçu a déjà été envoyé. Ouvrez vos demandes auprès des partenaires pour le suivre.",
+    "PARTNER_REFERRAL_CONSENT_REQUIRED": "Vous devez accepter de partager ces informations avant l’envoi de la demande.",
+    "PARTNER_REFERRAL_DISCLOSURE_INVALID": "Les informations à partager ne sont pas valides. Vérifiez les champs signalés.",
+    "PARTNER_REFERRAL_NOT_WITHDRAWABLE": "Cette demande ne peut plus être retirée, car le partenaire l’a reçue ou a pu la recevoir.",
+    "PARTNER_REFERRAL_VERSION_STALE": "Cette demande a changé depuis son ouverture. Rechargez la page et réessayez.",
+    "PARTNER_REFERRAL_IDEMPOTENCY_REUSED": "Cette clé de demande a déjà servi pour une autre demande. Recommencez.",
+    "PARTNER_REFERRAL_RATE_LIMITED": "Trop de demandes. Patientez un instant puis réessayez."
   },
   "notFound": {
     "title": "Page introuvable",
