@@ -32,11 +32,11 @@ sha256_of() {
   else shasum -a 256 "$1" | cut -d' ' -f1; fi
 }
 
-mode=build
+mode="build"
 case "${1:-}" in
   "") ;;
-  --verify) mode=verify ;;
-  --export) mode=export ;;
+  --verify) mode="verify" ;;
+  --export) mode="export" ;;
   *) die "usage: keycloak-provisioning-jar.sh [--verify|--export]" ;;
 esac
 
