@@ -30,7 +30,7 @@ import {
   type CorrectionProblem,
   type CorrectionTarget,
 } from './attendanceCorrections';
-import { exceptionEmployeeName } from './attendanceExceptions';
+import { exceptionEmployeeName } from './attendanceExceptionsModel';
 
 type Step = 'loading' | 'form' | 'preview' | 'done';
 

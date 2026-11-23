@@ -11,8 +11,8 @@ import { Breadcrumbs } from '../ui/primitives';
 import { BrandMark, EnvironmentBadge, LanguageSwitcher, ThemeSelect, Wordmark } from './controls';
 import { DESKTOP_QUERY, useMediaQuery, useSidebarCollapsed } from './hooks';
 import { MobileNavDrawer } from './MobileNavDrawer';
-import { Brand, Sidebar } from './Navigation';
-import { activeItemPath, navigationRoles, visibleGroups } from './navigation';
+import { Brand, Sidebar } from './NavigationView';
+import { activeItemPath, navigationRoles, visibleGroups } from './navigationModel';
 import { UserMenu } from './UserMenu';
 
 const MATCHABLE = ROUTES.map((route) => ({ path: route.path, appRoute: route }));

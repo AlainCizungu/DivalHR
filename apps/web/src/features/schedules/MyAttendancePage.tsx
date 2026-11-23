@@ -7,7 +7,7 @@ import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate } from '../people/history';
 import { AssistedNote } from './AssistedNote';
 import { CorrectedNote } from './CorrectedNote';
-import { AttendanceExceptions } from './AttendanceExceptions';
+import { AttendanceExceptions } from './AttendanceExceptionsPage';
 import { AttendanceDialog } from './AttendanceDialog';
 import { OfflineAttendancePanel } from './offline/OfflineAttendancePanel';
 import { useOfflineAttendance } from './offline/OfflineAttendanceProvider';

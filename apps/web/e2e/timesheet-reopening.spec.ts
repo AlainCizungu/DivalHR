@@ -218,7 +218,15 @@ async function manage(
   from: string,
   key: string,
 ) {
-  const change = { type: 'CHANGE', effectiveFrom: from, manager: { employeeId: manager } };
+  // DEVX-005: a retroactive change needs a reason, and during the first hour of the Lubumbashi day the
+  // site-local date can be one day behind the organization's business date. The reason keeps the
+  // setup valid at either date, in both the preview and the commit.
+  const change = {
+    type: 'CHANGE',
+    effectiveFrom: from,
+    reasonCode: 'LATE_NOTIFICATION',
+    manager: { employeeId: manager },
+  };
   const preview = await page.request.post(
     `${CORE_API}/employees/${report}/employment-changes/preview`,
     { headers: { Authorization: bearer() }, data: change },

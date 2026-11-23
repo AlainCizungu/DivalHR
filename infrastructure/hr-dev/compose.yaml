@@ -193,6 +193,9 @@ services:
       context: ../..
       dockerfile: infrastructure/docker/keycloak/Dockerfile
       args:
+        # DEVX-005 (#214): the digest of the JAR built beforehand (ops/build/keycloak-provisioning-jar.sh);
+        # empty for commands that build nothing, and the image build refuses an empty digest.
+        PROVISIONING_JAR_SHA256: ${KEYCLOAK_PROVISIONING_JAR_SHA256:-}
         # Production-mode build (section 4): PostgreSQL, single node, /identity, health.
         KC_BUILD_OPTIONS: --db=postgres --cache=local --http-relative-path=/identity --health-enabled=true
     command: ['start', '--optimized', '--import-realm']

@@ -53,6 +53,10 @@ tasks.withType<JavaCompile>().configureEach {
 tasks.jar {
     // A stable name: the Keycloak image and the Core API container tests load this file.
     archiveFileName = "divalhr-provisioning.jar"
+    // DEVX-005 (#214): the same sources give the same bytes, so a clean and a cached build record one
+    // SHA-256 and the image can verify the JAR it installs against that record.
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
     manifest {
         attributes(
             "Implementation-Title" to "divalhr-provisioning",

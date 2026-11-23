@@ -5,7 +5,7 @@ import { useApi } from '../../app/ApiProvider';
 import { PageHeader, StatusBadge } from '../../ui/primitives';
 import { useIdempotencyKey } from '../hierarchy/useIdempotencyKey';
 import { formatDate } from '../people/history';
-import { AttendanceExceptions } from './AttendanceExceptions';
+import { AttendanceExceptions } from './AttendanceExceptionsPage';
 import { TeamAttendanceDialog } from './TeamAttendanceDialog';
 import { formatInstant } from './attendance';
 import {

@@ -370,8 +370,9 @@ class TimesheetPeriodIntegrationTest {
     assertThat(JSON.readTree(replay.getContentAsString())).isEqualTo(result);
     // A plain replace of one letter is a no-op when the digest has none: change the first digit.
     String original = preview.get("previewDigest").asText();
-    Map<String, Object> changed =
-        locking(t.scope(), 1, 0, (original.charAt(0) == 'a' ? "b" : "a") + original.substring(1));
+    String changedDigest = (original.charAt(0) == 'a' ? "b" : "a") + original.substring(1);
+    assertThat(changedDigest).matches("[0-9a-f]{64}").isNotEqualTo(original);
+    Map<String, Object> changed = locking(t.scope(), 1, 0, changedDigest);
     w.problem(lock(t.admin(), key, changed), 409, "IDEMPOTENCY_KEY_REUSED");
     w.problem(
         lock(t.admin(), key(), locking(t.scope(), preview)), 409, "TIMESHEET_PERIOD_PREVIEW_STALE");

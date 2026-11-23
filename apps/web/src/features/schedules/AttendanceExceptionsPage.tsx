@@ -26,7 +26,7 @@ import {
   type ExceptionView,
   type FilterField,
   type FilterProblem,
-} from './attendanceExceptions';
+} from './attendanceExceptionsModel';
 import { formatTime, splitLocal } from './workSchedules';
 
 type Listing =

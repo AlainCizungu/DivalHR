@@ -12,7 +12,7 @@ import {
   exceptionFailureOf,
   exceptionQueryOf,
   filterProblemsOf,
-} from './attendanceExceptions';
+} from './attendanceExceptionsModel';
 
 const SITE = '33333333-0000-4000-8000-000000000003';
 const LEGAL = '44444444-0000-4000-8000-000000000004';

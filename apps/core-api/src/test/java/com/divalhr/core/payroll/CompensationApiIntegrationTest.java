@@ -52,6 +52,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @ExtendWith(OutputCaptureExtension.class)
 class CompensationApiIntegrationTest {
 
+  private static final com.fasterxml.jackson.databind.ObjectMapper JSON_PARSER =
+      new com.fasterxml.jackson.databind.ObjectMapper();
+
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private EmailLookup lookups;
@@ -613,7 +616,16 @@ class CompensationApiIntegrationTest {
     // The cursor carries no amount and is refused for another size, employee or role.
     String encoded = cursor.substring(0, cursor.indexOf('.'));
     String payload = new String(java.util.Base64.getUrlDecoder().decode(encoded));
-    assertThat(payload).doesNotContain("10.00", "11.00", "12.00", "1200");
+    // DEVX-005 (Issue #222): the cursor holds random hexadecimal (a digest and an identifier), so a
+    // substring such as "1200" occurs in it by chance about once in 600 runs. Check its structure:
+    // exactly the four expected fields, each value of its own kind, so no amount can be among them.
+    JsonNode cursorFields = JSON_PARSER.readTree(payload);
+    assertThat(fields(cursorFields)).containsExactly("c", "i", "q", "v");
+    assertThat(cursorFields.get("c").asText()).matches("S[0-9]+");
+    assertThat(cursorFields.get("i").asText()).matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}");
+    assertThat(cursorFields.get("q").asText()).matches("[0-9a-f]{64}");
+    assertThat(cursorFields.get("v").asInt()).isEqualTo(1);
+    assertThat(payload).doesNotContain("10.00", "11.00", "12.00");
     w.problem(readRequest(w.admin, employee, "limit=3&cursor=" + cursor), 400, "CURSOR_INVALID");
     Person bob = w.person("Bob", "Kasongo");
     w.problem(

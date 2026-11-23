@@ -51,6 +51,13 @@ const UNCHANGED = {
   DIVALHR_LEAVE_APPROVAL_TENANT_WRITES: 200,
 };
 
+/**
+ * DEVX-005 (Issue #222): the per-tenant invitation budget per rolling hour. The e2e (development)
+ * stack allows four times the production default so retried specs cannot exhaust it; Core keeps 50
+ * in its configuration and in InvitationProperties, and hr-dev never sets it.
+ */
+const INVITATION_BUDGET = { name: 'DIVALHR_INVITATION_CREATE_PER_HOUR', dev: 200, core: 50 };
+
 /** `NAME: ${NAME:-value}` entries of a Compose file. */
 function composeValues(text) {
   const values = {};
@@ -95,5 +102,20 @@ describe('development-only request limits (R76-3)', () => {
     for (const name of Object.keys(UNCHANGED)) assert.equal(dev[name], undefined, name);
     const raised = Object.keys(dev).filter((name) => /REQUESTS|PER_MINUTE|TENANT_/u.test(name));
     assert.deepEqual(raised.sort(), Object.keys(OVERRIDES).sort());
+  });
+
+  it('the invitation budget is 50 in Core and hr-dev, raised only in development (DEVX-005)', () => {
+    const { name, dev: devValue, core: coreValue } = INVITATION_BUDGET;
+    assert.equal(dev[name], `\${${name}:-${devValue}}`, name);
+    assert.equal(core[name], String(coreValue), name);
+    assert.ok(!hrDev.includes(name), `${name} appears in infrastructure/hr-dev/compose.yaml`);
+    const properties = read(
+      'apps/core-api/src/main/java/com/divalhr/core/identity/application/InvitationProperties.java',
+    );
+    assert.match(properties, /createPerHour = Objects\.requireNonNullElse\(createPerHour, 50\);/u);
+    assert.match(
+      read('apps/core-api/src/main/resources/application.yaml'),
+      /create-per-hour: \$\{DIVALHR_INVITATION_CREATE_PER_HOUR:50\}/u,
+    );
   });
 });

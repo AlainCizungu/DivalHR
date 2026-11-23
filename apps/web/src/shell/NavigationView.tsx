@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { Icon } from '../ui/Icon';
 import { BrandMark, Wordmark } from './controls';
 import { NavGroup, Skeleton } from '../ui/primitives';
-import type { NavGroupDef } from './navigation';
+import type { NavGroupDef } from './navigationModel';
 
 /**
  * The grouped navigation links, used by the sidebar and the mobile drawer (never both at once in
