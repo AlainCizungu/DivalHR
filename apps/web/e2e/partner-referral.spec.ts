@@ -79,19 +79,16 @@ const COPY = {
 } as const;
 
 let releaseSubject: (() => void) | undefined;
-let releaseAdmin: (() => void) | undefined;
 test.beforeAll(async () => {
   // Other specs hold this subject for minutes: waiting for it must not count against the hook.
   test.setTimeout(600_000);
   releaseSubject = await subjectLock(USERS.platformAdmin[0]);
-  releaseAdmin = await subjectLock(USERS.adminA[0]);
 });
 test.afterAll(() => {
   try {
     sql(`DROP TRIGGER IF EXISTS ${HOLD} ON integrations.partner_referral`);
     sql(`DROP FUNCTION IF EXISTS integrations.${HOLD}()`);
   } finally {
-    releaseAdmin?.();
     releaseSubject?.();
   }
 });
@@ -129,6 +126,8 @@ async function linkedEmployee(browser: Browser) {
     employeeReady = true;
     return;
   }
+  // Held only for these few writes (not for the whole file): other specs hold this subject for minutes.
+  const releaseAdmin = await subjectLock(USERS.adminA[0]);
   const adminContext = await browser.newContext();
   const page = await adminContext.newPage();
   const bearer = await signIn(page, USERS.adminA, 'fr');
@@ -232,6 +231,7 @@ async function linkedEmployee(browser: Browser) {
   ).toBe(201);
   employeeReady = true;
   await adminContext.close();
+  releaseAdmin();
 }
 
 function organizationCountry(): string {
@@ -602,7 +602,7 @@ test('MVP-120F journey 1: the employee consents, the synthetic delivery is obser
   browser,
   page,
 }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(900_000);
   const t = COPY.en;
   const country = organizationCountry();
   const offer: Offer = {
