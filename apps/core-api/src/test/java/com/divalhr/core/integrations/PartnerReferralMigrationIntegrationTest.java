@@ -127,9 +127,8 @@ class PartnerReferralMigrationIntegrationTest {
   private static String ref(String prefix) {
     String alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
     StringBuilder b = new StringBuilder(prefix);
-    java.util.Random r = new java.util.Random(UUID.randomUUID().getMostSignificantBits());
     for (int i = 0; i < 16; i++) {
-      b.append(alphabet.charAt(r.nextInt(alphabet.length())));
+      b.append(alphabet.charAt(REFERENCE_RANDOM.nextInt(alphabet.length())));
     }
     return b.toString();
   }
@@ -339,8 +338,13 @@ class PartnerReferralMigrationIntegrationTest {
     }
   }
 
+  private static final java.security.SecureRandom REFERENCE_RANDOM =
+      new java.security.SecureRandom();
+
   private static int count(Db db, String table) {
-    return db.jdbc().queryForObject("SELECT count(*) FROM integrations." + table, Integer.class);
+    Integer rows =
+        db.jdbc().queryForObject("SELECT count(*) FROM integrations." + table, Integer.class);
+    return rows == null ? 0 : rows;
   }
 
   @Test

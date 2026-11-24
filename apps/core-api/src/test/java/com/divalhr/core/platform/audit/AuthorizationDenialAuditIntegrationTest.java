@@ -120,7 +120,11 @@ class AuthorizationDenialAuditIntegrationTest {
           "partner-account.product",
           "partner-account.product-save",
           "partner-account.product-transition",
-          "partner-account.product-history");
+          "partner-account.product-history",
+          // MVP-120F: the read-only operational view of consented partner referrals.
+          "partner-referral.platform.list",
+          "partner-referral.platform.get",
+          "partner-referral.platform.history");
 
   private static final Set<String> TENANT_OPERATIONS =
       Set.of(
@@ -456,7 +460,15 @@ class AuthorizationDenialAuditIntegrationTest {
           "salary-advance-handoff.self-list",
           "salary-advance-handoff.self-withdraw",
           // MVP-095A: the employee's own masked payment destination.
-          "payment-destination.self-read");
+          "payment-destination.self-read",
+          // MVP-120F: the employee's own partner products and consented referrals.
+          "partner-referral.products",
+          "partner-referral.product",
+          "partner-referral.preview",
+          "partner-referral.submit",
+          "partner-referral.list",
+          "partner-referral.get",
+          "partner-referral.withdraw");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -914,7 +926,10 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-120E added twelve platform handlers over twelve operations: the ready applications, the
     // partner creation, list, read, history and transition, and the product list, creation, read,
     // save, transition and history. The three catalogue reads are role-less and so not counted.
-    assertThat(handlers).hasSize(262);
+    // MVP-120F added three platform handlers over three operations: the referral queue, the
+    // referral
+    // read and its history. The employee's seven handlers are self-service.
+    assertThat(handlers).hasSize(265);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).

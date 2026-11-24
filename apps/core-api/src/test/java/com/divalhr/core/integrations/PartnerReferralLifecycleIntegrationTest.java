@@ -168,7 +168,9 @@ class PartnerReferralLifecycleIntegrationTest {
                 + " WHERE r.reference = ?",
             byte[].class,
             reference);
-    String raw = new String(cipher, java.nio.charset.StandardCharsets.ISO_8859_1);
+    String raw =
+        new String(
+            java.util.Objects.requireNonNull(cipher), java.nio.charset.StandardCharsets.ISO_8859_1);
     assertThat(raw).doesNotContain("amina@example.test").doesNotContain("Kabila");
     String trail =
         jdbc.queryForObject(

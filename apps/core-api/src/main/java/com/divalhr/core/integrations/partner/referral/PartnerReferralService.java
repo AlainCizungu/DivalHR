@@ -559,9 +559,11 @@ public class PartnerReferralService {
 
   private static String constraint(Throwable failure) {
     for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-      if (cause instanceof org.postgresql.util.PSQLException psql
-          && psql.getServerErrorMessage() != null) {
-        return psql.getServerErrorMessage().getConstraint();
+      if (cause instanceof org.postgresql.util.PSQLException psql) {
+        org.postgresql.util.ServerErrorMessage server = psql.getServerErrorMessage();
+        if (server != null) {
+          return server.getConstraint();
+        }
       }
     }
     return null;
