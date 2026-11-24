@@ -70,7 +70,10 @@
     "partnerApplications": "Partner applications",
     "partnerAccounts": "Partners",
     "catalogue": "Partner catalogue",
-    "myCatalogue": "Benefits & offers"
+    "myCatalogue": "Benefits & offers",
+    "myPartnerProducts": "Partner offers",
+    "myPartnerRequests": "My partner requests",
+    "partnerReferrals": "Partner referrals"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -7691,5 +7694,201 @@
     "moreInformation": "More information from the provider",
     "opensNewTab": "(opens in a new tab)",
     "more": "Load more"
+  },
+  "referrals": {
+    "employee": {
+      "unauthorized": "Partner offers are available to employees only.",
+      "signInRequired": "Sign in to see partner offers."
+    },
+    "platform": {
+      "unauthorized": "Partner referrals are available to platform administrators with multi-factor sign-in only.",
+      "signInRequired": "Sign in to see partner referrals.",
+      "title": "Partner referrals",
+      "description": "Operational status of partner referrals. Contact details are masked and no disclosed value is shown.",
+      "readOnly": "Read only: nothing here can approve, edit, resend, override or delete a referral.",
+      "category": "Category",
+      "anyCategory": "Any category",
+      "empty": "No partner referrals match.",
+      "organization": "Organization identifier",
+      "contact": "Contact (masked)",
+      "back": "Back to partner referrals",
+      "attempts": "Delivery attempts",
+      "categories": "Categories"
+    },
+    "notice": {
+      "referralOnly": "A request is an introduction only.",
+      "noDecision": "DivalHR makes no decision: it does not approve, price, insure, lend or activate anything. Every decision belongs to the partner.",
+      "noMoney": "No money moves through this request: no loan, advance, payment, deduction or insurance is created.",
+      "employer": "Your employer cannot see this request or the product you chose."
+    },
+    "products": {
+      "title": "Partner offers",
+      "description": "Products from approved partners available to you. You choose what to share, and nothing is sent until you agree.",
+      "loading": "Loading partner offers…",
+      "empty": "No partner offers are available for your organization right now.",
+      "open": "Review and request an introduction"
+    },
+    "product": {
+      "back": "Back to partner offers",
+      "unavailableTitle": "Offer unavailable",
+      "categories": "Provider category",
+      "categoryNote": "The category describes the type of provider. It is not a recommendation and does not mean you are eligible."
+    },
+    "form": {
+      "title": "What do you want to share?",
+      "language": "Language for contact",
+      "lang": {
+        "en": "English",
+        "fr": "French"
+      },
+      "includePhone": "Also share my phone number",
+      "phone": "Phone number",
+      "phoneHelp": "International format, for example +243810000000.",
+      "phoneRequired": "Enter a phone number or untick the option.",
+      "phoneFormat": "Use the international format, for example +243810000000.",
+      "includeOrganization": "Also share my organization’s legal name",
+      "review": "Review what will be shared",
+      "reviewing": "Preparing the review…"
+    },
+    "preview": {
+      "title": "Review exactly what will be shared",
+      "intro": "If you agree, DivalHR sends exactly this information to {{partner}}, and nothing else.",
+      "assigned": "Assigned when you send",
+      "neverSharedTitle": "Never shared",
+      "expires": "This review is valid until {{time}}."
+    },
+    "consent": {
+      "legend": "Your consent",
+      "text": "I agree that DivalHR sends the information listed above, and only that information, to {{partner}} so that they can contact me about {{product}}. I understand that DivalHR makes no decision and that no money moves.",
+      "version": "Consent wording {{version}}",
+      "required": "Tick the box to agree before sending.",
+      "send": "Send request",
+      "sending": "Sending…"
+    },
+    "done": {
+      "title": "Request sent",
+      "heading": "Your request was sent",
+      "reference": "Your reference",
+      "sentAt": "Sent on",
+      "nextStep": "Next step: the partner may contact you using the details you shared. Follow the status in My partner requests.",
+      "view": "View this request",
+      "back": "Back to partner offers"
+    },
+    "requests": {
+      "title": "My partner requests",
+      "description": "Introductions you asked DivalHR to send to partners. Only you can see them.",
+      "state": "Status",
+      "anyState": "Any status",
+      "loading": "Loading…",
+      "empty": "You have no partner requests yet.",
+      "browse": "Browse partner offers",
+      "open": "View request"
+    },
+    "detail": {
+      "back": "Back to my partner requests",
+      "notFoundTitle": "Request not found",
+      "reference": "Reference",
+      "state": "Status",
+      "outcome": "Latest outcome",
+      "sentAt": "Sent on",
+      "updatedAt": "Last update",
+      "shared": "Information shared",
+      "history": "History"
+    },
+    "withdraw": {
+      "title": "Withdraw this request",
+      "help": "You can withdraw until the partner has, or may have, received it.",
+      "confirm": "I confirm that I want to withdraw this request.",
+      "required": "Tick the box to confirm.",
+      "button": "Withdraw request",
+      "working": "Withdrawing…",
+      "done": "This request was withdrawn.",
+      "unavailable": "This request can no longer be withdrawn because the partner has or may have received it."
+    },
+    "state": {
+      "SUBMITTED": "Sent",
+      "DELIVERY_PENDING": "Being delivered",
+      "DELIVERED": "Delivered",
+      "DELIVERY_UNKNOWN": "Delivery uncertain",
+      "DELIVERY_FAILED": "Not delivered",
+      "WITHDRAWN": "Withdrawn"
+    },
+    "stateHelp": {
+      "SUBMITTED": "Your request is recorded and waiting to be delivered.",
+      "DELIVERY_PENDING": "DivalHR is delivering your request or will try again shortly.",
+      "DELIVERED": "The partner’s system confirmed it received your request. Any decision belongs to the partner.",
+      "DELIVERY_UNKNOWN": "We cannot confirm whether the partner received it. It will not be sent again automatically and it can no longer be withdrawn.",
+      "DELIVERY_FAILED": "The request could not be delivered. You can withdraw it.",
+      "WITHDRAWN": "You withdrew this request before it was delivered."
+    },
+    "outcome": {
+      "PROVIDER_ACKNOWLEDGED": "Receipt confirmed",
+      "NOT_SENT_RETRYING": "Not sent, will retry",
+      "REJECTED_BY_PROVIDER": "Declined by the provider’s system",
+      "RETRIES_EXHAUSTED": "Retries exhausted",
+      "UNCERTAIN_NOT_RESENT": "Uncertain, not resent",
+      "WITHDRAWN_BEFORE_DELIVERY": "Withdrawn before delivery"
+    },
+    "actor": {
+      "EMPLOYEE": "You",
+      "SYSTEM": "DivalHR"
+    },
+    "field": {
+      "REFERRAL_REFERENCE": "Request reference",
+      "PRODUCT_REFERENCE": "Product reference",
+      "PRODUCT_NAME": "Product name",
+      "PARTNER_NAME": "Partner name",
+      "EMPLOYEE_LEGAL_NAME": "Your legal name",
+      "EMPLOYEE_EMAIL": "Your verified email address",
+      "EMPLOYEE_PHONE": "Your phone number",
+      "EMPLOYEE_COUNTRY": "Your country",
+      "PREFERRED_LANGUAGE": "Your preferred language",
+      "ORGANIZATION_LEGAL_NAME": "Your organization’s legal name",
+      "CONSENT_TIMESTAMP": "Time of your consent",
+      "CONSENT_VERSION": "Consent wording version"
+    },
+    "source": {
+      "DIVALHR_GENERATED": "created by DivalHR",
+      "CATALOGUE": "from the product catalogue",
+      "EMPLOYEE_RECORD": "from your employee record",
+      "VERIFIED_MEMBERSHIP": "from your verified account",
+      "EMPLOYEE_ENTERED": "entered by you",
+      "ORGANIZATION_RECORD": "from your organization’s record",
+      "CONSENT_EVIDENCE": "from your consent"
+    },
+    "purpose": {
+      "ROUTE_REFERRAL": "to route the request",
+      "SELECT_PRODUCT": "to identify the product",
+      "IDENTIFY_EMPLOYEE": "to identify you",
+      "CONTACT_EMPLOYEE": "to contact you",
+      "LOCALIZE_CONTACT": "to contact you in your language",
+      "IDENTIFY_ORGANIZATION": "to identify your organization",
+      "EVIDENCE_CONSENT": "to evidence your consent"
+    },
+    "blocker": {
+      "MEMBERSHIP_EMAIL_UNAVAILABLE": "We have no verified email address for your account, so a request cannot be prepared. Contact your organization’s administrator.",
+      "EMPLOYEE_COUNTRY_UNKNOWN": "Your organization’s country is not set, so a request cannot be prepared.",
+      "EMPLOYEE_LEGAL_NAME_UNAVAILABLE": "Your legal name is not on your employee record, so a request cannot be prepared. Contact your organization’s administrator.",
+      "PHONE_REQUIRED": "Enter a phone number or untick the option."
+    },
+    "neverShared": {
+      "SALARY": "Salary",
+      "COMPENSATION": "Compensation",
+      "PAYROLL": "Payroll",
+      "ATTENDANCE": "Attendance",
+      "LEAVE": "Leave",
+      "PERFORMANCE": "Performance",
+      "DOCUMENTS": "Documents",
+      "NATIONAL_IDENTIFIERS": "National identifiers",
+      "BANK_OR_MOBILE_MONEY_DETAILS": "Bank or mobile money details",
+      "DEDUCTIONS": "Deductions",
+      "CREDIT_HISTORY": "Credit history",
+      "MEDICAL_INFORMATION": "Medical information",
+      "DEPENDANTS": "Dependants",
+      "MANAGER": "Your manager",
+      "SITE": "Your site",
+      "COST_CENTRE": "Cost centre",
+      "EMPLOYMENT_HISTORY": "Employment history"
+    }
   }
 }

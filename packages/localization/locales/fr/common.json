@@ -70,7 +70,10 @@
     "partnerApplications": "Candidatures de partenaires",
     "partnerAccounts": "Partenaires",
     "catalogue": "Catalogue partenaires",
-    "myCatalogue": "Avantages et offres"
+    "myCatalogue": "Avantages et offres",
+    "myPartnerProducts": "Offres de partenaires",
+    "myPartnerRequests": "Mes demandes aux partenaires",
+    "partnerReferrals": "Recommandations partenaires"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -7691,5 +7694,201 @@
     "moreInformation": "Plus d’informations du prestataire",
     "opensNewTab": "(s’ouvre dans un nouvel onglet)",
     "more": "Charger plus"
+  },
+  "referrals": {
+    "employee": {
+      "unauthorized": "Les offres de partenaires sont réservées aux employés.",
+      "signInRequired": "Connectez-vous pour voir les offres de partenaires."
+    },
+    "platform": {
+      "unauthorized": "Les recommandations partenaires sont réservées aux administrateurs de la plateforme avec connexion multifacteur.",
+      "signInRequired": "Connectez-vous pour voir les recommandations partenaires.",
+      "title": "Recommandations partenaires",
+      "description": "État opérationnel des recommandations partenaires. Les coordonnées sont masquées et aucune valeur communiquée n’est affichée.",
+      "readOnly": "Lecture seule : rien ici ne permet d’approuver, de modifier, de renvoyer, de forcer ou de supprimer une recommandation.",
+      "category": "Catégorie",
+      "anyCategory": "Toutes les catégories",
+      "empty": "Aucune recommandation partenaire ne correspond.",
+      "organization": "Identifiant de l’organisation",
+      "contact": "Contact (masqué)",
+      "back": "Retour aux recommandations partenaires",
+      "attempts": "Tentatives de livraison",
+      "categories": "Catégories"
+    },
+    "notice": {
+      "referralOnly": "Une demande est une simple mise en relation.",
+      "noDecision": "DivalHR ne prend aucune décision : elle n’approuve, ne tarife, n’assure, ne prête et n’active rien. Toute décision revient au partenaire.",
+      "noMoney": "Aucun argent ne circule via cette demande : aucun prêt, avance, paiement, retenue ni assurance n’est créé.",
+      "employer": "Votre employeur ne peut voir ni cette demande ni le produit que vous avez choisi."
+    },
+    "products": {
+      "title": "Offres de partenaires",
+      "description": "Des produits de partenaires approuvés, disponibles pour vous. Vous choisissez ce que vous partagez, et rien n’est envoyé avant votre accord.",
+      "loading": "Chargement des offres de partenaires…",
+      "empty": "Aucune offre de partenaire n’est disponible pour votre organisation pour le moment.",
+      "open": "Consulter et demander une mise en relation"
+    },
+    "product": {
+      "back": "Retour aux offres de partenaires",
+      "unavailableTitle": "Offre indisponible",
+      "categories": "Catégorie du prestataire",
+      "categoryNote": "La catégorie décrit le type de prestataire. Ce n’est pas une recommandation et cela ne signifie pas que vous êtes éligible."
+    },
+    "form": {
+      "title": "Que souhaitez-vous partager ?",
+      "language": "Langue de contact",
+      "lang": {
+        "en": "Anglais",
+        "fr": "Français"
+      },
+      "includePhone": "Partager aussi mon numéro de téléphone",
+      "phone": "Numéro de téléphone",
+      "phoneHelp": "Format international, par exemple +243810000000.",
+      "phoneRequired": "Saisissez un numéro de téléphone ou décochez l’option.",
+      "phoneFormat": "Utilisez le format international, par exemple +243810000000.",
+      "includeOrganization": "Partager aussi la raison sociale de mon organisation",
+      "review": "Vérifier ce qui sera partagé",
+      "reviewing": "Préparation de la vérification…"
+    },
+    "preview": {
+      "title": "Vérifiez exactement ce qui sera partagé",
+      "intro": "Si vous êtes d’accord, DivalHR envoie exactement ces informations à {{partner}}, et rien d’autre.",
+      "assigned": "Attribué à l’envoi",
+      "neverSharedTitle": "Jamais partagé",
+      "expires": "Cette vérification est valable jusqu’à {{time}}."
+    },
+    "consent": {
+      "legend": "Votre consentement",
+      "text": "J’accepte que DivalHR envoie les informations listées ci-dessus, et uniquement celles-ci, à {{partner}} afin qu’il puisse me contacter au sujet de {{product}}. Je comprends que DivalHR ne prend aucune décision et qu’aucun argent ne circule.",
+      "version": "Version du texte de consentement {{version}}",
+      "required": "Cochez la case pour accepter avant d’envoyer.",
+      "send": "Envoyer la demande",
+      "sending": "Envoi en cours…"
+    },
+    "done": {
+      "title": "Demande envoyée",
+      "heading": "Votre demande a été envoyée",
+      "reference": "Votre référence",
+      "sentAt": "Envoyée le",
+      "nextStep": "Prochaine étape : le partenaire peut vous contacter avec les coordonnées que vous avez partagées. Suivez l’état dans Mes demandes aux partenaires.",
+      "view": "Voir cette demande",
+      "back": "Retour aux offres de partenaires"
+    },
+    "requests": {
+      "title": "Mes demandes aux partenaires",
+      "description": "Les mises en relation que vous avez demandé à DivalHR d’envoyer à des partenaires. Vous seul pouvez les voir.",
+      "state": "Statut",
+      "anyState": "Tous les statuts",
+      "loading": "Chargement…",
+      "empty": "Vous n’avez pas encore de demande aux partenaires.",
+      "browse": "Parcourir les offres de partenaires",
+      "open": "Voir la demande"
+    },
+    "detail": {
+      "back": "Retour à mes demandes aux partenaires",
+      "notFoundTitle": "Demande introuvable",
+      "reference": "Référence",
+      "state": "Statut",
+      "outcome": "Dernier résultat",
+      "sentAt": "Envoyée le",
+      "updatedAt": "Dernière mise à jour",
+      "shared": "Informations partagées",
+      "history": "Historique"
+    },
+    "withdraw": {
+      "title": "Retirer cette demande",
+      "help": "Vous pouvez la retirer tant que le partenaire ne l’a pas reçue, ou ne l’a peut-être pas reçue.",
+      "confirm": "Je confirme que je veux retirer cette demande.",
+      "required": "Cochez la case pour confirmer.",
+      "button": "Retirer la demande",
+      "working": "Retrait en cours…",
+      "done": "Cette demande a été retirée.",
+      "unavailable": "Cette demande ne peut plus être retirée car le partenaire l’a reçue ou l’a peut-être reçue."
+    },
+    "state": {
+      "SUBMITTED": "Envoyée",
+      "DELIVERY_PENDING": "En cours de livraison",
+      "DELIVERED": "Livrée",
+      "DELIVERY_UNKNOWN": "Livraison incertaine",
+      "DELIVERY_FAILED": "Non livrée",
+      "WITHDRAWN": "Retirée"
+    },
+    "stateHelp": {
+      "SUBMITTED": "Votre demande est enregistrée et en attente de livraison.",
+      "DELIVERY_PENDING": "DivalHR livre votre demande ou réessaiera sous peu.",
+      "DELIVERED": "Le système du partenaire a confirmé la réception de votre demande. Toute décision revient au partenaire.",
+      "DELIVERY_UNKNOWN": "Nous ne pouvons pas confirmer que le partenaire l’a reçue. Elle ne sera pas renvoyée automatiquement et ne peut plus être retirée.",
+      "DELIVERY_FAILED": "La demande n’a pas pu être livrée. Vous pouvez la retirer.",
+      "WITHDRAWN": "Vous avez retiré cette demande avant sa livraison."
+    },
+    "outcome": {
+      "PROVIDER_ACKNOWLEDGED": "Réception confirmée",
+      "NOT_SENT_RETRYING": "Non envoyée, nouvel essai prévu",
+      "REJECTED_BY_PROVIDER": "Refusée par le système du prestataire",
+      "RETRIES_EXHAUSTED": "Essais épuisés",
+      "UNCERTAIN_NOT_RESENT": "Incertaine, non renvoyée",
+      "WITHDRAWN_BEFORE_DELIVERY": "Retirée avant la livraison"
+    },
+    "actor": {
+      "EMPLOYEE": "Vous",
+      "SYSTEM": "DivalHR"
+    },
+    "field": {
+      "REFERRAL_REFERENCE": "Référence de la demande",
+      "PRODUCT_REFERENCE": "Référence du produit",
+      "PRODUCT_NAME": "Nom du produit",
+      "PARTNER_NAME": "Nom du partenaire",
+      "EMPLOYEE_LEGAL_NAME": "Votre nom légal",
+      "EMPLOYEE_EMAIL": "Votre adresse e-mail vérifiée",
+      "EMPLOYEE_PHONE": "Votre numéro de téléphone",
+      "EMPLOYEE_COUNTRY": "Votre pays",
+      "PREFERRED_LANGUAGE": "Votre langue préférée",
+      "ORGANIZATION_LEGAL_NAME": "La raison sociale de votre organisation",
+      "CONSENT_TIMESTAMP": "Heure de votre consentement",
+      "CONSENT_VERSION": "Version du texte de consentement"
+    },
+    "source": {
+      "DIVALHR_GENERATED": "créé par DivalHR",
+      "CATALOGUE": "du catalogue de produits",
+      "EMPLOYEE_RECORD": "de votre dossier d’employé",
+      "VERIFIED_MEMBERSHIP": "de votre compte vérifié",
+      "EMPLOYEE_ENTERED": "saisi par vous",
+      "ORGANIZATION_RECORD": "du dossier de votre organisation",
+      "CONSENT_EVIDENCE": "de votre consentement"
+    },
+    "purpose": {
+      "ROUTE_REFERRAL": "pour acheminer la demande",
+      "SELECT_PRODUCT": "pour identifier le produit",
+      "IDENTIFY_EMPLOYEE": "pour vous identifier",
+      "CONTACT_EMPLOYEE": "pour vous contacter",
+      "LOCALIZE_CONTACT": "pour vous contacter dans votre langue",
+      "IDENTIFY_ORGANIZATION": "pour identifier votre organisation",
+      "EVIDENCE_CONSENT": "pour attester votre consentement"
+    },
+    "blocker": {
+      "MEMBERSHIP_EMAIL_UNAVAILABLE": "Nous n’avons pas d’adresse e-mail vérifiée pour votre compte : une demande ne peut pas être préparée. Contactez l’administrateur de votre organisation.",
+      "EMPLOYEE_COUNTRY_UNKNOWN": "Le pays de votre organisation n’est pas renseigné : une demande ne peut pas être préparée.",
+      "EMPLOYEE_LEGAL_NAME_UNAVAILABLE": "Votre nom légal ne figure pas dans votre dossier d’employé : une demande ne peut pas être préparée. Contactez l’administrateur de votre organisation.",
+      "PHONE_REQUIRED": "Saisissez un numéro de téléphone ou décochez l’option."
+    },
+    "neverShared": {
+      "SALARY": "Salaire",
+      "COMPENSATION": "Rémunération",
+      "PAYROLL": "Paie",
+      "ATTENDANCE": "Présence",
+      "LEAVE": "Congés",
+      "PERFORMANCE": "Performance",
+      "DOCUMENTS": "Documents",
+      "NATIONAL_IDENTIFIERS": "Identifiants nationaux",
+      "BANK_OR_MOBILE_MONEY_DETAILS": "Coordonnées bancaires ou de mobile money",
+      "DEDUCTIONS": "Retenues",
+      "CREDIT_HISTORY": "Historique de crédit",
+      "MEDICAL_INFORMATION": "Informations médicales",
+      "DEPENDANTS": "Personnes à charge",
+      "MANAGER": "Votre responsable",
+      "SITE": "Votre site",
+      "COST_CENTRE": "Centre de coûts",
+      "EMPLOYMENT_HISTORY": "Historique d’emploi"
+    }
   }
 }
