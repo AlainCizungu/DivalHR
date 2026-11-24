@@ -207,6 +207,14 @@ divalhr:
       partner-referral-commit: ${DIVALHR_PARTNER_REFERRAL_COMMIT_REQUESTS_PER_MINUTE:5}
       partner-referral-withdraw: ${DIVALHR_PARTNER_REFERRAL_WITHDRAW_REQUESTS_PER_MINUTE:10}
       partner-referral-platform-read: ${DIVALHR_PARTNER_REFERRAL_PLATFORM_READ_REQUESTS_PER_MINUTE:60}
+      # LAUNCH-001: privacy governance (ADR 0046). Per subject per minute: employee reads 60, employee
+      # commands 5, platform reads 60, platform mutations 20. The daily and hourly quotas (employee requests 5
+      # per day, package generation 3 per request per day, platform mutations 20 per hour, purge previews 10 and
+      # commits 5 per hour) are enforced in the services, never weakened for hr-dev.
+      privacy-employee-read: ${DIVALHR_PRIVACY_EMPLOYEE_READ_REQUESTS_PER_MINUTE:60}
+      privacy-employee-write: ${DIVALHR_PRIVACY_EMPLOYEE_WRITE_REQUESTS_PER_MINUTE:5}
+      privacy-platform-read: ${DIVALHR_PRIVACY_PLATFORM_READ_REQUESTS_PER_MINUTE:60}
+      privacy-platform-write: ${DIVALHR_PRIVACY_PLATFORM_WRITE_REQUESTS_PER_MINUTE:20}
       # MVP-094C: payroll approval and payslips (ADR 0035, D94C-16). Per subject per minute: reads
       # 60, previews (approval and void) 5, commits (approval and void) 2, PDF downloads 30.
       payroll-package-read: ${DIVALHR_PAYROLL_PACKAGE_READ_REQUESTS_PER_MINUTE:60}

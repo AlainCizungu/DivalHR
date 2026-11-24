@@ -22,6 +22,8 @@ tags:
     description: Signed outbound webhooks (MVP-110) and WhatsApp Business notifications (MVP-111)
   - name: partners
     description: Partner applications and controlled onboarding (MVP-120D)
+  - name: privacy
+    description: Privacy governance, consent retention and employee data rights for partner-referral data (LAUNCH-001)
 servers:
   - url: https://api.divalhr.com/api/v1
 security:
@@ -16504,6 +16506,960 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /me/privacy/requests:
+    post:
+      operationId: createMyPrivacyRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Submit a privacy request about my partner-referral data
+      description: >-
+        LAUNCH-001 (Issue #226). The employee asks about only their own partner-referral data (ACCESS, ERASURE,
+        RESTRICTION or OBJECTION), optionally for one of their own referrals. The request is a request, not a promise:
+        submission does not mean it will be granted. A second open request of the same type and scope is 409
+        PRIVACY_REQUEST_DUPLICATE_OPEN. Another employee's or an unknown referral is 404 PRIVACY_REFERRAL_NOT_FOUND.
+        Requires an Idempotency-Key: the same key and request replay the stored response; the same key with a
+        different request is 409 PRIVACY_IDEMPOTENCY_REUSED. At most 5 per employee per day (PRIVACY_RATE_LIMITED,
+        Retry-After). The employer, managers and other employees cannot see it, and no notification is sent. Only the
+        status is shown in the product. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePrivacyRequest"
+      responses:
+        "201":
+          description: Submitted, or the original submission replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: listMyPrivacyRequests
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my privacy requests
+      description: >-
+        LAUNCH-001 (Issue #226). Only the caller's own requests, newest first, keyset-paginated (default 25, maximum
+        50; the cursor is opaque, signed and bound to the operation, tenant, caller and filter, and carries no
+        personal value). At most 60 reads per subject per minute (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control
+        private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of the caller's requests
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyRequestPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/privacy/requests/{requestId}:
+    get:
+      operationId: getMyPrivacyRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: One of my privacy requests, with its history
+      description: >-
+        LAUNCH-001 (Issue #226). The request, its status and its append-only history. Another employee's, a
+        foreign-tenant, a malformed or an unknown request gives the same 404 PRIVACY_REQUEST_NOT_FOUND. Operational
+        notes are never returned; the employee-facing message is returned only when the platform marked it for the
+        employee. Same read bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/PrivacyRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The request
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyRequestView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/privacy/requests/{requestId}/cancel:
+    post:
+      operationId: cancelMyPrivacyRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Cancel my privacy request
+      description: >-
+        LAUNCH-001 (Issue #226). The employee cancels their own request while it is SUBMITTED, UNDER_REVIEW or
+        MORE_INFORMATION_REQUIRED (CANCELLED_BY_EMPLOYEE). A decided or completed request is 409
+        PRIVACY_REQUEST_TRANSITION_INVALID; a stale version is 409 PRIVACY_REQUEST_VERSION_STALE. Requires an
+        Idempotency-Key. Counts against the 60 per minute employee read bucket, not the 5 per day creation quota.
+        Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/PrivacyRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelPrivacyRequest"
+      responses:
+        "200":
+          description: Cancelled, or the original cancellation replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyRequestView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/privacy/requests/{requestId}/export:
+    get:
+      operationId: downloadMyPrivacyAccessPackage
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Download my access package
+      description: >-
+        LAUNCH-001 (Issue #226). For an ACCESS request that the platform approved (APPROVED, PARTIALLY_APPROVED or
+        COMPLETED), returns a deterministic JSON package of only the caller's own partner-referral data: referral
+        reference and lifecycle, partner and product names, the disclosed field names and the employee's own disclosed
+        values (or the statement that they were minimized or erased), consent wording version and time, delivery
+        truth, the applicable policy status, whether a legal hold is active, and the caller's data-rights request
+        history. It contains no internal audit metadata, no other employee's data, no provider secret and no platform
+        note. The package is stored encrypted, valid for 7 days, bound by a manifest SHA-256 (also the
+        X-Content-SHA256 header), and sent as an attachment with a fixed safe file name. No email attachment is ever
+        sent. A request that is not an approved ACCESS request is 409 PRIVACY_EXPORT_NOT_AVAILABLE. At most 3
+        generations per request per day (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/PrivacyRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The access package
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+            Content-Disposition:
+              description: Attachment with the fixed file name divalhr-privacy-access-package.json.
+              schema:
+                type: string
+            X-Content-SHA256:
+              description: SHA-256 of the response body, equal to manifest.sha256 of the package.
+              schema:
+                type: string
+                pattern: "^[0-9a-f]{64}$"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyAccessPackage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/policies:
+    post:
+      operationId: createPlatformPrivacyPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Create a privacy policy version (DRAFT)
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Creates a DRAFT policy version for one
+        country with one rule for each of the four data classes (action HOLD, MINIMIZE or ERASE; a duration in days
+        after a defined lifecycle trigger for MINIMIZE and ERASE; none for HOLD), a purpose, an effective period, a
+        source reference, a review date and the employee-facing wording version. DivalHR supplies no duration: every
+        value is entered by the operator and remains DRAFT until the checklist is complete. Contradictory, missing or
+        unsupported rules are 422 PRIVACY_POLICY_INVALID. Requires an Idempotency-Key. At most 20 platform mutations
+        per subject per hour (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePrivacyPolicy"
+      responses:
+        "201":
+          description: The DRAFT policy version, or the original one replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: listPlatformPrivacyPolicies
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: List privacy policy versions
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Newest first, keyset-paginated (default 25,
+        maximum 50; opaque signed cursor). At most 60 reads per subject per minute. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of policy versions
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/policies/{policyId}:
+    get:
+      operationId: getPlatformPrivacyPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: One privacy policy version
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. The version with its rules and checklist. An
+        unknown or malformed reference is 404 PRIVACY_POLICY_NOT_FOUND. Same read bucket. Cache-Control private,
+        no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/PrivacyPolicyId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The policy version
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/policies/{policyId}/checklist:
+    put:
+      operationId: putPlatformPrivacyPolicyChecklist
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Record the governance checklist of a DRAFT policy
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Replaces the checklist of a DRAFT version
+        (eight items and the review reference) with an expected version. The checklist freezes when the version is
+        APPROVED. A version that is not DRAFT is 409 PRIVACY_POLICY_IMMUTABLE; a stale version is 409
+        PRIVACY_POLICY_VERSION_STALE. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private,
+        no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/PrivacyPolicyId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutPrivacyPolicyChecklist"
+      responses:
+        "200":
+          description: The updated version
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/policies/{policyId}/transition:
+    post:
+      operationId: transitionPlatformPrivacyPolicy
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Move a privacy policy version along its lifecycle
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. DRAFT to APPROVED needs the complete
+        checklist (422 PRIVACY_POLICY_CHECKLIST_INCOMPLETE otherwise); APPROVED to SCHEDULED needs a future effective
+        date; APPROVED or SCHEDULED to ACTIVE needs the effective date reached and no overlapping ACTIVE version for
+        the same country (409 PRIVACY_POLICY_OVERLAP); ACTIVE to RETIRED. 'Approved' means governance approval inside
+        DivalHR, not a claim that a law firm, regulator or government approved DivalHR. Only an ACTIVE version stamps
+        new decisions. No clock activates a version: activation is always this explicit call. Any other move is 409
+        PRIVACY_POLICY_TRANSITION_INVALID. Transitions and history are append-only. Requires an Idempotency-Key.
+        Platform mutation bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/PrivacyPolicyId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransitionPrivacyPolicy"
+      responses:
+        "200":
+          description: The version after the transition
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/policies/{policyId}/history:
+    get:
+      operationId: listPlatformPrivacyPolicyHistory
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Append-only history of a privacy policy version
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. The transitions in order (sequence, from and
+        to state, instant), with no actor identity and no free text. Same read bucket. Cache-Control private,
+        no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/PrivacyPolicyId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The history
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyHistory"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/requests:
+    get:
+      operationId: listPlatformPrivacyRequests
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Privacy request queue
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only; tenant administrators, managers and employees
+        have no access and no navigation. Operational status only: reference, type, state, organization identifier,
+        linked referral reference, version and instants, with the employee's contact masked and no disclosed value.
+        Filters: state and type. Keyset page (default 25, maximum 50; opaque signed cursor bound to the operation and
+        filters). Same read bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/PrivacyRequestStateFilter"
+        - $ref: "#/components/parameters/PrivacyRequestTypeFilter"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of requests
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformPrivacyRequestPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/requests/{requestId}:
+    get:
+      operationId: getPlatformPrivacyRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: One privacy request, operational view
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. The masked queue shape plus the request
+        history and, for a linked referral, its active holds. Personal values stay masked; an approved ACCESS
+        operation never reveals them here. Same read bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/PrivacyRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The request
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformPrivacyRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/requests/{requestId}/transition:
+    post:
+      operationId: transitionPlatformPrivacyRequest
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Move a privacy request along its lifecycle
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. SUBMITTED to UNDER_REVIEW; UNDER_REVIEW to
+        MORE_INFORMATION_REQUIRED, APPROVED, PARTIALLY_APPROVED or REFUSED; MORE_INFORMATION_REQUIRED to UNDER_REVIEW;
+        APPROVED or PARTIALLY_APPROVED to COMPLETED. A refusal or partial approval needs a bounded reason code (422
+        PRIVACY_REQUEST_REASON_REQUIRED). The optional operational note is stored encrypted and is never returned to
+        the employee; the optional employee message is shown to the employee only because it is explicitly marked as
+        such. Any other move is 409 PRIVACY_REQUEST_TRANSITION_INVALID; a stale version is 409
+        PRIVACY_REQUEST_VERSION_STALE. A decision never starts a purge: a purge is its own previewed, confirmed
+        operation. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/PrivacyRequestId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransitionPrivacyRequest"
+      responses:
+        "200":
+          description: The request after the transition
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformPrivacyRequest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/referrals/{referralId}/holds:
+    post:
+      operationId: placePlatformPrivacyHold
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Place a legal or privacy hold on a referral
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. A bounded reason code from the closed
+        catalogue, a review date, an optional external case reference and an optional operational note stored
+        encrypted. While any hold is active, minimization and erasure of that referral are refused. Tenant
+        administrators cannot create, view or release holds. An unknown referral is 404 PRIVACY_REFERRAL_NOT_FOUND.
+        Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/PartnerReferralId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlacePrivacyHold"
+      responses:
+        "201":
+          description: The hold, or the original one replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyHoldView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/referrals/{referralId}/holds/{holdId}/release:
+    post:
+      operationId: releasePlatformPrivacyHold
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Release a hold
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Releases one hold; the hold and the release
+        stay in the append-only history. An already released hold is 409 PRIVACY_HOLD_ALREADY_RELEASED; an unknown one
+        is 404 PRIVACY_HOLD_NOT_FOUND. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private,
+        no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/PartnerReferralId"
+        - $ref: "#/components/parameters/PrivacyHoldId"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleasePrivacyHold"
+      responses:
+        "200":
+          description: The released hold
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyHoldView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/policy-application/preview:
+    post:
+      operationId: previewPlatformPrivacyPolicyApplication
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview assigning an ACTIVE policy to POLICY_PENDING referrals
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Counts, per country, the POLICY_PENDING
+        referrals that an ACTIVE policy now covers, with a digest and a 15-minute expiry. It changes nothing. A
+        referral that already carries a policy stamp is never included: a stamped decision is never shortened or
+        rewritten here. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewPrivacyPolicyApplication"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyApplicationPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/policy-application:
+    post:
+      operationId: commitPlatformPrivacyPolicyApplication
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Assign an ACTIVE policy to POLICY_PENDING referrals
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Revalidates the preview under locks (409
+        PRIVACY_PREVIEW_EXPIRED, PRIVACY_PREVIEW_STALE or PRIVACY_PREVIEW_ALREADY_USED), stamps each still-pending
+        referral with the active version and its rules, and records value-free evidence of the counts and digests.
+        Idempotent: the same key replays the stored result and a second commit of the same preview is refused.
+        Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPrivacyOperation"
+      responses:
+        "200":
+          description: The application result, or the original one replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPolicyApplicationResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/purge/preview:
+    post:
+      operationId: previewPlatformPrivacyPurge
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Preview a minimization or erasure
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. For up to 25 referrals and one action
+        (MINIMIZE or ERASE), reports for each data class whether it is eligible and, when it is not, one bounded
+        refusal: POLICY_PENDING, HOLD_ACTIVE, NOT_CLOSED, NOT_YET_ELIGIBLE, ACTION_NOT_PERMITTED or ALREADY_PURGED.
+        Nothing is changed, no value is returned, and no clock makes anything eligible by itself. A digest and a
+        15-minute expiry bind the commit. At most 10 per platform administrator per hour (PRIVACY_RATE_LIMITED,
+        Retry-After). Requires an Idempotency-Key. Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewPrivacyPurge"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPurgePreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/privacy/purge:
+    post:
+      operationId: commitPlatformPrivacyPurge
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Confirm a minimization or erasure
+      description: >-
+        LAUNCH-001 (Issue #226). Exact-MFA platform administrators only, with an Idempotency-Key. Revalidates the
+        preview and every eligibility condition under locks (409 PRIVACY_PREVIEW_EXPIRED, PRIVACY_PREVIEW_STALE or
+        PRIVACY_PREVIEW_ALREADY_USED; 422 PRIVACY_PURGE_NOTHING_ELIGIBLE), then performs only what the preview showed:
+        MINIMIZE destroys the disclosure ciphertext and contact values and keeps only non-reversible evidence; ERASE
+        deletes only the rows the stamped policy marks erasable. Immutable, value-free purge evidence is recorded. The
+        same key replays the stored result and performs no second deletion. No background process ever purges. At most
+        5 per platform administrator per hour (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+      tags: [privacy]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitPrivacyOperation"
+      responses:
+        "200":
+          description: The purge result, or the original one replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivacyPurgeResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -17736,6 +18692,48 @@ components:
       description: MVP-120F. Only referrals whose partner offers this category. Part of the cursor binding.
       schema:
         $ref: "#/components/schemas/PartnerCategory"
+    PrivacyRequestId:
+      name: requestId
+      in: path
+      required: true
+      description: >-
+        LAUNCH-001. The opaque privacy request reference (PQ- and sixteen characters). Malformed, unknown, foreign-tenant and
+        other-employee references give the same 404 PRIVACY_REQUEST_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 32
+    PrivacyPolicyId:
+      name: policyId
+      in: path
+      required: true
+      description: >-
+        LAUNCH-001. The opaque privacy policy version reference (PL- and sixteen characters). Malformed and unknown references
+        give the same 404 PRIVACY_POLICY_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 32
+    PrivacyHoldId:
+      name: holdId
+      in: path
+      required: true
+      description: >-
+        LAUNCH-001. The opaque hold reference (PH- and sixteen characters). Malformed, unknown and other-referral references
+        give the same 404 PRIVACY_HOLD_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 32
+    PrivacyRequestStateFilter:
+      name: state
+      in: query
+      description: LAUNCH-001. Only requests in this state. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PrivacyRequestState"
+    PrivacyRequestTypeFilter:
+      name: type
+      in: query
+      description: LAUNCH-001. Only requests of this type. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PrivacyRequestType"
   schemas:
     AccessReviewLookup:
       type: object
@@ -24677,6 +25675,29 @@ components:
         - PARTNER_REFERRAL_VERSION_STALE
         - PARTNER_REFERRAL_IDEMPOTENCY_REUSED
         - PARTNER_REFERRAL_RATE_LIMITED
+        - PRIVACY_REQUEST_NOT_FOUND
+        - PRIVACY_REFERRAL_NOT_FOUND
+        - PRIVACY_REQUEST_DUPLICATE_OPEN
+        - PRIVACY_REQUEST_TRANSITION_INVALID
+        - PRIVACY_REQUEST_REASON_REQUIRED
+        - PRIVACY_REQUEST_VERSION_STALE
+        - PRIVACY_EXPORT_NOT_AVAILABLE
+        - PRIVACY_POLICY_NOT_FOUND
+        - PRIVACY_POLICY_INVALID
+        - PRIVACY_POLICY_CHECKLIST_INCOMPLETE
+        - PRIVACY_POLICY_TRANSITION_INVALID
+        - PRIVACY_POLICY_IMMUTABLE
+        - PRIVACY_POLICY_OVERLAP
+        - PRIVACY_POLICY_VERSION_STALE
+        - PRIVACY_HOLD_NOT_FOUND
+        - PRIVACY_HOLD_ALREADY_RELEASED
+        - PRIVACY_PREVIEW_NOT_FOUND
+        - PRIVACY_PREVIEW_EXPIRED
+        - PRIVACY_PREVIEW_STALE
+        - PRIVACY_PREVIEW_ALREADY_USED
+        - PRIVACY_PURGE_NOTHING_ELIGIBLE
+        - PRIVACY_IDEMPOTENCY_REUSED
+        - PRIVACY_RATE_LIMITED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -35370,3 +36391,781 @@ components:
           maxItems: 64
           items:
             $ref: "#/components/schemas/PartnerReferralEvent"
+    PrivacyRequestType:
+      type: string
+      description: >-
+        LAUNCH-001 (L7). The four requests an employee may make about only their own partner-referral data. A request is not a
+        promise that it will be granted.
+      enum: [ACCESS, ERASURE, RESTRICTION, OBJECTION]
+    PrivacyRequestState:
+      type: string
+      description: >-
+        LAUNCH-001 (L7). The closed request lifecycle. APPROVED, PARTIALLY_APPROVED and REFUSED are decisions taken by platform
+        privacy operations; none of them deletes anything by itself.
+      enum: [SUBMITTED, UNDER_REVIEW, MORE_INFORMATION_REQUIRED, APPROVED, PARTIALLY_APPROVED, REFUSED, COMPLETED, CANCELLED_BY_EMPLOYEE]
+    PrivacyDecisionReason:
+      type: string
+      description: LAUNCH-001 (L7). The closed catalogue of reasons for a refusal or a partial approval.
+      enum: [IDENTITY_NOT_VERIFIED, LEGAL_HOLD_ACTIVE, RETENTION_REQUIRED, POLICY_PENDING, REQUEST_OUT_OF_SCOPE, NO_MATCHING_DATA]
+    PrivacyDataClass:
+      type: string
+      description: LAUNCH-001 (L3). The closed data classes of this increment; all belong to MVP-120F partner-referral data.
+      enum: [PARTNER_REFERRAL_DISCLOSURE, PARTNER_REFERRAL_CONSENT, PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS, PARTNER_REFERRAL_LIFECYCLE_EVIDENCE]
+    PrivacyAction:
+      type: string
+      description: >-
+        LAUNCH-001 (L3). The closed retention actions. HOLD keeps the data until a later policy decides. LIFECYCLE_EVIDENCE
+        supports HOLD and MINIMIZE only: the referral header and its lifecycle history are never deleted in this increment.
+      enum: [HOLD, MINIMIZE, ERASE]
+    PrivacyLifecycleTrigger:
+      type: string
+      description: >-
+        LAUNCH-001 (L3). The lifecycle event a duration counts from. REFERRAL_CLOSED is the instant the referral reached
+        DELIVERED, DELIVERY_UNKNOWN or WITHDRAWN.
+      enum: [REFERRAL_CREATED, REFERRAL_CLOSED]
+    PrivacyPurpose:
+      type: string
+      description: LAUNCH-001 (L3). The closed purposes a rule retains data for.
+      enum: [CONSENTED_INTRODUCTION, CONSENT_EVIDENCE, DELIVERY_TRUTH, LIFECYCLE_EVIDENCE]
+    PrivacyPolicyState:
+      type: string
+      description: >-
+        LAUNCH-001 (L4). The closed governance lifecycle. APPROVED means governance approval inside DivalHR, not a claim that a
+        law firm, regulator or government approved DivalHR. Only ACTIVE stamps new decisions.
+      enum: [DRAFT, APPROVED, SCHEDULED, ACTIVE, RETIRED]
+    PrivacyHoldReason:
+      type: string
+      description: LAUNCH-001 (L6). The closed catalogue of hold reasons.
+      enum: [LEGAL_PROCEEDING, REGULATORY_REQUEST, DISPUTE, INVESTIGATION, OTHER_DOCUMENTED]
+    PrivacyPurgeRefusal:
+      type: string
+      description: LAUNCH-001 (L9). Why a data class is not eligible in a purge preview.
+      enum: [POLICY_PENDING, HOLD_ACTIVE, NOT_CLOSED, NOT_YET_ELIGIBLE, ACTION_NOT_PERMITTED, ALREADY_PURGED]
+    CreatePrivacyRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L7). The request type and, optionally, one of the caller's own referrals. No free text is accepted.
+      required: [requestType, referralId]
+      properties:
+        requestType:
+          $ref: "#/components/schemas/PrivacyRequestType"
+        referralId:
+          type: [string, "null"]
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+    CancelPrivacyRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+    PrivacyRequestEvent:
+      type: object
+      additionalProperties: false
+      description: LAUNCH-001 (L7). One append-only history entry. No actor identity and no note.
+      required: [sequence, fromState, toState, reasonCode, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 64
+        fromState:
+          oneOf:
+            - $ref: "#/components/schemas/PrivacyRequestState"
+            - type: "null"
+        toState:
+          $ref: "#/components/schemas/PrivacyRequestState"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PrivacyDecisionReason"
+            - type: "null"
+        occurredAt:
+          type: string
+          format: date-time
+    PrivacyRequestView:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L7, L10). The employee's own request. Operational notes are never present; employeeMessage is present only
+        when the platform marked it as employee-facing.
+      required: [id, requestType, referralId, state, version, decisionReason, employeeMessage, submittedAt, updatedAt, exportAvailable, history]
+      properties:
+        id:
+          type: string
+          pattern: "^PQ-[0-9A-HJKMNP-TV-Z]{16}$"
+        requestType:
+          $ref: "#/components/schemas/PrivacyRequestType"
+        referralId:
+          type: [string, "null"]
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        state:
+          $ref: "#/components/schemas/PrivacyRequestState"
+        version:
+          type: integer
+          minimum: 1
+        decisionReason:
+          oneOf:
+            - $ref: "#/components/schemas/PrivacyDecisionReason"
+            - type: "null"
+        employeeMessage:
+          type: [string, "null"]
+          maxLength: 500
+        submittedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        exportAvailable:
+          type: boolean
+        history:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PrivacyRequestEvent"
+    PrivacyRequestPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PrivacyRequestView"
+        nextCursor:
+          type: [string, "null"]
+    PrivacyAccessPackageReferral:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L8). One of the employee's own referrals. disclosedValues holds the employee's own values keyed by the
+        allow-listed field name, or is null when the disclosure was minimized or erased.
+      required: [referralId, state, createdAt, partnerName, productName, fieldNames, disclosedValues, disclosureStatus, consent, delivery, policy, legalHoldActive, events]
+      properties:
+        referralId:
+          type: string
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        state:
+          $ref: "#/components/schemas/PartnerReferralState"
+        createdAt:
+          type: string
+          format: date-time
+        partnerName:
+          type: string
+        productName:
+          type: string
+        fieldNames:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/PartnerReferralDisclosureField"
+        disclosedValues:
+          type: [object, "null"]
+          additionalProperties:
+            type: string
+        disclosureStatus:
+          type: string
+          enum: [AVAILABLE, MINIMIZED, ERASED]
+        consent:
+          type: [object, "null"]
+          additionalProperties: false
+          required: [wordingVersion, language, consentedAt]
+          properties:
+            wordingVersion:
+              type: string
+            language:
+              $ref: "#/components/schemas/PartnerReferralLanguage"
+            consentedAt:
+              type: string
+              format: date-time
+        delivery:
+          type: object
+          additionalProperties: false
+          required: [attemptCount, receiptConfirmed]
+          properties:
+            attemptCount:
+              type: integer
+              minimum: 0
+            receiptConfirmed:
+              type: boolean
+        policy:
+          type: object
+          additionalProperties: false
+          required: [status, countryCode, wordingVersion]
+          properties:
+            status:
+              type: string
+              enum: [POLICY_PENDING, STAMPED]
+            countryCode:
+              type: [string, "null"]
+            wordingVersion:
+              type: [string, "null"]
+        legalHoldActive:
+          type: boolean
+        events:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PartnerReferralEvent"
+    PrivacyAccessPackage:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L8). The deterministic employee download. The same stored data always yields the same bytes: there is no
+        generation time inside the package. manifest.sha256 is the SHA-256 of the canonical content (the referrals and the
+        requests, with the manifest sha256 field empty) and equals the X-Content-SHA256 header of the download.
+      required: [manifest, referrals, requests]
+      properties:
+        manifest:
+          type: object
+          additionalProperties: false
+          required: [format, requestId, referralCount, sha256]
+          properties:
+            format:
+              type: string
+              enum: [divalhr-privacy-access-package-1]
+            requestId:
+              type: string
+              pattern: "^PQ-[0-9A-HJKMNP-TV-Z]{16}$"
+            referralCount:
+              type: integer
+              minimum: 0
+            sha256:
+              type: string
+              pattern: "^[0-9a-f]{64}$"
+        referrals:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PrivacyAccessPackageReferral"
+        requests:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, requestType, state, submittedAt]
+            properties:
+              id:
+                type: string
+                pattern: "^PQ-[0-9A-HJKMNP-TV-Z]{16}$"
+              requestType:
+                $ref: "#/components/schemas/PrivacyRequestType"
+              state:
+                $ref: "#/components/schemas/PrivacyRequestState"
+              submittedAt:
+                type: string
+                format: date-time
+    PrivacyPolicyRule:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L3). One rule for one data class. durationDays is required for MINIMIZE and ERASE and absent for HOLD. The
+        duration is an operator-entered value; DivalHR supplies none.
+      required: [dataClass, purpose, action, trigger, durationDays]
+      properties:
+        dataClass:
+          $ref: "#/components/schemas/PrivacyDataClass"
+        purpose:
+          $ref: "#/components/schemas/PrivacyPurpose"
+        action:
+          $ref: "#/components/schemas/PrivacyAction"
+        trigger:
+          $ref: "#/components/schemas/PrivacyLifecycleTrigger"
+        durationDays:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 36500
+    CreatePrivacyPolicy:
+      type: object
+      additionalProperties: false
+      required: [countryCode, wordingVersion, sourceReference, reviewDate, effectiveFrom, effectiveTo, rules]
+      properties:
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        wordingVersion:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,40}$"
+        sourceReference:
+          type: string
+          minLength: 3
+          maxLength: 300
+        reviewDate:
+          type: string
+          format: date
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        rules:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/PrivacyPolicyRule"
+    PrivacyPolicyChecklist:
+      type: object
+      additionalProperties: false
+      description: LAUNCH-001 (L4). The eight items that must all be true, with the review reference, before a version is APPROVED.
+      required: [jurisdictionIdentified, sourceReferenceRecorded, counselReviewRecorded, dataClassesCovered, lifecycleTriggerDefined, durationsOrHoldSet, employeeWordingVersionRecorded, rollbackReviewComplete, reviewReference]
+      properties:
+        jurisdictionIdentified:
+          type: boolean
+        sourceReferenceRecorded:
+          type: boolean
+        counselReviewRecorded:
+          type: boolean
+        dataClassesCovered:
+          type: boolean
+        lifecycleTriggerDefined:
+          type: boolean
+        durationsOrHoldSet:
+          type: boolean
+        employeeWordingVersionRecorded:
+          type: boolean
+        rollbackReviewComplete:
+          type: boolean
+        reviewReference:
+          type: [string, "null"]
+          maxLength: 120
+    PutPrivacyPolicyChecklist:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, checklist]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        checklist:
+          $ref: "#/components/schemas/PrivacyPolicyChecklist"
+    TransitionPrivacyPolicy:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, toState]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        toState:
+          $ref: "#/components/schemas/PrivacyPolicyState"
+    PrivacyPolicyView:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L3, L4). A policy version. An ACTIVE or retired version is never edited. This is a governance record, not a
+        claim of legal compliance or certification.
+      required: [id, countryCode, state, version, wordingVersion, sourceReference, reviewDate, effectiveFrom, effectiveTo, rules, checklist, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          pattern: "^PL-[0-9A-HJKMNP-TV-Z]{16}$"
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        state:
+          $ref: "#/components/schemas/PrivacyPolicyState"
+        version:
+          type: integer
+          minimum: 1
+        wordingVersion:
+          type: string
+        sourceReference:
+          type: string
+        reviewDate:
+          type: string
+          format: date
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: [string, "null"]
+          format: date
+        rules:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/PrivacyPolicyRule"
+        checklist:
+          $ref: "#/components/schemas/PrivacyPolicyChecklist"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PrivacyPolicyPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PrivacyPolicyView"
+        nextCursor:
+          type: [string, "null"]
+    PrivacyPolicyEvent:
+      type: object
+      additionalProperties: false
+      required: [sequence, fromState, toState, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 64
+        fromState:
+          oneOf:
+            - $ref: "#/components/schemas/PrivacyPolicyState"
+            - type: "null"
+        toState:
+          $ref: "#/components/schemas/PrivacyPolicyState"
+        occurredAt:
+          type: string
+          format: date-time
+    PrivacyPolicyHistory:
+      type: object
+      additionalProperties: false
+      required: [policyId, events]
+      properties:
+        policyId:
+          type: string
+          pattern: "^PL-[0-9A-HJKMNP-TV-Z]{16}$"
+        events:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PrivacyPolicyEvent"
+    PrivacyHoldView:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L6). A hold. The note is stored encrypted and never returned; noteRecorded says only whether one exists.
+      required: [id, referralId, reasonCode, reviewDate, externalReference, noteRecorded, state, placedAt, releasedAt]
+      properties:
+        id:
+          type: string
+          pattern: "^PH-[0-9A-HJKMNP-TV-Z]{16}$"
+        referralId:
+          type: string
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        reasonCode:
+          $ref: "#/components/schemas/PrivacyHoldReason"
+        reviewDate:
+          type: string
+          format: date
+        externalReference:
+          type: [string, "null"]
+          maxLength: 80
+        noteRecorded:
+          type: boolean
+        state:
+          type: string
+          enum: [ACTIVE, RELEASED]
+        placedAt:
+          type: string
+          format: date-time
+        releasedAt:
+          type: [string, "null"]
+          format: date-time
+    PlacePrivacyHold:
+      type: object
+      additionalProperties: false
+      required: [reasonCode, reviewDate, externalReference, internalNote]
+      properties:
+        reasonCode:
+          $ref: "#/components/schemas/PrivacyHoldReason"
+        reviewDate:
+          type: string
+          format: date
+        externalReference:
+          type: [string, "null"]
+          pattern: "^[A-Za-z0-9._/-]{1,80}$"
+        internalNote:
+          type: [string, "null"]
+          maxLength: 1000
+    ReleasePrivacyHold:
+      type: object
+      additionalProperties: false
+      required: [internalNote]
+      properties:
+        internalNote:
+          type: [string, "null"]
+          maxLength: 1000
+    PlatformPrivacyRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L7, L10). The masked operational view. The employee's contact is masked, no disclosed value is present, and
+        the operational note is never returned (notePresent says only whether one exists).
+      required: [id, requestType, state, version, organizationId, referralId, contactMasked, decisionReason, employeeMessage, notePresent, submittedAt, updatedAt, history, holds]
+      properties:
+        id:
+          type: string
+          pattern: "^PQ-[0-9A-HJKMNP-TV-Z]{16}$"
+        requestType:
+          $ref: "#/components/schemas/PrivacyRequestType"
+        state:
+          $ref: "#/components/schemas/PrivacyRequestState"
+        version:
+          type: integer
+          minimum: 1
+        organizationId:
+          type: string
+          format: uuid
+        referralId:
+          type: [string, "null"]
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        contactMasked:
+          type: string
+        decisionReason:
+          oneOf:
+            - $ref: "#/components/schemas/PrivacyDecisionReason"
+            - type: "null"
+        employeeMessage:
+          type: [string, "null"]
+          maxLength: 500
+        notePresent:
+          type: boolean
+        submittedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        history:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PrivacyRequestEvent"
+        holds:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/PrivacyHoldView"
+    PlatformPrivacyRequestPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PlatformPrivacyRequest"
+        nextCursor:
+          type: [string, "null"]
+    TransitionPrivacyRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, toState, reasonCode, employeeMessage, internalNote]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        toState:
+          $ref: "#/components/schemas/PrivacyRequestState"
+        reasonCode:
+          oneOf:
+            - $ref: "#/components/schemas/PrivacyDecisionReason"
+            - type: "null"
+        employeeMessage:
+          type: [string, "null"]
+          maxLength: 500
+        internalNote:
+          type: [string, "null"]
+          maxLength: 1000
+    PreviewPrivacyPolicyApplication:
+      type: object
+      additionalProperties: false
+      required: [countryCode]
+      properties:
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+    PrivacyPolicyApplicationPreview:
+      type: object
+      additionalProperties: false
+      required: [previewId, previewDigest, expiresAt, totalPending, items]
+      properties:
+        previewId:
+          type: string
+          pattern: "^PV-[0-9A-HJKMNP-TV-Z]{16}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        totalPending:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          maxItems: 250
+          items:
+            type: object
+            additionalProperties: false
+            required: [countryCode, policyId, pendingReferrals]
+            properties:
+              countryCode:
+                type: string
+                pattern: "^[A-Z]{2}$"
+              policyId:
+                type: string
+                pattern: "^PL-[0-9A-HJKMNP-TV-Z]{16}$"
+              pendingReferrals:
+                type: integer
+                minimum: 0
+    CommitPrivacyOperation:
+      type: object
+      additionalProperties: false
+      required: [previewId, previewDigest]
+      properties:
+        previewId:
+          type: string
+          pattern: "^PV-[0-9A-HJKMNP-TV-Z]{16}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+    PrivacyPolicyApplicationResult:
+      type: object
+      additionalProperties: false
+      required: [applicationId, previewId, applied, completedAt]
+      properties:
+        applicationId:
+          type: string
+          pattern: "^PM-[0-9A-HJKMNP-TV-Z]{16}$"
+        previewId:
+          type: string
+          pattern: "^PV-[0-9A-HJKMNP-TV-Z]{16}$"
+        applied:
+          type: integer
+          minimum: 0
+        completedAt:
+          type: string
+          format: date-time
+    PreviewPrivacyPurge:
+      type: object
+      additionalProperties: false
+      required: [referralIds, action]
+      properties:
+        referralIds:
+          type: array
+          minItems: 1
+          maxItems: 25
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        action:
+          type: string
+          enum: [MINIMIZE, ERASE]
+    PrivacyPurgeClassDecision:
+      type: object
+      additionalProperties: false
+      required: [dataClass, eligible, refusal]
+      properties:
+        dataClass:
+          $ref: "#/components/schemas/PrivacyDataClass"
+        eligible:
+          type: boolean
+        refusal:
+          oneOf:
+            - $ref: "#/components/schemas/PrivacyPurgeRefusal"
+            - type: "null"
+    PrivacyPurgePreview:
+      type: object
+      additionalProperties: false
+      description: LAUNCH-001 (L9). What a confirmation would do, with no personal value. Nothing is changed by a preview.
+      required: [previewId, previewDigest, expiresAt, action, eligibleClasses, items]
+      properties:
+        previewId:
+          type: string
+          pattern: "^PV-[0-9A-HJKMNP-TV-Z]{16}$"
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        action:
+          type: string
+          enum: [MINIMIZE, ERASE]
+        eligibleClasses:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          maxItems: 25
+          items:
+            type: object
+            additionalProperties: false
+            required: [referralId, classes, holdIds]
+            properties:
+              referralId:
+                type: string
+                pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+              classes:
+                type: array
+                maxItems: 4
+                items:
+                  $ref: "#/components/schemas/PrivacyPurgeClassDecision"
+              holdIds:
+                type: array
+                maxItems: 20
+                items:
+                  type: string
+                  pattern: "^PH-[0-9A-HJKMNP-TV-Z]{16}$"
+    PrivacyPurgeResult:
+      type: object
+      additionalProperties: false
+      description: >-
+        LAUNCH-001 (L9). The immutable, value-free evidence of a purge: identifiers, classes, outcomes and row counts only.
+      required: [purgeId, previewId, action, completedAt, items]
+      properties:
+        purgeId:
+          type: string
+          pattern: "^PG-[0-9A-HJKMNP-TV-Z]{16}$"
+        previewId:
+          type: string
+          pattern: "^PV-[0-9A-HJKMNP-TV-Z]{16}$"
+        action:
+          type: string
+          enum: [MINIMIZE, ERASE]
+        completedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          maxItems: 25
+          items:
+            type: object
+            additionalProperties: false
+            required: [referralId, classes]
+            properties:
+              referralId:
+                type: string
+                pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+              classes:
+                type: array
+                maxItems: 4
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [dataClass, outcome, rows]
+                  properties:
+                    dataClass:
+                      $ref: "#/components/schemas/PrivacyDataClass"
+                    outcome:
+                      type: string
+                      enum: [PURGED, REFUSED]
+                    rows:
+                      type: integer
+                      minimum: 0

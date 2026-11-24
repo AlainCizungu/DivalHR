@@ -927,3 +927,34 @@ export type SalaryAdvanceRetentionPolicy =
   CoreComponents['schemas']['SalaryAdvanceRetentionPolicy'];
 export type SalaryAdvancePurgePreview = CoreComponents['schemas']['SalaryAdvancePurgePreview'];
 export type SalaryAdvancePurgeResult = CoreComponents['schemas']['SalaryAdvancePurgeResult'];
+
+/** LAUNCH-001 (Issue #226): privacy governance, consent retention and employee data rights. */
+export type PrivacyRequestType = CoreComponents['schemas']['PrivacyRequestType'];
+export type PrivacyRequestState = CoreComponents['schemas']['PrivacyRequestState'];
+export type PrivacyDecisionReason = CoreComponents['schemas']['PrivacyDecisionReason'];
+export type PrivacyDataClass = CoreComponents['schemas']['PrivacyDataClass'];
+export type PrivacyAction = CoreComponents['schemas']['PrivacyAction'];
+export type PrivacyLifecycleTrigger = CoreComponents['schemas']['PrivacyLifecycleTrigger'];
+export type PrivacyPurpose = CoreComponents['schemas']['PrivacyPurpose'];
+export type PrivacyPolicyState = CoreComponents['schemas']['PrivacyPolicyState'];
+export type PrivacyHoldReason = CoreComponents['schemas']['PrivacyHoldReason'];
+export type PrivacyPurgeRefusal = CoreComponents['schemas']['PrivacyPurgeRefusal'];
+export type CreatePrivacyRequest = CoreComponents['schemas']['CreatePrivacyRequest'];
+export type PrivacyRequestEvent = CoreComponents['schemas']['PrivacyRequestEvent'];
+export type PrivacyRequestView = CoreComponents['schemas']['PrivacyRequestView'];
+export type PrivacyRequestPage = CoreComponents['schemas']['PrivacyRequestPage'];
+export type PrivacyPolicyRule = CoreComponents['schemas']['PrivacyPolicyRule'];
+export type CreatePrivacyPolicy = CoreComponents['schemas']['CreatePrivacyPolicy'];
+export type PrivacyPolicyChecklist = CoreComponents['schemas']['PrivacyPolicyChecklist'];
+export type PrivacyPolicyView = CoreComponents['schemas']['PrivacyPolicyView'];
+export type PrivacyPolicyPage = CoreComponents['schemas']['PrivacyPolicyPage'];
+export type PrivacyHoldView = CoreComponents['schemas']['PrivacyHoldView'];
+export type PlatformPrivacyRequest = CoreComponents['schemas']['PlatformPrivacyRequest'];
+export type PlatformPrivacyRequestPage = CoreComponents['schemas']['PlatformPrivacyRequestPage'];
+export type PrivacyPolicyApplicationPreview =
+  CoreComponents['schemas']['PrivacyPolicyApplicationPreview'];
+export type PrivacyPolicyApplicationResult =
+  CoreComponents['schemas']['PrivacyPolicyApplicationResult'];
+export type PrivacyPurgeClassDecision = CoreComponents['schemas']['PrivacyPurgeClassDecision'];
+export type PrivacyPurgePreview = CoreComponents['schemas']['PrivacyPurgePreview'];
+export type PrivacyPurgeResult = CoreComponents['schemas']['PrivacyPurgeResult'];

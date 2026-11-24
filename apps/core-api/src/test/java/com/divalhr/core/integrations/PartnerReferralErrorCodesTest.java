@@ -59,7 +59,7 @@ class PartnerReferralErrorCodesTest {
   }
 
   @Test
-  void everyCodeExistsWithItsStatusAndIsTheLastInTheRegistry() {
+  void everyCodeExistsWithItsStatusAndFollowsTheProductCodes() {
     assertThat(CODES).hasSize(11);
     ErrorCode[] all = ErrorCode.values();
     int first = ErrorCode.PARTNER_REFERRAL_PRODUCT_UNAVAILABLE.ordinal();
@@ -70,7 +70,9 @@ class PartnerReferralErrorCodesTest {
       assertThat(all[index].status()).as(entry.getKey()).isEqualTo(entry.getValue());
       index++;
     }
-    assertThat(index).as("the eleven codes are the last in the registry").isEqualTo(all.length);
+    assertThat(index)
+        .as("the eleven codes are followed by the LAUNCH-001 privacy codes")
+        .isEqualTo(ErrorCode.PRIVACY_REQUEST_NOT_FOUND.ordinal());
   }
 
   @Test

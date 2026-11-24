@@ -6342,6 +6342,374 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/privacy/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my privacy requests
+         * @description LAUNCH-001 (Issue #226). Only the caller's own requests, newest first, keyset-paginated (default 25, maximum 50; the cursor is opaque, signed and bound to the operation, tenant, caller and filter, and carries no personal value). At most 60 reads per subject per minute (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+         */
+        get: operations["listMyPrivacyRequests"];
+        put?: never;
+        /**
+         * Submit a privacy request about my partner-referral data
+         * @description LAUNCH-001 (Issue #226). The employee asks about only their own partner-referral data (ACCESS, ERASURE, RESTRICTION or OBJECTION), optionally for one of their own referrals. The request is a request, not a promise: submission does not mean it will be granted. A second open request of the same type and scope is 409 PRIVACY_REQUEST_DUPLICATE_OPEN. Another employee's or an unknown referral is 404 PRIVACY_REFERRAL_NOT_FOUND. Requires an Idempotency-Key: the same key and request replay the stored response; the same key with a different request is 409 PRIVACY_IDEMPOTENCY_REUSED. At most 5 per employee per day (PRIVACY_RATE_LIMITED, Retry-After). The employer, managers and other employees cannot see it, and no notification is sent. Only the status is shown in the product. Cache-Control private, no-store.
+         */
+        post: operations["createMyPrivacyRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/privacy/requests/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One of my privacy requests, with its history
+         * @description LAUNCH-001 (Issue #226). The request, its status and its append-only history. Another employee's, a foreign-tenant, a malformed or an unknown request gives the same 404 PRIVACY_REQUEST_NOT_FOUND. Operational notes are never returned; the employee-facing message is returned only when the platform marked it for the employee. Same read bucket. Cache-Control private, no-store.
+         */
+        get: operations["getMyPrivacyRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/privacy/requests/{requestId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel my privacy request
+         * @description LAUNCH-001 (Issue #226). The employee cancels their own request while it is SUBMITTED, UNDER_REVIEW or MORE_INFORMATION_REQUIRED (CANCELLED_BY_EMPLOYEE). A decided or completed request is 409 PRIVACY_REQUEST_TRANSITION_INVALID; a stale version is 409 PRIVACY_REQUEST_VERSION_STALE. Requires an Idempotency-Key. Counts against the 60 per minute employee read bucket, not the 5 per day creation quota. Cache-Control private, no-store.
+         */
+        post: operations["cancelMyPrivacyRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/privacy/requests/{requestId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download my access package
+         * @description LAUNCH-001 (Issue #226). For an ACCESS request that the platform approved (APPROVED, PARTIALLY_APPROVED or COMPLETED), returns a deterministic JSON package of only the caller's own partner-referral data: referral reference and lifecycle, partner and product names, the disclosed field names and the employee's own disclosed values (or the statement that they were minimized or erased), consent wording version and time, delivery truth, the applicable policy status, whether a legal hold is active, and the caller's data-rights request history. It contains no internal audit metadata, no other employee's data, no provider secret and no platform note. The package is stored encrypted, valid for 7 days, bound by a manifest SHA-256 (also the X-Content-SHA256 header), and sent as an attachment with a fixed safe file name. No email attachment is ever sent. A request that is not an approved ACCESS request is 409 PRIVACY_EXPORT_NOT_AVAILABLE. At most 3 generations per request per day (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+         */
+        get: operations["downloadMyPrivacyAccessPackage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List privacy policy versions
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Newest first, keyset-paginated (default 25, maximum 50; opaque signed cursor). At most 60 reads per subject per minute. Cache-Control private, no-store.
+         */
+        get: operations["listPlatformPrivacyPolicies"];
+        put?: never;
+        /**
+         * Create a privacy policy version (DRAFT)
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Creates a DRAFT policy version for one country with one rule for each of the four data classes (action HOLD, MINIMIZE or ERASE; a duration in days after a defined lifecycle trigger for MINIMIZE and ERASE; none for HOLD), a purpose, an effective period, a source reference, a review date and the employee-facing wording version. DivalHR supplies no duration: every value is entered by the operator and remains DRAFT until the checklist is complete. Contradictory, missing or unsupported rules are 422 PRIVACY_POLICY_INVALID. Requires an Idempotency-Key. At most 20 platform mutations per subject per hour (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+         */
+        post: operations["createPlatformPrivacyPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/policies/{policyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One privacy policy version
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. The version with its rules and checklist. An unknown or malformed reference is 404 PRIVACY_POLICY_NOT_FOUND. Same read bucket. Cache-Control private, no-store.
+         */
+        get: operations["getPlatformPrivacyPolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/policies/{policyId}/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Record the governance checklist of a DRAFT policy
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Replaces the checklist of a DRAFT version (eight items and the review reference) with an expected version. The checklist freezes when the version is APPROVED. A version that is not DRAFT is 409 PRIVACY_POLICY_IMMUTABLE; a stale version is 409 PRIVACY_POLICY_VERSION_STALE. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+         */
+        put: operations["putPlatformPrivacyPolicyChecklist"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/policies/{policyId}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a privacy policy version along its lifecycle
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. DRAFT to APPROVED needs the complete checklist (422 PRIVACY_POLICY_CHECKLIST_INCOMPLETE otherwise); APPROVED to SCHEDULED needs a future effective date; APPROVED or SCHEDULED to ACTIVE needs the effective date reached and no overlapping ACTIVE version for the same country (409 PRIVACY_POLICY_OVERLAP); ACTIVE to RETIRED. 'Approved' means governance approval inside DivalHR, not a claim that a law firm, regulator or government approved DivalHR. Only an ACTIVE version stamps new decisions. No clock activates a version: activation is always this explicit call. Any other move is 409 PRIVACY_POLICY_TRANSITION_INVALID. Transitions and history are append-only. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+         */
+        post: operations["transitionPlatformPrivacyPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/policies/{policyId}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Append-only history of a privacy policy version
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. The transitions in order (sequence, from and to state, instant), with no actor identity and no free text. Same read bucket. Cache-Control private, no-store.
+         */
+        get: operations["listPlatformPrivacyPolicyHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Privacy request queue
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only; tenant administrators, managers and employees have no access and no navigation. Operational status only: reference, type, state, organization identifier, linked referral reference, version and instants, with the employee's contact masked and no disclosed value. Filters: state and type. Keyset page (default 25, maximum 50; opaque signed cursor bound to the operation and filters). Same read bucket. Cache-Control private, no-store.
+         */
+        get: operations["listPlatformPrivacyRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/requests/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One privacy request, operational view
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. The masked queue shape plus the request history and, for a linked referral, its active holds. Personal values stay masked; an approved ACCESS operation never reveals them here. Same read bucket. Cache-Control private, no-store.
+         */
+        get: operations["getPlatformPrivacyRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/requests/{requestId}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a privacy request along its lifecycle
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. SUBMITTED to UNDER_REVIEW; UNDER_REVIEW to MORE_INFORMATION_REQUIRED, APPROVED, PARTIALLY_APPROVED or REFUSED; MORE_INFORMATION_REQUIRED to UNDER_REVIEW; APPROVED or PARTIALLY_APPROVED to COMPLETED. A refusal or partial approval needs a bounded reason code (422 PRIVACY_REQUEST_REASON_REQUIRED). The optional operational note is stored encrypted and is never returned to the employee; the optional employee message is shown to the employee only because it is explicitly marked as such. Any other move is 409 PRIVACY_REQUEST_TRANSITION_INVALID; a stale version is 409 PRIVACY_REQUEST_VERSION_STALE. A decision never starts a purge: a purge is its own previewed, confirmed operation. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+         */
+        post: operations["transitionPlatformPrivacyRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/referrals/{referralId}/holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place a legal or privacy hold on a referral
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. A bounded reason code from the closed catalogue, a review date, an optional external case reference and an optional operational note stored encrypted. While any hold is active, minimization and erasure of that referral are refused. Tenant administrators cannot create, view or release holds. An unknown referral is 404 PRIVACY_REFERRAL_NOT_FOUND. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+         */
+        post: operations["placePlatformPrivacyHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/referrals/{referralId}/holds/{holdId}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release a hold
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Releases one hold; the hold and the release stay in the append-only history. An already released hold is 409 PRIVACY_HOLD_ALREADY_RELEASED; an unknown one is 404 PRIVACY_HOLD_NOT_FOUND. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+         */
+        post: operations["releasePlatformPrivacyHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/policy-application/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview assigning an ACTIVE policy to POLICY_PENDING referrals
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Counts, per country, the POLICY_PENDING referrals that an ACTIVE policy now covers, with a digest and a 15-minute expiry. It changes nothing. A referral that already carries a policy stamp is never included: a stamped decision is never shortened or rewritten here. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+         */
+        post: operations["previewPlatformPrivacyPolicyApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/policy-application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign an ACTIVE policy to POLICY_PENDING referrals
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. Revalidates the preview under locks (409 PRIVACY_PREVIEW_EXPIRED, PRIVACY_PREVIEW_STALE or PRIVACY_PREVIEW_ALREADY_USED), stamps each still-pending referral with the active version and its rules, and records value-free evidence of the counts and digests. Idempotent: the same key replays the stored result and a second commit of the same preview is refused. Requires an Idempotency-Key. Platform mutation bucket. Cache-Control private, no-store.
+         */
+        post: operations["commitPlatformPrivacyPolicyApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/purge/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a minimization or erasure
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only. For up to 25 referrals and one action (MINIMIZE or ERASE), reports for each data class whether it is eligible and, when it is not, one bounded refusal: POLICY_PENDING, HOLD_ACTIVE, NOT_CLOSED, NOT_YET_ELIGIBLE, ACTION_NOT_PERMITTED or ALREADY_PURGED. Nothing is changed, no value is returned, and no clock makes anything eligible by itself. A digest and a 15-minute expiry bind the commit. At most 10 per platform administrator per hour (PRIVACY_RATE_LIMITED, Retry-After). Requires an Idempotency-Key. Cache-Control private, no-store.
+         */
+        post: operations["previewPlatformPrivacyPurge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/privacy/purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a minimization or erasure
+         * @description LAUNCH-001 (Issue #226). Exact-MFA platform administrators only, with an Idempotency-Key. Revalidates the preview and every eligibility condition under locks (409 PRIVACY_PREVIEW_EXPIRED, PRIVACY_PREVIEW_STALE or PRIVACY_PREVIEW_ALREADY_USED; 422 PRIVACY_PURGE_NOTHING_ELIGIBLE), then performs only what the preview showed: MINIMIZE destroys the disclosure ciphertext and contact values and keeps only non-reversible evidence; ERASE deletes only the rows the stamped policy marks erasable. Immutable, value-free purge evidence is recorded. The same key replays the stored result and performs no second deletion. No background process ever purges. At most 5 per platform administrator per hour (PRIVACY_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+         */
+        post: operations["commitPlatformPrivacyPurge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -9489,7 +9857,7 @@ export interface components {
          * @description Stable machine-readable code. Clients translate it; it is never localized text.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE" | "SALARY_ADVANCE_POLICY_NOT_FOUND" | "SALARY_ADVANCE_POLICY_INVALID" | "SALARY_ADVANCE_POLICY_OVERLAP" | "SALARY_ADVANCE_POLICY_PREVIEW_STALE" | "SALARY_ADVANCE_NOT_ELIGIBLE" | "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING" | "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE" | "SALARY_ADVANCE_CURRENCY_MISMATCH" | "SALARY_ADVANCE_OPEN_LIMIT_REACHED" | "SALARY_ADVANCE_WAITING_PERIOD" | "SALARY_ADVANCE_CONSENT_REQUIRED" | "SALARY_ADVANCE_CONSENT_VERSION_STALE" | "SALARY_ADVANCE_REQUEST_NOT_FOUND" | "SALARY_ADVANCE_VERSION_CONFLICT" | "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN" | "SALARY_ADVANCE_HANDOFF_NOT_FOUND" | "SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED" | "SALARY_ADVANCE_REQUEST_TERMINAL" | "SALARY_ADVANCE_HANDOFF_EXISTS" | "SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED" | "SALARY_ADVANCE_HANDOFF_CONSENT_STALE" | "SALARY_ADVANCE_HANDOFF_PREVIEW_STALE" | "SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT" | "SALARY_ADVANCE_PARTNER_UNAVAILABLE" | "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN" | "SALARY_ADVANCE_PARTNER_NOT_ENABLED" | "SALARY_ADVANCE_RETENTION_POLICY_MISSING" | "SALARY_ADVANCE_RETENTION_PERIOD_INVALID" | "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND" | "SALARY_ADVANCE_PURGE_PREVIEW_STALE" | "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED" | "PARTNER_CALLBACK_INVALID" | "PARTNER_APPLICATION_INVALID" | "PARTNER_APPLICATION_RATE_LIMITED" | "PARTNER_APPLICATION_IDEMPOTENCY_REUSED" | "PARTNER_APPLICATION_NOT_FOUND" | "PARTNER_APPLICATION_TRANSITION_INVALID" | "PARTNER_APPLICATION_TERMINAL" | "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE" | "PARTNER_APPLICATION_DUPLICATE" | "PARTNER_APPLICATION_CONSENT_REQUIRED" | "PARTNER_SOURCE_APPLICATION_NOT_APPROVED" | "PARTNER_ALREADY_CREATED" | "PARTNER_NOT_FOUND" | "PARTNER_TRANSITION_INVALID" | "PARTNER_HAS_ACTIVE_PRODUCTS" | "PARTNER_PRODUCT_NOT_FOUND" | "PARTNER_PRODUCT_INVALID" | "PARTNER_PRODUCT_SCOPE_INVALID" | "PARTNER_PRODUCT_TRANSITION_INVALID" | "PARTNER_PRODUCT_PARTNER_INACTIVE" | "PARTNER_PRODUCT_VERSION_STALE" | "PARTNER_PRODUCT_NOT_AVAILABLE" | "PARTNER_REFERRAL_PRODUCT_UNAVAILABLE" | "PARTNER_REFERRAL_NOT_FOUND" | "PARTNER_REFERRAL_PREVIEW_EXPIRED" | "PARTNER_REFERRAL_PREVIEW_STALE" | "PARTNER_REFERRAL_PREVIEW_ALREADY_USED" | "PARTNER_REFERRAL_CONSENT_REQUIRED" | "PARTNER_REFERRAL_DISCLOSURE_INVALID" | "PARTNER_REFERRAL_NOT_WITHDRAWABLE" | "PARTNER_REFERRAL_VERSION_STALE" | "PARTNER_REFERRAL_IDEMPOTENCY_REUSED" | "PARTNER_REFERRAL_RATE_LIMITED";
+        ErrorCode: "VALIDATION_FAILED" | "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "TENANT_CONTEXT_MISSING" | "TENANT_ACCESS_DENIED" | "NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "COUNTRY_NOT_SUPPORTED" | "LOCALE_NOT_SUPPORTED" | "TIMEZONE_NOT_SUPPORTED" | "CURRENCY_NOT_SUPPORTED" | "LEGAL_ENTITY_NOT_FOUND" | "DUPLICATE_LEGAL_ENTITY_CODE" | "DUPLICATE_SITE_CODE" | "EFFECTIVE_DATE_INVALID" | "SITE_PERIOD_OUTSIDE_LEGAL_ENTITY" | "CURSOR_INVALID" | "SITE_NOT_FOUND" | "DUPLICATE_DEPARTMENT_CODE" | "DUPLICATE_COST_CENTER_CODE" | "DEPARTMENT_PERIOD_OUTSIDE_SITE" | "COST_CENTER_PERIOD_OUTSIDE_SITE" | "REGION_NOT_FOUND" | "DUPLICATE_REGION_CODE" | "REGION_PERIOD_OUTSIDE_LEGAL_ENTITY" | "SITE_PERIOD_OUTSIDE_REGION" | "SITE_REGION_LEGAL_ENTITY_MISMATCH" | "SITE_REGION_ALREADY_ASSIGNED" | "TEAM_PARENT_REQUIRED" | "TEAM_PARENT_AMBIGUOUS" | "DEPARTMENT_NOT_FOUND" | "COST_CENTER_NOT_FOUND" | "DUPLICATE_TEAM_CODE" | "TEAM_PERIOD_OUTSIDE_DEPARTMENT" | "TEAM_PERIOD_OUTSIDE_COST_CENTER" | "INVITATION_NOT_FOUND" | "INVITATION_ALREADY_PENDING" | "INVITATION_RECIPIENT_ALREADY_MEMBER" | "INVITATION_NOT_PENDING" | "INVITATION_RATE_LIMITED" | "INVITATION_RESEND_LIMITED" | "INVITATION_INVALID" | "INVITATION_CANNOT_BE_ACCEPTED" | "INVITATION_ACCEPTANCE_IN_PROGRESS" | "IDENTITY_PROVIDER_UNAVAILABLE" | "ORGANIZATION_NOT_FOUND" | "TENANT_ADMIN_BOOTSTRAP_UNAVAILABLE" | "RATE_LIMITED" | "MFA_REQUIRED" | "INTERNAL_ERROR" | "IMPORT_FILE_INVALID" | "IMPORT_FILE_TOO_LARGE" | "IMPORT_UPLOAD_TIMEOUT" | "IMPORT_LIMIT_REACHED" | "EMPLOYEE_IMPORT_NOT_FOUND" | "IMPORT_NOT_COMMITTABLE" | "IMPORT_PREVIEW_CHANGED" | "IMPORT_STALE" | "IMPORT_NOTHING_TO_COMMIT" | "IMPORT_TIMEOUT" | "EMPLOYEE_NOT_FOUND" | "EMPLOYMENT_CHANGE_NOT_FOUND" | "EMPLOYMENT_VERSION_CONFLICT" | "EMPLOYMENT_PREVIEW_CHANGED" | "EMPLOYMENT_CHANGE_DATE_TAKEN" | "EMPLOYMENT_CHANGE_NOT_CANCELLABLE" | "EMPLOYMENT_CHANGE_HAS_DEPENDENTS" | "EMPLOYMENT_CHANGE_NO_EFFECT" | "EMPLOYMENT_DATE_OUTSIDE_EMPLOYMENT" | "RETROACTIVE_WINDOW_EXCEEDED" | "MANAGER_INVALID" | "PLACEMENT_INVALID" | "EMPLOYMENT_CHANGE_TIMEOUT" | "SEPARATION_NOT_FOUND" | "SEPARATION_TASK_NOT_FOUND" | "MEMBERSHIP_NOT_FOUND" | "SEPARATION_EXISTS" | "SEPARATION_FUTURE_CHANGES" | "SEPARATION_PROTECTED" | "SEPARATION_PREVIEW_CHANGED" | "SEPARATION_NOT_CANCELLABLE" | "SEPARATION_TASK_VERSION_CONFLICT" | "SEPARATION_TASK_CLOSED" | "ACCESS_LINK_CONFLICT" | "ACCESS_LINK_LOCKED" | "ACCESS_LINK_VERSION_CONFLICT" | "ACCESS_REVOCATION_NOT_RETRYABLE" | "SEPARATION_DATE_OUT_OF_RANGE" | "SEPARATION_ACCESS_TIMING_INVALID" | "SEPARATION_ACKNOWLEDGEMENT_REQUIRED" | "SEPARATION_REPORT_PLAN_REQUIRED" | "SEPARATION_TOO_MANY_INTERVALS" | "CONTRACT_TEMPLATE_NOT_FOUND" | "CONTRACT_NOT_FOUND" | "CONTRACT_TEMPLATE_VERSION_CONFLICT" | "CONTRACT_TEMPLATE_NOT_DRAFT" | "CONTRACT_TEMPLATE_NOT_APPROVED" | "CONTRACT_TEMPLATE_CODE_TAKEN" | "CONTRACT_PREVIEW_CHANGED" | "CONTRACT_VERSION_CONFLICT" | "CONTRACT_PERIOD_OVERLAP" | "CONTRACT_EMPLOYMENT_ENDED" | "CONTRACT_NOT_VOIDABLE" | "CONTRACT_NOT_ACKNOWLEDGEABLE" | "CONTRACT_ACKNOWLEDGEMENT_CHANGED" | "CONTRACT_TEMPLATE_INVALID" | "CONTRACT_VALUE_MISSING" | "CONTRACT_DATES_INVALID" | "CONTRACT_TEMPLATE_ACKNOWLEDGEMENT_REQUIRED" | "EMPLOYEE_LINK_REQUIRED" | "CONTRACT_TIMEOUT" | "LEAVE_POLICY_CODE_EXISTS" | "LEAVE_POLICY_NOT_REQUESTABLE" | "LEAVE_REQUEST_NOT_ELIGIBLE" | "LEAVE_REQUEST_OVERLAP" | "LEAVE_REQUEST_NOT_FOUND" | "LEAVE_REQUEST_ALREADY_DECIDED" | "LEAVE_REQUEST_ALREADY_CANCELLED" | "LEAVE_REQUEST_ALREADY_AMENDED" | "LEAVE_REQUEST_ALREADY_WITHDRAWN" | "LEAVE_REQUEST_NOT_APPROVED" | "LEAVE_REQUEST_WITHDRAWAL_WINDOW_CLOSED" | "LEAVE_APPROVAL_SUBSTITUTION_NOT_FOUND" | "LEAVE_APPROVAL_SUBSTITUTION_SAME_EMPLOYEE" | "LEAVE_APPROVAL_SUBSTITUTION_EMPLOYMENT_PERIOD" | "LEAVE_APPROVAL_SUBSTITUTION_NO_REPORTING_LINE" | "LEAVE_APPROVAL_SUBSTITUTION_OVERLAP" | "LEAVE_APPROVAL_SUBSTITUTION_ALREADY_REVOKED" | "WORK_SCHEDULE_NOT_FOUND" | "WORK_SCHEDULE_PREVIEW_STALE" | "WORK_SCHEDULE_PERIOD_INVALID" | "WORK_SCHEDULE_SITE_NOT_ACTIVE" | "WORK_SCHEDULE_OVERLAP" | "WORK_SCHEDULE_SLOT_INVALID" | "WORK_SCHEDULE_EMPLOYEE_NOT_ELIGIBLE" | "WORK_SCHEDULE_EMPLOYEE_CONFLICT" | "WORK_SCHEDULE_LIMIT_EXCEEDED" | "WORK_SCHEDULE_ALREADY_CANCELLED" | "WORK_SCHEDULE_ALREADY_REPLACED" | "WORK_SCHEDULE_CHANGE_WINDOW_CLOSED" | "WORK_SCHEDULE_SHIFT_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_FOUND" | "WORK_SCHEDULE_SUBSTITUTION_NOT_AVAILABLE" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_PENDING" | "WORK_SCHEDULE_SUBSTITUTION_ALREADY_DECIDED" | "WORK_SCHEDULE_SUBSTITUTION_WINDOW_CLOSED" | "WORK_SCHEDULE_SUBSTITUTE_NOT_ELIGIBLE" | "WORK_SCHEDULE_SUBSTITUTE_CONFLICT" | "ATTENDANCE_SHIFT_NOT_FOUND" | "ATTENDANCE_CHECK_IN_TOO_EARLY" | "ATTENDANCE_CHECK_IN_WINDOW_CLOSED" | "ATTENDANCE_ALREADY_CHECKED_IN" | "ATTENDANCE_OPEN_RECORD_EXISTS" | "ATTENDANCE_RECORD_NOT_FOUND" | "ATTENDANCE_ALREADY_CHECKED_OUT" | "ATTENDANCE_CHECK_OUT_WINDOW_CLOSED" | "ATTENDANCE_STATE_CONFLICT" | "TEAM_ATTENDANCE_ACTION_NOT_FOUND" | "TEAM_ATTENDANCE_MANAGER_REQUIRED" | "ATTENDANCE_EXCEPTION_SCOPE_NOT_FOUND" | "OFFLINE_ATTENDANCE_TOO_OLD" | "OFFLINE_ATTENDANCE_FUTURE_TIME" | "OFFLINE_ATTENDANCE_OFFSET_MISMATCH" | "OFFLINE_ATTENDANCE_CONFLICT" | "ATTENDANCE_CORRECTION_TARGET_NOT_FOUND" | "ATTENDANCE_CORRECTION_NOT_ALLOWED" | "ATTENDANCE_CORRECTION_PREVIEW_STALE" | "TIMESHEET_TARGET_NOT_FOUND" | "TIMESHEET_GENERATION_NOT_ALLOWED" | "TIMESHEET_GENERATION_LIMIT_EXCEEDED" | "TIMESHEET_REFRESH_PREVIEW_STALE" | "TIMESHEET_SUBMISSION_NOT_ALLOWED" | "TIMESHEET_APPROVAL_ROUTE_UNAVAILABLE" | "TIMESHEET_DECISION_STALE" | "TIMESHEET_DECISION_NOT_ALLOWED" | "TIMESHEET_EXPORT_EMPTY" | "TIMESHEET_EXPORT_PREVIEW_STALE" | "TIMESHEET_PERIOD_NOT_READY" | "TIMESHEET_PERIOD_LOCKED" | "TIMESHEET_PERIOD_NOT_LOCKED" | "TIMESHEET_PERIOD_PREVIEW_STALE" | "PAYROLL_INPUT_TARGET_NOT_FOUND" | "PAYROLL_INPUT_NOT_READY" | "PAYROLL_INPUT_PREVIEW_STALE" | "PAYROLL_INPUT_RUN_EXISTS" | "PAYROLL_INPUT_NOT_LATEST" | "PAYROLL_INPUT_RUN_LOCKED" | "PAYROLL_INPUT_NOT_LOCKED" | "PAYROLL_INPUT_EXPORT_TOO_LARGE" | "PAYROLL_VARIANCE_TARGET_NOT_FOUND" | "OPERATIONAL_STATUS_SCOPE_NOT_FOUND" | "OPERATIONAL_SUMMARY_LANGUAGE_INVALID" | "OPERATIONAL_SUMMARY_SOURCE_INVALID" | "OPERATIONAL_SUMMARY_UNAVAILABLE" | "WEBHOOK_NOT_FOUND" | "WEBHOOK_DELIVERY_NOT_FOUND" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_URL_INVALID" | "WEBHOOK_DESTINATION_BLOCKED" | "WEBHOOK_EVENT_TYPE_INVALID" | "WEBHOOK_VERSION_STALE" | "WEBHOOK_ALREADY_DISABLED" | "WEBHOOK_ALREADY_ENABLED" | "WEBHOOK_DISABLED" | "WEBHOOK_SUSPENDED" | "WEBHOOK_TEST_RATE_LIMITED" | "WEBHOOK_SECRET_UNAVAILABLE" | "MESSAGING_CONNECTOR_NOT_FOUND" | "MESSAGING_CONNECTOR_EXISTS" | "MESSAGING_CONNECTOR_INCOMPLETE" | "MESSAGING_CONNECTOR_DISABLED" | "MESSAGING_CONNECTOR_SUSPENDED" | "MESSAGING_CONNECTOR_ACTIVE" | "MESSAGING_CONNECTOR_VERSION_STALE" | "MESSAGING_ALREADY_DISABLED" | "MESSAGING_ALREADY_ENABLED" | "MESSAGING_PROVIDER_UNAVAILABLE" | "MESSAGING_PROVIDER_CREDENTIAL_INVALID" | "MESSAGING_TEMPLATE_INVALID" | "MESSAGING_RECIPIENT_NOT_FOUND" | "MESSAGING_RECIPIENT_LIMIT_REACHED" | "MESSAGING_RECIPIENT_EXISTS" | "MESSAGING_RECIPIENT_DISABLED" | "MESSAGING_RECIPIENT_VERSION_STALE" | "MESSAGING_CONSENT_REQUIRED" | "MESSAGING_PHONE_INVALID" | "MESSAGING_NOTIFICATION_TYPE_INVALID" | "MESSAGING_TEST_RATE_LIMITED" | "MESSAGING_DELIVERY_NOT_FOUND" | "MESSAGING_SECRET_UNAVAILABLE" | "TASK_NOT_FOUND" | "TASK_ASSIGNEE_NOT_FOUND" | "TASK_VERSION_CONFLICT" | "TASK_TRANSITION_NOT_ALLOWED" | "TASK_LIMIT_REACHED" | "EXPENSE_NOT_FOUND" | "EXPENSE_VERSION_CONFLICT" | "EXPENSE_TRANSITION_NOT_ALLOWED" | "EXPENSE_APPROVAL_ROUTE_UNAVAILABLE" | "EXPENSE_LIMIT_REACHED" | "EXPENSE_RECEIPT_INVALID" | "EXPENSE_RECEIPT_TOO_LARGE" | "EXPENSE_RECEIPT_UPLOAD_TIMEOUT" | "EXPENSE_RECEIPT_MEDIA_UNSUPPORTED" | "COMPENSATION_NOT_FOUND" | "COMPENSATION_INVALID_AMOUNT" | "COMPENSATION_DATE_OUT_OF_RANGE" | "COMPENSATION_EMPLOYMENT_CONFLICT" | "COMPENSATION_PREVIEW_STALE" | "COMPENSATION_VERSION_CONFLICT" | "COMPENSATION_TRANSITION_NOT_ALLOWED" | "COMPENSATION_LIMIT_REACHED" | "PAYROLL_POLICY_NOT_FOUND" | "PAYROLL_POLICY_CONFLICT" | "PAYROLL_PERIOD_INVALID" | "PAYROLL_RUN_NOT_FOUND" | "PAYROLL_RUN_BLOCKED" | "PAYROLL_RUN_PREVIEW_STALE" | "PAYROLL_RUN_NO_CHANGE" | "PAYROLL_RUN_VERSION_CONFLICT" | "PAYROLL_RUN_LIMIT_REACHED" | "STATUTORY_RULE_PACK_NOT_FOUND" | "STATUTORY_RULE_PACK_NOT_VERIFIED" | "STATUTORY_RULE_PACK_NOT_APPLICABLE" | "STATUTORY_PROFILE_MISSING" | "STATUTORY_PROFILE_UNSUPPORTED" | "STATUTORY_CALCULATION_BLOCKED" | "STATUTORY_PREVIEW_STALE" | "STATUTORY_CALCULATION_NO_CHANGE" | "STATUTORY_VERSION_CONFLICT" | "STATUTORY_LIMIT_REACHED" | "STATUTORY_CALCULATION_NOT_FOUND" | "PAYROLL_PACKAGE_NOT_FOUND" | "PAYROLL_PACKAGE_BLOCKED" | "PAYROLL_APPROVAL_PREVIEW_STALE" | "PAYROLL_APPROVAL_NO_CHANGE" | "PAYROLL_PACKAGE_VERSION_CONFLICT" | "PAYROLL_PACKAGE_ALREADY_APPROVED" | "PAYROLL_PACKAGE_VOIDED" | "PAYROLL_VOID_PREVIEW_STALE" | "PAYROLL_VOID_NOT_ALLOWED" | "PAYSLIP_NOT_FOUND" | "PAYSLIP_RENDER_FAILED" | "PAYROLL_PACKAGE_LIMIT_REACHED" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_INVALID" | "PAYMENT_DESTINATION_VERSION_CONFLICT" | "PAYMENT_DESTINATION_PREVIEW_STALE" | "PAYMENT_DESTINATION_KEY_UNAVAILABLE" | "PAYMENT_BATCH_NOT_FOUND" | "PAYMENT_BATCH_BLOCKED" | "PAYMENT_BATCH_PREVIEW_STALE" | "PAYMENT_BATCH_VERSION_CONFLICT" | "PAYMENT_BATCH_ALREADY_PREPARED" | "PAYMENT_BATCH_CANCELLED" | "PAYMENT_BATCH_CANCEL_NOT_ALLOWED" | "PAYMENT_BATCH_LIMIT_REACHED" | "PAYMENT_BATCH_ALREADY_SUBMITTED" | "PAYMENT_SUBMISSION_NOT_FOUND" | "PAYMENT_SUBMISSION_BLOCKED" | "PAYMENT_SUBMISSION_PREVIEW_STALE" | "PAYMENT_SUBMISSION_VERSION_CONFLICT" | "PAYMENT_SUBMISSION_EXISTS" | "PAYMENT_PROVIDER_UNAVAILABLE" | "PAYMENT_SUBMISSION_KEY_UNAVAILABLE" | "PAYMENT_RECONCILIATION_NOT_FOUND" | "PAYMENT_RECONCILIATION_NOT_ELIGIBLE" | "PAYMENT_RECONCILIATION_EXISTS" | "PAYMENT_RECONCILIATION_PREVIEW_STALE" | "ACCOUNTING_MAPPING_NOT_FOUND" | "ACCOUNTING_MAPPING_INVALID" | "ACCOUNTING_MAPPING_OVERLAP" | "ACCOUNTING_MAPPING_LIMIT_REACHED" | "ACCOUNTING_MAPPING_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_SOURCE_NOT_APPROVED" | "ACCOUNTING_JOURNAL_SOURCE_VOIDED" | "ACCOUNTING_JOURNAL_ALREADY_EXISTS" | "ACCOUNTING_JOURNAL_PREVIEW_STALE" | "ACCOUNTING_JOURNAL_UNBALANCED" | "ACCOUNTING_JOURNAL_TOO_LARGE" | "ACCOUNTING_JOURNAL_NOT_FOUND" | "STATUTORY_PACK_NOT_FOUND" | "STATUTORY_PACK_VERSION_CONFLICT" | "STATUTORY_PACK_TRANSITION_NOT_ALLOWED" | "STATUTORY_PACK_VALIDATION_FAILED" | "STATUTORY_PACK_EVIDENCE_INCOMPLETE" | "STATUTORY_PACK_DIGEST_MISMATCH" | "STATUTORY_PACK_SELF_APPROVAL_FORBIDDEN" | "STATUTORY_PACK_REVIEW_REQUIRED" | "STATUTORY_PACK_EFFECTIVE_PERIOD_CONFLICT" | "STATUTORY_PACK_NO_ACTIVE_VERSION" | "STATUTORY_PACK_ALREADY_ACTIVE" | "SALARY_ADVANCE_POLICY_NOT_FOUND" | "SALARY_ADVANCE_POLICY_INVALID" | "SALARY_ADVANCE_POLICY_OVERLAP" | "SALARY_ADVANCE_POLICY_PREVIEW_STALE" | "SALARY_ADVANCE_NOT_ELIGIBLE" | "SALARY_ADVANCE_PAYROLL_REFERENCE_MISSING" | "SALARY_ADVANCE_AMOUNT_OUT_OF_RANGE" | "SALARY_ADVANCE_CURRENCY_MISMATCH" | "SALARY_ADVANCE_OPEN_LIMIT_REACHED" | "SALARY_ADVANCE_WAITING_PERIOD" | "SALARY_ADVANCE_CONSENT_REQUIRED" | "SALARY_ADVANCE_CONSENT_VERSION_STALE" | "SALARY_ADVANCE_REQUEST_NOT_FOUND" | "SALARY_ADVANCE_VERSION_CONFLICT" | "SALARY_ADVANCE_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_SELF_REVIEW_FORBIDDEN" | "SALARY_ADVANCE_HANDOFF_NOT_FOUND" | "SALARY_ADVANCE_EMPLOYER_CONFIRMATION_REQUIRED" | "SALARY_ADVANCE_REQUEST_TERMINAL" | "SALARY_ADVANCE_HANDOFF_EXISTS" | "SALARY_ADVANCE_HANDOFF_CONSENT_REQUIRED" | "SALARY_ADVANCE_HANDOFF_CONSENT_STALE" | "SALARY_ADVANCE_HANDOFF_PREVIEW_STALE" | "SALARY_ADVANCE_HANDOFF_TRANSITION_NOT_ALLOWED" | "SALARY_ADVANCE_HANDOFF_VERSION_CONFLICT" | "SALARY_ADVANCE_PARTNER_UNAVAILABLE" | "SALARY_ADVANCE_HANDOFF_DELIVERY_UNKNOWN" | "SALARY_ADVANCE_PARTNER_NOT_ENABLED" | "SALARY_ADVANCE_RETENTION_POLICY_MISSING" | "SALARY_ADVANCE_RETENTION_PERIOD_INVALID" | "SALARY_ADVANCE_PURGE_PREVIEW_NOT_FOUND" | "SALARY_ADVANCE_PURGE_PREVIEW_STALE" | "SALARY_ADVANCE_PURGE_ALREADY_COMPLETED" | "PARTNER_CALLBACK_INVALID" | "PARTNER_APPLICATION_INVALID" | "PARTNER_APPLICATION_RATE_LIMITED" | "PARTNER_APPLICATION_IDEMPOTENCY_REUSED" | "PARTNER_APPLICATION_NOT_FOUND" | "PARTNER_APPLICATION_TRANSITION_INVALID" | "PARTNER_APPLICATION_TERMINAL" | "PARTNER_APPLICATION_CHECKLIST_INCOMPLETE" | "PARTNER_APPLICATION_DUPLICATE" | "PARTNER_APPLICATION_CONSENT_REQUIRED" | "PARTNER_SOURCE_APPLICATION_NOT_APPROVED" | "PARTNER_ALREADY_CREATED" | "PARTNER_NOT_FOUND" | "PARTNER_TRANSITION_INVALID" | "PARTNER_HAS_ACTIVE_PRODUCTS" | "PARTNER_PRODUCT_NOT_FOUND" | "PARTNER_PRODUCT_INVALID" | "PARTNER_PRODUCT_SCOPE_INVALID" | "PARTNER_PRODUCT_TRANSITION_INVALID" | "PARTNER_PRODUCT_PARTNER_INACTIVE" | "PARTNER_PRODUCT_VERSION_STALE" | "PARTNER_PRODUCT_NOT_AVAILABLE" | "PARTNER_REFERRAL_PRODUCT_UNAVAILABLE" | "PARTNER_REFERRAL_NOT_FOUND" | "PARTNER_REFERRAL_PREVIEW_EXPIRED" | "PARTNER_REFERRAL_PREVIEW_STALE" | "PARTNER_REFERRAL_PREVIEW_ALREADY_USED" | "PARTNER_REFERRAL_CONSENT_REQUIRED" | "PARTNER_REFERRAL_DISCLOSURE_INVALID" | "PARTNER_REFERRAL_NOT_WITHDRAWABLE" | "PARTNER_REFERRAL_VERSION_STALE" | "PARTNER_REFERRAL_IDEMPOTENCY_REUSED" | "PARTNER_REFERRAL_RATE_LIMITED" | "PRIVACY_REQUEST_NOT_FOUND" | "PRIVACY_REFERRAL_NOT_FOUND" | "PRIVACY_REQUEST_DUPLICATE_OPEN" | "PRIVACY_REQUEST_TRANSITION_INVALID" | "PRIVACY_REQUEST_REASON_REQUIRED" | "PRIVACY_REQUEST_VERSION_STALE" | "PRIVACY_EXPORT_NOT_AVAILABLE" | "PRIVACY_POLICY_NOT_FOUND" | "PRIVACY_POLICY_INVALID" | "PRIVACY_POLICY_CHECKLIST_INCOMPLETE" | "PRIVACY_POLICY_TRANSITION_INVALID" | "PRIVACY_POLICY_IMMUTABLE" | "PRIVACY_POLICY_OVERLAP" | "PRIVACY_POLICY_VERSION_STALE" | "PRIVACY_HOLD_NOT_FOUND" | "PRIVACY_HOLD_ALREADY_RELEASED" | "PRIVACY_PREVIEW_NOT_FOUND" | "PRIVACY_PREVIEW_EXPIRED" | "PRIVACY_PREVIEW_STALE" | "PRIVACY_PREVIEW_ALREADY_USED" | "PRIVACY_PURGE_NOTHING_ELIGIBLE" | "PRIVACY_IDEMPOTENCY_REUSED" | "PRIVACY_RATE_LIMITED";
         /**
          * @description MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
          * @enum {string}
@@ -14463,6 +14831,346 @@ export interface components {
             referralId: string;
             events: components["schemas"]["PartnerReferralEvent"][];
         };
+        /**
+         * @description LAUNCH-001 (L7). The four requests an employee may make about only their own partner-referral data. A request is not a promise that it will be granted.
+         * @enum {string}
+         */
+        PrivacyRequestType: "ACCESS" | "ERASURE" | "RESTRICTION" | "OBJECTION";
+        /**
+         * @description LAUNCH-001 (L7). The closed request lifecycle. APPROVED, PARTIALLY_APPROVED and REFUSED are decisions taken by platform privacy operations; none of them deletes anything by itself.
+         * @enum {string}
+         */
+        PrivacyRequestState: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFORMATION_REQUIRED" | "APPROVED" | "PARTIALLY_APPROVED" | "REFUSED" | "COMPLETED" | "CANCELLED_BY_EMPLOYEE";
+        /**
+         * @description LAUNCH-001 (L7). The closed catalogue of reasons for a refusal or a partial approval.
+         * @enum {string}
+         */
+        PrivacyDecisionReason: "IDENTITY_NOT_VERIFIED" | "LEGAL_HOLD_ACTIVE" | "RETENTION_REQUIRED" | "POLICY_PENDING" | "REQUEST_OUT_OF_SCOPE" | "NO_MATCHING_DATA";
+        /**
+         * @description LAUNCH-001 (L3). The closed data classes of this increment; all belong to MVP-120F partner-referral data.
+         * @enum {string}
+         */
+        PrivacyDataClass: "PARTNER_REFERRAL_DISCLOSURE" | "PARTNER_REFERRAL_CONSENT" | "PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS" | "PARTNER_REFERRAL_LIFECYCLE_EVIDENCE";
+        /**
+         * @description LAUNCH-001 (L3). The closed retention actions. HOLD keeps the data until a later policy decides. LIFECYCLE_EVIDENCE supports HOLD and MINIMIZE only: the referral header and its lifecycle history are never deleted in this increment.
+         * @enum {string}
+         */
+        PrivacyAction: "HOLD" | "MINIMIZE" | "ERASE";
+        /**
+         * @description LAUNCH-001 (L3). The lifecycle event a duration counts from. REFERRAL_CLOSED is the instant the referral reached DELIVERED, DELIVERY_UNKNOWN or WITHDRAWN.
+         * @enum {string}
+         */
+        PrivacyLifecycleTrigger: "REFERRAL_CREATED" | "REFERRAL_CLOSED";
+        /**
+         * @description LAUNCH-001 (L3). The closed purposes a rule retains data for.
+         * @enum {string}
+         */
+        PrivacyPurpose: "CONSENTED_INTRODUCTION" | "CONSENT_EVIDENCE" | "DELIVERY_TRUTH" | "LIFECYCLE_EVIDENCE";
+        /**
+         * @description LAUNCH-001 (L4). The closed governance lifecycle. APPROVED means governance approval inside DivalHR, not a claim that a law firm, regulator or government approved DivalHR. Only ACTIVE stamps new decisions.
+         * @enum {string}
+         */
+        PrivacyPolicyState: "DRAFT" | "APPROVED" | "SCHEDULED" | "ACTIVE" | "RETIRED";
+        /**
+         * @description LAUNCH-001 (L6). The closed catalogue of hold reasons.
+         * @enum {string}
+         */
+        PrivacyHoldReason: "LEGAL_PROCEEDING" | "REGULATORY_REQUEST" | "DISPUTE" | "INVESTIGATION" | "OTHER_DOCUMENTED";
+        /**
+         * @description LAUNCH-001 (L9). Why a data class is not eligible in a purge preview.
+         * @enum {string}
+         */
+        PrivacyPurgeRefusal: "POLICY_PENDING" | "HOLD_ACTIVE" | "NOT_CLOSED" | "NOT_YET_ELIGIBLE" | "ACTION_NOT_PERMITTED" | "ALREADY_PURGED";
+        /** @description LAUNCH-001 (L7). The request type and, optionally, one of the caller's own referrals. No free text is accepted. */
+        CreatePrivacyRequest: {
+            requestType: components["schemas"]["PrivacyRequestType"];
+            referralId: string | null;
+        };
+        CancelPrivacyRequest: {
+            expectedVersion: number;
+        };
+        /** @description LAUNCH-001 (L7). One append-only history entry. No actor identity and no note. */
+        PrivacyRequestEvent: {
+            sequence: number;
+            fromState: components["schemas"]["PrivacyRequestState"] | null;
+            toState: components["schemas"]["PrivacyRequestState"];
+            reasonCode: components["schemas"]["PrivacyDecisionReason"] | null;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        /** @description LAUNCH-001 (L7, L10). The employee's own request. Operational notes are never present; employeeMessage is present only when the platform marked it as employee-facing. */
+        PrivacyRequestView: {
+            id: string;
+            requestType: components["schemas"]["PrivacyRequestType"];
+            referralId: string | null;
+            state: components["schemas"]["PrivacyRequestState"];
+            version: number;
+            decisionReason: components["schemas"]["PrivacyDecisionReason"] | null;
+            employeeMessage: string | null;
+            /** Format: date-time */
+            submittedAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            exportAvailable: boolean;
+            history: components["schemas"]["PrivacyRequestEvent"][];
+        };
+        PrivacyRequestPage: {
+            items: components["schemas"]["PrivacyRequestView"][];
+            nextCursor: string | null;
+        };
+        /** @description LAUNCH-001 (L8). One of the employee's own referrals. disclosedValues holds the employee's own values keyed by the allow-listed field name, or is null when the disclosure was minimized or erased. */
+        PrivacyAccessPackageReferral: {
+            referralId: string;
+            state: components["schemas"]["PartnerReferralState"];
+            /** Format: date-time */
+            createdAt: string;
+            partnerName: string;
+            productName: string;
+            fieldNames: components["schemas"]["PartnerReferralDisclosureField"][];
+            disclosedValues: {
+                [key: string]: string;
+            } | null;
+            /** @enum {string} */
+            disclosureStatus: "AVAILABLE" | "MINIMIZED" | "ERASED";
+            consent: {
+                wordingVersion: string;
+                language: components["schemas"]["PartnerReferralLanguage"];
+                /** Format: date-time */
+                consentedAt: string;
+            } | null;
+            delivery: {
+                attemptCount: number;
+                receiptConfirmed: boolean;
+            };
+            policy: {
+                /** @enum {string} */
+                status: "POLICY_PENDING" | "STAMPED";
+                countryCode: string | null;
+                wordingVersion: string | null;
+            };
+            legalHoldActive: boolean;
+            events: components["schemas"]["PartnerReferralEvent"][];
+        };
+        /** @description LAUNCH-001 (L8). The deterministic employee download. The same stored data always yields the same bytes: there is no generation time inside the package. manifest.sha256 is the SHA-256 of the canonical content (the referrals and the requests, with the manifest sha256 field empty) and equals the X-Content-SHA256 header of the download. */
+        PrivacyAccessPackage: {
+            manifest: {
+                /** @enum {string} */
+                format: "divalhr-privacy-access-package-1";
+                requestId: string;
+                referralCount: number;
+                sha256: string;
+            };
+            referrals: components["schemas"]["PrivacyAccessPackageReferral"][];
+            requests: {
+                id: string;
+                requestType: components["schemas"]["PrivacyRequestType"];
+                state: components["schemas"]["PrivacyRequestState"];
+                /** Format: date-time */
+                submittedAt: string;
+            }[];
+        };
+        /** @description LAUNCH-001 (L3). One rule for one data class. durationDays is required for MINIMIZE and ERASE and absent for HOLD. The duration is an operator-entered value; DivalHR supplies none. */
+        PrivacyPolicyRule: {
+            dataClass: components["schemas"]["PrivacyDataClass"];
+            purpose: components["schemas"]["PrivacyPurpose"];
+            action: components["schemas"]["PrivacyAction"];
+            trigger: components["schemas"]["PrivacyLifecycleTrigger"];
+            durationDays: number | null;
+        };
+        CreatePrivacyPolicy: {
+            countryCode: string;
+            wordingVersion: string;
+            sourceReference: string;
+            /** Format: date */
+            reviewDate: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            rules: components["schemas"]["PrivacyPolicyRule"][];
+        };
+        /** @description LAUNCH-001 (L4). The eight items that must all be true, with the review reference, before a version is APPROVED. */
+        PrivacyPolicyChecklist: {
+            jurisdictionIdentified: boolean;
+            sourceReferenceRecorded: boolean;
+            counselReviewRecorded: boolean;
+            dataClassesCovered: boolean;
+            lifecycleTriggerDefined: boolean;
+            durationsOrHoldSet: boolean;
+            employeeWordingVersionRecorded: boolean;
+            rollbackReviewComplete: boolean;
+            reviewReference: string | null;
+        };
+        PutPrivacyPolicyChecklist: {
+            expectedVersion: number;
+            checklist: components["schemas"]["PrivacyPolicyChecklist"];
+        };
+        TransitionPrivacyPolicy: {
+            expectedVersion: number;
+            toState: components["schemas"]["PrivacyPolicyState"];
+        };
+        /** @description LAUNCH-001 (L3, L4). A policy version. An ACTIVE or retired version is never edited. This is a governance record, not a claim of legal compliance or certification. */
+        PrivacyPolicyView: {
+            id: string;
+            countryCode: string;
+            state: components["schemas"]["PrivacyPolicyState"];
+            version: number;
+            wordingVersion: string;
+            sourceReference: string;
+            /** Format: date */
+            reviewDate: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string | null;
+            rules: components["schemas"]["PrivacyPolicyRule"][];
+            checklist: components["schemas"]["PrivacyPolicyChecklist"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PrivacyPolicyPage: {
+            items: components["schemas"]["PrivacyPolicyView"][];
+            nextCursor: string | null;
+        };
+        PrivacyPolicyEvent: {
+            sequence: number;
+            fromState: components["schemas"]["PrivacyPolicyState"] | null;
+            toState: components["schemas"]["PrivacyPolicyState"];
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        PrivacyPolicyHistory: {
+            policyId: string;
+            events: components["schemas"]["PrivacyPolicyEvent"][];
+        };
+        /** @description LAUNCH-001 (L6). A hold. The note is stored encrypted and never returned; noteRecorded says only whether one exists. */
+        PrivacyHoldView: {
+            id: string;
+            referralId: string;
+            reasonCode: components["schemas"]["PrivacyHoldReason"];
+            /** Format: date */
+            reviewDate: string;
+            externalReference: string | null;
+            noteRecorded: boolean;
+            /** @enum {string} */
+            state: "ACTIVE" | "RELEASED";
+            /** Format: date-time */
+            placedAt: string;
+            /** Format: date-time */
+            releasedAt: string | null;
+        };
+        PlacePrivacyHold: {
+            reasonCode: components["schemas"]["PrivacyHoldReason"];
+            /** Format: date */
+            reviewDate: string;
+            externalReference: string | null;
+            internalNote: string | null;
+        };
+        ReleasePrivacyHold: {
+            internalNote: string | null;
+        };
+        /** @description LAUNCH-001 (L7, L10). The masked operational view. The employee's contact is masked, no disclosed value is present, and the operational note is never returned (notePresent says only whether one exists). */
+        PlatformPrivacyRequest: {
+            id: string;
+            requestType: components["schemas"]["PrivacyRequestType"];
+            state: components["schemas"]["PrivacyRequestState"];
+            version: number;
+            /** Format: uuid */
+            organizationId: string;
+            referralId: string | null;
+            contactMasked: string;
+            decisionReason: components["schemas"]["PrivacyDecisionReason"] | null;
+            employeeMessage: string | null;
+            notePresent: boolean;
+            /** Format: date-time */
+            submittedAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            history: components["schemas"]["PrivacyRequestEvent"][];
+            holds: components["schemas"]["PrivacyHoldView"][];
+        };
+        PlatformPrivacyRequestPage: {
+            items: components["schemas"]["PlatformPrivacyRequest"][];
+            nextCursor: string | null;
+        };
+        TransitionPrivacyRequest: {
+            expectedVersion: number;
+            toState: components["schemas"]["PrivacyRequestState"];
+            reasonCode: components["schemas"]["PrivacyDecisionReason"] | null;
+            employeeMessage: string | null;
+            internalNote: string | null;
+        };
+        PreviewPrivacyPolicyApplication: {
+            countryCode: string;
+        };
+        PrivacyPolicyApplicationPreview: {
+            previewId: string;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            totalPending: number;
+            items: {
+                countryCode: string;
+                policyId: string;
+                pendingReferrals: number;
+            }[];
+        };
+        CommitPrivacyOperation: {
+            previewId: string;
+            previewDigest: string;
+        };
+        PrivacyPolicyApplicationResult: {
+            applicationId: string;
+            previewId: string;
+            applied: number;
+            /** Format: date-time */
+            completedAt: string;
+        };
+        PreviewPrivacyPurge: {
+            referralIds: string[];
+            /** @enum {string} */
+            action: "MINIMIZE" | "ERASE";
+        };
+        PrivacyPurgeClassDecision: {
+            dataClass: components["schemas"]["PrivacyDataClass"];
+            eligible: boolean;
+            refusal: components["schemas"]["PrivacyPurgeRefusal"] | null;
+        };
+        /** @description LAUNCH-001 (L9). What a confirmation would do, with no personal value. Nothing is changed by a preview. */
+        PrivacyPurgePreview: {
+            previewId: string;
+            previewDigest: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @enum {string} */
+            action: "MINIMIZE" | "ERASE";
+            eligibleClasses: number;
+            items: {
+                referralId: string;
+                classes: components["schemas"]["PrivacyPurgeClassDecision"][];
+                holdIds: string[];
+            }[];
+        };
+        /** @description LAUNCH-001 (L9). The immutable, value-free evidence of a purge: identifiers, classes, outcomes and row counts only. */
+        PrivacyPurgeResult: {
+            purgeId: string;
+            previewId: string;
+            /** @enum {string} */
+            action: "MINIMIZE" | "ERASE";
+            /** Format: date-time */
+            completedAt: string;
+            items: {
+                referralId: string;
+                classes: {
+                    dataClass: components["schemas"]["PrivacyDataClass"];
+                    /** @enum {string} */
+                    outcome: "PURGED" | "REFUSED";
+                    rows: number;
+                }[];
+            }[];
+        };
     };
     responses: {
         /** @description Missing, invalid or expired access token */
@@ -14827,6 +15535,16 @@ export interface components {
         PartnerReferralStateFilter: components["schemas"]["PartnerReferralState"];
         /** @description MVP-120F. Only referrals whose partner offers this category. Part of the cursor binding. */
         PartnerReferralCategoryFilter: components["schemas"]["PartnerCategory"];
+        /** @description LAUNCH-001. The opaque privacy request reference (PQ- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PRIVACY_REQUEST_NOT_FOUND. */
+        PrivacyRequestId: string;
+        /** @description LAUNCH-001. The opaque privacy policy version reference (PL- and sixteen characters). Malformed and unknown references give the same 404 PRIVACY_POLICY_NOT_FOUND. */
+        PrivacyPolicyId: string;
+        /** @description LAUNCH-001. The opaque hold reference (PH- and sixteen characters). Malformed, unknown and other-referral references give the same 404 PRIVACY_HOLD_NOT_FOUND. */
+        PrivacyHoldId: string;
+        /** @description LAUNCH-001. Only requests in this state. Part of the cursor binding. */
+        PrivacyRequestStateFilter: components["schemas"]["PrivacyRequestState"];
+        /** @description LAUNCH-001. Only requests of this type. Part of the cursor binding. */
+        PrivacyRequestTypeFilter: components["schemas"]["PrivacyRequestType"];
     };
     requestBodies: never;
     headers: {
@@ -27930,6 +28648,767 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["PrivilegedForbidden"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listMyPrivacyRequests: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the caller's requests */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createMyPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePrivacyRequest"];
+            };
+        };
+        responses: {
+            /** @description Submitted, or the original submission replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getMyPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy request reference (PQ- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PRIVACY_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["PrivacyRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    cancelMyPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy request reference (PQ- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PRIVACY_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["PrivacyRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPrivacyRequest"];
+            };
+        };
+        responses: {
+            /** @description Cancelled, or the original cancellation replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    downloadMyPrivacyAccessPackage: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy request reference (PQ- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PRIVACY_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["PrivacyRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The access package */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    /** @description Attachment with the fixed file name divalhr-privacy-access-package.json. */
+                    "Content-Disposition"?: string;
+                    /** @description SHA-256 of the response body, equal to manifest.sha256 of the package. */
+                    "X-Content-SHA256"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyAccessPackage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPlatformPrivacyPolicies: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of policy versions */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createPlatformPrivacyPolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePrivacyPolicy"];
+            };
+        };
+        responses: {
+            /** @description The DRAFT policy version, or the original one replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPlatformPrivacyPolicy: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy policy version reference (PL- and sixteen characters). Malformed and unknown references give the same 404 PRIVACY_POLICY_NOT_FOUND. */
+                policyId: components["parameters"]["PrivacyPolicyId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The policy version */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    putPlatformPrivacyPolicyChecklist: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy policy version reference (PL- and sixteen characters). Malformed and unknown references give the same 404 PRIVACY_POLICY_NOT_FOUND. */
+                policyId: components["parameters"]["PrivacyPolicyId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutPrivacyPolicyChecklist"];
+            };
+        };
+        responses: {
+            /** @description The updated version */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    transitionPlatformPrivacyPolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy policy version reference (PL- and sixteen characters). Malformed and unknown references give the same 404 PRIVACY_POLICY_NOT_FOUND. */
+                policyId: components["parameters"]["PrivacyPolicyId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransitionPrivacyPolicy"];
+            };
+        };
+        responses: {
+            /** @description The version after the transition */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPlatformPrivacyPolicyHistory: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy policy version reference (PL- and sixteen characters). Malformed and unknown references give the same 404 PRIVACY_POLICY_NOT_FOUND. */
+                policyId: components["parameters"]["PrivacyPolicyId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The history */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyHistory"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listPlatformPrivacyRequests: {
+        parameters: {
+            query?: {
+                /** @description Opaque, signed continuation token from a previous page's nextCursor. It is bound to the operation, tenant and filters that produced it; any other use returns CURSOR_INVALID. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Items per page (1-50, default 25). */
+                limit?: components["parameters"]["PartnerPageLimit"];
+                /** @description LAUNCH-001. Only requests in this state. Part of the cursor binding. */
+                state?: components["parameters"]["PrivacyRequestStateFilter"];
+                /** @description LAUNCH-001. Only requests of this type. Part of the cursor binding. */
+                type?: components["parameters"]["PrivacyRequestTypeFilter"];
+            };
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of requests */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformPrivacyRequestPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getPlatformPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy request reference (PQ- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PRIVACY_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["PrivacyRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request */
+            200: {
+                headers: {
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformPrivacyRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    transitionPlatformPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description LAUNCH-001. The opaque privacy request reference (PQ- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PRIVACY_REQUEST_NOT_FOUND. */
+                requestId: components["parameters"]["PrivacyRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransitionPrivacyRequest"];
+            };
+        };
+        responses: {
+            /** @description The request after the transition */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformPrivacyRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    placePlatformPrivacyHold: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description MVP-120F. The opaque referral reference (PR- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PARTNER_REFERRAL_NOT_FOUND. */
+                referralId: components["parameters"]["PartnerReferralId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacePrivacyHold"];
+            };
+        };
+        responses: {
+            /** @description The hold, or the original one replayed */
+            201: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyHoldView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    releasePlatformPrivacyHold: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /** @description MVP-120F. The opaque referral reference (PR- and sixteen characters). Malformed, unknown, foreign-tenant and other-employee references give the same 404 PARTNER_REFERRAL_NOT_FOUND. */
+                referralId: components["parameters"]["PartnerReferralId"];
+                /** @description LAUNCH-001. The opaque hold reference (PH- and sixteen characters). Malformed, unknown and other-referral references give the same 404 PRIVACY_HOLD_NOT_FOUND. */
+                holdId: components["parameters"]["PrivacyHoldId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleasePrivacyHold"];
+            };
+        };
+        responses: {
+            /** @description The released hold */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyHoldView"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewPlatformPrivacyPolicyApplication: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewPrivacyPolicyApplication"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyApplicationPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    commitPlatformPrivacyPolicyApplication: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitPrivacyOperation"];
+            };
+        };
+        responses: {
+            /** @description The application result, or the original one replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPolicyApplicationResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    previewPlatformPrivacyPurge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewPrivacyPurge"];
+            };
+        };
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPurgePreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    commitPlatformPrivacyPurge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key, scoped to the operation and the authenticated subject. Records are retained for at least 7 days and honoured until cleanup removes them; cleanup never removes a record before its retention boundary. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Optional caller-supplied ID (8-64 chars of A-Z a-z 0-9 . _ -); otherwise generated. */
+                "X-Correlation-Id"?: components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitPrivacyOperation"];
+            };
+        };
+        responses: {
+            /** @description The purge result, or the original one replayed */
+            200: {
+                headers: {
+                    "Idempotent-Replayed": components["headers"]["IdempotentReplayed"];
+                    "Cache-Control": components["headers"]["CacheControlPrivateNoStore"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyPurgeResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["PrivilegedForbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["ServiceUnavailable"];
         };

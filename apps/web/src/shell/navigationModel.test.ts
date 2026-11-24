@@ -11,6 +11,7 @@ const PLATFORM = [
   '/admin/partner-applications',
   '/admin/partners',
   '/admin/partner-referrals',
+  '/admin/privacy',
   '/admin/statutory-packs',
 ];
 const TENANT = [
@@ -55,6 +56,7 @@ const EMPLOYEE = [
   '/me/catalogue',
   '/me/partner-products',
   '/me/partner-requests',
+  '/me/privacy',
   '/me/leave',
   '/me/leave/approvals',
   '/me/tasks',
@@ -136,6 +138,8 @@ describe('navigation and route registry consistency', () => {
         '/me/partner-products/:productId',
         '/me/partner-requests',
         '/me/partner-requests/:referralId',
+        '/me/privacy',
+        '/admin/privacy',
         '/admin/partner-referrals',
         '/admin/partner-referrals/:referralId',
         '/admin/statutory-packs',
