@@ -73,7 +73,7 @@ My space gains "Partner offers", the product page, the exact preview with an ini
 | D120F-10 | `V57__rollback.sql` | `theRollbackRefusesOnceReferralsExistAndOtherwiseRestoresV56Exactly` |
 | Web and accessibility | `apps/web/src/features/partners/*Referral*` | `partner-referral.spec.ts` (two journeys, no retry), unit tests, axe at 320, 390 and 640 px |
 
-Mutation evidence (remove consent, widen disclosure, expose employer access, allow withdrawal after uncertain delivery, resend an uncertain referral) is recorded in section 9 once produced.
+Mutation evidence (remove consent, widen disclosure, expose employer access, allow withdrawal after uncertain delivery, resend an uncertain referral) is recorded in section 9.
 
 ## 8. Deviations and known limitations
 
@@ -86,7 +86,15 @@ Mutation evidence (remove consent, widen disclosure, expose employer access, all
 
 ## 9. Mutation evidence
 
-To be recorded with the focused gates (see the PR completion report).
+Each mutation was applied to the tracked source by `mutate-224.py`, the focused Core tests were run, a test failure (not a compile error) was required, and the source was restored. All five were killed.
+
+| Mutation | Change | Killed by |
+| --- | --- | --- |
+| Remove consent | the `if (!affirmed)` refusal in `ReferralSubmissions` is disabled | `PartnerReferralLifecycleIntegrationTest.withoutAnExplicitConsentNothingIsCreated` |
+| Widen disclosure | the organization legal name is always disclosed in `PartnerReferralDisclosures` | `PartnerReferralDiscoveryIntegrationTest.theAllowListedDisclosureIsExactAndShowsWhatIsNeverShared`, `PartnerReferralLifecycleIntegrationTest.aChangedExpiredOrReusedPreviewIsRefused`, `myReferralsAreListedNewestFirstWithAStatePagedCursor` |
+| Expose employer access | `@PlatformScoped` removed from the three platform referral operations | `PartnerReferralPlatformIntegrationTest.everyoneElseIsRefusedAndAnUnknownReferenceIsAnUnrevealingNotFound` |
+| Allow withdrawal after uncertain delivery | `DELIVERY_UNKNOWN` made withdrawable in `PartnerReferralService.withdrawable` | `PartnerReferralDeliveryIntegrationTest.anUncertainOrFailedSendIsNeverRepeatedAndCannotBeWithdrawn`, `PartnerReferralLifecycleIntegrationTest.aReferralCanBeWithdrawnOnceBeforeDeliveryAndNeverAfterwards` |
+| Resend an uncertain referral | an uncertain provider answer is retried like a certain non-delivery in `PartnerReferralDelivery` | `PartnerReferralDeliveryIntegrationTest.anUncertainOrFailedSendIsNeverRepeatedAndCannotBeWithdrawn` |
 
 ## 10. Deliberately not decided here
 
