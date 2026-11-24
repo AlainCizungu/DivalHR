@@ -154,6 +154,8 @@ test.describe('desktop', () => {
       'Présence de l’équipe',
       'Remplacements d’horaire',
       'Avantages et offres',
+      'Offres de partenaires',
+      'Mes demandes aux partenaires',
       'Mes congés',
       'Approbations de congé',
       'Mes tâches',
@@ -179,6 +181,7 @@ test.describe('desktop', () => {
       'First administrator',
       'Partner applications',
       'Partners',
+      'Partner referrals',
       'Statutory packs',
     ]);
     await expect(platform.getByTestId('home-card-status')).toBeVisible();
