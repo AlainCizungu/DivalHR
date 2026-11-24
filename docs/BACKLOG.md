@@ -537,6 +537,17 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **API.** Fifteen operations in `docs/API-SPEC.yaml` (twelve platform operations, three catalogue reads) and twelve new error codes; commands are idempotent and carry the version the caller saw; platform operations need a platform administrator with exact MFA.
 - **Not included:** any connection to a partner, applying or enrolling, eligibility decisions, pricing commitments, partner credentials or portal, notifications, uploads, a public directory, payroll deduction, and any change to Issues #173 and #211.
 
+### MVP-120F Employee partner-product discovery and consented referral
+
+**Issue #224. In review (PR pending); not merged, not deployed, no AWS verification run.** ADR 0045, migration V57.
+
+- **Outcome.** An employee reads the partner products available to their organization's country, reviews the exact fields that would be disclosed (twelve allow-listed, two optional), gives an explicit, initially unchecked consent and sends one referral. DivalHR records the referral and the truth about its delivery: `SUBMITTED`, `DELIVERY_PENDING`, `DELIVERED`, `DELIVERY_UNKNOWN`, `DELIVERY_FAILED` or `WITHDRAWN`. A referral is an introduction only.
+- **Boundary.** Delivery goes only to the in-process `SYNTHETIC-TEST` provider. No real partner, endpoint or credential exists, and no money moves. DivalHR decides no eligibility, price, coverage or credit, creates no payroll deduction, enrols nothing and accepts no partner decision or callback. Tenant administrators cannot see individual referrals; platform administrators (exact MFA) see a read-only queue with masked contact details.
+- **Safety.** A preview is stateless, expires after 15 minutes and is bound by a digest; commit and withdrawal are idempotent; a referral that is delivered or of uncertain delivery is never resent and cannot be withdrawn; withdrawal and delivery serialize on one lock. No automatic deletion; the V57 rollback refuses while any referral exists.
+- **API.** Ten operations (seven employee, three platform) and eleven `PARTNER_REFERRAL_*` error codes, English and French.
+- **Truth surfaces.** The public landing page and the role homes are unchanged on purpose; the commercial refresh is a separate pre-launch story.
+- **Not included:** a real partner connection, a partner decision or callback, eligibility, pricing, enrollment, notifications, retention or erasure, and any change to Issues #173 and #211.
+
 ## Epic 11 Dashboards and AI
 
 ### MVP-100 View operational status
