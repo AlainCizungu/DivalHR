@@ -199,6 +199,14 @@ divalhr:
       partner-account-read: ${DIVALHR_PARTNER_ACCOUNT_READ_REQUESTS_PER_MINUTE:60}
       partner-account-command: ${DIVALHR_PARTNER_ACCOUNT_COMMAND_REQUESTS_PER_MINUTE:10}
       catalogue-read: ${DIVALHR_CATALOGUE_READ_REQUESTS_PER_MINUTE:60}
+      # MVP-120F: consented partner referral (ADR 0045). Per subject per minute: discovery reads 60,
+      # previews 20, commits 5, withdrawals 10, platform reads 60. The hourly employee quotas (previews
+      # 20, commits 5, withdrawals 10) are enforced in the service.
+      partner-referral-read: ${DIVALHR_PARTNER_REFERRAL_READ_REQUESTS_PER_MINUTE:60}
+      partner-referral-preview: ${DIVALHR_PARTNER_REFERRAL_PREVIEW_REQUESTS_PER_MINUTE:20}
+      partner-referral-commit: ${DIVALHR_PARTNER_REFERRAL_COMMIT_REQUESTS_PER_MINUTE:5}
+      partner-referral-withdraw: ${DIVALHR_PARTNER_REFERRAL_WITHDRAW_REQUESTS_PER_MINUTE:10}
+      partner-referral-platform-read: ${DIVALHR_PARTNER_REFERRAL_PLATFORM_READ_REQUESTS_PER_MINUTE:60}
       # MVP-094C: payroll approval and payslips (ADR 0035, D94C-16). Per subject per minute: reads
       # 60, previews (approval and void) 5, commits (approval and void) 2, PDF downloads 30.
       payroll-package-read: ${DIVALHR_PAYROLL_PACKAGE_READ_REQUESTS_PER_MINUTE:60}

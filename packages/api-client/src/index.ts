@@ -65,6 +65,25 @@ export type CataloguePartner = CoreComponents['schemas']['CataloguePartner'];
 export type CataloguePartnerList = CoreComponents['schemas']['CataloguePartnerList'];
 export type CatalogueProduct = CoreComponents['schemas']['CatalogueProduct'];
 export type CatalogueProductPage = CoreComponents['schemas']['CatalogueProductPage'];
+/** MVP-120F: the employee's consented partner referral and the platform queue. */
+export type PartnerReferralState = CoreComponents['schemas']['PartnerReferralState'];
+export type PartnerReferralOutcome = CoreComponents['schemas']['PartnerReferralOutcome'];
+export type PartnerReferralLanguage = CoreComponents['schemas']['PartnerReferralLanguage'];
+export type PartnerReferralDisclosureField =
+  CoreComponents['schemas']['PartnerReferralDisclosureField'];
+export type PartnerReferralNeverShared = CoreComponents['schemas']['PartnerReferralNeverShared'];
+export type PartnerReferralPreviewRequest =
+  CoreComponents['schemas']['PartnerReferralPreviewRequest'];
+export type PartnerReferralPreview = CoreComponents['schemas']['PartnerReferralPreview'];
+export type PartnerReferralView = CoreComponents['schemas']['PartnerReferralView'];
+export type PartnerReferralSummary = CoreComponents['schemas']['PartnerReferralSummary'];
+export type PartnerReferralPage = CoreComponents['schemas']['PartnerReferralPage'];
+export type PartnerReferralProduct = CoreComponents['schemas']['PartnerReferralProduct'];
+export type PartnerReferralProductPage = CoreComponents['schemas']['PartnerReferralProductPage'];
+export type PartnerReferralEvent = CoreComponents['schemas']['PartnerReferralEvent'];
+export type PlatformPartnerReferral = CoreComponents['schemas']['PlatformPartnerReferral'];
+export type PlatformPartnerReferralPage = CoreComponents['schemas']['PlatformPartnerReferralPage'];
+export type PartnerReferralHistory = CoreComponents['schemas']['PartnerReferralHistory'];
 export type PartnerApplicationHistoryPage =
   CoreComponents['schemas']['PartnerApplicationHistoryPage'];
 export type PartnerApplicationCheckCommand =

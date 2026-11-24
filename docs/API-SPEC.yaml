@@ -16076,6 +16076,434 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /me/partner-products:
+    get:
+      operationId: listMyPartnerProducts
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Partner products I can ask to be referred to
+      description: >-
+        MVP-120F (D120F-1, D120F-2). Employees of an active membership only; tenant administrators use the information-only
+        catalogue. Only the latest ACTIVE version of products of an approved, activated (ACTIVE) partner that are currently
+        effective (UTC), available in the caller's organization country and not paused, retired, future-dated or otherwise
+        unavailable. Optional filter by product type; a keyset page (default 25, maximum 50) whose opaque signed cursor is
+        bound to the operation, tenant, caller and filter. Each item is the safe catalogue product, the partner categories and
+        referralOpen=true. When the organization has no reliable country the list is empty and availability is
+        ORGANIZATION_COUNTRY_UNKNOWN. Nothing about the employee is read or shared by this call. At most 120 reads per subject
+        per hour (PARTNER_REFERRAL_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CatalogueProductTypeFilter"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The result
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralProductPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/partner-products/{productId}:
+    get:
+      operationId: getMyPartnerProduct
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: One partner product I can ask to be referred to
+      description: >-
+        MVP-120F (D120F-1). The productId is the opaque public product reference (PP- and sixteen characters), never a database
+        identifier. An unknown, malformed, ineligible, not yet effective, expired, paused, retired, unpublished, foreign-tenant
+        or foreign-country product is the same 404 PARTNER_REFERRAL_PRODUCT_UNAVAILABLE, so the response reveals nothing about a
+        product that is not available. The same rate bucket as the list. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReferralProductId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The product
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralProduct"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/partner-referrals/preview:
+    post:
+      operationId: previewMyPartnerReferral
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Preview exactly what a referral would disclose
+      description: >-
+        MVP-120F (D120F-3, D120F-4). Stateless and read-only: nothing is stored, no outbound call is made and no personal value
+        is logged, audited or put in a URL. Returns every field that would be disclosed with its value, its source and its
+        purpose, the closed list of categories that are never shared, the consent wording version (PR-REFERRAL-1) and a
+        previewDigest valid for 15 minutes. The digest binds the employee, organization, product version, partner, every
+        disclosed value, the language and the consent wording version, so any later change makes the preview stale. The phone
+        number and the organization legal name are disclosed only when the employee includes them (includePhone,
+        includeOrganizationName). Blockers (for example the employee has no verified membership email) are returned instead of a
+        digest. An unavailable product is 404 PARTNER_REFERRAL_PRODUCT_UNAVAILABLE. At most 20 previews per employee per hour
+        (PARTNER_REFERRAL_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerReferralPreviewRequest"
+      responses:
+        "200":
+          description: The preview
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/partner-referrals:
+    post:
+      operationId: submitMyPartnerReferral
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Submit a consented referral
+      description: >-
+        MVP-120F (D120F-3 to D120F-9). Repeats the preview inputs with the previewDigest and expiresAt of a fresh preview and
+        the explicit, never pre-checked affirmation of the consent wording (PR-REFERRAL-1). One transaction recomputes the
+        disclosure, refuses an expired preview (409 PARTNER_REFERRAL_PREVIEW_EXPIRED) or a stale one (409
+        PARTNER_REFERRAL_PREVIEW_STALE), refuses a missing affirmation (422 PARTNER_REFERRAL_CONSENT_REQUIRED), stores the
+        referral (SUBMITTED), the immutable encrypted disclosure manifest, the consent evidence and the first history event,
+        and writes one audit record and one outbox event carrying identifiers, state, disclosure field names and digests
+        only. Delivery is asynchronous to the controlled SYNTHETIC-TEST provider. Requires an Idempotency-Key: the same key
+        and request replay the stored response exactly, with no revalidation and no outbound access; the same key with a
+        different request is 409 PARTNER_REFERRAL_IDEMPOTENCY_REUSED; concurrent commits of one preview create one referral
+        (the loser is 409 PARTNER_REFERRAL_PREVIEW_ALREADY_USED). At most 5 per employee per hour
+        (PARTNER_REFERRAL_RATE_LIMITED, Retry-After). No status of a referral means approved, eligible, insured, enrolled,
+        activated, financed, disbursed or paid. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitPartnerReferral"
+      responses:
+        "201":
+          description: Submitted, or the original submission replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: listMyPartnerReferrals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: List my partner requests
+      description: >-
+        MVP-120F (D120F-5). Only the caller's own referrals, newest first, keyset-paginated (default 25, maximum 50; the
+        cursor is opaque, signed and bound to the operation, tenant, caller and filter, and carries no personal value). Optional
+        filter by state. Employer administrators, managers, approvers and other employees have no access and receive no
+        notification. Disclosed values are never returned: only field names. The same read bucket as the catalogue.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReferralStateFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of the caller's referrals
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/partner-referrals/{referralId}:
+    get:
+      operationId: getMyPartnerReferral
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Read one of my partner requests and its history
+      description: >-
+        MVP-120F (D120F-5, D120F-6). Only the owning employee. The referralId is the opaque PR- reference. An unknown,
+        malformed, foreign-tenant or other-employee reference is the same 404 PARTNER_REFERRAL_NOT_FOUND. The view carries
+        the lifecycle state, the append-only history, the names of the disclosed fields and the truthful notice; never a
+        disclosed value, a partner internal or an attempt diagnostic. The same read bucket as the catalogue.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReferralId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The referral
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /me/partner-referrals/{referralId}/withdraw:
+    post:
+      operationId: withdrawMyPartnerReferral
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: tenant
+      x-divalhr-required-role: employee
+      summary: Withdraw my referral before the partner has received it
+      description: >-
+        MVP-120F (D120F-6, D120F-9). SUBMITTED, DELIVERY_PENDING and DELIVERY_FAILED (a terminal, proven non-delivery) to
+        WITHDRAWN, by the owning employee only. DELIVERED and DELIVERY_UNKNOWN are never withdrawable (409
+        PARTNER_REFERRAL_NOT_WITHDRAWABLE): the partner has or may have received the referral, and shared data is never
+        pretended erased. A stale expectedVersion is 409 PARTNER_REFERRAL_VERSION_STALE. Withdrawal takes the same row lock as
+        the delivery claim, so a referral can never be both delivered and withdrawn. Requires expectedVersion, confirmed=true
+        and an Idempotency-Key (the same key replays the stored response). At most 10 per employee per hour
+        (PARTNER_REFERRAL_RATE_LIMITED, Retry-After). Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReferralId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawPartnerReferral"
+      responses:
+        "200":
+          description: Withdrawn, or the original withdrawal replayed
+          headers:
+            Idempotent-Replayed:
+              $ref: "#/components/headers/IdempotentReplayed"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-referrals:
+    get:
+      operationId: listPlatformPartnerReferrals
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Operational queue of partner referrals
+      description: >-
+        MVP-120F (D120F-5). Platform administrators with exact MFA only; tenant administrators and employees have no access
+        (403, and no navigation or route). Operational status only: reference, partner, product type, categories, the
+        organization identifier, state, version and timestamps, with the employee's contact fields masked and no name, no
+        free-form personal data and no disclosed value. Filters: state and category; a keyset page (default 25, maximum 50)
+        with an opaque signed cursor bound to the operation and filters. Read-only: there is no approval, edit, resend, status
+        override or deletion. At most 60 reads per platform administrator per minute. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReferralStateFilter"
+        - $ref: "#/components/parameters/PartnerReferralCategoryFilter"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/PartnerPageLimit"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: A page of referrals
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformPartnerReferralPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-referrals/{referralId}:
+    get:
+      operationId: getPlatformPartnerReferral
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: One partner referral, operational view
+      description: >-
+        MVP-120F (D120F-5). Platform administrators with exact MFA only. The same masked operational shape as the queue plus
+        the delivery outcome code and attempt count. An unknown or malformed reference is 404 PARTNER_REFERRAL_NOT_FOUND. The
+        read is audited by reference. The same bucket as the queue. Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReferralId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The referral
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformPartnerReferral"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /platform/partner-referrals/{referralId}/history:
+    get:
+      operationId: listPlatformPartnerReferralHistory
+      x-divalhr-lifecycle: implemented
+      x-divalhr-scope: platform
+      x-divalhr-required-role: platform-admin
+      x-divalhr-required-assurance: mfa
+      summary: Append-only history of one partner referral
+      description: >-
+        MVP-120F (D120F-5, D120F-6). Platform administrators with exact MFA only. The append-only lifecycle events in order
+        (sequence, from and to state, actor role, bounded outcome code, instant). No actor identity, no disclosed value and no
+        free text. An unknown or malformed reference is 404 PARTNER_REFERRAL_NOT_FOUND. The same bucket as the queue.
+        Cache-Control private, no-store.
+      tags: [partners]
+      parameters:
+        - $ref: "#/components/parameters/PartnerReferralId"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The history
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlPrivateNoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerReferralHistory"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/PrivilegedForbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     oauth2:
@@ -17276,6 +17704,38 @@ components:
       schema:
         type: string
         maxLength: 32
+    PartnerReferralProductId:
+      name: productId
+      in: path
+      required: true
+      description: >-
+        MVP-120F. The opaque public product reference (PP- and sixteen characters). Malformed, unknown and unavailable
+        references give the same 404 PARTNER_REFERRAL_PRODUCT_UNAVAILABLE.
+      schema:
+        type: string
+        maxLength: 32
+    PartnerReferralId:
+      name: referralId
+      in: path
+      required: true
+      description: >-
+        MVP-120F. The opaque referral reference (PR- and sixteen characters). Malformed, unknown, foreign-tenant and
+        other-employee references give the same 404 PARTNER_REFERRAL_NOT_FOUND.
+      schema:
+        type: string
+        maxLength: 32
+    PartnerReferralStateFilter:
+      name: state
+      in: query
+      description: MVP-120F. Only referrals in this lifecycle state. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerReferralState"
+    PartnerReferralCategoryFilter:
+      name: category
+      in: query
+      description: MVP-120F. Only referrals whose partner offers this category. Part of the cursor binding.
+      schema:
+        $ref: "#/components/schemas/PartnerCategory"
   schemas:
     AccessReviewLookup:
       type: object
@@ -24206,6 +24666,17 @@ components:
         - PARTNER_PRODUCT_PARTNER_INACTIVE
         - PARTNER_PRODUCT_VERSION_STALE
         - PARTNER_PRODUCT_NOT_AVAILABLE
+        - PARTNER_REFERRAL_PRODUCT_UNAVAILABLE
+        - PARTNER_REFERRAL_NOT_FOUND
+        - PARTNER_REFERRAL_PREVIEW_EXPIRED
+        - PARTNER_REFERRAL_PREVIEW_STALE
+        - PARTNER_REFERRAL_PREVIEW_ALREADY_USED
+        - PARTNER_REFERRAL_CONSENT_REQUIRED
+        - PARTNER_REFERRAL_DISCLOSURE_INVALID
+        - PARTNER_REFERRAL_NOT_WITHDRAWABLE
+        - PARTNER_REFERRAL_VERSION_STALE
+        - PARTNER_REFERRAL_IDEMPOTENCY_REUSED
+        - PARTNER_REFERRAL_RATE_LIMITED
     WhatsAppNotificationType:
       type: string
       description: MVP-111. The closed notification catalogue. CONNECTOR_TEST is the administrator's test message and is never selectable by a recipient.
@@ -34357,3 +34828,545 @@ components:
           $ref: "#/components/schemas/CatalogueAvailability"
         informationOnly:
           type: boolean
+    PartnerReferralState:
+      type: string
+      description: >-
+        MVP-120F (D120F-6). The closed append-only lifecycle. No state means approved, eligible, insured, enrolled, activated,
+        financed, disbursed or paid. DELIVERED means only that the synthetic provider acknowledged receipt of the referral.
+        SUBMITTED, DELIVERY_PENDING and DELIVERY_FAILED can be withdrawn; DELIVERED and DELIVERY_UNKNOWN cannot.
+      enum: [SUBMITTED, DELIVERY_PENDING, DELIVERED, DELIVERY_UNKNOWN, DELIVERY_FAILED, WITHDRAWN]
+    PartnerReferralLanguage:
+      type: string
+      description: MVP-120F. The employee's preferred language, disclosed with the referral.
+      enum: [en, fr]
+    PartnerReferralDisclosureField:
+      type: string
+      description: >-
+        MVP-120F (D120F-4). The closed allow-list of fields a referral may disclose. EMPLOYEE_PHONE and ORGANIZATION_LEGAL_NAME
+        appear only when the employee included them. There is no wildcard and no all-employee-data value.
+      enum:
+        - REFERRAL_REFERENCE
+        - PRODUCT_REFERENCE
+        - PRODUCT_NAME
+        - PARTNER_NAME
+        - EMPLOYEE_LEGAL_NAME
+        - EMPLOYEE_EMAIL
+        - EMPLOYEE_PHONE
+        - EMPLOYEE_COUNTRY
+        - PREFERRED_LANGUAGE
+        - ORGANIZATION_LEGAL_NAME
+        - CONSENT_TIMESTAMP
+        - CONSENT_VERSION
+    PartnerReferralFieldSource:
+      type: string
+      enum: [DIVALHR_GENERATED, CATALOGUE, EMPLOYEE_RECORD, VERIFIED_MEMBERSHIP, EMPLOYEE_ENTERED, ORGANIZATION_RECORD, CONSENT_EVIDENCE]
+    PartnerReferralFieldPurpose:
+      type: string
+      enum: [ROUTE_REFERRAL, SELECT_PRODUCT, IDENTIFY_EMPLOYEE, CONTACT_EMPLOYEE, LOCALIZE_CONTACT, IDENTIFY_ORGANIZATION, EVIDENCE_CONSENT]
+    PartnerReferralNeverShared:
+      type: string
+      description: MVP-120F (D120F-4). The closed list of categories a referral never discloses, shown to the employee.
+      enum:
+        - SALARY
+        - COMPENSATION
+        - PAYROLL
+        - ATTENDANCE
+        - LEAVE
+        - PERFORMANCE
+        - DOCUMENTS
+        - NATIONAL_IDENTIFIERS
+        - BANK_OR_MOBILE_MONEY_DETAILS
+        - DEDUCTIONS
+        - CREDIT_HISTORY
+        - MEDICAL_INFORMATION
+        - DEPENDANTS
+        - MANAGER
+        - SITE
+        - COST_CENTRE
+        - EMPLOYMENT_HISTORY
+    PartnerReferralBlocker:
+      type: string
+      description: MVP-120F. Why a preview carries no digest (a required field cannot be produced).
+      enum: [MEMBERSHIP_EMAIL_UNAVAILABLE, EMPLOYEE_COUNTRY_UNKNOWN, EMPLOYEE_LEGAL_NAME_UNAVAILABLE, PHONE_REQUIRED]
+    PartnerReferralOutcome:
+      type: string
+      description: MVP-120F (D120F-6, D120F-7). The bounded delivery outcome code. Never a partner decision.
+      enum:
+        - PROVIDER_ACKNOWLEDGED
+        - NOT_SENT_RETRYING
+        - REJECTED_BY_PROVIDER
+        - RETRIES_EXHAUSTED
+        - UNCERTAIN_NOT_RESENT
+        - WITHDRAWN_BEFORE_DELIVERY
+    PartnerReferralNotice:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-8). Always present and always true: a referral is a consented introduction only. DivalHR decides no
+        eligibility, underwriting, price, coverage or credit, calculates no amount, creates no payroll deduction, enrols no
+        insurance or benefit, activates no product and moves no money. Rendered in English and French by the client.
+      required: [referralOnly, noDecision, noMoneyMovement]
+      properties:
+        referralOnly:
+          type: boolean
+          const: true
+        noDecision:
+          type: boolean
+          const: true
+        noMoneyMovement:
+          type: boolean
+          const: true
+    PartnerReferralProduct:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-1, D120F-2). An eligible product with its partner categories. Identical for every category: a category
+        may change the explanatory copy, never the disclosed data.
+      required: [product, categories, referralOpen]
+      properties:
+        product:
+          $ref: "#/components/schemas/CatalogueProduct"
+        categories:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        referralOpen:
+          type: boolean
+          const: true
+    PartnerReferralProductPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor, availability]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerReferralProduct"
+        nextCursor:
+          type: [string, "null"]
+        availability:
+          $ref: "#/components/schemas/CatalogueAvailability"
+    PartnerReferralPreviewRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-3, D120F-4). phone is required when includePhone is true and must be null otherwise. The phone number
+        is the only value the employee types; everything else is read from the verified employee, membership and organization
+        records.
+      required: [productId, language, includePhone, phone, includeOrganizationName]
+      properties:
+        productId:
+          type: string
+          pattern: "^PP-[0-9A-HJKMNP-TV-Z]{16}$"
+        language:
+          $ref: "#/components/schemas/PartnerReferralLanguage"
+        includePhone:
+          type: boolean
+        phone:
+          type: [string, "null"]
+          pattern: "^\\+[1-9][0-9]{6,14}$"
+          maxLength: 16
+        includeOrganizationName:
+          type: boolean
+    PartnerReferralDisclosedValue:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-4). One field that would be disclosed. value is null only for fields DivalHR assigns at submission
+        (the referral reference and the consent timestamp).
+      required: [field, source, purpose, value, assignedAtSubmission]
+      properties:
+        field:
+          $ref: "#/components/schemas/PartnerReferralDisclosureField"
+        source:
+          $ref: "#/components/schemas/PartnerReferralFieldSource"
+        purpose:
+          $ref: "#/components/schemas/PartnerReferralFieldPurpose"
+        value:
+          type: [string, "null"]
+          maxLength: 320
+        assignedAtSubmission:
+          type: boolean
+    PartnerReferralConsentDocument:
+      type: object
+      additionalProperties: false
+      description: MVP-120F. The consent wording version the employee affirms. The wording itself is localized by the client.
+      required: [version, language]
+      properties:
+        version:
+          type: string
+          enum: [PR-REFERRAL-1]
+        language:
+          $ref: "#/components/schemas/PartnerReferralLanguage"
+    PartnerReferralPreview:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-3, D120F-4). Exactly what would be disclosed. previewDigest and expiresAt are null while blockers is
+        not empty. The digest is valid for 15 minutes and binds the employee, organization, product version, partner, every
+        disclosed value, the language and the consent version.
+      required:
+        - productId
+        - partnerDisplayName
+        - productType
+        - categories
+        - language
+        - consent
+        - fields
+        - neverShared
+        - blockers
+        - previewDigest
+        - expiresAt
+        - notice
+      properties:
+        productId:
+          type: string
+        partnerDisplayName:
+          type: string
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        categories:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        language:
+          $ref: "#/components/schemas/PartnerReferralLanguage"
+        consent:
+          $ref: "#/components/schemas/PartnerReferralConsentDocument"
+        fields:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/PartnerReferralDisclosedValue"
+        neverShared:
+          type: array
+          maxItems: 17
+          items:
+            $ref: "#/components/schemas/PartnerReferralNeverShared"
+        blockers:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/PartnerReferralBlocker"
+        previewDigest:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+        notice:
+          $ref: "#/components/schemas/PartnerReferralNotice"
+    PartnerReferralConsentAffirmation:
+      type: object
+      additionalProperties: false
+      description: MVP-120F (D120F-3). Never pre-checked; affirmed must be true.
+      required: [version, affirmed]
+      properties:
+        version:
+          type: string
+          enum: [PR-REFERRAL-1]
+        affirmed:
+          type: boolean
+    SubmitPartnerReferral:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-3). The preview inputs, repeated, with the digest and expiry of the preview the employee confirmed.
+        The server recomputes the disclosure from the inputs and refuses any difference.
+      required: [productId, language, includePhone, phone, includeOrganizationName, previewDigest, expiresAt, consent]
+      properties:
+        productId:
+          type: string
+          pattern: "^PP-[0-9A-HJKMNP-TV-Z]{16}$"
+        language:
+          $ref: "#/components/schemas/PartnerReferralLanguage"
+        includePhone:
+          type: boolean
+        phone:
+          type: [string, "null"]
+          pattern: "^\\+[1-9][0-9]{6,14}$"
+          maxLength: 16
+        includeOrganizationName:
+          type: boolean
+        previewDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        expiresAt:
+          type: string
+          format: date-time
+        consent:
+          $ref: "#/components/schemas/PartnerReferralConsentAffirmation"
+    WithdrawPartnerReferral:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion, confirmed]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          maximum: 64
+        confirmed:
+          type: boolean
+          description: Must be true.
+    PartnerReferralEvent:
+      type: object
+      additionalProperties: false
+      description: MVP-120F (D120F-6). One append-only lifecycle event. No actor identity and no free text.
+      required: [sequence, fromState, toState, actorRole, outcome, occurredAt]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+          maximum: 64
+        fromState:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerReferralState"
+            - type: "null"
+        toState:
+          $ref: "#/components/schemas/PartnerReferralState"
+        actorRole:
+          type: string
+          enum: [EMPLOYEE, SYSTEM]
+        outcome:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerReferralOutcome"
+            - type: "null"
+        occurredAt:
+          type: string
+          format: date-time
+    PartnerReferralSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - referralId
+        - state
+        - version
+        - withdrawable
+        - productId
+        - productName
+        - partnerDisplayName
+        - productType
+        - categories
+        - createdAt
+        - updatedAt
+      properties:
+        referralId:
+          type: string
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        state:
+          $ref: "#/components/schemas/PartnerReferralState"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 64
+        withdrawable:
+          type: boolean
+        productId:
+          type: string
+        productName:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        partnerDisplayName:
+          type: string
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        categories:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PartnerReferralView:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-5, D120F-6, D120F-8). The employee's own referral. Disclosed values are never returned, only the names
+        of the fields that were disclosed and the consent wording version. The notice is always present.
+      required:
+        - referralId
+        - state
+        - version
+        - withdrawable
+        - productId
+        - productName
+        - partnerDisplayName
+        - productType
+        - categories
+        - language
+        - createdAt
+        - updatedAt
+        - lastOutcome
+        - consentVersion
+        - disclosedFields
+        - events
+        - notice
+      properties:
+        referralId:
+          type: string
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        state:
+          $ref: "#/components/schemas/PartnerReferralState"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 64
+        withdrawable:
+          type: boolean
+        productId:
+          type: string
+        productName:
+          $ref: "#/components/schemas/PartnerBilingualText"
+        partnerDisplayName:
+          type: string
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        categories:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        language:
+          $ref: "#/components/schemas/PartnerReferralLanguage"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastOutcome:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerReferralOutcome"
+            - type: "null"
+        consentVersion:
+          type: string
+          enum: [PR-REFERRAL-1]
+        disclosedFields:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/PartnerReferralDisclosureField"
+        events:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PartnerReferralEvent"
+        notice:
+          $ref: "#/components/schemas/PartnerReferralNotice"
+    PartnerReferralPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PartnerReferralSummary"
+        nextCursor:
+          type: [string, "null"]
+    PlatformPartnerReferralContact:
+      type: object
+      additionalProperties: false
+      description: >-
+        MVP-120F (D120F-5). The employee's contact fields, masked (for example a***@example.test and +243*****789). No name and
+        no free text.
+      required: [emailMasked, phoneMasked]
+      properties:
+        emailMasked:
+          type: string
+          maxLength: 320
+        phoneMasked:
+          type: [string, "null"]
+          maxLength: 32
+    PlatformPartnerReferral:
+      type: object
+      additionalProperties: false
+      description: MVP-120F (D120F-5). The operational view. Read-only; nothing here can be approved, edited, resent or deleted.
+      required:
+        - referralId
+        - organizationId
+        - partnerDisplayName
+        - productType
+        - categories
+        - state
+        - version
+        - createdAt
+        - updatedAt
+        - lastOutcome
+        - attemptCount
+        - contact
+      properties:
+        referralId:
+          type: string
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        organizationId:
+          type: string
+          format: uuid
+        partnerDisplayName:
+          type: string
+        productType:
+          $ref: "#/components/schemas/PartnerProductType"
+        categories:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/PartnerCategory"
+        state:
+          $ref: "#/components/schemas/PartnerReferralState"
+        version:
+          type: integer
+          minimum: 1
+          maximum: 64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastOutcome:
+          oneOf:
+            - $ref: "#/components/schemas/PartnerReferralOutcome"
+            - type: "null"
+        attemptCount:
+          type: integer
+          minimum: 0
+          maximum: 24
+        contact:
+          $ref: "#/components/schemas/PlatformPartnerReferralContact"
+    PlatformPartnerReferralPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PlatformPartnerReferral"
+        nextCursor:
+          type: [string, "null"]
+    PartnerReferralHistory:
+      type: object
+      additionalProperties: false
+      required: [referralId, events]
+      properties:
+        referralId:
+          type: string
+          pattern: "^PR-[0-9A-HJKMNP-TV-Z]{16}$"
+        events:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PartnerReferralEvent"

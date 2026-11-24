@@ -941,7 +941,29 @@ public enum ErrorCode {
   /** MVP-120E: stale expected version or row version. */
   PARTNER_PRODUCT_VERSION_STALE(HttpStatus.CONFLICT),
   /** MVP-120E: uniform catalogue 404. */
-  PARTNER_PRODUCT_NOT_AVAILABLE(HttpStatus.NOT_FOUND);
+  PARTNER_PRODUCT_NOT_AVAILABLE(HttpStatus.NOT_FOUND),
+  /** MVP-120F: uniform 404 for an unknown, foreign or unavailable product. */
+  PARTNER_REFERRAL_PRODUCT_UNAVAILABLE(HttpStatus.NOT_FOUND),
+  /** MVP-120F: uniform 404 for an unknown, foreign or other-employee referral. */
+  PARTNER_REFERRAL_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** MVP-120F: the preview is older than fifteen minutes. */
+  PARTNER_REFERRAL_PREVIEW_EXPIRED(HttpStatus.CONFLICT),
+  /** MVP-120F: something changed since the preview. */
+  PARTNER_REFERRAL_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** MVP-120F: the preview already produced a referral. */
+  PARTNER_REFERRAL_PREVIEW_ALREADY_USED(HttpStatus.CONFLICT),
+  /** MVP-120F: the consent was not affirmed. */
+  PARTNER_REFERRAL_CONSENT_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** MVP-120F: the disclosure inputs are not valid. */
+  PARTNER_REFERRAL_DISCLOSURE_INVALID(HttpStatus.BAD_REQUEST),
+  /** MVP-120F: the partner has or may have received the referral. */
+  PARTNER_REFERRAL_NOT_WITHDRAWABLE(HttpStatus.CONFLICT),
+  /** MVP-120F: stale expected version. */
+  PARTNER_REFERRAL_VERSION_STALE(HttpStatus.CONFLICT),
+  /** MVP-120F: the idempotency key was used with a different request. */
+  PARTNER_REFERRAL_IDEMPOTENCY_REUSED(HttpStatus.CONFLICT),
+  /** MVP-120F: too many referral requests. */
+  PARTNER_REFERRAL_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS);
 
   private final HttpStatus status;
 

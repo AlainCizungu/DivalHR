@@ -75,6 +75,12 @@ import { PartnerAccountDetailPage } from '../features/partners/PartnerAccountDet
 import { PartnerAccountsPage } from '../features/partners/PartnerAccountsPage';
 import { PartnerProductPage } from '../features/partners/PartnerProductPage';
 import { PartnerApplyPage } from '../features/partners/PartnerApplyPage';
+import { MyReferralDetailPage } from '../features/partners/MyReferralDetailPage';
+import { MyReferralsPage } from '../features/partners/MyReferralsPage';
+import { PartnerProductReferralPage } from '../features/partners/PartnerProductReferralPage';
+import { PartnerProductsPage } from '../features/partners/PartnerProductsPage';
+import { PlatformReferralDetailPage } from '../features/partners/PlatformReferralDetailPage';
+import { PlatformReferralsPage } from '../features/partners/PlatformReferralsPage';
 import { StatusPage } from '../features/status/StatusPage';
 import { UsersPage } from '../features/users/UsersPage';
 
@@ -204,6 +210,66 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'catalogue.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myCatalogue' }],
+  },
+  {
+    path: '/me/partner-products',
+    element: <PartnerProductsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'referrals.employee.unauthorized',
+      signInKey: 'referrals.employee.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myPartnerProducts' }],
+  },
+  {
+    path: '/me/partner-products/:productId',
+    element: <PartnerProductReferralPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'referrals.employee.unauthorized',
+      signInKey: 'referrals.employee.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myPartnerProducts', to: '/me/partner-products' }],
+  },
+  {
+    path: '/me/partner-requests',
+    element: <MyReferralsPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'referrals.employee.unauthorized',
+      signInKey: 'referrals.employee.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myPartnerRequests' }],
+  },
+  {
+    path: '/me/partner-requests/:referralId',
+    element: <MyReferralDetailPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'referrals.employee.unauthorized',
+      signInKey: 'referrals.employee.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myPartnerRequests', to: '/me/partner-requests' }],
+  },
+  {
+    path: '/admin/partner-referrals',
+    element: <PlatformReferralsPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'referrals.platform.unauthorized',
+      signInKey: 'referrals.platform.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.partnerReferrals' }],
+  },
+  {
+    path: '/admin/partner-referrals/:referralId',
+    element: <PlatformReferralDetailPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'referrals.platform.unauthorized',
+      signInKey: 'referrals.platform.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.partnerReferrals', to: '/admin/partner-referrals' }],
   },
   {
     path: '/admin/statutory-packs',

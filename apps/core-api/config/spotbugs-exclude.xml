@@ -18,6 +18,17 @@
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     <Class name="~com\.divalhr\.core\.integrations\.partner\.PartnerApplication(Bodies|Repository)\$.*"/>
   </Match>
+  <!-- MVP-120F: the referral request parser returns null for an absent or malformed flag (a third state next to true and false); the null is always rejected with a field error before use. -->
+  <Match>
+    <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+    <Class name="com.divalhr.core.integrations.partner.referral.ReferralCommands"/>
+    <Method name="bool"/>
+  </Match>
+  <!-- MVP-120F: the referral request and response carriers and the sealed-row holder are immutable data holders built from fresh lists and arrays for one call. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.integrations\.partner\.referral\.(PartnerReferralBodies|PlatformReferralBodies|PlatformReferralStore|PartnerReferralRecorder)\$.*"/>
+  </Match>
   <!-- Spring beans intentionally hold injected collaborators (constructor injection). -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP2"/>
@@ -73,6 +84,12 @@
       <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerCatalogueService"/>
       <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerAccountController"/>
       <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerCatalogueController"/>
+      <!-- MVP-120F: the consented-referral services, controller, recorder and delivery worker hold injected singletons. -->
+      <Class name="com.divalhr.core.integrations.partner.referral.PartnerReferralService"/>
+      <Class name="com.divalhr.core.integrations.partner.referral.PlatformReferralService"/>
+      <Class name="com.divalhr.core.integrations.partner.referral.MyPartnerReferralController"/>
+      <Class name="com.divalhr.core.integrations.partner.referral.PartnerReferralRecorder"/>
+      <Class name="com.divalhr.core.integrations.partner.referral.PartnerReferralDelivery"/>
       <Class name="com.divalhr.core.identity.application.DevelopmentMembershipSeeder"/>
       <Class name="com.divalhr.core.identity.api.InvitationController"/>
       <Class name="com.divalhr.core.identity.application.InvitationDelivery"/>

@@ -66,6 +66,12 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'platform-admin',
       },
       {
+        to: '/admin/partner-referrals',
+        labelKey: 'nav.partnerReferrals',
+        icon: 'contract',
+        role: 'platform-admin',
+      },
+      {
         to: '/admin/statutory-packs',
         labelKey: 'nav.statutoryPacks',
         icon: 'payroll',
@@ -286,6 +292,18 @@ export const NAVIGATION: NavGroupDef[] = [
         role: 'employee',
       },
       { to: '/me/catalogue', labelKey: 'nav.myCatalogue', icon: 'benefits', role: 'employee' },
+      {
+        to: '/me/partner-products',
+        labelKey: 'nav.myPartnerProducts',
+        icon: 'benefits',
+        role: 'employee',
+      },
+      {
+        to: '/me/partner-requests',
+        labelKey: 'nav.myPartnerRequests',
+        icon: 'contract',
+        role: 'employee',
+      },
       { to: '/me/leave', labelKey: 'nav.myLeave', icon: 'calendar', role: 'employee' },
       {
         to: '/me/leave/approvals',
