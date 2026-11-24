@@ -1,5 +1,6 @@
 package com.divalhr.core.integrations.partner.referral;
 
+import com.divalhr.core.integrations.partner.catalogue.PartnerAccountBodies.Bilingual;
 import com.divalhr.core.integrations.partner.catalogue.PartnerAccountBodies.CatalogueProduct;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
@@ -58,4 +59,74 @@ public final class PartnerReferralBodies {
       String previewDigest,
       Instant expiresAt,
       Notice notice) {}
+
+  /** The consent affirmation of a submission. */
+  @Schema(name = "PartnerReferralConsentAffirmation")
+  public record ConsentAffirmation(String version, boolean affirmed) {}
+
+  /** Body of a submission (documentation of the strict contract; parsed from the raw request). */
+  @Schema(name = "SubmitPartnerReferral")
+  public record SubmitRequest(
+      String productId,
+      String language,
+      boolean includePhone,
+      String phone,
+      boolean includeOrganizationName,
+      String previewDigest,
+      Instant expiresAt,
+      ConsentAffirmation consent) {}
+
+  /** Body of a withdrawal (documentation of the strict contract; parsed from the raw request). */
+  @Schema(name = "WithdrawPartnerReferral")
+  public record WithdrawRequest(int expectedVersion, boolean confirmed) {}
+
+  /** One append-only lifecycle event. */
+  @Schema(name = "PartnerReferralEvent")
+  public record Event(
+      int sequence,
+      String fromState,
+      String toState,
+      String actorRole,
+      String outcome,
+      Instant occurredAt) {}
+
+  /** A referral in a list. */
+  @Schema(name = "PartnerReferralSummary")
+  public record Summary(
+      String referralId,
+      String state,
+      int version,
+      boolean withdrawable,
+      String productId,
+      Bilingual productName,
+      String partnerDisplayName,
+      String productType,
+      List<String> categories,
+      Instant createdAt,
+      Instant updatedAt) {}
+
+  /** The employee's own referral. */
+  @Schema(name = "PartnerReferralView")
+  public record View(
+      String referralId,
+      String state,
+      int version,
+      boolean withdrawable,
+      String productId,
+      Bilingual productName,
+      String partnerDisplayName,
+      String productType,
+      List<String> categories,
+      String language,
+      Instant createdAt,
+      Instant updatedAt,
+      String lastOutcome,
+      String consentVersion,
+      List<String> disclosedFields,
+      List<Event> events,
+      Notice notice) {}
+
+  /** A page of the employee's referrals. */
+  @Schema(name = "PartnerReferralPage")
+  public record Page(List<Summary> items, String nextCursor) {}
 }

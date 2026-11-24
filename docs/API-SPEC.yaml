@@ -16205,7 +16205,7 @@ paths:
   /me/partner-referrals:
     post:
       operationId: submitMyPartnerReferral
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Submit a consented referral
@@ -16262,7 +16262,7 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
     get:
       operationId: listMyPartnerReferrals
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: List my partner requests
@@ -16301,7 +16301,7 @@ paths:
   /me/partner-referrals/{referralId}:
     get:
       operationId: getMyPartnerReferral
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Read one of my partner requests and its history
@@ -16338,7 +16338,7 @@ paths:
   /me/partner-referrals/{referralId}/withdraw:
     post:
       operationId: withdrawMyPartnerReferral
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: tenant
       x-divalhr-required-role: employee
       summary: Withdraw my referral before the partner has received it
