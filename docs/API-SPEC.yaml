@@ -16392,7 +16392,7 @@ paths:
   /platform/partner-referrals:
     get:
       operationId: listPlatformPartnerReferrals
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa
@@ -16434,7 +16434,7 @@ paths:
   /platform/partner-referrals/{referralId}:
     get:
       operationId: getPlatformPartnerReferral
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa
@@ -16470,7 +16470,7 @@ paths:
   /platform/partner-referrals/{referralId}/history:
     get:
       operationId: listPlatformPartnerReferralHistory
-      x-divalhr-lifecycle: planned
+      x-divalhr-lifecycle: implemented
       x-divalhr-scope: platform
       x-divalhr-required-role: platform-admin
       x-divalhr-required-assurance: mfa

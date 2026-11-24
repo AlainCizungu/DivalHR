@@ -139,6 +139,39 @@ public class PartnerReferralRecorder {
     write(WORKER_ACTOR, DELIVERY, tenant, correlationId, STATE_CHANGED_EVENT, change);
   }
 
+  /**
+   * Records that a platform administrator read one referral (by reference only).
+   *
+   * @param subject verified platform administrator
+   * @param correlationId request correlation id
+   * @param referralId the referral that was read
+   * @param at server instant
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void operatorRead(String subject, String correlationId, UUID referralId, Instant at) {
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("schemaVersion", SCHEMA_VERSION);
+    data.put("referralId", referralId.toString());
+    audit.record(
+        new AuditEvent(
+            UUID.randomUUID(),
+            at,
+            subject,
+            "partner-referral.platform-read",
+            "partner-referral",
+            referralId,
+            new UUID(0L, 0L),
+            "SUCCESS",
+            correlationId,
+            data,
+            Fingerprints.sha256(
+                "DIVALHR-PARTNER-REFERRAL\nversion=1\naction=platform-read\nreferral="
+                    + referralId
+                    + "\nby="
+                    + subject
+                    + "\n")));
+  }
+
   private void write(
       String actor,
       String action,
