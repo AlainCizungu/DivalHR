@@ -113,7 +113,7 @@ async function submitReferral(page: Page, bearer: () => string, productName: str
         expiresAt: preview.expiresAt,
         consent: { version: preview.consent.version, affirmed: true },
       },
-      key: `referral-${productName}`,
+      key: `referral-${productName.replace(/[^A-Za-z0-9]+/gu, '-').slice(0, 40)}`,
       expected: 201,
     },
   );
