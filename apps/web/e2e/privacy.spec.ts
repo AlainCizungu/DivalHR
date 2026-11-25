@@ -11,6 +11,7 @@ import {
   subjectLock,
 } from './support';
 import {
+  EMPLOYEE_EMAIL,
   EMPLOYEE_USER,
   WINDOW_MS,
   call,
@@ -207,7 +208,9 @@ test('LAUNCH-001 journey 1: the employee asks for access, the platform decides, 
   const row = reviewer.locator(`[data-testid="privacy-request"][data-reference="${request}"]`);
   await expect(row).toBeVisible();
   await expect(row.getByTestId('privacy-request-contact')).toContainText(/\*|•|…/u);
-  await expect(row.getByTestId('privacy-request-contact')).not.toContainText('@example.test');
+  // Only the first character and the domain remain: never the address itself.
+  await expect(row.getByTestId('privacy-request-contact')).toHaveText(/^e\*+@example\.test$/u);
+  await expect(row.getByTestId('privacy-request-contact')).not.toContainText(EMPLOYEE_EMAIL);
   await decide(reviewer, 'en', request, 'UNDER_REVIEW', null, null);
   await decide(
     reviewer,
@@ -370,9 +373,13 @@ test('LAUNCH-001 journey 2: the platform activates a synthetic policy, a hold bl
     if (days !== '') await rule.getByLabel('Jours', { exact: true }).fill(days);
   }
   await form.getByRole('button', { name: 'Créer le brouillon', exact: true }).click();
-  const policy = p.locator(
+  const draft = p.locator(
     `[data-testid="privacy-policy"][data-country="${country}"][data-state="DRAFT"]`,
   );
+  await expect(draft).toHaveCount(1);
+  // The row is followed by its identity, not its state, which changes with every transition.
+  const policyId = await draft.getAttribute('data-reference');
+  const policy = p.locator(`[data-testid="privacy-policy"][data-reference="${policyId}"]`);
   await expect(policy).toHaveCount(1);
   await policy.getByTestId('privacy-policy-checklist').click();
   const checklist = policy.getByTestId('privacy-checklist-form');
