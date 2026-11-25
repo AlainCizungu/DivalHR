@@ -60,8 +60,11 @@ class PrivacyGovernanceIntegrationTest {
     return "synthetic-key-" + UUID.randomUUID();
   }
 
+  private static final Random COUNTRY_RANDOM =
+      new Random(UUID.randomUUID().getMostSignificantBits());
+
   private static String country() {
-    Random random = new Random(UUID.randomUUID().getMostSignificantBits());
+    Random random = COUNTRY_RANDOM;
     return "" + (char) ('A' + random.nextInt(26)) + (char) ('A' + random.nextInt(26));
   }
 

@@ -83,9 +83,11 @@ test.afterAll(() => {
 
 async function submitReferral(page: Page, bearer: () => string, productName: string) {
   const products = await call<{
-    items: { product: { publicReference: string; name: string } }[];
+    items: { product: { publicReference: string; name: unknown } }[];
   }>(page, bearer, 'GET', '/me/partner-products?limit=50');
-  const found = products.items.find((item) => item.product.name.includes(productName));
+  const found = products.items.find((item) =>
+    JSON.stringify(item.product.name).includes(productName),
+  );
   expect(found, 'the synthetic offer is listed for the employee').toBeDefined();
   const input = {
     productId: found?.product.publicReference,

@@ -232,14 +232,12 @@ public class PrivacyExportStore {
 
   /** The number of export events of a request. */
   public int eventCount(UUID tenant, UUID request) {
-    Integer count =
-        jdbc.sql(
-                "SELECT count(*) FROM integrations.privacy_export_event WHERE tenant_id = :tenant"
-                    + " AND request_id = :request")
-            .param("tenant", tenant)
-            .param("request", request)
-            .query(Integer.class)
-            .single();
-    return count == null ? 0 : count;
+    return jdbc.sql(
+            "SELECT count(*) FROM integrations.privacy_export_event WHERE tenant_id = :tenant"
+                + " AND request_id = :request")
+        .param("tenant", tenant)
+        .param("request", request)
+        .query(Integer.class)
+        .single();
   }
 }
