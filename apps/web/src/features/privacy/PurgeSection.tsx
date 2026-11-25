@@ -95,6 +95,8 @@ export function PurgeSection() {
         body,
       }),
     );
+    // Each preview reads the state of the day: a repeated one must not replay the earlier answer.
+    if (data) previewKey.reset();
     setPreview(data);
   };
 

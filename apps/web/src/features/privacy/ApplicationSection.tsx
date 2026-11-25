@@ -36,6 +36,7 @@ export function ApplicationSection() {
         body,
       }),
     );
+    if (data) previewKey.reset();
     setPreview(data);
   };
 

@@ -49,6 +49,8 @@ function Decision({ request, onDone }: { request: PlatformPrivacyRequest; onDone
     );
     if (done) {
       key.reset();
+      setMessage('');
+      setNote('');
       onDone();
     }
   };
