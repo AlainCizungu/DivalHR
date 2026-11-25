@@ -356,6 +356,10 @@ export async function noOverflow(page: Page) {
     { width: 640, height: 400 },
   ]) {
     await page.setViewportSize(viewport);
+    // A sticky bar must not hide the head of a control that was scrolled under it.
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+    });
     const wide = await page.evaluate(() =>
       document.documentElement.scrollWidth <= window.innerWidth
         ? []
