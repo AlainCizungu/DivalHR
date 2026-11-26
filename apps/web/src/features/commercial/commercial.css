@@ -59,7 +59,8 @@ html:has(.commercial) {
 }
 
 .commercial-header__row {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  row-gap: var(--dv-space-1);
   min-height: 4rem;
 }
 
@@ -87,6 +88,7 @@ html:has(.commercial) {
 
 .commercial-nav ul {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--dv-space-1);
 }
 

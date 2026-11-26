@@ -25,7 +25,19 @@ async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
-  expect(overflow).toBeLessThanOrEqual(0);
+  const culprits =
+    overflow > 0
+      ? await page.evaluate(() =>
+          [...document.querySelectorAll('body *')]
+            .filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth)
+            .slice(0, 5)
+            .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`),
+        )
+      : [];
+  expect(
+    overflow,
+    `horizontal overflow; first offenders: ${culprits.join(' | ')}`,
+  ).toBeLessThanOrEqual(0);
 }
 
 /** WCAG 1.4.12: the text-spacing overrides must not cut off or overlap content. */
@@ -87,6 +99,9 @@ test('English prospective employer: pilot positioning, real product, payroll lim
   );
 
   // Keyboard: the skip link comes first, focus is visible, and every section is reachable from the navigation.
+  // A fresh load puts the keyboard starting point at the top of the document; the language is kept.
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
   const outline = await page.evaluate(() => {
