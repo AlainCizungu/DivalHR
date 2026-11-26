@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.divalhr.core.support.IntegrationTest;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.flywaydb.core.Flyway;
@@ -352,21 +353,36 @@ class PrivacyMigrationIntegrationTest {
 
   /** Four rules, all MINIMIZE/ERASE after the given synthetic number of days from closing. */
   private static String rules(UUID id, int days, String consentAction) {
+    return rules(id, days, consentAction, "HOLD");
+  }
+
+  private static String rules(UUID id, int days, String consentAction, String lifecycleAction) {
     String t = "'REFERRAL_CLOSED'";
     return """
         INSERT INTO integrations.privacy_policy_rule VALUES
           ('%1$s', 'PARTNER_REFERRAL_DISCLOSURE', 'CONSENTED_INTRODUCTION', 'ERASE', %2$s, %3$d),
           ('%1$s', 'PARTNER_REFERRAL_CONSENT', 'CONSENT_EVIDENCE', '%4$s', %2$s, %3$d),
           ('%1$s', 'PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS', 'DELIVERY_TRUTH', 'ERASE', %2$s, %3$d),
-          ('%1$s', 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE', 'LIFECYCLE_EVIDENCE', 'HOLD', %2$s, NULL);
+          ('%1$s', 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE', 'LIFECYCLE_EVIDENCE', '%5$s', %2$s, %6$s);
         """
-        .formatted(id, t, days, consentAction);
+        .formatted(
+            id,
+            t,
+            days,
+            consentAction,
+            lifecycleAction,
+            "HOLD".equals(lifecycleAction) ? "NULL" : Integer.toString(days));
   }
 
   private static UUID activePolicy(Db db, String country, int days, String consentAction) {
+    return activePolicy(db, country, days, consentAction, "HOLD");
+  }
+
+  private static UUID activePolicy(
+      Db db, String country, int days, String consentAction, String lifecycleAction) {
     UUID id = UUID.randomUUID();
     // The rules need the id before the row exists, so build the transaction around a fixed id.
-    String rules = rules(id, days, consentAction);
+    String rules = rules(id, days, consentAction, lifecycleAction);
     script(
         db,
         """
@@ -858,6 +874,165 @@ class PrivacyMigrationIntegrationTest {
                       .update(
                           "DELETE FROM integrations.privacy_purge_item WHERE referral_id = ?::uuid",
                           id.toString()));
+        });
+  }
+
+  @Test
+  void
+      aLifecycleScrubIsAcceptedOnlyInsideAnExecutingPurgeAfterEveryOtherClassAndLeavesATombstone() {
+    withDatabase(
+        "58",
+        db -> {
+          World w = world(db);
+          activePolicy(db, "CD", 30, "ERASE", "ERASE");
+          UUID id = submit(db, w, DIGEST_B);
+          deliver(db, w, id);
+          UUID purge = purge(db, "now() + interval '31 days'");
+          item(db, w, purge, id, "PARTNER_REFERRAL_DISCLOSURE", "ERASE");
+          item(db, w, purge, id, "PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS", "ERASE");
+          item(db, w, purge, id, "PARTNER_REFERRAL_CONSENT", "ERASE");
+          item(db, w, purge, id, "PARTNER_REFERRAL_LIFECYCLE_EVIDENCE", "ERASE");
+          String scrub =
+              """
+              UPDATE integrations.partner_referral SET employee_id = NULL, partner_id = NULL, product_id = NULL,
+                  version_id = NULL, partner_code = NULL, language = NULL, preview_sha256 = NULL,
+                  submitted_by = NULL WHERE id = '%s';
+              """
+                  .formatted(id);
+          // no purge, no scrub and no deletion of the history
+          refused(db, () -> db.jdbc().update(scrub));
+          refused(
+              db,
+              () ->
+                  db.jdbc()
+                      .update(
+                          "DELETE FROM integrations.partner_referral_event WHERE referral_id = ?::uuid",
+                          id.toString()));
+          // inside the purge, the history cannot go while any other class of the referral remains
+          refused(
+              db,
+              () ->
+                  script(
+                      db,
+                      """
+                      BEGIN;
+                      SET LOCAL divalhr.privacy_purge = '%1$s';
+                      DELETE FROM integrations.partner_referral_event WHERE referral_id = '%2$s';
+                      COMMIT;
+                      """
+                          .formatted(purge, id)));
+          // a partial scrub is never a row: every identifying column is null together or none is
+          refused(
+              db,
+              () ->
+                  db.jdbc()
+                      .update(
+                          "UPDATE integrations.partner_referral SET employee_id = NULL WHERE id = ?::uuid",
+                          id.toString()));
+          // a purge cannot complete while the history or the identity of a lifecycle item remains
+          refused(
+              db,
+              () ->
+                  script(
+                      db,
+                      """
+                      BEGIN;
+                      SET LOCAL divalhr.privacy_purge = '%1$s';
+                      DELETE FROM integrations.partner_referral_disclosure WHERE referral_id = '%2$s';
+                      DELETE FROM integrations.partner_referral_ack WHERE referral_id = '%2$s';
+                      DELETE FROM integrations.partner_referral_attempt WHERE referral_id = '%2$s';
+                      DELETE FROM integrations.partner_referral_consent WHERE referral_id = '%2$s';
+                      UPDATE integrations.privacy_purge SET state = 'COMPLETED', item_count = 4, completed_at = now()
+                          WHERE id = '%1$s';
+                      COMMIT;
+                      """
+                          .formatted(purge, id)));
+          assertThat(count(db, "partner_referral_event")).isPositive();
+          script(
+              db,
+              """
+              BEGIN;
+              SET LOCAL divalhr.privacy_purge = '%1$s';
+              DELETE FROM integrations.partner_referral_disclosure WHERE referral_id = '%2$s';
+              DELETE FROM integrations.partner_referral_ack WHERE referral_id = '%2$s';
+              DELETE FROM integrations.partner_referral_attempt WHERE referral_id = '%2$s';
+              DELETE FROM integrations.partner_referral_consent WHERE referral_id = '%2$s';
+              DELETE FROM integrations.partner_referral_event WHERE referral_id = '%2$s';
+              %3$s
+              UPDATE integrations.privacy_purge SET state = 'COMPLETED', item_count = 4, completed_at = now()
+                  WHERE id = '%1$s';
+              COMMIT;
+              """
+                  .formatted(purge, id, scrub));
+          assertThat(count(db, "partner_referral_event")).isZero();
+          assertThat(
+                  db.jdbc()
+                      .queryForObject(
+                          "SELECT count(*) FROM integrations.partner_referral WHERE employee_id IS NULL"
+                              + " AND partner_id IS NULL AND product_id IS NULL AND version_id IS NULL"
+                              + " AND language IS NULL AND preview_sha256 IS NULL AND submitted_by IS NULL"
+                              + " AND partner_code IS NULL",
+                          Integer.class))
+              .isEqualTo(1);
+          // the tombstone is final, and the purge evidence stays
+          refused(
+              db,
+              () ->
+                  db.jdbc()
+                      .update(
+                          "UPDATE integrations.partner_referral SET updated_at = now() WHERE id = ?::uuid",
+                          id.toString()));
+          assertThat(count(db, "privacy_purge_item")).isEqualTo(4);
+        });
+  }
+
+  @Test
+  void theLifecycleResidueKeepsOnlyCountsAndTimestampsAndNoRuleMayPurgeItBeforeTheOtherClasses() {
+    withDatabase(
+        "58",
+        db -> {
+          String valid =
+              "SELECT integrations.privacy_residue_valid('PARTNER_REFERRAL_LIFECYCLE_EVIDENCE',"
+                  + " ?::jsonb)";
+          assertThat(
+                  db.jdbc()
+                      .queryForObject(
+                          valid,
+                          Boolean.class,
+                          "{\"event_count\":4,\"opened_at\":\"2026-01-01T00:00:00Z\","
+                              + "\"closed_at\":\"2026-01-02T00:00:00Z\"}"))
+              .isTrue();
+          for (String refused :
+              List.of(
+                  "{\"employee\":\"x\"}",
+                  "{\"product_name\":\"Savings\"}",
+                  "{\"event_count\":4,\"language\":\"en\"}",
+                  "{\"event_count\":[4]}",
+                  "{\"opened_at\":\"2026-01-01T00:00:00.123456Z\"}")) {
+            assertThat(db.jdbc().queryForObject(valid, Boolean.class, refused)).isFalse();
+          }
+          // a policy that would purge the lifecycle before another class, or keep another class
+          // forever, is refused
+          UUID id = UUID.randomUUID();
+          refused(
+              db,
+              () ->
+                  script(
+                      db,
+                      """
+                      BEGIN;
+                      INSERT INTO integrations.privacy_policy VALUES ('%1$s', '%2$s', 'KE', 'DRAFT', 1, 'W1',
+                          'SYNTHETIC-SOURCE', current_date, current_date, NULL, 'test', now(), now());
+                      INSERT INTO integrations.privacy_policy_rule VALUES
+                        ('%1$s', 'PARTNER_REFERRAL_DISCLOSURE', 'CONSENTED_INTRODUCTION', 'ERASE', 'REFERRAL_CLOSED', 30),
+                        ('%1$s', 'PARTNER_REFERRAL_CONSENT', 'CONSENT_EVIDENCE', 'MINIMIZE', 'REFERRAL_CLOSED', 30),
+                        ('%1$s', 'PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS', 'DELIVERY_TRUTH', 'ERASE', 'REFERRAL_CLOSED', 30),
+                        ('%1$s', 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE', 'LIFECYCLE_EVIDENCE', 'ERASE', 'REFERRAL_CLOSED', 10);
+                      INSERT INTO integrations.privacy_policy_checklist VALUES ('%1$s', %3$s, now());
+                      INSERT INTO integrations.privacy_policy_event VALUES ('%1$s', 1, NULL, 'DRAFT', now());
+                      COMMIT;
+                      """
+                          .formatted(id, ref("PL-"), CHECKLIST_COMPLETE)));
         });
   }
 

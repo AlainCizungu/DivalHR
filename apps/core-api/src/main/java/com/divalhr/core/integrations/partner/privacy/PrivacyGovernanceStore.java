@@ -483,15 +483,58 @@ public class PrivacyGovernanceStore {
         .update();
   }
 
-  /** The number of lifecycle events (kept; only counted in the residue). */
-  public int eventCount(UUID tenant, UUID referral) {
+  /**
+   * The only facts a minimized lifecycle keeps: the number of events and the two lifecycle
+   * timestamps (when the referral opened and when it closed), to the second.
+   */
+  public String lifecycleResidue(UUID tenant, UUID referral) {
     return jdbc.sql(
-            "SELECT count(*) FROM integrations.partner_referral_event WHERE tenant_id = :tenant"
-                + " AND referral_id = :referral")
+            "SELECT count(*) AS events, min(occurred_at) AS opened, max(occurred_at) FILTER"
+                + " (WHERE to_state IN ('DELIVERED', 'DELIVERY_UNKNOWN', 'WITHDRAWN')) AS closed"
+                + " FROM integrations.partner_referral_event WHERE tenant_id = :tenant AND"
+                + " referral_id = :referral")
         .param("tenant", tenant)
         .param("referral", referral)
-        .query(Integer.class)
+        .query(
+            (rs, n) ->
+                "{\"event_count\":"
+                    + rs.getInt("events")
+                    + ",\"opened_at\":\""
+                    + second(rs.getTimestamp("opened"))
+                    + "\",\"closed_at\":\""
+                    + second(rs.getTimestamp("closed"))
+                    + "\"}")
         .single();
+  }
+
+  private static String second(Timestamp at) {
+    return at == null
+        ? ""
+        : at.toInstant().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString();
+  }
+
+  /**
+   * Deletes the lifecycle events and removes every link from the referral row to the employee, the
+   * partner and the product (its version, language, submitting subject and preview digest too):
+   * what remains is an opaque tombstone. Returns the events removed.
+   */
+  public int deleteLifecycle(UUID tenant, UUID referral) {
+    int events =
+        jdbc.sql(
+                "DELETE FROM integrations.partner_referral_event WHERE tenant_id = :tenant AND"
+                    + " referral_id = :referral")
+            .param("tenant", tenant)
+            .param("referral", referral)
+            .update();
+    jdbc.sql(
+            "UPDATE integrations.partner_referral SET employee_id = NULL, partner_id = NULL,"
+                + " product_id = NULL, version_id = NULL, partner_code = NULL, language = NULL,"
+                + " preview_sha256 = NULL, submitted_by = NULL WHERE tenant_id = :tenant AND id ="
+                + " :referral")
+        .param("tenant", tenant)
+        .param("referral", referral)
+        .update();
+    return events;
   }
 
   /** Completes a purge. */

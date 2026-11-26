@@ -290,9 +290,7 @@ public class PrivacyPolicyService {
       Action action = Action.valueOf(rule.action());
       if (byClass.put(dataClass, rule) != null
           || !dataClass.purpose().name().equals(rule.purpose())
-          || (action == Action.HOLD) != (rule.durationDays() == null)
-          || (dataClass == DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE
-              && action == Action.ERASE)) {
+          || (action == Action.HOLD) != (rule.durationDays() == null)) {
         throw invalid();
       }
     }
@@ -302,13 +300,20 @@ public class PrivacyPolicyService {
     Rule disclosure = byClass.get(DataClass.PARTNER_REFERRAL_DISCLOSURE);
     Rule consent = byClass.get(DataClass.PARTNER_REFERRAL_CONSENT);
     Rule diagnostics = byClass.get(DataClass.PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS);
+    Rule lifecycle = byClass.get(DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE);
+    if (Action.valueOf(lifecycle.action()) != Action.HOLD
+        && (!orderedBefore(disclosure, lifecycle)
+            || !orderedBefore(consent, lifecycle)
+            || !orderedBefore(diagnostics, lifecycle))) {
+      throw invalid();
+    }
     if (Action.valueOf(consent.action()) == Action.ERASE
         && (!orderedBefore(disclosure, consent) || !orderedBefore(diagnostics, consent))) {
       throw invalid();
     }
   }
 
-  /** Whether the evidence rule is purged no later than the consent, from the same trigger. */
+  /** Whether the evidence rule is purged no later than the later rule, from the same trigger. */
   private static boolean orderedBefore(Rule evidence, Rule consent) {
     return Action.valueOf(evidence.action()) != Action.HOLD
         && evidence.trigger().equals(consent.trigger())

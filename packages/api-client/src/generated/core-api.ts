@@ -14852,7 +14852,7 @@ export interface components {
          */
         PrivacyDataClass: "PARTNER_REFERRAL_DISCLOSURE" | "PARTNER_REFERRAL_CONSENT" | "PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS" | "PARTNER_REFERRAL_LIFECYCLE_EVIDENCE";
         /**
-         * @description LAUNCH-001 (L3). The closed retention actions. HOLD keeps the data until a later policy decides. LIFECYCLE_EVIDENCE supports HOLD and MINIMIZE only: the referral header and its lifecycle history are never deleted in this increment.
+         * @description LAUNCH-001 (L3). The closed retention actions. HOLD keeps the data until a later policy decides. For LIFECYCLE_EVIDENCE, MINIMIZE and ERASE both delete the detailed lifecycle events and remove every link from the referral row to the employee, the partner and the product (R227-1). MINIMIZE keeps only the number of events and the opening and closing instants; ERASE keeps no residue. The remaining opaque row (random reference, tenant and closed state) cannot be linked back to the employee, the partner or the product, and no employee or platform read returns it. The lifecycle evidence is purged last, after every other class of the referral.
          * @enum {string}
          */
         PrivacyAction: "HOLD" | "MINIMIZE" | "ERASE";

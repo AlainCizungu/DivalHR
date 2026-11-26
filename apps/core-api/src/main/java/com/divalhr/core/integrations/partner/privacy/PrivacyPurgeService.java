@@ -382,15 +382,23 @@ public class PrivacyPurgeService {
           purged(DataClass.PARTNER_REFERRAL_CONSENT, store.deleteConsent(tenant, referral)));
     }
     if (eligible(e, DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE)) {
-      // The lifecycle history stays in this increment: only a count is recorded (documented limit).
-      store.insertResidue(
-          purge,
-          tenant,
-          referral,
-          DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE.name(),
-          "{\"event_count\":" + store.eventCount(tenant, referral) + "}",
-          now);
-      results.add(purged(DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE, 0));
+      // R227-1: the detailed history is deleted and the header is scrubbed of the employee, the
+      // partner and the
+      // product. A MINIMIZE keeps only the counts and the two lifecycle timestamps; an ERASE keeps
+      // nothing.
+      if (minimize) {
+        store.insertResidue(
+            purge,
+            tenant,
+            referral,
+            DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE.name(),
+            store.lifecycleResidue(tenant, referral),
+            now);
+      }
+      results.add(
+          purged(
+              DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE,
+              store.deleteLifecycle(tenant, referral)));
     }
     return results;
   }
@@ -438,6 +446,19 @@ public class PrivacyPurgeService {
           DataClass.PARTNER_REFERRAL_CONSENT,
           new ClassDecision(
               DataClass.PARTNER_REFERRAL_CONSENT.name(), false, "ACTION_NOT_PERMITTED"));
+    }
+    // The lifecycle evidence goes very last: every other class must be gone or go with it, so that
+    // no disclosure,
+    // consent or delivery evidence outlives the link that lets the employee reach it.
+    ClassDecision lifecycle = decisions.get(DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE);
+    if (lifecycle.eligible()
+        && !(goneOrGoing(decisions, purged, DataClass.PARTNER_REFERRAL_DISCLOSURE)
+            && goneOrGoing(decisions, purged, DataClass.PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS)
+            && goneOrGoing(decisions, purged, DataClass.PARTNER_REFERRAL_CONSENT))) {
+      decisions.put(
+          DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE,
+          new ClassDecision(
+              DataClass.PARTNER_REFERRAL_LIFECYCLE_EVIDENCE.name(), false, "ACTION_NOT_PERMITTED"));
     }
     return new Evaluation(row, decisions, holds);
   }

@@ -18,7 +18,7 @@ LOCK TABLE integrations.privacy_policy, integrations.privacy_policy_rule, integr
     integrations.privacy_hold, integrations.privacy_hold_event, integrations.privacy_request,
     integrations.privacy_request_event, integrations.privacy_export, integrations.privacy_export_event,
     integrations.partner_referral, integrations.partner_referral_disclosure, integrations.partner_referral_consent,
-    integrations.partner_referral_attempt, integrations.partner_referral_ack IN ACCESS EXCLUSIVE MODE;
+    integrations.partner_referral_event, integrations.partner_referral_attempt, integrations.partner_referral_ack IN ACCESS EXCLUSIVE MODE;
 DO
 $$
 BEGIN
@@ -42,6 +42,10 @@ DROP TRIGGER integrations_partner_referral_disclosure_immutable ON integrations.
 DROP TRIGGER integrations_partner_referral_consent_immutable ON integrations.partner_referral_consent;
 DROP TRIGGER integrations_partner_referral_attempt_immutable ON integrations.partner_referral_attempt;
 DROP TRIGGER integrations_partner_referral_ack_immutable ON integrations.partner_referral_ack;
+DROP TRIGGER integrations_partner_referral_event_immutable ON integrations.partner_referral_event;
+CREATE TRIGGER integrations_partner_referral_event_immutable
+    BEFORE UPDATE OR DELETE ON integrations.partner_referral_event
+    FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_immutable();
 CREATE TRIGGER integrations_partner_referral_disclosure_immutable
     BEFORE UPDATE OR DELETE ON integrations.partner_referral_disclosure
     FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_immutable();
@@ -55,6 +59,25 @@ CREATE TRIGGER integrations_partner_referral_ack_immutable
     BEFORE UPDATE OR DELETE ON integrations.partner_referral_ack
     FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_immutable();
 DROP FUNCTION integrations.partner_referral_evidence_guard();
+
+-- R227-1: restore the V57 referral guard and the not-null identity columns. No lifecycle tombstone can exist here: a
+-- tombstone needs a purge item, and the check above refuses once any purge item exists.
+DROP TRIGGER integrations_partner_referral_scrub ON integrations.partner_referral;
+DROP FUNCTION integrations.partner_referral_scrub_guard();
+DROP TRIGGER integrations_partner_referral_guard ON integrations.partner_referral;
+DROP TRIGGER integrations_partner_referral_guard_insert ON integrations.partner_referral;
+CREATE TRIGGER integrations_partner_referral_guard BEFORE INSERT OR UPDATE ON integrations.partner_referral
+    FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_guard();
+ALTER TABLE integrations.partner_referral DROP CONSTRAINT integrations_partner_referral_tombstone;
+ALTER TABLE integrations.partner_referral
+    ALTER COLUMN employee_id SET NOT NULL,
+    ALTER COLUMN partner_id SET NOT NULL,
+    ALTER COLUMN product_id SET NOT NULL,
+    ALTER COLUMN version_id SET NOT NULL,
+    ALTER COLUMN partner_code SET NOT NULL,
+    ALTER COLUMN language SET NOT NULL,
+    ALTER COLUMN preview_sha256 SET NOT NULL,
+    ALTER COLUMN submitted_by SET NOT NULL;
 
 CREATE OR REPLACE FUNCTION integrations.partner_referral_complete() RETURNS trigger LANGUAGE plpgsql AS
 $fn$

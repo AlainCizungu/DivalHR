@@ -557,7 +557,7 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **Safety.** Every purge is a preview, an exact-MFA confirmation with an idempotency key, revalidation under locks and a fixed deletion order (consent last); the database refuses a purge item that is not closed, is on hold, has no stamped rule or has not elapsed. A stamped referral keeps its stamped rules. The rollback script refuses while governance evidence exists.
 - **API.** Twenty operations and twenty-three `PRIVACY_*` error codes, English and French; fixed-window quotas (5 requests per employee per day, 3 package generations per request per day, 20 platform mutations, 10 previews and 5 confirmations per administrator per hour).
 - **Truth surfaces.** The public landing page and role homes are unchanged on purpose; no screen claims legal compliance or certification.
-- **Not included:** any real country retention duration, automatic deletion, notifications, erasure of lifecycle evidence (a residue count only), and any change to payroll, payments, salary advances, attendance, leave, documents or employee master data.
+- **Not included:** any real country retention duration, automatic deletion, notifications, and any change to payroll, payments, salary advances, attendance, leave, documents or employee master data.
 
 ## Epic 11 Dashboards and AI
 

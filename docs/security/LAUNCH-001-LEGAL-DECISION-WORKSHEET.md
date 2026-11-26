@@ -18,9 +18,9 @@ For each class record the action (hold, minimize, erase), the number of days, wh
 | Disclosed values | | | | |
 | Consent record | | | | |
 | Delivery diagnostics | | | | |
-| Lifecycle evidence (hold or minimize only) | | | | |
+| Lifecycle evidence (hold, minimize or erase; purged last) | | | | |
 
-Constraints the system enforces: consent may be erased only when disclosure and diagnostics are purged no later than it, from the same trigger; lifecycle evidence cannot be erased.
+Constraints the system enforces: consent may be erased only when disclosure and diagnostics are purged no later than it, from the same trigger; lifecycle evidence (minimize or erase) must be purged no later than the other three classes' rules allow, i.e. every other class is purged no later than it, from the same trigger, and it is never purged while another class of the referral remains. Minimizing or erasing it removes the events and every link to the employee, partner and product; only counts and two instants (minimize) or nothing (erase) remain.
 
 ## C. Questions to settle
 

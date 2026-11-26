@@ -39,4 +39,6 @@ Platform mutations 20 per administrator per hour, purge previews 10 per hour, pu
 
 ## 7. What this does not do
 
-No automatic deletion, no notification, no country duration shipped with the product, no legal opinion. Lifecycle evidence is kept (only a residue count is recorded) in this increment.
+No automatic deletion, no notification, no country duration shipped with the product, no legal opinion.
+
+Lifecycle evidence (R227-1): a `MINIMIZE` or `ERASE` purge of this class deletes the detailed lifecycle events and leaves an opaque tombstone of the referral (random reference, tenant, closed state, counters, original timestamps) that no longer links to the employee, the partner or the product; a `MINIMIZE` also records the number of events and the opening and closing instants, an `ERASE` records nothing. The class is purged last: the policy must purge disclosure, consent and delivery diagnostics no later than it, from the same trigger, and a preview shows `ACTION_NOT_PERMITTED` for it until they are gone. After this purge the referral disappears from the employee's list and from the platform referral queue, and cannot be recovered or reversed. An active hold blocks it like every other class. The employee's data-rights request about that referral keeps its own record; it is not part of the tombstone.

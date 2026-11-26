@@ -76,10 +76,7 @@ CREATE TABLE integrations.privacy_policy_rule (
     CONSTRAINT integrations_privacy_policy_rule_action CHECK (action IN ('HOLD', 'MINIMIZE', 'ERASE')),
     CONSTRAINT integrations_privacy_policy_rule_trigger CHECK (trigger_event IN ('REFERRAL_CREATED', 'REFERRAL_CLOSED')),
     CONSTRAINT integrations_privacy_policy_rule_duration CHECK (
-        (action = 'HOLD') = (duration_days IS NULL) AND (duration_days IS NULL OR duration_days BETWEEN 1 AND 36500)),
-    -- The referral header and its lifecycle history are never deleted in this increment.
-    CONSTRAINT integrations_privacy_policy_rule_lifecycle CHECK (
-        data_class <> 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE' OR action IN ('HOLD', 'MINIMIZE'))
+        (action = 'HOLD') = (duration_days IS NULL) AND (duration_days IS NULL OR duration_days BETWEEN 1 AND 36500))
 );
 
 CREATE TABLE integrations.privacy_policy_checklist (
@@ -261,6 +258,7 @@ DECLARE
     d          integrations.privacy_policy_rule%ROWTYPE;
     c          integrations.privacy_policy_rule%ROWTYPE;
     g          integrations.privacy_policy_rule%ROWTYPE;
+    l          integrations.privacy_policy_rule%ROWTYPE;
 BEGIN
     IF TG_TABLE_NAME = 'privacy_policy' THEN
         p := NEW;
@@ -281,6 +279,15 @@ BEGIN
     SELECT * INTO d FROM integrations.privacy_policy_rule r WHERE r.policy_id = p.id AND r.data_class = 'PARTNER_REFERRAL_DISCLOSURE';
     SELECT * INTO c FROM integrations.privacy_policy_rule r WHERE r.policy_id = p.id AND r.data_class = 'PARTNER_REFERRAL_CONSENT';
     SELECT * INTO g FROM integrations.privacy_policy_rule r WHERE r.policy_id = p.id AND r.data_class = 'PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS';
+    SELECT * INTO l FROM integrations.privacy_policy_rule r WHERE r.policy_id = p.id AND r.data_class = 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE';
+    -- R227-1: the lifecycle evidence is minimized or erased last: every other class must be purged no later than it.
+    IF l.action <> 'HOLD' AND (
+           d.action = 'HOLD' OR c.action = 'HOLD' OR g.action = 'HOLD'
+        OR d.trigger_event <> l.trigger_event OR c.trigger_event <> l.trigger_event OR g.trigger_event <> l.trigger_event
+        OR d.duration_days > l.duration_days OR c.duration_days > l.duration_days OR g.duration_days > l.duration_days) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'integrations_privacy_policy_rules',
+            MESSAGE = 'the rules would purge the lifecycle evidence while other referral data outlives it';
+    END IF;
     IF c.action = 'ERASE' AND (
            d.action = 'HOLD' OR g.action = 'HOLD'
         OR d.trigger_event <> c.trigger_event OR g.trigger_event <> c.trigger_event
@@ -1051,7 +1058,7 @@ $fn$
                  WHEN 'PARTNER_REFERRAL_DISCLOSURE' THEN ARRAY['field_count']
                  WHEN 'PARTNER_REFERRAL_CONSENT' THEN ARRAY['consent_version', 'language']
                  WHEN 'PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS' THEN ARRAY['attempt_count', 'acknowledged']
-                 ELSE ARRAY['event_count'] END)
+                 ELSE ARRAY['event_count', 'opened_at', 'closed_at'] END)
             OR jsonb_typeof(kv.value) NOT IN ('number', 'boolean', 'string')
             OR (jsonb_typeof(kv.value) = 'string' AND char_length(kv.value #>> '{}') > 20))
 $fn$;
@@ -1103,6 +1110,7 @@ BEGIN
     v_class := CASE TG_TABLE_NAME
         WHEN 'partner_referral_disclosure' THEN 'PARTNER_REFERRAL_DISCLOSURE'
         WHEN 'partner_referral_consent' THEN 'PARTNER_REFERRAL_CONSENT'
+        WHEN 'partner_referral_event' THEN 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE'
         ELSE 'PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS' END;
     IF v_purge IS NULL OR v_purge = ''
         OR NOT EXISTS (SELECT 1 FROM integrations.privacy_purge p
@@ -1120,6 +1128,15 @@ BEGIN
         RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = TG_NAME,
             MESSAGE = 'the consent is purged only after its disclosure and delivery evidence';
     END IF;
+    -- R227-1: the lifecycle history is the last to go: every other class of the referral must already be gone.
+    IF v_class = 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE' AND (
+        EXISTS (SELECT 1 FROM integrations.partner_referral_disclosure d WHERE d.tenant_id = OLD.tenant_id AND d.referral_id = OLD.referral_id)
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_consent c WHERE c.tenant_id = OLD.tenant_id AND c.referral_id = OLD.referral_id)
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_attempt a WHERE a.tenant_id = OLD.tenant_id AND a.referral_id = OLD.referral_id)
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_ack k WHERE k.tenant_id = OLD.tenant_id AND k.referral_id = OLD.referral_id)) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = TG_NAME,
+            MESSAGE = 'the lifecycle evidence is purged only after every other class of the referral';
+    END IF;
     RETURN OLD;
 END
 $fn$;
@@ -1128,6 +1145,9 @@ DROP TRIGGER integrations_partner_referral_disclosure_immutable ON integrations.
 DROP TRIGGER integrations_partner_referral_consent_immutable ON integrations.partner_referral_consent;
 DROP TRIGGER integrations_partner_referral_attempt_immutable ON integrations.partner_referral_attempt;
 DROP TRIGGER integrations_partner_referral_ack_immutable ON integrations.partner_referral_ack;
+DROP TRIGGER integrations_partner_referral_event_immutable ON integrations.partner_referral_event;
+CREATE TRIGGER integrations_partner_referral_event_immutable BEFORE UPDATE OR DELETE ON integrations.partner_referral_event
+    FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_evidence_guard();
 CREATE TRIGGER integrations_partner_referral_disclosure_immutable BEFORE UPDATE OR DELETE ON integrations.partner_referral_disclosure
     FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_evidence_guard();
 CREATE TRIGGER integrations_partner_referral_consent_immutable BEFORE UPDATE OR DELETE ON integrations.partner_referral_consent
@@ -1136,6 +1156,74 @@ CREATE TRIGGER integrations_partner_referral_attempt_immutable BEFORE UPDATE OR 
     FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_evidence_guard();
 CREATE TRIGGER integrations_partner_referral_ack_immutable BEFORE UPDATE OR DELETE ON integrations.partner_referral_ack
     FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_evidence_guard();
+
+-- ---------------------------------------------------------------------------------------------
+-- R227-1: the lifecycle tombstone. Minimizing or erasing the LIFECYCLE_EVIDENCE class genuinely removes the identifying
+-- and product-choice detail: the detailed events are deleted and the header loses its link to the employee, the partner,
+-- the product and its version (and the language, the submission subject and the preview digest). What remains is an
+-- opaque row: its random reference, the tenant, the closed state, the counters and the two lifecycle timestamps. The row
+-- is either whole or a tombstone: every identifying column is null together or none is.
+-- ---------------------------------------------------------------------------------------------
+ALTER TABLE integrations.partner_referral
+    ALTER COLUMN employee_id DROP NOT NULL,
+    ALTER COLUMN partner_id DROP NOT NULL,
+    ALTER COLUMN product_id DROP NOT NULL,
+    ALTER COLUMN version_id DROP NOT NULL,
+    ALTER COLUMN partner_code DROP NOT NULL,
+    ALTER COLUMN language DROP NOT NULL,
+    ALTER COLUMN preview_sha256 DROP NOT NULL,
+    ALTER COLUMN submitted_by DROP NOT NULL;
+ALTER TABLE integrations.partner_referral
+    ADD CONSTRAINT integrations_partner_referral_tombstone CHECK (
+        (employee_id IS NULL) = (partner_id IS NULL) AND (employee_id IS NULL) = (product_id IS NULL)
+        AND (employee_id IS NULL) = (version_id IS NULL) AND (employee_id IS NULL) = (partner_code IS NULL)
+        AND (employee_id IS NULL) = (language IS NULL) AND (employee_id IS NULL) = (preview_sha256 IS NULL)
+        AND (employee_id IS NULL) = (submitted_by IS NULL));
+
+-- The V57 guard keeps governing every ordinary update; a scrub is governed by the guard below, and a tombstone is final.
+DROP TRIGGER integrations_partner_referral_guard ON integrations.partner_referral;
+CREATE TRIGGER integrations_partner_referral_guard_insert BEFORE INSERT ON integrations.partner_referral
+    FOR EACH ROW EXECUTE FUNCTION integrations.partner_referral_guard();
+CREATE TRIGGER integrations_partner_referral_guard BEFORE UPDATE ON integrations.partner_referral
+    FOR EACH ROW WHEN (NEW.employee_id IS NOT NULL) EXECUTE FUNCTION integrations.partner_referral_guard();
+
+CREATE FUNCTION integrations.partner_referral_scrub_guard() RETURNS trigger LANGUAGE plpgsql AS
+$fn$
+DECLARE
+    v_purge text := current_setting('divalhr.privacy_purge', true);
+BEGIN
+    IF OLD.employee_id IS NULL THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'integrations_partner_referral_tombstone',
+            MESSAGE = 'a lifecycle tombstone never changes';
+    END IF;
+    IF (to_jsonb(NEW) - 'employee_id' - 'partner_id' - 'product_id' - 'version_id' - 'partner_code' - 'language'
+            - 'preview_sha256' - 'submitted_by')
+       IS DISTINCT FROM
+       (to_jsonb(OLD) - 'employee_id' - 'partner_id' - 'product_id' - 'version_id' - 'partner_code' - 'language'
+            - 'preview_sha256' - 'submitted_by') THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'integrations_partner_referral_tombstone',
+            MESSAGE = 'a lifecycle scrub removes only the identifying columns';
+    END IF;
+    IF OLD.state NOT IN ('DELIVERED', 'DELIVERY_UNKNOWN', 'WITHDRAWN')
+        OR v_purge IS NULL OR v_purge = ''
+        OR NOT EXISTS (SELECT 1 FROM integrations.privacy_purge p
+                         JOIN integrations.privacy_purge_item i ON i.purge_id = p.id
+                        WHERE p.id = v_purge::uuid AND p.state = 'EXECUTING'
+                          AND i.tenant_id = OLD.tenant_id AND i.referral_id = OLD.id
+                          AND i.data_class = 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE')
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_event e WHERE e.tenant_id = OLD.tenant_id AND e.referral_id = OLD.id)
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_disclosure d WHERE d.tenant_id = OLD.tenant_id AND d.referral_id = OLD.id)
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_consent c WHERE c.tenant_id = OLD.tenant_id AND c.referral_id = OLD.id)
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_attempt a WHERE a.tenant_id = OLD.tenant_id AND a.referral_id = OLD.id)
+        OR EXISTS (SELECT 1 FROM integrations.partner_referral_ack k WHERE k.tenant_id = OLD.tenant_id AND k.referral_id = OLD.id) THEN
+        RAISE EXCEPTION USING ERRCODE = '23514', CONSTRAINT = 'integrations_partner_referral_tombstone',
+            MESSAGE = 'a closed referral is scrubbed only by an authorized lifecycle purge item, after its events and every other class';
+    END IF;
+    RETURN NEW;
+END
+$fn$;
+CREATE TRIGGER integrations_partner_referral_scrub BEFORE UPDATE ON integrations.partner_referral
+    FOR EACH ROW WHEN (NEW.employee_id IS NULL) EXECUTE FUNCTION integrations.partner_referral_scrub_guard();
 
 -- The V57 completeness rule tolerates only what an authorized purge item removed.
 CREATE OR REPLACE FUNCTION integrations.partner_referral_complete() RETURNS trigger LANGUAGE plpgsql AS
@@ -1154,6 +1242,10 @@ BEGIN
         IF NOT FOUND THEN
             RETURN NULL;
         END IF;
+    END IF;
+    -- R227-1: a lifecycle tombstone keeps no history, disclosure, consent or attempts to be complete about.
+    IF r.employee_id IS NULL THEN
+        RETURN NULL;
     END IF;
     SELECT count(*), (array_agg(e.to_state ORDER BY e.sequence DESC))[1] INTO n_events, last_state
       FROM integrations.partner_referral_event e WHERE e.tenant_id = r.tenant_id AND e.referral_id = r.id;
@@ -1199,6 +1291,10 @@ BEGIN
                 OR (i.data_class = 'PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS' AND (
                     EXISTS (SELECT 1 FROM integrations.partner_referral_attempt a WHERE a.tenant_id = i.tenant_id AND a.referral_id = i.referral_id)
                     OR EXISTS (SELECT 1 FROM integrations.partner_referral_ack k WHERE k.tenant_id = i.tenant_id AND k.referral_id = i.referral_id)))
+                OR (i.data_class = 'PARTNER_REFERRAL_LIFECYCLE_EVIDENCE' AND (
+                    EXISTS (SELECT 1 FROM integrations.partner_referral_event e WHERE e.tenant_id = i.tenant_id AND e.referral_id = i.referral_id)
+                    OR EXISTS (SELECT 1 FROM integrations.partner_referral r WHERE r.tenant_id = i.tenant_id AND r.id = i.referral_id
+                                AND r.employee_id IS NOT NULL)))
                 OR (i.action = 'MINIMIZE' AND NOT EXISTS (SELECT 1 FROM integrations.privacy_referral_residue x
                     WHERE x.purge_id = i.purge_id AND x.tenant_id = i.tenant_id AND x.referral_id = i.referral_id
                       AND x.data_class = i.data_class))
