@@ -203,7 +203,7 @@ test('French prospective partner: partner-required wording, the application, the
   await reel.getByRole('button', { name: 'Mettre en pause la séquence de présentation' }).click();
   await expect(reel).toHaveAttribute('data-playing', 'false');
   await reel.getByText('Afficher la transcription').click();
-  await expect(reel.locator('.commercial-transcript li')).toHaveCount(8);
+  await expect(reel.locator('.commercial-transcript li')).toHaveCount(6);
 
   // The partner application, then back to the page without losing the language.
   await page.getByTestId('commercial-partner-cta').click();

@@ -1,4 +1,109 @@
 {
   "release": "225da6cb13c5cc6e1b12c11ff4b5ce03134aa2f7",
-  "shots": []
+  "shots": [
+    {
+      "id": "admin-home",
+      "locale": "en",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "base": "/commercial/en-admin-home-desktop",
+      "widths": [640, 960, 1440],
+      "route": "/",
+      "role": "admin",
+      "masked": false,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    },
+    {
+      "id": "directory",
+      "locale": "en",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "base": "/commercial/en-directory-desktop",
+      "widths": [640, 960, 1440],
+      "route": "/admin/people",
+      "role": "admin",
+      "masked": true,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    },
+    {
+      "id": "payroll",
+      "locale": "en",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "base": "/commercial/en-payroll-desktop",
+      "widths": [640, 960, 1440],
+      "route": "/admin/payroll-preparation",
+      "role": "admin",
+      "masked": false,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    },
+    {
+      "id": "employee-mobile",
+      "locale": "en",
+      "viewport": "mobile",
+      "width": 780,
+      "height": 1688,
+      "base": "/commercial/en-employee-mobile-mobile",
+      "widths": [390, 780],
+      "route": "/",
+      "role": "employee",
+      "masked": false,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    },
+    {
+      "id": "admin-home",
+      "locale": "fr",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "base": "/commercial/fr-admin-home-desktop",
+      "widths": [640, 960, 1440],
+      "route": "/",
+      "role": "admin",
+      "masked": false,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    },
+    {
+      "id": "directory",
+      "locale": "fr",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "base": "/commercial/fr-directory-desktop",
+      "widths": [640, 960, 1440],
+      "route": "/admin/people",
+      "role": "admin",
+      "masked": true,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    },
+    {
+      "id": "payroll",
+      "locale": "fr",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 900,
+      "base": "/commercial/fr-payroll-desktop",
+      "widths": [640, 960, 1440],
+      "route": "/admin/payroll-preparation",
+      "role": "admin",
+      "masked": false,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    },
+    {
+      "id": "employee-mobile",
+      "locale": "fr",
+      "viewport": "mobile",
+      "width": 780,
+      "height": 1688,
+      "base": "/commercial/fr-employee-mobile-mobile",
+      "widths": [390, 780],
+      "route": "/",
+      "role": "employee",
+      "masked": false,
+      "fixture": "hr-dev synthetic acceptance accounts (tenant administrator, employee)"
+    }
+  ]
 }

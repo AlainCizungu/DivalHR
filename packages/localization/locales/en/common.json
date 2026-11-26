@@ -7756,7 +7756,7 @@
       "title": "Run your people operations with clarity—from employee records to payroll preparation.",
       "body": "One secure bilingual platform for employee administration, leave, schedules, attendance, timesheets, payroll workflows and employee services—built for the realities of African organizations.",
       "badgeNote": "Controlled pilot for organizations that configure the platform with us.",
-      "screenshotAlt": "DivalHR administrator operations home showing today’s operational status, with synthetic data."
+      "screenshotAlt": "DivalHR organization administration home: quick actions to import employees, review leave requests, open timesheets and export approved time, a contracts panel and the navigation menu. Test environment, synthetic data."
     },
     "trust": {
       "label": "Platform foundations",
@@ -8063,41 +8063,25 @@
     },
     "media": {
       "galleryTitle": "The real product, with synthetic data",
-      "galleryIntro": "Screens captured from the deployed application. Every name and figure is synthetic.",
+      "galleryIntro": "Screens captured from the deployed application in a test environment, with synthetic data. In the employee directory, employee numbers and names are replaced by placeholders.",
       "desktop": "Desktop",
       "mobile": "Mobile width",
       "shots": {
         "admin-home": {
-          "title": "Administrator operations home",
-          "alt": "DivalHR administrator operations home with today’s status cards and quick actions."
+          "title": "Administrator home",
+          "alt": "DivalHR organization administration home with quick actions to import employees, review leave requests, open timesheets and export approved time, a contracts panel and the navigation menu."
         },
         "directory": {
           "title": "Employee directory",
-          "alt": "DivalHR employee directory listing synthetic employees by department and status."
-        },
-        "leave": {
-          "title": "Leave workflow",
-          "alt": "DivalHR leave requests awaiting approval with approver actions."
-        },
-        "attendance": {
-          "title": "Attendance and timesheets",
-          "alt": "DivalHR timesheet approval screen showing approved and pending days."
+          "alt": "DivalHR employee directory: a table of employee numbers, names and employment status, with the navigation menu on the left. Employee numbers and names are placeholders."
         },
         "payroll": {
           "title": "Payroll preparation",
-          "alt": "DivalHR payroll preparation screen showing a monthly run in review."
+          "alt": "DivalHR payroll preparation: a notice that payroll inputs only are generated and that no gross pay, deductions, tax, net pay or payment is calculated, above a form to choose a legal entity and a period."
         },
         "employee-mobile": {
           "title": "Employee on a phone",
-          "alt": "DivalHR employee home at phone width with routine actions."
-        },
-        "partners": {
-          "title": "Partner catalogue",
-          "alt": "DivalHR controlled partner product catalogue, information only."
-        },
-        "privacy": {
-          "title": "Privacy requests",
-          "alt": "DivalHR employee privacy requests page with request history."
+          "alt": "DivalHR employee home at phone width: the My space title, then cards for My schedule and My leave with Open links, under a test environment banner."
         }
       },
       "reel": {
@@ -8110,12 +8094,10 @@
         "mutedNote": "Silent, muted by default.",
         "scenes": {
           "brand": "DivalHR: bilingual workforce and operations for African organizations.",
-          "home": "An administrator sees today’s operations at a glance.",
-          "leave": "Leave and schedules, approved in one place.",
-          "attendance": "Attendance and timesheets, ready for review.",
-          "payroll": "Payroll preparation and payslips, step by step.",
-          "employee": "Employees handle routine work from their phone.",
-          "partners": "Approved partner services, with the employee in control.",
+          "home": "An administrator sees quick actions and contracts needing attention at a glance.",
+          "directory": "The employee directory lists every employee with their employment status.",
+          "payroll": "Payroll preparation produces payroll inputs only: no gross pay, tax or payment is calculated.",
+          "employee": "Employees reach their schedule and leave from their phone.",
           "cta": "Controlled pilot. Request a demo."
         }
       }

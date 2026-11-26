@@ -7756,7 +7756,7 @@
       "title": "Gérez vos opérations RH avec clarté — des dossiers employés à la préparation de la paie.",
       "body": "Une plateforme bilingue et sécurisée pour l’administration du personnel, les congés, les horaires, la présence, les feuilles de temps, les processus de paie et les services aux employés — conçue pour les réalités des organisations africaines.",
       "badgeNote": "Pilote contrôlé, pour les organisations qui configurent la plateforme avec nous.",
-      "screenshotAlt": "Accueil des opérations de l’administrateur DivalHR présentant la situation du jour, avec des données synthétiques."
+      "screenshotAlt": "Accueil d’administration de l’organisation dans DivalHR : actions rapides pour importer des employés, examiner les demandes de congé, ouvrir les feuilles de temps et exporter le temps approuvé, un panneau de contrats et le menu de navigation. Environnement de test, données synthétiques."
     },
     "trust": {
       "label": "Fondations de la plateforme",
@@ -8063,41 +8063,25 @@
     },
     "media": {
       "galleryTitle": "Le vrai produit, avec des données synthétiques",
-      "galleryIntro": "Écrans capturés sur l’application déployée. Chaque nom et chaque chiffre est synthétique.",
+      "galleryIntro": "Écrans capturés sur l’application déployée, dans un environnement de test, avec des données synthétiques. Dans l’annuaire des employés, les numéros et les noms sont remplacés par des valeurs fictives.",
       "desktop": "Ordinateur",
       "mobile": "Largeur mobile",
       "shots": {
         "admin-home": {
-          "title": "Accueil des opérations de l’administrateur",
-          "alt": "Accueil des opérations de l’administrateur DivalHR avec les cartes de situation du jour et les actions rapides."
+          "title": "Accueil de l’administrateur",
+          "alt": "Accueil d’administration de l’organisation dans DivalHR : actions rapides pour importer des employés, examiner les demandes de congé, ouvrir les feuilles de temps et exporter le temps approuvé, un panneau de contrats et le menu de navigation."
         },
         "directory": {
           "title": "Annuaire des employés",
-          "alt": "Annuaire des employés DivalHR listant des employés synthétiques par service et par statut."
-        },
-        "leave": {
-          "title": "Processus de congés",
-          "alt": "Demandes de congés DivalHR en attente d’approbation, avec les actions de l’approbateur."
-        },
-        "attendance": {
-          "title": "Présence et feuilles de temps",
-          "alt": "Écran d’approbation des feuilles de temps DivalHR montrant des jours approuvés et en attente."
+          "alt": "Annuaire des employés de DivalHR : un tableau de numéros d’employé, de noms et de statuts d’emploi, avec le menu de navigation à gauche. Les numéros et les noms sont fictifs."
         },
         "payroll": {
           "title": "Préparation de la paie",
-          "alt": "Écran de préparation de la paie DivalHR montrant un cycle mensuel en cours de revue."
+          "alt": "Préparation de la paie dans DivalHR : un avis indiquant que seules des données de préparation sont générées et qu’aucun salaire brut, retenue, impôt, salaire net ni paiement n’est calculé, au-dessus d’un formulaire pour choisir une entité juridique et une période."
         },
         "employee-mobile": {
-          "title": "L’employé sur son téléphone",
-          "alt": "Accueil employé DivalHR en largeur de téléphone, avec les actions courantes."
-        },
-        "partners": {
-          "title": "Catalogue de partenaires",
-          "alt": "Catalogue contrôlé de produits partenaires DivalHR, à titre d’information uniquement."
-        },
-        "privacy": {
-          "title": "Demandes relatives aux données",
-          "alt": "Page des demandes relatives aux données personnelles d’un employé DivalHR, avec l’historique des demandes."
+          "title": "Employé sur téléphone",
+          "alt": "Accueil employé de DivalHR en largeur de téléphone : le titre Mon espace, puis les cartes Mon horaire et Mes congés avec des liens Ouvrir, sous une bannière d’environnement de test."
         }
       },
       "reel": {
@@ -8110,12 +8094,10 @@
         "mutedNote": "Sans son, muette par défaut.",
         "scenes": {
           "brand": "DivalHR : gestion du personnel et des opérations, bilingue, pour les organisations africaines.",
-          "home": "Un administrateur voit les opérations du jour d’un coup d’œil.",
-          "leave": "Congés et horaires, approuvés au même endroit.",
-          "attendance": "Présence et feuilles de temps, prêtes pour la revue.",
-          "payroll": "Préparation de la paie et bulletins, pas à pas.",
-          "employee": "Les employés gèrent leur quotidien depuis leur téléphone.",
-          "partners": "Des services de partenaires approuvés, l’employé gardant la main.",
+          "home": "Un administrateur voit d’un coup d’œil les actions rapides et les contrats à traiter.",
+          "directory": "L’annuaire liste chaque employé avec son statut d’emploi.",
+          "payroll": "La préparation de la paie ne produit que des données de préparation : ni salaire brut, ni impôt, ni paiement n’est calculé.",
+          "employee": "Les employés accèdent à leur horaire et à leurs congés depuis leur téléphone.",
           "cta": "Pilote contrôlé. Demandez une démonstration."
         }
       }

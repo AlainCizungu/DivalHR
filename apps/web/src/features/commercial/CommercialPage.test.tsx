@@ -348,7 +348,7 @@ describe('product reel', () => {
       const c = resources[locale].common.commercial.media.reel;
       expect(screen.getByRole('button', { name: c.play })).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getByText(c.transcriptToggle)).toBeInTheDocument();
-      expect(document.querySelectorAll('.commercial-transcript li')).toHaveLength(8);
+      expect(document.querySelectorAll('.commercial-transcript li')).toHaveLength(6);
       expect(screen.getByTestId('commercial-reel-stage')).toHaveTextContent(c.scenes.brand);
       unmount();
     }

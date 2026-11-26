@@ -31,10 +31,13 @@ const DEPLOYED = [
   '769fa601e058f6f1ee390d206215113b4ca66963', // Issue #173 observability logging, PR #208, the previous release
   '46b9969b26838a72dda48a6840d6e9bd4d9db458', // MVP-120C, PR #210: controlled synthetic partner lifecycle, the previous release
   '27c9ccf52eafa175b9135aa6b82e78b5491a6360', // MVP-120D, PR #216: partner application and controlled onboarding, the previous release
-  '7ade59af7f1bbf681ef4eb0880a73e2125c3130a', // MVP-120E, PR #218: approved partners and the information-only catalogue, running
+  '7ade59af7f1bbf681ef4eb0880a73e2125c3130a', // MVP-120E, PR #218: approved partners and the information-only catalogue, the previous release
+  '093b0da126608f744e4498a193473434c89a771b', // DEVX-005, PR #223: launch stabilization bundle (no migration), the previous release
+  'c635afb2a67495abc12b3517984a6ac7e1224b87', // MVP-120F, PR #225: consented partner referral (V57), the previous release
+  '225da6cb13c5cc6e1b12c11ff4b5ce03134aa2f7', // LAUNCH-001, PR #227: privacy governance (V58), running
 ];
-const RUNNING = DEPLOYED[16];
-const PREVIOUS = DEPLOYED[15];
+const RUNNING = DEPLOYED[19];
+const PREVIOUS = DEPLOYED[18];
 const CAPABILITY = DEPLOYED[9];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
@@ -107,7 +110,7 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #184, MVP-095A/u);
   assert.match(header, /PR #188, MVP-095B/u);
   assert.match(header, /PR #189, R187-1/u);
-  assert.match(header, /as of 2026-11-23/u);
+  assert.match(header, /as of 2026-11-26/u);
   assert.match(header, /PR #199, TRUTH-003/u);
   assert.match(
     header,
@@ -302,7 +305,7 @@ const SHA_PATTERN = /\b[0-9a-f]{40}\b/gu;
  * Rule 1: the release the header says hr-dev runs equals the expected one, the migration it names is the expected
  * one, MVP-095C is stated merged, deployed and accepted, and the evidence table agrees.
  */
-export function releaseClaimProblems(text, expected, migration = 'V56') {
+export function releaseClaimProblems(text, expected, migration = 'V58') {
   const header = text.split('## Epic 1')[0];
   const problems = [];
   const running = /runs `main` at `([0-9a-f]{40})`/u.exec(header)?.[1];
@@ -392,22 +395,6 @@ const LEAVES = (value, path = []) =>
 const MENTIONS = /reconcil|rapproch/iu;
 const NOT_ACTIVE =
   /in progress|not (yet )?active|en cours|pas encore actif|n’est pas encore actif/iu;
-const REQUIRED_WORDING = {
-  en: [
-    /Reconciliation of an uncertain submission is available for the controlled synthetic test provider only/u,
-    /never resends the payment/u,
-    /not payment or settlement/u,
-    /No real provider is connected and real disbursement is not available yet/u,
-    /not a real bank or mobile-money integration and no money moves/u,
-  ],
-  fr: [
-    /Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé/u,
-    /ne renvoie jamais le paiement/u,
-    /ni un paiement ni un règlement/u,
-    /Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible/u,
-    /pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré/u,
-  ],
-};
 const REAL_CLAIMS = {
   en: [
     /(connected|integrated) (to|with) (a |an )?(real|live) (bank|provider|operator)/iu,
@@ -427,11 +414,12 @@ export function localeTruthProblems(strings, locale, catalogueText, roadmapText)
     if (MENTIONS.test(value) && NOT_ACTIVE.test(value))
       problems.push(`${locale}: ${path} says reconciliation is in progress or not active`);
   }
-  const payroll = strings.landing?.modules?.items?.payroll?.description ?? '';
-  for (const pattern of REQUIRED_WORDING[locale])
-    if (!pattern.test(payroll)) problems.push(`${locale}: the payroll card lacks ${pattern}`);
   for (const [path, value] of leaves) {
-    if (!path.startsWith('landing.') && !path.startsWith('home.') && !path.startsWith('roadmap.'))
+    if (
+      !path.startsWith('commercial.') &&
+      !path.startsWith('home.') &&
+      !path.startsWith('roadmap.')
+    )
       continue;
     for (const pattern of REAL_CLAIMS[locale])
       if (pattern.test(value))
@@ -447,12 +435,6 @@ export function localeTruthProblems(strings, locale, catalogueText, roadmapText)
     )
       problems.push(`${locale}: ${path} lists reconciliation under "Coming next"`);
   }
-  if (!strings.landing?.modules?.now?.paymentSubmission)
-    problems.push(`${locale}: submission is not listed as available now`);
-  if (MENTIONS.test(Object.values(strings.landing?.modules?.now ?? {}).join(' ')))
-    problems.push(
-      `${locale}: the plain "Available now" list names reconciliation (it belongs on the payroll card)`,
-    );
   if (/'reconciliation'/u.test(catalogueText))
     problems.push('the catalogue lists a reconciliation id');
   if (/id: 'reconciliation'/u.test(roadmapText))
@@ -474,8 +456,8 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   assert.notEqual(stale, backlog);
   assert.ok(releaseClaimProblems(stale, RUNNING).length > 0, 'a stale header SHA fails');
   const wrongMigration = backlog.replace(
-    'Issue #206 is closed))); migration V56 is applied',
-    'Issue #206 is closed))); migration V55 is applied',
+    'Issue #206 is closed)))))); migration V58 is applied',
+    'Issue #206 is closed)))))); migration V55 is applied',
   );
   assert.notEqual(wrongMigration, backlog);
   assert.ok(
@@ -488,7 +470,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   );
   assert.notEqual(inProgress, backlog);
   assert.ok(releaseClaimProblems(inProgress, RUNNING).length > 0, 'an in-progress MVP-095C fails');
-  const staleTable = backlog.replace(/^\| MVP-120E .*$/mu, '');
+  const staleTable = backlog.replace(/^\| LAUNCH-001 .*$/mu, '');
   assert.notEqual(staleTable, backlog);
   assert.ok(
     releaseClaimProblems(staleTable, RUNNING).length > 0,
@@ -547,11 +529,12 @@ test('truth rule 3: MVP-095C is active only with a deployed-and-accepted entry, 
 });
 
 test('truth rule 4: both locales state reconciliation as active for the synthetic provider only (TRUTH-002)', () => {
+  // LAUNCH-004 replaced the roadmap landing page (the landing payroll card and its "Available now" and
+  // "Coming next" lists no longer exist). This rule now guards the role homes, the roadmap tiles and the
+  // commercial page; the commercial statuses themselves are guarded by commercial-truth.test.mjs.
   const read = (path) => readFileSync(`${root}${path}`, 'utf8');
-  const catalogue = read('apps/web/src/features/landing/catalogue.ts');
   const roadmap = read('apps/web/src/features/home/roadmap.ts');
-  assert.match(catalogue, /'paymentSubmission'/u);
-  assert.doesNotMatch(catalogue, /'reconciliation'/u);
+  const catalogue = '';
   for (const locale of ['en', 'fr']) {
     const strings = JSON.parse(read(`packages/localization/locales/${locale}/common.json`));
     assert.deepEqual(
@@ -561,70 +544,36 @@ test('truth rule 4: both locales state reconciliation as active for the syntheti
     );
     // Each rule fails on a stale fixture.
     const clone = () => structuredClone(strings);
-    const payrollWord =
-      locale === 'en'
-        ? 'Reconciliation of an uncertain submission is available'
-        : 'Le rapprochement d’une soumission incertaine est disponible';
+    const en_ = locale === 'en';
     const stale = clone();
-    stale.landing.modules.items.payroll.description =
-      stale.landing.modules.items.payroll.description.replace(
-        payrollWord,
-        locale === 'en'
-          ? 'Reconciliation of uncertain submissions is in progress and not yet active. Available'
-          : 'Le rapprochement est en cours et n’est pas encore actif. Disponible',
-      );
+    stale.commercial.payroll.points.reconciliation = en_
+      ? 'Reconciliation of uncertain submissions is in progress and not yet active'
+      : 'Le rapprochement est en cours et n’est pas encore actif';
     assert.ok(
       localeTruthProblems(stale, locale, catalogue, roadmap).length > 0,
       `${locale}: an in-progress statement fails`,
     );
-    const next = clone();
-    next.landing.modules.next.disbursement +=
-      locale === 'en'
-        ? '; reconciliation of uncertain submissions'
-        : ' ; rapprochement des soumissions incertaines';
-    assert.ok(
-      localeTruthProblems(next, locale, catalogue, roadmap).some((p) => /Coming next/u.test(p)),
-      `${locale}: reconciliation back in "Coming next" fails`,
-    );
     const tile = clone();
-    tile.roadmap.items.disbursement.title +=
-      locale === 'en' ? ' and reconciliation' : ' et rapprochement';
+    tile.roadmap.items.disbursement.title += en_ ? ' and reconciliation' : ' et rapprochement';
     assert.ok(
       localeTruthProblems(tile, locale, catalogue, roadmap).some((p) => /Coming next/u.test(p)),
       `${locale}: a reconciliation roadmap tile fails`,
     );
     const real = clone();
-    real.landing.modules.items.payroll.description +=
-      locale === 'en'
-        ? ' DivalHR is connected to a real bank.'
-        : ' DivalHR est connecté à une vraie banque.';
+    real.commercial.payroll.intro += en_
+      ? ' DivalHR is connected to a real bank.'
+      : ' DivalHR est connecté à une vraie banque.';
     assert.ok(
       localeTruthProblems(real, locale, catalogue, roadmap).some((p) => /real bank/u.test(p)),
       `${locale}: a real-integration claim fails`,
     );
     const money = clone();
-    money.landing.modules.items.payroll.description +=
-      locale === 'en' ? ' DivalHR sends real money.' : ' DivalHR envoie de l’argent réel.';
+    money.home.tenant.cards.payrollPackages.description += en_
+      ? ' DivalHR sends real money.'
+      : ' DivalHR envoie de l’argent réel.';
     assert.ok(
       localeTruthProblems(money, locale, catalogue, roadmap).length > 0,
       `${locale}: a real-money claim fails`,
-    );
-    const lost = clone();
-    lost.landing.modules.items.payroll.description =
-      lost.landing.modules.items.payroll.description.replace(
-        locale === 'en' ? 'No real provider is connected' : 'Aucun prestataire réel n’est connecté',
-        '',
-      );
-    assert.ok(
-      localeTruthProblems(lost, locale, catalogue, roadmap).length > 0,
-      `${locale}: losing the no-real-provider wording fails`,
-    );
-    const now = clone();
-    now.landing.modules.now.paymentSubmission +=
-      locale === 'en' ? ' and reconciliation' : ' et rapprochement';
-    assert.ok(
-      localeTruthProblems(now, locale, catalogue, roadmap).length > 0,
-      `${locale}: reconciliation in the plain list fails`,
     );
   }
   assert.ok(
@@ -689,38 +638,13 @@ const LIMITED_TOPIC = {
   fr: /statut payé|règlement|preuve de paiement|notification de paiement|avance sur salaire|avances sur salaire|\bprêts\b|\bprêt(?! pour)\b|centre de coûts|dimension de[^.]*site|\bUSD\b/iu,
 };
 const SURFACES = {
-  payrollDescription: 'landing.modules.items.payroll.description',
-  payrollBody: 'landing.payroll.body',
-  nowExport: 'landing.modules.now.accountingExport',
   homeCard: 'home.tenant.cards.accountingMappings.description',
   homeProgress: 'home.tenant.progress.items.accountingJournal.description',
   homePayrollCard: 'home.tenant.cards.payrollPackages.description',
   roadmap: 'roadmap.items.filingAccounting.description',
-  nextPayslips: 'landing.modules.next.payslips',
 };
 const REQUIRED_JOURNAL = {
   en: {
-    payrollDescription: [
-      /effective-dated account mappings/u,
-      /immutable, balanced accounting journal from an approved payroll package/u,
-      /deterministic CSV and manifest downloads/u,
-      /manifest binds the CSV SHA-256/u,
-      /accounting-ready manual export for CDF packages/u,
-      /not posted to Sage, Odoo, QuickBooks or any accounting system/u,
-      /not proof of payment/u,
-      /No journal is produced for USD/u,
-      /no cost-center or site dimension is claimed/u,
-    ],
-    payrollBody: [
-      /accounting-ready journal export \(CSV and manifest, manual import only\) is available for approved CDF payroll packages/u,
-      /Filing, direct accounting posting,[^.]*salary advances come next/u,
-    ],
-    nowExport: [
-      /immutable, balanced journal/u,
-      /CSV and manifest downloads/u,
-      /nothing is posted to an accounting system/u,
-      /CDF/u,
-    ],
     homeCard: [/effective-dated/u, /never posted to an accounting system/u],
     homeProgress: [
       /immutable, balanced journal/u,
@@ -735,30 +659,8 @@ const REQUIRED_JOURNAL = {
       /nothing is posted to an accounting system/u,
     ],
     roadmap: [/direct posting to accounting systems/u, /not a posting/u],
-    nextPayslips: [/direct accounting posting/u],
   },
   fr: {
-    payrollDescription: [
-      /correspondances de comptes datées/u,
-      /journal comptable immuable et équilibré à partir d’un dossier de paie approuvé/u,
-      /téléchargements déterministes du CSV et du manifeste/u,
-      /manifeste liant l’empreinte SHA-256 du CSV/u,
-      /export manuel prêt pour la comptabilité, pour les dossiers en CDF/u,
-      /pas comptabilisé dans Sage, Odoo, QuickBooks ni dans aucun système comptable/u,
-      /pas une preuve de paiement/u,
-      /Aucun journal n’est produit pour l’USD/u,
-      /aucune dimension de centre de coûts ou de site n’est revendiquée/u,
-    ],
-    payrollBody: [
-      /export de journal comptable prêt pour la comptabilité \(CSV et manifeste, import manuel uniquement\) est disponible pour les dossiers de paie approuvés en CDF/u,
-      /déclarations, la comptabilisation directe[^.]*avances sur salaire arrivent prochainement/u,
-    ],
-    nowExport: [
-      /journal comptable immuable et équilibré/u,
-      /CSV et du manifeste/u,
-      /rien n’est comptabilisé dans un système comptable/u,
-      /CDF/u,
-    ],
     homeCard: [/datés et versionnés/u, /jamais comptabilisés dans un système comptable/u],
     homeProgress: [
       /journal immuable et équilibré/u,
@@ -773,7 +675,6 @@ const REQUIRED_JOURNAL = {
       /rien n’est comptabilisé dans un système comptable/u,
     ],
     roadmap: [/comptabilisation directe/u, /pas une comptabilisation/u],
-    nextPayslips: [/comptabilisation directe/u],
   },
 };
 const dig = (strings, path) => path.split('.').reduce((node, key) => node?.[key], strings);
@@ -791,7 +692,7 @@ export function journalLocaleProblems(strings, locale) {
       if (!pattern.test(value)) problems.push(`${locale}: ${path} lacks ${pattern}`);
   }
   for (const [path, value] of LEAVES(strings)) {
-    if (!/^(landing|home|roadmap)\./u.test(path)) continue;
+    if (!/^(home|roadmap)\./u.test(path)) continue;
     for (const sentence of SENTENCES(value)) {
       if (JOURNAL_MENTION[locale].test(sentence) && NOT_AVAILABLE_JOURNAL[locale].test(sentence))
         problems.push(`${locale}: ${path} describes the accounting journal export as not active`);
@@ -822,13 +723,7 @@ export function journalLocaleProblems(strings, locale) {
 export function journalParityProblems(en, fr) {
   const problems = [];
   const keys = (strings, path) => Object.keys(dig(strings, path) ?? {}).sort();
-  for (const path of [
-    'landing.modules.now',
-    'landing.modules.next',
-    'home.tenant.cards',
-    'home.tenant.progress.items',
-    'roadmap.items',
-  ])
+  for (const path of ['home.tenant.cards', 'home.tenant.progress.items', 'roadmap.items'])
     if (keys(en, path).join() !== keys(fr, path).join())
       problems.push(`${path}: English and French keys diverge`);
   for (const [surface, path] of Object.entries(SURFACES)) {
@@ -837,9 +732,6 @@ export function journalParityProblems(en, fr) {
     if (typeof dig(en, path) !== typeof dig(fr, path))
       problems.push(`${path}: one locale lacks it`);
   }
-  const sha = (strings) => /SHA-256/u.test(dig(strings, SURFACES.payrollDescription) ?? '');
-  if (sha(en) !== sha(fr))
-    problems.push('the SHA-256 manifest binding is stated in one locale only');
   return problems;
 }
 
@@ -994,23 +886,24 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
         `${name}: names the problem`,
       );
   }
-  const noTableRow = backlog.replace(/^\| MVP-120E .*$/mu, '');
+  const noTableRow = backlog.replace(/^\| LAUNCH-001 .*$/mu, '');
   assert.ok(releaseClaimProblems(noTableRow, RUNNING).length > 0, 'a missing release row fails');
   const wrongPr = backlog.replace('| MVP-096   | #195 |', '| MVP-096   | #196 |');
   assert.notEqual(wrongPr, backlog);
 });
 
 test('truth rule 5: both locales mark the journal export active, keep every limit and stay in step (TRUTH-003)', () => {
+  // LAUNCH-004 removed the roadmap landing page; the landing payroll card, "Available now" and "Coming next"
+  // lists are gone. The role-home and roadmap surfaces below are still guarded here; the commercial page is
+  // guarded by commercial-truth.test.mjs (statuses, forbidden claims, the exact payroll disclosure).
   const read = (path) => readFileSync(`${root}${path}`, 'utf8');
   const en = JSON.parse(read('packages/localization/locales/en/common.json'));
   const fr = JSON.parse(read('packages/localization/locales/fr/common.json'));
   assert.deepEqual(journalLocaleProblems(en, 'en'), [], 'en truth');
   assert.deepEqual(journalLocaleProblems(fr, 'fr'), [], 'fr truth');
   assert.deepEqual(journalParityProblems(en, fr), [], 'en/fr parity');
-  const catalogue = read('apps/web/src/features/landing/catalogue.ts');
   const roadmap = read('apps/web/src/features/home/roadmap.ts');
   const home = read('apps/web/src/features/home/HomePage.tsx');
-  assert.match(catalogue, /AVAILABLE_NOW[^\]]*'accountingExport'/su);
   assert.doesNotMatch(roadmap, /id: 'accounting(Journal|Export)'/u);
   assert.match(home, /'accountingMappings',\s*'\/admin\/accounting-mappings'/u);
   for (const [locale, strings] of [
@@ -1039,7 +932,7 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
     failing(
       '"being built" on the payroll card',
       edit(
-        SURFACES.payrollDescription,
+        SURFACES.homePayrollCard,
         (v) =>
           v +
           (en_
@@ -1063,7 +956,7 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
     failing(
       'journal back under "Coming next"',
       edit(
-        'landing.modules.next.disbursement',
+        'roadmap.items.disbursement.title',
         (v) => v + (en_ ? '; accounting journal export' : ' ; export de journal comptable'),
       ),
       /Coming next|not active|unlimited/u,
@@ -1071,7 +964,7 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
     failing(
       'direct posting available',
       edit(
-        SURFACES.nowExport,
+        SURFACES.homePayrollCard,
         (v) =>
           v +
           (en_
@@ -1081,38 +974,38 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
       /overclaims/u,
     );
     failing(
-      'posted to Sage',
-      edit(SURFACES.payrollDescription, (v) =>
+      'posted to an accounting system',
+      edit(SURFACES.homeCard, (v) =>
         v.replace(
-          en_ ? 'not posted to Sage' : 'pas comptabilisé dans Sage',
-          en_ ? 'posted to Sage' : 'comptabilisé dans Sage',
+          en_
+            ? 'never posted to an accounting system'
+            : 'jamais comptabilisés dans un système comptable',
+          en_ ? 'posted to an accounting system' : 'comptabilisés dans un système comptable',
         ),
       ),
       /overclaims|lacks/u,
     );
     failing(
       'USD journal claimed',
-      edit(SURFACES.payrollDescription, (v) =>
+      edit(SURFACES.homeProgress, (v) =>
         v.replace(
-          en_ ? 'No journal is produced for USD' : 'Aucun journal n’est produit pour l’USD',
-          en_ ? 'USD journals are generated' : 'Les journaux en USD sont générés',
+          en_ ? 'CDF packages' : 'dossiers en CDF',
+          en_ ? 'USD journals are generated' : 'journaux en USD sont générés',
         ),
       ),
       /overclaims|lacks/u,
     );
     failing(
       'cost-center claimed',
-      edit(SURFACES.payrollDescription, (v) =>
-        v.replace(
-          en_
-            ? 'no cost-center or site dimension is claimed'
-            : 'aucune dimension de centre de coûts ou de site n’est revendiquée',
-          en_
-            ? 'cost-center allocation is available'
-            : 'la répartition par centre de coûts est disponible',
-        ),
+      edit(
+        SURFACES.homeCard,
+        (v) =>
+          v +
+          (en_
+            ? ' Cost-center allocation is available.'
+            : ' Le centre de coûts : la répartition est disponible.'),
       ),
-      /overclaims|lacks/u,
+      /overclaims/u,
     );
     failing(
       'proof of payment dropped',
@@ -1134,15 +1027,17 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
       /unlimited|overclaims/u,
     );
     failing(
-      'SHA-256 binding dropped',
-      edit(SURFACES.payrollDescription, (v) => v.replace('SHA-256', 'checksum')),
+      'manifest wording dropped',
+      edit(SURFACES.homeProgress, (v) =>
+        v.replace(en_ ? 'CSV and manifest' : 'CSV et son manifeste', 'files'),
+      ),
       /lacks/u,
     );
     failing(
-      'export removed from "Available now"',
+      'journal card removed from the tenant home',
       (() => {
         const c = clone();
-        delete c.landing.modules.now.accountingExport;
+        delete c.home.tenant.cards.accountingMappings;
         return c;
       })(),
       /missing/u,
@@ -1150,7 +1045,7 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
     failing(
       'real payment claimed',
       edit(
-        SURFACES.payrollBody,
+        SURFACES.homePayrollCard,
         (v) =>
           v +
           (en_ ? ' Real bank payment is available.' : ' Le paiement bancaire réel est disponible.'),
@@ -1159,7 +1054,7 @@ test('truth rule 5: both locales mark the journal export active, keep every limi
     );
   }
   const lopsided = structuredClone(fr);
-  delete lopsided.landing.modules.now.accountingExport;
+  delete lopsided.home.tenant.cards.accountingMappings;
   assert.ok(journalParityProblems(en, lopsided).length > 0, 'a one-sided claim fails');
   const extra = structuredClone(en);
   extra.home.tenant.cards.accountingExtra = { title: 'x', description: 'y' };

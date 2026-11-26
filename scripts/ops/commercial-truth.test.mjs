@@ -1,6 +1,6 @@
 // LAUNCH-004 (Issue #228): the commercial truth test. Runs under `node --test` (pnpm ops:test).
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -231,4 +231,61 @@ test('the commercial locale has the same keys in English and French and no copie
 
 test('the launch-truth files exist where the evidence map and backlog name them', () => {
   assert.ok(existsSync(TRUTH_DOC) && existsSync(GAPS_DOC));
+});
+
+test('screenshot manifest: every file exists within the 300 KB budget, with localized alternative text', () => {
+  const media = JSON.parse(
+    readFileSync(join(ROOT, 'apps/web/src/features/commercial/media.json'), 'utf8'),
+  );
+  assert.match(media.release, /^[0-9a-f]{40}$/u);
+  assert.ok(media.shots.length >= 8, 'at least eight real screenshots');
+  for (const locale of ['en', 'fr']) {
+    const mine = media.shots.filter((shot) => shot.locale === locale);
+    assert.ok(mine.length >= 4, `${locale}: at least four screenshots`);
+    assert.ok(
+      mine.some((shot) => shot.viewport === 'desktop'),
+      `${locale}: a desktop capture`,
+    );
+    assert.ok(
+      mine.some((shot) => shot.viewport === 'mobile'),
+      `${locale}: a mobile capture`,
+    );
+    const texts = localeCommercial(locale).media.shots;
+    for (const shot of mine) {
+      assert.ok((texts[shot.id]?.alt ?? '').length > 60, `${locale}/${shot.id}: descriptive alt`);
+      assert.ok((texts[shot.id]?.title ?? '').length > 0, `${locale}/${shot.id}: title`);
+    }
+  }
+  for (const shot of media.shots) {
+    assert.equal(shot.width, Math.max(...shot.widths));
+    for (const width of shot.widths) {
+      for (const extension of ['avif', 'webp', 'jpg']) {
+        const file = join(ROOT, 'apps/web/public', `${shot.base}-${width}.${extension}`);
+        assert.ok(existsSync(file), `missing ${shot.base}-${width}.${extension}`);
+        assert.ok(statSync(file).size <= 300 * 1024, `${file} is over 300 KB`);
+      }
+    }
+  }
+  const preview = join(ROOT, 'apps/web/public/social-preview.png');
+  assert.ok(existsSync(preview) && statSync(preview).size <= 300 * 1024, 'social preview exists');
+});
+
+test('static index.html carries the French metadata defaults, equal to the locale strings', () => {
+  const html = readFileSync(join(ROOT, 'apps/web/index.html'), 'utf8');
+  const meta = localeCommercial('fr').meta;
+  const unescape = (value) =>
+    value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&#x27;', "'");
+  const content = (key) => {
+    const match = new RegExp(`<meta\\s+(?:name|property)="${key}"\\s+content="([^"]*)"`, 'u').exec(
+      html,
+    );
+    assert.ok(match, `index.html lacks ${key}`);
+    return unescape(match[1]);
+  };
+  assert.match(html, /<html lang="fr">/u);
+  assert.equal(content('description'), meta.description);
+  assert.equal(content('og:title'), meta.ogTitle);
+  assert.equal(content('og:description'), meta.ogDescription);
+  assert.doesNotMatch(html, /og:image/u, 'no environment-specific image URL in the static file');
+  for (const claim of FORBIDDEN) assert.doesNotMatch(html, claim);
 });

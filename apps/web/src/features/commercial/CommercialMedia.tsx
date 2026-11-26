@@ -10,16 +10,7 @@ import { langOf, type Lang } from './truth';
  * release SHA and synthetic fixture for each capture. Nothing here is a mock-up, and nothing loads
  * until it is near the viewport.
  */
-export const SHOT_ORDER = [
-  'admin-home',
-  'directory',
-  'leave',
-  'attendance',
-  'payroll',
-  'employee-mobile',
-  'partners',
-  'privacy',
-] as const;
+export const SHOT_ORDER = ['admin-home', 'directory', 'payroll', 'employee-mobile'] as const;
 export type ShotId = (typeof SHOT_ORDER)[number];
 type Viewport = 'desktop' | 'mobile';
 
@@ -137,15 +128,13 @@ export function Gallery() {
 const SCENES = [
   { id: 'brand', shot: undefined },
   { id: 'home', shot: 'admin-home' },
-  { id: 'leave', shot: 'leave' },
-  { id: 'attendance', shot: 'attendance' },
+  { id: 'directory', shot: 'directory' },
   { id: 'payroll', shot: 'payroll' },
   { id: 'employee', shot: 'employee-mobile' },
-  { id: 'partners', shot: 'partners' },
   { id: 'cta', shot: undefined },
 ] as const satisfies readonly { id: string; shot: ShotId | undefined }[];
 
-export const SCENE_SECONDS = 4;
+export const SCENE_SECONDS = 5;
 export const REEL_SECONDS = SCENES.length * SCENE_SECONDS;
 
 function prefersReducedMotion(): boolean {

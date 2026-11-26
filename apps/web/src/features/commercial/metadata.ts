@@ -1,6 +1,6 @@
 /**
  * LAUNCH-004: localized page metadata for the commercial page. The static tags in index.html carry
- * the English defaults for crawlers that do not run scripts; this applies the visitor's language.
+ * the French defaults (the document declares lang="fr") for crawlers that do not run scripts, without an image URL because the origin differs per environment; this applies the visitor's language and the social image.
  * No rating, price, customer count, award, office or testimonial is ever emitted.
  */
 export interface PageMeta {

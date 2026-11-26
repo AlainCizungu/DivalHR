@@ -92,3 +92,27 @@ describe('service worker caching (MVP-010 guardrails 3 and 6)', () => {
     expect(denied('/admin/users')).toBe(false);
   });
 });
+
+describe('commercial website under the service worker (LAUNCH-004)', () => {
+  it('answers the public commercial routes from the shell, on direct load and reload', () => {
+    for (const path of [
+      '/',
+      '/?lang=en',
+      '/#pilot',
+      '/legal/privacy',
+      '/legal/terms',
+      '/partners/apply',
+      '/invitation',
+    ]) {
+      expect(denied(path), path).toBe(false);
+    }
+  });
+
+  it('does not precache screenshots, video, source maps or the social image, and keeps the ceiling', () => {
+    const patterns = workboxOptions.globPatterns.join(' ');
+    for (const extension of ['png', 'jpg', 'webp', 'avif', 'mp4', 'webm', 'map']) {
+      expect(patterns).not.toContain(extension);
+    }
+    expect(workboxOptions.maximumFileSizeToCacheInBytes).toBe(3 * 1024 * 1024);
+  });
+});
