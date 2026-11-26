@@ -202,6 +202,8 @@ describe('navigation and route registry consistency', () => {
         '/me/contracts/:contractId',
         '/invitation',
         '/partners/apply',
+        '/legal/privacy',
+        '/legal/terms',
         '/auth/callback',
       ].sort(),
     );

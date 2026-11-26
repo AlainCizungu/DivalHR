@@ -18,35 +18,14 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const data = loadSource();
 const byId = new Map(data.capabilities.map((c) => [c.id, c]));
 
-/** C3 forbidden claims, English and French. Negated disclosures ("does not … guarantee approval") do not match. */
-export const FORBIDDEN = [
-  /fully compliant/iu,
-  /\bDRC[- ]compliant/iu,
-  /compliant across africa/iu,
-  /automatically pays/iu,
-  /instant (salary )?advance/iu,
-  /guaranteed (loan )?approval|approval (is )?guaranteed/iu,
-  /connected to (a |an |your |the )?(bank|insurer|telecom|mobile|payment)/iu,
-  /AI for every workflow/iu,
-  /native (iOS|Android) (apps?|applications?) (are |is )?(available|ready|live)/iu,
-  /(app store|google play)/iu,
-  /automatic(ally)? (accounting )?post/iu,
-  /real[- ]time (bank )?settlement/iu,
-  /certified by|(iso|soc)[ -]?\d+ certified|production[- ]certified/iu,
-  /generally available/iu,
-  /entièrement conforme/iu,
-  /conforme (à la loi|rdc|rd congo|en rdc)/iu,
-  /conforme dans toute l[’']afrique/iu,
-  /paie automatiquement|paie tous les employés automatiquement/iu,
-  /avance (sur salaire )?instantanée/iu,
-  /approbation garantie|prêt garanti/iu,
-  /connecté à (une |un |votre |la |le )?(banque|assureur|opérateur|fournisseur de paiement)/iu,
-  /IA pour tous les flux/iu,
-  /applications? natives? (ios|android) (sont |est )?(disponibles?|prêtes?)/iu,
-  /règlement (bancaire )?en temps réel/iu,
-  /certifié par|certifiée par|disponibilité générale/iu,
-];
-const SYNTHETIC_INTERNALS = /SYNTHETIC-TEST|synthetic (test )?provider|fournisseur synthétique|fournisseur de test/iu;
+/** C3 forbidden claims, English and French (one source shared with the web component tests). */
+const FORBIDDEN_SOURCE = JSON.parse(
+  readFileSync(join(ROOT, 'apps/web/src/features/commercial/forbidden-claims.json'), 'utf8'),
+);
+export const FORBIDDEN = FORBIDDEN_SOURCE.claims.map(
+  (claim) => new RegExp(claim, FORBIDDEN_SOURCE.flags),
+);
+const SYNTHETIC_INTERNALS = new RegExp(FORBIDDEN_SOURCE.syntheticInternals, FORBIDDEN_SOURCE.flags);
 
 function localeCommercial(lang) {
   const path = join(ROOT, `packages/localization/locales/${lang}/common.json`);
@@ -95,7 +74,8 @@ test('every capability uses a status of the closed catalogue and has complete bi
       assert.ok(c.name[f]?.trim(), `${c.id}: missing ${f} name`);
     }
     assert.notEqual(c.en, c.fr, `${c.id}: French wording is a copy of the English`);
-    for (const f of ['dependency', 'activation', 'nextIssue']) assert.ok(c[f]?.trim(), `${c.id}: ${f}`);
+    for (const f of ['dependency', 'activation', 'nextIssue'])
+      assert.ok(c[f]?.trim(), `${c.id}: ${f}`);
     assert.match(c.nextIssue, /^(UNSCHEDULED|#\d+)$/u, `${c.id}: next issue`);
   }
 });
@@ -105,15 +85,24 @@ test('every landing-page capability id is in the truth file and every truth capa
   for (const p of data.pillars) p.capabilities.forEach((id) => used.add(id));
   for (const list of Object.values(data.sections)) list.forEach((id) => used.add(id));
   for (const id of used) assert.ok(byId.has(id), `landing references unknown capability ${id}`);
-  for (const id of byId.keys()) assert.ok(used.has(id), `capability ${id} is not placed on the page`);
+  for (const id of byId.keys())
+    assert.ok(used.has(id), `capability ${id} is not placed on the page`);
 });
 
 test('PILOT_AVAILABLE items carry evidence; other items carry a gap entry; gaps are never complete', () => {
   for (const c of data.capabilities) {
     if (c.status === 'PILOT_AVAILABLE') {
-      assert.match(c.evidence, /(PR|Issue) #\d+|release [0-9a-f]{7}|docs\/[A-Za-z-]+\.md/u, `${c.id}: evidence`);
+      assert.match(
+        c.evidence,
+        /(PR|Issue) #\d+|release [0-9a-f]{7}|docs\/[A-Za-z-]+\.md/u,
+        `${c.id}: evidence`,
+      );
       assert.match(c.evidence, /release 225da6c|deployed/u, `${c.id}: deployment evidence`);
-      assert.equal(c.gap, undefined, `${c.id}: an available item must not keep a gap (reclassify, then remove it)`);
+      assert.equal(
+        c.gap,
+        undefined,
+        `${c.id}: an available item must not keep a gap (reclassify, then remove it)`,
+      );
     } else {
       assert.ok(c.gap, `${c.id}: ${c.status} needs a gap entry`);
       assert.ok(PARTIES.includes(c.gap.party), `${c.id}: responsible party`);
@@ -121,9 +110,17 @@ test('PILOT_AVAILABLE items carry evidence; other items carry a gap entry; gaps 
       for (const v of Object.values(c.gap.blocks)) assert.equal(typeof v, 'boolean');
       assert.ok(c.gap.review?.trim(), `${c.id}: review condition`);
       for (const bad of ['complete', 'completed', 'done', 'closed', 'resolved']) {
-        assert.equal(c.gap[bad], undefined, `${c.id}: a gap is removed or reclassified, never marked ${bad}`);
+        assert.equal(
+          c.gap[bad],
+          undefined,
+          `${c.id}: a gap is removed or reclassified, never marked ${bad}`,
+        );
       }
-      assert.doesNotMatch(JSON.stringify(c.gap), /\b20\d\d-\d\d-\d\d\b|Q[1-4] 20\d\d/u, `${c.id}: no date estimate`);
+      assert.doesNotMatch(
+        JSON.stringify(c.gap),
+        /\b20\d\d-\d\d-\d\d\b|Q[1-4] 20\d\d/u,
+        `${c.id}: no date estimate`,
+      );
     }
     assert.doesNotMatch(c.en + c.fr, /coming soon|bientôt|prochainement/iu, `${c.id}: stale label`);
   }
@@ -153,28 +150,53 @@ test('partner-dependent capabilities carry the exact partner disclosure or a str
   const salary = byId.get('salary-advances');
   assert.equal(salary.en, data.partnerDisclosure.en);
   assert.equal(salary.fr, data.partnerDisclosure.fr);
-  for (const id of ['partner-referral', 'real-payment-delivery', 'partner-health-insurance-telecom']) {
+  for (const id of [
+    'partner-referral',
+    'real-payment-delivery',
+    'partner-health-insurance-telecom',
+  ]) {
     assert.equal(byId.get(id).status, 'PARTNER_REQUIRED');
   }
 });
 
 test('forbidden claims are absent from the capability wording, the status labels and the page copy', () => {
   const texts = [];
-  for (const c of data.capabilities) texts.push([`${c.id} en`, c.en], [`${c.id} fr`, c.fr], [`${c.id} name en`, c.name.en], [`${c.id} name fr`, c.name.fr]);
-  for (const [s, l] of Object.entries(data.statuses)) texts.push([`${s} en`, l.en], [`${s} fr`, l.fr]);
+  for (const c of data.capabilities)
+    texts.push(
+      [`${c.id} en`, c.en],
+      [`${c.id} fr`, c.fr],
+      [`${c.id} name en`, c.name.en],
+      [`${c.id} name fr`, c.name.fr],
+    );
+  for (const [s, l] of Object.entries(data.statuses))
+    texts.push([`${s} en`, l.en], [`${s} fr`, l.fr]);
   for (const lang of ['en', 'fr']) {
     const commercial = localeCommercial(lang);
     if (commercial) for (const s of strings(commercial)) texts.push([`locale ${lang}`, s]);
   }
   for (const [where, text] of texts) {
-    for (const pattern of FORBIDDEN) assert.doesNotMatch(text, pattern, `${where}: forbidden claim ${pattern}`);
-    assert.doesNotMatch(text, SYNTHETIC_INTERNALS, `${where}: synthetic-provider internals on the landing page`);
+    for (const pattern of FORBIDDEN)
+      assert.doesNotMatch(text, pattern, `${where}: forbidden claim ${pattern}`);
+    assert.doesNotMatch(
+      text,
+      SYNTHETIC_INTERNALS,
+      `${where}: synthetic-provider internals on the landing page`,
+    );
   }
 });
 
 test('no integration or partner brand is described as connected without evidence', () => {
-  for (const id of ['real-payment-delivery', 'accounting-system-connectors', 'sso-federation', 'partner-network-activation']) {
-    assert.notEqual(byId.get(id).status, 'PILOT_AVAILABLE', `${id} cannot be available without a real connection`);
+  for (const id of [
+    'real-payment-delivery',
+    'accounting-system-connectors',
+    'sso-federation',
+    'partner-network-activation',
+  ]) {
+    assert.notEqual(
+      byId.get(id).status,
+      'PILOT_AVAILABLE',
+      `${id} cannot be available without a real connection`,
+    );
   }
 });
 
@@ -184,13 +206,25 @@ test('the commercial locale has the same keys in English and French and no copie
   if (!en && !fr) return;
   assert.ok(en && fr, 'the commercial copy must exist in both languages');
   const flat = (o, p = '') =>
-    Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' ? flat(v, `${p}${k}.`) : [[`${p}${k}`, v]]));
+    Object.entries(o).flatMap(([k, v]) =>
+      v && typeof v === 'object' ? flat(v, `${p}${k}.`) : [[`${p}${k}`, v]],
+    );
   const e = new Map(flat(en));
   const f = new Map(flat(fr));
   assert.deepEqual([...f.keys()].sort(), [...e.keys()].sort(), 'key sets differ');
-  const ALLOWED_SAME = /^(commercial\.brand\.|commercial\.integrations\.brands\.)/u;
+  // Words and names that are legitimately identical in both languages.
+  const SAME_IN_BOTH = new Set([
+    'nav.menu',
+    'nav.solutions',
+    'outcomes.kicker',
+    'mobile.kicker',
+    'footer.contact',
+    'footer.tagline',
+    'footer.copyright',
+    'integrations.entries.whatsapp',
+  ]);
   for (const [key, text] of e) {
-    if (ALLOWED_SAME.test(`commercial.${key}`) || text.length < 4) continue;
+    if (SAME_IN_BOTH.has(key) || text.length < 4) continue;
     assert.notEqual(f.get(key), text, `commercial.${key}: French equals English`);
   }
 });

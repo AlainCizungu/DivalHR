@@ -12,7 +12,12 @@ export const SOURCE = join(ROOT, 'apps/web/src/features/commercial/launch-truth.
 export const TRUTH_DOC = join(ROOT, 'docs/COMMERCIAL-LAUNCH-TRUTH.md');
 export const GAPS_DOC = join(ROOT, 'docs/COMMERCIAL-LAUNCH-GAPS.md');
 
-export const STATUSES = ['PILOT_AVAILABLE', 'CONFIGURATION_REQUIRED', 'PARTNER_REQUIRED', 'PLANNED'];
+export const STATUSES = [
+  'PILOT_AVAILABLE',
+  'CONFIGURATION_REQUIRED',
+  'PARTNER_REQUIRED',
+  'PLANNED',
+];
 export const PARTIES = ['DIVALHR', 'CUSTOMER', 'COUNSEL', 'PARTNER', 'REGULATOR'];
 
 export function loadSource() {

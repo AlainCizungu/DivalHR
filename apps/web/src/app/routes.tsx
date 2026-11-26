@@ -75,6 +75,7 @@ import { PartnerAccountDetailPage } from '../features/partners/PartnerAccountDet
 import { PartnerAccountsPage } from '../features/partners/PartnerAccountsPage';
 import { PartnerProductPage } from '../features/partners/PartnerProductPage';
 import { PartnerApplyPage } from '../features/partners/PartnerApplyPage';
+import { LegalPage } from '../features/commercial/LegalPage';
 import { MyReferralDetailPage } from '../features/partners/MyReferralDetailPage';
 import { MyPrivacyPage } from '../features/privacy/MyPrivacyPage';
 import { PlatformPrivacyPage } from '../features/privacy/PlatformPrivacyPage';
@@ -792,5 +793,8 @@ export const ROUTES: AppRoute[] = [
   },
   { path: '/invitation', element: <AcceptInvitationPage />, frame: 'public' },
   { path: '/partners/apply', element: <PartnerApplyPage />, frame: 'public' },
+  // LAUNCH-004: pilot documents, shown in the commercial frame to anonymous visitors.
+  { path: '/legal/privacy', element: <LegalPage kind="privacy" />, anonymousFrame: 'landing' },
+  { path: '/legal/terms', element: <LegalPage kind="terms" />, anonymousFrame: 'landing' },
   { path: '/auth/callback', element: <CallbackPage />, frame: 'public' },
 ];

@@ -2,17 +2,17 @@ import { expect, test } from '@playwright/test';
 import { expectAccessible } from '../support';
 import { ORIGIN, trackHosts } from './support';
 
-/** OPS-001 section 11: the public landing page of the test environment, English and French. */
+/** OPS-001 section 11: the public commercial page of the test environment (LAUNCH-004), English and French. */
 
 const COPY = {
   en: {
     language: 'English',
-    h1: 'Run your people. Power your operations.',
+    h1: 'Run your people operations with clarity—from employee records to payroll preparation.',
     badge: 'Test environment',
   },
   fr: {
     language: 'Français',
-    h1: 'Gérez vos talents. Pilotez vos opérations.',
+    h1: 'Gérez vos opérations RH avec clarté — des dossiers employés à la préparation de la paie.',
     badge: 'Environnement de test',
   },
 } as const;
@@ -28,8 +28,8 @@ for (const locale of ['en', 'fr'] as const) {
     await page.getByRole('button', { name: COPY[locale].language, exact: true }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(COPY[locale].h1);
     await expect(page.getByTestId('environment-badge')).toContainText(COPY[locale].badge);
-    const logos = page.getByTestId('landing-integrations').locator('img');
-    await expect(logos).toHaveCount(8);
+    const logos = page.getByTestId('commercial-integrations').locator('img');
+    await expect(logos).toHaveCount(7);
     for (const logo of await logos.all()) {
       await logo.scrollIntoViewIfNeeded();
       await expect

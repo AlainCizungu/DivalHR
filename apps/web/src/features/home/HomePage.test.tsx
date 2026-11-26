@@ -563,12 +563,18 @@ describe.each(['en', 'fr'] as const)('Contracts needing attention (%s)', (locale
 });
 
 describe('session states on Home', () => {
-  it('shows anonymous visitors the landing page (UI-002)', async () => {
+  it('shows anonymous visitors the commercial page (LAUNCH-004)', async () => {
     await renderHome({ kind: 'anonymous' });
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
-      en.landing.hero.line1,
+      en.commercial.hero.title,
     );
-    expect(screen.getByRole('button', { name: en.landing.hero.signIn })).toBeInTheDocument();
+    expect(screen.getByTestId('commercial-pilot-badge')).toHaveTextContent(
+      en.commercial.badge.pilot,
+    );
+    expect(screen.getByRole('link', { name: en.commercial.cta.partner })).toHaveAttribute(
+      'href',
+      '/partners/apply',
+    );
   });
 
   it('announces loading', async () => {
