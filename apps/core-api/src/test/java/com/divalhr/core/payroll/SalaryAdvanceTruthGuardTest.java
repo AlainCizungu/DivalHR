@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * MVP-120A (D120A-13): the salary-advance contract and copy never claim lending, guarantee or
- * funding, and the landing keeps Loans and Salary Advances under Coming next.
+ * funding, and the commercial page keeps salary advances partner-dependent.
  */
 class SalaryAdvanceTruthGuardTest {
 
@@ -74,12 +74,20 @@ class SalaryAdvanceTruthGuardTest {
     }
   }
 
+  /**
+   * LAUNCH-004 (Issue #228): the commercial page replaced the landing's "Coming next" list. It
+   * keeps salary advances partner-dependent: DivalHR is not the lender, availability depends on
+   * approved partners, and no line about salary advances says they are available now or live.
+   */
   @Test
-  void theLandingKeepsLoansAndSalaryAdvancesComingNext() throws IOException {
+  void theCommercialPageKeepsSalaryAdvancesPartnerDependent() throws IOException {
     String en = read(EN);
-    assertThat(en).contains("Loans & Salary Advances");
+    assertThat(en)
+        .contains("A responsible model for salary advances")
+        .contains("DivalHR is not the lender.")
+        .contains("Real availability depends on approved partners and country rules.");
     Pattern live =
-        Pattern.compile("(?i)(loans?\\s*&\\s*salary advances?)[^\\n]*(available now|live)");
+        Pattern.compile("(?i)(loans?\\s*&\\s*)?salary advances?[^\\n]*(available now|\\blive\\b)");
     assertThat(live.matcher(en).find()).isFalse();
   }
 }

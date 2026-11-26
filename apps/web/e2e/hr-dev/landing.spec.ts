@@ -38,6 +38,11 @@ for (const locale of ['en', 'fr'] as const) {
     }
     await page.waitForLoadState('networkidle');
     expect([...hosts]).toEqual([new URL(ORIGIN).host]);
+    // The checks run at the top of the page: the sticky header would otherwise partially cover
+    // whatever the logo loop scrolled under it, which axe reports as an obscured target.
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+    });
     await expectAccessible(page);
   });
 }
