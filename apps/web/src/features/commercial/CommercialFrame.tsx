@@ -186,7 +186,6 @@ export function CommercialFrame({
             </span>
             <p>{t('commercial.footer.tagline')}</p>
             <p>{t('commercial.footer.copyright')}</p>
-            <LanguageSwitcher />
           </div>
           <ul className="commercial-footer__links">
             <li>
