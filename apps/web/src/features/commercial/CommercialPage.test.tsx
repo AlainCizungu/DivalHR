@@ -245,7 +245,7 @@ describe.each(['en', 'fr'] as const)('commercial page (%s)', (locale) => {
     expect(document.querySelector('main form, main input, main textarea')).toBeNull();
   });
 
-  it('has a footer without a dead link, with the language switcher and the pilot-document note', async () => {
+  it('has a footer without a dead link, with the pilot-document note and one language switcher on the page', async () => {
     await renderPage(locale);
     const footer = document.querySelector('footer') as HTMLElement;
     const hrefs = within(footer)
@@ -261,7 +261,16 @@ describe.each(['en', 'fr'] as const)('commercial page (%s)', (locale) => {
       'mailto:contact@dival.ai',
     ]);
     expect(within(footer).getByRole('button', { name: c.nav.signIn })).toBeInTheDocument();
-    expect(within(footer).getAllByRole('button', { pressed: true })).toHaveLength(1);
+    // The e2e sign-in helper and the existing specs click exactly one language button and one
+    // sign-in button inside <main> on the anonymous page.
+    expect(
+      screen.getAllByRole('button', {
+        name: locale === 'fr' ? /^Français$/u : /^English$/u,
+      }),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByRole('main')).getAllByRole('button', { name: c.nav.signIn }),
+    ).toHaveLength(1);
     expect(footer).toHaveTextContent(c.footer.legalNote);
   });
 

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Icon, type IconName } from '../../ui/Icon';
-import { DemoLink, PilotLink } from './CommercialFrame';
+import { DemoLink, PilotLink, SignInButton } from './CommercialFrame';
 import { INTEGRATION_GROUPS, type IntegrationEntry } from './integrations';
 import { Gallery, HeroShot, ProductReel } from './CommercialMedia';
 import { TruthBadge } from './TruthBadge';
@@ -609,6 +609,7 @@ function FinalCta() {
         <div className="commercial-hero__actions">
           <DemoLink className="button" />
           <PilotLink className="button button--secondary" />
+          <SignInButton className="button button--secondary" />
         </div>
       </div>
     </section>

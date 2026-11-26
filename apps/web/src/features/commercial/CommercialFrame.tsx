@@ -30,7 +30,7 @@ export const NAV_SECTIONS = [
   'pilot',
 ] as const;
 
-function SignInButton({ className }: { className: string }) {
+export function SignInButton({ className }: { className: string }) {
   const { t } = useTranslation();
   const { signIn } = useAuth();
   return (
