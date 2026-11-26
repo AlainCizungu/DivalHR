@@ -963,7 +963,56 @@ public enum ErrorCode {
   /** MVP-120F: the idempotency key was used with a different request. */
   PARTNER_REFERRAL_IDEMPOTENCY_REUSED(HttpStatus.CONFLICT),
   /** MVP-120F: too many referral requests. */
-  PARTNER_REFERRAL_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS);
+  PARTNER_REFERRAL_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+  /** LAUNCH-001: uniform 404 for an unknown, foreign or other-employee privacy request. */
+  PRIVACY_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /**
+   * LAUNCH-001: uniform 404 for an unknown, foreign or other-employee referral in a privacy
+   * operation.
+   */
+  PRIVACY_REFERRAL_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** LAUNCH-001: an open request of the same type and scope already exists. */
+  PRIVACY_REQUEST_DUPLICATE_OPEN(HttpStatus.CONFLICT),
+  /** LAUNCH-001: the request cannot make that move. */
+  PRIVACY_REQUEST_TRANSITION_INVALID(HttpStatus.CONFLICT),
+  /** LAUNCH-001: a refusal or partial approval needs a bounded reason. */
+  PRIVACY_REQUEST_REASON_REQUIRED(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** LAUNCH-001: stale expected request version. */
+  PRIVACY_REQUEST_VERSION_STALE(HttpStatus.CONFLICT),
+  /** LAUNCH-001: the request is not an approved ACCESS request. */
+  PRIVACY_EXPORT_NOT_AVAILABLE(HttpStatus.CONFLICT),
+  /** LAUNCH-001: uniform 404 for an unknown policy version. */
+  PRIVACY_POLICY_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** LAUNCH-001: missing, contradictory or unsupported policy rules. */
+  PRIVACY_POLICY_INVALID(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** LAUNCH-001: approval needs the complete governance checklist. */
+  PRIVACY_POLICY_CHECKLIST_INCOMPLETE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** LAUNCH-001: the policy version cannot make that move. */
+  PRIVACY_POLICY_TRANSITION_INVALID(HttpStatus.CONFLICT),
+  /** LAUNCH-001: an approved, active or retired version is never edited. */
+  PRIVACY_POLICY_IMMUTABLE(HttpStatus.CONFLICT),
+  /** LAUNCH-001: another active version covers the same country and period. */
+  PRIVACY_POLICY_OVERLAP(HttpStatus.CONFLICT),
+  /** LAUNCH-001: stale expected policy version. */
+  PRIVACY_POLICY_VERSION_STALE(HttpStatus.CONFLICT),
+  /** LAUNCH-001: uniform 404 for an unknown hold. */
+  PRIVACY_HOLD_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** LAUNCH-001: the hold was already released. */
+  PRIVACY_HOLD_ALREADY_RELEASED(HttpStatus.CONFLICT),
+  /** LAUNCH-001: uniform 404 for an unknown preview. */
+  PRIVACY_PREVIEW_NOT_FOUND(HttpStatus.NOT_FOUND),
+  /** LAUNCH-001: the preview is older than fifteen minutes. */
+  PRIVACY_PREVIEW_EXPIRED(HttpStatus.CONFLICT),
+  /** LAUNCH-001: something changed since the preview. */
+  PRIVACY_PREVIEW_STALE(HttpStatus.CONFLICT),
+  /** LAUNCH-001: the preview already produced a result. */
+  PRIVACY_PREVIEW_ALREADY_USED(HttpStatus.CONFLICT),
+  /** LAUNCH-001: nothing in the preview is eligible at confirmation. */
+  PRIVACY_PURGE_NOTHING_ELIGIBLE(HttpStatus.UNPROCESSABLE_CONTENT),
+  /** LAUNCH-001: the idempotency key was used with a different request. */
+  PRIVACY_IDEMPOTENCY_REUSED(HttpStatus.CONFLICT),
+  /** LAUNCH-001: too many privacy requests. */
+  PRIVACY_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS);
 
   private final HttpStatus status;
 

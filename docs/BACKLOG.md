@@ -548,6 +548,17 @@ Approved attendance, time, leave, allowances, and deductions produce traceable p
 - **Truth surfaces.** The public landing page and the role homes are unchanged on purpose; the commercial refresh is a separate pre-launch story.
 - **Not included:** a real partner connection, a partner decision or callback, eligibility, pricing, enrollment, notifications, retention or erasure, and any change to Issues #173 and #211.
 
+### LAUNCH-001 Privacy governance, consent retention and employee data-rights foundation
+
+**Issue #226. In review (PR pending); not merged, not deployed, no AWS verification run.** ADR 0046, migration V58. A governance framework, not legal advice or a certification.
+
+- **Outcome.** Platform administrators (exact MFA) keep country retention policies for partner-referral data (draft, checklist, approved, scheduled, active, retired), apply an active policy to pending referrals, record legal holds, decide employees' access, erasure, restriction and objection requests, and carry out a previewed, confirmed minimization or erasure with immutable, value-free evidence. Employees raise and follow their own requests under My space → Privacy requests and download their own encrypted, seven-day access package.
+- **Boundary.** No country duration is invented or shipped: without an active reviewed policy a referral stays `POLICY_PENDING` and cannot be purged. Scope is MVP-120F partner-referral data only; payroll, payments, salary advances, attendance, leave, documents and employee master data are untouched. No automatic or background deletion; no notification; tenant administrators cannot see private referral choices or privacy requests.
+- **Safety.** Every purge is a preview, an exact-MFA confirmation with an idempotency key, revalidation under locks and a fixed deletion order (consent last); the database refuses a purge item that is not closed, is on hold, has no stamped rule or has not elapsed. A stamped referral keeps its stamped rules. The rollback script refuses while governance evidence exists.
+- **API.** Twenty operations and twenty-three `PRIVACY_*` error codes, English and French; fixed-window quotas (5 requests per employee per day, 3 package generations per request per day, 20 platform mutations, 10 previews and 5 confirmations per administrator per hour).
+- **Truth surfaces.** The public landing page and role homes are unchanged on purpose; no screen claims legal compliance or certification.
+- **Not included:** any real country retention duration, automatic deletion, notifications, and any change to payroll, payments, salary advances, attendance, leave, documents or employee master data.
+
 ## Epic 11 Dashboards and AI
 
 ### MVP-100 View operational status

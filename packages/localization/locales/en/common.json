@@ -73,7 +73,9 @@
     "myCatalogue": "Benefits & offers",
     "myPartnerProducts": "Partner offers",
     "myPartnerRequests": "My partner requests",
-    "partnerReferrals": "Partner referrals"
+    "partnerReferrals": "Partner referrals",
+    "myPrivacy": "My privacy requests",
+    "privacyGovernance": "Privacy governance"
   },
   "shell": {
     "tagline": "Workforce operations",
@@ -848,7 +850,30 @@
     "PARTNER_REFERRAL_NOT_WITHDRAWABLE": "This request can no longer be withdrawn because the partner has or may have received it.",
     "PARTNER_REFERRAL_VERSION_STALE": "This request changed since you opened it. Reload and try again.",
     "PARTNER_REFERRAL_IDEMPOTENCY_REUSED": "This request key was already used for a different request. Start again.",
-    "PARTNER_REFERRAL_RATE_LIMITED": "Too many requests. Wait a moment and try again."
+    "PARTNER_REFERRAL_RATE_LIMITED": "Too many requests. Wait a moment and try again.",
+    "PRIVACY_REQUEST_NOT_FOUND": "This privacy request was not found.",
+    "PRIVACY_REFERRAL_NOT_FOUND": "This partner request was not found.",
+    "PRIVACY_REQUEST_DUPLICATE_OPEN": "You already have an open request of this kind. Wait for its outcome.",
+    "PRIVACY_REQUEST_TRANSITION_INVALID": "This request cannot move to that status.",
+    "PRIVACY_REQUEST_REASON_REQUIRED": "A reason is required for a refusal or a partial approval.",
+    "PRIVACY_REQUEST_VERSION_STALE": "This request changed. Reload it and try again.",
+    "PRIVACY_EXPORT_NOT_AVAILABLE": "The access package is not available for this request.",
+    "PRIVACY_POLICY_NOT_FOUND": "This policy version was not found.",
+    "PRIVACY_POLICY_INVALID": "The policy rules are incomplete or contradict each other.",
+    "PRIVACY_POLICY_CHECKLIST_INCOMPLETE": "Complete every governance checklist item first.",
+    "PRIVACY_POLICY_TRANSITION_INVALID": "This policy version cannot move to that status.",
+    "PRIVACY_POLICY_IMMUTABLE": "This policy version can no longer be edited.",
+    "PRIVACY_POLICY_OVERLAP": "Another active policy already covers this country and period.",
+    "PRIVACY_POLICY_VERSION_STALE": "This policy version changed. Reload it and try again.",
+    "PRIVACY_HOLD_NOT_FOUND": "This hold was not found.",
+    "PRIVACY_HOLD_ALREADY_RELEASED": "This hold was already released.",
+    "PRIVACY_PREVIEW_NOT_FOUND": "This preview was not found.",
+    "PRIVACY_PREVIEW_EXPIRED": "This preview has expired. Create a new one.",
+    "PRIVACY_PREVIEW_STALE": "Something changed since the preview. Create a new one.",
+    "PRIVACY_PREVIEW_ALREADY_USED": "This preview was already used.",
+    "PRIVACY_PURGE_NOTHING_ELIGIBLE": "Nothing is eligible for this operation.",
+    "PRIVACY_IDEMPOTENCY_REUSED": "This request key was already used for a different request.",
+    "PRIVACY_RATE_LIMITED": "Too many requests. Wait a moment and try again."
   },
   "notFound": {
     "title": "Page not found",
@@ -7889,6 +7914,201 @@
       "SITE": "Your site",
       "COST_CENTRE": "Cost centre",
       "EMPLOYMENT_HISTORY": "Employment history"
+    }
+  },
+  "privacy": {
+    "invalid": "Check the highlighted fields and try again.",
+    "loading": "Loading…",
+    "optional": "optional",
+    "state": {
+      "SUBMITTED": "Submitted",
+      "UNDER_REVIEW": "Under review",
+      "MORE_INFORMATION_REQUIRED": "More information required",
+      "APPROVED": "Approved",
+      "PARTIALLY_APPROVED": "Partially approved",
+      "REFUSED": "Refused",
+      "COMPLETED": "Completed",
+      "CANCELLED_BY_EMPLOYEE": "Cancelled by you"
+    },
+    "policyState": {
+      "DRAFT": "Draft",
+      "APPROVED": "Approved",
+      "SCHEDULED": "Scheduled",
+      "ACTIVE": "Active",
+      "RETIRED": "Retired"
+    },
+    "type": {
+      "ACCESS": "Access to my data",
+      "ERASURE": "Erasure of my data",
+      "RESTRICTION": "Restriction of use",
+      "OBJECTION": "Objection"
+    },
+    "typeHelp": {
+      "ACCESS": "Get a file with the partner-request data held about you.",
+      "ERASURE": "Ask for the data held about this partner request to be erased where a reviewed policy allows it.",
+      "RESTRICTION": "Ask that the data is kept but not used further.",
+      "OBJECTION": "Object to how the data is used."
+    },
+    "reason": {
+      "IDENTITY_NOT_VERIFIED": "Identity could not be verified",
+      "LEGAL_HOLD_ACTIVE": "A legal hold applies",
+      "RETENTION_REQUIRED": "The data must be kept for now",
+      "POLICY_PENDING": "No reviewed policy applies yet",
+      "REQUEST_OUT_OF_SCOPE": "The request is outside what this covers",
+      "NO_MATCHING_DATA": "No matching data was found"
+    },
+    "dataClass": {
+      "PARTNER_REFERRAL_DISCLOSURE": "Disclosed values",
+      "PARTNER_REFERRAL_CONSENT": "Consent record",
+      "PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS": "Delivery diagnostics",
+      "PARTNER_REFERRAL_LIFECYCLE_EVIDENCE": "Lifecycle evidence"
+    },
+    "action": {
+      "HOLD": "Hold (no deletion)",
+      "MINIMIZE": "Minimize (keep a value-free trace)",
+      "ERASE": "Erase (no trace)"
+    },
+    "trigger": {
+      "REFERRAL_CREATED": "From creation",
+      "REFERRAL_CLOSED": "From closure"
+    },
+    "checklist": {
+      "jurisdictionIdentified": "The jurisdiction is identified",
+      "sourceReferenceRecorded": "The legal source is recorded",
+      "counselReviewRecorded": "Counsel review is recorded",
+      "dataClassesCovered": "All four data classes are covered",
+      "lifecycleTriggerDefined": "The lifecycle trigger is defined",
+      "durationsOrHoldSet": "Each duration is set or the class is held",
+      "employeeWordingVersionRecorded": "The employee wording version is recorded",
+      "rollbackReviewComplete": "The rollback review is complete"
+    },
+    "holdReason": {
+      "LEGAL_PROCEEDING": "Legal proceeding",
+      "REGULATORY_REQUEST": "Regulatory request",
+      "DISPUTE": "Dispute",
+      "INVESTIGATION": "Investigation",
+      "OTHER_DOCUMENTED": "Other documented reason"
+    },
+    "holdState": {
+      "ACTIVE": "Active",
+      "RELEASED": "Released"
+    },
+    "refusal": {
+      "POLICY_PENDING": "No reviewed policy applies yet",
+      "HOLD_ACTIVE": "A legal hold applies",
+      "NOT_CLOSED": "The referral is still open",
+      "NOT_YET_ELIGIBLE": "The retention period has not elapsed",
+      "ACTION_NOT_PERMITTED": "The policy does not allow this action",
+      "ALREADY_PURGED": "Already purged"
+    },
+    "outcome": {
+      "PURGED": "Done",
+      "REFUSED": "Not done"
+    },
+    "my": {
+      "title": "Privacy requests",
+      "description": "Ask for access to, erasure of, restriction of or objection to the partner-request data held about you.",
+      "private": "Only you can see these requests. Your employer’s administrators cannot.",
+      "new": "New request",
+      "type": "Request type",
+      "referral": "Partner request",
+      "allReferrals": "All my partner requests",
+      "submit": "Send request",
+      "empty": "You have no privacy requests.",
+      "reference": "Reference",
+      "reason": "Reason",
+      "message": "Message from the platform",
+      "download": "Download my data",
+      "cancel": "Cancel request",
+      "unauthorized": "Privacy requests are available to employees only.",
+      "signInRequired": "Sign in to see your privacy requests."
+    },
+    "platform": {
+      "title": "Privacy governance",
+      "description": "Retention policies, data-rights requests, legal holds and controlled purges for partner-referral data.",
+      "framework": "This is a governance framework, not legal advice or a certification. No country retention period is built in: every value is entered from a reviewed source, and without an active reviewed policy records stay pending and cannot be purged.",
+      "unauthorized": "Privacy governance is available to platform administrators with multi-factor sign-in only.",
+      "signInRequired": "Sign in to see privacy governance."
+    },
+    "policy": {
+      "title": "Retention policies",
+      "help": "A version is a draft until its checklist is complete. Only an approved version can become active.",
+      "new": "New policy version",
+      "country": "Country code",
+      "wording": "Employee wording version",
+      "source": "Reviewed source",
+      "effectiveFrom": "Effective from",
+      "action": "Action",
+      "trigger": "Counted from",
+      "days": "Days",
+      "daysValue_one": "{{count}} day",
+      "daysValue_other": "{{count}} days",
+      "create": "Create draft",
+      "empty": "No policy versions yet.",
+      "checklist": "Governance checklist",
+      "reviewReference": "Review reference",
+      "saveChecklist": "Save checklist",
+      "to": {
+        "APPROVED": "Approve",
+        "SCHEDULED": "Schedule",
+        "ACTIVE": "Activate",
+        "RETIRED": "Retire"
+      }
+    },
+    "application": {
+      "title": "Apply an active policy",
+      "help": "Assigns the active policy to referrals that are still pending in one country. A referral that already has a policy is never changed.",
+      "preview": "Preview",
+      "total_one": "{{count}} referral would receive a policy.",
+      "total_other": "{{count}} referrals would receive a policy.",
+      "pending_one": "{{count}} pending referral",
+      "pending_other": "{{count}} pending referrals",
+      "confirm": "Confirm application",
+      "done_one": "Policy applied to {{count}} referral.",
+      "done_other": "Policy applied to {{count}} referrals."
+    },
+    "requests": {
+      "title": "Data-rights requests",
+      "empty": "No requests.",
+      "contact": "Contact (masked)",
+      "note": "Internal note",
+      "noteYes": "Recorded",
+      "noteNo": "None",
+      "moveTo": "Move to",
+      "reason": "Reason",
+      "noReason": "No reason",
+      "employeeMessage": "Message to the employee",
+      "internalNote": "Internal note",
+      "internalNoteHelp": "Never shown to the employee.",
+      "decide": "Save decision"
+    },
+    "hold": {
+      "title": "Legal hold",
+      "reason": "Reason",
+      "reviewDate": "Review by",
+      "external": "External reference",
+      "place": "Place hold",
+      "release": "Release hold"
+    },
+    "purge": {
+      "title": "Hold and purge",
+      "help": "A hold blocks every purge until it is released. A purge is previewed first and then confirmed; nothing is deleted automatically.",
+      "referral": "Partner request reference",
+      "previewTitle": "Preview a purge",
+      "action": "Action",
+      "actionHelp": {
+        "MINIMIZE": "Deletes the values and keeps a value-free trace.",
+        "ERASE": "Deletes the values and keeps no trace."
+      },
+      "preview": "Preview",
+      "eligible_one": "{{count}} data class is eligible.",
+      "eligible_other": "{{count}} data classes are eligible.",
+      "willAct": "Eligible",
+      "confirmLabel": "I confirm this purge cannot be undone.",
+      "confirm": "Confirm purge",
+      "done": "The purge is complete. The evidence holds no personal value.",
+      "rows_one": "{{count}} row",
+      "rows_other": "{{count}} rows"
     }
   }
 }

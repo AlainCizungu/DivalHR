@@ -76,6 +76,8 @@ import { PartnerAccountsPage } from '../features/partners/PartnerAccountsPage';
 import { PartnerProductPage } from '../features/partners/PartnerProductPage';
 import { PartnerApplyPage } from '../features/partners/PartnerApplyPage';
 import { MyReferralDetailPage } from '../features/partners/MyReferralDetailPage';
+import { MyPrivacyPage } from '../features/privacy/MyPrivacyPage';
+import { PlatformPrivacyPage } from '../features/privacy/PlatformPrivacyPage';
 import { MyReferralsPage } from '../features/partners/MyReferralsPage';
 import { PartnerProductReferralPage } from '../features/partners/PartnerProductReferralPage';
 import { PartnerProductsPage } from '../features/partners/PartnerProductsPage';
@@ -250,6 +252,26 @@ export const ROUTES: AppRoute[] = [
       signInKey: 'referrals.employee.signInRequired',
     },
     crumbs: [HOME, MY_SPACE, { key: 'nav.myPartnerRequests', to: '/me/partner-requests' }],
+  },
+  {
+    path: '/me/privacy',
+    element: <MyPrivacyPage />,
+    access: {
+      role: 'employee',
+      deniedKey: 'privacy.my.unauthorized',
+      signInKey: 'privacy.my.signInRequired',
+    },
+    crumbs: [HOME, MY_SPACE, { key: 'nav.myPrivacy' }],
+  },
+  {
+    path: '/admin/privacy',
+    element: <PlatformPrivacyPage />,
+    access: {
+      role: 'platform-admin',
+      deniedKey: 'privacy.platform.unauthorized',
+      signInKey: 'privacy.platform.signInRequired',
+    },
+    crumbs: [HOME, PLATFORM, { key: 'nav.privacyGovernance' }],
   },
   {
     path: '/admin/partner-referrals',

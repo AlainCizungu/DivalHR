@@ -73,7 +73,9 @@
     "myCatalogue": "Avantages et offres",
     "myPartnerProducts": "Offres de partenaires",
     "myPartnerRequests": "Mes demandes aux partenaires",
-    "partnerReferrals": "Recommandations partenaires"
+    "partnerReferrals": "Recommandations partenaires",
+    "myPrivacy": "Mes demandes de confidentialité",
+    "privacyGovernance": "Gouvernance de la confidentialité"
   },
   "shell": {
     "tagline": "Opérations RH",
@@ -848,7 +850,30 @@
     "PARTNER_REFERRAL_NOT_WITHDRAWABLE": "Cette demande ne peut plus être retirée, car le partenaire l’a reçue ou a pu la recevoir.",
     "PARTNER_REFERRAL_VERSION_STALE": "Cette demande a changé depuis son ouverture. Rechargez la page et réessayez.",
     "PARTNER_REFERRAL_IDEMPOTENCY_REUSED": "Cette clé de demande a déjà servi pour une autre demande. Recommencez.",
-    "PARTNER_REFERRAL_RATE_LIMITED": "Trop de demandes. Patientez un instant puis réessayez."
+    "PARTNER_REFERRAL_RATE_LIMITED": "Trop de demandes. Patientez un instant puis réessayez.",
+    "PRIVACY_REQUEST_NOT_FOUND": "Cette demande de confidentialité est introuvable.",
+    "PRIVACY_REFERRAL_NOT_FOUND": "Cette demande aux partenaires est introuvable.",
+    "PRIVACY_REQUEST_DUPLICATE_OPEN": "Vous avez déjà une demande ouverte de ce type. Attendez son issue.",
+    "PRIVACY_REQUEST_TRANSITION_INVALID": "Cette demande ne peut pas passer à ce statut.",
+    "PRIVACY_REQUEST_REASON_REQUIRED": "Un motif est requis pour un refus ou une approbation partielle.",
+    "PRIVACY_REQUEST_VERSION_STALE": "Cette demande a changé. Rechargez-la puis réessayez.",
+    "PRIVACY_EXPORT_NOT_AVAILABLE": "Le dossier d'accès n'est pas disponible pour cette demande.",
+    "PRIVACY_POLICY_NOT_FOUND": "Cette version de politique est introuvable.",
+    "PRIVACY_POLICY_INVALID": "Les règles de la politique sont incomplètes ou se contredisent.",
+    "PRIVACY_POLICY_CHECKLIST_INCOMPLETE": "Complétez d'abord chaque point de la liste de contrôle de gouvernance.",
+    "PRIVACY_POLICY_TRANSITION_INVALID": "Cette version de politique ne peut pas passer à ce statut.",
+    "PRIVACY_POLICY_IMMUTABLE": "Cette version de politique ne peut plus être modifiée.",
+    "PRIVACY_POLICY_OVERLAP": "Une autre politique active couvre déjà ce pays et cette période.",
+    "PRIVACY_POLICY_VERSION_STALE": "Cette version de politique a changé. Rechargez-la puis réessayez.",
+    "PRIVACY_HOLD_NOT_FOUND": "Cette suspension est introuvable.",
+    "PRIVACY_HOLD_ALREADY_RELEASED": "Cette suspension a déjà été levée.",
+    "PRIVACY_PREVIEW_NOT_FOUND": "Cet aperçu est introuvable.",
+    "PRIVACY_PREVIEW_EXPIRED": "Cet aperçu a expiré. Créez-en un nouveau.",
+    "PRIVACY_PREVIEW_STALE": "Quelque chose a changé depuis l'aperçu. Créez-en un nouveau.",
+    "PRIVACY_PREVIEW_ALREADY_USED": "Cet aperçu a déjà été utilisé.",
+    "PRIVACY_PURGE_NOTHING_ELIGIBLE": "Rien n'est admissible pour cette opération.",
+    "PRIVACY_IDEMPOTENCY_REUSED": "Cette clé de requête a déjà servi pour une autre requête.",
+    "PRIVACY_RATE_LIMITED": "Trop de demandes. Patientez un instant puis réessayez."
   },
   "notFound": {
     "title": "Page introuvable",
@@ -7889,6 +7914,201 @@
       "SITE": "Votre site",
       "COST_CENTRE": "Centre de coûts",
       "EMPLOYMENT_HISTORY": "Historique d’emploi"
+    }
+  },
+  "privacy": {
+    "invalid": "Vérifiez les champs signalés et réessayez.",
+    "loading": "Chargement…",
+    "optional": "facultatif",
+    "state": {
+      "SUBMITTED": "Envoyée",
+      "UNDER_REVIEW": "En cours d’examen",
+      "MORE_INFORMATION_REQUIRED": "Informations complémentaires requises",
+      "APPROVED": "Approuvée",
+      "PARTIALLY_APPROVED": "Partiellement approuvée",
+      "REFUSED": "Refusée",
+      "COMPLETED": "Terminée",
+      "CANCELLED_BY_EMPLOYEE": "Annulée par vous"
+    },
+    "policyState": {
+      "DRAFT": "Brouillon",
+      "APPROVED": "Approuvée",
+      "SCHEDULED": "Planifiée",
+      "ACTIVE": "Active",
+      "RETIRED": "Retirée"
+    },
+    "type": {
+      "ACCESS": "Accès à mes données",
+      "ERASURE": "Effacement de mes données",
+      "RESTRICTION": "Limitation de l’utilisation",
+      "OBJECTION": "Opposition"
+    },
+    "typeHelp": {
+      "ACCESS": "Obtenir un fichier avec les données de demande partenaire conservées à votre sujet.",
+      "ERASURE": "Demander l’effacement des données de cette demande partenaire lorsqu’une politique examinée le permet.",
+      "RESTRICTION": "Demander que les données soient conservées sans être utilisées davantage.",
+      "OBJECTION": "Vous opposer à l’utilisation des données."
+    },
+    "reason": {
+      "IDENTITY_NOT_VERIFIED": "L’identité n’a pas pu être vérifiée",
+      "LEGAL_HOLD_ACTIVE": "Une conservation légale s’applique",
+      "RETENTION_REQUIRED": "Les données doivent être conservées pour le moment",
+      "POLICY_PENDING": "Aucune politique examinée ne s’applique encore",
+      "REQUEST_OUT_OF_SCOPE": "La demande sort du périmètre couvert",
+      "NO_MATCHING_DATA": "Aucune donnée correspondante n’a été trouvée"
+    },
+    "dataClass": {
+      "PARTNER_REFERRAL_DISCLOSURE": "Valeurs communiquées",
+      "PARTNER_REFERRAL_CONSENT": "Preuve de consentement",
+      "PARTNER_REFERRAL_DELIVERY_DIAGNOSTICS": "Diagnostics de livraison",
+      "PARTNER_REFERRAL_LIFECYCLE_EVIDENCE": "Preuves du cycle de vie"
+    },
+    "action": {
+      "HOLD": "Conserver (aucune suppression)",
+      "MINIMIZE": "Minimiser (garder une trace sans valeur)",
+      "ERASE": "Effacer (aucune trace)"
+    },
+    "trigger": {
+      "REFERRAL_CREATED": "Depuis la création",
+      "REFERRAL_CLOSED": "Depuis la clôture"
+    },
+    "checklist": {
+      "jurisdictionIdentified": "La juridiction est identifiée",
+      "sourceReferenceRecorded": "La source juridique est enregistrée",
+      "counselReviewRecorded": "L’examen par un conseil est enregistré",
+      "dataClassesCovered": "Les quatre classes de données sont couvertes",
+      "lifecycleTriggerDefined": "Le déclencheur du cycle de vie est défini",
+      "durationsOrHoldSet": "Chaque durée est fixée ou la classe est conservée",
+      "employeeWordingVersionRecorded": "La version du texte employé est enregistrée",
+      "rollbackReviewComplete": "L’examen du retour arrière est terminé"
+    },
+    "holdReason": {
+      "LEGAL_PROCEEDING": "Procédure judiciaire",
+      "REGULATORY_REQUEST": "Demande d’une autorité",
+      "DISPUTE": "Litige",
+      "INVESTIGATION": "Enquête",
+      "OTHER_DOCUMENTED": "Autre motif documenté"
+    },
+    "holdState": {
+      "ACTIVE": "Active",
+      "RELEASED": "Levée"
+    },
+    "refusal": {
+      "POLICY_PENDING": "Aucune politique examinée ne s’applique encore",
+      "HOLD_ACTIVE": "Une conservation légale s’applique",
+      "NOT_CLOSED": "La demande partenaire est encore ouverte",
+      "NOT_YET_ELIGIBLE": "La durée de conservation n’est pas écoulée",
+      "ACTION_NOT_PERMITTED": "La politique n’autorise pas cette action",
+      "ALREADY_PURGED": "Déjà purgée"
+    },
+    "outcome": {
+      "PURGED": "Fait",
+      "REFUSED": "Non fait"
+    },
+    "my": {
+      "title": "Demandes de confidentialité",
+      "description": "Demandez l’accès, l’effacement, la limitation ou l’opposition pour les données de demande partenaire conservées à votre sujet.",
+      "private": "Vous seul voyez ces demandes. Les administrateurs de votre employeur ne les voient pas.",
+      "new": "Nouvelle demande",
+      "type": "Type de demande",
+      "referral": "Demande partenaire",
+      "allReferrals": "Toutes mes demandes partenaires",
+      "submit": "Envoyer la demande",
+      "empty": "Vous n’avez aucune demande de confidentialité.",
+      "reference": "Référence",
+      "reason": "Motif",
+      "message": "Message de la plateforme",
+      "download": "Télécharger mes données",
+      "cancel": "Annuler la demande",
+      "unauthorized": "Les demandes de confidentialité sont réservées aux employés.",
+      "signInRequired": "Connectez-vous pour voir vos demandes de confidentialité."
+    },
+    "platform": {
+      "title": "Gouvernance de la confidentialité",
+      "description": "Politiques de conservation, demandes de droits, conservations légales et purges contrôlées des données de recommandation partenaire.",
+      "framework": "Ceci est un cadre de gouvernance, pas un avis juridique ni une certification. Aucune durée de conservation par pays n’est intégrée : chaque valeur est saisie à partir d’une source examinée, et sans politique active examinée les enregistrements restent en attente et ne peuvent pas être purgés.",
+      "unauthorized": "La gouvernance de la confidentialité est réservée aux administrateurs de la plateforme avec connexion multifacteur.",
+      "signInRequired": "Connectez-vous pour voir la gouvernance de la confidentialité."
+    },
+    "policy": {
+      "title": "Politiques de conservation",
+      "help": "Une version reste un brouillon tant que sa liste de contrôle n’est pas complète. Seule une version approuvée peut devenir active.",
+      "new": "Nouvelle version de politique",
+      "country": "Code pays",
+      "wording": "Version du texte employé",
+      "source": "Source examinée",
+      "effectiveFrom": "En vigueur à partir du",
+      "action": "Action",
+      "trigger": "Compté depuis",
+      "days": "Jours",
+      "daysValue_one": "{{count}} jour",
+      "daysValue_other": "{{count}} jours",
+      "create": "Créer le brouillon",
+      "empty": "Aucune version de politique.",
+      "checklist": "Liste de contrôle de gouvernance",
+      "reviewReference": "Référence de l’examen",
+      "saveChecklist": "Enregistrer la liste",
+      "to": {
+        "APPROVED": "Approuver",
+        "SCHEDULED": "Planifier",
+        "ACTIVE": "Activer",
+        "RETIRED": "Retirer"
+      }
+    },
+    "application": {
+      "title": "Appliquer une politique active",
+      "help": "Attribue la politique active aux recommandations encore en attente dans un pays. Une recommandation qui a déjà une politique n’est jamais modifiée.",
+      "preview": "Aperçu",
+      "total_one": "{{count}} recommandation recevrait une politique.",
+      "total_other": "{{count}} recommandations recevraient une politique.",
+      "pending_one": "{{count}} recommandation en attente",
+      "pending_other": "{{count}} recommandations en attente",
+      "confirm": "Confirmer l’application",
+      "done_one": "Politique appliquée à {{count}} recommandation.",
+      "done_other": "Politique appliquée à {{count}} recommandations."
+    },
+    "requests": {
+      "title": "Demandes de droits",
+      "empty": "Aucune demande.",
+      "contact": "Contact (masqué)",
+      "note": "Note interne",
+      "noteYes": "Enregistrée",
+      "noteNo": "Aucune",
+      "moveTo": "Passer à",
+      "reason": "Motif",
+      "noReason": "Aucun motif",
+      "employeeMessage": "Message à l’employé",
+      "internalNote": "Note interne",
+      "internalNoteHelp": "Jamais montrée à l’employé.",
+      "decide": "Enregistrer la décision"
+    },
+    "hold": {
+      "title": "Conservation légale",
+      "reason": "Motif",
+      "reviewDate": "À réexaminer avant le",
+      "external": "Référence externe",
+      "place": "Placer la conservation",
+      "release": "Lever la conservation"
+    },
+    "purge": {
+      "title": "Conservation et purge",
+      "help": "Une conservation bloque toute purge jusqu’à sa levée. Une purge est d’abord prévisualisée puis confirmée ; rien n’est supprimé automatiquement.",
+      "referral": "Référence de la demande partenaire",
+      "previewTitle": "Prévisualiser une purge",
+      "action": "Action",
+      "actionHelp": {
+        "MINIMIZE": "Supprime les valeurs et garde une trace sans valeur.",
+        "ERASE": "Supprime les valeurs et ne garde aucune trace."
+      },
+      "preview": "Aperçu",
+      "eligible_one": "{{count}} classe de données est éligible.",
+      "eligible_other": "{{count}} classes de données sont éligibles.",
+      "willAct": "Éligible",
+      "confirmLabel": "Je confirme que cette purge est irréversible.",
+      "confirm": "Confirmer la purge",
+      "done": "La purge est terminée. La preuve ne contient aucune valeur personnelle.",
+      "rows_one": "{{count}} ligne",
+      "rows_other": "{{count}} lignes"
     }
   }
 }

@@ -356,4 +356,23 @@
       <Class name="com.divalhr.core.integrations.partner.catalogue.PartnerAccountRepository$PartnerRow"/>
     </Or>
   </Match>
+  <!-- LAUNCH-001: the privacy request and response carriers, stores' row holders and sealed-byte holders are
+       immutable records built for one call and never shared, cached or mutated. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.integrations\.partner\.privacy\.(PrivacyBodies|PrivacyExportStore|PrivacyRequestStore|PrivacyExportService)\$.*"/>
+  </Match>
+  <!-- LAUNCH-001: the privacy services and controllers hold constructor-injected singletons (stores,
+       recorder, quotas, JSON mapper, clock); copying them would be wrong. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Class name="~com\.divalhr\.core\.integrations\.partner\.privacy\.(Privacy[A-Za-z]*Service|PlatformPrivacy[A-Za-z]*(Service|Controller)|MyPrivacyRequestController|PrivacyRecorder)"/>
+  </Match>
+  <!-- LAUNCH-001: the request parser returns null for an absent or malformed flag (a third state next to
+       true and false); the null is always rejected with a field error before use. -->
+  <Match>
+    <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+    <Class name="com.divalhr.core.integrations.partner.privacy.PrivacyCommands"/>
+    <Method name="bool"/>
+  </Match>
 </FindBugsFilter>

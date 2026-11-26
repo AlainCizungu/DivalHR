@@ -124,7 +124,23 @@ class AuthorizationDenialAuditIntegrationTest {
           // MVP-120F: the read-only operational view of consented partner referrals.
           "partner-referral.platform.list",
           "partner-referral.platform.get",
-          "partner-referral.platform.history");
+          "partner-referral.platform.history",
+          // LAUNCH-001: privacy governance, holds, requests and purge (platform only).
+          "privacy.policy.create",
+          "privacy.policy.list",
+          "privacy.policy.get",
+          "privacy.policy.checklist",
+          "privacy.policy.transition",
+          "privacy.policy.history",
+          "privacy.policy-application.preview",
+          "privacy.policy-application.commit",
+          "privacy.hold.place",
+          "privacy.hold.release",
+          "privacy.purge.preview",
+          "privacy.purge.commit",
+          "privacy.request.platform.list",
+          "privacy.request.platform.get",
+          "privacy.request.platform.transition");
 
   private static final Set<String> TENANT_OPERATIONS =
       Set.of(
@@ -468,7 +484,13 @@ class AuthorizationDenialAuditIntegrationTest {
           "partner-referral.submit",
           "partner-referral.list",
           "partner-referral.get",
-          "partner-referral.withdraw");
+          "partner-referral.withdraw",
+          // LAUNCH-001: the employee's own privacy requests and access package.
+          "privacy.request.create",
+          "privacy.request.list",
+          "privacy.request.get",
+          "privacy.request.cancel",
+          "privacy.export.download");
 
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate jdbc;
@@ -929,7 +951,11 @@ class AuthorizationDenialAuditIntegrationTest {
     // MVP-120F added three platform handlers over three operations: the referral queue, the
     // referral
     // read and its history. The employee's seven handlers are self-service.
-    assertThat(handlers).hasSize(265);
+    // LAUNCH-001 added fifteen platform handlers over fifteen operations: the policy create, list,
+    // read, checklist, transition and history; the application preview and commit; the hold
+    // placement and release; the purge preview and confirmation; and the request queue, read and
+    // transition. The employee's five handlers are self-service.
+    assertThat(handlers).hasSize(280);
 
     for (Privileged handler : handlers) {
       // Role: an employee member (tenant) or a tenant administrator (platform).
