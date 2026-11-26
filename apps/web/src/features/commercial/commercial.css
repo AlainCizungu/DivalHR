@@ -747,7 +747,9 @@ html:has(.commercial) {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .commercial-reel__stage[data-scene] > * {
+  /* The caption is text on the page background and never fades: a fade passes through ratios below
+     4.5:1 and would fail a contrast check taken at the wrong instant. */
+  .commercial-reel__stage[data-scene] > :not(figcaption) {
     animation: commercial-fade 0.5s ease both;
   }
 }
