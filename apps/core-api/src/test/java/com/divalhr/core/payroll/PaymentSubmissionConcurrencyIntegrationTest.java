@@ -59,7 +59,6 @@ class PaymentSubmissionConcurrencyIntegrationTest {
 
   @BeforeEach
   void world() throws Exception {
-    w = new PayrollPackageWorld(mvc, jdbc, lookups, clock);
     provider.reset();
     clock.set(java.time.Instant.now().plus(java.time.Duration.ofDays(3650)));
     for (int i = 0; i < 50 && worker.runOnce() > 0; i++) {
@@ -67,6 +66,9 @@ class PaymentSubmissionConcurrencyIntegrationTest {
     }
     clock.reset();
     provider.reset();
+    // built after the reset so the world pins its own clock to the 15th and the fixture dates stay
+    // inside the legal effective-date window whatever the real day of the month is
+    w = new PayrollPackageWorld(mvc, jdbc, lookups, clock);
     p = new PaymentWorld(w);
     s = new PaymentSubmissionWorld(p);
     UUID pack = StatutoryWorld.verifiedPack(jdbc);
