@@ -244,8 +244,13 @@ test.describe('desktop', () => {
     await expect(page.getByRole('main')).toBeFocused();
     for (const label of ['English', 'Français'] as const) {
       await chooseLocale(page, label);
-      // The only button in the landing content is the hero's Sign in (UI-002).
-      await expect(page.getByRole('main').getByRole('button')).toHaveCount(1);
+      // LAUNCH-004: the commercial page keeps exactly one Sign in button in the main content (the
+      // shared sign-in helper relies on it); the only other button there is the reel's play control.
+      await expect(
+        page
+          .getByRole('main')
+          .getByRole('button', { name: label === 'English' ? 'Sign in' : 'Se connecter' }),
+      ).toHaveCount(1);
       await expectAccessible(page);
     }
   });

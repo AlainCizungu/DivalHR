@@ -494,14 +494,16 @@ test('MVP-120E journey 1: an approved application becomes a partner whose publis
   expect(refused.status()).toBe(403);
   await employeeContext.close();
 
-  // The public landing page says the catalogue is available and what is not, without listing a partner.
+  // LAUNCH-004: the public commercial page describes the partner network as a controlled application
+  // and review process, offers the public application, and lists no partner.
   const visitor = await (await browser.newContext()).newPage();
   await visitor.goto('/');
-  const benefits = visitor.locator('li[data-module="benefits"]');
-  await expect(benefits).toHaveAttribute('data-status', 'capabilities');
-  await expect(benefits).toContainText(t.landingAvailable);
-  await expect(benefits).toContainText(t.landingLater);
-  await expect(benefits).not.toContainText(t.comingNext);
+  await expect(visitor.getByTestId('commercial-partners')).toBeVisible();
+  await expect(visitor.getByTestId('commercial-partner-disclaimer')).toBeVisible();
+  await expect(visitor.getByTestId('commercial-partner-cta')).toHaveAttribute(
+    'href',
+    '/partners/apply',
+  );
   await expect(visitor.locator('body')).not.toContainText(name);
   await visitor.context().close();
 });
