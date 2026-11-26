@@ -28,7 +28,7 @@ async function expectNoHorizontalScroll(page: Page) {
   const culprits =
     overflow > 0
       ? await page.evaluate(() =>
-          [...document.querySelectorAll('body *')]
+          Array.from(document.querySelectorAll('body *'))
             .filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth)
             .slice(0, 5)
             .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`),
