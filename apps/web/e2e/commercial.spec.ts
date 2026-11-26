@@ -31,7 +31,10 @@ async function expectNoHorizontalScroll(page: Page) {
           Array.from(document.querySelectorAll('body *'))
             .filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth)
             .slice(0, 5)
-            .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`),
+            .map(
+              (el) =>
+                `${el.tagName.toLowerCase()}.${(el.getAttribute('class') ?? '').slice(0, 60)}`,
+            ),
         )
       : [];
   expect(
