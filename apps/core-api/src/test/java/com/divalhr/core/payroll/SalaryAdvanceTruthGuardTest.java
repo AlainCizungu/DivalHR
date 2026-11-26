@@ -3,6 +3,8 @@ package com.divalhr.core.payroll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,6 +22,24 @@ class SalaryAdvanceTruthGuardTest {
   private static final Path SPEC = Path.of("../../docs/API-SPEC.yaml");
   private static final Path EN = Path.of("../../packages/localization/locales/en/common.json");
   private static final Path FR = Path.of("../../packages/localization/locales/fr/common.json");
+
+  private static final Path TRUTH =
+      Path.of("../../apps/web/src/features/commercial/launch-truth.json");
+  private static final ObjectMapper JSON = new ObjectMapper();
+
+  /** Claims the commercial page must never make about salary advances, English. */
+  private static final Pattern BANNED_EN =
+      Pattern.compile(
+          "available now|\\blive\\b|(?<!never )guaranteed approval|approval (is|will be) guaranteed"
+              + "|DivalHR (lends|will lend|funds|approves)",
+          Pattern.CASE_INSENSITIVE);
+
+  /** The same claims in French. */
+  private static final Pattern BANNED_FR =
+      Pattern.compile(
+          "disponible (maintenant|dès maintenant)|\\ben direct\\b|approbation garantie"
+              + "|DivalHR (prête|prêtera|finance|approuve)",
+          Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
   private static final Pattern BANNED =
       Pattern.compile(
@@ -75,19 +95,45 @@ class SalaryAdvanceTruthGuardTest {
   }
 
   /**
-   * LAUNCH-004 (Issue #228): the commercial page replaced the landing's "Coming next" list. It
-   * keeps salary advances partner-dependent: DivalHR is not the lender, availability depends on
-   * approved partners, and no line about salary advances says they are available now or live.
+   * LAUNCH-004 (Issue #228, R229-1): the commercial page replaced the landing's "Coming next" list.
+   * Its canonical sources, the launch-truth file and the {@code commercial} locale namespace, keep
+   * salary advances partner-dependent: DivalHR is not the lender, real availability needs approved
+   * partners, and nothing says available now, live, guaranteed approval or lending by DivalHR.
    */
   @Test
   void theCommercialPageKeepsSalaryAdvancesPartnerDependent() throws IOException {
-    String en = read(EN);
-    assertThat(en)
-        .contains("A responsible model for salary advances")
-        .contains("DivalHR is not the lender.")
-        .contains("Real availability depends on approved partners and country rules.");
-    Pattern live =
-        Pattern.compile("(?i)(loans?\\s*&\\s*)?salary advances?[^\\n]*(available now|\\blive\\b)");
-    assertThat(live.matcher(en).find()).isFalse();
+    JsonNode advance = null;
+    for (JsonNode capability : JSON.readTree(read(TRUTH)).path("capabilities")) {
+      if ("salary-advances".equals(capability.path("id").asText())) {
+        advance = capability;
+      }
+    }
+    assertThat(advance).as("the salary-advances capability in the launch-truth file").isNotNull();
+    assertThat(advance.path("status").asText()).isEqualTo("PARTNER_REQUIRED");
+    for (String language : new String[] {"en", "fr"}) {
+      JsonNode wellness =
+          JSON.readTree(read(language.equals("en") ? EN : FR)).path("commercial").path("wellness");
+      assertThat(wellness.isObject()).as(language + " commercial.wellness").isTrue();
+      StringBuilder claims = new StringBuilder(advance.path(language).asText());
+      collect(wellness, claims);
+      Matcher hit = (language.equals("en") ? BANNED_EN : BANNED_FR).matcher(claims);
+      boolean found = hit.find();
+      assertThat(found)
+          .as(language + (found ? ": banned claim " + hit.group() : ": clean"))
+          .isFalse();
+    }
+    JsonNode statements =
+        JSON.readTree(read(EN)).path("commercial").path("wellness").path("statements");
+    assertThat(statements.path("notLender").asText()).isEqualTo("DivalHR is not the lender.");
+    assertThat(statements.path("noGuarantee").asText()).isEqualTo("Approval is never guaranteed.");
+    assertThat(statements.path("availability").asText())
+        .isEqualTo("Real availability depends on approved partners and country rules.");
+  }
+
+  private static void collect(JsonNode node, StringBuilder out) {
+    if (node.isTextual()) {
+      out.append(' ').append(node.asText());
+    }
+    node.forEach(child -> collect(child, out));
   }
 }
