@@ -1,0 +1,10 @@
+# LAUNCH-002 (L2-11): publishes the host metrics (no dimensions, counts and gauges only).
+[Unit]
+Description=DivalHR production metrics
+RequiresMountsFor=/srv/divalhr-prod
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/divalhr-prod/current/ops/production/metrics.sh
+TimeoutStartSec=120

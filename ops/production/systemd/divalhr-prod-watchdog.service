@@ -1,0 +1,10 @@
+# LAUNCH-002: restarts a container that is running but unhealthy, within the watchdog's bounds.
+[Unit]
+Description=DivalHR production health watchdog
+RequiresMountsFor=/srv/divalhr-prod
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/divalhr-prod/current/ops/production/watchdog.sh

@@ -1,0 +1,269 @@
+# LAUNCH-002 (Issue #230, ADR 0048): the DivalHR controlled-pilot PRODUCTION environment.
+#
+# https://app.divalhr.com (application) and https://divalhr.com (commercial site), one host, behind
+# the AWS load balancer and WAF. NOTHING here is test-only: no Mailpit, no synthetic receiver or
+# provider, no seed account, no development realm. Never start it by hand: ops/production/remote-deploy.sh
+# sets every variable below from root-owned files and refuses to run while any is missing.
+#
+#   PROD_DATA        encrypted data root, default /srv/divalhr-prod
+#   PROD_RELEASE     full commit SHA of the images to run
+#   PROD_REGISTRY    private ECR registry host; images are pulled, never built (the host has no internet)
+#   PROD_VPC_CIDR    the VPC range; the only proxies whose X-Forwarded-For header Caddy trusts
+#   PROD_MAIL_*      the approved transactional e-mail provider (non-secret settings; the password
+#                    is the file secrets/core/DIVALHR_MAIL_PASSWORD, never an environment value)
+#
+# Secrets are files under PROD_DATA/secrets, mounted read-only. None is an environment variable,
+# so none is stored in a container's configuration.
+name: ${PROD_PROJECT:-divalhr-prod}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '5'
+
+x-service: &service
+  restart: unless-stopped
+  logging: *logging
+  security_opt:
+    - no-new-privileges:true
+
+networks:
+  # Caddy only: the listener the load balancer reaches.
+  edge:
+    ipam:
+      config:
+        - subnet: ${PROD_SUBNET_PREFIX:-10.72}.0.0/24
+          ip_range: ${PROD_SUBNET_PREFIX:-10.72}.0.128/25
+  # Browser-facing services behind Caddy. Core reaches Keycloak only through Caddy here.
+  app:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${PROD_SUBNET_PREFIX:-10.72}.1.0/24
+          ip_range: ${PROD_SUBNET_PREFIX:-10.72}.1.128/25
+  # Caddy and Keycloak only: every request Keycloak sees comes from Caddy.
+  idp:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${PROD_SUBNET_PREFIX:-10.72}.2.0/24
+          ip_range: ${PROD_SUBNET_PREFIX:-10.72}.2.128/25
+  core-data:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${PROD_SUBNET_PREFIX:-10.72}.3.0/24
+          ip_range: ${PROD_SUBNET_PREFIX:-10.72}.3.128/25
+  idp-data:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${PROD_SUBNET_PREFIX:-10.72}.4.0/24
+          ip_range: ${PROD_SUBNET_PREFIX:-10.72}.4.128/25
+  # Core and Keycloak only, for the e-mail provider. The host's security group allows exactly the
+  # provider's submission range on one port and nothing else (deny by default), so this network
+  # reaches no other destination.
+  mail-out:
+    ipam:
+      config:
+        - subnet: ${PROD_SUBNET_PREFIX:-10.72}.5.0/24
+          ip_range: ${PROD_SUBNET_PREFIX:-10.72}.5.128/25
+
+services:
+  caddy:
+    <<: *service
+    # Mirrored into the private repository by digest (the same digest hr-dev pins).
+    image: ${PROD_REGISTRY:?}/divalhr-prod/mirror@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    environment:
+      PROD_APP_HOST: ${PROD_APP_HOST:-app.divalhr.com}
+      PROD_PUBLIC_HOST: ${PROD_PUBLIC_HOST:-divalhr.com}
+      PROD_VPC_CIDR: ${PROD_VPC_CIDR:?}
+      KEYCLOAK_UPSTREAM: keycloak:8080
+      KEYCLOAK_REALM: divalhr-production
+      CORE_UPSTREAM: core-api:8080
+      AI_UPSTREAM: ai-service:8090
+      WEB_UPSTREAM: web:8080
+      CADDY_IDP_INTERNAL_BIND: ${PROD_SUBNET_PREFIX:-10.72}.1.2
+      CADDY_ADMIN_BIND: ${PROD_SUBNET_PREFIX:-10.72}.0.2
+      PROD_ADMIN_PORT: ${PROD_ADMIN_PORT:-18180}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${PROD_DATA:?}/caddy/data:/data
+      - ${PROD_DATA:?}/caddy/config:/config
+    ports:
+      # The load balancer's target port: published on the host, reachable only from the load balancer's security group.
+      # (PROD_HTTPS_PUBLISH is overridden only by the isolated restore drill, to a loopback port.)
+      - '${PROD_HTTPS_PUBLISH:-8443}:8443'
+      # Keycloak admin console: loopback only, reached through a Session Manager port-forwarding session.
+      - '127.0.0.1:${PROD_ADMIN_PORT:-18180}:18180'
+    networks:
+      edge:
+        ipv4_address: ${PROD_SUBNET_PREFIX:-10.72}.0.2
+      app:
+        ipv4_address: ${PROD_SUBNET_PREFIX:-10.72}.1.2
+        aliases: [idp-internal]
+      idp:
+        ipv4_address: ${PROD_SUBNET_PREFIX:-10.72}.2.2
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:2019/config/']
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 192m
+    depends_on:
+      web:
+        condition: service_healthy
+      core-api:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  postgres:
+    <<: *service
+    image: ${PROD_REGISTRY:?}/divalhr-prod/mirror@sha256:d74eeac9a635390a49bc21bd49fccd973de707e2a53a76ac49b552b8712ec46f
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres/POSTGRES_PASSWORD
+      DIVALHR_DB_NAME: divalhr
+      DIVALHR_DB_USER: divalhr_app
+      KEYCLOAK_DB_NAME: keycloak
+      KEYCLOAK_DB_USER: keycloak
+      SECRETS_DIR: /run/secrets/postgres
+    volumes:
+      - ${PROD_DATA:?}/postgres:/var/lib/postgresql/data
+      - ${PROD_DATA:?}/secrets/postgres:/run/secrets/postgres:ro
+      - ./postgres/10-init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    networks: [core-data, idp-data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  keycloak:
+    <<: *service
+    image: ${PROD_REGISTRY:?}/divalhr-prod/keycloak:${PROD_RELEASE:?}
+    command: ['start', '--optimized', '--import-realm']
+    environment:
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_HOSTNAME: https://${PROD_APP_HOST:-app.divalhr.com}/identity
+      # The operator console is reached through the loopback port-forward, never the public name.
+      KC_HOSTNAME_ADMIN: http://localhost:${PROD_ADMIN_PORT:-18180}/identity
+      KC_HTTP_ENABLED: 'true'
+      KC_PROXY_HEADERS: xforwarded
+      KC_CACHE: local
+      # Only Caddy's address on the idp network may set X-Forwarded-*.
+      KC_PROXY_TRUSTED_ADDRESSES: ${PROD_SUBNET_PREFIX:-10.72}.2.2
+      KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__REALMS: divalhr-production
+      KC_SPI_REALM_RESTAPI_EXTENSION__DIVALHR_PROVISIONING__WEB_REDIRECT_URI: https://${PROD_APP_HOST:-app.divalhr.com}/auth/callback
+    volumes:
+      # db-password and the one-time bootstrap-admin password (removed once a named operator exists).
+      - ${PROD_DATA:?}/secrets/keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf:ro
+      # Rendered by remote-deploy.sh from the verified realm template; imported on first start only.
+      - ${PROD_DATA:?}/keycloak/import:/opt/keycloak/data/import:ro
+    networks: [idp, idp-data, mail-out]
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /identity/health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"status": *"UP"' <&3
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  core-api:
+    <<: *service
+    image: ${PROD_REGISTRY:?}/divalhr-prod/core-api:${PROD_RELEASE:?}
+    environment:
+      DIVALHR_ENVIRONMENT: production
+      SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/core/
+      DIVALHR_DB_URL: jdbc:postgresql://postgres:5432/divalhr
+      DIVALHR_DB_USER: divalhr_app
+      DIVALHR_OIDC_ISSUER: https://${PROD_APP_HOST:-app.divalhr.com}/identity/realms/divalhr-production
+      # Backchannel through Caddy's internal route, never to Keycloak directly.
+      DIVALHR_OIDC_JWKS_URI: http://idp-internal:8081/identity/realms/divalhr-production/protocol/openid-connect/certs
+      DIVALHR_OIDC_AUDIENCE: divalhr-core-api
+      # The application origin only: the commercial origin never calls the API.
+      DIVALHR_CORS_ALLOWED_ORIGINS: https://${PROD_APP_HOST:-app.divalhr.com}
+      DIVALHR_API_DOCS_ENABLED: 'false'
+      DIVALHR_WEB_BASE_URL: https://${PROD_APP_HOST:-app.divalhr.com}
+      DIVALHR_KEYCLOAK_ADMIN_URL: http://idp-internal:8081/identity
+      DIVALHR_KEYCLOAK_REALM: divalhr-production
+      # Transactional e-mail: the approved provider. Core refuses to start without a host, a from
+      # address and TLS (fail closed). The password is a configtree file, never an environment value.
+      DIVALHR_MAIL_HOST: ${PROD_MAIL_HOST:?the approved e-mail provider is not configured}
+      DIVALHR_MAIL_PORT: ${PROD_MAIL_PORT:-587}
+      DIVALHR_MAIL_USERNAME: ${PROD_MAIL_USERNAME:-}
+      DIVALHR_MAIL_FROM: ${PROD_MAIL_FROM:?the approved e-mail provider is not configured}
+      DIVALHR_MAIL_STARTTLS: 'true'
+      DIVALHR_AI_SERVICE_URL: http://ai-service:8090
+      DIVALHR_AI_SERVICE_TOKEN_URL: http://idp-internal:8081/identity/realms/divalhr-production/protocol/openid-connect/token
+      DIVALHR_AI_SERVICE_CLIENT_ID: divalhr-core-ai
+      # Real payment, lending, insurance, telecom and accounting egress is disabled: no provider
+      # profile, receiver or synthetic setting exists here, and the host has no route to one.
+    volumes:
+      - ${PROD_DATA:?}/secrets/core:/run/secrets/core:ro
+    networks: [app, core-data, mail-out]
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ai-service:
+    <<: *service
+    image: ${PROD_REGISTRY:?}/divalhr-prod/ai-service:${PROD_RELEASE:?}
+    environment:
+      DIVALHR_AI_ENVIRONMENT: production
+      DIVALHR_AI_CORS_ALLOWED_ORIGINS: https://${PROD_APP_HOST:-app.divalhr.com}
+      # The deterministic planner only: no external model, provider URL or API key.
+      DIVALHR_AI_SUMMARY_PROVIDER_MODE: deterministic
+      DIVALHR_AI_SERVICE_AUTH_ISSUER: https://${PROD_APP_HOST:-app.divalhr.com}/identity/realms/divalhr-production
+      DIVALHR_AI_SERVICE_AUTH_JWKS_URL: http://idp-internal:8081/identity/realms/divalhr-production/protocol/openid-connect/certs
+    networks: [app]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  web:
+    <<: *service
+    image: ${PROD_REGISTRY:?}/divalhr-prod/web:${PROD_RELEASE:?}
+    environment:
+      DIVALHR_ENVIRONMENT: production
+      DIVALHR_CORE_API_URL: https://${PROD_APP_HOST:-app.divalhr.com}/api/v1
+      DIVALHR_AI_SERVICE_URL: https://${PROD_APP_HOST:-app.divalhr.com}/ai/api/v1
+      DIVALHR_OIDC_AUTHORITY: https://${PROD_APP_HOST:-app.divalhr.com}/identity/realms/divalhr-production
+      DIVALHR_OIDC_CLIENT_ID: divalhr-web
+      DIVALHR_OIDC_ORIGIN: https://${PROD_APP_HOST:-app.divalhr.com}
+      DIVALHR_CSP_CONNECT_SRC: https://${PROD_APP_HOST:-app.divalhr.com}
+      # L2-1: the canonical commercial origin and the application origin.
+      DIVALHR_PUBLIC_ORIGIN: https://${PROD_PUBLIC_HOST:-divalhr.com}
+      DIVALHR_APP_ORIGIN: https://${PROD_APP_HOST:-app.divalhr.com}
+    networks: [app]
+    deploy:
+      resources:
+        limits:
+          memory: 128m

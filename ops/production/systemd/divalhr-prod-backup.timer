@@ -1,0 +1,11 @@
+# LAUNCH-002: 02:15 UTC every night (a low-traffic window for Kinshasa and Europe).
+[Unit]
+Description=DivalHR production nightly backup timer
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

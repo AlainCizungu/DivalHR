@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
 import { Icon, type IconName } from '../../ui/Icon';
 import { DemoLink, PilotLink, SignInButton } from './CommercialFrame';
 import { INTEGRATION_GROUPS, type IntegrationEntry } from './integrations';
 import { Gallery, HeroShot, ProductReel } from './CommercialMedia';
+import { AppLink } from './origins';
 import { TruthBadge } from './TruthBadge';
 import { capabilityOf, langOf, PILLARS, SECTION_CAPABILITIES } from './truth';
 
@@ -460,9 +460,9 @@ function Partners() {
         </p>
         <p className="commercial-legend-note">{t('commercial.partners.statusNote')}</p>
         <p>
-          <Link className="button" data-testid="commercial-partner-cta" to="/partners/apply">
+          <AppLink className="button" data-testid="commercial-partner-cta" to="/partners/apply">
             {t('commercial.cta.partner')}
-          </Link>
+          </AppLink>
         </p>
         <Integrations />
       </div>

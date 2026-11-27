@@ -1,0 +1,211 @@
+# LAUNCH-002 (Issue #230, ADR 0048): the only entry point of the production host.
+#
+# Behind the AWS load balancer, which ends public TLS (ACM) and re-encrypts to this listener on 8443
+# (an internal-CA certificate the load balancer does not validate; the hop stays in private
+# subnets). Caddy trusts X-Forwarded-For ONLY from the VPC range (the load balancer), so a
+# client-supplied forwarded header is never believed. Nothing is published except 8443 and the
+# loopback-only operator port.
+#
+#   {$PROD_APP_HOST}     app.divalhr.com   the authenticated application, /api /identity /ai beneath it
+#   {$PROD_PUBLIC_HOST}  divalhr.com       the commercial pages only; everything else goes to the application
+#   (www.divalhr.com is redirected by the load balancer before it reaches this host.)
+{
+	admin 127.0.0.1:2019
+	# The load balancer connects without SNI: serve the application certificate by default, and never
+	# try to obtain a public certificate or open port 80.
+	auto_https disable_redirects
+	default_sni {$PROD_APP_HOST}
+	servers {
+		trusted_proxies static {$PROD_VPC_CIDR}
+		client_ip_headers X-Forwarded-For
+	}
+}
+
+(security) {
+	# Deferred (">"): applied after the upstream answers, so these values replace any the upstream
+	# sent (Keycloak sends its own HSTS) and also reach error responses.
+	header {
+		>Strict-Transport-Security "max-age=31536000"
+		>X-Content-Type-Options nosniff
+		-Server
+		-Via
+	}
+}
+
+(accesslog) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				# SEC-001: OIDC authorization data (code, state, session_state) must never be logged.
+				request>uri regexp "\?.*$" ""
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+				request>headers>Referer delete
+				resp_headers>Location delete
+				resp_headers>Set-Cookie delete
+				# SEC-002 / SEC-003 / MVP-120B: the same field deletions as the test environment.
+				request>headers>Idempotency-Key delete
+				request>headers>X-Receipt-File-Name delete
+				request>headers>Content-Disposition delete
+				request>headers>Etag delete
+				request>headers>Digest delete
+				request>headers>Content-Digest delete
+				request>headers>Repr-Digest delete
+				request>headers>X-Hub-Signature-256 delete
+				request>headers>X-Divalhr-Signature delete
+				request>headers>X-Divalhr-Timestamp delete
+				request>headers>X-Divalhr-Callback-Id delete
+				resp_headers>X-Receipt-File-Name delete
+				resp_headers>Content-Disposition delete
+				resp_headers>Etag delete
+				resp_headers>Digest delete
+				resp_headers>Content-Digest delete
+				resp_headers>Repr-Digest delete
+			}
+		}
+	}
+}
+
+(keycloak_public) {
+	reverse_proxy {$KEYCLOAK_UPSTREAM} {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {$PROD_APP_HOST}
+		header_up X-Forwarded-Port 443
+		header_up -Forwarded
+	}
+}
+
+# Correlation: the load balancer's trace identifier (X-Amzn-Trace-Id) reaches the application as
+# X-Request-Id and is the only value that joins an edge record to an application log line. No body,
+# header value or query is ever added to a log for it.
+(correlate) {
+	request_header X-Request-Id "{header.X-Amzn-Trace-Id}"
+}
+
+# The application.
+https://{$PROD_APP_HOST}:8443 {
+	tls internal
+	import security
+	import accesslog
+	import correlate
+	# The application is not for search engines; the commercial origin is the canonical one.
+	header >X-Robots-Tag "noindex, nofollow, noarchive"
+	encode zstd gzip
+
+	# Never public: Keycloak admin UI and API, the master realm, the account console, the
+	# provisioning extension, Keycloak health and metrics, the Core actuator.
+	@blocked path_regexp ^/(identity/(admin|realms/master|health|metrics)|identity/realms/[^/]+/(account|divalhr-provisioning)|actuator|api/actuator)(/.*)?$
+	handle @blocked {
+		respond 404
+	}
+
+	# Keycloak: only the production realm and the static assets its pages load.
+	@identity path /identity/realms/{$KEYCLOAK_REALM}/* /identity/resources/* /identity/js/*
+	handle @identity {
+		import keycloak_public
+	}
+	handle /identity* {
+		respond 404
+	}
+
+	handle /api/* {
+		reverse_proxy {$CORE_UPSTREAM}
+	}
+
+	# AI service: public status only, prefix removed.
+	handle /ai/api/v1/system/* {
+		uri strip_prefix /ai
+		reverse_proxy {$AI_UPSTREAM}
+	}
+	handle /ai* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy {$WEB_UPSTREAM}
+	}
+
+	handle_errors {
+		import security
+		respond "{err.status_code}" {err.status_code}
+	}
+}
+
+# The commercial website: only the commercial pages and their static files. Authentication, the API,
+# the identity provider and every application route exist on the application origin only.
+https://{$PROD_PUBLIC_HOST}:8443 {
+	tls internal
+	import security
+	import accesslog
+	import correlate
+	encode zstd gzip
+
+	@commercial path / /legal/privacy /legal/privacy/ /legal/terms /legal/terms/
+	@static path_regexp static ^/(assets|commercial|brands)/|^/[^/]+\.(js|css|svg|png|ico|webmanifest|map)$
+	handle @commercial {
+		reverse_proxy {$WEB_UPSTREAM}
+	}
+	handle @static {
+		reverse_proxy {$WEB_UPSTREAM}
+	}
+	handle /robots.txt {
+		respond <<TXT
+			User-agent: *
+			Allow: /
+			TXT 200
+	}
+	handle {
+		redir https://{$PROD_APP_HOST}{uri} 308
+	}
+
+	handle_errors {
+		import security
+		respond "{err.status_code}" {err.status_code}
+	}
+}
+
+# Any other name, including the load balancer's health probe (which carries the host's address as
+# its Host header): a guarded 404, never content, except the one health path.
+https://:8443 {
+	tls internal
+	import security
+	import accesslog
+	handle /healthz {
+		respond "ok" 200
+	}
+	handle {
+		respond 404
+	}
+}
+
+# Internal identity route: Core API -> Keycloak (token endpoint, keys, provisioning extension).
+http://:8081 {
+	bind {$CADDY_IDP_INTERNAL_BIND}
+	@allowed path /identity/realms/{$KEYCLOAK_REALM}/protocol/openid-connect/token /identity/realms/{$KEYCLOAK_REALM}/protocol/openid-connect/certs /identity/realms/{$KEYCLOAK_REALM}/divalhr-provisioning/*
+	handle @allowed {
+		import keycloak_public
+	}
+	handle {
+		respond 404
+	}
+}
+
+# Operator site, through a Session Manager port-forwarding session to 127.0.0.1:18180 only: the
+# Keycloak admin console. There is no mail catcher here.
+http://:18180 {
+	bind {$CADDY_ADMIN_BIND}
+	@admin path /identity/admin /identity/admin/* /identity/realms/master/* /identity/resources/* /identity/js/*
+	handle @admin {
+		reverse_proxy {$KEYCLOAK_UPSTREAM} {
+			header_up X-Forwarded-Proto http
+			header_up X-Forwarded-Host localhost:{$PROD_ADMIN_PORT}
+			header_up X-Forwarded-Port {$PROD_ADMIN_PORT}
+			header_up -Forwarded
+		}
+	}
+	handle {
+		respond 404
+	}
+}

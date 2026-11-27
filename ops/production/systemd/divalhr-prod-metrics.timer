@@ -1,0 +1,11 @@
+# LAUNCH-002: every five minutes; the heartbeat alarm treats silence as a failure.
+[Unit]
+Description=DivalHR production metrics (every five minutes)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

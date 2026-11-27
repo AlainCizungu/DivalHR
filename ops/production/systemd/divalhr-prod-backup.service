@@ -1,0 +1,11 @@
+# LAUNCH-002 (L2-6): nightly logical backup of the production databases, copied off-host.
+[Unit]
+Description=DivalHR production nightly backup
+RequiresMountsFor=/srv/divalhr-prod
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/divalhr-prod/current/ops/production/backup.sh --reason nightly
+TimeoutStartSec=3600

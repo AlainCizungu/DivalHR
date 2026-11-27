@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# LAUNCH-002 (ADR 0048, L2-12): the production acceptance. Run by the operator after the first
+# production deployment, with the launch lock CLOSED and SYNTHETIC data only. It does not lift the lock.
+#
+#   bash ops/production/accept.sh --evidence-dir <dir>
+#
+# 1. the launch lock is closed (host state AND the SSM parameter), and onboarding is refused;
+# 2. exposure checks from the internet; HTTP checks through the public names;
+# 3. the two browser journeys (public/sign-in; bilingual synthetic tenant, when the account is given);
+# 4. host evidence, a passing restore drill younger than 100 days, backup age under 26 h, log hygiene.
+# Everything is written to the evidence directory (redacted by construction: names, counts, statuses).
+# Configuration: ~/.divalhr-production/deploy.env as for deploy.sh. Credentials of the synthetic
+# account come from PROD_ACCEPTANCE_USER / PROD_ACCEPTANCE_PASSWORD in the environment only.
+set -u
+die() { echo "STOP: $*" >&2; exit 1; }
+OUT=""
+while [ $# -gt 0 ]; do case "$1" in --evidence-dir) OUT="$2"; shift 2 ;; *) die "unknown option $1" ;; esac; done
+[ -n "$OUT" ] || die "--evidence-dir <dir> is required"
+mkdir -p "$OUT"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ENV_FILE="${DIVALHR_PROD_ENV:-$HOME/.divalhr-production/deploy.env}"
+[ -r "$ENV_FILE" ] || die "missing $ENV_FILE"
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+: "${DIVALHR_PROD_REGION:?}" "${DIVALHR_PROD_INSTANCE_ID:?}"
+AWS="${DIVALHR_AWS:-aws}"
+FAIL=0
+step() { # <name> <command...>
+  local name="$1"; shift
+  if "$@" > "$OUT/$name.txt" 2>&1; then echo "PASS $name"; else echo "FAIL $name (see $OUT/$name.txt)"; FAIL=1; fi
+}
+ssm() { # <commands> -> output
+  local params id st
+  params=$(python3 -c 'import json,sys; print(json.dumps({"commands": sys.argv[1].split("\n")}))' "$1")
+  id=$("$AWS" ssm send-command --region "$DIVALHR_PROD_REGION" --instance-ids "$DIVALHR_PROD_INSTANCE_ID" \
+    --document-name AWS-RunShellScript --parameters "$params" --query Command.CommandId --output text) || return 1
+  while :; do
+    sleep 5
+    st=$("$AWS" ssm get-command-invocation --region "$DIVALHR_PROD_REGION" --command-id "$id" --instance-id "$DIVALHR_PROD_INSTANCE_ID" --query Status --output text 2>/dev/null) || st=Pending
+    case "$st" in Success|Failed|Cancelled|TimedOut) break ;; esac
+  done
+  "$AWS" ssm get-command-invocation --region "$DIVALHR_PROD_REGION" --command-id "$id" --instance-id "$DIVALHR_PROD_INSTANCE_ID" --query StandardOutputContent --output text
+  [ "$st" = Success ]
+}
+lock_closed() {
+  local param
+  param=$("$AWS" ssm get-parameter --region "$DIVALHR_PROD_REGION" --name /divalhr/production/launch-lock --query Parameter.Value --output text) || return 1
+  echo "ssm launch lock: $param"; [ "$param" = CLOSED ] || return 1
+  ssm '/srv/divalhr-prod/current/ops/production/launch-lock.sh require-closed && /srv/divalhr-prod/current/ops/production/launch-lock.sh status'
+}
+step 01-launch-lock-closed lock_closed
+step 02-exposure bash "$HERE/exposure-check.sh" --waf-probe
+step 03-http-through-public-names env PROD_EXTERNAL=1 bash "$HERE/http-checks.sh"
+step 04-host-evidence ssm '/srv/divalhr-prod/current/ops/production/evidence-host.sh'
+step 05-backup-and-drill ssm 'cat /srv/divalhr-prod/state/last-restore-drill; echo backup_age_s=$(( $(date +%s) - $(cat /srv/divalhr-prod/state/last-backup-success) )); grep -q "^result=PASS" /srv/divalhr-prod/state/last-restore-drill && [ $(( $(date +%s) - $(cat /srv/divalhr-prod/state/last-backup-success) )) -lt 93600 ]'
+step 06-log-hygiene ssm '/srv/divalhr-prod/current/ops/production/log-hygiene.sh --since '"$(date -u -v-1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
+WEB="$HERE/../../apps/web"
+step 07-browser-journeys bash -c "cd '$WEB' && PROD_PUBLIC_URL='https://${PROD_PUBLIC_HOST:-divalhr.com}' PROD_APP_URL='https://${PROD_APP_HOST:-app.divalhr.com}' PROD_WWW_URL='https://www.${PROD_PUBLIC_HOST:-divalhr.com}' pnpm exec playwright test -c playwright.production.config.ts"
+step 08-launch-lock-still-closed lock_closed
+{ echo "result=$([ $FAIL = 0 ] && echo PASS || echo FAIL)"; echo "finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)"; echo "launch_lock=CLOSED (acceptance never lifts it)"; } > "$OUT/result.txt"
+( cd "$OUT" && shasum -a 256 ./*.txt > SHA256SUMS )
+cat "$OUT/result.txt"
+[ "$FAIL" = 0 ]

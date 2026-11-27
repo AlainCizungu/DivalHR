@@ -1,0 +1,11 @@
+# LAUNCH-002: runs the watchdog every 60 seconds.
+[Unit]
+Description=DivalHR production health watchdog (every minute)
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
