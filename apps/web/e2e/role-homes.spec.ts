@@ -3,38 +3,13 @@ import { expectAccessible, signIn, USERS } from './support';
 
 /**
  * UI-003 (Issue #103), UI-004 (Issue #136) and MVP-093A (Issue #175, D93-14 to D93-16): the
- * refreshed landing page and role homes in a real browser. Three truthful states (Available now,
- * Capabilities available, Coming next), the payroll preparation and compensation message while
- * calculation, payslips and payment stay planned, per-entry integration states, Tasks and Expenses
- * in the illustrative preview; the organization
+ * refreshed role homes in a real browser (the public landing page moved to LAUNCH-004, see
+ * commercial.spec.ts); the organization
  * administrator's quick actions, three groups and the progress panel, and the employee's work
  * cards and approvals card, open their pages; each role sees only its own destinations; Axe and
  * reflow at 320 px, 390 px and 200 % zoom in English and French. The homes load no dashboard data
  * beyond the approved contract summary.
  */
-
-const LANDING = {
-  en: {
-    language: 'English',
-    available: 'Available now',
-    capabilities: 'Capabilities available',
-    later: 'Coming next',
-    compensation: 'Monthly compensation records',
-    next: 'DRC statutory country pack (awaiting professional verification)',
-    active:
-      'Payroll preparation, monthly compensation records and draft contractual gross are active. Statutory deductions and payment are not.',
-  },
-  fr: {
-    language: 'Français',
-    available: 'Disponible maintenant',
-    capabilities: 'Fonctionnalités disponibles',
-    later: 'Prochainement',
-    compensation: 'Rémunérations mensuelles enregistrées',
-    next: 'Pack légal pays pour la RDC (en attente de vérification professionnelle)',
-    active:
-      'La préparation de la paie, les rémunérations mensuelles et le brut contractuel en brouillon sont actifs. Les retenues légales et le paiement ne le sont pas encore.',
-  },
-} as const;
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
@@ -74,70 +49,6 @@ function trackApi(page: Page) {
     if (url.pathname.includes('/api/v1/')) paths.push(url.pathname.replace(/^.*\/api\/v1/u, ''));
   });
   return paths;
-}
-
-for (const locale of ['en', 'fr'] as const) {
-  test(`the landing page shows what is available now, what comes next and the approved-time message, in ${locale}`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto('/');
-    await page.getByRole('button', { name: LANDING[locale].language, exact: true }).click();
-    const modules = page.getByTestId('landing-modules');
-    await expect(modules.locator('li[data-status]')).toHaveCount(12);
-    // D93-14: the exact module truth table, one state label per module.
-    const truth = {
-      available: ['employees', 'leave', 'ai'],
-      capabilities: ['payroll', 'benefits', 'documents', 'analytics', 'workflow', 'integrations'],
-      later: ['loans', 'performance', 'mobile'],
-    } as const;
-    for (const [state, ids] of Object.entries(truth)) {
-      for (const id of ids) {
-        const card = modules.locator(`li[data-status][data-module="${id}"]`);
-        await expect(card).toHaveAttribute('data-status', state);
-        await expect(card).toContainText(LANDING[locale][state as keyof typeof truth]);
-      }
-    }
-    await expect(modules.locator('[data-testid="landing-remaining"]')).toHaveCount(6);
-    // The two plain lists (no link, button or figure): Available now grouped, Coming next.
-    const today = page.getByTestId('landing-today');
-    await expect(today.getByRole('listitem')).toHaveCount(16);
-    await expect(today.locator('li[data-module="compensation"]')).toHaveText(
-      LANDING[locale].compensation,
-    );
-    const next = page.getByTestId('landing-next');
-    await expect(next.getByRole('listitem')).toHaveCount(5);
-    await expect(next.locator('li[data-module="statutory"]')).toHaveText(LANDING[locale].next);
-    await expect(today.locator('a, button')).toHaveCount(0);
-    await expect(next.locator('a, button')).toHaveCount(0);
-    // Payroll: preparation, compensation and draft runs active, statutory calculation and payment planned.
-    await expect(page.getByTestId('landing-payroll-active')).toContainText(LANDING[locale].active);
-    const payroll = page.locator('#payroll');
-    for (const step of ['preparation', 'compensation', 'runs']) {
-      await expect(payroll.locator(`li[data-step="${step}"]`)).toContainText(
-        LANDING[locale].available,
-      );
-    }
-    for (const step of ['calculation', 'payment']) {
-      await expect(payroll.locator(`li[data-step="${step}"]`)).toContainText(LANDING[locale].later);
-    }
-    // Integrations: each entry states its own state; only three are active.
-    const integrations = page.getByTestId('landing-integrations');
-    await expect(integrations.locator('li[data-entry]')).toHaveCount(20);
-    await expect(integrations.locator('li[data-entry][data-state="capabilities"]')).toHaveCount(3);
-    await expect(integrations.locator('li[data-entry="Slack"]')).toContainText(
-      LANDING[locale].later,
-    );
-    await expect(integrations.locator('li[data-entry="WhatsApp Business"]')).toContainText(
-      LANDING[locale].capabilities,
-    );
-    // The illustrative preview shows Tasks and Expenses, without customer data.
-    const preview = page.getByTestId('landing-preview');
-    await expect(preview.locator('.landing-preview__card')).toHaveCount(6);
-    await expect(preview.locator('.landing-preview__link')).toHaveCount(9);
-    await expectAccessible(page);
-    await reflows(page);
-  });
 }
 
 test.describe('organization administrator home', () => {

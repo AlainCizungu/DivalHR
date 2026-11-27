@@ -487,8 +487,8 @@ function headerFor(roles: readonly Role[]): 'platform' | 'tenant' | 'employee' {
   return 'employee';
 }
 
-/** UI-002: the public landing page, loaded only for anonymous visitors (D8). */
-const LandingContent = lazy(() => import('../landing/LandingContent'));
+/** LAUNCH-004: the public commercial page, loaded only for anonymous visitors (D8). */
+const CommercialPage = lazy(() => import('../commercial/CommercialPage'));
 
 export function HomePage() {
   const { t } = useTranslation();
@@ -499,7 +499,7 @@ export function HomePage() {
   if (session.kind === 'anonymous') {
     return (
       <Suspense fallback={<Skeleton lines={4} />}>
-        <LandingContent />
+        <CommercialPage />
       </Suspense>
     );
   }

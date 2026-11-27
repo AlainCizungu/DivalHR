@@ -1,0 +1,33 @@
+{
+  "flags": "iu",
+  "claims": [
+    "fully compliant",
+    "\\bDRC[- ]compliant",
+    "compliant across africa",
+    "automatically pays",
+    "instant (salary )?advance",
+    "guaranteed (loan )?approval|approval (is )?guaranteed",
+    "connected to (a |an |your |the )?(bank|insurer|telecom|mobile|payment)",
+    "AI for every workflow",
+    "native (iOS|Android) (apps?|applications?) (are |is )?(available|ready|live)",
+    "(app store|google play)",
+    "automatic(ally)? (accounting )?post",
+    "real[- ]time (bank )?settlement",
+    "certified by|(iso|soc)[ -]?\\d+ certified|production[- ]certified",
+    "generally available",
+    "entièrement conforme",
+    "conforme (à la loi|rdc|rd congo|en rdc)",
+    "conforme dans toute l[’']afrique",
+    "paie automatiquement|paie tous les employés automatiquement",
+    "avance (sur salaire )?instantanée",
+    "approbation garantie|prêt garanti",
+    "connecté à (une |un |votre |la |le )?(banque|assureur|opérateur|fournisseur de paiement)",
+    "IA pour tous les flux",
+    "applications? natives? (ios|android) (sont |est )?(disponibles?|prêtes?)",
+    "règlement (bancaire )?en temps réel",
+    "certifié par|certifiée par|disponibilité générale",
+    "(customers?|clients?) (like|such as|including)",
+    "trusted by|ils nous font confiance|nous font confiance"
+  ],
+  "syntheticInternals": "SYNTHETIC-TEST|synthetic (test )?provider|fournisseur synthétique|fournisseur de test"
+}

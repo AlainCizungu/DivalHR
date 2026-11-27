@@ -3047,400 +3047,8 @@
     }
   },
   "landing": {
-    "documentTitle": "DivalHR — La plateforme de gestion des effectifs pour l’Afrique",
-    "sectionsLabel": "Sections de la page",
-    "nav": {
-      "platform": "Plateforme",
-      "payroll": "Préparation de la paie",
-      "integrations": "Intégrations",
-      "why": "Pourquoi DivalHR"
-    },
-    "menu": "Menu",
-    "signIn": "Se connecter",
-    "requestDemo": "Demander une démo",
-    "demoSubject": "Demande de démo DivalHR",
-    "hero": {
-      "eyebrow": "La plateforme de gestion des effectifs pour l’Afrique",
-      "line1": "Gérez vos talents.",
-      "line2": "Pilotez vos opérations.",
-      "intro": "DivalHR est la plateforme de gestion des effectifs et des opérations des organisations africaines : dossiers employés, congés, horaires, présences, feuilles de temps, préparation de la paie, rémunérations mensuelles, exécutions de paie mensuelles en brouillon, tâches et notes de frais dans un seul système connecté ; les retenues légales, les bulletins de paie et les paiements arrivent prochainement.",
-      "signIn": "Se connecter à DivalHR",
-      "note": "Déjà client ? Connectez-vous en toute sécurité."
-    },
-    "preview": {
-      "caption": "Aperçu illustratif de l’accueil administrateur DivalHR. Aucune donnée client.",
-      "eyebrow": "Administrateur de l’organisation",
-      "title": "Accueil",
-      "nav": {
-        "home": "Accueil",
-        "employees": "Employés",
-        "leave": "Congés",
-        "schedules": "Horaires",
-        "attendance": "Suivi de la présence",
-        "timesheets": "Feuilles de temps",
-        "exports": "Exports de temps",
-        "tasks": "Tâches",
-        "expenses": "Notes de frais"
-      },
-      "actions": {
-        "import": "Importer des employés",
-        "reviewLeave": "Examiner les congés",
-        "openTimesheets": "Ouvrir les feuilles de temps",
-        "exportTime": "Exporter le temps approuvé"
-      },
-      "cards": {
-        "employees": {
-          "title": "Employés",
-          "description": "Dossiers et historique d’emploi"
-        },
-        "attendance": {
-          "title": "Suivi de la présence",
-          "description": "Exceptions et corrections"
-        },
-        "timesheets": {
-          "title": "Feuilles de temps",
-          "description": "Générées, soumises, approuvées"
-        },
-        "exports": {
-          "title": "Exports de temps",
-          "description": "Temps approuvé uniquement. Aucune paie calculée."
-        },
-        "tasks": {
-          "title": "Tâches",
-          "description": "Assignées, démarrées, terminées"
-        },
-        "expenses": {
-          "title": "Notes de frais",
-          "description": "Soumises et approuvées par les responsables. Aucun paiement effectué."
-        }
-      }
-    },
-    "sectors": {
-      "label": "Conçue pour les organisations qui font avancer l’Afrique",
-      "healthcare": "Santé",
-      "education": "Éducation",
-      "ngos": "ONG",
-      "financial": "Services financiers",
-      "manufacturing": "Industrie"
-    },
-    "platform": {
-      "kicker": "Un seul système opérationnel",
-      "title": "Du dossier employé à l’action sur le terrain.",
-      "body": "Ne dépendez plus de feuilles de calcul, de feuilles de présence et d’applications isolées. DivalHR offre à chaque équipe une vue fiable des effectifs, du dossier employé jusqu’au temps approuvé dont part la paie.",
-      "steps": {
-        "people": {
-          "title": "Socle RH",
-          "description": "Dossiers, contrats, historique et accès au même endroit."
-        },
-        "operations": {
-          "title": "Opérations",
-          "description": "Sites, approbations de congé, horaires de travail, présences, feuilles de temps hebdomadaires, tâches et notes de frais."
-        },
-        "pay": {
-          "title": "Du temps à la paie",
-          "description": "Temps approuvé verrouillé, préparé et exporté pour la paie, rémunérations mensuelles enregistrées et brut contractuel en brouillon dès aujourd’hui ; retenues légales, bulletins de paie et paiements prochainement."
-        },
-        "intelligence": {
-          "title": "Intelligence",
-          "description": "Une synthèse quotidienne gouvernée, fondée sur des indicateurs agrégés, avec liens vers les sources."
-        }
-      }
-    },
     "modules": {
-      "kicker": "La plateforme DivalHR",
-      "title": "Tout ce dont vos équipes ont besoin. Une seule plateforme.",
-      "body": "Commencez avec ce qui est disponible maintenant. Ajoutez les prochaines fonctionnalités à mesure qu’elles arrivent et que votre organisation grandit.",
-      "available": "Disponible maintenant",
-      "later": "Prochainement",
-      "legend": "« Disponible maintenant » signifie que le périmètre du module est déjà dans le produit. « Fonctionnalités disponibles » signifie qu’une partie du module est dans le produit et que le reste n’est pas encore disponible. Les fonctionnalités « Prochainement » sont dans la feuille de route et ne sont pas encore disponibles.",
-      "todayTitle": "Disponible maintenant",
-      "items": {
-        "employees": {
-          "title": "Gestion des employés",
-          "description": "Dossiers employés, historique d’emploi, import en masse et départs."
-        },
-        "leave": {
-          "title": "Gestion des congés",
-          "description": "Politiques de congé, demandes, approbations, modifications, annulations, retraits, exceptions d’acheminement et approbateurs remplaçants."
-        },
-        "payroll": {
-          "title": "Paie et paiements",
-          "description": "Verrouillage des périodes, génération des données de préparation de la paie, revue des écarts, export verrouillé, rémunérations mensuelles et exécutions mensuelles en brouillon avec brut contractuel. L’approbation de la paie et les bulletins de paie bilingues existent comme socle et ne sont utilisables que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif (pilote et préparation). Les destinations de paiement et les registres d’instructions de paiement peuvent être préparés à partir d’une paie approuvée ; rien n’est envoyé et aucun argent n’est transféré. La soumission d’un lot préparé à un prestataire de test synthétique contrôlé est active et réservée aux tests : ce n’est pas une intégration bancaire ou de mobile money réelle et aucun argent n’est transféré. Le rapprochement d’une soumission incertaine est disponible uniquement pour le prestataire de test synthétique contrôlé : il interroge ce prestataire sur la soumission existante, ne renvoie jamais le paiement, et l’acceptation par le prestataire n’est ni un paiement ni un règlement. Les administrateurs configurent des correspondances de comptes datées, et DivalHR génère un journal comptable immuable et équilibré à partir d’un dossier de paie approuvé, avec des téléchargements déterministes du CSV et du manifeste, le manifeste liant l’empreinte SHA-256 du CSV. Il s’agit d’un export manuel prêt pour la comptabilité, pour les dossiers en CDF : il n’est pas comptabilisé dans Sage, Odoo, QuickBooks ni dans aucun système comptable et ne constitue pas une preuve de paiement. Aucun journal n’est produit pour l’USD, et aucune dimension de centre de coûts ou de site n’est revendiquée. Aucun prestataire réel n’est connecté et le versement réel n’est pas encore disponible.",
-          "remaining": "Bulletins de paie statutaires opérationnels pour la RDC (le jeu de règles de la RDC n’est pas encore vérifié), déclarations, comptabilisation directe dans un système comptable, et envoi des paiements réels aux banques et aux opérateurs de mobile money."
-        },
-        "loans": {
-          "title": "Prêts et avances sur salaire",
-          "description": "Crédit responsable par des partenaires agréés, remboursé via la paie.",
-          "foundation": "Demandes d’avance sur salaire confirmées par l’employeur avec le consentement de l’employé, transmission de test contrôlée vers un partenaire synthétique, et suivi transparent de l’état d’examen et de l’historique de ce partenaire. DivalHR n’est pas le prêteur et aucun partenaire ni aucune institution réelle n’est connecté. Non disponible : un prêteur réel, une décision d’éligibilité ou de crédit, une tarification ou des intérêts, une approbation, un décaissement, un remboursement ou une retenue sur la paie."
-        },
-        "benefits": {
-          "title": "Avantages et assurance",
-          "description": "Catalogue de partenaires approuvés disponible. Les employés peuvent consulter des offres informatives. L’adhésion, les demandes et les connexions aux fournisseurs viendront ultérieurement.",
-          "remaining": "Adhésion des employés, demandes d’avantages, connexions aux partenaires, décisions de financement, retenues sur salaire et mouvements d’argent."
-        },
-        "performance": {
-          "title": "Performance",
-          "description": "Cycles d’évaluation, objectifs et développement des talents."
-        },
-        "documents": {
-          "title": "Documents",
-          "description": "Modèles de contrat, émission, accusé de réception et suivi des échéances.",
-          "remaining": "Stockage général de documents et signature électronique."
-        },
-        "analytics": {
-          "title": "Analytique",
-          "description": "État opérationnel du jour et synthèse quotidienne gouvernée.",
-          "remaining": "Analytique générale des effectifs et tendances."
-        },
-        "workflow": {
-          "title": "Automatisation",
-          "description": "Cycle de vie des tâches opérationnelles et circuits d’approbation fermés.",
-          "remaining": "Automatisation configurable des processus."
-        },
-        "ai": {
-          "title": "Dival AI",
-          "description": "Une synthèse quotidienne gouvernée et sourcée des opérations, avec liens vers les sources autorisées. Ce n’est pas un assistant généraliste."
-        },
-        "integrations": {
-          "title": "Intégrations",
-          "description": "Webhooks signés et connecteur WhatsApp Business gouverné.",
-          "remaining": "Les autres outils et fournisseurs affichés sont prévus ; aucun partenariat n’est sous-entendu."
-        },
-        "mobile": {
-          "title": "Applications mobiles",
-          "description": "Expériences iOS et Android pour chaque employé."
-        },
-        "organization": {
-          "title": "Structure de l’organisation",
-          "description": "Entités juridiques, sites, régions, départements, centres de coûts et équipes."
-        },
-        "scheduling": {
-          "title": "Planification du travail",
-          "description": "Publiez les horaires des sites, affectez les employés, repérez les créneaux non couverts, montrez à chacun ses créneaux, remplacez ou annulez un horaire futur, et organisez les remplacements de créneau."
-        },
-        "contracts": {
-          "title": "Contrats",
-          "description": "Modèles de contrat bilingues, émission et accusé de réception par l’employé."
-        },
-        "access": {
-          "title": "Accès et sécurité",
-          "description": "Invitations, rôles, connexion sécurisée et revue des accès."
-        },
-        "attendance": {
-          "title": "Présences",
-          "description": "Pointage en ligne, présence assistée par un superviseur et hors connexion, revue des exceptions et corrections en ajout seul."
-        },
-        "time": {
-          "title": "Feuilles de temps et temps approuvé",
-          "description": "Feuilles de temps hebdomadaires générées à partir des horaires et des présences, soumises par les employés, approuvées ou renvoyées par les responsables, rouvertes après correction et exportées en CSV avec un manifeste."
-        },
-        "tasks": {
-          "title": "Tâches opérationnelles",
-          "description": "Confiez une tâche à un employé, qui la démarre et la termine, avec un historique immuable."
-        },
-        "expenses": {
-          "title": "Notes de frais",
-          "description": "Les employés enregistrent leurs dépenses en CDF ou en USD avec un justificatif et les soumettent ; les responsables les approuvent ou les renvoient. L’approbation n’est pas un paiement."
-        }
-      },
-      "nextTitle": "Prochainement",
-      "now": {
-        "people": "Dossiers employés, structure organisationnelle et accès avec connexion à facteurs multiples",
-        "contracts": "Contrats et suivi des échéances",
-        "leave": "Demandes de congé, approbations et contrôles du cycle de vie",
-        "scheduling": "Horaires, remplacement de créneau, présence en ligne et hors connexion, et corrections",
-        "timesheets": "Feuilles de temps, verrouillage des périodes et exports du temps approuvé",
-        "payrollPreparation": "Préparation des données de paie, revue des écarts et export verrouillé",
-        "compensation": "Rémunérations mensuelles enregistrées",
-        "operations": "État opérationnel du jour et synthèse quotidienne sourcée",
-        "integrations": "Webhooks signés et connecteur WhatsApp Business",
-        "partnerCatalogue": "Candidatures de partenaires avec revue contrôlée, et catalogue d’information des partenaires approuvés et de leurs produits publiés (aucune adhésion, demande ni connexion à un fournisseur)",
-        "tasks": "Tâches opérationnelles",
-        "expenses": "Notes de frais des employés et approbation par le responsable",
-        "languages": "Anglais et français",
-        "payrollRuns": "Exécutions de paie mensuelles en brouillon avec brut contractuel",
-        "paymentSubmission": "Soumission d’un lot de paiement préparé à un prestataire de test synthétique contrôlé, et demande d’état d’une soumission incertaine sans jamais la renvoyer (test uniquement : aucune banque ni aucun prestataire réel, aucun argent transféré)",
-        "accountingExport": "Correspondances de comptes et journal comptable immuable et équilibré à partir d’un dossier de paie approuvé, avec téléchargement du CSV et du manifeste (export manuel pour les dossiers en CDF : rien n’est comptabilisé dans un système comptable)"
-      },
-      "next": {
-        "statutory": "Pack légal pays pour la RDC (en attente de vérification professionnelle)",
-        "payslips": "Bulletins de paie opérationnels pour la RDC et approbation du net à payer (jeu de règles vérifié requis), puis déclarations et comptabilisation directe dans un système comptable",
-        "disbursement": "Envoi des paiements réels aux banques et aux opérateurs de mobile money, règlement et confirmation de paiement",
-        "advances": "Avances sur salaire et prêts avec des partenaires réels et agréés (aujourd’hui, il n’existe que des demandes confirmées par l’employeur et une transmission de test contrôlée vers un partenaire synthétique)",
-        "platform": "Adhésion aux avantages et demandes, performance, documents généraux et signature électronique, automatisation configurable et applications mobiles natives"
-      },
-      "capabilities": "Fonctionnalités disponibles",
-      "remainingLabel": "Pas encore disponible :",
-      "foundationLabel": "Fondation disponible"
-    },
-    "payroll": {
-      "kicker": "Du temps approuvé à la préparation de la paie",
-      "title": "Préparez les données de paie. Enregistrez les rémunérations. Brut contractuel en brouillon.",
-      "body": "DivalHR verrouille les semaines approuvées, en tire des données de préparation de la paie traçables, examine les écarts entre périodes et exporte un fichier verrouillé pour vos outils de paie et de comptabilité. Les administrateurs enregistrent aussi la rémunération mensuelle de base, datée, en CDF ou en USD, et chaque employé peut consulter la sienne. À partir de celle-ci, les administrateurs créent des exécutions mensuelles en brouillon qui montrent le brut contractuel avec les preuves de chaque montant. La revue et l’approbation de la paie et les bulletins de paie bilingues existent comme socle : ils ne fonctionnent que lorsqu’un jeu de règles statutaire vérifié par un professionnel est actif, et celui de la RDC ne l’est pas encore ; il s’agit donc d’un pilote et d’une préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement. Un export de journal comptable prêt pour la comptabilité (CSV et manifeste, import manuel uniquement) est disponible pour les dossiers de paie approuvés en CDF. Les déclarations, la comptabilisation directe, le versement par banque et mobile money et les avances sur salaire arrivent prochainement.",
-      "steps": {
-        "preparation": {
-          "title": "Préparation de la paie",
-          "description": "Les semaines approuvées sont verrouillées, deviennent des données de paie traçables avec revue des écarts, et sont exportées dans un fichier verrouillé."
-        },
-        "compensation": {
-          "title": "Rémunération mensuelle",
-          "description": "Montants de base mensuels datés en CDF ou en USD, avec historique. Enregistrer une rémunération ne calcule pas la paie et ne déclenche aucun paiement."
-        },
-        "calculation": {
-          "title": "Retenues et bulletins",
-          "description": "Les retenues légales, l’approbation de la paie et les bulletins de paie bilingues exigent un jeu de règles vérifié par un professionnel. Celui de la RDC n’est pas encore vérifié : pilote et préparation uniquement. Un bulletin de paie ne constitue pas une preuve de paiement."
-        },
-        "payment": {
-          "title": "Paiement réel et rapprochement",
-          "description": "Instructions de paiement vers de vraies banques et de vrais opérateurs de mobile money, et rapprochement des résultats réels. Seul un prestataire de test synthétique contrôlé existe aujourd’hui."
-        },
-        "runs": {
-          "title": "Exécutions mensuelles en brouillon",
-          "description": "Brut contractuel issu de la rémunération mensuelle et de votre politique de proratisation, avec des preuves figées par employé. Un brouillon, pas une paie statutaire."
-        }
-      },
-      "railsLabel": "Canaux de paiement prévus",
-      "bankAccount": "Compte bancaire",
-      "bankFile": "Fichier bancaire",
-      "note": "Les paiements ne sont pas disponibles aujourd’hui. Lorsqu’ils arriveront, ils seront exécutés par votre banque ou un prestataire de paiement agréé, et DivalHR ne détiendra pas les fonds des employés. Votre organisation reste responsable de ses décisions de paie et de ses obligations légales. Les versements et les canaux de paiement sont prévus et arriveront plus tard.",
-      "activeMessage": "La préparation de la paie, les rémunérations mensuelles et le brut contractuel en brouillon sont actifs. Les retenues légales et le paiement ne le sont pas encore."
-    },
-    "integrations": {
-      "kicker": "Écosystème connecté",
-      "title": "Conçue pour fonctionner avec les outils qui font déjà avancer votre organisation.",
-      "body": "Webhooks signés, une API et un connecteur WhatsApp Business gouverné dès aujourd’hui ; outils de paiement, de comptabilité et de collaboration prochainement.",
-      "groups": {
-        "payments": "Paiements et paie",
-        "accounting": "Comptabilité et gestion",
-        "work": "Travail et productivité",
-        "identity": "Identité et plateforme"
-      },
-      "generic": {
-        "bankTransfer": "Virement bancaire",
-        "isoFiles": "Fichiers bancaires ISO 20022",
-        "restApi": "API REST",
-        "webhooks": "Webhooks",
-        "sso": "SSO / SAML"
-      },
-      "note": "Seuls les webhooks signés, l’API REST et le connecteur WhatsApp Business sont disponibles aujourd’hui ; tous les autres noms sont prévus. La disponibilité variera selon le pays, le fournisseur et la phase de mise en œuvre. Les noms et logos identifient une compatibilité, disponible ou prévue ; aucun partenariat ni parrainage n’est sous-entendu. Les marques appartiennent à leurs propriétaires respectifs."
-    },
-    "ai": {
-      "kicker": "Dival AI",
-      "title": "Une synthèse quotidienne gouvernée de vos opérations.",
-      "body": "Dival AI rédige une synthèse quotidienne des opérations à partir d’indicateurs agrégés gouvernés, avec des modèles bilingues validés et des liens vers les vues que vous êtes autorisé à ouvrir. Si le service d’IA est indisponible, un repli déterministe produit tout de même une synthèse. Il ne répond pas à des questions libres et ne tire aucune conclusion sur des employés pris individuellement.",
-      "guarantees": {
-        "metrics": "Indicateurs agrégés gouvernés uniquement",
-        "templates": "Modèles bilingues validés",
-        "sources": "Liens vers les vues sources autorisées",
-        "fallback": "Repli déterministe si l’IA est indisponible"
-      },
-      "topicsLabel": "Sujets de la synthèse",
-      "topics": {
-        "shifts": "Quarts planifiés et pointages du jour",
-        "coverage": "Quarts sans pointage d’arrivée et quarts non couverts",
-        "approvals": "Approbations de congé et de feuilles de temps en attente au-delà de leurs seuils"
-      }
-    },
-    "why": {
-      "kicker": "Pensée d’abord pour l’Afrique",
-      "title": "Une technologie de classe mondiale, ancrée dans la réalité locale.",
-      "body": "Français et anglais dès le départ. CDF et USD. Banques et mobile money. Opérations multisites. Connectivité intermittente. Règles pays sans fragmenter le produit.",
-      "principles": {
-        "languages": {
-          "title": "FR · EN",
-          "description": "Français et anglais, à égalité"
-        },
-        "currency": {
-          "title": "CDF · USD",
-          "description": "Multi-devises"
-        },
-        "offline": {
-          "title": "Hors ligne",
-          "description": "Processus terrain malgré une connexion faible"
-        },
-        "multisite": {
-          "title": "Multisite",
-          "description": "Entités, sites et équipes"
-        }
-      }
-    },
-    "finance": {
-      "kicker": "Au-delà des RH",
-      "title": "Transformer l’emploi en possibilités financières.",
-      "body": "Avec le consentement des employés et des partenaires financiers agréés, les données d’emploi vérifiées peuvent ouvrir l’accès à des avances sur salaire responsables, à l’assurance et aux avantages. DivalHR ne prend aucune décision de crédit.",
-      "steps": {
-        "consent": {
-          "title": "Consentement de l’employé",
-          "description": "L’employé choisit de partager."
-        },
-        "verified": {
-          "title": "Emploi vérifié",
-          "description": "DivalHR confirme les informations d’emploi."
-        },
-        "partner": {
-          "title": "Décision du partenaire",
-          "description": "Un partenaire agréé décide."
-        },
-        "repayment": {
-          "title": "Remboursement sur paie",
-          "description": "Les remboursements convenus passent par la paie."
-        }
-      }
-    },
-    "outcomes": {
-      "title": "Une journée plus claire pour chaque équipe.",
-      "items": {
-        "hr": {
-          "title": "Équipes RH",
-          "description": "Un historique unique, de l’intégration au départ."
-        },
-        "operations": {
-          "title": "Opérations",
-          "description": "Sites, horaires, présences et approbations des feuilles de temps dans une seule vue."
-        },
-        "finance": {
-          "title": "Finance",
-          "description": "Exports du temps approuvé, préparation de la paie, rémunérations mensuelles et brut contractuel en brouillon dès aujourd’hui ; retenues légales prochainement."
-        },
-        "employees": {
-          "title": "Employés",
-          "description": "Contrats, congés, horaires, présences, feuilles de temps, tâches, notes de frais et leur propre rémunération mensuelle dès aujourd’hui ; bulletins de paie et avantages prochainement."
-        }
-      }
-    },
-    "cta": {
-      "title": "Construisez des opérations plus solides.",
-      "body": "Découvrez comment DivalHR peut aider votre organisation à opérer avec clarté, confiance et rapidité.",
-      "or": "ou écrivez à"
-    },
-    "footer": {
-      "tagline": "La technologie des effectifs pour l’Afrique.",
-      "copyright": "© 2026 DivalHR · Une société Dival AI"
-    },
-    "partners": {
-      "kicker": "Partenaires",
-      "title": "Devenir partenaire de DivalHR",
-      "body": "DivalHR n’est pas un prêteur. Nous ouvrons des discussions d’intégration contrôlées avec des prestataires réglementés et agréés — banques, institutions de microfinance, assureurs, prestataires d’avantages santé, opérateurs télécom, prestataires de monnaie mobile et de paiement, prestataires de retraite et d’épargne — qui souhaitent servir les employés par l’intermédiaire de leur employeur, avec leur consentement. Aujourd’hui, aucun partenaire réel n’est connecté : la transmission contrôlée ne fonctionne qu’avec un partenaire de test synthétique.",
-      "points": {
-        "consent": {
-          "title": "Le consentement d’abord",
-          "description": "L’employé voit exactement ce qui serait transmis et accepte avant que quoi que ce soit ne quitte DivalHR."
-        },
-        "minimal": {
-          "title": "Données minimales et fermées",
-          "description": "Seul un court ensemble fixe d’informations est transmis. Les noms, coordonnées, numéros d’identité et bulletins de paie n’en font jamais partie."
-        },
-        "employer": {
-          "title": "Confirmé par l’employeur",
-          "description": "Une demande n’est transmise qu’après la confirmation de participation de l’employeur."
-        },
-        "synthetic": {
-          "title": "Synthétique aujourd’hui",
-          "description": "Chaque transmission actuelle va vers un partenaire de test. Aucune décision, aucun versement ni aucune retenue n’en découle."
-        }
-      },
-      "cta": "Candidater pour devenir partenaire de DivalHR",
-      "ctaNote": "Une candidature ouvre seulement une conversation. Elle ne crée ni identifiants, ni intégration, ni accès aux données des employés. Lorsque DivalHR active un partenaire, les membres connectés peuvent consulter des informations sur ses produits publiés ; le site public ne référence aucun partenaire ni produit, et il n’existe encore ni portail partenaire, ni suivi de statut, ni dépôt de documents."
+      "available": "Disponible maintenant"
     }
   },
   "leaveSubstitutes": {
@@ -8109,6 +7717,415 @@
       "done": "La purge est terminée. La preuve ne contient aucune valeur personnelle.",
       "rows_one": "{{count}} ligne",
       "rows_other": "{{count}} lignes"
+    }
+  },
+  "commercial": {
+    "meta": {
+      "title": "DivalHR | Plateforme bilingue de gestion du personnel et des opérations pour les organisations africaines",
+      "description": "DivalHR réunit les équipes, le temps de travail, la préparation de la paie et les services aux employés dans une plateforme bilingue et sécurisée conçue pour les organisations africaines. Pilote contrôlé : demandez une démonstration.",
+      "ogTitle": "DivalHR : gérez vos opérations RH avec clarté",
+      "ogDescription": "Une plateforme bilingue et sécurisée de gestion du personnel et des opérations pour les organisations africaines, aujourd’hui en pilote contrôlé.",
+      "ogImageAlt": "Accueil des opérations de l’administrateur DivalHR avec le badge de pilote contrôlé",
+      "htmlLabel": "Site commercial DivalHR"
+    },
+    "nav": {
+      "label": "Sections de la page",
+      "menu": "Menu",
+      "product": "Produit",
+      "solutions": "Solutions",
+      "payroll": "Paie",
+      "services": "Services aux employés",
+      "partners": "Réseau de partenaires",
+      "security": "Sécurité",
+      "pilot": "Programme pilote",
+      "signIn": "Se connecter"
+    },
+    "cta": {
+      "demo": "Demander une démonstration",
+      "pilot": "Rejoindre le pilote",
+      "partner": "Devenir partenaire",
+      "demoSubject": "Demande de démonstration DivalHR",
+      "pilotSubject": "Demande de participation au pilote contrôlé DivalHR",
+      "learnMore": "Voir le détail"
+    },
+    "badge": {
+      "pilot": "Pilote contrôlé"
+    },
+    "hero": {
+      "positioning": "DivalHR est la plateforme bilingue de gestion du personnel et des opérations conçue pour les organisations africaines — réunissant les équipes, le temps de travail, la préparation de la paie et les services aux employés dans une expérience sécurisée.",
+      "title": "Gérez vos opérations RH avec clarté — des dossiers employés à la préparation de la paie.",
+      "body": "Une plateforme bilingue et sécurisée pour l’administration du personnel, les congés, les horaires, la présence, les feuilles de temps, les processus de paie et les services aux employés — conçue pour les réalités des organisations africaines.",
+      "badgeNote": "Pilote contrôlé, pour les organisations qui configurent la plateforme avec nous.",
+      "screenshotAlt": "Accueil d’administration de l’organisation dans DivalHR : actions rapides pour importer des employés, examiner les demandes de congé, ouvrir les feuilles de temps et exporter le temps approuvé, un panneau de contrats et le menu de navigation. Environnement de test, données synthétiques."
+    },
+    "trust": {
+      "label": "Fondations de la plateforme",
+      "languages": "Français et anglais",
+      "isolation": "Sécurité multi-organisation",
+      "mfa": "MFA pour les rôles privilégiés",
+      "selfService": "Libre-service pour les employés",
+      "referrals": "Orientations vers des partenaires encadrées par la protection des données",
+      "realities": "Pensée pour le contexte opérationnel africain"
+    },
+    "status": {
+      "PILOT_AVAILABLE": "Disponible dans le pilote",
+      "CONFIGURATION_REQUIRED": "Disponible après configuration",
+      "PARTNER_REQUIRED": "Partenaire approuvé requis",
+      "PLANNED": "Prévu",
+      "legendTitle": "Signification des étiquettes",
+      "legend": {
+        "PILOT_AVAILABLE": "Développé, déployé et validé sur notre environnement de test ; présenté avec des données synthétiques et soumis aux conditions du pilote contrôlé.",
+        "CONFIGURATION_REQUIRED": "Développé, mais nécessite votre paramétrage, des règles validées ou une mise en place opérationnelle approuvée avant utilisation.",
+        "PARTNER_REQUIRED": "Le processus existe ; une banque, un opérateur, un prêteur, un assureur ou un fournisseur de télécommunications réel doit être contracté, approuvé et activé.",
+        "PLANNED": "Simple orientation de la feuille de route. Non disponible dans le pilote."
+      }
+    },
+    "platform": {
+      "kicker": "Produit",
+      "title": "Une seule plateforme pour piloter vos équipes",
+      "intro": "Sept domaines reliés entre eux, chacun étiqueté avec précision selon ce que vous pouvez utiliser aujourd’hui.",
+      "capabilitiesLabel": "Fonctionnalités",
+      "pillars": {
+        "people": {
+          "title": "Équipes et organisation",
+          "outcome": "Une référence fiable de qui travaille où, avec des accès adaptés à chaque rôle."
+        },
+        "leave-scheduling": {
+          "title": "Congés et planification",
+          "outcome": "Moins de tableurs et d’appels quand les plans changent."
+        },
+        "attendance-time": {
+          "title": "Présence et feuilles de temps",
+          "outcome": "Un temps de travail approuvé sur lequel s’appuyer, même quand la connexion est intermittente."
+        },
+        "payroll": {
+          "title": "Préparation de la paie et bulletins",
+          "outcome": "Des éléments de paie vérifiés, versionnés et traçables."
+        },
+        "payments-accounting": {
+          "title": "Paiements et préparation comptable",
+          "outcome": "Une préparation maîtrisée des fichiers de paiement et des journaux prêts pour la comptabilité."
+        },
+        "employee-services": {
+          "title": "Services aux employés et partenaires approuvés",
+          "outcome": "Les choix de l’employé lui appartiennent, dans un cadre de protection des données."
+        },
+        "intelligence": {
+          "title": "Pilotage opérationnel et automatisation",
+          "outcome": "Une vision quotidienne claire et des notifications signées vers vos propres systèmes."
+        }
+      }
+    },
+    "outcomes": {
+      "kicker": "Solutions",
+      "title": "Ce que les employeurs y gagnent",
+      "items": {
+        "spreadsheets": {
+          "title": "Moins de tableurs et de ressaisies",
+          "description": "Dossiers, demandes et approbations sont réunis au même endroit plutôt que dispersés en fichiers."
+        },
+        "selfService": {
+          "title": "Un point d’entrée pour le quotidien",
+          "description": "Les employés gèrent congés, présence, tâches et notes de frais sans solliciter un administrateur."
+        },
+        "payrollInputs": {
+          "title": "Une source d’éléments de paie auditable",
+          "description": "Le temps approuvé et l’historique de rémunération alimentent la préparation de la paie."
+        },
+        "traceable": {
+          "title": "Des approbations et des changements traçables",
+          "description": "Les changements sensibles conservent un historique visible : qui, quoi, quand."
+        },
+        "distributed": {
+          "title": "Un appui aux équipes dispersées",
+          "description": "La présence saisie hors ligne se synchronise au retour de la connexion."
+        },
+        "partners": {
+          "title": "Des services aux employés via des partenaires encadrés",
+          "description": "Des partenaires approuvés peuvent être proposés aux employés, dans le respect du consentement et de la vie privée."
+        }
+      },
+      "sectorsTitle": "Pensée pour des organisations de toute nature",
+      "sectors": {
+        "healthcare": "Santé",
+        "education": "Éducation",
+        "ngo": "ONG et organisations de développement",
+        "finance": "Services financiers",
+        "field": "Industrie et opérations de terrain",
+        "multisite": "Entreprises multi-sites en croissance"
+      },
+      "sectorsNote": "Ce sont les types d’organisations que la plateforme vise à servir. Aucune certification sectorielle n’est revendiquée."
+    },
+    "payroll": {
+      "kicker": "Paie",
+      "title": "Une préparation de la paie que vous pouvez vérifier à chaque étape",
+      "intro": "DivalHR prépare et contrôle la paie avec vous. Il ne remplace ni votre revue réglementaire ni votre prestataire de paiement.",
+      "points": {
+        "history": "Historique mensuel de rémunération",
+        "time": "Éléments de présence et de temps approuvés",
+        "review": "Préparation et revue de la paie",
+        "rules": "Packs de règles statutaires gouvernés",
+        "payslips": "Bulletins de paie bilingues",
+        "batches": "Préparation des lots de paiement",
+        "reconciliation": "Rapprochement contrôlé",
+        "journal": "Export de journal prêt pour la comptabilité"
+      },
+      "disclosure": "L’exécution des paiements, la configuration statutaire et les connexions comptables externes exigent une revue propre à chaque client et des prestataires approuvés. DivalHR ne marque pas un employé comme payé du simple fait qu’un fichier a été généré."
+    },
+    "wellness": {
+      "kicker": "Bien-être financier des employés",
+      "title": "Un modèle responsable pour les avances sur salaire",
+      "intro": "Il s’agit du modèle visé à terme. La disponibilité réelle dépend des partenaires approuvés et des règles de chaque pays.",
+      "steps": {
+        "activate": {
+          "title": "L’employeur active un produit approuvé",
+          "description": "Rien n’est proposé tant que votre organisation n’a pas activé un produit partenaire."
+        },
+        "consent": {
+          "title": "L’employé choisit de consulter l’offre et d’y consentir",
+          "description": "L’employé décide seul. Il n’existe aucune orientation cachée."
+        },
+        "disclose": {
+          "title": "Seules les informations consenties sont transmises",
+          "description": "Le partenaire ne reçoit que les éléments que l’employé a accepté de partager."
+        },
+        "decide": {
+          "title": "Le partenaire approuvé prend la décision de crédit",
+          "description": "DivalHR n’est pas le prêteur et ne garantit aucune approbation."
+        },
+        "repay": {
+          "title": "Un remboursement par la paie suppose un accord distinct",
+          "description": "Toute retenue requiert son propre accord autorisé."
+        }
+      },
+      "statements": {
+        "notLender": "DivalHR n’est pas le prêteur.",
+        "noGuarantee": "Aucune approbation n’est jamais garantie.",
+        "noHidden": "Aucune orientation n’est cachée.",
+        "privateChoices": "Les administrateurs de l’employeur ne voient pas les choix privés d’un employé.",
+        "availability": "La disponibilité réelle dépend des partenaires approuvés et des règles de chaque pays."
+      },
+      "disclosure": "Disponible uniquement par l’intermédiaire de partenaires approuvés et après activation pour le client. DivalHR ne prend pas lui-même de décision de crédit, n’accorde pas de prêt, n’émet pas d’assurance et ne garantit aucune approbation."
+    },
+    "partners": {
+      "kicker": "Réseau de partenaires",
+      "title": "Un réseau maîtrisé de partenaires régulés",
+      "intro": "Nous construisons un réseau de partenaires maîtrisé afin que les employés puissent, à terme, accéder à des produits de prestataires régulés, avec consentement, revue de protection des données et activation par l’employeur.",
+      "typesTitle": "Qui peut candidater",
+      "types": {
+        "banks": "Banques",
+        "mfi": "Institutions de microfinance",
+        "payments": "Fournisseurs de monnaie mobile et de paiement",
+        "insurance": "Assureurs",
+        "health": "Prestataires de santé et d’avantages sociaux",
+        "telecom": "Opérateurs de télécommunications",
+        "software": "Éditeurs de logiciels comptables et d’entreprise"
+      },
+      "pathTitle": "Le parcours partenaire",
+      "path": {
+        "apply": "Candidature",
+        "diligence": "Vérifications préalables et revue encadrée",
+        "scope": "Définition du produit et du périmètre d’exploitation",
+        "review": "Revue de sécurité et de protection des données",
+        "activate": "Contrat et activation technique",
+        "limited": "Pilote limité",
+        "broader": "Élargissement après preuves"
+      },
+      "disclaimer": "Une candidature ou une approbation ne crée ni connexion technique, ni caution commerciale, ni droit d’accès aux données des employés.",
+      "statusNote": "Aujourd’hui, le réseau de partenaires est un processus de candidature et de revue encadré. Aucun partenaire réel n’est connecté techniquement.",
+      "cta": "Devenir partenaire"
+    },
+    "integrations": {
+      "kicker": "Intégrations",
+      "title": "Des intégrations décrites selon ce qui existe",
+      "intro": "Un logo indique uniquement une compatibilité de produit ou un contexte d’écosystème. Il ne signifie ni partenariat commercial, ni caution.",
+      "groups": {
+        "available": "Connecteur disponible",
+        "designed": "Conçu pour se connecter",
+        "partner": "Dépend d’un partenaire",
+        "planned": "Prévu"
+      },
+      "entries": {
+        "webhooks": "Webhooks signés",
+        "whatsapp": "WhatsApp Business",
+        "journal": "Fichier de journal prêt pour la comptabilité (CSV)",
+        "banks": "Virements bancaires",
+        "mobileMoney": "Opérateurs de monnaie mobile",
+        "accounting": "Logiciels comptables et d’entreprise",
+        "sso": "Authentification unique avec votre fournisseur d’identité"
+      },
+      "logoNote": "Les marques appartiennent à leurs propriétaires respectifs. Les logos proviennent de sources officielles ; lorsque l’usage autorisé n’est pas établi, le nom officiel est affiché à la place.",
+      "brandsLabel": "Contexte d’écosystème"
+    },
+    "security": {
+      "kicker": "Sécurité",
+      "title": "Sécurité et protection des données, en termes simples",
+      "intro": "Les contrôles de sécurité et de protection des données sont intégrés à la plateforme. La configuration juridique propre à chaque pays et les politiques du client doivent encore être examinées avant toute activation.",
+      "items": {
+        "isolation": {
+          "title": "Cloisonnement des organisations",
+          "description": "Les données de chaque organisation restent séparées de celles des autres."
+        },
+        "mfa": {
+          "title": "MFA pour les rôles privilégiés",
+          "description": "Les rôles privilégiés doivent utiliser l’authentification multifacteur."
+        },
+        "scoped": {
+          "title": "Accès délimités",
+          "description": "Chacun ne voit que ce que son rôle et son organisation autorisent."
+        },
+        "appendOnly": {
+          "title": "Historiques sensibles en ajout seul",
+          "description": "Les historiques sensibles peuvent être complétés, mais ni modifiés ni supprimés après coup."
+        },
+        "encrypted": {
+          "title": "Données protégées chiffrées",
+          "description": "Les données personnelles protégées sont stockées chiffrées."
+        },
+        "exports": {
+          "title": "Exports contrôlés",
+          "description": "Les exports portent des empreintes d’intégrité et des en-têtes de téléchargement sûrs."
+        },
+        "requests": {
+          "title": "Demandes relatives aux données",
+          "description": "Les employés peuvent demander l’accès aux données de leurs orientations vers des partenaires."
+        },
+        "retention": {
+          "title": "Gouvernance de la conservation",
+          "description": "Les règles de conservation exigent une revue juridique avant activation ; rien n’est supprimé automatiquement."
+        },
+        "backups": {
+          "title": "Sauvegardes et reprise",
+          "description": "Les procédures sont en cours de construction et de répétition dans l’environnement pilote."
+        }
+      }
+    },
+    "ai": {
+      "kicker": "Dival AI et automatisation",
+      "title": "Des synthèses fondées sur vos données aujourd’hui, une assistance guidée demain",
+      "nowTitle": "Disponible aujourd’hui",
+      "now": "Une synthèse opérationnelle quotidienne qui résume vos propres données et en indique les sources, ainsi que des webhooks signés et des notifications contrôlées. Ce n’est pas un assistant RH autonome généraliste.",
+      "futureTitle": "Orientation prévue",
+      "future": {
+        "guided": "Assistance opérationnelle guidée",
+        "exceptions": "Explication des exceptions",
+        "policy": "Aide tenant compte des politiques",
+        "recommendations": "Recommandations de flux de travail",
+        "selfService": "Assistance en libre-service pour les employés"
+      }
+    },
+    "mobile": {
+      "kicker": "Mobile",
+      "title": "Fonctionne sur le téléphone que vous avez en poche",
+      "body": "Expérience web adaptée au mobile dès aujourd’hui. Les applications mobiles natives sont prévues."
+    },
+    "pilot": {
+      "kicker": "Programme pilote",
+      "title": "Rejoignez le pilote contrôlé",
+      "intro": "Le pilote s’adresse aux organisations prêtes à configurer DivalHR avec nous, étape par étape.",
+      "forTitle": "À qui s’adresse le pilote",
+      "for": {
+        "collaborative": "Aux organisations prêtes à paramétrer le système en collaboration",
+        "synthetic": "À une validation sur données synthétiques avant toute donnée réelle",
+        "bounded": "À un effectif initial limité",
+        "scope": "À un périmètre d’exploitation convenu",
+        "admins": "À des administrateurs nommément désignés",
+        "feedback": "À des séances de retours et de validation"
+      },
+      "nextTitle": "Et ensuite ?",
+      "next": {
+        "discovery": "Appel de découverte",
+        "readiness": "Revue du périmètre et de la préparation",
+        "plan": "Plan de configuration",
+        "rehearsal": "Répétition sur données synthétiques",
+        "onboarding": "Intégration encadrée du client",
+        "acceptance": "Validation du pilote"
+      },
+      "contactNote": "Les demandes ouvrent un e-mail vers contact@dival.ai. Ce site ne collecte ni ne conserve vos informations."
+    },
+    "finalCta": {
+      "title": "Construisez une base opérationnelle plus solide pour vos équipes.",
+      "body": "Parlez-nous de votre organisation ; nous vous présenterons la plateforme avec des données synthétiques."
+    },
+    "footer": {
+      "label": "Pied de page",
+      "product": "Produit",
+      "pilot": "Programme pilote",
+      "partnerApplication": "Candidature de partenaire",
+      "security": "Sécurité",
+      "privacy": "Confidentialité",
+      "terms": "Conditions",
+      "contact": "Contact",
+      "signIn": "Se connecter",
+      "legalNote": "La confidentialité et les conditions sont des documents de pilote, en attente de la revue finale d’un conseil juridique.",
+      "tagline": "La technologie des effectifs pour l’Afrique.",
+      "copyright": "© 2026 DivalHR · Une société Dival AI"
+    },
+    "media": {
+      "galleryTitle": "Le vrai produit, avec des données synthétiques",
+      "galleryIntro": "Écrans capturés sur l’application déployée, dans un environnement de test, avec des données synthétiques. Dans l’annuaire des employés, les numéros et les noms sont remplacés par des valeurs fictives.",
+      "desktop": "Ordinateur",
+      "mobile": "Largeur mobile",
+      "shots": {
+        "admin-home": {
+          "title": "Accueil de l’administrateur",
+          "alt": "Accueil d’administration de l’organisation dans DivalHR : actions rapides pour importer des employés, examiner les demandes de congé, ouvrir les feuilles de temps et exporter le temps approuvé, un panneau de contrats et le menu de navigation."
+        },
+        "directory": {
+          "title": "Annuaire des employés",
+          "alt": "Annuaire des employés de DivalHR : un tableau de numéros d’employé, de noms et de statuts d’emploi, avec le menu de navigation à gauche. Les numéros et les noms sont fictifs."
+        },
+        "payroll": {
+          "title": "Préparation de la paie",
+          "alt": "Préparation de la paie dans DivalHR : un avis indiquant que seules des données de préparation sont générées et qu’aucun salaire brut, retenue, impôt, salaire net ni paiement n’est calculé, au-dessus d’un formulaire pour choisir une entité juridique et une période."
+        },
+        "employee-mobile": {
+          "title": "Employé sur téléphone",
+          "alt": "Accueil employé de DivalHR en largeur de téléphone : le titre Mon espace, puis les cartes Mon horaire et Mes congés avec des liens Ouvrir, sous une bannière d’environnement de test."
+        }
+      },
+      "reel": {
+        "title": "Séquence de présentation du produit",
+        "play": "Lire la séquence de présentation",
+        "pause": "Mettre en pause la séquence de présentation",
+        "poster": "Image d’aperçu de la séquence, montrant l’accueil de l’administrateur DivalHR.",
+        "transcriptTitle": "Transcription",
+        "transcriptToggle": "Afficher la transcription",
+        "mutedNote": "Sans son, muette par défaut.",
+        "scenes": {
+          "brand": "DivalHR : gestion du personnel et des opérations, bilingue, pour les organisations africaines.",
+          "home": "Un administrateur voit d’un coup d’œil les actions rapides et les contrats à traiter.",
+          "directory": "L’annuaire liste chaque employé avec son statut d’emploi.",
+          "payroll": "La préparation de la paie ne produit que des données de préparation : ni salaire brut, ni impôt, ni paiement n’est calculé.",
+          "employee": "Les employés accèdent à leur horaire et à leurs congés depuis leur téléphone.",
+          "cta": "Pilote contrôlé. Demandez une démonstration."
+        }
+      }
+    },
+    "legal": {
+      "back": "Retour à la page d’accueil",
+      "pilotNotice": "Document de pilote en attente de la revue finale d’un conseil juridique. Il ne constitue pas un avis juridique et ne crée aucun contrat.",
+      "privacy": {
+        "title": "Notice de confidentialité (pilote)",
+        "intro": "La manière dont ce site public traite vos informations pendant le pilote contrôlé.",
+        "items": {
+          "collect": "Ce site ne collecte, ne conserve ni ne transmet vos informations personnelles, et n’utilise aucun outil de mesure d’audience ni traceur publicitaire.",
+          "email": "Si vous écrivez à contact@dival.ai, nous n’utilisons votre message que pour y répondre et organiser une démonstration ou un échange sur le pilote.",
+          "product": "L’usage du produit après connexion relève de l’accord de chaque client pilote et des contrôles de protection des données décrits dans la section Sécurité.",
+          "partners": "Les candidatures de partenaires sont traitées par le formulaire de candidature et le processus de revue dédiés."
+        }
+      },
+      "terms": {
+        "title": "Conditions (pilote)",
+        "intro": "Les conditions applicables à ce site et au pilote contrôlé.",
+        "items": {
+          "status": "DivalHR est proposé en pilote contrôlé. Il n’est pas encore ouvert à tous et ne fait l’objet d’aucune certification pour la production.",
+          "scope": "Le périmètre du pilote, les données et les responsabilités sont convenus par écrit avec chaque client pilote.",
+          "labels": "Les étiquettes de ce site décrivent ce qui est disponible aujourd’hui. Les éléments prévus relèvent de la feuille de route et non d’engagements.",
+          "partners": "La candidature ou l’approbation d’un partenaire ne crée ni connexion technique, ni caution commerciale, ni droit d’accès aux données des employés.",
+          "advice": "Ce site est une présentation commerciale, et non un conseil juridique, financier ou de paie."
+        }
+      }
     }
   }
 }

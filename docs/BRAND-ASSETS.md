@@ -1,15 +1,15 @@
-# Third-party brand assets (UI-002)
+# Third-party brand assets (UI-002, LAUNCH-004)
 
-The public landing page (Issue #63, UI2-2) shows the planned integration ecosystem with the official names and, where an asset is recorded below, the brand's mark. Every mark is a local file in `apps/web/public/brands/`, served from the application's own origin: the page makes no third-party request and uses no icon CDN or remote font.
+The public commercial page (LAUNCH-004, Issue #228; originally UI-002, Issue #63) shows integration context with the official names and, where an asset is recorded below, the brand's mark. Every mark is a local file in `apps/web/public/brands/`, served from the application's own origin: the page makes no third-party request and uses no icon CDN or remote font.
 
-**Trademarks belong to their respective owners.** The page shows planned compatibility only and states, in English and French, that no partnership or endorsement is implied. Use of each mark remains subject to business and legal review before a production launch (UI2-5).
+**Trademarks belong to their respective owners.** A logo shows product compatibility or ecosystem context only; the page states, in English and French, that a logo does not mean a commercial partnership or endorsement, and no integration is shown as connected without a real production connection (see `docs/COMMERCIAL-LAUNCH-TRUTH.md`). Use of each mark remains subject to business and legal review before a production launch (UI2-5).
 
 ## Rules
 
 - Marks keep their aspect ratio and their brand colour. They are never recoloured for a theme; they sit on a light tile in both themes and stay smaller than the DivalHR brand.
 - The visible name carries the meaning; the image has empty alternative text, so assistive technology announces each brand once.
 - When permitted use of a mark cannot be established from an official source, the page shows the official name in a neutral tile instead. No substitute logo is drawn.
-- Adding, replacing or removing a mark: update `apps/web/src/features/landing/catalogue.ts` and this file in the same change. A unit test fails if a brand in the catalogue is missing here or if its file is missing.
+- Adding, replacing or removing a mark: update `apps/web/src/features/commercial/integrations.ts` and this file in the same change. A unit test fails if a brand in the catalogue is missing here or if its file is missing.
 
 ## Marks in use
 
@@ -24,7 +24,6 @@ Source of the vector paths: the Simple Icons collection, npm package `simple-ico
 | Odoo | Odoo S.A. | `public/brands/odoo.svg` | `#714B67` | https://www.odoo.com/page/brand-assets | https://www.odoo.com/page/brand-assets |
 | SAP | SAP SE | `public/brands/sap.svg` | `#0FAAFF` | https://www.sap.com | None recorded: confirm before production |
 | WhatsApp Business | Meta Platforms, Inc. | `public/brands/whatsapp.svg` | `#25D366` | https://about.meta.com/brand/resources/whatsapp/whatsapp-brand | https://about.meta.com/brand/resources/whatsapp/whatsapp-brand |
-| Keycloak | The Linux Foundation (Keycloak project) | `public/brands/keycloak.svg` | `#4D4D4D` | https://github.com/keycloak/keycloak-misc/blob/dee033f2d6d6b5c3a6ce8eb84e285f7e5626dbf6/logo/icon-black.svg | https://www.linuxfoundation.org/legal/trademark-usage |
 
 Notes:
 
@@ -39,12 +38,7 @@ These brands are shown by name only, until an official asset with established pe
 | --- | --- | --- |
 | M-PESA | Safaricom PLC / Vodacom Group | Not in the recorded source collection; no official asset with established permitted use. |
 | Oracle | Oracle Corporation | Not in the recorded source collection; no official asset with established permitted use. |
-| Microsoft Teams | Microsoft Corporation | Not in the recorded source collection; Microsoft's published trademark guidelines restrict logo use, so permitted use is not established. |
-| Slack | Salesforce, Inc. | Not in the recorded source collection; no official asset with established permitted use. |
-| Microsoft 365 | Microsoft Corporation | As Microsoft Teams. |
-| Google Workspace | Google LLC | Only the general Google mark is available locally; the Google Workspace product mark is not. |
-| Microsoft Entra ID | Microsoft Corporation | As Microsoft Teams. |
 
 ## Not brands
 
-Bank transfer, ISO 20022 bank files, REST API, webhooks and SSO / SAML are methods or standards. They use DivalHR interface icons and localized labels.
+Signed webhooks, the accounting-ready journal file, bank transfers, mobile-money operators as a category, accounting software as a category and single sign-on are methods or categories, not brands. They use DivalHR interface icons and localized labels.

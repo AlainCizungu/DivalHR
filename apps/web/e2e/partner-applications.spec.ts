@@ -282,7 +282,7 @@ async function apply(page: Page, a: Applicant, fromLanding: boolean): Promise<st
   await page.goto('/');
   await page.getByRole('button', { name: t.language, exact: true }).click();
   if (fromLanding) {
-    await page.getByTestId('landing-partner-cta').click();
+    await page.getByTestId('commercial-partner-cta').click();
     await expect(page).toHaveURL(/\/partners\/apply$/u);
   } else {
     await page.goto('/partners/apply');
